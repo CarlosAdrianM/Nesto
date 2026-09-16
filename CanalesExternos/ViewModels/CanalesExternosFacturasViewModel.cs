@@ -2,7 +2,7 @@
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class CanalesExternosFacturasViewModel : BindableBase
+    public class CanalesExternosFacturasViewModel : ObservableObject
     {
         private const int MARGEN_DIAS_ATRAS = 45;
 
@@ -157,9 +157,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 var facturas = await canal.GetFacturasMesAsync(Año, Mes, MARGEN_DIAS_ATRAS);
                 Facturas = new ObservableCollection<FacturaCanalExterno>(facturas.OrderBy(f => f.FechaFactura).ThenBy(f => f.InvoiceId));
 
-                RaisePropertyChanged(nameof(FacturasPendientes));
-                RaisePropertyChanged(nameof(FacturasYaContabilizadas));
-                RaisePropertyChanged(nameof(FacturasHueco));
+                OnPropertyChanged(nameof(FacturasPendientes));
+                OnPropertyChanged(nameof(FacturasYaContabilizadas));
+                OnPropertyChanged(nameof(FacturasHueco));
 
                 MensajeEstado = $"{FacturasPendientes.Count()} pendientes, {FacturasYaContabilizadas.Count()} ya contabilizadas, {FacturasHueco.Count()} huecos.";
             }
@@ -193,8 +193,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     else errores++;
                 }
 
-                RaisePropertyChanged(nameof(FacturasPendientes));
-                RaisePropertyChanged(nameof(FacturasYaContabilizadas));
+                OnPropertyChanged(nameof(FacturasPendientes));
+                OnPropertyChanged(nameof(FacturasYaContabilizadas));
 
                 if (canal.SoportaCuadreLiquidacion)
                 {
@@ -229,8 +229,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                                 $"Sintéticas añadidas: {resultado.Sinteticas}. " +
                                 $"Reconstruidas sin match: {resultado.NoEmparejadas}. " +
                                 $"Detectadas {marcadasContabilizadas} ya contabilizadas en NestoAPI.";
-                RaisePropertyChanged(nameof(FacturasPendientes));
-                RaisePropertyChanged(nameof(FacturasYaContabilizadas));
+                OnPropertyChanged(nameof(FacturasPendientes));
+                OnPropertyChanged(nameof(FacturasYaContabilizadas));
                 RaiseCanExecuteChanged();
             }
             catch (Exception ex)
@@ -259,8 +259,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 }
                 else
                     MensajeEstado = $"Error en {factura.InvoiceId}: {factura.MensajeError}";
-                RaisePropertyChanged(nameof(FacturasPendientes));
-                RaisePropertyChanged(nameof(FacturasYaContabilizadas));
+                OnPropertyChanged(nameof(FacturasPendientes));
+                OnPropertyChanged(nameof(FacturasYaContabilizadas));
             }
             catch (Exception ex)
             {
@@ -280,7 +280,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 var cuadre = await canal.CuadrarConLiquidacionAsync(Año, Mes);
                 TotalContabilizadoMes = cuadre.TotalFacturasContabilizadas;
                 TotalLiquidacionesMes = cuadre.TotalComisionesLiquidaciones;
-                RaisePropertyChanged(nameof(DiferenciaCuadre));
+                OnPropertyChanged(nameof(DiferenciaCuadre));
             }
             catch (Exception ex)
             {

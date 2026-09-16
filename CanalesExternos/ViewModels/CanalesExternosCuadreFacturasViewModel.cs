@@ -4,7 +4,7 @@ using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class CanalesExternosCuadreFacturasViewModel : BindableBase
+    public class CanalesExternosCuadreFacturasViewModel : ObservableObject
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
@@ -91,7 +91,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _cuadre, value);
-                RaisePropertyChanged(nameof(DetalleCuadre));
+                OnPropertyChanged(nameof(DetalleCuadre));
             }
         }
 
@@ -107,9 +107,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _cuadreFacturas, value);
-                RaisePropertyChanged(nameof(FacturasCuadradas));
-                RaisePropertyChanged(nameof(FacturasSoloEnNesto));
-                RaisePropertyChanged(nameof(FacturasSoloEnAmazon));
+                OnPropertyChanged(nameof(FacturasCuadradas));
+                OnPropertyChanged(nameof(FacturasSoloEnNesto));
+                OnPropertyChanged(nameof(FacturasSoloEnAmazon));
             }
         }
 
@@ -133,10 +133,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _cuadreLiquidaciones, value);
-                RaisePropertyChanged(nameof(LiquidacionesCuadradas));
-                RaisePropertyChanged(nameof(LiquidacionesSoloEnNesto));
-                RaisePropertyChanged(nameof(LiquidacionesSoloEnAmazon));
-                RaisePropertyChanged(nameof(LiquidacionesImportesDistintos));
+                OnPropertyChanged(nameof(LiquidacionesCuadradas));
+                OnPropertyChanged(nameof(LiquidacionesSoloEnNesto));
+                OnPropertyChanged(nameof(LiquidacionesSoloEnAmazon));
+                OnPropertyChanged(nameof(LiquidacionesImportesDistintos));
             }
         }
 
@@ -164,9 +164,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _cuadrePedidos, value);
-                RaisePropertyChanged(nameof(PedidosCuadrados));
-                RaisePropertyChanged(nameof(PedidosSoloEnNesto));
-                RaisePropertyChanged(nameof(PedidosSoloEnAmazon));
+                OnPropertyChanged(nameof(PedidosCuadrados));
+                OnPropertyChanged(nameof(PedidosSoloEnNesto));
+                OnPropertyChanged(nameof(PedidosSoloEnAmazon));
             }
         }
 
@@ -192,7 +192,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _saldosCuentas555, value);
-                RaisePropertyChanged(nameof(GruposCuentaSeleccionada));
+                OnPropertyChanged(nameof(GruposCuentaSeleccionada));
             }
         }
 
@@ -203,7 +203,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _cuentaSaldo555Seleccionada, value);
-                RaisePropertyChanged(nameof(GruposCuentaSeleccionada));
+                OnPropertyChanged(nameof(GruposCuentaSeleccionada));
             }
         }
 

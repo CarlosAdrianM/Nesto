@@ -1,10 +1,10 @@
 ﻿using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Nesto.Modulos.CanalesExternos.Models
 {
-    public class ProductoCanalExterno : BindableBase
+    public class ProductoCanalExterno : ObservableObject
     {
         private string _productoId;
         public string ProductoId { 
@@ -60,9 +60,9 @@ namespace Nesto.Modulos.CanalesExternos.Models
                 if(SetProperty(ref _pvpIvaIncluido, value))
                 {
                     IsDirty = true;
-                    RaisePropertyChanged(nameof(ModoPrecio));
-                    RaisePropertyChanged(nameof(EsPrecioFijo));
-                    RaisePropertyChanged(nameof(PrecioPublicoTexto));
+                    OnPropertyChanged(nameof(ModoPrecio));
+                    OnPropertyChanged(nameof(EsPrecioFijo));
+                    OnPropertyChanged(nameof(PrecioPublicoTexto));
                 }
             }
         }

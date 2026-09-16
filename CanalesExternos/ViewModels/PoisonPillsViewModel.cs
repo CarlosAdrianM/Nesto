@@ -3,7 +3,7 @@ using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class PoisonPillsViewModel : BindableBase
+    public class PoisonPillsViewModel : ObservableObject
     {
         private readonly IPoisonPillsService _servicio;
         private readonly IDialogService _dialogService;

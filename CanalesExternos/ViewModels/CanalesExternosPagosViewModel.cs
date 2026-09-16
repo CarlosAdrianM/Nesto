@@ -6,7 +6,7 @@ using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class CanalesExternosPagosViewModel : BindableBase
+    public class CanalesExternosPagosViewModel : ObservableObject
     {
         private const string BANCO_AMAZON = "57200013";
         private const string CUENTA_COMISIONES = "62300023";
@@ -135,7 +135,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     }
                 });
 
-                RaisePropertyChanged(nameof(PagoSeleccionado));
+                OnPropertyChanged(nameof(PagoSeleccionado));
             }
             catch (Exception ex)
             {
