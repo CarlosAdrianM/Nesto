@@ -402,7 +402,7 @@
                                 </DataGridTextColumn>
 
                                 <!-- Grupo de alternativas: líneas con el mismo número son intercambiables ("elige 1") -->
-                                <DataGridTextColumn Header="Grupo alt." Binding="{Binding GrupoAlternativa, UpdateSourceTrigger=LostFocus}" Width="80"
+                                <DataGridTextColumn Header="Grupo alt." Binding="{Binding GrupoAlternativa, UpdateSourceTrigger=LostFocus, TargetNullValue=''}" Width="80"
                                                     ClipboardContentBinding="{x:Null}">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
