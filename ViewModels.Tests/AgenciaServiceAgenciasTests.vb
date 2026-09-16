@@ -188,6 +188,32 @@ Public Class AgenciaServiceAgenciasTests
         Assert.AreEqual("EnviosAgencias/PorPedido?empresa=1&pedido=12345", ruta)
     End Sub
 
+    ' Nesto#340 (Agencias, slice A3): CargarEnvioPorClienteYDireccion (la "ampliación") dejó Entity
+    ' Framework y pide el envío en curso a GET api/EnviosAgencias/EnCursoPorClienteYDireccion. Mismo
+    ' contrato de nombres: cliente, contacto, direccion.
+
+    <TestMethod()>
+    Public Sub RutaEnvioEnCursoPorClienteYDireccion_LlevaLosNombresQueEsperaElEndpoint()
+        Dim ruta = AgenciaService.RutaEnvioEnCursoPorClienteYDireccion("15191", "0", "CALLE MAYOR 1")
+
+        Assert.AreEqual("EnviosAgencias/EnCursoPorClienteYDireccion?cliente=15191&contacto=0&direccion=CALLE%20MAYOR%201", ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnvioEnCursoPorClienteYDireccion_ConClienteYContactoRellenosDeEspacios_NoLosMandaEnLaUrl()
+        ' Cliente y Contacto son char en la BD, así que los llamantes traen "15191     " y "0  ".
+        Dim ruta = AgenciaService.RutaEnvioEnCursoPorClienteYDireccion("15191     ", "0  ", "CALLE MAYOR 1")
+
+        Assert.AreEqual("EnviosAgencias/EnCursoPorClienteYDireccion?cliente=15191&contacto=0&direccion=CALLE%20MAYOR%201", ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnvioEnCursoPorClienteYDireccion_SinDatos_NoRevienta()
+        Dim ruta = AgenciaService.RutaEnvioEnCursoPorClienteYDireccion(Nothing, Nothing, Nothing)
+
+        Assert.AreEqual("EnviosAgencias/EnCursoPorClienteYDireccion?cliente=&contacto=&direccion=", ruta)
+    End Sub
+
     ' Nesto#468: la pestaña Retrasados lee GET api/EnviosAgencias/Retrasados (NestoAPI#173). Los
     ' nombres de los parámetros son un contrato: diasUmbral, agencia, vendedor.
 

@@ -58,7 +58,6 @@ Public Interface IAgenciaService
     Function CargarPagoExtractoClientePorEnvio(envio As EnviosAgencia, concepto As String, importeAnterior As Double) As ObservableCollection(Of ExtractoCliente)
     Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte
     Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia
-    Function CargarDeudasCliente(cliente As String, fechaReclamar As Date) As List(Of ExtractoCliente)
     Function TramitarEnvio(envio As EnviosAgencia) As String
     ' Innovatrans (registrar al imprimir): tramita el envío contra la agencia en el servidor
     ' (POST api/EnviosAgencias/{id}/Tramitar) y devuelve el albarán + bultos + etiqueta ZPL.

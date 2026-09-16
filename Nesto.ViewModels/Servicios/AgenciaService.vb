@@ -681,27 +681,27 @@ Public Class AgenciaService
             agencias.FirstOrDefault(Function(a) CampoIgual(a.Empresa, empresa) AndAlso CampoIgual(a.Nombre, Constantes.Agencias.AGENCIA_REEMBOLSOS)))
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A3): la "ampliación" (el envío EN CURSO de hoy del mismo cliente,
+    ''' contacto y dirección, para meter el pedido nuevo en el mismo bulto) dejó Entity Framework y
+    ''' la contesta GET api/EnviosAgencias/EnCursoPorClienteYDireccion, que replica el filtro exacto
+    ''' (Estado = 0, sin empresa). Como CargarEnvio, estampa la empresa: el EF la traía con un
+    ''' Reference(...).Load() y de ahí salen el remitente de Correos Express y el asiento del reembolso.
+    ''' </summary>
     Public Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia Implements IAgenciaService.CargarEnvioPorClienteYDireccion
-        Using contexto = New NestoEntities
-            Dim respuesta = (From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault
-            If Not IsNothing(respuesta) Then
-                contexto.Entry(respuesta).Reference(Function(e) e.Empresas).Load()
-            End If
-            Return respuesta
-        End Using
+        Dim envio As EnviosAgencia = LeerListadoEnvios(RutaEnvioEnCursoPorClienteYDireccion(cliente, contacto, direccion)).FirstOrDefault()
+        If envio Is Nothing Then
+            Return Nothing
+        End If
+        envio.Empresas = CargarEmpresa(envio.Empresa)
+        Return envio
     End Function
 
-    Public Function CargarDeudasCliente(cliente As String, fechaReclamar As Date) As List(Of ExtractoCliente) Implements IAgenciaService.CargarDeudasCliente
-        Using contexto = New NestoEntities
-            Return (From e In contexto.ExtractoCliente Where e.Número = cliente AndAlso
-                e.ImportePdte <> 0 AndAlso
-                (e.Estado Is Nothing Or (e.Estado <> "RTN" And e.Estado <> "RHS")) AndAlso
-                (e.FormaPago <> "TRN") AndAlso
-                (e.Ruta Is Nothing Or e.Ruta <> "RG") AndAlso
-                e.FechaVto < fechaReclamar AndAlso
-                e.TipoApunte <> "4").ToList
-        End Using
-
+    ''' <summary>Ruta aparte para fijar en un test el contrato de nombres con el endpoint. Cliente y
+    ''' contacto son char en la BD (llegan con relleno); la dirección se manda tal cual, que SQL
+    ''' Server ya ignora el relleno al comparar y en memoria no hay que comparar nada.</summary>
+    Friend Shared Function RutaEnvioEnCursoPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As String
+        Return $"EnviosAgencias/EnCursoPorClienteYDireccion?cliente={Uri.EscapeDataString(If(cliente, "").Trim())}&contacto={Uri.EscapeDataString(If(contacto, "").Trim())}&direccion={Uri.EscapeDataString(If(direccion, ""))}"
     End Function
 
     ' ===== Nesto#340 (Agencias, slice A4.1): cerrar el envío y contabilizar su reembolso =====

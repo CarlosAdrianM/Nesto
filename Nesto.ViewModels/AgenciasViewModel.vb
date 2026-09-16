@@ -3734,16 +3734,6 @@ Public Class AgenciasViewModel
             Return pedidoEncontrado
         End If
     End Function
-    Private Function calcularDeuda() As Double
-        Dim deudas As List(Of ExtractoCliente)
-        Dim fechaReclamar As Date = Today.AddDays(-7)
-        deudas = _servicio.CargarDeudasCliente(pedidoSeleccionado.Nº_Cliente, fechaReclamar)
-        Return If(deudas.Count = 0,
-                  0.0,
-                  Math.Round(
-                      deudas.Sum(Function(l) CDbl(l.ImportePdte)),
-                      2, MidpointRounding.AwayFromZero))
-    End Function
     'Private Function EstamosEditandoEnvioPendiente() As Boolean
     '    ' Hay que cambiar el nombre a la función, porqeu ya no existe contextPendientes
     '    ' TODO: tiene que devolver true solo si estamos editando o añadiendo un envío
