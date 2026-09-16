@@ -34,10 +34,15 @@ Public Class PedidoVentaDTOModoServicioTests
     End Sub
 
     <TestMethod()>
-    Public Sub ModosServicio_Efectivo_SinModoDerivaDeServirJunto()
+    Public Sub ModosServicio_Efectivo_ServirJuntoMarcadoEsTodoJunto_DesmarcadoMandaElModoParcial()
         Assert.AreEqual(ModosServicio.TODO_JUNTO, ModosServicio.Efectivo(Nothing, True))
         Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, ModosServicio.Efectivo(Nothing, False))
-        Assert.AreEqual(CByte(4), ModosServicio.Efectivo(4, True))
+        ' Marcado manda aunque el modo guardado sea parcial (misma regla que la API)
+        Assert.AreEqual(ModosServicio.TODO_JUNTO, ModosServicio.Efectivo(4, True))
+        Assert.AreEqual(CByte(4), ModosServicio.Efectivo(4, False))
+        Assert.AreEqual(CByte(3), ModosServicio.Efectivo(3, False))
+        ' Modo 1 desmarcado (el Nesto viejo lo desmarcó): según entre
+        Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, ModosServicio.Efectivo(1, False))
     End Sub
 
     <TestMethod()>

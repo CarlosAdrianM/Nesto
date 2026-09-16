@@ -27,12 +27,20 @@ Public NotInheritable Class ModosServicio
         End Get
     End Property
 
-    ''' <summary>El modo que rige de verdad: el informado o, si no hay, el que dice servirJunto.</summary>
+    ''' <summary>
+    ''' El modo que rige de verdad (misma regla que NestoAPI, Carlos 16/09/26): servirJunto marcado SIEMPRE
+    ''' es «todo junto»; desmarcado, manda el modo parcial guardado (3 o 4) o, si no hay, el 2. El bool es
+    ''' la autoridad de «todo junto» porque el Nesto viejo lo escribe en la tabla sin conocer el modo y
+    ''' NestoApp solo manda el bool; el modo solo refina el «no todo junto».
+    ''' </summary>
     Public Shared Function Efectivo(modoServicio As Byte?, servirJunto As Boolean) As Byte
-        If modoServicio.HasValue AndAlso EsValido(modoServicio.Value) Then
+        If servirJunto Then
+            Return TODO_JUNTO
+        End If
+        If modoServicio.HasValue AndAlso (modoServicio.Value = TRAS_REPONER_DE_TIENDAS OrElse modoServicio.Value = AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ) Then
             Return modoServicio.Value
         End If
-        Return If(servirJunto, TODO_JUNTO, SEGUN_VAYA_ENTRANDO)
+        Return SEGUN_VAYA_ENTRANDO
     End Function
 
     Public Shared Function EsValido(modo As Byte) As Boolean
