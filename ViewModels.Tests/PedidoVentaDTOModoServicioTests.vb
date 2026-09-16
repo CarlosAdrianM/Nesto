@@ -46,6 +46,14 @@ Public Class PedidoVentaDTOModoServicioTests
     End Sub
 
     <TestMethod()>
+    Public Sub ModosServicio_EsEntregaUnica_SoloLosModos1Y4()
+        Assert.IsTrue(ModosServicio.EsEntregaUnica(1))
+        Assert.IsFalse(ModosServicio.EsEntregaUnica(2))
+        Assert.IsFalse(ModosServicio.EsEntregaUnica(3))
+        Assert.IsTrue(ModosServicio.EsEntregaUnica(4))
+    End Sub
+
+    <TestMethod()>
     Public Sub ModosServicio_Lista_OfreceLosCuatroModosConNombre()
         Dim codigos = ModosServicio.Lista.Select(Function(m) m.Codigo).ToList()
 

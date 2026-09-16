@@ -278,9 +278,11 @@ Public Class PlantillaVentaViewModel
         Get
             Dim baseImponible As Decimal = 0
             If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
-                Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, True)
+                ' NestoAPI#482: para portes cuentan como entrega única los modos 1 y 4 (misma regla que
+                ' GestorPortes en la API), no solo «servir junto».
+                Dim entregaUnica As Boolean = ModosServicio.EsEntregaUnica(ModoServicio)
                 baseImponible = listaProductosPedido.
-                    Where(Function(l) Not EsSobrePedidoParaPortes(l, servirJunto)).
+                    Where(Function(l) Not EsSobrePedidoParaPortes(l, entregaUnica)).
                     Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
             Return baseImponible
@@ -852,6 +854,11 @@ Public Class PlantillaVentaViewModel
             End If
             If Estado.ModoServicio.HasValue AndAlso Not ModosServicio.EsTodoJunto(Estado.ModoServicio.Value) Then
                 Return Estado.ModoServicio.Value
+            End If
+            ' Sin dirección todavía (carga inicial) el pedido nacerá en el modo por defecto: es lo que se enseña
+            ' y con lo que se estiman portes y bonificables hasta que el usuario elija otra cosa.
+            If direccionEntregaSeleccionada Is Nothing Then
+                Return ModoServicioPorDefecto
             End If
             Return ModosServicio.SEGUN_VAYA_ENTRANDO
         End Get

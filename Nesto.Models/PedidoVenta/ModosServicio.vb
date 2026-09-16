@@ -69,6 +69,12 @@ Public NotInheritable Class ModosServicio
         Return modo = TODO_JUNTO
     End Function
 
+    ''' <summary>A efectos de portes (NestoAPI#211/Nesto#365, «1 entrega → todo cuenta»): 1 y 4 acaban en
+    ''' una entrega única del resto; 2 y 3 son por entrega. Misma regla que GestorPortes en la API.</summary>
+    Public Shared Function EsEntregaUnica(modo As Byte) As Boolean
+        Return modo = TODO_JUNTO OrElse modo = AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ
+    End Function
+
     Public Shared Function Nombre(modo As Byte) As String
         Dim item = _lista.FirstOrDefault(Function(m) m.Codigo = modo)
         Return If(item?.Nombre, $"Modo {modo}")

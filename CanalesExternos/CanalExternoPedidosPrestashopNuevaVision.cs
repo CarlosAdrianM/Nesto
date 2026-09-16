@@ -154,6 +154,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.serie = "NV";
             pedidoSalida.periodoFacturacion = "NRM";
             pedidoSalida.servirJunto = true;
+            pedidoSalida.modoServicio = ModosServicio.TODO_JUNTO; // NestoAPI#482: un pedido de marketplace sale de una vez; sin modo la API lo pondría en el 3
 
             pedidoSalida.Usuario = configuracion.usuario;
 

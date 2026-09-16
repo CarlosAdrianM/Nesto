@@ -963,6 +963,25 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void Portes_Modo4_AhoraLoQueHayYElRestoDeUnaVez_CuentaComoEntregaUnica()
+        {
+            // NestoAPI#482: para portes, el modo 4 es entrega única como el 1 (misma regla que la API).
+            var vm = CrearViewModelConPortes();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.ModoServicio = Nesto.Models.ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ;
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 4, cantidad = 2, precio = 38M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 1, StockDisponibleTodosLosAlmacenes = 4
+            });
+
+            Assert.AreEqual(76M, vm.baseImponibleParaPortes, "En modo 4 la línea sin stock en el almacén también cuenta");
+
+            vm.ModoServicio = Nesto.Models.ModosServicio.TRAS_REPONER_DE_TIENDAS;
+            Assert.AreEqual(0M, vm.baseImponibleParaPortes, "En modo 3 es por entrega: la línea sobre pedido no cuenta");
+        }
+
+        [TestMethod]
         public void Portes_ProductoEstado4_SinServirJunto_StockAlmacenInsuficiente_NoCuentaParaPortes()
         {
             // Sin servirJunto, stock almacén insuficiente → la línea NO cuenta para portes
@@ -988,21 +1007,22 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void Portes_DireccionNull_ServirJuntoPorDefectoTrue_UsaStockGlobal()
+        public void Portes_DireccionNull_MandaElModoPorDefecto()
         {
-            // Sin dirección seleccionada, servirJunto por defecto true
+            // NestoAPI#482 (16/09/26): sin dirección seleccionada (carga inicial) el pedido nacerá en el
+            // modo por defecto. Antes se asumía servirJunto=true; ahora el por defecto es «tras reponer
+            // de tiendas» (por entrega) salvo que el parámetro del usuario diga otra cosa.
             var vm = CrearViewModelConPortes();
-            // No asignar dirección — simula carga inicial
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
                 estado = 4, cantidad = 2, precio = 38M, descuento = 0,
                 stockActualizado = true, cantidadDisponible = 1, StockDisponibleTodosLosAlmacenes = 4
             });
 
-            var baseParaPortes = vm.baseImponibleParaPortes;
+            Assert.AreEqual(0M, vm.baseImponibleParaPortes, "Modo 3 por defecto: la línea sin stock en el almacén no cuenta");
 
-            Assert.AreEqual(76M, baseParaPortes,
-                "Sin dirección (servirJunto por defecto true), debe usar stock global");
+            vm.ModoServicioPorDefecto = Nesto.Models.ModosServicio.TODO_JUNTO;
+            Assert.AreEqual(76M, vm.baseImponibleParaPortes, "Con el parámetro en «Todo junto», cuenta el stock global");
         }
 
         #endregion
