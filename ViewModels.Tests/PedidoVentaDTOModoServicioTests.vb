@@ -41,10 +41,11 @@ Public Class PedidoVentaDTOModoServicioTests
     End Sub
 
     <TestMethod()>
-    Public Sub ModosServicio_Lista_NoOfreceElModo3HastaQueElServidorLoAdmita()
+    Public Sub ModosServicio_Lista_OfreceLosCuatroModosConNombre()
         Dim codigos = ModosServicio.Lista.Select(Function(m) m.Codigo).ToList()
 
-        CollectionAssert.AreEqual(New List(Of Byte) From {1, 2, 4}, codigos)
-        Assert.IsFalse(codigos.Contains(ModosServicio.TRAS_REPONER_DE_TIENDAS))
+        CollectionAssert.AreEqual(New List(Of Byte) From {1, 2, 3, 4}, codigos)
+        Assert.IsTrue(ModosServicio.Lista.All(Function(m) Not String.IsNullOrWhiteSpace(m.Nombre) AndAlso Not String.IsNullOrWhiteSpace(m.Descripcion)))
+        Assert.AreEqual("Tras reponer de tiendas", ModosServicio.Nombre(ModosServicio.TRAS_REPONER_DE_TIENDAS))
     End Sub
 End Class

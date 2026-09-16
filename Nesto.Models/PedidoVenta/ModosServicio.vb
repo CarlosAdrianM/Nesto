@@ -2,8 +2,7 @@
 ''' Nesto#476 / NestoAPI#482: el modo de servicio del pedido, que sustituye a la casilla «Servir junto».
 ''' Réplica de Constantes.Pedidos.ModosServicio de NestoAPI. El servidor normaliza en POST/PUT:
 ''' sin modo deriva de servirJunto; con modo, servirJunto pasa a ser su derivado (solo el 1 es True).
-''' El modo 3 (tras reponer de tiendas) existe en el diseño pero el servidor lo rechaza todavía
-''' (NestoAPI#482, slice 1), así que NO se ofrece en la lista.
+''' El modo 3 (tras reponer de tiendas) lo admite el servidor desde el slice 2 (16/09/26).
 ''' </summary>
 Public NotInheritable Class ModosServicio
     Private Sub New()
@@ -17,10 +16,11 @@ Public NotInheritable Class ModosServicio
     Private Shared ReadOnly _lista As IReadOnlyList(Of ModoServicioItem) = New List(Of ModoServicioItem) From {
         New ModoServicioItem(TODO_JUNTO, "Todo junto", "No sale nada hasta que hay stock de todo el pedido (la antigua casilla «Servir junto» marcada)."),
         New ModoServicioItem(SEGUN_VAYA_ENTRANDO, "Según vaya entrando", "Sale lo que haya en cada pasada, tantas entregas como haga falta (la antigua casilla desmarcada)."),
+        New ModoServicioItem(TRAS_REPONER_DE_TIENDAS, "Tras reponer de tiendas", "Espera a que la reposición habitual traiga de las tiendas el stock que le corresponda al pedido; cuando no queda nada que traer, sale lo que hay y el resto según vaya entrando."),
         New ModoServicioItem(AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ, "Ahora lo que hay, el resto de una vez", "Sale ya lo que hay; lo que falta se entrega en una sola entrega más, cuando esté todo.")
     }
 
-    ''' <summary>Los modos que se pueden elegir en pantalla (el 3 queda fuera hasta que el servidor lo admita).</summary>
+    ''' <summary>Los modos que se pueden elegir en pantalla, en el orden del selector.</summary>
     Public Shared ReadOnly Property Lista As IReadOnlyList(Of ModoServicioItem)
         Get
             Return _lista
