@@ -1,4 +1,5 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using System.Collections.Generic;
+using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Interfaces;
@@ -100,6 +101,25 @@ namespace CajasTests
 
             sut.EstaContabilizando = false;
             Assert.IsTrue(sut.CanContabilizarApunte(), "Al terminar, vuelve a activarse");
+        }
+
+        // 16/09/26 (Carlos): el botón «Regularizar diferencia» no se activaba al seleccionar los apuntes.
+        // Al seleccionar, el VM avisaba al botón ANTES de recalcular el saldo del punteo, y el recálculo
+        // solo avisaba a «Puntear»: el botón se quedaba con la evaluación de la selección anterior.
+        [TestMethod]
+        public void RegularizarDiferencia_ElUltimoAvisoAlBotonLlegaConElDescuadreYaRecalculado()
+        {
+            var sut = new BancosViewModel(A.Fake<IBancosService>(), A.Fake<IContabilidadService>(), A.Fake<IConfiguracion>(),
+                A.Fake<IDialogService>(), A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
+            bool? canEnElUltimoAviso = null;
+            sut.RegularizarDiferenciaCommand.CanExecuteChanged += (s, e) => canEnElUltimoAviso = sut.RegularizarDiferenciaCommand.CanExecute(null);
+
+            // Banco 100,20 y contabilidad 100,00: descuadre de 0,20, regularizable
+            sut.SeleccionarApuntesBancoCommand.Execute(new List<object> { new ApunteBancarioWrapper(new ApunteBancarioDTO { ImporteMovimiento = 100.20m }) });
+            sut.SeleccionarApuntesContabilidadCommand.Execute(new List<object> { new ContabilidadWrapper(new ContabilidadDTO { Debe = 100m }) });
+
+            Assert.IsTrue(sut.RegularizarDiferenciaCommand.CanExecute(null), "Control: con 0,20 de descuadre se puede regularizar");
+            Assert.AreEqual(true, canEnElUltimoAviso, "El botón tiene que recibir el aviso DESPUÉS de recalcular el descuadre, si no se queda gris");
         }
 
         [TestMethod]

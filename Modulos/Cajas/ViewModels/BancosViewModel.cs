@@ -467,6 +467,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 _ = SetProperty(ref _saldoPunteoApuntesBanco, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
                 ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
+                // «Regularizar diferencia» depende de DescuadrePunteo: hay que avisarle AQUÍ, no solo al cambiar
+                // la selección (que se asigna antes de recalcular el saldo y lo evaluaba con el descuadre viejo).
+                ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
             }
         }
         private decimal _saldoPunteoApuntesContabilidad;
@@ -478,6 +481,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 _ = SetProperty(ref _saldoPunteoApuntesContabilidad, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
                 ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
             }
         }
         private Dictionary<string, string> _terminalesUsuarios;
