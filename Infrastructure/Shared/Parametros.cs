@@ -24,6 +24,9 @@
             public const string FondoCaja = "FondoCaja";
             public const string FormaVentaDefecto = "FormaVentaDefecto";
             public const string ImpresoraAgencia = "ImpresoraAgencia";
+            // NestoAPI#482: modo de servicio con el que nacen los pedidos (1..4; sin fila, 3). Contrato
+            // común con NestoAPI y NestoApp; la API aplica el mismo valor a los clientes que no lo mandan.
+            public const string ModoServicioPorDefecto = "ModoServicioPorDefecto";
             public const string ImpresoraAgenciaGLS = "ImpresoraAgenciaGLS";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";

@@ -42,15 +42,30 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void ModoServicio_DerivaDelServirJuntoDeLaDireccion()
+        public void ModoServicio_ElPedidoNaceEnElPorDefecto_SinArrastrarElServirJuntoDeLaFicha()
         {
+            // Carlos, 16/09/26: una referencia agotada o anulada dejaba pedidos «todo junto» sin
+            // servir nunca. Por defecto 3, aunque la ficha del cliente tenga servir junto marcado.
             var vm = CrearViewModel();
 
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = true };
-            Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.ModoServicio);
+
+            Assert.AreEqual(ModosServicio.TRAS_REPONER_DE_TIENDAS, vm.ModoServicio);
+            Assert.IsFalse(vm.direccionEntregaSeleccionada.servirJunto);
+            Assert.AreEqual((byte)3, vm.Estado.ModoServicio);
+            Assert.IsFalse(vm.Estado.ServirJunto);
+        }
+
+        [TestMethod]
+        public void ModoServicio_ElParametroDelUsuarioCambiaElPorDefecto()
+        {
+            var vm = CrearViewModel();
+            vm.ModoServicioPorDefecto = ModosServicio.TODO_JUNTO;
 
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
-            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio);
+
+            Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.ModoServicio);
+            Assert.IsTrue(vm.direccionEntregaSeleccionada.servirJunto);
         }
 
         [TestMethod]
@@ -83,7 +98,7 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void CambiarDeDireccion_ElModoVuelveADerivarDeLaFicha()
+        public void CambiarDeDireccion_ElModoVuelveAlPorDefecto()
         {
             var vm = CrearViewModel();
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
@@ -91,21 +106,21 @@ namespace PlantillaVentaTests
 
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = true };
 
-            Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.ModoServicio);
-            Assert.IsNull(vm.Estado.ModoServicio);
+            Assert.AreEqual(ModosServicio.TRAS_REPONER_DE_TIENDAS, vm.ModoServicio);
+            Assert.AreEqual((byte)3, vm.Estado.ModoServicio);
         }
 
         [TestMethod]
-        public void SincronizarListasAlEstado_SinTocarElSelector_ElEstadoLlevaElModoEfectivo()
+        public void SincronizarListasAlEstado_SinTocarElSelector_ElEstadoLlevaElModoPorDefecto()
         {
-            // Un pedido que nunca tocó el selector también viaja con modo (coherente con servirJunto),
-            // igual que hace el servidor al normalizar.
+            // Un pedido que nunca tocó el selector también viaja con modo: el por defecto.
             var vm = CrearViewModel();
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = true };
 
             vm.SincronizarListasAlEstado();
 
-            Assert.AreEqual((byte)1, vm.Estado.ModoServicio);
+            Assert.AreEqual((byte)3, vm.Estado.ModoServicio);
+            Assert.IsFalse(vm.Estado.ServirJunto);
         }
 
         [TestMethod]

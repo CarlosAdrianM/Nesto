@@ -13,6 +13,22 @@ Public NotInheritable Class ModosServicio
     Public Const TRAS_REPONER_DE_TIENDAS As Byte = 3
     Public Const AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ As Byte = 4
 
+    ''' <summary>
+    ''' Modo con el que nace un pedido si nadie dice otra cosa (Carlos, 16/09/26): «tras reponer de
+    ''' tiendas». NO se arrastra el ServirJunto de la ficha del cliente (una referencia agotada o anulada
+    ''' dejaba pedidos «todo junto» sin servir nunca). El parámetro ModoServicioPorDefecto permite excepciones.
+    ''' </summary>
+    Public Const POR_DEFECTO As Byte = TRAS_REPONER_DE_TIENDAS
+
+    ''' <summary>El valor del parámetro ModoServicioPorDefecto, o POR_DEFECTO si falta o no es un modo válido.</summary>
+    Public Shared Function ParsearPorDefecto(valorParametro As String) As Byte
+        Dim modo As Byte
+        If Byte.TryParse(If(valorParametro, String.Empty).Trim(), modo) AndAlso EsValido(modo) Then
+            Return modo
+        End If
+        Return POR_DEFECTO
+    End Function
+
     Private Shared ReadOnly _lista As IReadOnlyList(Of ModoServicioItem) = New List(Of ModoServicioItem) From {
         New ModoServicioItem(TODO_JUNTO, "Todo junto", "No sale nada hasta que hay stock de todo el pedido (la antigua casilla «Servir junto» marcada)."),
         New ModoServicioItem(SEGUN_VAYA_ENTRANDO, "Según vaya entrando", "Sale lo que haya en cada pasada, tantas entregas como haga falta (la antigua casilla desmarcada)."),

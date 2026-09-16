@@ -2615,6 +2615,15 @@ Public Class DetallePedidoViewModel
             .EsPresupuesto = False
         }
 
+        ' NestoAPI#482: el pedido nuevo nace en el modo por defecto (parámetro del usuario o 3), sin
+        ' arrastrar el ServirJunto de la ficha del cliente.
+        Try
+            pedidoNuevo.modoServicio = ModosServicio.ParsearPorDefecto(Await configuracion.leerParametro(empresa, Parametros.Claves.ModoServicioPorDefecto))
+        Catch ex As Exception
+            pedidoNuevo.modoServicio = ModosServicio.POR_DEFECTO
+        End Try
+        pedidoNuevo.servirJunto = ModosServicio.EsTodoJunto(pedidoNuevo.modoServicio.Value)
+
         ' Nesto#379: cargar los parámetros de IVA desde el principio para que las líneas que se
         ' tecleen antes de seleccionar cliente no se encuentren ParametrosIva sin cargar.
         Try

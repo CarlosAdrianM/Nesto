@@ -829,6 +829,21 @@ Public Class PlantillaVentaViewModel
     ''' modo parcial guardado en el Estado (2 o 4) o el 2 si no hay ninguno. Cambiar de modo escribe
     ''' las dos cosas, y al salir del modo 1 dispara la validación del servidor como hacía la casilla.
     ''' </summary>
+    ''' <summary>
+    ''' NestoAPI#482: modo con el que arranca el selector al elegir la dirección (parámetro
+    ''' ModoServicioPorDefecto del usuario, o 3). No se arrastra el ServirJunto de la ficha del cliente.
+    ''' Friend para poder fijarlo en los tests.
+    ''' </summary>
+    Friend Property ModoServicioPorDefecto As Byte = ModosServicio.POR_DEFECTO
+
+    Private Async Function CargarModoServicioPorDefectoAsync() As Task
+        Try
+            ModoServicioPorDefecto = ModosServicio.ParsearPorDefecto(Await leerParametro(Parametros.Claves.ModoServicioPorDefecto))
+        Catch ex As Exception
+            ModoServicioPorDefecto = ModosServicio.POR_DEFECTO
+        End Try
+    End Function
+
     Public Property ModoServicio As Byte
         Get
             Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, Estado.ServirJunto)
@@ -1088,8 +1103,11 @@ Public Class PlantillaVentaViewModel
                 value.servirJunto = _borradorEnRestauracion.ServirJunto
                 Estado.ModoServicio = _borradorEnRestauracion.ModoServicio ' Nesto#476
             ElseIf value IsNot Nothing Then
-                ' Nesto#476: al cambiar de dirección el modo vuelve a derivar del servirJunto de la ficha
-                Estado.ModoServicio = Nothing
+                ' NestoAPI#482: el pedido nuevo NACE en el modo por defecto (3 salvo parámetro). No se arrastra
+                ' el ServirJunto de la ficha: dejaba pedidos «todo junto» sin servir nunca por una referencia
+                ' agotada o anulada (Carlos, 16/09/26). El usuario puede cambiarlo en el selector.
+                Estado.ModoServicio = ModoServicioPorDefecto
+                value.servirJunto = ModosServicio.EsTodoJunto(ModoServicioPorDefecto)
             End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
 
@@ -3339,6 +3357,9 @@ Public Class PlantillaVentaViewModel
 
         ' Issue #286: Cargar lista de borradores guardados
         OnActualizarListaBorradores()
+
+        ' NestoAPI#482: modo de servicio por defecto del usuario (antes de que se elija ninguna dirección)
+        Await CargarModoServicioPorDefectoAsync().ConfigureAwait(True)
 
         ' Nesto#397: si se navega con un pedido a modificar (botón "Modificar con plantilla" de
         ' ListaPedidosVenta), cargarlo en modo edición.

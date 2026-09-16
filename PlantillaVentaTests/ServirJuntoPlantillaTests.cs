@@ -49,9 +49,11 @@ namespace PlantillaVentaTests
         public void SincronizarListasAlEstado_UsuarioDesmarcaServirJunto_LlegaAlEstado()
         {
             var vm = CrearViewModel();
-            // Al seleccionar la direccion, servirJunto viene marcado de la ficha del cliente
+            // NestoAPI#482 (16/09/26): el pedido nace en el modo por defecto, no en la ficha; para este
+            // test forzamos el por defecto a «todo junto» y así el Estado arranca marcado.
+            vm.ModoServicioPorDefecto = Nesto.Models.ModosServicio.TODO_JUNTO;
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = true };
-            Assert.IsTrue(vm.Estado.ServirJunto, "De partida el Estado lo coge de la direccion");
+            Assert.IsTrue(vm.Estado.ServirJunto, "De partida el Estado lo coge del modo por defecto");
 
             // El usuario lo desmarca en la pantalla (el checkbox bindea contra la direccion)
             vm.direccionEntregaSeleccionada.servirJunto = false;
