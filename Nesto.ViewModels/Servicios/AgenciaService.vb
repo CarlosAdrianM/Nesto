@@ -557,11 +557,34 @@ Public Class AgenciaService
         }))
     End Function
 
+    ' ===== Nesto#340 (Agencias 1D): el saldo de la cuenta de reembolsos sale de la API, no de EF =====
+    ' GET api/Contabilidades/Saldo (Debe - Haber desde el 01/01/2019, que es lo que sumaba aquí el
+    ' Aggregate sobre Contabilidad). Lo consume el getter sumaContabilidad de AgenciasViewModel, que ya
+    ' se traga cualquier excepción y devuelve 0. Inyectable para los tests, como LectorEmpresas.
+    Friend Property LectorSaldo As Func(Of String, String, Double?) = AddressOf LeerSaldoDeLaApi
+
     Public Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double? Implements IAgenciaService.CalcularSumaContabilidad
-        Using contexto = New NestoEntities
-            Dim fechaInicial As New Date(2019, 1, 1)
-            Return Aggregate c In contexto.Contabilidad Where c.Empresa = empresa AndAlso c.Fecha >= fechaInicial AndAlso c.Nº_Cuenta = cuentaReembolsos Into Sum(c.Debe - CType(c.Haber, Double?))
-        End Using
+        If String.IsNullOrWhiteSpace(empresa) OrElse String.IsNullOrWhiteSpace(cuentaReembolsos) Then
+            Return Nothing
+        End If
+        Return LectorSaldo.Invoke(empresa.Trim(), cuentaReembolsos.Trim())
+    End Function
+
+    Private Function LeerSaldoDeLaApi(empresa As String, cuenta As String) As Double?
+        Return Task.Run(Async Function() As Task(Of Double?)
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim ruta As String = $"Contabilidades/Saldo?empresa={Uri.EscapeDataString(empresa)}&cuenta={Uri.EscapeDataString(cuenta)}"
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudo leer el saldo de la cuenta {cuenta} ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of Double?)(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
     End Function
 
     ' ===== Nesto#340 (Agencias): las empresas se leen de la API, no de EF =====
