@@ -1,4 +1,4 @@
-using Nesto.Modulos.Cliente.Models;
+﻿using Nesto.Modulos.Cliente.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -16,5 +16,9 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Liquida dos movimientos (NestoAPI#333, prdLiquidar con validaciones
         /// adelantadas server-side). Lanza Exception con el motivo legible si no se puede.</summary>
         Task<ResultadoLiquidacionModel> LiquidarEfectos(string empresa, int origen, int destino);
+
+        /// <summary>Nesto#478: PDF de una factura (GET api/Facturas?empresa&amp;numeroFactura). Lanza
+        /// Exception con el motivo legible si la API no la puede servir.</summary>
+        Task<byte[]> DescargarFacturaPdf(string empresa, string numeroFactura);
     }
 }

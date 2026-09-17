@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cliente.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -43,6 +43,34 @@ namespace Nesto.Modulos.Cliente
                 }
                 return JsonConvert.DeserializeObject<List<ExtractoClienteModel>>(body)
                     ?? new List<ExtractoClienteModel>();
+            }
+        }
+
+        public async Task<byte[]> DescargarFacturaPdf(string empresa, string numeroFactura)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
+                // Misma llamada que la descarga de facturas de la ficha de cliente (ClientesViewModel).
+                HttpResponseMessage response = await client.GetAsync(
+                    $"Facturas?empresa={Uri.EscapeDataString(empresa?.Trim() ?? string.Empty)}" +
+                    $"&numeroFactura={Uri.EscapeDataString(numeroFactura?.Trim() ?? string.Empty)}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"No se pudo obtener la factura {numeroFactura?.Trim()}: {ExtraerMensaje(body)}");
+                }
+                byte[] pdf = await response.Content.ReadAsByteArrayAsync();
+                if (pdf == null || pdf.Length == 0)
+                {
+                    throw new Exception($"El servidor no ha devuelto el PDF de la factura {numeroFactura?.Trim()}.");
+                }
+                return pdf;
             }
         }
 

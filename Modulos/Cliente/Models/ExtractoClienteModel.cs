@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 
 namespace Nesto.Modulos.Cliente.Models
@@ -29,6 +29,8 @@ namespace Nesto.Modulos.Cliente.Models
         public string Ruta { get; set; }
         public string Estado { get; set; }
         public string FormaPago { get; set; }
+        /// <summary>Nesto#478 / NestoAPI#492: el nº de documento es una factura existente; se puede abrir desde la fila.</summary>
+        public bool TieneFactura { get; set; }
 
         private bool _seleccionado;
         public bool Seleccionado

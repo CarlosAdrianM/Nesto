@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,16 +28,27 @@ namespace Nesto.Modulos.Cliente
         private readonly IExtractoClienteService _servicio;
         private readonly IDialogService _dialogService;
         private readonly IEventAggregator _eventAggregator;
+        private readonly Action<string> _abrirFichero;
 
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
             IEventAggregator eventAggregator)
+            : this(servicio, dialogService, eventAggregator, null)
+        {
+        }
+
+        // abrirFichero: lo que se hace con el PDF ya en disco (por defecto abrirlo con el visor del
+        // sistema); los tests inyectan una captura para no lanzar procesos.
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
+            IEventAggregator eventAggregator, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogService = dialogService;
             _eventAggregator = eventAggregator;
+            _abrirFichero = abrirFichero ?? AbrirConElVisorDelSistema;
             Titulo = "Extracto de Cliente";
             CargarCommand = new RelayCommand(OnCargar, CanCargar);
             LiquidarCommand = new RelayCommand(OnLiquidar, CanLiquidar);
+            AbrirFacturaCommand = new RelayCommand<ExtractoClienteModel>(OnAbrirFactura, CanAbrirFactura);
         }
 
         public string Titulo { get; }
@@ -141,6 +154,50 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = false;
             }
+        }
+
+        // Nesto#478: abrir la factura del movimiento (doble clic en el nº de documento o el botón de la
+        // fila, activo solo cuando el servidor dice que ese documento es una factura: NestoAPI#492).
+        public RelayCommand<ExtractoClienteModel> AbrirFacturaCommand { get; }
+
+        private static bool CanAbrirFactura(ExtractoClienteModel movimiento) => movimiento?.TieneFactura == true;
+
+        private async void OnAbrirFactura(ExtractoClienteModel movimiento) => await AbrirFacturaAsync(movimiento);
+
+        public async Task AbrirFacturaAsync(ExtractoClienteModel movimiento)
+        {
+            if (!CanAbrirFactura(movimiento))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                byte[] pdf = await _servicio.DescargarFacturaPdf(movimiento.Empresa?.Trim(), movimiento.Documento?.Trim());
+                string ruta = Path.Combine(Path.GetTempPath(), NombreFicheroFactura(movimiento.Documento));
+                File.WriteAllBytes(ruta, pdf);
+                _abrirFichero(ruta);
+            }
+            catch (Exception ex)
+            {
+                // Series sin descarga permitida, factura antigua sin PDF, red: se dice, no se revienta.
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public static string NombreFicheroFactura(string documento)
+        {
+            string limpio = new string((documento ?? string.Empty).Trim().Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c).ToArray());
+            return $"Factura_{limpio}.pdf";
+        }
+
+        private static void AbrirConElVisorDelSistema(string ruta)
+        {
+            _ = Process.Start(new ProcessStartInfo(ruta) { UseShellExecute = true });
         }
 
         public RelayCommand LiquidarCommand { get; }

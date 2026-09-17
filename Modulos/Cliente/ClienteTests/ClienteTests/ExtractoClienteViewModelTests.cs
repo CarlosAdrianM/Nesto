@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente;
@@ -66,6 +66,67 @@ namespace ClienteTests
                 ImportePendiente = pendiente,
                 Seleccionado = seleccionado
             };
+        }
+
+        // Nesto#478 (NestoAPI#492): abrir la factura desde el movimiento.
+
+        [TestMethod]
+        public void AbrirFactura_SoloSePuedeSiElDocumentoEsUnaFactura()
+        {
+            var vm = CrearViewModel();
+            var factura = Movimiento(1, 100m);
+            factura.Documento = "NV26/001234";
+            factura.TieneFactura = true;
+            var recibo = Movimiento(2, 50m);
+            recibo.Documento = "REMESA 17";
+
+            Assert.IsTrue(vm.AbrirFacturaCommand.CanExecute(factura));
+            Assert.IsFalse(vm.AbrirFacturaCommand.CanExecute(recibo), "Un recibo no tiene factura que abrir");
+            Assert.IsFalse(vm.AbrirFacturaCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task AbrirFactura_DescargaElPdfYLoAbre()
+        {
+            string abierto = null;
+            A.CallTo(() => servicio.DescargarFacturaPdf("1", "NV26/001234")).Returns(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+            var vm = new ExtractoClienteViewModel(servicio, dialogService, eventAggregator, ruta => abierto = ruta);
+            var factura = Movimiento(1, 100m);
+            factura.Documento = "NV26/001234";
+            factura.TieneFactura = true;
+
+            await vm.AbrirFacturaAsync(factura);
+
+            Assert.IsNotNull(abierto, "Se abre el PDF descargado");
+            StringAssert.EndsWith(abierto, "Factura_NV26_001234.pdf");
+            Assert.IsTrue(System.IO.File.Exists(abierto));
+            CollectionAssert.AreEqual(new byte[] { 0x25, 0x50, 0x44, 0x46 }, System.IO.File.ReadAllBytes(abierto));
+            Assert.AreEqual(0, mensajesDialogo.Count);
+            System.IO.File.Delete(abierto);
+        }
+
+        [TestMethod]
+        public async Task AbrirFactura_SiLaApiNoLaSirve_AvisaYNoAbreNada()
+        {
+            string abierto = null;
+            A.CallTo(() => servicio.DescargarFacturaPdf(A<string>.Ignored, A<string>.Ignored))
+                .Throws(new Exception("No se pudo obtener la factura NV26/001234: serie sin descarga permitida"));
+            var vm = new ExtractoClienteViewModel(servicio, dialogService, eventAggregator, ruta => abierto = ruta);
+            var factura = Movimiento(1, 100m);
+            factura.Documento = "NV26/001234";
+            factura.TieneFactura = true;
+
+            await vm.AbrirFacturaAsync(factura);
+
+            Assert.IsNull(abierto);
+            Assert.IsTrue(mensajesDialogo.Any(m => m.Contains("serie sin descarga permitida")));
+            Assert.IsFalse(vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public void NombreFicheroFactura_SustituyeLosCaracteresNoValidos()
+        {
+            Assert.AreEqual("Factura_NV26_001234.pdf", ExtractoClienteViewModel.NombreFicheroFactura(" NV26/001234 "));
         }
 
         [TestMethod]
