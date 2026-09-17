@@ -3,11 +3,11 @@ Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
 
 Public Class CarteraPagosViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
@@ -48,7 +48,7 @@ Public Class CarteraPagosViewModel
         Set(ByVal value As Integer)
             SetProperty(_numeroOrdenExtracto, value)
             numeroRemesa = 0
-            RaisePropertyChanged(NameOf(numeroRemesa))
+            OnPropertyChanged(NameOf(numeroRemesa))
             cmdCrearFicheroRemesa.NotifyCanExecuteChanged()
         End Set
     End Property

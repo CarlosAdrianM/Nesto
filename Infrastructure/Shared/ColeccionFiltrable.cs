@@ -1,6 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Nesto.Infrastructure.Shared
 {
-    public class ColeccionFiltrable : BindableBase
+    public class ColeccionFiltrable : ObservableObject
     {
         #region Constructores
         public ColeccionFiltrable() : base()
@@ -151,7 +151,7 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaOriginal, value);
                 ListaFijada = value;
-                RaisePropertyChanged(nameof(CamposFiltrables));
+                OnPropertyChanged(nameof(CamposFiltrables));
             }
         }
 

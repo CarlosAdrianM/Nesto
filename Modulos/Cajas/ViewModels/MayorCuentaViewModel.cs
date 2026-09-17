@@ -2,7 +2,7 @@
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -19,7 +19,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
     /// ViewModel para la vista de Mayor de Clientes/Proveedores.
     /// Issue #275: Nueva vista para consultar el Mayor de una cuenta.
     /// </summary>
-    public class MayorCuentaViewModel : BindableBase, INavigationAware
+    public class MayorCuentaViewModel : ObservableObject, INavigationAware
     {
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;
@@ -57,7 +57,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _esCliente, value))
                 {
-                    RaisePropertyChanged(nameof(EsProveedor));
+                    OnPropertyChanged(nameof(EsProveedor));
                     // Limpiar el numero de cuenta al cambiar el tipo
                     NumeroCuenta = null;
                     VerMayorCommand.NotifyCanExecuteChanged();

@@ -1,7 +1,7 @@
 ﻿Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
@@ -10,7 +10,7 @@ Imports Prism.Events
 Imports Nesto.Infrastructure.Events
 
 Public Class RapportViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements INavigationAware
 
     Public Property configuracion As IConfiguracion
@@ -74,9 +74,9 @@ Public Class RapportViewModel
             Else
                 VendedorPeluqueria = String.Empty
             End If
-            RaisePropertyChanged(NameOf(EstaVisibleTipoCentro))
+            OnPropertyChanged(NameOf(EstaVisibleTipoCentro))
             PrerrellenarEmpleados()
-            RaisePropertyChanged(NameOf(EstaVisibleEmpleados))
+            OnPropertyChanged(NameOf(EstaVisibleEmpleados))
         End Set
     End Property
 
@@ -190,7 +190,7 @@ Public Class RapportViewModel
             cmdCrearCita.NotifyCanExecuteChanged()
             cmdGuardarCambios.NotifyCanExecuteChanged()
             PrerrellenarEmpleados()
-            RaisePropertyChanged(NameOf(EstaVisibleEmpleados))
+            OnPropertyChanged(NameOf(EstaVisibleEmpleados))
         End Set
     End Property
 

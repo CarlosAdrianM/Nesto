@@ -17,14 +17,14 @@ Imports Newtonsoft.Json.Linq
 Imports System.Windows
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports Unity
 Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements INavigationAware, ITabCloseConfirmation
 
     Public Property configuracion As IConfiguracion
@@ -241,11 +241,11 @@ Public Class PlantillaVentaViewModel
                                                                      ' nuevas tras el refresh: hay que refrescar las vistas del pedido y avisar
                                                                      ' (sin bloquear) de las líneas que se quedan sin stock suficiente en el
                                                                      ' nuevo almacén; su color rojo/ámbar ya lo pinta colorStock solo.
-                                                                     RaisePropertyChanged(NameOf(hayProductosEnElPedido))
-                                                                     RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
-                                                                     RaisePropertyChanged(NameOf(listaProductosPedido))
-                                                                     RaisePropertyChanged(NameOf(baseImponiblePedido))
-                                                                     RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+                                                                     OnPropertyChanged(NameOf(hayProductosEnElPedido))
+                                                                     OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
+                                                                     OnPropertyChanged(NameOf(listaProductosPedido))
+                                                                     OnPropertyChanged(NameOf(baseImponiblePedido))
+                                                                     OnPropertyChanged(NameOf(baseImponibleParaPortes))
                                                                      Dim sinStock As List(Of LineaPlantillaVenta) = LineasConFaltaDeStock(nuevosStocks)
                                                                      If sinStock.Any() Then
                                                                          dialogService.ShowNotification("Cambio de almacén",
@@ -429,15 +429,15 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Private Sub ActualizarEtiquetaPortes()
         If IsNothing(_resultadoPortes) Then Return
-        RaisePropertyChanged(NameOf(TextoPortes))
-        RaisePropertyChanged(NameOf(PortesGratis))
-        RaisePropertyChanged(NameOf(ImportePortesMostrar))
-        RaisePropertyChanged(NameOf(baseImponiblePedidoConPortes))
-        RaisePropertyChanged(NameOf(totalPedidoConPortes))
-        RaisePropertyChanged(NameOf(listaProductosPedidoConPortes))
-        RaisePropertyChanged(NameOf(EsContraReembolso))
-        RaisePropertyChanged(NameOf(ImporteReembolsoMostrar))
-        RaisePropertyChanged(NameOf(TextoReembolso))
+        OnPropertyChanged(NameOf(TextoPortes))
+        OnPropertyChanged(NameOf(PortesGratis))
+        OnPropertyChanged(NameOf(ImportePortesMostrar))
+        OnPropertyChanged(NameOf(baseImponiblePedidoConPortes))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
+        OnPropertyChanged(NameOf(EsContraReembolso))
+        OnPropertyChanged(NameOf(ImporteReembolsoMostrar))
+        OnPropertyChanged(NameOf(TextoReembolso))
     End Sub
 
     ''' <summary>
@@ -669,8 +669,8 @@ Public Class PlantillaVentaViewModel
             estaOcupado = True
 
             ' Notificar los indicadores al entrar en la página
-            RaisePropertyChanged(NameOf(BaseImponibleBonificable))
-            RaisePropertyChanged(NameOf(GanavisionesDisponibles))
+            OnPropertyChanged(NameOf(BaseImponibleBonificable))
+            OnPropertyChanged(NameOf(GanavisionesDisponibles))
 
             ' Issue #286: Guardar los regalos del borrador antes de cargar la lista completa
             Dim regalosBorrador As List(Of LineaRegalo) = Nothing
@@ -758,11 +758,11 @@ Public Class PlantillaVentaViewModel
     End Sub
 
     Private Sub ActualizarIndicadoresGanavisiones()
-        RaisePropertyChanged(NameOf(GanavisionesUsados))
-        RaisePropertyChanged(NameOf(PorcentajeGanavisionesUsados))
-        RaisePropertyChanged(NameOf(GanavisionesExcedidos))
-        RaisePropertyChanged(NameOf(PuedePasarDePaginaRegalos))
-        RaisePropertyChanged(NameOf(ListaRegalosSeleccionados))
+        OnPropertyChanged(NameOf(GanavisionesUsados))
+        OnPropertyChanged(NameOf(PorcentajeGanavisionesUsados))
+        OnPropertyChanged(NameOf(GanavisionesExcedidos))
+        OnPropertyChanged(NameOf(PuedePasarDePaginaRegalos))
+        OnPropertyChanged(NameOf(ListaRegalosSeleccionados))
     End Sub
 
     Private _cmdActualizarRegalo As RelayCommand(Of LineaRegalo)
@@ -872,9 +872,9 @@ Public Class PlantillaVentaViewModel
             If direccionEntregaSeleccionada IsNot Nothing Then
                 direccionEntregaSeleccionada.servirJunto = ModosServicio.EsTodoJunto(value)
             End If
-            RaisePropertyChanged(NameOf(ModoServicio))
-            RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
-            RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+            OnPropertyChanged(NameOf(ModoServicio))
+            OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
+            OnPropertyChanged(NameOf(baseImponibleParaPortes))
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) Then
                 OnValidarServirJunto()
             End If
@@ -888,9 +888,9 @@ Public Class PlantillaVentaViewModel
         If direccionEntregaSeleccionada IsNot Nothing Then
             direccionEntregaSeleccionada.servirJunto = True
         End If
-        RaisePropertyChanged(NameOf(ModoServicio))
-        RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
-        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+        OnPropertyChanged(NameOf(ModoServicio))
+        OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
+        OnPropertyChanged(NameOf(baseImponibleParaPortes))
     End Sub
 
     Private Async Sub OnValidarServirJunto()
@@ -997,7 +997,7 @@ Public Class PlantillaVentaViewModel
                 fechaMinimaEntrega = Date.Today
                 fechaEntrega = Date.Today
             End If
-            RaisePropertyChanged(NameOf(SePuedeFinalizar))
+            OnPropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
 
@@ -1011,7 +1011,7 @@ Public Class PlantillaVentaViewModel
         Set(value As String)
             If Estado.CobroTarjetaCorreo <> value Then
                 Estado.CobroTarjetaCorreo = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1026,7 +1026,7 @@ Public Class PlantillaVentaViewModel
         Set(value As String)
             If Estado.CobroTarjetaMovil <> value Then
                 Estado.CobroTarjetaMovil = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1041,7 +1041,7 @@ Public Class PlantillaVentaViewModel
         Set(value As String)
             If Estado.ComentarioRuta <> value Then
                 Estado.ComentarioRuta = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1054,7 +1054,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             If Estado.AvisarConImporteAlCogerPicking <> value Then
                 Estado.AvisarConImporteAlCogerPicking = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1070,7 +1070,7 @@ Public Class PlantillaVentaViewModel
         Set(value As String)
             If Estado.ComentarioPicking <> value Then
                 Estado.ComentarioPicking = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1086,7 +1086,7 @@ Public Class PlantillaVentaViewModel
         Set(value As String)
             If Estado.Contacto <> value Then
                 Estado.Contacto = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1130,7 +1130,7 @@ Public Class PlantillaVentaViewModel
                 Estado.MantenerJunto = value.mantenerJunto
                 Estado.ServirJunto = value.servirJunto
             End If
-            RaisePropertyChanged(NameOf(ModoServicio)) ' Nesto#476
+            OnPropertyChanged(NameOf(ModoServicio)) ' Nesto#476
 
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
@@ -1156,13 +1156,13 @@ Public Class PlantillaVentaViewModel
                 Dim nuevoComentario = value.comentarioPicking
                 Dim respetarComentarioUsuario = Estado.UsuarioHaModificadoComentarioPicking()
                 Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, respetarComentarioUsuario)
-                RaisePropertyChanged(NameOf(ComentarioPicking))
+                OnPropertyChanged(NameOf(ComentarioPicking))
             End If
             If fechaEntrega < fechaMinimaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
-            RaisePropertyChanged(NameOf(textoFacturacionElectronica))
-            'RaisePropertyChanged(NameOf(fechaMinimaEntrega))
+            OnPropertyChanged(NameOf(textoFacturacionElectronica))
+            'OnPropertyChanged(NameOf(fechaMinimaEntrega))
             ' Se hace así para que coja la fecha de hoy cuando se pueda
             ' Si lo hacemos en otro orden, da error porque ponemos una fecha
             ' menor a la que nos permite el datapicker
@@ -1193,7 +1193,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             If Estado.EnviarPorGlovo <> value Then
                 Estado.EnviarPorGlovo = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
                 If Estado.EnviarPorGlovo Then
                     AlmacenAnterior = almacenSeleccionado.Codigo
                     almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenEntregaUrgente)
@@ -1258,7 +1258,7 @@ Public Class PlantillaVentaViewModel
         Dim valor As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenesPlantillaVenta)
         _almacenesStockUsuario = ParsearAlmacenes(valor)
         _verStockTresAlmacenes = AlmacenesStockUsuario.Count >= Constantes.Almacenes.ALMACENES_STOCK.Count
-        RaisePropertyChanged(NameOf(VerStockTresAlmacenes))
+        OnPropertyChanged(NameOf(VerStockTresAlmacenes))
     End Sub
 
     Private Shared Function ParsearAlmacenes(valor As String) As List(Of String)
@@ -1325,7 +1325,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             If Estado.AnadirPortes <> value Then
                 Estado.AnadirPortes = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
                 CargarInfoPortesConDebounce()
             End If
         End Set
@@ -1369,8 +1369,8 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             If Estado.EsPresupuesto <> value Then
                 Estado.EsPresupuesto = value
-                RaisePropertyChanged()
-                RaisePropertyChanged(NameOf(SePuedeFinalizar))
+                OnPropertyChanged()
+                OnPropertyChanged(NameOf(SePuedeFinalizar))
             End If
         End Set
     End Property
@@ -1425,7 +1425,7 @@ Public Class PlantillaVentaViewModel
             End If
             If Estado.FechaEntrega <> value Then
                 Estado.FechaEntrega = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
             End If
         End Set
     End Property
@@ -1518,9 +1518,9 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar código con Estado
             Estado.FormaPago = If(value IsNot Nothing, value.formaPago, Nothing)
             cmdCrearPedido.NotifyCanExecuteChanged()
-            RaisePropertyChanged(NameOf(SePuedeFinalizar))
-            RaisePropertyChanged(NameOf(EsTarjetaPrepago))
-            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+            OnPropertyChanged(NameOf(SePuedeFinalizar))
+            OnPropertyChanged(NameOf(EsTarjetaPrepago))
+            OnPropertyChanged(NameOf(MandarCobroTarjeta))
             ' Issue #159: al cambiar forma de pago puede activar/desactivar EsContraReembolso,
             ' lo que cambia el importe de comisión y la visibilidad de la casilla.
             CargarInfoPortesConDebounce()
@@ -1567,10 +1567,10 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As Integer)
             If Estado.FormaVenta <> value Then
                 Estado.FormaVenta = value
-                RaisePropertyChanged()
-                RaisePropertyChanged(NameOf(formaVentaDirecta))
-                RaisePropertyChanged(NameOf(formaVentaTelefono))
-                RaisePropertyChanged(NameOf(formaVentaOtras))
+                OnPropertyChanged()
+                OnPropertyChanged(NameOf(formaVentaDirecta))
+                OnPropertyChanged(NameOf(formaVentaTelefono))
+                OnPropertyChanged(NameOf(formaVentaOtras))
             End If
         End Set
     End Property
@@ -1587,7 +1587,7 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_formaVentaOtrasSeleccionada, value)
             ' Sincronizar código con Estado
             Estado.FormaVentaOtrasCodigo = If(value IsNot Nothing, value.numero, Nothing)
-            RaisePropertyChanged(NameOf(listaFormasVenta))
+            OnPropertyChanged(NameOf(listaFormasVenta))
             ActualizarAnadirPortesPorDefecto()
         End Set
     End Property
@@ -1661,7 +1661,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As List(Of Integer))
             Dim unused = SetProperty(_listaPedidosPendientes, value)
-            RaisePropertyChanged(NameOf(TienePedidosPendientes))
+            OnPropertyChanged(NameOf(TienePedidosPendientes))
         End Set
     End Property
 
@@ -1744,7 +1744,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             If Estado.MandarCobroTarjeta <> value Then
                 Estado.MandarCobroTarjeta = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
                 If MandarCobroTarjeta Then
                     CargarCorreoYMovilTarjeta.Execute(Nothing)
                 End If
@@ -1825,9 +1825,9 @@ Public Class PlantillaVentaViewModel
             Estado.PlazosPago = If(value IsNot Nothing, value.plazoPago, Nothing)
             Estado.DescuentoPP = If(value IsNot Nothing, value.descuentoPP, 0D)
             cmdCrearPedido.NotifyCanExecuteChanged()
-            RaisePropertyChanged(NameOf(SePuedeFinalizar))
-            RaisePropertyChanged(NameOf(EsTarjetaPrepago))
-            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+            OnPropertyChanged(NameOf(SePuedeFinalizar))
+            OnPropertyChanged(NameOf(EsTarjetaPrepago))
+            OnPropertyChanged(NameOf(MandarCobroTarjeta))
             If Not IsNothing(_plazoPagoSeleccionado) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute(Nothing)
             End If
@@ -1948,15 +1948,15 @@ Public Class PlantillaVentaViewModel
     ''' Se usa cuando el usuario modifica manualmente el precio o descuento.
     ''' </summary>
     Public Sub ActualizarTotales()
-        RaisePropertyChanged(NameOf(listaProductosPedido))
-        RaisePropertyChanged(NameOf(baseImponiblePedido))
-        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
-        RaisePropertyChanged(NameOf(totalPedido))
-        RaisePropertyChanged(NameOf(totalPedidoConPortes))
-        RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
-        RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+        OnPropertyChanged(NameOf(listaProductosPedido))
+        OnPropertyChanged(NameOf(baseImponiblePedido))
+        OnPropertyChanged(NameOf(baseImponibleParaPortes))
+        OnPropertyChanged(NameOf(totalPedido))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(TotalPedidoPlazosPago))
+        OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
         ActualizarEtiquetaPortes()
-        RaisePropertyChanged(NameOf(listaProductosPedidoConPortes))
+        OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
     End Sub
 
     'Enum PaginasWizard
@@ -2080,18 +2080,18 @@ Public Class PlantillaVentaViewModel
         If (arg.cantidad + arg.cantidadOferta <> 0) AndAlso (Not arg.stockActualizado OrElse String.IsNullOrEmpty(arg.urlImagen)) Then
             cmdCargarStockProducto.Execute(arg)
         End If
-        RaisePropertyChanged(NameOf(hayProductosEnElPedido))
-        RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
-        RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+        OnPropertyChanged(NameOf(hayProductosEnElPedido))
+        OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
+        OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
         If Not IsNothing(ListaFiltrableProductos) AndAlso (IsNothing(ListaFiltrableProductos.ElementoSeleccionado) OrElse CType(ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaVenta).producto <> arg.producto) Then
             ListaFiltrableProductos.ElementoSeleccionado = arg
         End If
 
-        RaisePropertyChanged(NameOf(listaProductosPedido))
-        RaisePropertyChanged(NameOf(baseImponiblePedido))
-        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
-        RaisePropertyChanged(NameOf(totalPedido))
-        RaisePropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(listaProductosPedido))
+        OnPropertyChanged(NameOf(baseImponiblePedido))
+        OnPropertyChanged(NameOf(baseImponibleParaPortes))
+        OnPropertyChanged(NameOf(totalPedido))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
         ActualizarEtiquetaPortes()
     End Sub
 
@@ -2253,10 +2253,10 @@ Public Class PlantillaVentaViewModel
     Private Sub OnCambiarIva()
         clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
         Estado.IvaCliente = clienteSeleccionado.iva
-        RaisePropertyChanged(NameOf(clienteSeleccionado))
-        RaisePropertyChanged(NameOf(totalPedido))
-        RaisePropertyChanged(NameOf(totalPedidoConPortes))
-        RaisePropertyChanged(NameOf(SePuedeFinalizar))
+        OnPropertyChanged(NameOf(clienteSeleccionado))
+        OnPropertyChanged(NameOf(totalPedido))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(SePuedeFinalizar))
         CargarInfoPortesConDebounce()
     End Sub
 
@@ -2345,8 +2345,8 @@ Public Class PlantillaVentaViewModel
         End If
 
 
-        RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
-        RaisePropertyChanged(NameOf(SePuedeFinalizar))
+        OnPropertyChanged(NameOf(TotalPedidoPlazosPago))
+        OnPropertyChanged(NameOf(SePuedeFinalizar))
 
         ' Issue #286: Guardar valores del borrador antes de la lógica automática
         ' Solo aplicar si hay borrador pendiente Y no se han restaurado ya los valores
@@ -2442,7 +2442,7 @@ Public Class PlantillaVentaViewModel
                 If direccionEntregaSeleccionada IsNot Nothing AndAlso direccionEntregaSeleccionada.contacto <> contactoBorrador Then
                     ' Limpiamos para forzar recarga
                     _direccionEntregaSeleccionada = Nothing
-                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                    OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
 
                     ' Esperamos a que el control recargue
                     Await Task.Delay(100)
@@ -2450,7 +2450,7 @@ Public Class PlantillaVentaViewModel
                     ' Si aún no se seleccionó la correcta, forzamos
                     If direccionEntregaSeleccionada Is Nothing OrElse direccionEntregaSeleccionada.contacto <> contactoBorrador Then
                         ContactoSeleccionado = contactoBorrador
-                        RaisePropertyChanged(NameOf(ContactoSeleccionado))
+                        OnPropertyChanged(NameOf(ContactoSeleccionado))
                     End If
                 End If
             End If
@@ -2469,7 +2469,7 @@ Public Class PlantillaVentaViewModel
                     fechaEntregaBorrador = fechaMinimaEntrega
                 End If
                 Estado.FechaEntrega = fechaEntregaBorrador
-                RaisePropertyChanged(NameOf(fechaEntrega))
+                OnPropertyChanged(NameOf(fechaEntrega))
             End If
 
             ' Restaurar MantenerJunto y ServirJunto
@@ -2481,7 +2481,7 @@ Public Class PlantillaVentaViewModel
                     direccionEntregaSeleccionada.servirJunto = True
                 End If
                 RestaurarModoServicio(modoServicioBorrador) ' Nesto#476
-                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
             End If
 
             ' Restaurar ComentarioPicking
@@ -2489,7 +2489,7 @@ Public Class PlantillaVentaViewModel
                Not String.IsNullOrEmpty(_borradorEnRestauracion.ComentarioPicking) AndAlso
                clienteSeleccionado IsNot Nothing Then
                 clienteSeleccionado.comentarioPicking = _borradorEnRestauracion.ComentarioPicking
-                RaisePropertyChanged(NameOf(clienteSeleccionado))
+                OnPropertyChanged(NameOf(clienteSeleccionado))
             End If
 
             ' Issue #286: Marcar que ya restauramos los valores de esta página
@@ -3155,7 +3155,7 @@ Public Class PlantillaVentaViewModel
         Estado.ModoServicio = modo
         Estado.ServirJunto = ModosServicio.EsTodoJunto(modo.Value)
         direccionEntregaSeleccionada.servirJunto = Estado.ServirJunto
-        RaisePropertyChanged(NameOf(ModoServicio))
+        OnPropertyChanged(NameOf(ModoServicio))
     End Sub
 
     Private Function CalcularSerie() As String
@@ -3285,7 +3285,7 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Sub SeleccionarElCliente(value As ClienteJson)
         Dim unused = SetProperty(_clienteSeleccionado, value)
-        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
+        OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa
         Estado.Cliente = value.cliente
@@ -3300,7 +3300,7 @@ Public Class PlantillaVentaViewModel
         cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        RaisePropertyChanged(NameOf(clienteSeleccionado))
+        OnPropertyChanged(NameOf(clienteSeleccionado))
         CargarInfoPortesConDebounce()
     End Sub
 
@@ -3310,7 +3310,7 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Private Async Function SeleccionarClienteParaBorradorAsync(value As ClienteJson) As Task
         Dim unused = SetProperty(_clienteSeleccionado, value)
-        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
+        OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa
         Estado.Cliente = value.cliente
@@ -3325,7 +3325,7 @@ Public Class PlantillaVentaViewModel
         cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        RaisePropertyChanged(NameOf(clienteSeleccionado))
+        OnPropertyChanged(NameOf(clienteSeleccionado))
         CargarInfoPortesConDebounce()
     End Function
     Private Sub NavegarAClienteCrear(value As ClienteJson)
@@ -3357,10 +3357,10 @@ Public Class PlantillaVentaViewModel
             ' NestoAPI#466: la lista de grupos que generan Ganavisiones la manda el servidor.
             ActualizarGruposBonificables(Await servicio.CargarGruposBonificables().ConfigureAwait(True))
             ' Notificar que HayGanavisionesDisponibles puede haber cambiado ahora que tenemos los IDs
-            RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
-            RaisePropertyChanged(NameOf(BaseImponibleBonificable))
-            RaisePropertyChanged(NameOf(GanavisionesDisponibles))
-            RaisePropertyChanged(NameOf(TextoGruposBonificables))
+            OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
+            OnPropertyChanged(NameOf(BaseImponibleBonificable))
+            OnPropertyChanged(NameOf(GanavisionesDisponibles))
+            OnPropertyChanged(NameOf(TextoGruposBonificables))
         End If
 
         ' Issue #286: Cargar lista de borradores guardados
@@ -3626,7 +3626,7 @@ Public Class PlantillaVentaViewModel
 
             ' Establecer el filtro con el número de cliente para que la búsqueda funcione
             filtroCliente = borrador.Cliente.Trim()
-            RaisePropertyChanged(NameOf(filtroCliente))
+            OnPropertyChanged(NameOf(filtroCliente))
 
             ' Cargar clientes usando el número de cliente como filtro
             Try
@@ -3764,7 +3764,7 @@ Public Class PlantillaVentaViewModel
                     fechaRestaurar = fechaMinimaEntrega
                 End If
                 Estado.FechaEntrega = fechaRestaurar
-                RaisePropertyChanged(NameOf(fechaEntrega))
+                OnPropertyChanged(NameOf(fechaEntrega))
             End If
 
             ' Restaurar MantenerJunto y ServirJunto si la dirección está cargada
@@ -3778,19 +3778,19 @@ Public Class PlantillaVentaViewModel
                 Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
                 Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
                 RestaurarModoServicio(borrador.ModoServicio) ' Nesto#476
-                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
             End If
 
             ' Restaurar ComentarioPicking en el objeto clienteSeleccionado (el TextBox hace binding ahí)
             If Not String.IsNullOrEmpty(borrador.ComentarioPicking) AndAlso clienteSeleccionado IsNot Nothing Then
                 clienteSeleccionado.comentarioPicking = borrador.ComentarioPicking
-                RaisePropertyChanged(NameOf(clienteSeleccionado))
+                OnPropertyChanged(NameOf(clienteSeleccionado))
             End If
 
             ' Issue #288: Restaurar envío por Glovo y cobro por tarjeta
             EnviarPorGlovo = borrador.ServirPorGlovo
             Estado.MandarCobroTarjeta = borrador.MandarCobroTarjeta
-            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+            OnPropertyChanged(NameOf(MandarCobroTarjeta))
 
             ' Nesto#380: restaurar la casilla "Recoger Producto"
             RecogerProducto = borrador.RecogerProducto
@@ -3855,7 +3855,7 @@ Public Class PlantillaVentaViewModel
                         fechaFinal = fechaMinimaEntrega
                     End If
                     Estado.FechaEntrega = fechaFinal
-                    RaisePropertyChanged(NameOf(fechaEntrega))
+                    OnPropertyChanged(NameOf(fechaEntrega))
                 End If
                 If direccionEntregaSeleccionada IsNot Nothing Then
                     direccionEntregaSeleccionada.mantenerJunto = _borradorEnRestauracion.MantenerJunto
@@ -3863,14 +3863,14 @@ Public Class PlantillaVentaViewModel
                     Estado.MantenerJunto = _borradorEnRestauracion.MantenerJunto
                     Estado.ServirJunto = _borradorEnRestauracion.ServirJunto
                     RestaurarModoServicio(_borradorEnRestauracion.ModoServicio) ' Nesto#476
-                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                    OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
                 End If
             End If
 
             ' Notificar cambios a la UI
             ActualizarTotales()
-            RaisePropertyChanged(NameOf(hayProductosEnElPedido))
-            RaisePropertyChanged(NameOf(ListaProductosBonificables))
+            OnPropertyChanged(NameOf(hayProductosEnElPedido))
+            OnPropertyChanged(NameOf(ListaProductosBonificables))
 
             ' Construir mensaje de resultado
             Dim mensaje = $"Borrador cargado: {lineasActualizadas + lineasCargadas} productos"
@@ -3968,8 +3968,8 @@ Public Class PlantillaVentaViewModel
             If enLista IsNot Nothing Then
                 ListaBorradores.Remove(enLista)
             End If
-            RaisePropertyChanged(NameOf(HayBorradores))
-            RaisePropertyChanged(NameOf(NumeroBorradores))
+            OnPropertyChanged(NameOf(HayBorradores))
+            OnPropertyChanged(NameOf(NumeroBorradores))
             Return True
         Catch ex As Exception
             ' El pedido ya está creado: un fallo al borrar el borrador no debe estorbar.
@@ -3986,8 +3986,8 @@ Public Class PlantillaVentaViewModel
         Try
             If servicioBorradores.EliminarBorrador(borrador.Id) Then
                 ListaBorradores?.Remove(borrador)
-                RaisePropertyChanged(NameOf(HayBorradores))
-                RaisePropertyChanged(NameOf(NumeroBorradores))
+                OnPropertyChanged(NameOf(HayBorradores))
+                OnPropertyChanged(NameOf(NumeroBorradores))
                 dialogService.ShowNotification("Borrador eliminado")
             End If
         Catch ex As Exception
@@ -4009,8 +4009,8 @@ Public Class PlantillaVentaViewModel
         Try
             Dim borradores = servicioBorradores.ObtenerBorradores()
             ListaBorradores = New ObservableCollection(Of BorradorPlantillaVenta)(borradores)
-            RaisePropertyChanged(NameOf(HayBorradores))
-            RaisePropertyChanged(NameOf(NumeroBorradores))
+            OnPropertyChanged(NameOf(HayBorradores))
+            OnPropertyChanged(NameOf(NumeroBorradores))
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"Error al actualizar lista de borradores: {ex.Message}")
         End Try

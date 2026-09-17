@@ -1,9 +1,9 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class ComisionAnualResumen
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Public Property Id As Integer
     Public Property Vendedor As String

@@ -5,7 +5,7 @@ using Nesto.Modulos.Ganavisiones.Interfaces;
 using Nesto.Modulos.Ganavisiones.Models;
 using Nesto.Modulos.Ganavisiones.ViewModels;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -314,7 +314,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
     /// <summary>
     /// Wrapper para GanavisionModel que permite detectar cambios en la UI
     /// </summary>
-    public class GanavisionWrapper : BindableBase
+    public class GanavisionWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -367,7 +367,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             Familia = model.Familia;
             _rastreandoCambios = true;
             HaCambiado = false;
-            RaisePropertyChanged(nameof(EsActivo));
+            OnPropertyChanged(nameof(EsActivo));
         }
 
         public int Id { get; set; }
@@ -383,7 +383,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                 if (SetProperty(ref _productoId, value))
                 {
                     if (_rastreandoCambios) HaCambiado = true;
-                    RaisePropertyChanged(nameof(Producto));
+                    OnPropertyChanged(nameof(Producto));
                 }
             }
         }
@@ -405,7 +405,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             {
                 if (SetProperty(ref _productoNombre, value))
                 {
-                    RaisePropertyChanged(nameof(texto));
+                    OnPropertyChanged(nameof(texto));
                 }
             }
         }
@@ -467,7 +467,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                 if (SetProperty(ref _fechaDesde, value))
                 {
                     if (_rastreandoCambios) HaCambiado = true;
-                    RaisePropertyChanged(nameof(EsActivo));
+                    OnPropertyChanged(nameof(EsActivo));
                 }
             }
         }
@@ -481,7 +481,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                 if (SetProperty(ref _fechaHasta, value))
                 {
                     if (_rastreandoCambios) HaCambiado = true;
-                    RaisePropertyChanged(nameof(EsActivo));
+                    OnPropertyChanged(nameof(EsActivo));
                 }
             }
         }

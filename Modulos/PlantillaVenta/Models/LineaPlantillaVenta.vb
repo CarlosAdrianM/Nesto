@@ -1,8 +1,8 @@
-﻿Imports Prism.Mvvm
+﻿Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
 
 Public Class LineaPlantillaVenta
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IFiltrableItem, ILineaConCantidad
 
     Public Property producto() As String
@@ -14,8 +14,8 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Integer)
             SetProperty(_cantidad, value)
-            RaisePropertyChanged(NameOf(colorStock))
-            RaisePropertyChanged(NameOf(baseImponible))
+            OnPropertyChanged(NameOf(colorStock))
+            OnPropertyChanged(NameOf(baseImponible))
         End Set
     End Property
     Private _cantidadOferta As Integer
@@ -31,16 +31,16 @@ Public Class LineaPlantillaVenta
             ' el control de cantidad oferta sin forma de quitar la oferta.
             If value > 0 AndAlso cantidadOferta = 0 Then
                 _aplicarDescuento = False
-                RaisePropertyChanged(NameOf(aplicarDescuento))
+                OnPropertyChanged(NameOf(aplicarDescuento))
             ElseIf cantidadOferta > 0 AndAlso value = 0 AndAlso aplicarDescuentoFicha.HasValue Then
                 _aplicarDescuento = aplicarDescuentoFicha.Value
-                RaisePropertyChanged(NameOf(aplicarDescuento))
+                OnPropertyChanged(NameOf(aplicarDescuento))
             End If
             SetProperty(_cantidadOferta, value)
-            RaisePropertyChanged(NameOf(colorStock))
-            RaisePropertyChanged(NameOf(personalizarOfertaVisible))
-            RaisePropertyChanged(NameOf(personalizarInputsVisible))
-            RaisePropertyChanged(NameOf(puedeEditarCantidadOferta))
+            OnPropertyChanged(NameOf(colorStock))
+            OnPropertyChanged(NameOf(personalizarOfertaVisible))
+            OnPropertyChanged(NameOf(personalizarInputsVisible))
+            OnPropertyChanged(NameOf(puedeEditarCantidadOferta))
         End Set
     End Property
 
@@ -61,10 +61,10 @@ Public Class LineaPlantillaVenta
             If Not value Then
                 precioOferta = 0
                 descuentoOferta = 0
-                RaisePropertyChanged(NameOf(precioOferta))
-                RaisePropertyChanged(NameOf(descuentoOferta))
+                OnPropertyChanged(NameOf(precioOferta))
+                OnPropertyChanged(NameOf(descuentoOferta))
             End If
-            RaisePropertyChanged(NameOf(personalizarInputsVisible))
+            OnPropertyChanged(NameOf(personalizarInputsVisible))
         End Set
     End Property
     ''' <summary>Nesto#371: precio de la unidad de oferta cuando se personaliza (0 = gratis).</summary>
@@ -120,7 +120,7 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Decimal)
             SetProperty(_precio, value)
-            RaisePropertyChanged(NameOf(baseImponible))
+            OnPropertyChanged(NameOf(baseImponible))
         End Set
     End Property
     Private _aplicarDescuento As Boolean
@@ -144,7 +144,7 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Boolean?)
             Dim unused = SetProperty(_aplicarDescuentoFicha, value)
-            RaisePropertyChanged(NameOf(puedeEditarCantidadOferta))
+            OnPropertyChanged(NameOf(puedeEditarCantidadOferta))
         End Set
     End Property
 
@@ -190,7 +190,7 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Integer)
             SetProperty(_cantidadDisponible, value)
-            RaisePropertyChanged(NameOf(colorStock))
+            OnPropertyChanged(NameOf(colorStock))
         End Set
     End Property
     Public Property cantidadPendienteRecibir As Integer
@@ -202,7 +202,7 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Boolean)
             SetProperty(_stockActualizado, value)
-            RaisePropertyChanged(NameOf(colorStock))
+            OnPropertyChanged(NameOf(colorStock))
         End Set
     End Property
     Public Property fechaInsercion As DateTime = DateTime.MaxValue
@@ -216,11 +216,11 @@ Public Class LineaPlantillaVenta
             ' con el CHECK de SQL. Fuera de 0-100 % se ignora y la celda vuelve al valor anterior.
             Dim admitido As Decimal = DescuentoAdmitido(value, _descuento)
             If admitido <> value Then
-                RaisePropertyChanged(NameOf(descuento)) ' que el grid repinte el valor que se queda
+                OnPropertyChanged(NameOf(descuento)) ' que el grid repinte el valor que se queda
                 Return
             End If
             SetProperty(_descuento, value)
-            RaisePropertyChanged(NameOf(baseImponible))
+            OnPropertyChanged(NameOf(baseImponible))
         End Set
     End Property
 
@@ -278,8 +278,8 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As List(Of StockAlmacenDTO))
             SetProperty(_stocks, value)
-            RaisePropertyChanged(NameOf(textoStocksPorAlmacen))
-            RaisePropertyChanged(NameOf(stockTotalTodosAlmacenes))
+            OnPropertyChanged(NameOf(textoStocksPorAlmacen))
+            OnPropertyChanged(NameOf(stockTotalTodosAlmacenes))
         End Set
     End Property
 
@@ -297,8 +297,8 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As String)
             SetProperty(_urlImagen, value)
-            RaisePropertyChanged(NameOf(imagen))
-            RaisePropertyChanged(NameOf(imagenVisible))
+            OnPropertyChanged(NameOf(imagen))
+            OnPropertyChanged(NameOf(imagenVisible))
         End Set
     End Property
     Public ReadOnly Property colorEstado As Brush
@@ -386,7 +386,7 @@ Public Class LineaPlantillaVenta
     End Property
     Public ReadOnly Property imagenVisible As Visibility
         Get
-            RaisePropertyChanged(NameOf(clasificacionVisible))
+            OnPropertyChanged(NameOf(clasificacionVisible))
             'Return Visibility.Visible
             If urlImagen = "" Then
                 Return Visibility.Collapsed

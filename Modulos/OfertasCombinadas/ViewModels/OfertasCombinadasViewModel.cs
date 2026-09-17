@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -272,8 +272,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     ((IRelayCommand)CerrarCampanaCommand).NotifyCanExecuteChanged();
                     ((IRelayCommand)BorrarCampanaCommand).NotifyCanExecuteChanged();
                     ((IRelayCommand)QuitarFiltroCampanaCommand).NotifyCanExecuteChanged();
-                    RaisePropertyChanged(nameof(HayFiltroDeCampana));
-                    RaisePropertyChanged(nameof(TextoDelFiltro));
+                    OnPropertyChanged(nameof(HayFiltroDeCampana));
+                    OnPropertyChanged(nameof(TextoDelFiltro));
                 }
             }
         }
@@ -1434,7 +1434,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
     #region Wrappers
 
-    public class OfertaCombinadaWrapper : BindableBase
+    public class OfertaCombinadaWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -1521,7 +1521,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set
             {
                 if (SetProperty(ref _regalarMenorImporte, value) && _rastreandoCambios) HaCambiado = true;
-                RaisePropertyChanged(nameof(ResumenOferta));
+                OnPropertyChanged(nameof(ResumenOferta));
             }
         }
 
@@ -1545,8 +1545,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 {
                     UnidadesCobradas = cobradasAntes;
                 }
-                RaisePropertyChanged(nameof(UnidadesCobradas));
-                RaisePropertyChanged(nameof(ResumenOferta));
+                OnPropertyChanged(nameof(UnidadesCobradas));
+                OnPropertyChanged(nameof(ResumenOferta));
             }
         }
 
@@ -1585,8 +1585,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 {
                     sueltas[0].Cantidad = total;
                 }
-                RaisePropertyChanged(nameof(UnidadesCobradas));
-                RaisePropertyChanged(nameof(ResumenOferta));
+                OnPropertyChanged(nameof(UnidadesCobradas));
+                OnPropertyChanged(nameof(ResumenOferta));
             }
         }
 
@@ -1644,8 +1644,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (_rastreandoCambios) HaCambiado = true;
                 // NestoAPI#292: editar cantidades en las filas también mueve el "3+2" de la cabecera.
-                RaisePropertyChanged(nameof(UnidadesCobradas));
-                RaisePropertyChanged(nameof(ResumenOferta));
+                OnPropertyChanged(nameof(UnidadesCobradas));
+                OnPropertyChanged(nameof(ResumenOferta));
             };
         }
 
@@ -1657,7 +1657,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         }
     }
 
-    public class DetalleOfertaCombinadaWrapper : BindableBase
+    public class DetalleOfertaCombinadaWrapper : ObservableObject
     {
         public DetalleOfertaCombinadaWrapper() { }
 
@@ -1697,7 +1697,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _productoNombre, value))
                 {
-                    RaisePropertyChanged(nameof(texto));
+                    OnPropertyChanged(nameof(texto));
                 }
             }
         }
@@ -1734,7 +1734,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _grupo, value))
                 {
-                    RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+                    OnPropertyChanged(nameof(GrupoSubgrupoClave));
                     AlCambiar?.Invoke();
                 }
             }
@@ -1748,7 +1748,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _subgrupo, value))
                 {
-                    RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+                    OnPropertyChanged(nameof(GrupoSubgrupoClave));
                     AlCambiar?.Invoke();
                 }
             }
@@ -1802,7 +1802,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         }
     }
 
-    public class OfertaEscalonadaWrapper : BindableBase
+    public class OfertaEscalonadaWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -1929,7 +1929,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         }
     }
 
-    public class OfertaEscalonadaProductoWrapper : BindableBase
+    public class OfertaEscalonadaProductoWrapper : ObservableObject
     {
         public OfertaEscalonadaProductoWrapper() { }
 
@@ -1969,7 +1969,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _productoNombre, value))
                 {
-                    RaisePropertyChanged(nameof(texto));
+                    OnPropertyChanged(nameof(texto));
                 }
             }
         }
@@ -1998,7 +1998,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         }
     }
 
-    public class OfertaEscalonadaTramoWrapper : BindableBase
+    public class OfertaEscalonadaTramoWrapper : ObservableObject
     {
         public OfertaEscalonadaTramoWrapper() { }
 
@@ -2029,7 +2029,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         }
     }
 
-    public class OfertaPermitidaFamiliaWrapper : BindableBase
+    public class OfertaPermitidaFamiliaWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -2119,7 +2119,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
     /// conversion vive aqui, en un solo sitio: meter un 20 en la columna equivocada seria un
     /// 2.000 % de descuento.
     /// </summary>
-    public class CampanaWrapper : BindableBase
+    public class CampanaWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -2201,8 +2201,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set
             {
                 if (SetProperty(ref _subGrupo, value) && _rastreandoCambios) HaCambiado = true;
-                RaisePropertyChanged(nameof(Ambito));
-                RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+                OnPropertyChanged(nameof(Ambito));
+                OnPropertyChanged(nameof(GrupoSubgrupoClave));
             }
         }
 
@@ -2226,21 +2226,21 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public string Producto
         {
             get => _producto;
-            set { if (SetProperty(ref _producto, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+            set { if (SetProperty(ref _producto, value) && _rastreandoCambios) HaCambiado = true; OnPropertyChanged(nameof(Ambito)); }
         }
 
         private string _familia;
         public string Familia
         {
             get => _familia;
-            set { if (SetProperty(ref _familia, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+            set { if (SetProperty(ref _familia, value) && _rastreandoCambios) HaCambiado = true; OnPropertyChanged(nameof(Ambito)); }
         }
 
         private string _grupo;
         public string Grupo
         {
             get => _grupo;
-            set { if (SetProperty(ref _grupo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); RaisePropertyChanged(nameof(GrupoSubgrupoClave)); }
+            set { if (SetProperty(ref _grupo, value) && _rastreandoCambios) HaCambiado = true; OnPropertyChanged(nameof(Ambito)); OnPropertyChanged(nameof(GrupoSubgrupoClave)); }
         }
 
         // El usuario teclea 20 para un 20 %.
@@ -2325,7 +2325,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
     /// Una oferta "6+2" en la rejilla. A diferencia de las campanas, aqui no hay conversion de
     /// unidades: las cantidades son las que son.
     /// </summary>
-    public class OfertaProductoWrapper : BindableBase
+    public class OfertaProductoWrapper : ObservableObject
     {
         private bool _rastreandoCambios = true;
 
@@ -2401,14 +2401,14 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public short CantidadConPrecio
         {
             get => _cantidadConPrecio;
-            set { if (SetProperty(ref _cantidadConPrecio, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Resumen)); }
+            set { if (SetProperty(ref _cantidadConPrecio, value) && _rastreandoCambios) HaCambiado = true; OnPropertyChanged(nameof(Resumen)); }
         }
 
         private short _cantidadRegalo;
         public short CantidadRegalo
         {
             get => _cantidadRegalo;
-            set { if (SetProperty(ref _cantidadRegalo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Resumen)); }
+            set { if (SetProperty(ref _cantidadRegalo, value) && _rastreandoCambios) HaCambiado = true; OnPropertyChanged(nameof(Resumen)); }
         }
 
         private bool _denegar;

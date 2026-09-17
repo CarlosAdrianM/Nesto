@@ -1,11 +1,11 @@
 ﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
 Public Class CopiarSeguimientosViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Private ReadOnly _servicio As IRapportService
@@ -127,7 +127,7 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As Integer?)
             If SetProperty(_registrosCopiados, value) Then
-                RaisePropertyChanged(NameOf(MostrarResultado))
+                OnPropertyChanged(NameOf(MostrarResultado))
             End If
         End Set
     End Property

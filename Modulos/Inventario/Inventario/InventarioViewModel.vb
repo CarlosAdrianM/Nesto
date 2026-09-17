@@ -6,14 +6,14 @@ Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
 
 Public Class InventarioViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly dialogService As IDialogService
@@ -282,7 +282,7 @@ Public Class InventarioViewModel
             linea.StockReal += cantidad
             movimientoModificado = Await OnActualizarLineaInventario(linea) ' AWAIT
         End If
-        RaisePropertyChanged(NameOf(movimientosDia))
+        OnPropertyChanged(NameOf(movimientosDia))
         Return movimientoModificado
     End Function
 
@@ -327,7 +327,7 @@ Public Class InventarioViewModel
                         .Producto = linea.Producto
                     }
                     movimientosDia.Add(nuevoMovimiento)
-                    RaisePropertyChanged(NameOf(movimientosDia))
+                    OnPropertyChanged(NameOf(movimientosDia))
                     numeroProducto = String.Empty
                     cantidad = 1
                     Return nuevoMovimiento

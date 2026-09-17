@@ -1,5 +1,5 @@
 Imports Nesto.Models
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 ''' <summary>
 ''' Estado completo de una PlantillaVenta.
@@ -11,7 +11,7 @@ Imports Prism.Mvvm
 ''' 3. Compartir entre Nesto y NestoApp
 ''' </summary>
 Public Class PlantillaVentaState
-    Inherits BindableBase
+    Inherits ObservableObject
 
 #Region "Identificación del cliente"
     ''' <summary>

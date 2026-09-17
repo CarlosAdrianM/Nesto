@@ -135,7 +135,7 @@ End Class
 ''' Compatible con SelectorLineasPlantillaVenta.
 ''' </summary>
 Public Class LineaRegalo
-    Inherits Prism.Mvvm.BindableBase
+    Inherits CommunityToolkit.Mvvm.ComponentModel.ObservableObject
     Implements IFiltrableItem, ILineaConCantidad
 
     Public Property producto As String
@@ -161,9 +161,9 @@ Public Class LineaRegalo
         End Get
         Set(value As String)
             SetProperty(_urlImagen, value)
-            RaisePropertyChanged(NameOf(imagen))
-            RaisePropertyChanged(NameOf(imagenVisible))
-            RaisePropertyChanged(NameOf(clasificacionVisible))
+            OnPropertyChanged(NameOf(imagen))
+            OnPropertyChanged(NameOf(imagenVisible))
+            OnPropertyChanged(NameOf(clasificacionVisible))
         End Set
     End Property
 
@@ -176,8 +176,8 @@ Public Class LineaRegalo
             ' Nesto#370: un regalo bloqueado no se puede seleccionar (la cantidad se fuerza a 0).
             Dim valorPermitido = If(bloqueado, 0, value)
             SetProperty(_cantidad, valorPermitido)
-            RaisePropertyChanged(NameOf(colorStock))
-            RaisePropertyChanged(NameOf(textoUnidadesDisponibles))
+            OnPropertyChanged(NameOf(colorStock))
+            OnPropertyChanged(NameOf(textoUnidadesDisponibles))
         End Set
     End Property
 
@@ -191,10 +191,10 @@ Public Class LineaRegalo
         End Get
         Set(value As Boolean)
             SetProperty(_bloqueado, value)
-            RaisePropertyChanged(NameOf(puedeSeleccionar))
-            RaisePropertyChanged(NameOf(colorEstado))
-            RaisePropertyChanged(NameOf(textoDesbloqueo))
-            RaisePropertyChanged(NameOf(desbloqueoVisible))
+            OnPropertyChanged(NameOf(puedeSeleccionar))
+            OnPropertyChanged(NameOf(colorEstado))
+            OnPropertyChanged(NameOf(textoDesbloqueo))
+            OnPropertyChanged(NameOf(desbloqueoVisible))
         End Set
     End Property
 
