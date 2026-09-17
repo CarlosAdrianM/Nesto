@@ -2,6 +2,7 @@ Imports System.Threading.Tasks
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.ViewModels
 
 ' NestoAPI#493: CTT Express hereda TODO el flujo "registrar al imprimir" de AgenciaGestionadaPorApi
@@ -38,6 +39,13 @@ Public Class AgenciaCTTTests
     End Sub
 
     <TestMethod()>
+    Public Sub CTT_ImprimeEnLaZebraQueUsabaSending()
+        ' Rollos blancos de 100x150 en la tercera Zebra (ImpresoraAgencia); Innovatrans sigue en la de bolsas.
+        Assert.AreEqual(Parametros.Claves.ImpresoraAgencia, CrearAgencia().ClaveImpresora)
+        Assert.AreEqual(Parametros.Claves.ImpresoraBolsas, New AgenciaInnovatrans().ClaveImpresora)
+    End Sub
+
+    <TestMethod()>
     Public Sub CTT_NoPermiteEditarCodigoBarrasNiExigeDimensiones()
         Assert.IsFalse(CrearAgencia().PermiteEditarCodigoBarras)
         Assert.IsFalse(CrearAgencia().DimensionesBultosObligatorias)
@@ -45,9 +53,9 @@ Public Class AgenciaCTTTests
     End Sub
 
     <TestMethod()>
-    Public Sub CTT_SinPortalDeSeguimientoTodavia_EnlaceVacio()
-        Dim envio As New EnviosAgencia With {.CodigoBarras = "CTT0001"}
-        Assert.AreEqual(String.Empty, DirectCast(CrearAgencia(), IAgencia).EnlaceSeguimiento(envio))
+    Public Sub CTT_EnlaceDeSeguimiento_LocalizadorPublicoConElAlbaran()
+        Dim envio As New EnviosAgencia With {.CodigoBarras = "0082800082809800807576"}
+        Assert.AreEqual("https://www.cttexpress.com/localizador-de-envios?sc=0082800082809800807576", DirectCast(CrearAgencia(), IAgencia).EnlaceSeguimiento(envio))
     End Sub
 
     <TestMethod()>

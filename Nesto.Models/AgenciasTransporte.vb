@@ -22,6 +22,8 @@ Namespace Nesto.Models
         Public Property Usuario As String
         Public Property FechaModificacion As Date
         Public Property CuentaReembolsos As String
+        ' NestoAPI#493: agencia sombra (compite en el servidor, no se ofrece en el desplegable).
+        Public Property EsSombra As Boolean
     
         Public Overridable Property Empresas As Empresas
         Public Overridable Property EnviosAgencia As ICollection(Of EnviosAgencia) = New HashSet(Of EnviosAgencia)

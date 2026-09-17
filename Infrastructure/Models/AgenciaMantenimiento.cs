@@ -54,6 +54,10 @@ namespace Nesto.Infrastructure.Models
             set => RecargoCombustible = value / 100m;
         }
 
+        private bool _esSombra;
+        /// <summary>NestoAPI#493: compite en el comparador del servidor pero no se ofrece ni se tramita (CTT hasta su salida).</summary>
+        public bool EsSombra { get => _esSombra; set => Set(ref _esSombra, value); }
+
         private bool _enCuarentena;
         /// <summary>Si la agencia está en el parámetro AgenciasEnCuarentena (no se compara/usa).</summary>
         [JsonIgnore]

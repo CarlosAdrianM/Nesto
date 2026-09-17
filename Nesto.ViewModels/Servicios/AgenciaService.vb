@@ -426,7 +426,8 @@ Public Class AgenciaService
             .Ruta = dto.Ruta,
             .Identificador = dto.Identificador,
             .PrefijoCodigoBarras = dto.PrefijoCodigoBarras,
-            .CuentaReembolsos = dto.CuentaReembolsos
+            .CuentaReembolsos = dto.CuentaReembolsos,
+            .EsSombra = dto.EsSombra
         }
     End Function
 

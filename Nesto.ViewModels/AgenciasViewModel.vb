@@ -115,6 +115,7 @@ Public Class AgenciasViewModel
         ' Nesto#443: Sending eliminada por desuso (agencia 10; sus envíos históricos siguen viéndose)
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
         factory.Add("Innovatrans", Function() New AgenciaInnovatrans()) ' registrar al imprimir (DataTrans, server-side)
+        factory.Add("CTT", Function() New AgenciaCTT()) ' NestoAPI#493: registrar al imprimir (API REST, server-side); oculta mientras sea sombra
 
 
     End Sub
@@ -238,7 +239,10 @@ Public Class AgenciasViewModel
         If agencias Is Nothing Then
             Return agencias
         End If
-        Dim integradas = agencias.Where(Function(a) a IsNot Nothing AndAlso factory.ContainsKey(If(a.Nombre, "").Trim())).ToList()
+        ' NestoAPI#493: las agencias SOMBRA (EsSombra en el servidor) tienen clase pero todavia no se
+        ' ofrecen: compiten en el comparador para medir, y el dia que salgan basta quitarles la sombra
+        ' en la tabla (sin publicar Nesto). CTT hasta su fecha de arranque.
+        Dim integradas = agencias.Where(Function(a) a IsNot Nothing AndAlso Not a.EsSombra AndAlso factory.ContainsKey(If(a.Nombre, "").Trim())).ToList()
 
         ' Si el filtro se lo lleva todo por delante (una agencia renombrada en la tabla, el factory
         ' vacio en un test), es mejor ensenarlas todas que dejar la ventana SIN agencias: sin
@@ -2166,7 +2170,7 @@ Public Class AgenciasViewModel
     ' manual, CEX/Sending en cuarentena, OnTime) se seleccionan a mano y no pasan por la red de cobertura.
     Private Shared Function EsAgenciaDelComparador(agencia As AgenciasTransporte) As Boolean
         Dim nombre As String = agencia?.Nombre?.Trim()
-        Return nombre = "ASM" OrElse nombre = "Innovatrans"
+        Return nombre = "ASM" OrElse nombre = "Innovatrans" OrElse nombre = "CTT"
     End Function
 
     Private _cmdImprimirEInsertar As ICommand

@@ -1,9 +1,10 @@
+Imports Nesto.Infrastructure.Shared
+
 ' CTT Express (NestoAPI#493): agencia "registrar al imprimir", mismo flujo que Innovatrans. La
 ' integración con la API de CTT vive en NestoAPI; aquí solo lo que la distingue.
 '
-' TODAVÍA NO ESTÁ EN EL FACTORY de AgenciasViewModel: mientras CTT sea agencia sombra
-' (AgenciasTransporte.EsSombra = 1) no debe aparecer en el desplegable. Al salir a producción:
-' factory.Add("CTT", Function() New AgenciaCTT()) y añadir "CTT" en EsAgenciaDelComparador.
+' Está en el factory de AgenciasViewModel y en el comparador, pero el desplegable oculta las agencias
+' sombra (AgenciasTransporte.EsSombra = 1): el día de arranque basta quitar la sombra en la tabla.
 Public Class AgenciaCTT
     Inherits AgenciaGestionadaPorApi
 
@@ -25,9 +26,18 @@ Public Class AgenciaCTT
         End Get
     End Property
 
-    ' Pendiente de la documentación de CTT: URL pública de seguimiento por albarán. Hasta entonces
-    ' no se ofrece enlace (el DTO del servidor lo traerá cuando exista RegistroSeguimientoAgencias.CTT).
+    ' Tercera Zebra, la que usaba Sending (parámetro ImpresoraAgencia, \\RDS2016\etiquetas1), con rollos
+    ' blancos de 100x150: la de bolsas lleva el papel preimpreso de Tipsa y la de GLS es más corta.
+    Public Overrides ReadOnly Property ClaveImpresora As String
+        Get
+            Return Parametros.Claves.ImpresoraAgencia
+        End Get
+    End Property
+
+    ' Localizador público de CTT Express (sc = shipping_code). DEUDA TEMPORAL como en Innovatrans:
+    ' duplica RegistroSeguimientoAgencias.SeguimientoCTT del servidor hasta que la ventana consuma el
+    ' enlace del DTO.
     Protected Overrides Function EnlaceSeguimientoDe(albaran As String) As String
-        Return String.Empty
+        Return "https://www.cttexpress.com/localizador-de-envios?sc=" & albaran
     End Function
 End Class

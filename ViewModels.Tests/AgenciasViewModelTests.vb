@@ -1729,11 +1729,12 @@ Public Class AgenciaViewModelTests
     ' igualmente en el desplegable. Al elegir una, el setter reventaba con KeyNotFoundException y
     ' se llevaba la ventana (07/09/26, Enrique con Sending).
 
-    Private Shared Function Agencia(numero As Integer, nombre As String) As AgenciasTransporte
+    Private Shared Function Agencia(numero As Integer, nombre As String, Optional esSombra As Boolean = False) As AgenciasTransporte
         Dim resultado = A.Fake(Of AgenciasTransporte)
         resultado.Empresa = "1  "
         resultado.Numero = numero
         resultado.Nombre = nombre
+        resultado.EsSombra = esSombra
         Return resultado
     End Function
 
@@ -1749,21 +1750,39 @@ Public Class AgenciaViewModelTests
 
     <TestMethod()>
     Public Sub AgenciaViewModel_LasAgenciasSinClase_NoSeOfrecenEnElDesplegable()
-        Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(10, "Sending"), Agencia(13, "CTT"))
+        Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(10, "Sending"), Agencia(4, "OnTime"))
 
         viewModel.PestannaNombre = Pestannas.PEDIDOS
         viewModel.cmdCargarDatos.Execute()
 
         Assert.AreEqual(1, viewModel.listaAgencias.Count,
-            "Sending y CTT no tienen clase que sepa calcular plaza, codigo de barras ni etiqueta")
+            "Sending y OnTime no tienen clase que sepa calcular plaza, codigo de barras ni etiqueta")
         Assert.AreEqual("ASM", viewModel.listaAgencias.Single().Nombre)
+    End Sub
+
+    <TestMethod()>
+    Public Sub AgenciaViewModel_LasAgenciasSombra_NoSeOfrecenAunqueTenganClase()
+        ' NestoAPI#493: CTT tiene clase (AgenciaCTT) pero es sombra hasta su fecha de arranque; ese
+        ' dia se le quita la sombra en la tabla y aparece sin publicar Nesto.
+        Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(13, "CTT", esSombra:=True))
+
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+        viewModel.cmdCargarDatos.Execute()
+
+        Assert.AreEqual(1, viewModel.listaAgencias.Count)
+        Assert.AreEqual("ASM", viewModel.listaAgencias.Single().Nombre)
+
+        Dim activada = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(13, "CTT", esSombra:=False))
+        activada.PestannaNombre = Pestannas.PEDIDOS
+        activada.cmdCargarDatos.Execute()
+        Assert.AreEqual(2, activada.listaAgencias.Count, "Sin sombra, CTT se ofrece: tiene clase en el factory")
     End Sub
 
     <TestMethod()>
     Public Sub AgenciaViewModel_SiNingunaAgenciaTieneClase_SeEnsenanTodasIgualmente()
         ' Red de seguridad: dejar la ventana SIN agencias es peor que ensenar una que no se pueda
         ' tramitar, porque sin ninguna seleccionada crear la etiqueta revienta con NullReference.
-        Dim viewModel = ViewModelConAgencias(Agencia(10, "Sending"), Agencia(13, "CTT"))
+        Dim viewModel = ViewModelConAgencias(Agencia(10, "Sending"), Agencia(4, "OnTime"))
 
         viewModel.PestannaNombre = Pestannas.PEDIDOS
         viewModel.cmdCargarDatos.Execute()

@@ -30,6 +30,13 @@ Public MustInherit Class AgenciaGestionadaPorApi
     ''' <summary>Enlace público de seguimiento para un albarán. String.Empty si la agencia no tiene portal.</summary>
     Protected MustOverride Function EnlaceSeguimientoDe(albaran As String) As String
 
+    ''' <summary>Parámetro de usuario con la impresora Zebra a la que va el ZPL. Por defecto la de bolsas (Innovatrans, CEX).</summary>
+    Public Overridable ReadOnly Property ClaveImpresora As String
+        Get
+            Return Parametros.Claves.ImpresoraBolsas
+        End Get
+    End Property
+
     ' Recién integradas: logging detallado ON para vigilarlas (NestoAPI#259). La agencia lo pone a
     ' False cuando esté rodada.
     Public Overridable ReadOnly Property LoggingDetallado As Boolean Implements IAgencia.LoggingDetallado
@@ -145,9 +152,8 @@ Public MustInherit Class AgenciaGestionadaPorApi
             zpl = resultado.EtiquetaContenido
         End If
 
-        ' Misma impresora Zebra que Correos Express (parámetro ImpresoraBolsas).
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraBolsas).ConfigureAwait(False)
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, ClaveImpresora).ConfigureAwait(False)
         Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, zpl)
     End Function
 
