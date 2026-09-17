@@ -45,7 +45,10 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
             AmpliarHastaStockMaximoCommand = new RelayCommand(OnAmpliarHastaStockMaximo);
             CargarPedidoCommand = new RelayCommand<PedidoCompraLookup>(OnCargarPedido);
-            CargarProductoCommand = new RelayCommand<LineaPedidoCompraWrapper>(OnCargarProducto);
+            // RelayCommand<T> del Toolkit lanza ArgumentException en CanExecute si el parámetro no es T ni null,
+            // y el DataGrid manda CollectionView.NewItemPlaceholder (MS.Internal.NamedObject) cuando la fila
+            // seleccionada es la de "nueva línea" (ELMAH 17/09/26, Manuel). Con object y un "as" se ignora.
+            CargarProductoCommand = new RelayCommand<object>(p => OnCargarProducto(p as LineaPedidoCompraWrapper));
             EnviarPedidoCommand = new RelayCommand<PedidoCompraWrapper>(OnEnviarPedido, CanEnviarPedido);
             GuardarPedidoCommand = new RelayCommand(OnGuardarPedido, CanGuardarPedido);
             ImprimirPedidoCommand = new RelayCommand<PedidoCompraWrapper>(OnImprimirPedido); 
@@ -137,6 +140,10 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public ICommand CargarProductoCommand { get; private set; }
         private void OnCargarProducto(LineaPedidoCompraWrapper linea)
         {
+            if (linea == null || string.IsNullOrWhiteSpace(linea.Producto))
+            {
+                return;
+            }
             NavigationParameters parameters = new()
             {
                 { "numeroProductoParameter", linea.Producto }

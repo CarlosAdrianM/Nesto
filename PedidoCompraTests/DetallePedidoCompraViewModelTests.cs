@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
@@ -9,6 +9,7 @@ using Prism.Events;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Collections.Generic;
+using System.Windows.Data;
 using System.Threading.Tasks;
 
 namespace PedidoCompraTests
@@ -97,5 +98,17 @@ namespace PedidoCompraTests
             Assert.AreEqual(2, pedido.Lineas.Count, "Sin ofertas no hay nada que fusionar: las dos líneas se quedan");
             Assert.IsNotNull(pedido.Lineas[0].Model.Ofertas, "Se normaliza a lista vacía para el resto del código");
         }
-    }
+    
+        [TestMethod]
+        public void CargarProductoCommand_ConLaFilaDeNuevaLineaSeleccionada_NoRevienta()
+        {
+            // ELMAH 17/09/26: el DataGrid manda CollectionView.NewItemPlaceholder (MS.Internal.NamedObject) como
+            // SelectedItem y RelayCommand<LineaPedidoCompraWrapper>.CanExecute lanzaba ArgumentException.
+            DetallePedidoCompraViewModel vm = CrearVm();
+
+            Assert.IsTrue(vm.CargarProductoCommand.CanExecute(CollectionView.NewItemPlaceholder));
+            vm.CargarProductoCommand.Execute(CollectionView.NewItemPlaceholder);
+            vm.CargarProductoCommand.Execute(null);
+        }
+}
 }
