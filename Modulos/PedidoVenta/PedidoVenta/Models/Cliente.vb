@@ -40,6 +40,11 @@ Public Class ClienteJson
         End Get
     End Property
     Public Property usuario As String
+    ''' <summary>
+    ''' Nesto#429: país FISCAL del cliente (ISO-2, Clientes.Pais). No confundir con el país del
+    ''' CCC/IBAN que enseña la ficha junto a la cuenta. Viaja en el PUT de ClienteComercial.
+    ''' </summary>
+    Public Property pais As String
 
     Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 

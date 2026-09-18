@@ -1301,7 +1301,7 @@ Public Class ClientesViewModel
     Private Sub GuardarVendedores(ByVal param As Object)
         Dim continuar As Boolean = False
         Dim p As New DialogParameters From {
-            {"message", "¿Desea guardar los vendedores?"}
+            {"message", "¿Desea guardar los cambios (vendedores, estado y país fiscal)?"}
         }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
                                                               If r.Result = ButtonResult.OK Then
