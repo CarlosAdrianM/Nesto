@@ -24,7 +24,9 @@ namespace Nesto.Modules.Producto
         {
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
-            // Nesto#369: cliente con BaseAddress y JWT automático para los métodos nuevos.
+            // Nesto#369 / Nesto#479: TODAS las llamadas salen por el factory (BaseAddress + JWT por
+            // AuthTokenHandler + reintentos en GET). Un HttpClient a pelo llega a la API sin usuario:
+            // los errores caen en ELMAH anónimos y el día que el endpoint lleve [Authorize], 401.
             _clienteApiFactory = new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion);
         }
 
@@ -163,9 +165,8 @@ namespace Nesto.Modules.Producto
         public async Task<ICollection<ProductoClienteModel>> BuscarClientes(string producto)
         {
             ICollection<ProductoClienteModel> clientes;
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -200,9 +201,8 @@ namespace Nesto.Modules.Producto
         {
             ICollection<ProductoModel> productos;
             var almacen = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -248,9 +248,8 @@ namespace Nesto.Modules.Producto
 
             var almacen = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
 
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
                 // 1. Búsqueda Lucene
                 string urlBuscar = $"PlantillaVentas/Buscar?q={Uri.EscapeDataString(filtro)}&usarBusquedaConAND={usarBusquedaConAND.ToString().ToLower()}";
@@ -340,9 +339,8 @@ namespace Nesto.Modules.Producto
         public async Task<List<VideoLookupModel>> BuscarVideosRelacionados(string producto)
         {
             List<VideoLookupModel> videos;
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -372,14 +370,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<VideoModel> CargarVideoCompleto(int videoId)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            // Configurar autorización
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -414,14 +405,8 @@ namespace Nesto.Modules.Producto
 
         public async Task CrearControlStock(ControlStock controlStock)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new Exception("No se pudo configurar la autorización para crear el control de stock");
-            }
 
             try
             {
@@ -467,14 +452,8 @@ namespace Nesto.Modules.Producto
 
         public async Task GuardarControlStock(ControlStock controlStock)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new Exception("No se pudo configurar la autorización para guardar el control de stock");
-            }
 
             try
             {
@@ -521,9 +500,8 @@ namespace Nesto.Modules.Producto
         public async Task<ControlStockProductoModel> LeerControlStock(string producto)
         {
             ControlStockProductoModel controlStock;
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -552,8 +530,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<List<DiarioProductoModel>> LeerDiariosProducto()
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
 
             try
@@ -584,8 +561,7 @@ namespace Nesto.Modules.Producto
             {
                 return null;
             }
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
 
             try
@@ -619,9 +595,8 @@ namespace Nesto.Modules.Producto
                 //producto = await configuracion.leerParametro(EmpresaDefecto, "UltNumProducto");
                 return null;
             }
-            using (HttpClient client = new())
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -652,8 +627,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<int> MontarKit(string almacen, string producto, int cantidad)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
 
             try
@@ -715,8 +689,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<bool> TraspasarDiario(string diarioOrigen, string diarioDestino, string almacenOrigen)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
             HttpResponseMessage response;
 
             try
@@ -774,13 +747,7 @@ namespace Nesto.Modules.Producto
 
         public async Task ActualizarVideoProducto(int id, ActualizacionVideoProductoDto dto)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -802,13 +769,7 @@ namespace Nesto.Modules.Producto
 
         public async Task EliminarVideoProducto(int id, string observaciones = null)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -866,13 +827,7 @@ namespace Nesto.Modules.Producto
 
         public async Task DeshacerCambio(int videoProductoId, int logId, string observaciones = null)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -898,8 +853,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<List<ProductoControlStockModel>> LeerProductosProveedorControlStock(string proveedorId, string almacen)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -925,13 +879,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<List<VideoLookupModel>> CargarVideos(int skip, int take)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
@@ -956,13 +904,7 @@ namespace Nesto.Modules.Producto
 
         public async Task<List<VideoLookupModel>> BuscarVideos(string busqueda, int skip, int take)
         {
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
-            {
-                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
-            }
+            using HttpClient client = _clienteApiFactory.Crear();
 
             try
             {
