@@ -998,6 +998,34 @@ Public Class AgenciaService
 
     Friend Const RUTA_PAGAR_REEMBOLSOS As String = "EnviosAgencias/PagarReembolsos"
 
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A4.4): la modificación de un envío tramitado la hace el servidor
+    ''' (POST EnviosAgencias/{n}/ModificarDatos); antes eran modificarEnvio +
+    ''' contabilizarModificacionReembolso del ViewModel por Entity Framework.
+    ''' </summary>
+    Public Async Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto) Implements IAgenciaService.ModificarDatosEnvio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(datos), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaModificarDatosEnvio(numeroEnvio), content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó la modificación del envío ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of ResultadoModificacionEnvioDto)(cuerpo)
+        End Using
+    End Function
+
+    Friend Shared Function RutaModificarDatosEnvio(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/ModificarDatos"
+    End Function
+
     Public Async Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.ModificarEnvioRemoto
         Using client As HttpClient = _clienteApiFactory.Crear()
 

@@ -41,6 +41,10 @@
             // otro valor) sigue el Entity Framework de siempre. Protocolo de pies de plomo (20/08/26):
             // se enciende usuario a usuario y, validado el cuadre, se retira el camino EF y la clave.
             public const string PagarReembolsosPorApi = "PagarReembolsosPorApi";
+            // Nesto#340 (Agencias A4.4): "API" = modificar reembolso/retorno/estado/fecha de un envío
+            // tramitado (y «Rehusar») lo hace NestoAPI (POST EnviosAgencias/{id}/ModificarDatos). Mismo
+            // protocolo que PagarReembolsosPorApi. Requiere el GRANT de Nesto340_GrantSpsModificarEnvio.sql.
+            public const string ModificarEnvioPorApi = "ModificarEnvioPorApi";
             public const string PathNorma19 = "PathNorma19";
             public const string PathNorma43 = "PathNorma43";
             public const string PathNormaFB500 = "PathNormaFB500";

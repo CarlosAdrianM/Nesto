@@ -79,6 +79,9 @@ Public Interface IAgenciaService
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).
     Function PagarReembolsos(datos As PagoReembolsosDto) As Task(Of ResultadoPagoReembolsosDto)
+    ' Nesto#340 (Agencias, slice A4.4): reembolso/retorno/estado/fecha de un envío tramitado (y rehusar),
+    ' con historia y contabilización en el servidor. Lanza con el motivo del servidor si lo rechaza.
+    Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto)
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
     Function GenerarConcepto(envio As EnviosAgencia) As String

@@ -2483,12 +2483,20 @@ Public Class AgenciasViewModel
         End Using ' finaliza la transacción
     End Sub
 
-    Private Async Function PagarReembolsosPorApi() As Task(Of Boolean)
+    Private Function PagarReembolsosPorApi() As Task(Of Boolean)
+        Return InterruptorApiEncendido(Parametros.Claves.PagarReembolsosPorApi)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#340 (A4.3/A4.4): los interruptores de pies de plomo. Solo "API" (recortado, sin
+    ''' distinguir mayúsculas) enciende el camino nuevo; cualquier otro valor, la ausencia de fila o
+    ''' un fallo al leer llevan al Entity Framework de siempre.
+    ''' </summary>
+    Private Async Function InterruptorApiEncendido(clave As String) As Task(Of Boolean)
         Try
-            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PagarReembolsosPorApi)
+            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, clave)
             Return String.Equals(valor?.Trim(), "API", StringComparison.OrdinalIgnoreCase)
         Catch
-            ' Si no se puede leer el parámetro, el camino seguro es el de siempre.
             Return False
         End Try
     End Function
@@ -2600,7 +2608,7 @@ Public Class AgenciasViewModel
     Private Function CanModificarEnvio(arg As Object) As Boolean
         Return sePuedeModificarReembolso
     End Function
-    Private Sub OnModificarEnvio(arg As Object)
+    Private Async Sub OnModificarEnvio(arg As Object)
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
@@ -2610,6 +2618,11 @@ Public Class AgenciasViewModel
             Return
         End If
 
+        ' Nesto#340 (A4.4): con ModificarEnvioPorApi = "API" lo hace el servidor; el EF sigue debajo.
+        If Await InterruptorApiEncendido(Parametros.Claves.ModificarEnvioPorApi) Then
+            Await ModificarEnvioPorApi(envioActual, reembolsoModificar, retornoModificar, estadoModificar, False, fechaEntregaModificar)
+            Return
+        End If
         modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar, fechaEntregaModificar)
     End Sub
 
@@ -2697,7 +2710,7 @@ Public Class AgenciasViewModel
     Private Function CanRehusarEnvio(arg As Object) As Boolean
         Return Not IsNothing(envioActual) AndAlso IsNothing(envioActual.FechaPagoReembolso)
     End Function
-    Private Sub OnRehusarEnvio(arg As Object)
+    Private Async Sub OnRehusarEnvio(arg As Object)
         ' Nesto#393: listaTiposRetorno se puebla al seleccionar agencia (ActualizarListas); si aún no
         ' está cargada (o falta la agencia / el envío actual), el LINQ sobre Nothing lanzaba
         ' ArgumentNullException ("source"). Guarda defensiva con aviso al usuario.
@@ -2706,8 +2719,62 @@ Public Class AgenciasViewModel
             Return
         End If
         Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoObligatorio).FirstOrDefault
+        If Await InterruptorApiEncendido(Parametros.Claves.ModificarEnvioPorApi) Then
+            Await ModificarEnvioPorApi(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
+            Return
+        End If
         modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
     End Sub
+
+    ''' <summary>
+    ''' Nesto#340 (A4.4): la modificación de un envío tramitado la hace el servidor en una transacción
+    ''' (historia, desliquidar, deshago/rehago en _Reembolso, RHS al rehusar). Aquí quedan las dos
+    ''' comprobaciones de siempre (ya cobrado, importe desproporcionado) y reflejar el resultado.
+    ''' Friend para probarlo sin UI.
+    ''' </summary>
+    Friend Async Function ModificarEnvioPorApi(envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion,
+                                              estado As Integer, rehusar As Boolean, fechaEntrega As Date?) As Task
+        ' Carlos 14/12/16: no se pueden modificar los envíos que estén cobrados
+        If Not IsNothing(envio.FechaPagoReembolso) Then
+            _dialogService.ShowError("No se puede modificar este envío, porque ya está cobrado")
+            Return
+        End If
+        If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
+            Dim continuar As Boolean
+            _dialogService.ShowConfirmation("¡Atención!", String.Format("¿Es correcto el importe de {0}?", reembolso.ToString("C")), Sub(r)
+                                                                                                                                  continuar = r.Result = ButtonResult.OK
+                                                                                                                              End Sub)
+            If Not continuar Then
+                Return
+            End If
+        End If
+
+        Dim retornoAnterior As Byte = envio.Retorno
+        Dim descripcionAnterior As String = listaTiposRetorno?.FirstOrDefault(Function(l) l.id = retornoAnterior).descripcion
+        Try
+            Dim resultado As ResultadoModificacionEnvioDto = Await _servicio.ModificarDatosEnvio(envio.Numero, New ModificarDatosEnvioDto With {
+                .Reembolso = CDec(reembolso),
+                .Retorno = retorno.id,
+                .RetornoAnteriorDescripcion = descripcionAnterior,
+                .Estado = CShort(estado),
+                .FechaEntrega = fechaEntrega,
+                .Rehusar = rehusar,
+                .Observaciones = observacionesModificacion
+            })
+
+            ' El servidor ya lo ha guardado: se refleja en la entidad de la pantalla sin recargar.
+            envio.Reembolso = CDec(reembolso)
+            envio.Retorno = retorno.id
+            envio.Estado = CShort(estado)
+            envio.FechaEntrega = fechaEntrega
+            RaisePropertyChanged(NameOf(listaEnviosTramitados))
+            mensajeError = resultado.Mensaje
+        Catch ex As Exception
+            ' Nesto#448: detalle al usuario + ELMAH.
+            Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ModificarEnvioPorApi")
+            _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
+        End Try
+    End Function
 
     Public Property BorrarEnvioPendienteCommand() As DelegateCommand
     Private Function CanBorrarEnvioPendiente() As Boolean
