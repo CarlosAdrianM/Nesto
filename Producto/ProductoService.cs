@@ -625,6 +625,27 @@ namespace Nesto.Modules.Producto
             return productoActual;
         }
 
+        /// <summary>
+        /// Nesto#479: el motivo que manda NestoAPI en el cuerpo de un error. Web API no usa camelCase:
+        /// un 500 trae "ExceptionMessage" (y un "Message" genérico) y un BadRequest(texto) trae solo
+        /// "Message". Antes se buscaba "exceptionMessage" distinguiendo mayúsculas y no casaba ninguno,
+        /// así que el usuario solo veía el texto genérico.
+        /// </summary>
+        internal static string MotivoDelError(JObject cuerpo)
+        {
+            if (cuerpo == null)
+            {
+                return null;
+            }
+            string excepcion = cuerpo.GetValue("ExceptionMessage", StringComparison.OrdinalIgnoreCase)?.ToString();
+            if (!string.IsNullOrWhiteSpace(excepcion))
+            {
+                return excepcion;
+            }
+            string mensaje = cuerpo.GetValue("Message", StringComparison.OrdinalIgnoreCase)?.ToString();
+            return string.IsNullOrWhiteSpace(mensaje) ? null : mensaje;
+        }
+
         public async Task<int> MontarKit(string almacen, string producto, int cantidad)
         {
             using HttpClient client = _clienteApiFactory.Crear();
@@ -662,9 +683,10 @@ namespace Nesto.Modules.Producto
                     JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
 
                     string errorMostrar = $"No se han podido traspasar los movimientos de producto\n";
-                    if (requestException != null && requestException["exceptionMessage"] != null)
+                    string motivo = MotivoDelError(requestException);
+                    if (motivo != null)
                     {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
+                        errorMostrar += motivo + "\n";
                     }
                     if (requestException != null && requestException["ModelState"] != null)
                     {
@@ -720,9 +742,10 @@ namespace Nesto.Modules.Producto
                     JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
 
                     string errorMostrar = $"No se han podido traspasar los movimientos de producto\n";
-                    if (requestException != null && requestException["exceptionMessage"] != null)
+                    string motivo = MotivoDelError(requestException);
+                    if (motivo != null)
                     {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
+                        errorMostrar += motivo + "\n";
                     }
                     if (requestException != null && requestException["ModelState"] != null)
                     {
