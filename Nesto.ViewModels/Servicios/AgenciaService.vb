@@ -971,6 +971,33 @@ Public Class AgenciaService
         Return $"EnviosAgencias/{numeroEnvio}/RecibirRetorno"
     End Function
 
+    ''' <summary>
+    ''' Nesto#415 / Nesto#340 (Agencias, slice A4.3): el pago de reembolsos lo contabiliza el
+    ''' servidor (POST EnviosAgencias/PagarReembolsos) con el usuario del JWT; antes lo hacía
+    ''' AgenciasViewModel.OnContabilizarReembolso por Entity Framework. Si el servidor rechaza
+    ''' (400 con el motivo: envío ya pagado, cliente inexistente...) lanza con SU texto tal cual.
+    ''' </summary>
+    Public Async Function PagarReembolsos(datos As PagoReembolsosDto) As Task(Of ResultadoPagoReembolsosDto) Implements IAgenciaService.PagarReembolsos
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(datos), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RUTA_PAGAR_REEMBOLSOS, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó el pago de reembolsos ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of ResultadoPagoReembolsosDto)(cuerpo)
+        End Using
+    End Function
+
+    Friend Const RUTA_PAGAR_REEMBOLSOS As String = "EnviosAgencias/PagarReembolsos"
+
     Public Async Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.ModificarEnvioRemoto
         Using client As HttpClient = _clienteApiFactory.Crear()
 

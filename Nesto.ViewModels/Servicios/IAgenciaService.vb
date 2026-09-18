@@ -75,6 +75,10 @@ Public Interface IAgenciaService
     ' La fecha la estampa el servidor (POST api/EnviosAgencias/{id}/RecibirRetorno) y se devuelve
     ' para reflejarla sin recargar. Lanza con el motivo del servidor si lo rechaza.
     Function RecibirRetorno(numeroEnvio As Integer) As Task(Of Date)
+    ' Nesto#415 / Nesto#340 (Agencias, slice A4.3): la agencia paga los reembolsos que cobró. El
+    ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
+    ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).
+    Function PagarReembolsos(datos As PagoReembolsosDto) As Task(Of ResultadoPagoReembolsosDto)
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
     Function GenerarConcepto(envio As EnviosAgencia) As String

@@ -2349,7 +2349,7 @@ Public Class AgenciasViewModel
     Private Function CanContabilizarReembolso(arg As Object) As Boolean
         Return (Not IsNothing(numClienteContabilizar) AndAlso numClienteContabilizar.Length > 0 AndAlso Not IsNothing(listaReembolsosSeleccionados) AndAlso listaReembolsosSeleccionados.Count > 0) Or MODO_CUADRE
     End Function
-    Private Sub OnContabilizarReembolso(arg As Object)
+    Private Async Sub OnContabilizarReembolso(arg As Object)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Contabilizar", "¿Desea contabilizar?", Sub(r)
                                                                                     continuar = r.Result = ButtonResult.OK
@@ -2361,6 +2361,15 @@ Public Class AgenciasViewModel
         ' Comprobamos si existe el cliente
         If Not _servicio.ExisteClientePrincipalActivo(empresaSeleccionada.Número, numClienteContabilizar) Then
             _dialogService.ShowError("El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre)
+            Return
+        End If
+
+        ' Nesto#415 / Nesto#340 (A4.3): con el parámetro de usuario PagarReembolsosPorApi = "API" lo
+        ' contabiliza el servidor y aquí no se abre ningún NestoEntities. El camino de Entity
+        ' Framework de debajo se queda intacto hasta que se valide el cuadre (pies de plomo).
+        If Await PagarReembolsosPorApi() Then
+            Await PagarReembolsosSeleccionadosPorApi(empresaSeleccionada.Número, numClienteContabilizar,
+                                                    agenciaSeleccionada.Numero, listaReembolsosSeleccionados.ToList())
             Return
         End If
 
@@ -2473,6 +2482,48 @@ Public Class AgenciasViewModel
             End Using ' Cerramos el contexto
         End Using ' finaliza la transacción
     End Sub
+
+    Private Async Function PagarReembolsosPorApi() As Task(Of Boolean)
+        Try
+            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PagarReembolsosPorApi)
+            Return String.Equals(valor?.Trim(), "API", StringComparison.OrdinalIgnoreCase)
+        Catch
+            ' Si no se puede leer el parámetro, el camino seguro es el de siempre.
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Nesto#415 / Nesto#340 (A4.3): el pago lo contabiliza el servidor en una transacción (apuntes
+    ''' + prdContabilizar + FechaPagoReembolso). Aquí solo se refleja: los envíos pagados salen de la
+    ''' lista de reembolsos (antes se quedaban en pantalla hasta recargar y se podían volver a
+    ''' seleccionar) y se vacía la selección. Friend, con los datos por parámetro, para probarlo sin UI.
+    ''' </summary>
+    Friend Async Function PagarReembolsosSeleccionadosPorApi(empresa As String, cliente As String, agencia As Integer,
+                                                             seleccionados As List(Of EnviosAgencia)) As Task
+        Try
+            Dim resultado As ResultadoPagoReembolsosDto = Await _servicio.PagarReembolsos(New PagoReembolsosDto With {
+                .Empresa = empresa?.Trim(),
+                .Cliente = cliente?.Trim(),
+                .Agencia = agencia,
+                .NumerosEnvio = seleccionados.Select(Function(e) e.Numero).ToList()
+            })
+
+            For Each envio As EnviosAgencia In seleccionados
+                envio.FechaPagoReembolso = Today
+                Dim unused1 = listaReembolsos?.Remove(envio)
+            Next
+            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            RaisePropertyChanged(NameOf(sumaContabilidad))
+            RaisePropertyChanged(NameOf(descuadreContabilidad))
+            RaisePropertyChanged(NameOf(sumaReembolsos))
+            _dialogService.ShowNotification("Contabilizado Correctamente", "Nº Asiento: " + resultado.Asiento.ToString)
+        Catch ex As Exception
+            ' Nesto#448: detalle al usuario + ELMAH.
+            Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.PagarReembolsosSeleccionadosPorApi")
+            _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
+        End Try
+    End Function
 
     Private _cmdDescargarImagen As DelegateCommand(Of Object)
     Public Property cmdDescargarImagen As DelegateCommand(Of Object)

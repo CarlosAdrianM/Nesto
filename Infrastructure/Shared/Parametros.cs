@@ -36,6 +36,11 @@
             // Motor de las etiquetas de precio de la tienda: "RDLC" (por defecto, render local)
             // o "QuestPDF" (descarga de NestoAPI). Es papel FÍSICO de etiquetas precortadas:
             // validar contra el papel real antes de extender usuario a usuario (Nesto#340).
+            // Nesto#415 / Nesto#340 (Agencias A4.3): "API" = el pago de reembolsos de la pestaña
+            // Reembolsos lo contabiliza NestoAPI (POST EnviosAgencias/PagarReembolsos); sin fila (o con
+            // otro valor) sigue el Entity Framework de siempre. Protocolo de pies de plomo (20/08/26):
+            // se enciende usuario a usuario y, validado el cuadre, se retira el camino EF y la clave.
+            public const string PagarReembolsosPorApi = "PagarReembolsosPorApi";
             public const string PathNorma19 = "PathNorma19";
             public const string PathNorma43 = "PathNorma43";
             public const string PathNormaFB500 = "PathNormaFB500";
