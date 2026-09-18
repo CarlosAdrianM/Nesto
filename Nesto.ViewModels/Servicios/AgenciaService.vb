@@ -2,7 +2,6 @@
 Imports System.Data.Entity
 Imports System.Net.Http
 Imports System.Text
-Imports System.Transactions
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
@@ -694,7 +693,8 @@ Public Class AgenciaService
     ''' De este envío salen el destino real de la etiqueta cuando la tienda online ya la había
     ''' creado (Nesto#395) y, en InsertarRegistro, la fila que se va a modificar. Por eso se estampa
     ''' también la empresa: envio.Empresas alimenta el remitente de la etiqueta de Correos Express y
-    ''' el asiento de ContabilizarReembolso, y Entity Framework la traía con un Reference(...).Load().
+    ''' el asiento del reembolso (hoy en el servidor, ConfirmarTramitacion), y Entity Framework la
+    ''' traía con un Reference(...).Load().
     ''' Mismo criterio (y mismo código) que Insertar.
     ''' </summary>
     Public Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia Implements IAgenciaService.CargarEnvio
@@ -822,80 +822,6 @@ Public Class AgenciaService
     End Function
 
 
-    Public Function ContabilizarReembolso(envio As EnviosAgencia) As Integer Implements IAgenciaService.ContabilizarReembolso
-
-        If IsNothing(envio.AgenciasTransporte.CuentaReembolsos) Then
-            Throw New Exception("Esta agencia no tiene establecida una cuenta de reembolsos. No se puede contabilizar.")
-            Return -1
-        End If
-
-        Dim lineaInsertar As New PreContabilidad
-        Dim movimientoLiq As ExtractoCliente
-        movimientoLiq = CalcularMovimientoLiq(envio)
-
-
-        With lineaInsertar
-            .Empresa = envio.Empresa.Trim
-            .Diario = Constantes.DiariosContables.DIARIO_REEMBOLSOS
-            .TipoApunte = "3" 'Pago
-            .TipoCuenta = "2" 'Cliente
-            .Nº_Cuenta = envio.Cliente.Trim
-            .Contacto = envio.Contacto.Trim
-            .Fecha = Today 'envio.Fecha
-            .FechaVto = Today ' envio.Fecha
-            .Haber = envio.Reembolso
-            .Concepto = GenerarConcepto(envio)
-            .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
-            .Asiento_Automático = False
-            .FormaPago = envio.Empresas.FormaPagoEfectivo
-            .Vendedor = envio.Vendedor
-            If IsNothing(movimientoLiq) Then
-                .Nº_Documento = envio.Pedido
-                .Delegación = envio.Empresas.DelegaciónVarios
-                .FormaVenta = envio.Empresas.FormaVentaVarios
-            Else
-                .Nº_Documento = movimientoLiq.Nº_Documento
-                .Liquidado = movimientoLiq.Nº_Orden
-                .Delegación = movimientoLiq.Delegación
-                .FormaVenta = movimientoLiq.FormaVenta
-                .Ruta = movimientoLiq.Ruta
-                .Efecto = movimientoLiq.Efecto
-            End If
-        End With
-
-        Dim asiento As Integer
-
-        Using transaction As New TransactionScope()
-            Using DbContext As New NestoEntities
-                ' Iniciamos transacción
-                Dim success As Boolean
-
-                Try
-                    Dim unused2 = DbContext.PreContabilidad.Add(lineaInsertar)
-                    Dim unused1 = DbContext.SaveChanges()
-                    asiento = DbContext.prdContabilizar(lineaInsertar.Empresa, Constantes.DiariosContables.DIARIO_REEMBOLSOS, configuracion.usuario)
-                    transaction.Complete()
-                    success = asiento > 0
-                Catch e As Exception
-                    transaction.Dispose()
-                    Return -1
-                End Try
-
-                ' Comprobamos que las transacciones sean correctas
-                If success Then
-                    ' Reset the context since the operation succeeded. 
-                    Dim unused = DbContext.SaveChanges()
-                Else
-                    Throw New Exception("Se ha producido un error y no se grabado los datos")
-                End If
-            End Using ' cerramos el contexto
-        End Using 'cerramos la transcacción
-
-
-        Return asiento
-
-    End Function
-
     Private Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente Implements IAgenciaService.CalcularMovimientoLiq
         Return CalcularMovimientoLiq(env, env.Reembolso)
     End Function
@@ -1013,6 +939,36 @@ Public Class AgenciaService
                 Throw New Exception($"NestoAPI rechazó la anulación ({CInt(response.StatusCode)}): {cuerpo}")
             End If
         End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A4.2): la recepción del retorno la estampa el servidor
+    ''' (POST EnviosAgencias/{n}/RecibirRetorno); antes era un UPDATE por Entity Framework en
+    ''' AgenciasViewModel.OnRecibirRetorno. Devuelve la fecha que ha quedado grabada. Si el servidor
+    ''' rechaza (retorno ya recibido por otra sesión, envío inexistente) lanza con SU motivo tal cual.
+    ''' </summary>
+    Public Async Function RecibirRetorno(numeroEnvio As Integer) As Task(Of Date) Implements IAgenciaService.RecibirRetorno
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaRecibirRetorno(numeroEnvio), content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó la recepción del retorno ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of RetornoRecibidoDto)(cuerpo).FechaRetornoRecibido
+        End Using
+    End Function
+
+    ''' <summary>Ruta aparte para fijar en un test el contrato con el endpoint.</summary>
+    Friend Shared Function RutaRecibirRetorno(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/RecibirRetorno"
     End Function
 
     Public Async Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.ModificarEnvioRemoto

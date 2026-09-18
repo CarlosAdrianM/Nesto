@@ -2597,33 +2597,42 @@ Public Class AgenciasViewModel
     Private Function CanRecibirRetorno(arg As Object) As Boolean
         Return Not IsNothing(lineaRetornoSeleccionado)
     End Function
-    Private Sub OnRecibirRetorno(arg As Object)
-        If Not IsNothing(lineaRetornoSeleccionado) Then
-            Dim mensajeMostrar As String = String.Format("¿Confirma que ha recibido el retorno del pedido {0}?", lineaRetornoSeleccionado.Pedido.ToString)
-            Dim continuar As Boolean
-            _dialogService.ShowConfirmation("Retorno", mensajeMostrar, Sub(r)
-                                                                           continuar = r.Result = ButtonResult.OK
-                                                                       End Sub)
-            If Not continuar OrElse IsNothing(lineaRetornoSeleccionado) Then
-                Return
-            End If
-
-            Using DbContext As New NestoEntities
-                Dim lineaEncontrada As EnviosAgencia = DbContext.EnviosAgencia.Where(Function(e) e.Numero = lineaRetornoSeleccionado.Numero).Single
-                lineaEncontrada.FechaRetornoRecibido = Today
-
-                If DbContext.SaveChanges Then
-                    mensajeError = "Fecha retorno del cliente " + lineaRetornoSeleccionado.Cliente.Trim + " actualizada correctamente"
-                    Dim unused = listaRetornos.Remove(lineaRetornoSeleccionado)
-                Else
-                    mensajeError = "Se ha producido un error al actualizar la fecha del retorno"
-                    _dialogService.ShowError("No se ha podido actualizar la fecha del retorno")
-                End If
-            End Using
-        Else
-            mensajeError = "No hay ninguna línea seleccionada"
-        End If
+    Private Async Sub OnRecibirRetorno(arg As Object)
+        Await RecibirRetornoSeleccionado()
     End Sub
+
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A4.2): la fecha de recepción del retorno la estampa el servidor
+    ''' (POST EnviosAgencias/{n}/RecibirRetorno); antes era un UPDATE por Entity Framework aquí
+    ''' mismo. Friend para poder probar el flujo (confirmación, quitar de la lista, error) sin UI.
+    ''' </summary>
+    Friend Async Function RecibirRetornoSeleccionado() As Task
+        Dim retorno As EnviosAgencia = lineaRetornoSeleccionado
+        If IsNothing(retorno) Then
+            mensajeError = "No hay ninguna línea seleccionada"
+            Return
+        End If
+
+        Dim mensajeMostrar As String = String.Format("¿Confirma que ha recibido el retorno del pedido {0}?", retorno.Pedido.ToString)
+        Dim continuar As Boolean
+        _dialogService.ShowConfirmation("Retorno", mensajeMostrar, Sub(r)
+                                                                       continuar = r.Result = ButtonResult.OK
+                                                                   End Sub)
+        If Not continuar Then
+            Return
+        End If
+
+        Try
+            retorno.FechaRetornoRecibido = Await _servicio.RecibirRetorno(retorno.Numero)
+            mensajeError = "Fecha retorno del cliente " + retorno.Cliente?.Trim + " actualizada correctamente"
+            Dim unused = listaRetornos?.Remove(retorno)
+        Catch ex As Exception
+            ' Nesto#448: detalle al usuario + ELMAH, que el mensaje genérico de antes no dejaba rastro.
+            mensajeError = "Se ha producido un error al actualizar la fecha del retorno"
+            Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.RecibirRetornoSeleccionado")
+            _dialogService.ShowError("No se ha podido actualizar la fecha del retorno:" + vbCr + ex.Message)
+        End Try
+    End Function
 
     Private _cmdRehusarEnvio As DelegateCommand(Of Object)
     Public Property cmdRehusarEnvio As DelegateCommand(Of Object)

@@ -71,7 +71,10 @@ Public Interface IAgenciaService
     Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto)
     ' Actualiza el estado de un envío a demanda (sin esperar al job de Hangfire de cada 2h).
     Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto)
-    Function ContabilizarReembolso(envio As EnviosAgencia) As Integer
+    ' Nesto#340 (Agencias, slice A4.2): el almacén confirma que ha recibido el retorno de un envío.
+    ' La fecha la estampa el servidor (POST api/EnviosAgencias/{id}/RecibirRetorno) y se devuelve
+    ' para reflejarla sin recargar. Lanza con el motivo del servidor si lo rechaza.
+    Function RecibirRetorno(numeroEnvio As Integer) As Task(Of Date)
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
     Function GenerarConcepto(envio As EnviosAgencia) As String
