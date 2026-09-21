@@ -50,6 +50,10 @@
             public const string PathNormaFB500 = "PathNormaFB500";
             public const string PedidoVentaMostrarImagenes = "PedidoVentaMostrarImagenes";
             public const string PedidoVentaPapelMembrete = "PedidoVentaPapelMembrete";
+            // NestoAPI#501: "1"/"SI"/"TRUE" permite crear o modificar un pedido que no pasa la
+            // validacion del servidor (el "¿Desea crearlo de todos modos?"). Lo mira tambien
+            // NestoAPI (PedidosVentaController.TieneParametroPermitirOmitirValidacion) y NestoApp.
+            public const string PermitirCrearPedidoConErroresValidacion = "PermitirCrearPedidoConErroresValidacion";
             public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";

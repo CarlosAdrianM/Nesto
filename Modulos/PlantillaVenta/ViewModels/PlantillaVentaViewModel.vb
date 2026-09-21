@@ -2778,12 +2778,15 @@ Public Class PlantillaVentaViewModel
                     numPedido = Await servicio.CrearPedido(pedido)
                 Catch ex As ValidationException
                     crearEx = ex
-                    If Not PuedeOmitirValidacion(pedido) Then
-                        Throw crearEx
-                    End If
                 End Try
 
                 If crearEx IsNot Nothing Then
+                    ' NestoAPI#501: el permiso también puede venir del parámetro de usuario, y leerlo
+                    ' es asíncrono, así que la comprobación se hace aquí, fuera del Catch.
+                    If Not Await PuedeOmitirValidacion(pedido) Then
+                        Throw crearEx
+                    End If
+
                     ' Ahora sí estamos fuera del Catch y podemos Await el diálogo
                     Dim mensaje As String = crearEx.Message & vbCrLf & "¿Desea crearlo de todos modos?"
                     Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
@@ -2823,12 +2826,14 @@ Public Class PlantillaVentaViewModel
                     pedidoUnido = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
                 Catch ex As ValidationException
                     unirEx = ex
-                    If Not PuedeOmitirValidacion(pedido) Then
-                        Throw
-                    End If
                 End Try
 
                 If unirEx IsNot Nothing Then
+                    ' NestoAPI#501: igual que al crear, el permiso puede venir del parámetro.
+                    If Not Await PuedeOmitirValidacion(pedido) Then
+                        Throw unirEx
+                    End If
+
                     Dim mensaje As String = unirEx.Message & vbCrLf & "¿Desea ampliar el pedido de todos modos?"
                     Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
 
@@ -2901,11 +2906,17 @@ Public Class PlantillaVentaViewModel
     ''' Se comparte entre crear pedido y ampliar (unir) para que la pregunta "¿de todas formas?"
     ''' se ofrezca exactamente a los mismos usuarios en los dos flujos.
     ''' </summary>
-    Private Function PuedeOmitirValidacion(pedido As PedidoVentaDTO) As Boolean
-        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-               configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-               (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
-                pedido.Lineas.All(Function(l) l.almacen = almacenRutaUsuario))
+    ''' <summary>
+    ''' NestoAPI#501: el criterio completo (grupos de Windows MÁS el parámetro de usuario) vive en
+    ''' PermisosValidacionPedido, compartido con DetallePedidoViewModel, para que no se vuelvan a
+    ''' separar. Hasta hoy aquí solo se miraban los grupos y a quien tenía el parámetro no se le
+    ''' llegaba a ofrecer la pregunta.
+    ''' </summary>
+    Private Function PuedeOmitirValidacion(pedido As PedidoVentaDTO) As Task(Of Boolean)
+        Return PermisosValidacionPedido.PuedeOmitirValidacion(
+            configuracion,
+            Constantes.Empresas.EMPRESA_DEFECTO,
+            Function() pedido.Lineas.All(Function(l) l.almacen = almacenRutaUsuario))
     End Function
 
     ''' <summary>

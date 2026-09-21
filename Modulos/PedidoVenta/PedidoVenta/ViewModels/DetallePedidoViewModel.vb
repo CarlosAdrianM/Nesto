@@ -135,6 +135,19 @@ Public Class DetallePedidoViewModel
         End If
     End Sub
 
+    ''' <summary>
+    ''' NestoAPI#501: quién puede crear o modificar un pedido que no pasa la validación del
+    ''' servidor. El criterio (grupos de Windows MÁS el parámetro de usuario) vive en
+    ''' PermisosValidacionPedido, compartido con PlantillaVentaViewModel. Hasta hoy aquí solo se
+    ''' miraban los grupos, y a quien solo tenía el parámetro no se le llegaba a ofrecer el
+    ''' "¿Desea crearlo de todos modos?".
+    ''' </summary>
+    Private Function PuedeOmitirValidacion() As Task(Of Boolean)
+        Return PermisosValidacionPedido.PuedeOmitirValidacion(
+            configuracion,
+            Constantes.Empresas.EMPRESA_DEFECTO,
+            Function() pedido.Lineas.All(Function(l) l.Almacen = AlmacenUsuario))
+    End Function
 #Region "Propiedades"
 
     Private _almacenUsuario As String
@@ -2234,21 +2247,16 @@ Public Class DetallePedidoViewModel
                     pedido.numero = numeroPedidoCreado
                 Catch ex As ValidationException
                     crearModificarEx = ex
-                    ' Carlos 12/01/25: Verificar si puede crear sin pasar validación
-                    ' - Dirección o Almacén pueden crear sin importar almacenes
-                    ' - Tiendas puede crear solo si TODAS las líneas están en su almacén
-                    Dim puedeCrearSinPasarValidacion As Boolean =
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
-                     pedido.Lineas.All(Function(l) l.Almacen = AlmacenUsuario))
-
-                    If Not puedeCrearSinPasarValidacion Then
-                        Throw crearModificarEx
-                    End If
                 End Try
 
                 If crearModificarEx IsNot Nothing Then
+                    ' NestoAPI#501: quien puede forzar son Dirección, Almacén, Tiendas con todas las
+                    ' líneas en su almacén Y quien tenga el parámetro de usuario. Leerlo es asíncrono,
+                    ' así que se comprueba fuera del Catch.
+                    If Not Await PuedeOmitirValidacion() Then
+                        Throw crearModificarEx
+                    End If
+
                     ' Preguntar al usuario si desea forzar la creación
                     Dim mensaje As String = crearModificarEx.Message & vbCrLf & "¿Desea crearlo de todos modos?"
                     Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
@@ -2291,21 +2299,14 @@ Public Class DetallePedidoViewModel
                     avisosModificacion = Await servicio.modificarPedido(pedido.Model)
                 Catch ex As ValidationException
                     crearModificarEx = ex
-                    ' Carlos 12/01/25: Verificar si puede modificar sin pasar validación
-                    ' - Dirección o Almacén pueden modificar sin importar almacenes
-                    ' - Tiendas puede modificar solo si TODAS las líneas están en su almacén
-                    Dim puedeModificarSinPasarValidacion As Boolean =
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
-                     pedido.Lineas.All(Function(l) l.Almacen = AlmacenUsuario))
-
-                    If Not puedeModificarSinPasarValidacion Then
-                        Throw crearModificarEx
-                    End If
                 End Try
 
                 If crearModificarEx IsNot Nothing Then
+                    ' NestoAPI#501: mismo criterio que al crear, parámetro de usuario incluido.
+                    If Not Await PuedeOmitirValidacion() Then
+                        Throw crearModificarEx
+                    End If
+
                     ' Preguntar al usuario si desea forzar la modificación
                     Dim mensaje As String = crearModificarEx.Message & vbCrLf & "¿Desea modificarlo de todos modos?"
                     Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
