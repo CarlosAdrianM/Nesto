@@ -14,7 +14,7 @@ Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports System.Windows
@@ -23,7 +23,7 @@ Imports Unity
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
 Public Class DetallePedidoViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements INavigationAware
 
     Private estaActualizarFechaActivo As Boolean = True
@@ -307,7 +307,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As Boolean)
             If SetProperty(_esGrupoAlmacen, value) Then
-                RaisePropertyChanged(NameOf(MostrarBotonesFacturacion))
+                OnPropertyChanged(NameOf(MostrarBotonesFacturacion))
             End If
         End Set
     End Property
@@ -419,7 +419,7 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_fechaEntrega, value)
             If estaActualizarFechaActivo Then
                 cmdCambiarFechaEntrega.Execute(Nothing)
-                RaisePropertyChanged(NameOf(pedido))
+                OnPropertyChanged(NameOf(pedido))
             End If
         End Set
     End Property
@@ -436,7 +436,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As Boolean)
             If SetProperty(_usarFechasIndividuales, value) Then
-                RaisePropertyChanged(NameOf(MostrarFechaEntregaGlobal))
+                OnPropertyChanged(NameOf(MostrarFechaEntregaGlobal))
             End If
         End Set
     End Property
@@ -518,7 +518,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As LineaPedidoVentaWrapper)
             Dim unused = SetProperty(_lineaActual, value)
-            RaisePropertyChanged(NameOf(pedido))
+            OnPropertyChanged(NameOf(pedido))
             ImprimirFacturaCommand.NotifyCanExecuteChanged()
             ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranCommand.NotifyCanExecuteChanged()
@@ -595,13 +595,13 @@ Public Class DetallePedidoViewModel
                 }
                 pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
             End If
-            RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
-            RaisePropertyChanged(NameOf(EstaCreandoPedido))
-            RaisePropertyChanged(NameOf(TextoBotonGuardar))
-            RaisePropertyChanged(NameOf(EsSerieCursos))
-            RaisePropertyChanged(NameOf(HayLineasEditables))
-            RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
-            RaisePropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
+            OnPropertyChanged(NameOf(mostrarAceptarPresupuesto))
+            OnPropertyChanged(NameOf(EstaCreandoPedido))
+            OnPropertyChanged(NameOf(TextoBotonGuardar))
+            OnPropertyChanged(NameOf(EsSerieCursos))
+            OnPropertyChanged(NameOf(HayLineasEditables))
+            OnPropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            OnPropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
@@ -729,7 +729,7 @@ Public Class DetallePedidoViewModel
             End If
         Next
 
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
     End Sub
 
     ''' <summary>
@@ -745,7 +745,7 @@ Public Class DetallePedidoViewModel
         If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) OrElse Not pedido.Model.Lineas.Any() Then
             Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - Sin líneas, usando defecto: '{FormaVentaUsuario}'")
             _formaVentaSeleccionadaParaLineas = FormaVentaUsuario
-            RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
+            OnPropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
             Return
         End If
 
@@ -770,7 +770,7 @@ Public Class DetallePedidoViewModel
         End If
 
         Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - Resultado: '{_formaVentaSeleccionadaParaLineas}'")
-        RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
+        OnPropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
     End Sub
 
 #End Region
@@ -810,7 +810,7 @@ Public Class DetallePedidoViewModel
             End If
         Next
 
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
     End Sub
 
     ''' <summary>
@@ -827,7 +827,7 @@ Public Class DetallePedidoViewModel
         If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) OrElse Not pedido.Model.Lineas.Any() Then
             Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - Sin líneas, usando defecto: '{AlmacenUsuario}'")
             _almacenSeleccionadoParaLineas = AlmacenUsuario
-            RaisePropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
+            OnPropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
             Return
         End If
 
@@ -852,7 +852,7 @@ Public Class DetallePedidoViewModel
         End If
 
         Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - Resultado: '{_almacenSeleccionadoParaLineas}'")
-        RaisePropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
+        OnPropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
     End Sub
 
 #End Region
@@ -927,11 +927,11 @@ Public Class DetallePedidoViewModel
     ''' </summary>
     Private Sub ActualizarEtiquetaPortes()
         If IsNothing(_resultadoPortes) Then Return
-        RaisePropertyChanged(NameOf(TextoPortes))
-        RaisePropertyChanged(NameOf(PortesGratis))
-        RaisePropertyChanged(NameOf(EsContraReembolso))
-        RaisePropertyChanged(NameOf(ImporteReembolsoMostrar))
-        RaisePropertyChanged(NameOf(TextoReembolso))
+        OnPropertyChanged(NameOf(TextoPortes))
+        OnPropertyChanged(NameOf(PortesGratis))
+        OnPropertyChanged(NameOf(EsContraReembolso))
+        OnPropertyChanged(NameOf(ImporteReembolsoMostrar))
+        OnPropertyChanged(NameOf(TextoReembolso))
     End Sub
 
     ''' <summary>
@@ -1084,7 +1084,7 @@ Public Class DetallePedidoViewModel
         cmdModificarPedido.Execute(Nothing)
 
         ' Actualizar visibilidad de botones
-        RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
+        OnPropertyChanged(NameOf(mostrarAceptarPresupuesto))
         AceptarPresupuestoCommand.NotifyCanExecuteChanged()
         PasarAPresupuestoCommand.NotifyCanExecuteChanged()
         CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
@@ -1116,7 +1116,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnActualizarTotales()
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
         CobroTarjetaImporte = pedido.Total
     End Sub
 
@@ -1139,12 +1139,38 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
+        ' Nesto#481 (NestoAPI#508, pedido 926673): las líneas con picking, albarán o factura no cambian de
+        ' fecha. Antes se propagaba a todas, el servidor las ignoraba en silencio y el correo salía con
+        ' la fecha nueva; ahora el servidor las rechaza y aquí ni se intenta.
+        Dim protegidas As Integer = 0
         For Each linea In pedido.Lineas
-            linea.fechaEntrega = fechaEntrega
+            If AdmiteCambioDeFechaEntrega(linea.picking, linea.estado) Then
+                linea.fechaEntrega = fechaEntrega
+            Else
+                protegidas += 1
+            End If
         Next
 
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
+
+        If protegidas > 0 Then
+            Dim hayEditables As Boolean = pedido.Lineas.Any(Function(l) AdmiteCambioDeFechaEntrega(l.picking, l.estado))
+            dialogService.ShowNotification("Fecha de entrega",
+                If(hayEditables,
+                   $"La fecha se ha cambiado solo en las líneas sin picking. {protegidas} línea(s) con picking, albarán o factura conservan la suya.",
+                   "Ninguna línea admite cambiar la fecha: todas tienen picking, albarán o factura. Quita el picking primero."))
+        End If
     End Sub
+
+    ''' <summary>
+    ''' Nesto#481: una línea admite cambiar su fecha de entrega si no tiene picking y aún no está en
+    ''' albarán ni factura (presupuesto, pendiente o en curso). Misma regla que el servidor (NestoAPI#508).
+    ''' </summary>
+    Friend Shared Function AdmiteCambioDeFechaEntrega(picking As Integer, estado As Short) As Boolean
+        Return picking = 0 AndAlso estado < ESTADO_LINEA_ALBARAN
+    End Function
+
+    Private Const ESTADO_LINEA_ALBARAN As Short = 2
 
     Private _cmdCambiarIva As RelayCommand
     Public Property cmdCambiarIva As RelayCommand
@@ -1160,7 +1186,7 @@ Public Class DetallePedidoViewModel
             Return
         End If
         pedido.iva = IIf(IsNothing(pedido.iva), ivaOriginal, Nothing)
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
     End Sub
 
     Private _cmdCargarPedido As RelayCommand(Of ResumenPedido)
@@ -1988,8 +2014,8 @@ Public Class DetallePedidoViewModel
             If EstaCreandoPedido Then
                 Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
                 pedido.numero = numeroPedidoCreado
-                RaisePropertyChanged(NameOf(EstaCreandoPedido))
-                RaisePropertyChanged(NameOf(TextoBotonGuardar))
+                OnPropertyChanged(NameOf(EstaCreandoPedido))
+                OnPropertyChanged(NameOf(TextoBotonGuardar))
                 Titulo = $"Pedido Venta ({pedido.numero})"
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
@@ -2269,8 +2295,8 @@ Public Class DetallePedidoViewModel
                         Throw crearModificarEx
                     End If
                 End If
-                RaisePropertyChanged(NameOf(EstaCreandoPedido))
-                RaisePropertyChanged(NameOf(TextoBotonGuardar))
+                OnPropertyChanged(NameOf(EstaCreandoPedido))
+                OnPropertyChanged(NameOf(TextoBotonGuardar))
 
                 ' Publicar evento con datos completos del cliente
                 ' Calcular tieneProductos desde el wrapper (no desde el modelo)
@@ -2394,7 +2420,7 @@ Public Class DetallePedidoViewModel
         For Each linea In pedido.Lineas.Where(Function(l) l.AplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
             linea.DescuentoLinea = descuentoPedido
         Next
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
     End Sub
 
     Public Property AbrirEnlaceSeguimientoCommand As RelayCommand(Of String)
@@ -2479,7 +2505,7 @@ Public Class DetallePedidoViewModel
 
     Private Sub RevertirDesmarcadoServirJunto()
         pedido.ModoServicio = ModosServicio.TODO_JUNTO ' Nesto#476: vuelve el selector y, con él, servirJunto
-        RaisePropertyChanged(NameOf(pedido))
+        OnPropertyChanged(NameOf(pedido))
     End Sub
 
     ''' <summary>
@@ -2669,10 +2695,10 @@ Public Class DetallePedidoViewModel
     ' Carlos 09/12/25: Issue #253/#52 - Reinicializar FormaVenta y Almacén cuando cambia la serie
     Private Sub OnPedidoPropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
         If e.PropertyName = NameOf(pedido.serie) Then
-            RaisePropertyChanged(NameOf(EsSerieCursos))
-            RaisePropertyChanged(NameOf(HayLineasEditables))
-            RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
-            RaisePropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
+            OnPropertyChanged(NameOf(EsSerieCursos))
+            OnPropertyChanged(NameOf(HayLineasEditables))
+            OnPropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            OnPropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             ' Reinicializar selectores cuando cambia la serie (ej: al cambiar a CV)
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas()
@@ -2719,11 +2745,11 @@ Public Class DetallePedidoViewModel
         VistoBuenoVentas = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.VistoBuenoVentas)
         Dim papelMembrete = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PedidoVentaPapelMembrete)
         _papelConMembrete = papelMembrete?.ToLower() = "true"
-        RaisePropertyChanged(NameOf(PapelConMembrete))
+        OnPropertyChanged(NameOf(PapelConMembrete))
 
         Dim mostrarImg = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PedidoVentaMostrarImagenes)
         _mostrarImagenes = mostrarImg?.ToLower() = "true"
-        RaisePropertyChanged(NameOf(MostrarImagenes))
+        OnPropertyChanged(NameOf(MostrarImagenes))
 
         cmdCargarPedido.Execute(resumen)
     End Sub
