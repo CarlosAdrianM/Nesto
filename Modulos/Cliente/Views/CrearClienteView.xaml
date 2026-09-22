@@ -107,7 +107,31 @@
                                 <Button Grid.Column="1" Command="{Binding LimpiarDireccionCommand}" Visibility="{Binding TieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}" FontFamily="Segoe UI Symbol" Content="&#xE104;"></Button>
                             </Grid>
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right" ToolTip="Poner solo tipo de vía, nombre de la vía y número. Ejemplo: Paseo de la Castellana, 110" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (solo calle y número)</TextBlock>
-                            <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccionCalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp" PreviewKeyDown="TxtDireccion_PreviewKeyDown" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
+                            <!-- Nesto#480: la direccion de Google se SELECCIONA, no se escribe. Al elegir
+                                 una sugerencia el campo queda de solo lectura (no deshabilitado: se tiene
+                                 que poder leer y copiar) y se pinta de verde; para cambiarla hay que
+                                 borrarla con el boton de al lado y buscar otra. Lo que el usuario quiera
+                                 anadir va a "Direccion (resto de informacion)". -->
+                            <Grid Grid.Column="3" Grid.Row="1" HorizontalAlignment="Stretch" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Name="txtDireccion" Grid.Column="0" Text="{Binding ClienteDireccionCalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp" PreviewKeyDown="TxtDireccion_PreviewKeyDown" IsReadOnly="{Binding DireccionEsSoloLectura}">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="ToolTip" Value="Escribe para buscar y elige una direccion de la lista que propone Google"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DireccionEsSoloLectura}" Value="True">
+                                                    <Setter Property="Background" Value="#EAF7EA"/>
+                                                    <Setter Property="ToolTip" Value="Direccion verificada con Google. Para cambiarla, borrala con el boton de al lado y busca otra"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                <Button Grid.Column="1" Command="{Binding LimpiarDireccionCalleNumeroCommand}" Visibility="{Binding DireccionEsSoloLectura, Converter={StaticResource BooleanToVisibilityConverter}}" FontFamily="Segoe UI Symbol" Content="&#xE104;" ToolTip="Borrar la direccion para buscar otra"></Button>
+                            </Grid>
                             <!-- Nesto#409: combo de sugerencias de direcciones (Google Places vía NestoAPI).
                                  El foco se queda en el TextBox: ↑/↓ mueven el resaltado, Intro aplica,
                                  Escape cierra (TxtDireccion_PreviewKeyDown); el clic aplica directamente. -->
@@ -375,10 +399,13 @@
                     <xctk:WizardPage x:Name="Finalizar" PageType="Interior"
                                        Title="Finalizar"
                                        Description="Ya tenemos toda la información necesaria. Pulse el botón finalizar para crear el cliente en Nesto."
-                                       CanFinish="True">
+                                       CanFinish="{Binding SePuedeCrearCliente}">
 
                         <StackPanel>
-                            
+                            <!-- Nesto#480: sin dirección elegida de Google no se crea el cliente. -->
+                            <TextBlock Text="{Binding MotivoNoSePuedeCrearCliente}" TextWrapping="Wrap"
+                                       Foreground="Red" FontWeight="Bold" Margin="10"
+                                       Visibility="{Binding NoSePuedeCrearCliente, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </StackPanel>
 
                     </xctk:WizardPage>

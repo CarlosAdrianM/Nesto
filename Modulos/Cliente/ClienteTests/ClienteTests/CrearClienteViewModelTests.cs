@@ -525,6 +525,117 @@ namespace ClienteTests
             CollectionAssert.Contains(avisados, nameof(vm.DiasEnServir));
         }
 
+
+        // Nesto#480 / NestoAPI#499: la dirección de Google se SELECCIONA, no se escribe
+
+        private CrearClienteViewModel ConDireccionElegidaDeGoogleAsync_Preparar()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ480", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
+            return new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AlElegirUnaSugerencia_LaDireccionQuedaDeSoloLectura()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+            Assert.IsFalse(vm.DireccionEsSoloLectura, "Mientras se busca se puede escribir");
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+
+            Assert.IsTrue(vm.DireccionEsSoloLectura);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task BorrarLaDireccion_ReabreElCampo_YPideElFocoParaBuscarOtra()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+            bool pidioFoco = false;
+            vm.FocoEnDireccionSolicitado += (s, e) => pidioFoco = true;
+
+            vm.LimpiarDireccionCalleNumeroCommand.Execute(null);
+
+            Assert.AreEqual(string.Empty, vm.ClienteDireccionCalleNumero);
+            Assert.IsFalse(vm.DireccionVerificadaPorGoogle);
+            Assert.IsFalse(vm.DireccionEsSoloLectura, "Reabierto para buscar otra");
+            Assert.IsTrue(vm.CodigoPostalIsEnabled);
+            Assert.IsTrue(pidioFoco);
+        }
+
+        [TestMethod]
+        public void SinDireccionElegidaDeGoogle_NoSePuedeCrearElCliente()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            vm.ClienteDireccionCalleNumero = "Calle inventada, 3"; // tecleada a mano
+
+            Assert.IsFalse(vm.SePuedeCrearCliente);
+            Assert.IsTrue(vm.NoSePuedeCrearCliente);
+            StringAssert.Contains(vm.MotivoNoSePuedeCrearCliente, "Google");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task ConDireccionElegidaDeGoogle_SePuedeCrearElCliente()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            Assert.IsNull(vm.MotivoNoSePuedeCrearCliente);
+        }
+
+        [TestMethod]
+        public void SinNingunaDireccion_SePuedeCrear_PorqueNoHayNadaQueVerificar()
+        {
+            // Contactos de cobro y altas parciales: misma regla que el servidor (NestoAPI#499).
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+        }
+
+        [TestMethod]
+        public void EnUnaModificacion_NoSeExigeLaDireccionVerificada()
+        {
+            // Las fichas de años atrás tienen la dirección tecleada: el servidor tampoco las rechaza.
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteDireccion = "CALLE DE TODA LA VIDA, 7";
+
+            Assert.IsFalse(vm.SePuedeCrearCliente, "Como alta sí se exige");
+
+            vm.EsUnaModificacion = true;
+
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task CrearCliente_MandaDireccionVerificadaAlServidor()
+        {
+            // NestoAPI#499 rechaza el alta si este flag no viaja a true, asi que tiene que ir.
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+            vm.ClienteDireccion = "CALLE MAYOR, 1";
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.CrearCliente(A<ClienteCrear>.That.Matches(c => c.DireccionVerificada)))
+                .MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task CrearCliente_ConLaDireccionTecleada_NiSiquieraLlamaAlServidor()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteDireccion = "CALLE INVENTADA, 3";
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.CrearCliente(A<ClienteCrear>.Ignored)).MustNotHaveHappened();
+        }
+
         [TestMethod]
         public void DiasEnServir_DatoAusenteORoto_SeMuestraComoAbreTodosLosDias()
         {

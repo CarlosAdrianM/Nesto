@@ -11,6 +11,10 @@ namespace Nesto.Modulos.Cliente
         public string ComentariosRuta { get; set; }
         public string Contacto { get; set; }
         public string Direccion { get; set; }
+        // Nesto#480 / NestoAPI#499: la dirección la ELIGIÓ el usuario de las que propone Google, no la
+        // tecleó. Con el parámetro ExigirDireccionVerificadaAlta encendido, un alta con dirección y
+        // este flag a false la rechaza el servidor. En las modificaciones no se mira.
+        public bool DireccionVerificada { get; set; }
         public string Empresa { get; set; }
         public bool EsContacto { get; set; }
         public short? Estado { get; set; }

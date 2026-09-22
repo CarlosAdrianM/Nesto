@@ -49,6 +49,7 @@ namespace Nesto.Modulos.Cliente
             BorrarPersonaContactoCommand = new RelayCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new RelayCommand(OnCrearCliente);
             LimpiarDireccionCommand = new RelayCommand(OnLimpiarDireccion);
+            LimpiarDireccionCalleNumeroCommand = new RelayCommand(OnLimpiarDireccionCalleNumero); // Nesto#480
 
             Titulo = "Crear Cliente";
             PersonasContacto = new ObservableCollection<PersonaContactoDTO>()
@@ -80,6 +81,7 @@ namespace Nesto.Modulos.Cliente
                 SetProperty(ref clienteDireccion, value);
                 OnPropertyChanged(nameof(TieneDireccion));
                 OnPropertyChanged(nameof(NoTieneDireccion));
+                NotificarSePuedeCrearCliente(); // Nesto#480
             }
         }
         private string clienteDireccionAdicional;
@@ -99,6 +101,7 @@ namespace Nesto.Modulos.Cliente
                     DireccionVerificadaPorGoogle = false;
                     BuscarSugerenciasDireccionConDebounce(value);
                 }
+                NotificarSePuedeCrearCliente(); // Nesto#480
             }
         }
 
@@ -114,6 +117,8 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref direccionVerificadaPorGoogle, value))
                 {
                     OnPropertyChanged(nameof(CodigoPostalIsEnabled));
+                    OnPropertyChanged(nameof(DireccionEsSoloLectura)); // Nesto#480
+                    NotificarSePuedeCrearCliente();
                     if (!value)
                     {
                         // Sin verificación no hay datos de Google que preferir
@@ -124,6 +129,47 @@ namespace Nesto.Modulos.Cliente
             }
         }
         public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle;
+
+        // Nesto#480: la dirección de Google se SELECCIONA, no se escribe. En cuanto se elige una
+        // sugerencia el campo queda de solo lectura (que no deshabilitado: se tiene que poder leer y
+        // copiar); lo que el usuario quiera añadir (portal, local, referencias) va a «Dirección (resto
+        // de información)». Para cambiarla hay que borrarla con el botón de al lado y buscar otra.
+        public bool DireccionEsSoloLectura => DireccionVerificadaPorGoogle;
+
+        /// <summary>
+        /// Nesto#480: sin una dirección elegida de Google no se crea el cliente. Espejo exacto de lo que
+        /// hace el servidor en NestoAPI#499 (GestorClientes.MotivoRechazoDireccionNoVerificada): solo en
+        /// las altas, y solo si hay dirección (un contacto de cobro sin dirección no tiene nada que
+        /// verificar). En las modificaciones no se toca: ahí la dirección puede venir de años atrás.
+        /// </summary>
+        public bool SePuedeCrearCliente => MotivoNoSePuedeCrearCliente == null;
+
+        public bool NoSePuedeCrearCliente => !SePuedeCrearCliente;
+
+        public string MotivoNoSePuedeCrearCliente
+        {
+            get
+            {
+                if (EsUnaModificacion || DireccionVerificadaPorGoogle)
+                {
+                    return null;
+                }
+                bool hayDireccion = !string.IsNullOrWhiteSpace(ClienteDireccion)
+                                    || !string.IsNullOrWhiteSpace(ClienteDireccionCalleNumero);
+                return hayDireccion
+                    ? "La dirección tiene que elegirse de las que propone Google, no escribirse a mano. " +
+                      "Vuelve a «Datos generales», borra la dirección con el botón de al lado, búscala y " +
+                      "selecciónala en la lista. Si Google no la encuentra, avisa para darla de alta desde el Nesto viejo."
+                    : null;
+            }
+        }
+
+        private void NotificarSePuedeCrearCliente()
+        {
+            OnPropertyChanged(nameof(SePuedeCrearCliente));
+            OnPropertyChanged(nameof(NoSePuedeCrearCliente));
+            OnPropertyChanged(nameof(MotivoNoSePuedeCrearCliente));
+        }
 
         // Nesto#409: población/provincia que dio Google junto a la dirección (en mayúsculas).
         // Un CP puede cubrir varias poblaciones y nuestra tabla solo tiene una: la de Google es
@@ -483,6 +529,7 @@ namespace Nesto.Modulos.Cliente
             set { 
                 SetProperty(ref esUnaModificacion, value);
                 OnPropertyChanged(nameof(EsCreandoContacto));
+                NotificarSePuedeCrearCliente(); // Nesto#480
             }
         }
         private bool formaPagoEfectivo;
@@ -697,6 +744,15 @@ namespace Nesto.Modulos.Cliente
         public ICommand CrearClienteCommand { get; private set; }
         private async void OnCrearCliente()
         {
+            // Nesto#480: guarda dura de cliente. La de verdad la hace el servidor (NestoAPI#499) cuando
+            // el parámetro ExigirDireccionVerificadaAlta está encendido; esta es para que el usuario vea
+            // qué le pasa aquí, y no un error del servidor al final del asistente.
+            if (!SePuedeCrearCliente)
+            {
+                DialogService.ShowError(MotivoNoSePuedeCrearCliente);
+                return;
+            }
+
             // Issue #315: Si no marcó estética ni peluquería, asignar vendedor por defecto
             string vendedorEstetica = ClienteVendedorEstetica;
             string vendedorPeluqueria = ClienteVendedorPeluqueria;
@@ -715,6 +771,7 @@ namespace Nesto.Modulos.Cliente
                 ComentariosRuta = ClienteComentariosRuta,
                 DiasEnServir = DiasEnServir,
                 Direccion = ClienteDireccion,
+                DireccionVerificada = DireccionVerificadaPorGoogle, // Nesto#480 / NestoAPI#499
                 Empresa = ClienteEmpresa,
                 EsContacto = ClienteEsContacto,
                 Estado = ClienteEstado,
@@ -806,6 +863,25 @@ namespace Nesto.Modulos.Cliente
         {
             ClienteDireccion = String.Empty;
         }
+
+        public ICommand LimpiarDireccionCalleNumeroCommand { get; private set; }
+
+        /// <summary>
+        /// Nesto#480: borra la dirección elegida para poder buscar otra. Reabre el campo (el setter baja
+        /// DireccionVerificadaPorGoogle, que es lo que lo tenía de solo lectura y bloqueaba el código
+        /// postal) y pide el foco a la vista para seguir tecleando sin tener que pinchar.
+        /// </summary>
+        private void OnLimpiarDireccionCalleNumero()
+        {
+            CerrarSugerenciasDireccion();
+            ClienteDireccionCalleNumero = string.Empty;
+            // Si el campo ya estaba vacío el setter no salta, así que nos aseguramos aquí.
+            DireccionVerificadaPorGoogle = false;
+            FocoEnDireccionSolicitado?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Nesto#480: la vista devuelve el foco al campo de dirección al borrarla.</summary>
+        public event EventHandler FocoEnDireccionSolicitado;
 
         public async new void OnNavigatedTo(NavigationContext navigationContext)
         {
