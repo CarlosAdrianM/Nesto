@@ -1,6 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace ControlesUsuario.Dialogs
     /// mezclarlas, se agrupan por versión y se muestra SOLO una a la vez, empezando por la más nueva,
     /// con navegación anterior/siguiente entre versiones.
     /// </summary>
-    public class NovedadesDialogViewModel : BindableBase, IDialogAware
+    public class NovedadesDialogViewModel : ObservableObject, IDialogAware
     {
         private RelayCommand _closeDialogCommand;
         public RelayCommand CloseDialogCommand =>

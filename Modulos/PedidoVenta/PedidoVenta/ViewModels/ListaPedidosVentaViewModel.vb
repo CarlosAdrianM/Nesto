@@ -7,12 +7,12 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 
 Public Class ListaPedidosVentaViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
 
     Public Property configuracion As IConfiguracion
@@ -305,11 +305,11 @@ Public Class ListaPedidosVentaViewModel
     End Property
 
     Public Sub RecalcularTotalesSeleccionados()
-        RaisePropertyChanged(NameOf(TotalBaseImponibleSeleccionados))
-        RaisePropertyChanged(NameOf(TotalSeleccionados))
-        RaisePropertyChanged(NameOf(TotalIvaSeleccionados))
-        RaisePropertyChanged(NameOf(NumeroSeleccionados))
-        RaisePropertyChanged(NameOf(HayPedidosSeleccionados))
+        OnPropertyChanged(NameOf(TotalBaseImponibleSeleccionados))
+        OnPropertyChanged(NameOf(TotalSeleccionados))
+        OnPropertyChanged(NameOf(TotalIvaSeleccionados))
+        OnPropertyChanged(NameOf(NumeroSeleccionados))
+        OnPropertyChanged(NameOf(HayPedidosSeleccionados))
     End Sub
 
 #End Region
@@ -469,9 +469,9 @@ Public Class ListaPedidosVentaViewModel
                 ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)()
             End If
 
-            RaisePropertyChanged(NameOf(TextoUnirPedido))
-            RaisePropertyChanged(NameOf(EstaCreandoPedido))
-            RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+            OnPropertyChanged(NameOf(TextoUnirPedido))
+            OnPropertyChanged(NameOf(EstaCreandoPedido))
+            OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
         End If
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"[ListaPedidos] No se pudo cargar el resumen seleccionado: {ex.Message}")
@@ -538,22 +538,22 @@ Public Class ListaPedidosVentaViewModel
             resumen.esNuevo = False
 
             ' Notificar cambios en las propiedades
-            RaisePropertyChanged(NameOf(ListaPedidos))
+            OnPropertyChanged(NameOf(ListaPedidos))
         End If
     End Sub
 
     Public Sub NotificarPedidoGuardado(numeroPedidoReal As Integer)
         ConfirmarCreacionPedido(numeroPedidoReal)
         RaiseEvent PedidoCreadoConfirmado(numeroPedidoReal)
-        RaisePropertyChanged(NameOf(EstaCreandoPedido))
-        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+        OnPropertyChanged(NameOf(EstaCreandoPedido))
+        OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
     End Sub
 
     Public Sub NotificarCancelacionCreacion()
         CancelarCreacionPedido()
         RaiseEvent PedidoCreacionCancelada()
-        RaisePropertyChanged(NameOf(EstaCreandoPedido))
-        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+        OnPropertyChanged(NameOf(EstaCreandoPedido))
+        OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
     End Sub
 
     Private Sub OnPedidoCreado(eventArgs As PedidoCreadoEventArgs)
@@ -603,9 +603,9 @@ Public Class ListaPedidosVentaViewModel
         End If
 
         ' Notificar cambios en la UI
-        RaisePropertyChanged(NameOf(EstaCreandoPedido))
-        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
-        RaisePropertyChanged(NameOf(ListaPedidos))
+        OnPropertyChanged(NameOf(EstaCreandoPedido))
+        OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+        OnPropertyChanged(NameOf(ListaPedidos))
     End Sub
 
 #End Region

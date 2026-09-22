@@ -2,10 +2,10 @@
 Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class DeudaViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Public Sub New()
         Me._RatiosDeuda = RatioDeuda.CargarRatiosDeuda
@@ -22,7 +22,7 @@ Public Class DeudaViewModel
 
         'Set(ByVal value As RatioDeuda)
         '    Me._RatiosDeuda = value
-        '    RaisePropertyChanged("RatiosDeuda")
+        '    OnPropertyChanged("RatiosDeuda")
         'End Set
     End Property
 
@@ -33,7 +33,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleVentaReal)
             _DetalleVentaReal = value
-            RaisePropertyChanged("DetalleVentaReal")
+            OnPropertyChanged("DetalleVentaReal")
         End Set
     End Property
 
@@ -44,7 +44,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleVentaPeriodo)
             _DetalleVentaPeriodo = value
-            RaisePropertyChanged("DetalleVentaPeriodo")
+            OnPropertyChanged("DetalleVentaPeriodo")
         End Set
     End Property
 
@@ -55,7 +55,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleDeuda)
             _DetalleDeuda = value
-            RaisePropertyChanged("DetalleDeuda")
+            OnPropertyChanged("DetalleDeuda")
         End Set
     End Property
 
@@ -66,7 +66,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As IEnumerable)
             _DeudaAgrupada = value
-            RaisePropertyChanged("DeudaAgrupada")
+            OnPropertyChanged("DeudaAgrupada")
         End Set
     End Property
 
@@ -77,7 +77,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As RatioDeuda)
             _RatioDeudaSeleccionado = value
-            RaisePropertyChanged("RatioDeudaSeleccionado")
+            OnPropertyChanged("RatioDeudaSeleccionado")
         End Set
     End Property
 

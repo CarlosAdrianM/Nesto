@@ -1,7 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
 Imports Nesto.Infrastructure.Contracts
@@ -9,7 +9,7 @@ Imports Nesto.Infrastructure.Shared
 Imports ControlesUsuario.Models
 
 Public Class CopiarFacturaViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Private ReadOnly _servicio As IPedidoVentaService
@@ -41,7 +41,7 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As String)
             If SetProperty(_cliente, value) Then
-                RaisePropertyChanged(NameOf(TieneCliente))
+                OnPropertyChanged(NameOf(TieneCliente))
             End If
         End Set
     End Property
@@ -163,7 +163,7 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As String)
             SetProperty(_clienteDestino, value)
-            RaisePropertyChanged(NameOf(EsCambioCliente))
+            OnPropertyChanged(NameOf(EsCambioCliente))
         End Set
     End Property
 
@@ -222,9 +222,9 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As CopiarFacturaResponseDTO)
             SetProperty(_resultado, value)
-            RaisePropertyChanged(NameOf(MostrarResultado))
-            RaisePropertyChanged(NameOf(TieneAlbaran))
-            RaisePropertyChanged(NameOf(TieneFactura))
+            OnPropertyChanged(NameOf(MostrarResultado))
+            OnPropertyChanged(NameOf(TieneAlbaran))
+            OnPropertyChanged(NameOf(TieneFactura))
         End Set
     End Property
 
@@ -274,7 +274,7 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As ObservableCollection(Of FacturaClienteDTO))
             If SetProperty(_facturasSeleccionadas, value) Then
-                RaisePropertyChanged(NameOf(TieneMultiplesFacturasSeleccionadas))
+                OnPropertyChanged(NameOf(TieneMultiplesFacturasSeleccionadas))
                 EjecutarCommand?.NotifyCanExecuteChanged()
             End If
         End Set

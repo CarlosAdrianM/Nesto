@@ -4,7 +4,7 @@ Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
 Imports System.Windows.Controls
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Services.Dialogs
@@ -18,7 +18,7 @@ Imports Nesto.Infrastructure.Models.Alquileres
 Imports Unity
 
 Public Class AlquileresViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion

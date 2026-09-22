@@ -5,7 +5,7 @@ Imports System.Windows
 Imports Microsoft.Win32
 Imports System.Windows.Controls
 Imports Nesto.Contratos
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Regions
@@ -21,7 +21,7 @@ Imports Unity
 Imports ControlesUsuario.Dialogs
 
 Public Class RemesasViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Const numRemesas = 100
 
@@ -177,9 +177,9 @@ Public Class RemesasViewModel
 
     Private Sub CandidatoCambiado(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
         If e.PropertyName = NameOf(EfectoCandidatoModel.Seleccionado) Then
-            RaisePropertyChanged(NameOf(ImporteSeleccionado))
-            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
-            RaisePropertyChanged(NameOf(ResumenSeleccionado))
+            OnPropertyChanged(NameOf(ImporteSeleccionado))
+            OnPropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            OnPropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand.NotifyCanExecuteChanged()
         End If
     End Sub
@@ -211,9 +211,9 @@ Public Class RemesasViewModel
             candidato.ClienteConNegativos = payload.ClienteSigueConNegativos
         Next
         If huboCambios Then
-            RaisePropertyChanged(NameOf(ImporteSeleccionado))
-            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
-            RaisePropertyChanged(NameOf(ResumenSeleccionado))
+            OnPropertyChanged(NameOf(ImporteSeleccionado))
+            OnPropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            OnPropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand?.NotifyCanExecuteChanged()
         End If
     End Sub
@@ -425,7 +425,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of EmpresaModel))
             _listaEmpresas = value
-            RaisePropertyChanged("listaEmpresas")
+            OnPropertyChanged("listaEmpresas")
         End Set
     End Property
 
@@ -441,7 +441,7 @@ Public Class RemesasViewModel
             CargarRemesasAsync(numRemesas)
             blnPuedeVerTodasLasRemesas = True
             CargarImpagadosAsync(numRemesas)
-            RaisePropertyChanged("empresaActual")
+            OnPropertyChanged("empresaActual")
         End Set
     End Property
 
@@ -461,7 +461,7 @@ Public Class RemesasViewModel
                 CargarMovimientosAsync(remesaActual.Numero)
             End If
             ImprimirRemesaCommand?.NotifyCanExecuteChanged()
-            RaisePropertyChanged("remesaActual")
+            OnPropertyChanged("remesaActual")
         End Set
     End Property
 
@@ -472,7 +472,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As Xml.Linq.XDocument)
             _contenidoFichero = value
-            RaisePropertyChanged("contenidoFichero")
+            OnPropertyChanged("contenidoFichero")
         End Set
     End Property
 
@@ -483,7 +483,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            RaisePropertyChanged("mensajeError")
+            OnPropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -494,7 +494,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of RemesaModel))
             _listaRemesas = value
-            RaisePropertyChanged("listaRemesas")
+            OnPropertyChanged("listaRemesas")
         End Set
     End Property
 
@@ -505,7 +505,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of MovimientoRemesaModel))
             _listaMovimientos = value
-            RaisePropertyChanged("listaMovimientos")
+            OnPropertyChanged("listaMovimientos")
         End Set
     End Property
 
@@ -518,7 +518,7 @@ Public Class RemesasViewModel
             SetProperty(_pestañaSeleccionada, value)
             If _pestañaSeleccionada.Header = "Impagados" AndAlso String.IsNullOrEmpty(usuarioTareas) Then
                 usuarioTareas = configuracion.LeerParametroSync(empresaActual, "UsuarioAvisoImpagadoDefecto")
-                RaisePropertyChanged(NameOf(usuarioTareas))
+                OnPropertyChanged(NameOf(usuarioTareas))
             End If
             ' Nesto#424: Cartera viva es ahora la primera pestaña; al entrar (incluida la
             ' apertura de la ventana) se cargan los candidatos solos si aún no hay lista.
@@ -536,7 +536,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of impagado))
             _listaImpagados = value
-            RaisePropertyChanged("listaImpagados")
+            OnPropertyChanged("listaImpagados")
         End Set
     End Property
 
@@ -548,7 +548,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of MovimientoRemesaModel))
             _listaImpagadosDetalle = value
-            RaisePropertyChanged("listaImpagadosDetalle")
+            OnPropertyChanged("listaImpagadosDetalle")
         End Set
     End Property
 
@@ -560,10 +560,10 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of EfectoCandidatoModel))
             _listaCandidatos = value
-            RaisePropertyChanged(NameOf(ListaCandidatos))
-            RaisePropertyChanged(NameOf(ImporteSeleccionado))
-            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
-            RaisePropertyChanged(NameOf(ResumenSeleccionado))
+            OnPropertyChanged(NameOf(ListaCandidatos))
+            OnPropertyChanged(NameOf(ImporteSeleccionado))
+            OnPropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            OnPropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand?.NotifyCanExecuteChanged()
         End Set
     End Property
@@ -643,7 +643,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As Boolean)
             If SetProperty(_respetarVencimientos, value) Then
-                RaisePropertyChanged(NameOf(ForzarFechaUnica))
+                OnPropertyChanged(NameOf(ForzarFechaUnica))
             End If
         End Set
     End Property
@@ -726,7 +726,7 @@ Public Class RemesasViewModel
                 ' el error queda en mensajeError).
                 CargarMovimientosImpagadoAsync(impagadoActual.asiento)
             End If
-            RaisePropertyChanged("impagadoActual")
+            OnPropertyChanged("impagadoActual")
         End Set
     End Property
 
@@ -747,7 +747,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of tipoRemesa))
             _listaTiposRemesa = value
-            'RaisePropertyChanged("listaTiposRemesa")
+            'OnPropertyChanged("listaTiposRemesa")
         End Set
     End Property
 
@@ -758,7 +758,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As tipoRemesa)
             _tipoRemesaActual = value
-            RaisePropertyChanged("tipoRemesaActual")
+            OnPropertyChanged("tipoRemesaActual")
         End Set
     End Property
 
@@ -769,7 +769,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As Date)
             _fechaCobro = value
-            RaisePropertyChanged("fechaCobro")
+            OnPropertyChanged("fechaCobro")
         End Set
     End Property
 
@@ -780,7 +780,7 @@ Public Class RemesasViewModel
         End Get
         Set(ByVal value As Boolean)
             _estaOcupado = value
-            RaisePropertyChanged("estaOcupado")
+            OnPropertyChanged("estaOcupado")
         End Set
     End Property
 

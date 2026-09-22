@@ -2,7 +2,7 @@
 using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ControlesUsuario.ViewModels
 {
-    public class SelectorClienteViewModel : BindableBase
+    public class SelectorClienteViewModel : ObservableObject
     {
         
         private readonly ISelectorClienteService Servicio;
@@ -40,8 +40,8 @@ namespace ControlesUsuario.ViewModels
                 if (_cargando != value)
                 {
                     _cargando = value;
-                    RaisePropertyChanged(nameof(cargando));
-                    RaisePropertyChanged(nameof(visibilidadCargando));
+                    OnPropertyChanged(nameof(cargando));
+                    OnPropertyChanged(nameof(visibilidadCargando));
                 }
             }
         }
@@ -70,7 +70,7 @@ namespace ControlesUsuario.ViewModels
 
         public void ActualizarPropertyChanged()
         {
-            RaisePropertyChanged(string.Empty);
+            OnPropertyChanged(string.Empty);
         }
 
         private ColeccionFiltrable _listaClientes;
@@ -83,8 +83,8 @@ namespace ControlesUsuario.ViewModels
             set
             {
                 _listaClientes = value;
-                RaisePropertyChanged(nameof(listaClientes));
-                RaisePropertyChanged(nameof(visibilidadListaClientes));
+                OnPropertyChanged(nameof(listaClientes));
+                OnPropertyChanged(nameof(visibilidadListaClientes));
             }
         }
 
@@ -120,8 +120,8 @@ namespace ControlesUsuario.ViewModels
             set
             {
                 _visibilidadSelectorEntrega = value;
-                RaisePropertyChanged(nameof(visibilidadSelectorEntrega));
-                RaisePropertyChanged(nameof(MostrarBadgeContactos));
+                OnPropertyChanged(nameof(visibilidadSelectorEntrega));
+                OnPropertyChanged(nameof(MostrarBadgeContactos));
             }
         }
 
@@ -155,7 +155,7 @@ namespace ControlesUsuario.ViewModels
             {
                 if (SetProperty(ref _numeroContactos, value))
                 {
-                    RaisePropertyChanged(nameof(MostrarBadgeContactos));
+                    OnPropertyChanged(nameof(MostrarBadgeContactos));
                 }
             }
         }
@@ -188,7 +188,7 @@ namespace ControlesUsuario.ViewModels
             string valor = await Configuracion.leerParametro(_empresaParametros,
                 Parametros.Claves.SelectorClienteContactosExpandidos);
             _contactosExpandidosPorDefecto = valor?.Trim() == "1";
-            RaisePropertyChanged(nameof(ContactosExpandidosPorDefecto));
+            OnPropertyChanged(nameof(ContactosExpandidosPorDefecto));
             _preferenciasCargadas = true;
             if (_contactosExpandidosPorDefecto && listaClientes?.ElementoSeleccionado != null)
             {
@@ -215,7 +215,7 @@ namespace ControlesUsuario.ViewModels
                 if (listaDevuelta != null)
                 {
                     listaClientes.ListaFijada = new ObservableCollection<IFiltrableItem>(listaDevuelta);
-                    RaisePropertyChanged(nameof(visibilidadListaClientes));
+                    OnPropertyChanged(nameof(visibilidadListaClientes));
                 }
                 else
                 {
@@ -312,7 +312,7 @@ namespace ControlesUsuario.ViewModels
         private void mostrarCargando(bool estado)
         {
             cargando = estado;
-            RaisePropertyChanged(nameof(cargando));
+            OnPropertyChanged(nameof(cargando));
         }
 
 

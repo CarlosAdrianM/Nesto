@@ -1,7 +1,7 @@
 ﻿using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -16,7 +16,7 @@ namespace ControlesUsuario.Dialogs
     /// siempre (solo lectura) y, debajo, los parámetros que el SERVIDOR declare editables para
     /// este usuario, con su combo de valores permitidos. Guardar valida server-side.
     /// </summary>
-    public class ParametrosUsuarioDialogViewModel : BindableBase, IDialogAware
+    public class ParametrosUsuarioDialogViewModel : ObservableObject, IDialogAware
     {
         private readonly IServicioParametrosEditables _servicio;
 
@@ -109,7 +109,7 @@ namespace ControlesUsuario.Dialogs
     }
 
     /// <summary>Un parámetro editable en la ventana: combo de opciones + rastro del titular.</summary>
-    public class ParametroEditableItem : BindableBase
+    public class ParametroEditableItem : ObservableObject
     {
         private readonly Action _alCambiar;
         private string _valorGuardado;
@@ -153,8 +153,8 @@ namespace ControlesUsuario.Dialogs
         {
             _valorGuardado = resultado.ValorActual;
             ValorTitular = resultado.ValorTitular;
-            RaisePropertyChanged(nameof(TextoTitular));
-            RaisePropertyChanged(nameof(VisibilidadTitular));
+            OnPropertyChanged(nameof(TextoTitular));
+            OnPropertyChanged(nameof(VisibilidadTitular));
         }
     }
 }

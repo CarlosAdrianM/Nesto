@@ -8,12 +8,12 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Unity
 
 Public Class MenuBarViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly _container As IUnityContainer
     Private ReadOnly _regionManager As IRegionManager
@@ -118,7 +118,7 @@ Public Class MenuBarViewModel
         End Get
         Set(value As String)
             SetProperty(_opcionesFechas, value)
-            RaisePropertyChanged(NameOf(MostrarFechas))
+            OnPropertyChanged(NameOf(MostrarFechas))
         End Set
     End Property
 

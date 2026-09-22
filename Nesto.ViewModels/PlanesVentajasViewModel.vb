@@ -11,11 +11,11 @@ Imports Microsoft.Win32
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.PlanesVentajas
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Unity
 
 Public Class PlanesVentajasViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Public Property Titulo As String
     Private ReadOnly configuracion As IConfiguracion
@@ -67,7 +67,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _empresaActual = value
-            RaisePropertyChanged(NameOf(empresaActual))
+            OnPropertyChanged(NameOf(empresaActual))
         End Set
     End Property
 
@@ -78,7 +78,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _vendedor = value
-            RaisePropertyChanged(NameOf(vendedor))
+            OnPropertyChanged(NameOf(vendedor))
         End Set
     End Property
 
@@ -89,7 +89,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of PlanVentajasModel))
             _listaPlanes = value
-            RaisePropertyChanged(NameOf(listaPlanes))
+            OnPropertyChanged(NameOf(listaPlanes))
         End Set
     End Property
 
@@ -114,11 +114,11 @@ Public Class PlanesVentajasViewModel
                 listaClientesEditar = Nothing
                 lineasVenta = Nothing
             End If
-            RaisePropertyChanged(NameOf(planActual))
-            RaisePropertyChanged(NameOf(diasPlan))
-            RaisePropertyChanged(NameOf(diasTranscurridos))
-            RaisePropertyChanged(NameOf(importeDiaObjetivo))
-            RaisePropertyChanged(NameOf(porcentajeRealizado))
+            OnPropertyChanged(NameOf(planActual))
+            OnPropertyChanged(NameOf(diasPlan))
+            OnPropertyChanged(NameOf(diasTranscurridos))
+            OnPropertyChanged(NameOf(importeDiaObjetivo))
+            OnPropertyChanged(NameOf(porcentajeRealizado))
             CommandManager.InvalidateRequerySuggested()
         End Set
     End Property
@@ -163,7 +163,7 @@ Public Class PlanesVentajasViewModel
 
         ' Tras la recarga inicial nada debe marcar como sucio.
         isDirty = False
-        RaisePropertyChanged(NameOf(barrasGrafico))
+        OnPropertyChanged(NameOf(barrasGrafico))
     End Function
 
     Private _listaClientes As ObservableCollection(Of ClientePlanVentajasModel)
@@ -173,7 +173,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of ClientePlanVentajasModel))
             _listaClientes = value
-            RaisePropertyChanged(NameOf(listaClientes))
+            OnPropertyChanged(NameOf(listaClientes))
         End Set
     End Property
 
@@ -237,7 +237,7 @@ Public Class PlanesVentajasViewModel
             Else
                 importeVentas = 0
             End If
-            RaisePropertyChanged(NameOf(lineasVenta))
+            OnPropertyChanged(NameOf(lineasVenta))
         End Set
     End Property
 
@@ -248,8 +248,8 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As Decimal)
             _importeVentas = value
-            RaisePropertyChanged(NameOf(importeVentas))
-            RaisePropertyChanged(NameOf(importeProyeccion))
+            OnPropertyChanged(NameOf(importeVentas))
+            OnPropertyChanged(NameOf(importeProyeccion))
         End Set
     End Property
 
@@ -326,7 +326,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            RaisePropertyChanged(NameOf(mensajeError))
+            OnPropertyChanged(NameOf(mensajeError))
         End Set
     End Property
 
@@ -337,7 +337,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _selectedPath = value
-            RaisePropertyChanged(NameOf(selectedPath))
+            OnPropertyChanged(NameOf(selectedPath))
         End Set
     End Property
 
@@ -348,7 +348,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As TabItem)
             _PestañaSeleccionada = value
-            RaisePropertyChanged(NameOf(PestañaSeleccionada))
+            OnPropertyChanged(NameOf(PestañaSeleccionada))
         End Set
     End Property
 
@@ -359,7 +359,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of EmpresaResumenModel))
             _listaEmpresas = value
-            RaisePropertyChanged(NameOf(listaEmpresas))
+            OnPropertyChanged(NameOf(listaEmpresas))
         End Set
     End Property
 
@@ -370,7 +370,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of EstadoPlanVentajasModel))
             _listaEstados = value
-            RaisePropertyChanged(NameOf(listaEstados))
+            OnPropertyChanged(NameOf(listaEstados))
         End Set
     End Property
 
@@ -381,7 +381,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _filtro = value
-            RaisePropertyChanged(NameOf(filtro))
+            OnPropertyChanged(NameOf(filtro))
             RefrescarListaPlanesAsync()
         End Set
     End Property
@@ -393,7 +393,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As Boolean)
             _verPlanesNulos = value
-            RaisePropertyChanged(NameOf(verPlanesNulos))
+            OnPropertyChanged(NameOf(verPlanesNulos))
             RefrescarListaPlanesAsync()
         End Set
     End Property

@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class InputTextDialogViewModel : BindableBase, IDialogAware
+    public class InputTextDialogViewModel : ObservableObject, IDialogAware
     {
         private string _title = "Introducir texto";
         private string _message;

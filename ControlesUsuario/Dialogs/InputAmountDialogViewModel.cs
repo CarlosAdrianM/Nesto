@@ -1,12 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Windows.Input;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class InputAmountDialogViewModel : BindableBase, IDialogAware
+    public class InputAmountDialogViewModel : ObservableObject, IDialogAware
     {
         private string _title = "Introducir Importe";
         private string _message;

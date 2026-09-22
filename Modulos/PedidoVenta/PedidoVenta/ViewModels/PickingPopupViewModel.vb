@@ -10,11 +10,11 @@ Imports Nesto.Models
 Imports Nesto.Models.LineaPedidoVentaDTO
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
 Public Class PickingPopupViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Private Const FILTRO_RUTAS_DEFECTO As String = "(ruta='AT ' or ruta='OT ' or ruta='16 ' or ruta='FW ' or ruta='00 ')"

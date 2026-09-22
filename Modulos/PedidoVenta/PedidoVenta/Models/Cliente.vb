@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
-Imports Prism.Mvvm
 
 Public Class ClienteJson
     Implements IFiltrableItem

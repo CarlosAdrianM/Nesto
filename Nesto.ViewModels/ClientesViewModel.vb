@@ -21,7 +21,7 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.Rapports
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports Unity
 
@@ -33,7 +33,7 @@ Public Interface IOService
 End Interface
 
 Public Class ClientesViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     '    Implements IActiveAware
 
     ' Nesto#340 (1C.8): VM 100% sin EF — el DbContext se eliminó con el último resto
@@ -159,7 +159,7 @@ Public Class ClientesViewModel
                 Dim unused = CargarClienteActualEmpresa()
             End If
             ActualizarClienteAsync(_empresaActual, clienteActual, contactoActual)
-            RaisePropertyChanged("empresaActual")
+            OnPropertyChanged("empresaActual")
         End Set
     End Property
 
@@ -210,7 +210,7 @@ Public Class ClientesViewModel
             _clienteActual = value
             CargarListaContactos()
             ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
-            RaisePropertyChanged(NameOf(clienteActual))
+            OnPropertyChanged(NameOf(clienteActual))
             ' Nesto#340 (1C.8, slice 4): el Titulo se pone en actualizarCliente al terminar la
             ' carga async (aquí clienteActivo aún sería el cliente anterior).
         End Set
@@ -224,7 +224,7 @@ Public Class ClientesViewModel
         Set(value As String)
             _contactoActual = value
             ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
-            RaisePropertyChanged("contactoActual")
+            OnPropertyChanged("contactoActual")
         End Set
     End Property
 
@@ -235,10 +235,10 @@ Public Class ClientesViewModel
         End Get
         Set(value As ClienteJson)
             _clienteServidor = value
-            RaisePropertyChanged("clienteServidor")
+            OnPropertyChanged("clienteServidor")
             ' Nesto#458: el permiso depende de quién lleva el cliente que se está mirando
-            RaisePropertyChanged(NameOf(PuedeEditarComercial))
-            RaisePropertyChanged(NameOf(MotivoComercialBloqueado))
+            OnPropertyChanged(NameOf(PuedeEditarComercial))
+            OnPropertyChanged(NameOf(MotivoComercialBloqueado))
         End Set
     End Property
 
@@ -334,7 +334,7 @@ Public Class ClientesViewModel
                 )
             End If
             clienteServidor.VendedoresGrupoProducto.ElementAt(0).estado = value
-            RaisePropertyChanged(NameOf(estadoPeluqueria))
+            OnPropertyChanged(NameOf(estadoPeluqueria))
         End Set
     End Property
 
@@ -346,7 +346,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of EmpresaModel))
             _listaEmpresas = value
-            RaisePropertyChanged("listaEmpresas")
+            OnPropertyChanged("listaEmpresas")
         End Set
     End Property
 
@@ -357,7 +357,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _nombre = value
-            RaisePropertyChanged("nombre")
+            OnPropertyChanged("nombre")
         End Set
     End Property
 
@@ -370,8 +370,8 @@ Public Class ClientesViewModel
         End Get
         Set(value As CCCModel)
             _cuentaActiva = value
-            RaisePropertyChanged("cuentaActiva")
-            RaisePropertyChanged(NameOf(descripcionEstadoCCC))
+            OnPropertyChanged("cuentaActiva")
+            OnPropertyChanged(NameOf(descripcionEstadoCCC))
         End Set
     End Property
 
@@ -394,7 +394,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of CCCModel))
             _cuentasBanco = value
-            RaisePropertyChanged("cuentasBanco")
+            OnPropertyChanged("cuentasBanco")
         End Set
     End Property
 
@@ -574,7 +574,7 @@ Public Class ClientesViewModel
                 ListaDeudas = Nothing
             End If
 
-            RaisePropertyChanged("clienteActivo")
+            OnPropertyChanged("clienteActivo")
         End Set
     End Property
 
@@ -593,7 +593,7 @@ Public Class ClientesViewModel
                 clienteActivo = Nothing
             End If
 
-            RaisePropertyChanged("clienteActivoDTO")
+            OnPropertyChanged("clienteActivoDTO")
         End Set
     End Property
 
@@ -604,7 +604,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            RaisePropertyChanged("mensajeError")
+            OnPropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -615,7 +615,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _selectedPath = value
-            RaisePropertyChanged("selectedPath")
+            OnPropertyChanged("selectedPath")
         End Set
     End Property
 
@@ -629,8 +629,8 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of EstadoCCCModel))
             _listaEstadosCCC = value
-            RaisePropertyChanged("listaEstadosCCC")
-            RaisePropertyChanged(NameOf(descripcionEstadoCCC))
+            OnPropertyChanged("listaEstadosCCC")
+            OnPropertyChanged(NameOf(descripcionEstadoCCC))
         End Set
     End Property
 
@@ -641,7 +641,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _vendedor = value
-            RaisePropertyChanged("vendedor")
+            OnPropertyChanged("vendedor")
             ' Nesto#340 (1C.8): eliminadas las consultas EF a FamiliasVendedor — alimentaban
             ' esVendedorDeFamilias/listaCodigosPostalesVendedor, que solo se leían en código
             ' comentado desde hace años (filtro de clientes por códigos postales).
@@ -669,7 +669,7 @@ Public Class ClientesViewModel
                 )
             End If
             clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor = value
-            RaisePropertyChanged("vendedorPorGrupo")
+            OnPropertyChanged("vendedorPorGrupo")
         End Set
     End Property
 
@@ -693,7 +693,7 @@ Public Class ClientesViewModel
     '        If IsNothing(clienteActivoDTO) And Not IsNothing(_listaClientesVendedor) Then
     '            clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
     '        End If
-    '        RaisePropertyChanged("listaClientesVendedor")
+    '        OnPropertyChanged("listaClientesVendedor")
     '    End Set
     'End Property
 
@@ -706,7 +706,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of SeguimientoResumen))
             _seguimientosOrdenados = value
-            RaisePropertyChanged("seguimientosOrdenados")
+            OnPropertyChanged("seguimientosOrdenados")
         End Set
     End Property
 
@@ -717,7 +717,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of lineaVentaAgrupada))
             _listaVentas = value
-            RaisePropertyChanged("listaVentas")
+            OnPropertyChanged("listaVentas")
         End Set
     End Property
 
@@ -757,7 +757,7 @@ Public Class ClientesViewModel
     '        filtro = ""
     '    End If
 
-    '    RaisePropertyChanged("filtro")
+    '    OnPropertyChanged("filtro")
     'End Sub
 
     Private _rangoFechasVenta As String
@@ -770,7 +770,7 @@ Public Class ClientesViewModel
             If Not IsNothing(clienteActivo) Then
                 CargarListaVentas()
             End If
-            RaisePropertyChanged("rangoFechasVenta")
+            OnPropertyChanged("rangoFechasVenta")
         End Set
     End Property
 
@@ -781,7 +781,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As Nullable(Of Decimal))
             _deudaVencida = value
-            RaisePropertyChanged("deudaVencida")
+            OnPropertyChanged("deudaVencida")
         End Set
     End Property
 
@@ -792,7 +792,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             _listaSecuencias = value
-            RaisePropertyChanged("listaSecuencias")
+            OnPropertyChanged("listaSecuencias")
         End Set
     End Property
 
@@ -803,7 +803,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             _listaTipos = value
-            RaisePropertyChanged("listaTipos")
+            OnPropertyChanged("listaTipos")
         End Set
     End Property
 
@@ -816,8 +816,8 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of ExtractoCCCModel))
             _extractoCCC = value
-            RaisePropertyChanged("extractoCCC")
-            RaisePropertyChanged("estaVisibleExtractoCCC")
+            OnPropertyChanged("extractoCCC")
+            OnPropertyChanged("estaVisibleExtractoCCC")
         End Set
     End Property
 
@@ -828,8 +828,8 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of cabeceraPedidoAgrupada))
             _pedidosCCC = value
-            RaisePropertyChanged("pedidosCCC")
-            RaisePropertyChanged("estaVisiblePedidosCCC")
+            OnPropertyChanged("pedidosCCC")
+            OnPropertyChanged("estaVisiblePedidosCCC")
         End Set
     End Property
 
@@ -840,10 +840,10 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of Clientes))
             _listaContactos = value
-            RaisePropertyChanged("listaContactos")
+            OnPropertyChanged("listaContactos")
             If Not IsNothing(value.FirstOrDefault) Then
                 contactoActual = value.FirstOrDefault.Contacto
-                RaisePropertyChanged("contactoActual")
+                OnPropertyChanged("contactoActual")
             End If
         End Set
     End Property
@@ -855,7 +855,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As Boolean)
             _estaOcupado = value
-            RaisePropertyChanged("estaOcupado")
+            OnPropertyChanged("estaOcupado")
         End Set
     End Property
 
@@ -921,7 +921,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of ResumenPedido))
             _listaPedidos = value
-            RaisePropertyChanged("ListaPedidos")
+            OnPropertyChanged("ListaPedidos")
         End Set
     End Property
 
@@ -939,7 +939,7 @@ Public Class ClientesViewModel
             ElseIf _indiceSeleccionado = 3 Then 'Deudas
                 CargarDeudas()
             End If
-            RaisePropertyChanged("IndiceSeleccionado")
+            OnPropertyChanged("IndiceSeleccionado")
         End Set
     End Property
 
@@ -2078,7 +2078,7 @@ Public Class ClientesViewModel
         vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
         If Not IsNothing(configuracion) Then
             EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
-            RaisePropertyChanged(NameOf(PuedeElegirMotorPagos))
+            OnPropertyChanged(NameOf(PuedeElegirMotorPagos))
             ' Nesto#458: mismos grupos "de oficina" que el servidor no restringe
             EsOficinaComercial = EsUsuarioAdministracion OrElse
                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
@@ -2097,8 +2097,8 @@ Public Class ClientesViewModel
                 ' Sin equipo resoluble el combo se queda sin filtrar; el servidor sigue mandando
             End Try
         End If
-        RaisePropertyChanged(NameOf(PuedeEditarComercial))
-        RaisePropertyChanged(NameOf(MotivoComercialBloqueado))
+        OnPropertyChanged(NameOf(PuedeEditarComercial))
+        OnPropertyChanged(NameOf(MotivoComercialBloqueado))
 
         Dim motorPagosParametro As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, "MotorPagos")
         If Not String.IsNullOrWhiteSpace(motorPagosParametro) Then
@@ -2213,7 +2213,7 @@ End Class
 ' JsonProperty los que no coinciden con el CCCDTO de la API. El dirty que antes llevaba el
 ' ChangeTracker de EF lo lleva EsModificado (los setters editables lo activan).
 Public Class CCCModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     <JsonIgnore>
     Public Property EsModificado As Boolean
@@ -2394,7 +2394,7 @@ Public Class GuardarCCCsRespuesta
 End Class
 
 Public Class ExtractoClienteDTO
-    Inherits BindableBase
+    Inherits ObservableObject
     Public Property Id As Integer
     Public Property Empresa As String
     Public Property Asiento As Integer

@@ -42,7 +42,7 @@ namespace ControlesUsuario.ViewModels
             set
             {
                 SetProperty(ref _listaProveedores, value);
-                RaisePropertyChanged(nameof(VisibilidadListaProveedores));
+                OnPropertyChanged(nameof(VisibilidadListaProveedores));
             }
         }
 
@@ -59,7 +59,7 @@ namespace ControlesUsuario.ViewModels
 
         public void ActualizarPropertyChanged()
         {
-            RaisePropertyChanged(string.Empty);
+            OnPropertyChanged(string.Empty);
         }
 
         private async Task BuscarProveedores(string empresa, string filtro)
@@ -81,7 +81,7 @@ namespace ControlesUsuario.ViewModels
                 if (listaDevuelta != null)
                 {
                     ListaProveedores.Lista = new ObservableCollection<IFiltrableItem>(listaDevuelta);
-                    RaisePropertyChanged(nameof(VisibilidadListaProveedores));
+                    OnPropertyChanged(nameof(VisibilidadListaProveedores));
                 }
                 else
                 {

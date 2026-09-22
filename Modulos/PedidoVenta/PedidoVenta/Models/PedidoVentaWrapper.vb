@@ -2,10 +2,10 @@
 Imports System.Collections.Specialized
 Imports System.ComponentModel
 Imports Nesto.Models
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class PedidoVentaWrapper
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Public Event IvaCambiado(nuevoIva As String)
     Public Event PeriodoFacturacionCambiado(nuevoPeriodo As String)
@@ -56,7 +56,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Integer)
             Model.numero = value
-            RaisePropertyChanged(NameOf(numero))
+            OnPropertyChanged(NameOf(numero))
         End Set
     End Property
 
@@ -66,7 +66,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.cliente = value
-            RaisePropertyChanged(NameOf(cliente))
+            OnPropertyChanged(NameOf(cliente))
         End Set
     End Property
 
@@ -76,7 +76,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.contacto = value
-            RaisePropertyChanged(NameOf(contacto))
+            OnPropertyChanged(NameOf(contacto))
         End Set
     End Property
     Public Property fecha() As Nullable(Of System.DateTime)
@@ -93,7 +93,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.formaPago = value
-            RaisePropertyChanged(NameOf(formaPago))
+            OnPropertyChanged(NameOf(formaPago))
         End Set
     End Property
     Public Property plazosPago() As String
@@ -102,7 +102,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.plazosPago = value
-            RaisePropertyChanged(NameOf(plazosPago))
+            OnPropertyChanged(NameOf(plazosPago))
         End Set
     End Property
     Public Property primerVencimiento() As Nullable(Of System.DateTime)
@@ -111,7 +111,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Nullable(Of System.DateTime))
             Model.primerVencimiento = value
-            RaisePropertyChanged(NameOf(primerVencimiento))
+            OnPropertyChanged(NameOf(primerVencimiento))
         End Set
     End Property
     Public Property iva() As String
@@ -120,7 +120,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.iva = value
-            RaisePropertyChanged(NameOf(iva))
+            OnPropertyChanged(NameOf(iva))
             RaiseEvent IvaCambiado(value)
         End Set
     End Property
@@ -131,7 +131,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.vendedor = value
-            RaisePropertyChanged(NameOf(vendedor))
+            OnPropertyChanged(NameOf(vendedor))
         End Set
     End Property
     Public Property comentarios() As String
@@ -158,7 +158,7 @@ Public Class PedidoVentaWrapper
         Set(value As Boolean)
             If Model.avisarConImporteAlCogerPicking <> value Then
                 Model.avisarConImporteAlCogerPicking = value
-                RaisePropertyChanged(NameOf(avisarConImporteAlCogerPicking))
+                OnPropertyChanged(NameOf(avisarConImporteAlCogerPicking))
             End If
         End Set
     End Property
@@ -177,7 +177,7 @@ Public Class PedidoVentaWrapper
         Set(value As Boolean)
             If Model.CrearEfectosManualmente <> value Then
                 Model.CrearEfectosManualmente = value
-                RaisePropertyChanged(NameOf(CrearEfectosManualmente))
+                OnPropertyChanged(NameOf(CrearEfectosManualmente))
             End If
         End Set
     End Property
@@ -188,7 +188,7 @@ Public Class PedidoVentaWrapper
         Set(value As String)
             If Model.periodoFacturacion <> value Then
                 Model.periodoFacturacion = value
-                RaisePropertyChanged(NameOf(periodoFacturacion))
+                OnPropertyChanged(NameOf(periodoFacturacion))
                 RaiseEvent PeriodoFacturacionCambiado(value)
             End If
         End Set
@@ -201,7 +201,7 @@ Public Class PedidoVentaWrapper
             Model.ruta = value
         End Set
     End Property
-    ' Carlos 09/12/25: Issue #245 - Añadido RaisePropertyChanged para actualizar EsSerieCursos
+    ' Carlos 09/12/25: Issue #245 - Añadido OnPropertyChanged para actualizar EsSerieCursos
     Public Property serie() As String
         Get
             Return Model.serie
@@ -209,7 +209,7 @@ Public Class PedidoVentaWrapper
         Set(value As String)
             If Model.serie <> value Then
                 Model.serie = value
-                RaisePropertyChanged(NameOf(serie))
+                OnPropertyChanged(NameOf(serie))
             End If
         End Set
     End Property
@@ -220,7 +220,7 @@ Public Class PedidoVentaWrapper
         Set(value As String)
             If Model.ccc <> value Then
                 Model.ccc = value
-                RaisePropertyChanged(NameOf(ccc))
+                OnPropertyChanged(NameOf(ccc))
             End If
         End Set
     End Property
@@ -280,8 +280,8 @@ Public Class PedidoVentaWrapper
             ElseIf Model.modoServicio.HasValue AndAlso ModosServicio.EsTodoJunto(Model.modoServicio.Value) Then
                 Model.modoServicio = ModosServicio.SEGUN_VAYA_ENTRANDO
             End If
-            RaisePropertyChanged(NameOf(servirJunto))
-            RaisePropertyChanged(NameOf(ModoServicio))
+            OnPropertyChanged(NameOf(servirJunto))
+            OnPropertyChanged(NameOf(ModoServicio))
         End Set
     End Property
 
@@ -299,8 +299,8 @@ Public Class PedidoVentaWrapper
             End If
             Model.modoServicio = value
             Model.servirJunto = ModosServicio.EsTodoJunto(value)
-            RaisePropertyChanged(NameOf(ModoServicio))
-            RaisePropertyChanged(NameOf(servirJunto))
+            OnPropertyChanged(NameOf(ModoServicio))
+            OnPropertyChanged(NameOf(servirJunto))
         End Set
     End Property
     Public Property NoCobrarComisionReembolso() As Boolean
@@ -351,11 +351,11 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Decimal)
             Model.DescuentoPP = value
-            RaisePropertyChanged(NameOf(DescuentoPP))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(baseImponiblePicking))
-            RaisePropertyChanged(NameOf(Total))
-            RaisePropertyChanged(NameOf(totalPicking))
+            OnPropertyChanged(NameOf(DescuentoPP))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(baseImponiblePicking))
+            OnPropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(totalPicking))
         End Set
     End Property
 
@@ -438,7 +438,7 @@ Public Class PedidoVentaWrapper
                     Dim unused = Model.Lineas.Remove(item.Model)
                 End If
             Next
-            RaisePropertyChanged(String.Empty)
+            OnPropertyChanged(String.Empty)
         End If
     End Sub
 
@@ -457,16 +457,16 @@ Public Class PedidoVentaWrapper
 
             '    End If
             'Next
-            RaisePropertyChanged(String.Empty)
+            OnPropertyChanged(String.Empty)
         End If
     End Sub
 
     Private Sub LineaOnPropertyChanged(sender As Object, e As PropertyChangedEventArgs)
         If e.PropertyName = NameOf(BaseImponible) Then
-            RaisePropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(BaseImponible))
         End If
         If e.PropertyName = NameOf(Total) Then
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(Total))
         End If
     End Sub
 

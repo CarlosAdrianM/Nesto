@@ -1,6 +1,6 @@
 ﻿using ControlesUsuario.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace ControlesUsuario.Dialogs
     /// (la API devuelve 409 con la lista de candidatos). El usuario elige uno y se devuelve
     /// su Número, que resuelve de forma única. Nesto#368.
     /// </summary>
-    public class SelectorProductoDuplicadoDialogViewModel : BindableBase, IDialogAware
+    public class SelectorProductoDuplicadoDialogViewModel : ObservableObject, IDialogAware
     {
         private string _title = "Código de barras duplicado";
         private ProductoCodigoBarrasDuplicado _seleccionado;

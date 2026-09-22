@@ -5,7 +5,7 @@ Imports System.Windows
 Imports System.Windows.Data
 Imports System.Windows.Media.Imaging
 Imports Prism.Ioc
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports System.Net.Http
 Imports System.Threading.Tasks
@@ -59,7 +59,7 @@ Public Class RelayCommandLegado
 
 End Class
 Public Class MainViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Public Sub New()
 
@@ -83,7 +83,7 @@ Public Class MainViewModel
 
         Set(ByVal value As RatioVenta)
             Me._RatiosVenta = value
-            RaisePropertyChanged("RatiosVenta")
+            OnPropertyChanged("RatiosVenta")
         End Set
     End Property
     Public Property MediaRatioVenta() As Decimal
@@ -121,7 +121,7 @@ Public Class MainViewModel
         End Get
         Set(value As String)
             _opcionesFechas = value
-            RaisePropertyChanged("mostrarFechas")
+            OnPropertyChanged("mostrarFechas")
         End Set
     End Property
 
@@ -150,7 +150,7 @@ Public Class MainViewModel
 
         Set(ByVal value As String)
             Me._Vendedor = value
-            RaisePropertyChanged("Vendedor")
+            OnPropertyChanged("Vendedor")
         End Set
     End Property
 

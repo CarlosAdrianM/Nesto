@@ -1,6 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports Unity
 
@@ -8,7 +8,7 @@ Imports Unity
 ''' ViewModel para mostrar los errores de facturación de rutas
 ''' </summary>
 Public Class ErroresFacturacionRutasPopupViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Private ReadOnly container As IUnityContainer
@@ -32,7 +32,7 @@ Public Class ErroresFacturacionRutasPopupViewModel
         End Get
         Set(value As ObservableCollection(Of PedidoConErrorDTO))
             If SetProperty(_errores, value) Then
-                RaisePropertyChanged(NameOf(NumeroErrores))
+                OnPropertyChanged(NameOf(NumeroErrores))
             End If
         End Set
     End Property

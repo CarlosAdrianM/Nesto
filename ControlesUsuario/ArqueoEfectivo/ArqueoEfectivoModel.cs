@@ -1,4 +1,4 @@
-﻿using Prism.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System.Linq;
 using System.ComponentModel;
 using System;
@@ -6,7 +6,7 @@ using System.Collections.ObjectModel;
 
 namespace ControlesUsuario
 {
-    public class ArqueoEfectivoModel : BindableBase, IDataErrorInfo
+    public class ArqueoEfectivoModel : ObservableObject, IDataErrorInfo
     {
         
 
@@ -75,14 +75,14 @@ namespace ControlesUsuario
 
         private void RecuentoEfectivo_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            RaisePropertyChanged(nameof(Cantidades));
-            RaisePropertyChanged(nameof(EtiquetaBilletes));
-            RaisePropertyChanged(nameof(EtiquetaMonedas));
-            RaisePropertyChanged(nameof(TotalArqueo));
-            RaisePropertyChanged(nameof(TotalBilletes));
-            RaisePropertyChanged(nameof(TotalMonedas));
-            RaisePropertyChanged(nameof(TotalUnidadesBilletes));
-            RaisePropertyChanged(nameof(TotalUnidadesMonedas));
+            OnPropertyChanged(nameof(Cantidades));
+            OnPropertyChanged(nameof(EtiquetaBilletes));
+            OnPropertyChanged(nameof(EtiquetaMonedas));
+            OnPropertyChanged(nameof(TotalArqueo));
+            OnPropertyChanged(nameof(TotalBilletes));
+            OnPropertyChanged(nameof(TotalMonedas));
+            OnPropertyChanged(nameof(TotalUnidadesBilletes));
+            OnPropertyChanged(nameof(TotalUnidadesMonedas));
         }
         public void VaciarArqueo()
         {

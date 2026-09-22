@@ -1,11 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class ConfirmationDialogViewModel : BindableBase, IDialogAware
+    public class ConfirmationDialogViewModel : ObservableObject, IDialogAware
     {
         private RelayCommand<string> _closeDialogCommand;
         public RelayCommand<string> CloseDialogCommand =>

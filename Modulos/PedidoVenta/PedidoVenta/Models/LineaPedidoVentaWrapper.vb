@@ -1,8 +1,8 @@
 ﻿Imports Nesto.Models
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class LineaPedidoVentaWrapper
-    Inherits BindableBase
+    Inherits ObservableObject
     Public Sub New()
         ' Este constructor solo permite la entrada desde el Datagrid
         Model = New LineaPedidoVentaDTO() With {
@@ -30,7 +30,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As String)
             Model.almacen = value
-            RaisePropertyChanged(NameOf(Almacen))
+            OnPropertyChanged(NameOf(Almacen))
         End Set
     End Property
 
@@ -40,10 +40,10 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Boolean)
             Model.AplicarDescuento = value
-            RaisePropertyChanged(NameOf(AplicarDescuento))
-            RaisePropertyChanged(NameOf(SumaDescuentos))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(AplicarDescuento))
+            OnPropertyChanged(NameOf(SumaDescuentos))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
 
@@ -57,9 +57,9 @@ Public Class LineaPedidoVentaWrapper
                 Return ' No permitir cantidad distinta de 0 en líneas de texto
             End If
             Model.Cantidad = value
-            RaisePropertyChanged(NameOf(Cantidad))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(Cantidad))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
     Public Property delegacion() As String
@@ -68,7 +68,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As String)
             Model.delegacion = value
-            RaisePropertyChanged(NameOf(delegacion))
+            OnPropertyChanged(NameOf(delegacion))
         End Set
     End Property
     Public Property DescuentoCliente As Decimal
@@ -77,10 +77,10 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Decimal)
             Model.DescuentoCliente = value
-            RaisePropertyChanged(NameOf(DescuentoCliente))
-            RaisePropertyChanged(NameOf(SumaDescuentos))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(DescuentoCliente))
+            OnPropertyChanged(NameOf(SumaDescuentos))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
     Public Property DescuentoLinea() As Decimal
@@ -89,10 +89,10 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Decimal)
             Model.DescuentoLinea = value
-            RaisePropertyChanged(NameOf(DescuentoLinea))
-            RaisePropertyChanged(NameOf(SumaDescuentos))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(DescuentoLinea))
+            OnPropertyChanged(NameOf(SumaDescuentos))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
 
@@ -102,10 +102,10 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Decimal)
             Model.DescuentoProducto = value
-            RaisePropertyChanged(NameOf(DescuentoProducto))
-            RaisePropertyChanged(NameOf(SumaDescuentos))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(DescuentoProducto))
+            OnPropertyChanged(NameOf(SumaDescuentos))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
     Public ReadOnly Property BaseImponible As Decimal
@@ -125,7 +125,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Short)
             Model.estado = value
-            RaisePropertyChanged(NameOf(estado))
+            OnPropertyChanged(NameOf(estado))
         End Set
     End Property
     Public Property Factura As String
@@ -134,7 +134,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As String)
             Model.Factura = value
-            RaisePropertyChanged(NameOf(Factura))
+            OnPropertyChanged(NameOf(Factura))
         End Set
     End Property
     Public Property Albaran As Integer?
@@ -143,7 +143,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Integer?)
             Model.Albaran = value
-            RaisePropertyChanged(NameOf(Albaran))
+            OnPropertyChanged(NameOf(Albaran))
         End Set
     End Property
     Public Property fechaEntrega() As Date
@@ -152,7 +152,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Date)
             Model.fechaEntrega = value
-            RaisePropertyChanged(NameOf(fechaEntrega))
+            OnPropertyChanged(NameOf(fechaEntrega))
         End Set
     End Property
     Public Property formaVenta() As String
@@ -194,8 +194,8 @@ Public Class LineaPedidoVentaWrapper
                 Model.PorcentajeRecargoEquivalencia = 0
             End If
 
-            RaisePropertyChanged(NameOf(iva))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(iva))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
     Public Property oferta() As Integer?
@@ -210,10 +210,10 @@ Public Class LineaPedidoVentaWrapper
                 Return ' No permitir precio distinto de 0 en líneas de texto
             End If
             Model.PrecioUnitario = value
-            RaisePropertyChanged(NameOf(PrecioUnitario))
-            RaisePropertyChanged(NameOf(Bruto))
-            RaisePropertyChanged(NameOf(BaseImponible))
-            RaisePropertyChanged(NameOf(Total))
+            OnPropertyChanged(NameOf(PrecioUnitario))
+            OnPropertyChanged(NameOf(Bruto))
+            OnPropertyChanged(NameOf(BaseImponible))
+            OnPropertyChanged(NameOf(Total))
         End Set
     End Property
     Public Property Producto() As String
@@ -228,7 +228,7 @@ Public Class LineaPedidoVentaWrapper
                 End If
             End If
             Model.Producto = value
-            RaisePropertyChanged(NameOf(Producto))
+            OnPropertyChanged(NameOf(Producto))
         End Set
     End Property
     Public Property texto As String
@@ -237,7 +237,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As String)
             Model.texto = value
-            RaisePropertyChanged(NameOf(texto))
+            OnPropertyChanged(NameOf(texto))
         End Set
     End Property
     Public Property tipoLinea() As Nullable(Of Byte)
@@ -247,7 +247,7 @@ Public Class LineaPedidoVentaWrapper
         Set(value As Nullable(Of Byte))
             Dim valorAnterior = Model.tipoLinea
             Model.tipoLinea = value
-            RaisePropertyChanged(NameOf(tipoLinea))
+            OnPropertyChanged(NameOf(tipoLinea))
 
             ' Issue #258: Aplicar reglas según TipoLinea
             If value.HasValue AndAlso value.Value <> valorAnterior Then
@@ -305,7 +305,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As String)
             Model.Usuario = value
-            RaisePropertyChanged(NameOf(Usuario))
+            OnPropertyChanged(NameOf(Usuario))
         End Set
     End Property
     Public Property vistoBueno() As Boolean
@@ -314,7 +314,7 @@ Public Class LineaPedidoVentaWrapper
         End Get
         Set(value As Boolean)
             Model.vistoBueno = value
-            RaisePropertyChanged(NameOf(vistoBueno))
+            OnPropertyChanged(NameOf(vistoBueno))
         End Set
     End Property
 

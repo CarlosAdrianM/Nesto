@@ -5,14 +5,14 @@ Imports Prism.Regions
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports Prism.Ioc
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Unity
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 
 Public Class PedidoVentaViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly container As IUnityContainer

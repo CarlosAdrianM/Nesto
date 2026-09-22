@@ -1,4 +1,4 @@
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 
 namespace ControlesUsuario.Models
@@ -7,7 +7,7 @@ namespace ControlesUsuario.Models
     /// DTO para facturas de cliente en el SelectorFacturas.
     /// Issue #279 - SelectorFacturas
     /// </summary>
-    public class FacturaClienteDTO : BindableBase
+    public class FacturaClienteDTO : ObservableObject
     {
         public int Id { get; set; }
         public string Empresa { get; set; }

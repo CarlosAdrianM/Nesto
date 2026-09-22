@@ -5,7 +5,7 @@ Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
 ''' <summary>
@@ -18,7 +18,7 @@ Imports Prism.Services.Dialogs
 ''' comisión mueven dinero de los vendedores y no tienen por qué tocarse desde aquí.
 ''' </summary>
 Public Class FamiliasMantenimientoViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly _servicio As IServicioFamiliasMantenimiento
     Private ReadOnly _configuracion As IConfiguracion

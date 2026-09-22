@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ using System.Windows.Data;
 namespace ControlesUsuario.Tests
 {
     [TestClass]
-    public class SelectorClienteTests : BindableBase
+    public class SelectorClienteTests : ObservableObject
     {
         [TestMethod]
         public void SelectorCliente_SiCambiaElCliente_CogeElContactoPorDefecto()
@@ -715,7 +715,7 @@ namespace ControlesUsuario.Tests
 
 
 
-    public class PedidoFiltrable : BindableBase, IFiltrableItem
+    public class PedidoFiltrable : ObservableObject, IFiltrableItem
     {
         private string _cliente;
         public string Cliente 

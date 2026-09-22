@@ -1,6 +1,6 @@
 ﻿Imports Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
 ''' <summary>
@@ -11,7 +11,7 @@ Imports Prism.Services.Dialogs
 ''' Aceptar solo se habilita con un grupo elegido; Cancelar aborta el guardado del pedido.
 ''' </summary>
 Public Class SelectorGrupoComisionDialogViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Public ReadOnly Property Title As String Implements IDialogAware.Title

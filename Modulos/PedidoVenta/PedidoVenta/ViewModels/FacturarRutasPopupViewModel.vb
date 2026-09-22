@@ -6,7 +6,7 @@ Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 Imports Unity
 
@@ -14,7 +14,7 @@ Imports Unity
 ''' ViewModel para el popup de facturación de rutas
 ''' </summary>
 Public Class FacturarRutasPopupViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     Implements IDialogAware
 
     Private ReadOnly configuracion As IConfiguracion

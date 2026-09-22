@@ -1,10 +1,10 @@
 ﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class PedidoVentaModel
     Public Class ResumenPedido
-        Inherits BindableBase
+        Inherits ObservableObject
         Implements IFiltrableItem
         Private _empresa As String
         Public Property empresa As String
@@ -118,7 +118,7 @@ Public Class PedidoVentaModel
             End Get
             Set(value As Boolean)
                 If SetProperty(_tieneProductos, value) Then
-                    RaisePropertyChanged(NameOf(noTieneProductos))
+                    OnPropertyChanged(NameOf(noTieneProductos))
                 End If
             End Set
         End Property
