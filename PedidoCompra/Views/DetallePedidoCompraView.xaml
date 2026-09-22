@@ -196,6 +196,20 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" HorizontalAlignment="Right" Margin="3">Base Imponible</TextBlock>
             <TextBox Grid.Column="1" Text="{Binding Pedido.BaseImponible, StringFormat=c, Mode=OneWay}" IsReadOnly="True" Margin="3"></TextBox>
+            <!-- NestoAPI#510: el pronto pago del plazo, que ya va restado en la base y en el total (como en venta). -->
+            <TextBlock Grid.Column="2" Margin="12,3,3,3" VerticalAlignment="Center" Foreground="DarkSlateGray"
+                       Text="{Binding Pedido.DescuentoPP, StringFormat='Incluye dto. pronto pago del {0:P2}', Mode=OneWay}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Pedido.TieneDescuentoPP}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <TextBlock Grid.Column="3" Margin="3">Total</TextBlock>
             <TextBox Grid.Column="4" Text="{Binding Pedido.Total, StringFormat=c, Mode=OneWay}" IsReadOnly="True" Margin="3"></TextBox>
         </Grid>

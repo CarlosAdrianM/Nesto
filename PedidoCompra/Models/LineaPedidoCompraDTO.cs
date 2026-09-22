@@ -106,6 +106,15 @@ namespace Nesto.Modulos.PedidoCompra.Models
 
 
         public override decimal Bruto { get => (decimal)(CantidadCobrada == null ? Cantidad * PrecioUnitario : CantidadCobrada * PrecioUnitario); }
+
+        /// <summary>
+        /// NestoAPI#510: el pronto pago del plazo forma parte del descuento de la línea de compra, igual
+        /// que en venta y que en el trigger de LinPedidoCmp: 1 − (1−DProv)(1−DProd)(1−Dto)(1−DPP).
+        /// La base heredada no lo incluía y el 220319 (PP5) se veía con otras bases que en la BD.
+        /// </summary>
+        public override decimal SumaDescuentos => AplicarDescuento
+            ? 1 - ((1 - DescuentoEntidad) * (1 - DescuentoProducto) * (1 - DescuentoLinea) * (1 - DescuentoPP))
+            : 1 - ((1 - DescuentoLinea) * (1 - DescuentoPP));
         //public decimal SumaDescuentos { get => AplicarDescuento ? 1 - (1 - DescuentoProveedor) * (1 - DescuentoProducto) * (1 - DescuentoLinea) : 0; }
         //public bool AplicarDescuento { get; set; } = true;
         //public decimal ImporteDescuento { get => Bruto * SumaDescuentos; }

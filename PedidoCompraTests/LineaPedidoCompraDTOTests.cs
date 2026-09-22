@@ -13,6 +13,29 @@ namespace PedidoCompraTests
     [TestClass]
     public class LineaPedidoCompraDTOTests
     {
+        // NestoAPI#510: el pronto pago del plazo entra en la suma de descuentos de la línea de compra
+        // (pedido real 220319: 45 % de producto + PP5 → 47,75 %, que es lo que graba la BD).
+        [TestMethod]
+        public void LineaPedidoCompraDTO_SumaDescuentos_IncluyeElProntoPago()
+        {
+            var linea = new LineaPedidoCompraDTO { PrecioUnitario = 14.50M, Cantidad = 6, DescuentoProducto = 0.45M, DescuentoPP = 0.05M };
+
+            Assert.AreEqual(0.4775M, linea.SumaDescuentos);
+            Assert.AreEqual(45.46M, linea.BaseImponible, "87,00 − ROUND(87,00 × 0,4775) = 87,00 − 41,54");
+        }
+
+        [TestMethod]
+        public void PedidoCompraDTO_DescuentoPPDeCabecera_LlegaALasLineas()
+        {
+            var pedido = new PedidoCompraDTO();
+            pedido.Lineas.Add(new LineaPedidoCompraDTO { PrecioUnitario = 10M, Cantidad = 1 });
+
+            pedido.DescuentoPP = 0.05M;
+
+            Assert.AreEqual(0.05M, pedido.Lineas.Single().DescuentoPP);
+            Assert.AreEqual(9.50M, pedido.BaseImponible);
+        }
+
         [TestMethod]
         public void LineaPedidoCompraDTO_AlPonerCantidad0_LeeBienLosPreciosYDescuentos()
         {

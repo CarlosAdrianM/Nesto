@@ -95,6 +95,9 @@ namespace Nesto.Modulos.PedidoCompra.Models
 
         public decimal BaseImponible => Model != null ? Model.BaseImponible : 0;
         public decimal Total => Model != null ? Model.Total : 0;
+        /// <summary>NestoAPI#510: pronto pago del plazo (tanto por uno). Lo fija el servidor al leer y al crear.</summary>
+        public decimal DescuentoPP => Model != null ? Model.DescuentoPP : 0;
+        public bool TieneDescuentoPP => DescuentoPP > 0;
         internal int EstadoDefecto = 1;
         internal string UltimoTipoLinea;
         internal DateTime UltimaFechaRecepcion;
