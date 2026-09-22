@@ -295,11 +295,13 @@ public class AmazonApiOrdersService
             var xml = createDocument.GetXML();
             var feedID = await conexion.Feed.SubmitFeedAsync(xml, FeedType.POST_ORDER_FULFILLMENT_DATA);
 
-            return $"Se ha confirmado correctamente el pedido {amazonOrderId}";
+            return $"Se ha confirmado correctamente el pedido {amazonOrderId} en Amazon con {nombreAgencia} ({nombreServicio}) y seguimiento {numeroSeguimiento}";
         }
-        catch
+        catch (Exception ex)
         {
-            return $"No se ha pedido confirmar el pedido {amazonOrderId}";
+            // 22/09/26: antes se tragaba la excepción y devolvía un texto: nadie se enteraba (ni ELMAH).
+            throw new Exception($"Amazon no ha aceptado la confirmación del pedido {amazonOrderId} " +
+                $"(transportista «{nombreAgencia}», servicio «{nombreServicio}», seguimiento {numeroSeguimiento}): {ex.Message}", ex);
         }
     }
 

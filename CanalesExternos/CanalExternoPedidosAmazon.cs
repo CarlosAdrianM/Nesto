@@ -398,106 +398,33 @@ namespace Nesto.Modulos.CanalesExternos
 
         private decimal CambioDivisas { get; set; } = 1;
 
-        // NestoAPI#258 slice (a): si el servidor ya mandó los identificadores por canal del último
-        // envío (los declara la agencia en NestoAPI), se usan directamente. El parseo del enlace
-        // queda como fallback para envíos sin esos datos.
+        // 22/09/26 (CTT): la agencia está AUTOCONTENIDA en el servidor. NestoAPI declara por agencia el
+        // CarrierName/ShippingMethod de Amazon (RegistroSeguimientoAgencias) y los manda en cada envío.
+        // Aquí NO se reconoce ninguna agencia por el enlace de seguimiento: cuando el servidor no manda
+        // los datos se dice qué agencia y qué envío son, para darla de alta allí, y el error va a ELMAH.
         internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(PedidoCanalExterno pedido)
         {
             var envio = pedido?.UltimoEnvio;
-            return !string.IsNullOrWhiteSpace(envio?.CarrierNameAmazon) && !string.IsNullOrWhiteSpace(envio.NumeroSeguimiento)
-                ? new DatosEnvioConfirmarAmazon
-                {
-                    NombreAgencia = envio.CarrierNameAmazon,
-                    NombreServicio = envio.ShippingMethodAmazon,
-                    NumeroSeguimiento = envio.NumeroSeguimiento
-                }
-                : LeerDatosEnvio(pedido?.UltimoSeguimiento);
-        }
-
-        internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(string seguimiento)
-        {
-            if (string.IsNullOrWhiteSpace(seguimiento))
+            if (envio == null)
             {
-                throw new Exception("El pedido no tiene un enlace de seguimiento que confirmar.");
+                throw new InvalidOperationException("El pedido no tiene ningún envío tramitado que confirmar en Amazon.");
             }
-            if (seguimiento.Contains("correosexpress"))
+            if (string.IsNullOrWhiteSpace(envio.CarrierNameAmazon))
             {
-                int indiceIgual = seguimiento.IndexOf("="); // Obtiene el índice del símbolo "="
-
-                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
-                {
-                    throw new Exception("El seguimiento de CEX tiene que incluir el símbolo = (igual)");
-                }
-                return new DatosEnvioConfirmarAmazon
-                {
-                    NombreAgencia = "Correos Express",
-                    NombreServicio = "ePaq",
-                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
-                };
+                throw new InvalidOperationException(
+                    $"La agencia «{envio.AgenciaNombre}» del envío {envio.Numero} no declara transportista para Amazon en NestoAPI " +
+                    "(RegistroSeguimientoAgencias.CarrierNameAmazon). Hay que darla de alta en el servidor: Nesto no conoce agencias.");
             }
-            else if (seguimiento.Contains("sending"))
+            if (string.IsNullOrWhiteSpace(envio.NumeroSeguimiento))
             {
-                int indiceIgual = seguimiento.LastIndexOf("=");
-
-                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
-                {
-                    throw new Exception("El seguimiento de Sending tiene que incluir el símbolo = (igual)");
-                }
-                return new DatosEnvioConfirmarAmazon
-                {
-                    NombreAgencia = "Sending",
-                    NombreServicio = "Send Exprés",
-                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
-                };
+                throw new InvalidOperationException($"El envío {envio.Numero} ({envio.AgenciaNombre}) no tiene número de seguimiento que mandar a Amazon.");
             }
-            else if (seguimiento.Contains("gls-spain"))
+            return new DatosEnvioConfirmarAmazon
             {
-                // Encontrar la última barra
-                int ultimaBarra = seguimiento.LastIndexOf("/");
-                // Encontrar la penúltima barra
-                int penultimaBarra = seguimiento.LastIndexOf("/", ultimaBarra - 1);
-                // Verificar si se encontraron ambas barras
-                if (penultimaBarra == -1 || ultimaBarra == -1)
-                {
-                    throw new Exception("El seguimiento de GLS no tiene el formato esperado");
-                }
-                // Extraer la subcadena entre las dos barras
-                string numeroSeguimiento = seguimiento.Substring(penultimaBarra + 1, ultimaBarra - penultimaBarra - 1);
-
-                return new DatosEnvioConfirmarAmazon
-                {
-                    NombreAgencia = "GLS",
-                    NombreServicio = "Business Parcel",
-                    NumeroSeguimiento = numeroSeguimiento
-                };
-            }
-            else if (seguimiento.Contains("tip-sa"))
-            {
-                // Innovatrans (TIP-SA): https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=028040028040{albaran}
-                // El nº de seguimiento (albarán) va tras el prefijo fijo "028040028040" (código de cliente
-                // duplicado origen+destino). Antes caía en el else -> NotImplementedException al confirmar el
-                // envío de un pedido de Amazon con seguimiento de Innovatrans (no llegaba a ELMAH por ser
-                // excepción del cliente). El gemelo de Prestashop ya se arregló en 2e84a88; este es su par.
-                const string prefijo = "028040028040";
-                int indicePrefijo = seguimiento.IndexOf(prefijo, StringComparison.OrdinalIgnoreCase);
-                string numeroSeguimiento = indicePrefijo >= 0
-                    ? seguimiento.Substring(indicePrefijo + prefijo.Length).Trim()
-                    : null;
-                if (string.IsNullOrWhiteSpace(numeroSeguimiento))
-                {
-                    throw new Exception($"No se pudo extraer el número de seguimiento de Innovatrans del enlace: {seguimiento}");
-                }
-                return new DatosEnvioConfirmarAmazon
-                {
-                    NombreAgencia = "Innovatrans",
-                    NombreServicio = "Estándar",
-                    NumeroSeguimiento = numeroSeguimiento
-                };
-            }
-            else
-            {
-                throw new NotImplementedException($"No se reconoce la agencia del enlace de seguimiento: {seguimiento}");
-            }
+                NombreAgencia = envio.CarrierNameAmazon,
+                NombreServicio = envio.ShippingMethodAmazon,
+                NumeroSeguimiento = envio.NumeroSeguimiento
+            };
         }
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)

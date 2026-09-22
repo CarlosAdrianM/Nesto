@@ -297,78 +297,35 @@ namespace Nesto.Modulos.CanalesExternos
             }
             else
             {
-                resultado = $"No se ha podido añadir el número de seguimiento {datosEnvio.NumeroSeguimiento} al pedido {pedido.PedidoCanalId}";
+                // 22/09/26: antes era un texto en el diálogo que no llegaba a ELMAH.
+                throw new InvalidOperationException($"La tienda no ha aceptado el seguimiento {datosEnvio.NumeroSeguimiento} (transportista {datosEnvio.AgenciaId}) para el pedido {pedido.PedidoCanalId}.");
             }
             return resultado;
         }
 
-        // Mapeo seguimiento -> (transportista de Prestashop, tracking), por agencia.
-        // Para soportar una agencia basta con una fila: el token que identifica su enlace, su id de
-        // transportista en Prestashop y qué tracking mandar. NestoAPI#417: para el transportista
-        // genérico 160 (GLS/Innovatrans), cuya plantilla de URL en Prestashop está vacía
-        // ("https://@"), viaja el ENLACE completo sin esquema — mandar el número pelado dejaba al
-        // cliente un seguimiento muerto. CEX/Sending tienen transportista propio con plantilla y
-        // siguen con el número extraído de siempre.
-        private static readonly (string Token, string AgenciaId, Func<string, string> ExtraerNumero)[] MapeoSeguimiento =
-        {
-            ("correosexpress", "105", s => DespuesDe(s, "=", ultima: false)),
-            ("sending",        "103", s => DespuesDe(s, "=", ultima: true)),
-            ("gls-spain.es",   "160", s => SinEsquema(s)),
-            ("tip-sa.com",     "160", s => SinEsquema(s)),
-        };
-
-        // NestoAPI#258 slice (a): si el servidor ya mandó los identificadores por canal del último
-        // envío (los declara la agencia en NestoAPI), se usan directamente. El parseo del enlace
-        // queda como fallback para envíos sin esos datos. NestoAPI#417: el tracking preferido es
-        // TrackingPrestashop (el enlace hecho); NumeroSeguimiento queda para servidores antiguos.
+        // 22/09/26 (CTT): la agencia está AUTOCONTENIDA en el servidor. NestoAPI declara por agencia el
+        // transportista de Prestashop y el tracking ya hecho (RegistroSeguimientoAgencias, NestoAPI#417) y
+        // los manda en cada envío. Aquí NO se reconoce ninguna agencia por el enlace: si faltan los datos
+        // se dice qué agencia y qué envío son, para darla de alta en el servidor, y el error va a ELMAH.
         internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido)
         {
             var envio = pedido?.UltimoEnvio;
-            string tracking = !string.IsNullOrWhiteSpace(envio?.TrackingPrestashop)
-                ? envio.TrackingPrestashop
-                : envio?.NumeroSeguimiento;
-            return !string.IsNullOrWhiteSpace(envio?.TransportistaPrestashop) && !string.IsNullOrWhiteSpace(tracking)
-                ? new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = tracking }
-                : LeerDatosEnvio(pedido?.UltimoSeguimiento);
-        }
-
-        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(string seguimiento)
-        {
-            if (string.IsNullOrWhiteSpace(seguimiento))
+            if (envio == null)
             {
-                throw new Exception("El pedido no tiene un enlace de seguimiento que confirmar.");
+                throw new InvalidOperationException("El pedido no tiene ningún envío tramitado que confirmar en la tienda.");
             }
-
-            foreach (var (token, agenciaId, extraer) in MapeoSeguimiento)
+            if (string.IsNullOrWhiteSpace(envio.TransportistaPrestashop))
             {
-                if (seguimiento.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    string numero = extraer(seguimiento)?.Trim();
-                    if (string.IsNullOrWhiteSpace(numero))
-                    {
-                        throw new Exception($"No se pudo extraer el número de seguimiento del enlace: {seguimiento}");
-                    }
-                    return new DatosEnvioConfirmarPrestashop { AgenciaId = agenciaId, NumeroSeguimiento = numero };
-                }
+                throw new InvalidOperationException(
+                    $"La agencia «{envio.AgenciaNombre}» del envío {envio.Numero} no declara transportista de Prestashop en NestoAPI " +
+                    "(RegistroSeguimientoAgencias.TransportistaPrestashop). Hay que darla de alta en el servidor: Nesto no conoce agencias.");
             }
-
-            throw new NotImplementedException($"No se reconoce la agencia del enlace de seguimiento: {seguimiento}");
-        }
-
-        private static string SinEsquema(string url)
-        {
-            // La plantilla del transportista genérico de Prestashop antepone "https://" al tracking.
-            return url != null && url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                ? url.Substring("https://".Length)
-                : url;
-        }
-
-        private static string DespuesDe(string texto, string marca, bool ultima)
-        {
-            int i = ultima
-                ? texto.LastIndexOf(marca, StringComparison.OrdinalIgnoreCase)
-                : texto.IndexOf(marca, StringComparison.OrdinalIgnoreCase);
-            return i < 0 ? null : texto.Substring(i + marca.Length);
+            string tracking = !string.IsNullOrWhiteSpace(envio.TrackingPrestashop) ? envio.TrackingPrestashop : envio.NumeroSeguimiento;
+            if (string.IsNullOrWhiteSpace(tracking))
+            {
+                throw new InvalidOperationException($"El envío {envio.Numero} ({envio.AgenciaNombre}) no tiene seguimiento que mandar a la tienda.");
+            }
+            return new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = tracking };
         }
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)

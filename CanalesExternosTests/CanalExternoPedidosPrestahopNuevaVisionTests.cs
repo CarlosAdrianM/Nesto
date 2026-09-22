@@ -144,57 +144,6 @@ namespace CanalesExternosTests
             Assert.IsNull(cobro.CuentaPrepago);
         }
 
-        [TestMethod]
-        public void LeerDatosEnvio_CorreosExpress_DevuelveTransportista105YNumero()
-        {
-            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
-                "https://s.correosexpress.com/c?n=12345678901234");
-
-            Assert.AreEqual("105", datos.AgenciaId);
-            Assert.AreEqual("12345678901234", datos.NumeroSeguimiento);
-        }
-
-        [TestMethod]
-        public void LeerDatosEnvio_Sending_DevuelveTransportista103YNumero()
-        {
-            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
-                "https://info.sending.es/fgts/pub/locNumServ.seam?cliente=028040&localizador=987654321");
-
-            Assert.AreEqual("103", datos.AgenciaId);
-            Assert.AreEqual("987654321", datos.NumeroSeguimiento);
-        }
-
-        [TestMethod]
-        public void LeerDatosEnvio_Gls_DevuelveTransportista160YEnlaceSinEsquema()
-        {
-            // NestoAPI#417: el transportista genérico 160 tiene la plantilla de URL vacía en
-            // Prestashop ("https://@"), así que el número pelado dejaba al cliente un seguimiento
-            // muerto. Viaja el ENLACE completo sin esquema (la plantilla antepone el https://).
-            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
-                "https://mygls.gls-spain.es/e/6119714024595/28001");
-
-            Assert.AreEqual("160", datos.AgenciaId);
-            Assert.AreEqual("mygls.gls-spain.es/e/6119714024595/28001", datos.NumeroSeguimiento);
-        }
-
-        [TestMethod]
-        public void LeerDatosEnvio_Innovatrans_DevuelveTransportista160YEnlaceSinEsquema()
-        {
-            // NestoAPI#417: mismo caso que GLS — comparten el transportista genérico 160.
-            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
-                "https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=0280400280406522393001");
-
-            Assert.AreEqual("160", datos.AgenciaId);
-            Assert.AreEqual("aplicaciones.tip-sa.com/cliente/datos_env.php?id=0280400280406522393001", datos.NumeroSeguimiento);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(System.NotImplementedException))]
-        public void LeerDatosEnvio_AgenciaNoReconocida_Lanza()
-        {
-            CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio("https://www.agencia-desconocida.com/track/123");
-        }
-
         // NestoAPI#258 slice (a): si el servidor manda los identificadores por canal del último
         // envío, se usan directamente sin parsear el enlace.
 
@@ -239,19 +188,32 @@ namespace CanalesExternosTests
             Assert.AreEqual("mygls.gls-spain.es/e/61197140248079/31010", datos.NumeroSeguimiento);
         }
 
+        // 22/09/26 (CTT): Nesto no conoce agencias. Sin datos del servidor no se parsea nada: se explica
+        // qué agencia falta por declarar en NestoAPI y el error llega a ELMAH.
+
         [TestMethod]
-        public void LeerDatosEnvio_SinDatosDelServidor_CaeAlParseoDelEnlace()
+        public void LeerDatosEnvio_SinEnvioTramitado_LanzaConMensajeClaro()
         {
+            var pedido = new PedidoCanalExterno { UltimoSeguimiento = "https://s.correosexpress.com/c?n=1", UltimoEnvio = null };
+
+            var ex = Assert.ThrowsException<System.InvalidOperationException>(() => CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido));
+            StringAssert.Contains(ex.Message, "ningún envío tramitado");
+        }
+
+        [TestMethod]
+        public void LeerDatosEnvio_AgenciaSinTransportistaEnElServidor_LanzaNombrandoLaAgencia()
+        {
+            // Regresión CTT 22/09/26: antes caía a un parseo del enlace con agencias escritas a mano.
             var pedido = new PedidoCanalExterno
             {
-                UltimoSeguimiento = "https://s.correosexpress.com/c?n=12345678901234",
-                UltimoEnvio = null
+                UltimoSeguimiento = "https://www.cttexpress.com/localizador-de-envios?sc=0082800082809772528297",
+                UltimoEnvio = new Nesto.Modulos.PedidoVenta.PedidoVentaModel.EnvioAgenciaDTO { Numero = 248987, AgenciaNombre = "CTT", NumeroSeguimiento = "0082800082809772528297" }
             };
 
-            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido);
-
-            Assert.AreEqual("105", datos.AgenciaId);
-            Assert.AreEqual("12345678901234", datos.NumeroSeguimiento);
+            var ex = Assert.ThrowsException<System.InvalidOperationException>(() => CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido));
+            StringAssert.Contains(ex.Message, "CTT");
+            StringAssert.Contains(ex.Message, "248987");
+            StringAssert.Contains(ex.Message, "NestoAPI");
         }
     }
 }

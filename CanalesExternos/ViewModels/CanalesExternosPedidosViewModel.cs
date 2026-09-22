@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using Prism.Ioc;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -75,7 +76,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 List<PedidoVentaModel.EnvioAgenciaDTO> listaEnlaces = await PedidoVentaService.CargarEnlacesSeguimiento(pedidoSeleccionado.Pedido.empresa, pedidoSeleccionado.PedidoNestoId);
                 // NestoAPI#258 slice (a): guardamos el envío completo (con los identificadores por
                 // canal que declara la agencia en el servidor), no solo el enlace.
-                PedidoVentaModel.EnvioAgenciaDTO ultimoEnvio = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault();
+                PedidoVentaModel.EnvioAgenciaDTO ultimoEnvio = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Numero).FirstOrDefault(); // 22/09/26: por número, la Fecha es solo el día
                 pedidoSeleccionado.UltimoEnvio = ultimoEnvio;
                 pedidoSeleccionado.UltimoSeguimiento = ultimoEnvio?.EnlaceSeguimiento;
             }
@@ -384,6 +385,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
             catch (Exception ex)
             {
+                // 22/09/26: el fallo se quedaba en el diálogo y no llegaba a ELMAH (primer día de CTT).
+                _ = Prism.Ioc.ContainerLocator.Container?.Resolve<Nesto.Infrastructure.Contracts.IServicioRegistroErrores>()
+                    ?.RegistrarErrorAsync(ex, $"CanalesExternos.ConfirmarEnvio canal={CanalSeleccionado?.GetType().Name} pedido={(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.PedidoNestoId}");
                 DialogService.ShowError(ex.Message);
             }
             finally
