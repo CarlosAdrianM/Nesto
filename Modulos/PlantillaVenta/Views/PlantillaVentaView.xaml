@@ -500,6 +500,29 @@
                             </DataGrid>
                         </DockPanel>
                         <StackPanel Grid.Row="3" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
+                            <!-- Nesto#465 / NestoAPI#457: ofertas que el pedido podria aplicar y no esta aplicando.
+                                 Aviso discreto que se puede ignorar: nunca bloquea el cierre del pedido. Los textos
+                                 vienen del servidor; el boton solo aparece en las que se pueden aplicar de un clic. -->
+                            <Border BorderBrush="#E0A800" BorderThickness="1" Background="#FFF8E1" CornerRadius="3"
+                                    Padding="5" Margin="0,0,0,5"
+                                    Visibility="{Binding HayOfertasSugeridas, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Ofertas que este pedido podria llevar:" FontWeight="Bold" Margin="0,0,0,3"/>
+                                    <ItemsControl ItemsSource="{Binding OfertasSugeridas}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,1">
+                                                    <Button DockPanel.Dock="Right" Content="Aplicar" Padding="8,0" Margin="5,0,0,0"
+                                                            Command="{Binding DataContext.AplicarOfertaSugeridaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Visibility="{Binding EsAplicable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                    <TextBlock Text="{Binding Texto}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
                             <DockPanel Margin="0,0,0,5">
                                 <TextBlock DockPanel.Dock="Left" Text="Su Pedido / P.O.:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                 <TextBox Text="{Binding SuPedido, UpdateSourceTrigger=PropertyChanged}"/>
@@ -682,6 +705,10 @@
                                     </ComboBox.ItemContainerStyle>
                                 </ComboBox>
                             </StackPanel>
+                            <!-- Nesto#483: el motivo lo redacta NestoAPI (mismo texto en Nesto, NestoApp y la tienda). -->
+                            <TextBlock Text="{Binding MotivoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontStyle="Italic" Foreground="#555555"
+                                       Visibility="{Binding HayMotivoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
                             <CheckBox Content="Recoger Producto" IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al crear el pedido" Margin="3,0"/>
                             <CheckBox Content="Avisar con importe cuando coja picking" IsChecked="{Binding AvisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir" Margin="3,0"/>

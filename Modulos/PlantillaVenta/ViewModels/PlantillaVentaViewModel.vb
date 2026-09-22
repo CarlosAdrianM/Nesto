@@ -112,6 +112,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarProductosBonificables = New RelayCommand(AddressOf OnCargarProductosBonificables, AddressOf CanCargarProductosBonificables)
         cmdActualizarRegalo = New RelayCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
+        AplicarOfertaSugeridaCommand = New RelayCommand(Of SugerenciaOfertaDTO)(AddressOf OnAplicarOfertaSugerida, AddressOf CanAplicarOfertaSugerida) ' Nesto#465
 
         ' Issue #286: Borradores de PlantillaVenta
         GuardarBorradorCommand = New RelayCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
@@ -867,6 +868,12 @@ Public Class PlantillaVentaViewModel
             If anterior = value AndAlso Estado.ModoServicio.HasValue Then
                 Return
             End If
+            ' Nesto#483: la sugerencia del servidor entra POR AQUI, la misma ruta que el usuario (para que
+            ' salir de «Todo junto» siga pasando por la validacion), pero NO cuenta como eleccion suya:
+            ' si contase, la siguiente sugerencia ya no podria cambiar nada (trampa 1 de NestoApp#184).
+            If Not _aplicandoSugerenciaModoServicio Then
+                _modoServicioElegidoPorUsuario = True
+            End If
             Estado.ModoServicio = value
             Estado.ServirJunto = ModosServicio.EsTodoJunto(value)
             If direccionEntregaSeleccionada IsNot Nothing Then
@@ -880,6 +887,223 @@ Public Class PlantillaVentaViewModel
             End If
         End Set
     End Property
+
+
+#Region "Nesto#483 y Nesto#465: lo que calcula NestoAPI sobre el pedido que se esta montando"
+
+    ' El modo de servicio (NestoAPI#506/#515) y las ofertas no aplicadas (NestoAPI#457) salen los dos del
+    ' pedido a medio montar, asi que se piden juntos y con el mismo retardo: al terminar de editar, no en
+    ' cada tecla. Toda la logica es del servidor; aqui no se replica ninguna regla de stock ni de ofertas.
+
+    ' Un respiro largo a proposito: la respuesta de ofertas valida el pedido entero por cada candidata,
+    ' asi que montar 40 lineas no puede convertirse en 40 llamadas. Al cambiar de pagina se pide ya.
+    Private Const RETARDO_SUGERENCIAS_MS As Integer = 1500
+
+    Private _timerSugerencias As System.Threading.Timer
+    Private _sugerenciaModoServicio As ModoServicioSugeridoDTO
+    Private _modoServicioElegidoPorUsuario As Boolean
+    Private _aplicandoSugerenciaModoServicio As Boolean
+    Private _ultimoModoSugeridoAplicado As Byte?
+
+    ''' <summary>Nesto#483: el texto que manda el servidor explicando el modo («2 líneas hay que traerlas
+    ''' de las tiendas: se espera a la reposición»). Vacío mientras no ha contestado.</summary>
+    Public ReadOnly Property MotivoModoServicio As String
+        Get
+            Return _sugerenciaModoServicio?.Motivo
+        End Get
+    End Property
+
+    Public ReadOnly Property HayMotivoModoServicio As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(MotivoModoServicio)
+        End Get
+    End Property
+
+    Private ReadOnly _ofertasSugeridas As New ObservableCollection(Of SugerenciaOfertaDTO)
+    ''' <summary>Nesto#465: las ofertas que el pedido podría aplicar y no está aplicando.</summary>
+    Public ReadOnly Property OfertasSugeridas As ObservableCollection(Of SugerenciaOfertaDTO)
+        Get
+            Return _ofertasSugeridas
+        End Get
+    End Property
+
+    Public ReadOnly Property HayOfertasSugeridas As Boolean
+        Get
+            Return _ofertasSugeridas IsNot Nothing AndAlso _ofertasSugeridas.Any()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#483 (trampa 2 de NestoApp#184): el modo con el que arranca el selector al elegir dirección.
+    ''' Una vez el servidor ha contestado, el «por defecto» del pedido ES esa respuesta: cambiar de
+    ''' contacto no puede perder lo que ya se calculó. Mientras no hay respuesta, el parámetro del usuario.
+    ''' </summary>
+    Private Function ModoServicioPorDefectoEfectivo() As Byte
+        If _sugerenciaModoServicio IsNot Nothing AndAlso ModosServicio.EsValido(_sugerenciaModoServicio.Modo) Then
+            Return _sugerenciaModoServicio.Modo
+        End If
+        Return ModoServicioPorDefecto
+    End Function
+
+    ''' <summary>
+    ''' Pide al servidor modo de servicio y ofertas tras un respiro, para no llamar en cada tecla. Mismo
+    ''' patrón que CargarInfoPortesConDebounce: cada cambio reinicia el reloj.
+    ''' </summary>
+    Private Sub PedirSugerenciasConDebounce()
+        _timerSugerencias?.Dispose()
+        _timerSugerencias = New System.Threading.Timer(
+            Sub(state) Application.Current?.Dispatcher?.InvokeAsync(
+                Async Function() As Task
+                    Await RefrescarSugerencias()
+                End Function),
+            Nothing, RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
+    End Sub
+
+    ''' <summary>
+    ''' Friend para poder pedirlas a mano en los tests sin esperar al reloj. Si algo falla no se propaga:
+    ''' esto es una ayuda y el pedido se tiene que poder cerrar igual.
+    ''' </summary>
+    Friend Async Function RefrescarSugerencias() As Task
+        Try
+            Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
+            If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any() Then
+                LimpiarSugerencias()
+                Return
+            End If
+
+            Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
+            Dim tareaOfertas As Task(Of List(Of SugerenciaOfertaDTO)) = servicio.OfertasSugeridas(pedido)
+
+            AplicarSugerenciaModoServicio(Await tareaModo.ConfigureAwait(True))
+            AplicarOfertasSugeridas(Await tareaOfertas.ConfigureAwait(True))
+        Catch ex As Exception
+            ' Sin sugerencias se sigue trabajando igual: no se molesta al usuario con esto.
+        End Try
+    End Function
+
+    Private Sub LimpiarSugerencias()
+        _sugerenciaModoServicio = Nothing
+        _ultimoModoSugeridoAplicado = Nothing
+        AplicarOfertasSugeridas(Nothing)
+        OnPropertyChanged(NameOf(MotivoModoServicio))
+        OnPropertyChanged(NameOf(HayMotivoModoServicio))
+    End Sub
+
+    Friend Sub AplicarSugerenciaModoServicio(sugerencia As ModoServicioSugeridoDTO)
+        If sugerencia Is Nothing OrElse Not ModosServicio.EsValido(sugerencia.Modo) Then
+            Return
+        End If
+        _sugerenciaModoServicio = sugerencia
+        OnPropertyChanged(NameOf(MotivoModoServicio))
+        OnPropertyChanged(NameOf(HayMotivoModoServicio))
+
+        ' Si el usuario ya eligió modo a mano, no se le pisa: solo se le enseña el motivo.
+        If _modoServicioElegidoPorUsuario Then
+            Return
+        End If
+        AplicarModoSugerido(sugerencia.Modo)
+    End Sub
+
+    Private Sub AplicarModoSugerido(modo As Byte)
+        If ModoServicio = modo Then
+            _ultimoModoSugeridoAplicado = modo
+            Return
+        End If
+        ' Si ya se intentó ese modo y el pedido no se quedó en él, fue la validación del servidor la que no
+        ' dejó salir de «Todo junto»: no se insiste (si no, un diálogo de error en cada recálculo).
+        If _ultimoModoSugeridoAplicado.HasValue AndAlso _ultimoModoSugeridoAplicado.Value = modo Then
+            Return
+        End If
+        _ultimoModoSugeridoAplicado = modo
+        _aplicandoSugerenciaModoServicio = True
+        Try
+            ModoServicio = modo
+        Finally
+            _aplicandoSugerenciaModoServicio = False
+        End Try
+    End Sub
+
+    Friend Sub AplicarOfertasSugeridas(sugerencias As List(Of SugerenciaOfertaDTO))
+        _ofertasSugeridas.Clear()
+        If sugerencias IsNot Nothing Then
+            For Each sugerencia In sugerencias.Where(Function(o) o IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(o.Texto))
+                _ofertasSugeridas.Add(sugerencia)
+            Next
+        End If
+        OnPropertyChanged(NameOf(OfertasSugeridas))
+        OnPropertyChanged(NameOf(HayOfertasSugeridas))
+    End Sub
+
+    ''' <summary>
+    ''' El pedido tal y como se mandaría a guardar, pero SOLO para preguntar: no toca el contador de
+    ''' ofertas (cogerSiguienteOferta) ni ningún otro estado, porque esto se llama muchas veces.
+    ''' Nothing si todavía no hay con qué preguntar.
+    ''' </summary>
+    Friend Function PrepararPedidoParaSugerencias() As PedidoVentaDTO
+        If clienteSeleccionado Is Nothing OrElse listaProductosPedido Is Nothing Then
+            Return Nothing
+        End If
+        Try
+            SincronizarListasAlEstado()
+            Dim ofertaFicticia As Integer = 0
+            Dim pedido = Estado.ToPedidoVentaDTO(
+                If(formaVentaPedido, "DIR"),
+                Function()
+                    ofertaFicticia += 1
+                    Return ofertaFicticia
+                End Function,
+                AddressOf CalcularSerie)
+            pedido.Usuario = configuracion?.usuario
+            For Each linea In pedido.Lineas
+                linea.Usuario = configuracion?.usuario
+                linea.delegacion = delegacionUsuario
+            Next
+            Return pedido
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    Private _aplicarOfertaSugeridaCommand As RelayCommand(Of SugerenciaOfertaDTO)
+    ''' <summary>Nesto#465: aplicar de un clic la oferta sugerida, sin obligar a teclear las cantidades.</summary>
+    Public Property AplicarOfertaSugeridaCommand As RelayCommand(Of SugerenciaOfertaDTO)
+        Get
+            Return _aplicarOfertaSugeridaCommand
+        End Get
+        Private Set(value As RelayCommand(Of SugerenciaOfertaDTO))
+            Dim unused = SetProperty(_aplicarOfertaSugeridaCommand, value)
+        End Set
+    End Property
+
+    Private Function CanAplicarOfertaSugerida(sugerencia As SugerenciaOfertaDTO) As Boolean
+        Return sugerencia IsNot Nothing AndAlso sugerencia.EsAplicable
+    End Function
+
+    ''' <summary>
+    ''' Sube la línea a la cantidad que pide la oferta y le pone las unidades de regalo, por la misma ruta
+    ''' que usa el vendedor al teclear (cmdActualizarProductosPedido), para que el precio y el stock se
+    ''' recalculen igual. Solo las sugerencias de cantidad: las de importe dicen lo que falta, no qué añadir.
+    ''' </summary>
+    Friend Sub OnAplicarOfertaSugerida(sugerencia As SugerenciaOfertaDTO)
+        If Not CanAplicarOfertaSugerida(sugerencia) Then
+            Return
+        End If
+        Dim linea = listaProductosPedido?.FirstOrDefault(Function(l) l.producto?.Trim() = sugerencia.Producto?.Trim())
+        If linea Is Nothing Then
+            dialogService.ShowError($"El producto {sugerencia.Producto?.Trim()} ya no está en el pedido.")
+            Return
+        End If
+
+        If sugerencia.CantidadSugerida > sugerencia.CantidadActual Then
+            linea.cantidad += sugerencia.CantidadSugerida - sugerencia.CantidadActual
+        End If
+        linea.cantidadOferta = sugerencia.CantidadRegalo
+
+        cmdActualizarProductosPedido.Execute(linea)
+        ActualizarTotales()
+    End Sub
+
+#End Region
 
     ''' <summary>Vuelve a «Todo junto» (servirJunto marcado) cuando el servidor o la usuaria no aceptan salir de él.</summary>
     Private Sub RevertirAServirJunto()
@@ -1110,12 +1334,20 @@ Public Class PlantillaVentaViewModel
                 value.mantenerJunto = _borradorEnRestauracion.MantenerJunto
                 value.servirJunto = _borradorEnRestauracion.ServirJunto
                 Estado.ModoServicio = _borradorEnRestauracion.ModoServicio ' Nesto#476
+                ' Nesto#483: el modo que traiga el borrador manda sobre lo que sugiera el servidor.
+                _modoServicioElegidoPorUsuario = _borradorEnRestauracion.ModoServicio.HasValue
             ElseIf value IsNot Nothing Then
                 ' NestoAPI#482: el pedido nuevo NACE en el modo por defecto (3 salvo parámetro). No se arrastra
                 ' el ServirJunto de la ficha: dejaba pedidos «todo junto» sin servir nunca por una referencia
                 ' agotada o anulada (Carlos, 16/09/26). El usuario puede cambiarlo en el selector.
-                Estado.ModoServicio = ModoServicioPorDefecto
-                value.servirJunto = ModosServicio.EsTodoJunto(ModoServicioPorDefecto)
+                ' Nesto#483 (trampa 2): si el servidor ya ha contestado, ese es el defecto del pedido; cambiar
+                ' de contacto no puede perder lo calculado. Y como el modo se reinicia, la eleccion manual
+                ' anterior tambien: a partir de aqui vuelve a mandar la sugerencia.
+                Dim modoInicial As Byte = ModoServicioPorDefectoEfectivo()
+                Estado.ModoServicio = modoInicial
+                value.servirJunto = ModosServicio.EsTodoJunto(modoInicial)
+                _modoServicioElegidoPorUsuario = False
+                _ultimoModoSugeridoAplicado = modoInicial
             End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
 
@@ -1774,7 +2006,11 @@ Public Class PlantillaVentaViewModel
             Return _paginaActual
         End Get
         Set(value As WizardPage)
-            Dim unused = SetProperty(_paginaActual, value)
+            If SetProperty(_paginaActual, value) Then
+                ' Nesto#483 / Nesto#465: al cambiar de paso (sobre todo al llegar a entrega y finalizar,
+                ' que es «antes de guardar») se pide ya lo que calcula el servidor, sin esperar al reloj.
+                PedirSugerenciasConDebounce()
+            End If
         End Set
     End Property
 
@@ -1957,6 +2193,9 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
         ActualizarEtiquetaPortes()
         OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
+        ' Nesto#483 / Nesto#465: han cambiado las lineas, asi que el modo de servicio y las ofertas que el
+        ' pedido podria aplicar ya no valen. Se piden otra vez, con retardo (no en cada tecla).
+        PedirSugerenciasConDebounce()
     End Sub
 
     'Enum PaginasWizard
@@ -3166,6 +3405,8 @@ Public Class PlantillaVentaViewModel
         Estado.ModoServicio = modo
         Estado.ServirJunto = ModosServicio.EsTodoJunto(modo.Value)
         direccionEntregaSeleccionada.servirJunto = Estado.ServirJunto
+        ' Nesto#483: lo guardado en el borrador es una eleccion, no un defecto: la sugerencia no lo pisa.
+        _modoServicioElegidoPorUsuario = True
         OnPropertyChanged(NameOf(ModoServicio))
     End Sub
 

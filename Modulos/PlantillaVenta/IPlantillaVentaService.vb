@@ -19,6 +19,20 @@ Public Interface IPlantillaVentaService
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
     Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String))
     ''' <summary>
+    ''' Nesto#483 / NestoAPI#506: el modo de servicio que el servidor le pondria al pedido que se esta
+    ''' montando (POST api/PedidosVenta/ModoServicioSugerido). Devuelve Nothing si la API falla o es
+    ''' anterior al endpoint: entonces la plantilla se queda con su defecto de siempre.
+    ''' </summary>
+    Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)
+
+    ''' <summary>
+    ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando
+    ''' (POST api/PedidosVenta/OfertasSugeridas). Lista vacia si la API falla: esto es una ayuda,
+    ''' nunca un bloqueo para guardar el pedido.
+    ''' </summary>
+    Function OfertasSugeridas(pedido As PedidoVentaDTO) As Task(Of List(Of SugerenciaOfertaDTO))
+
+    ''' <summary>
     ''' NestoAPI#466: los grupos de producto que generan Ganavisiones, segun el servidor
     ''' (GET Ganavisiones/GruposBonificables). Lista vacia si no se puede consultar o la API es
     ''' anterior al endpoint: entonces la plantilla sigue con su lista de reserva.

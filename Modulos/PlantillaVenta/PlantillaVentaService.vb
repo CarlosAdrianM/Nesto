@@ -398,6 +398,47 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Nesto#483 / NestoAPI#506: el modo que el servidor le pondria al pedido que se esta montando.
+    ''' Nothing si la API falla, tarda o es anterior al endpoint: preseleccionar el modo es una ayuda,
+    ''' y sin respuesta la plantilla se queda con su defecto de siempre.
+    ''' </summary>
+    Public Async Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO) Implements IPlantillaVentaService.ModoServicioSugerido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/ModoServicioSugerido", content).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return JsonConvert.DeserializeObject(Of ModoServicioSugeridoDTO)(cadenaJson)
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando. Lista
+    ''' vacia ante cualquier fallo: el pedido se tiene que poder guardar igual.
+    ''' </summary>
+    Public Async Function OfertasSugeridas(pedido As PedidoVentaDTO) As Task(Of List(Of SugerenciaOfertaDTO)) Implements IPlantillaVentaService.OfertasSugeridas
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/OfertasSugeridas", content).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return New List(Of SugerenciaOfertaDTO)()
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return If(JsonConvert.DeserializeObject(Of List(Of SugerenciaOfertaDTO))(cadenaJson), New List(Of SugerenciaOfertaDTO)())
+            Catch ex As Exception
+                Return New List(Of SugerenciaOfertaDTO)()
+            End Try
+        End Using
+    End Function
+
     Public Async Function CargarGruposBonificables() As Task(Of List(Of String)) Implements IPlantillaVentaService.CargarGruposBonificables
         Using client As HttpClient = _clienteApiFactory.Crear()
             Try

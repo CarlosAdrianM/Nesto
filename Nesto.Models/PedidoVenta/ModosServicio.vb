@@ -20,7 +20,13 @@ Public NotInheritable Class ModosServicio
     ''' </summary>
     Public Const POR_DEFECTO As Byte = TRAS_REPONER_DE_TIENDAS
 
-    ''' <summary>El valor del parámetro ModoServicioPorDefecto, o POR_DEFECTO si falta o no es un modo válido.</summary>
+    ''' <summary>
+    ''' El valor del parámetro ModoServicioPorDefecto, o POR_DEFECTO si falta o no es un modo válido.
+    ''' NestoAPI#506 cambió el contrato del parámetro: '0' (el valor que dejó el script a todos los
+    ''' usuarios) significa «que lo decida el stock», y 1..4 fuerzan un modo. Aquí '0' cae en POR_DEFECTO
+    ''' a propósito: es solo el respaldo mientras el servidor no ha contestado a ModoServicioSugerido
+    ''' (Nesto#483). Quien manda cuando hay respuesta es el servidor, no este parámetro.
+    ''' </summary>
     Public Shared Function ParsearPorDefecto(valorParametro As String) As Byte
         Dim modo As Byte
         If Byte.TryParse(If(valorParametro, String.Empty).Trim(), modo) AndAlso EsValido(modo) Then
