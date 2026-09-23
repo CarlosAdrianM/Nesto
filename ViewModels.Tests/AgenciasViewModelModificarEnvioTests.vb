@@ -48,6 +48,22 @@ Public Class AgenciasViewModelModificarEnvioTests
     End Sub
 
     <TestMethod()>
+    Public Sub MensajeConfirmarModificarEnvio_CambiaElReembolso_AvisaDeQueNoSeInformaALaAgencia()
+        ' NestoAPI#512: en un envío tramitado el cambio de reembolso solo afecta a Nesto.
+        Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191 ", "CALLE MAYOR 1", 100D, 0D)
+
+        StringAssert.Contains(mensaje, "15191")
+        StringAssert.Contains(mensaje, "NO se avisa a la agencia")
+    End Sub
+
+    <TestMethod()>
+    Public Sub MensajeConfirmarModificarEnvio_MismoReembolso_SinAviso()
+        Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191", "CALLE MAYOR 1", 100D, 100D)
+
+        Assert.IsFalse(mensaje.Contains("NO se avisa a la agencia"))
+    End Sub
+
+    <TestMethod()>
     Public Async Function ModificarEnvioPorApi_MandaLosDatosYReflejaElResultado() As Task
         Dim enviado As ModificarDatosEnvioDto = Nothing
         A.CallTo(Function() servicio.ModificarDatosEnvio(247975, A(Of ModificarDatosEnvioDto).Ignored)) _

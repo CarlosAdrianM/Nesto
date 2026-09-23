@@ -2609,7 +2609,7 @@ Public Class AgenciasViewModel
         Return sePuedeModificarReembolso
     End Function
     Private Async Sub OnModificarEnvio(arg As Object)
-        Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
+        Dim mensajeMostrar = MensajeConfirmarModificarEnvio(envioActual.Cliente, envioActual.Direccion, envioActual.Reembolso, CDec(reembolsoModificar))
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
                                                                                continuar = r.Result = ButtonResult.OK
@@ -2625,6 +2625,21 @@ Public Class AgenciasViewModel
         End If
         modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar, fechaEntregaModificar)
     End Sub
+
+    ''' <summary>
+    ''' NestoAPI#512 (decisión Carlos 23/09/26): cambiar el reembolso de un envío TRAMITADO solo lo cambia
+    ''' en Nesto. El paquete ya lo tiene la agencia y el cambio lo hacen ellos cuando se lo pedimos por
+    ''' correo o por teléfono; por eso aquí no se llama a su API. El aviso lo deja claro antes de guardar.
+    ''' </summary>
+    Friend Shared Function MensajeConfirmarModificarEnvio(cliente As String, direccion As String, reembolsoActual As Decimal, reembolsoNuevo As Decimal) As String
+        Dim mensaje = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, cliente?.Trim, direccion)
+        If reembolsoNuevo <> reembolsoActual Then
+            mensaje &= Environment.NewLine & Environment.NewLine &
+                "⚠ El reembolso solo se cambia en Nesto: NO se avisa a la agencia ni se modifica nada en su sistema. " &
+                "Hágalo solo cuando la agencia le haya confirmado el cambio."
+        End If
+        Return mensaje
+    End Function
 
     Private _cmdImprimirManifiesto As DelegateCommand(Of Object)
     Public Property cmdImprimirManifiesto As DelegateCommand(Of Object)
