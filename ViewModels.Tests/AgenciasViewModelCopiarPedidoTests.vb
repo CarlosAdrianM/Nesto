@@ -78,7 +78,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
     Public Sub CopiarNumeroPedidoCommand_SinEnvioSeleccionado_NoSePuedeEjecutar()
         Dim vm = CrearViewModel()
 
-        Assert.IsFalse(vm.CopiarNumeroPedidoCommand.CanExecute(),
+        Assert.IsFalse(vm.CopiarNumeroPedidoCommand.CanExecute(Nothing),
                        "El menú de copiar debe estar deshabilitado si no hay envío seleccionado")
     End Sub
 
@@ -87,7 +87,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Dim vm = CrearViewModel()
         vm.envioActual = New EnviosAgencia With {.Numero = 12345, .Pedido = Nothing}
 
-        Assert.IsFalse(vm.CopiarNumeroPedidoCommand.CanExecute(),
+        Assert.IsFalse(vm.CopiarNumeroPedidoCommand.CanExecute(Nothing),
                        "Sin nº de pedido no hay nada que copiar")
     End Sub
 
@@ -96,7 +96,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Dim vm = CrearViewModel()
         vm.envioActual = New EnviosAgencia With {.Numero = 12345, .Pedido = 922175}
 
-        Assert.IsTrue(vm.CopiarNumeroPedidoCommand.CanExecute(),
+        Assert.IsTrue(vm.CopiarNumeroPedidoCommand.CanExecute(Nothing),
                       "Con un envío con pedido seleccionado, el menú debe estar habilitado")
     End Sub
 
@@ -108,7 +108,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         vm.envioActual = New EnviosAgencia With {.Numero = 12345, .CodigoBarras = "61197140234493 "}
 
         Assert.AreEqual("61197140234493", vm.TextoNumeroEnvioParaCopiar, "Sin el padding de la BD")
-        Assert.IsTrue(vm.CopiarNumeroEnvioCommand.CanExecute())
+        Assert.IsTrue(vm.CopiarNumeroEnvioCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod()>
@@ -116,7 +116,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Dim vm = CrearViewModel()
 
         Assert.AreEqual(String.Empty, vm.TextoNumeroEnvioParaCopiar)
-        Assert.IsFalse(vm.CopiarNumeroEnvioCommand.CanExecute())
+        Assert.IsFalse(vm.CopiarNumeroEnvioCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod()>
@@ -124,15 +124,15 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Dim vm = CrearViewModel()
 
         Assert.AreEqual("Copiar campo", vm.TextoCopiarCampoBajoCursor, "Sin celda: texto genérico")
-        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute())
+        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute(Nothing))
 
         vm.EstablecerCampoBajoCursor("Población", "ALGETE")
 
         Assert.AreEqual("Copiar Población", vm.TextoCopiarCampoBajoCursor)
-        Assert.IsTrue(vm.CopiarCampoCommand.CanExecute())
+        Assert.IsTrue(vm.CopiarCampoCommand.CanExecute(Nothing))
 
         vm.EstablecerCampoBajoCursor(Nothing, Nothing)
-        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute(), "Al salir de una celda se deshabilita")
+        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute(Nothing), "Al salir de una celda se deshabilita")
     End Sub
 
     <TestMethod()>
@@ -158,7 +158,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
                               "Nº Envío: 61197140234493"}
             StringAssert.Contains(texto, esperado)
         Next
-        Assert.IsTrue(vm.CopiarEnvioCompletoCommand.CanExecute())
+        Assert.IsTrue(vm.CopiarEnvioCompletoCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod()>
@@ -180,7 +180,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Dim vm = CrearViewModel()
 
         Assert.AreEqual(String.Empty, vm.TextoEnvioCompletoParaCopiar)
-        Assert.IsFalse(vm.CopiarEnvioCompletoCommand.CanExecute())
+        Assert.IsFalse(vm.CopiarEnvioCompletoCommand.CanExecute(Nothing))
     End Sub
 
 End Class

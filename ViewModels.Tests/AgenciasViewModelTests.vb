@@ -185,7 +185,7 @@ Public Class AgenciaViewModelTests
 
 
         'act
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         'assert
         Assert.IsNotNull(viewModel.empresaSeleccionada)
@@ -221,7 +221,7 @@ Public Class AgenciaViewModelTests
         viewModel.PestannaNombre = Pestannas.PEDIDOS
 
         'act
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         'assert
         Assert.IsNotNull(viewModel.agenciaSeleccionada)
@@ -251,7 +251,7 @@ Public Class AgenciaViewModelTests
         viewModel.PestannaNombre = Pestannas.TRAMITADOS
 
         'act
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         'assert
         Assert.IsNotNull(viewModel.agenciaSeleccionada, "Debe seleccionarse la agencia")
@@ -295,7 +295,7 @@ Public Class AgenciaViewModelTests
     '    A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestannaNombre = Pestannas.PEDIDOS
-    '    viewModel.cmdCargarDatos.Execute()
+    '    viewModel.cmdCargarDatos.Execute(Nothing)
 
 
     '    Assert.IsNotNull(viewModel.empresaSeleccionada)
@@ -333,7 +333,7 @@ Public Class AgenciaViewModelTests
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
 
         'act
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         'assert
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).MustHaveHappenedOnceExactly
@@ -349,7 +349,7 @@ Public Class AgenciaViewModelTests
     <TestMethod>
     Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ListaPendientesNoPuedeSerNulo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
@@ -379,7 +379,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
 
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         Assert.IsNotNull(viewModel.listaPendientes)
         Assert.AreEqual(0, viewModel.listaPendientes.Count)
@@ -412,20 +412,20 @@ Public Class AgenciaViewModelTests
     <TestMethod>
     Public Sub AgenciaViewModel_SiNoHayEnvioPendienteSeleccionado_ElBotonBorrarEstaInactivo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         viewModel.EnvioPendienteSeleccionado = Nothing
 
-        Assert.IsFalse(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+        Assert.IsFalse(viewModel.BorrarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiHayEnvioPendienteSeleccionado_ElBotonBorrarEstaActivo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         A.CallTo(Function() configuracion.UsuarioEnGrupo(A(Of String).Ignored)).Returns(True)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         viewModel.EnvioPendienteSeleccionado = A.Fake(Of EnvioAgenciaWrapper)
 
-        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -433,7 +433,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        Assert.IsFalse(viewModel.GuardarEnvioPendienteCommand.CanExecute)
+        Assert.IsFalse(viewModel.GuardarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -442,26 +442,26 @@ Public Class AgenciaViewModelTests
         viewModel.PestannaNombre = Pestannas.PENDIENTES
         viewModel.EnvioPendienteSeleccionado.Direccion = "nombre nuevo"
 
-        Assert.IsTrue(viewModel.GuardarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(viewModel.GuardarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiElNuevoEstaSinGuardar_ElBotonGuardarEstaActivo()
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
-        Assert.IsTrue(viewModel.GuardarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(viewModel.GuardarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiElNuevoEstaGuardado_ElBotonGuardarEstaInactivo()
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
-        viewModel.InsertarEnvioPendienteCommand.Execute()
-        viewModel.GuardarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
+        viewModel.GuardarEnvioPendienteCommand.Execute(Nothing)
 
-        Assert.IsFalse(viewModel.GuardarEnvioPendienteCommand.CanExecute)
+        Assert.IsFalse(viewModel.GuardarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -470,7 +470,7 @@ Public Class AgenciaViewModelTests
 
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        Assert.IsTrue(viewModel.InsertarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(viewModel.InsertarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -480,7 +480,7 @@ Public Class AgenciaViewModelTests
 
         viewModel.EnvioPendienteSeleccionado.Nombre = "Carlos"
 
-        Assert.IsFalse(viewModel.InsertarEnvioPendienteCommand.CanExecute)
+        Assert.IsFalse(viewModel.InsertarEnvioPendienteCommand.CanExecute(Nothing))
     End Sub
 
     ' si se modifica alguna propiedad de EnvioPendienteSeleccionado hay que raise el guardar e insertar 
@@ -490,7 +490,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.AreEqual(2, viewModel.listaPendientes.Count)
     End Sub
@@ -500,7 +500,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.AreEqual(CType(-1, Short), viewModel.EnvioPendienteSeleccionado.Estado)
     End Sub
@@ -515,7 +515,7 @@ Public Class AgenciaViewModelTests
                             End Sub
         AddHandler viewModel.InsertarEnvioPendienteCommand.CanExecuteChanged, seHaEjecutado
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.IsTrue(ejecutado)
     End Sub
@@ -546,7 +546,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(listaAgencias)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.IsNotNull(viewModel.empresaSeleccionada)
         Assert.IsNotNull(viewModel.agenciaSeleccionada)
@@ -558,7 +558,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.ServicioId)
         Assert.AreEqual(New AgenciaCorreosExpress().HorarioDefecto, viewModel.horarioActual.id)
@@ -569,7 +569,7 @@ Public Class AgenciaViewModelTests
     Public Sub AgenciaViewModel_CuandoNoHayEnvioPendienteSeleccionado_LosCamposDeLaTabPendientesEstanInactivos()
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
         viewModel.EnvioPendienteSeleccionado = Nothing
@@ -580,7 +580,7 @@ Public Class AgenciaViewModelTests
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoCambiaEnvioPendienteSeleccionado_SeActualizaHayUnEnvioPendienteSeleccionado()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         Dim vecesEjecutado As Integer = 0
         Dim seHaEjecutado = Sub(s, e)
                                 If e.PropertyName = "HayUnEnvioPendienteSeleccionado" Then
@@ -601,7 +601,7 @@ Public Class AgenciaViewModelTests
         Dim handler = A.Fake(Of EventHandler)
         AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, handler
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
@@ -628,7 +628,7 @@ Public Class AgenciaViewModelTests
         Dim handler = A.Fake(Of EventHandler)
         AddHandler viewModel.InsertarEnvioPendienteCommand.CanExecuteChanged, handler
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
@@ -640,7 +640,7 @@ Public Class AgenciaViewModelTests
         Dim handler = A.Fake(Of EventHandler)
         AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, handler
 
-        viewModel.BorrarEnvioPendienteCommand.Execute()
+        viewModel.BorrarEnvioPendienteCommand.Execute(Nothing)
 
         A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
@@ -650,7 +650,7 @@ Public Class AgenciaViewModelTests
         CrearViewModelConUnEnvioEnLaListaDePendientes()
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        viewModel.BorrarEnvioPendienteCommand.Execute()
+        viewModel.BorrarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.AreEqual(0, viewModel.listaPendientes.Count)
     End Sub
@@ -690,15 +690,15 @@ Public Class AgenciaViewModelTests
                                                                                  End If
                                                                              End Sub)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         Dim horario As tipoIdDescripcion = New tipoIdDescripcion With {.id = 1, .descripcion = "horario estándar"}
         viewModel.listaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             horario
         }
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        viewModel.InsertarEnvioPendienteCommand.Execute()
-        viewModel.BorrarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
+        viewModel.BorrarEnvioPendienteCommand.Execute(Nothing)
 
         Assert.IsNull(viewModel.EnvioPendienteSeleccionado)
     End Sub
@@ -713,7 +713,7 @@ Public Class AgenciaViewModelTests
         AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, seHaEjecutado
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
-        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute(Nothing))
         Assert.AreEqual(1, vecesEjecutado)
     End Sub
 
@@ -728,7 +728,7 @@ Public Class AgenciaViewModelTests
         }
         viewModel.listaAgencias.Add(agencia2)
         viewModel.PestannaNombre = Pestannas.PENDIENTES
-        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
         viewModel.agenciaSeleccionada = agencia2
 
@@ -770,7 +770,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.agenciaSeleccionada = agencia1
         Assert.IsNotNull(viewModel.paisActual)
@@ -835,7 +835,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaEnviosPedido("1", 12345)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio1})
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.agenciaSeleccionada = agencia1
         Assert.IsNotNull(viewModel.paisActual)
@@ -892,7 +892,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarAgencia(8)).Returns(cex1)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         viewModel.numeroPedido = "12345"
         ' Como en produccion: el reembolso llega por la API DESPUES de que el setter de numeroPedido
         ' haya cambiado la ventana a la empresa 3, y la agencia se elige en esa continuacion.
@@ -937,7 +937,7 @@ Public Class AgenciaViewModelTests
     '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
-    '    viewModel.cmdCargarDatos.Execute()
+    '    viewModel.cmdCargarDatos.Execute(Nothing)
 
     '    viewModel.numeroPedido = 123456
 
@@ -978,7 +978,7 @@ Public Class AgenciaViewModelTests
     '    A.CallTo(Function() servicio.CargarEnvio("1", 123456)).Returns(Nothing)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestannaNombre = Pestannas.PEDIDOS
-    '    viewModel.cmdCargarDatos.Execute()
+    '    viewModel.cmdCargarDatos.Execute(Nothing)
 
     '    viewModel.numeroPedido = 123456
 
@@ -1020,7 +1020,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.numeroPedido = 123456
         viewModel.paisActual = New Pais(99, "NARNIA")
@@ -1065,7 +1065,7 @@ Public Class AgenciaViewModelTests
     '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestannaNombre = Pestannas.PEDIDOS
-    '    viewModel.cmdCargarDatos.Execute()
+    '    viewModel.cmdCargarDatos.Execute(Nothing)
 
     '    viewModel.numeroPedido = 123456
 
@@ -1101,7 +1101,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaEnviosTramitadosPorNombre("1", "Carlos")).Returns(New ObservableCollection(Of EnviosAgencia) From {envio})
         viewModel.PestannaNombre = Pestannas.TRAMITADOS
         A.CallTo(Function() servicio.CargarAgencia(2)).Returns(agencia2)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.nombreFiltro = "Carlos"
 
@@ -1126,7 +1126,7 @@ Public Class AgenciaViewModelTests
         Dim envio = A.Fake(Of EnviosAgencia)
         envio.Estado = CShort(3) ' Incidentado
         A.CallTo(Function() servicio.CargarListaIncidentados("1")).Returns(New ObservableCollection(Of EnviosAgencia) From {envio})
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.PestannaNombre = Pestannas.INCIDENTADOS
 
@@ -1164,13 +1164,13 @@ Public Class AgenciaViewModelTests
         agencia1.Numero = 11
         agencia1.Nombre = "Innovatrans"
         A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1})
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
         viewModel.agenciaSeleccionada = agencia1
         viewModel.soloAgenciaSeleccionadaRetrasados = True
         viewModel.vendedorFiltroRetrasados = "NV"
         viewModel.diasUmbralRetrasados = 7
 
-        viewModel.cmdCargarRetrasados.Execute()
+        viewModel.cmdCargarRetrasados.Execute(Nothing)
 
         A.CallTo(Function() servicio.CargarListaRetrasados(7, 11, "NV")).MustHaveHappened()
     End Sub
@@ -1261,7 +1261,7 @@ Public Class AgenciaViewModelTests
         viewModel.PestannaNombre = Pestannas.PEDIDOS
 
         'act
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         'assert: el CP y la población usados para el coste son los del destino real, no los del cliente
         Assert.AreEqual("20018", viewModel.codPostalEnvio, "Debe usar el CP del envío pendiente (destino real), no el de la ficha del cliente (28110)")
@@ -1350,7 +1350,7 @@ Public Class AgenciaViewModelTests
 
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
     End Sub
 
     ''' <summary>
@@ -1423,7 +1423,7 @@ Public Class AgenciaViewModelTests
                      ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
                      Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(New DialogResult(ButtonResult.OK)))
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
     End Sub
 
 
@@ -1659,7 +1659,7 @@ Public Class AgenciaViewModelTests
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
         viewModel.envioActual = Nothing
 
-        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute())
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -1668,7 +1668,7 @@ Public Class AgenciaViewModelTests
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Correos Express"}
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
 
-        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute())
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -1677,7 +1677,7 @@ Public Class AgenciaViewModelTests
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = "ENV-ABC-001"}
 
-        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(),
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(Nothing),
             "Si CodigoBarras ya está asignado no se debe permitir editar para no perder el original.")
     End Sub
 
@@ -1687,7 +1687,7 @@ Public Class AgenciaViewModelTests
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
 
-        Assert.IsTrue(viewModel.cmdPegarCodigoBarras.CanExecute())
+        Assert.IsTrue(viewModel.cmdPegarCodigoBarras.CanExecute(Nothing))
     End Sub
 
     <TestMethod>
@@ -1697,7 +1697,7 @@ Public Class AgenciaViewModelTests
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
         ' Sin mock de ShowDialog → callback no se invoca → GetText devuelve Nothing → Return temprano.
 
-        viewModel.cmdPegarCodigoBarras.Execute()
+        viewModel.cmdPegarCodigoBarras.Execute(Nothing)
 
         Assert.IsTrue(String.IsNullOrEmpty(viewModel.envioActual.CodigoBarras))
         A.CallTo(Sub() servicio.Modificar(A(Of EnviosAgencia).Ignored)).MustNotHaveHappened()
@@ -1718,7 +1718,7 @@ Public Class AgenciaViewModelTests
         Dim envio = New EnviosAgencia With {.CodigoBarras = Nothing, .Pedido = "12345"}
         viewModel.envioActual = envio
 
-        viewModel.cmdPegarCodigoBarras.Execute()
+        viewModel.cmdPegarCodigoBarras.Execute(Nothing)
 
         Assert.AreEqual("ENVIO-12345", envio.CodigoBarras)
         A.CallTo(Sub() servicio.Modificar(envio)).MustHaveHappenedOnceExactly()
@@ -1753,7 +1753,7 @@ Public Class AgenciaViewModelTests
         Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(10, "Sending"), Agencia(4, "OnTime"))
 
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         Assert.AreEqual(1, viewModel.listaAgencias.Count,
             "Sending y OnTime no tienen clase que sepa calcular plaza, codigo de barras ni etiqueta")
@@ -1767,14 +1767,14 @@ Public Class AgenciaViewModelTests
         Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(13, "CTT", esSombra:=True))
 
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         Assert.AreEqual(1, viewModel.listaAgencias.Count)
         Assert.AreEqual("ASM", viewModel.listaAgencias.Single().Nombre)
 
         Dim activada = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(13, "CTT", esSombra:=False))
         activada.PestannaNombre = Pestannas.PEDIDOS
-        activada.cmdCargarDatos.Execute()
+        activada.cmdCargarDatos.Execute(Nothing)
         Assert.AreEqual(2, activada.listaAgencias.Count, "Sin sombra, CTT se ofrece: tiene clase en el factory")
     End Sub
 
@@ -1785,7 +1785,7 @@ Public Class AgenciaViewModelTests
         Dim viewModel = ViewModelConAgencias(Agencia(10, "Sending"), Agencia(4, "OnTime"))
 
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         Assert.AreEqual(2, viewModel.listaAgencias.Count)
     End Sub
@@ -1796,7 +1796,7 @@ Public Class AgenciaViewModelTests
         ' al abrirlos en Tramitados.
         Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"))
         viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute()
+        viewModel.cmdCargarDatos.Execute(Nothing)
 
         viewModel.agenciaSeleccionada = Agencia(10, "Sending")
 

@@ -6,8 +6,8 @@ Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
-Imports Prism.Commands
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.Input
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
 ''' <summary>
@@ -17,7 +17,7 @@ Imports Prism.Services.Dialogs
 ''' AgenciasEnCuarentena (lista de nombres separados por comas).
 ''' </summary>
 Public Class AgenciasMantenimientoViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private ReadOnly _servicio As IServicioAgenciasMantenimiento
     Private ReadOnly _configuracion As IConfiguracion
@@ -29,8 +29,8 @@ Public Class AgenciasMantenimientoViewModel
         _dialogService = dialogService
         Titulo = "Mant. agencias"
         _empresaSeleccionada = Constantes.Empresas.EMPRESA_DEFECTO
-        GuardarCommand = New DelegateCommand(AddressOf OnGuardar, AddressOf CanGuardar)
-        NuevaAgenciaCommand = New DelegateCommand(AddressOf OnNuevaAgencia)
+        GuardarCommand = New RelayCommand(AddressOf OnGuardar, AddressOf CanGuardar)
+        NuevaAgenciaCommand = New RelayCommand(AddressOf OnNuevaAgencia)
         Dim unused = CargarAsync()
     End Sub
 
@@ -61,7 +61,7 @@ Public Class AgenciasMantenimientoViewModel
         Set(value As ObservableCollection(Of AgenciaMantenimiento))
             Dim unused = SetProperty(_agencias, value)
             AplicarFiltro()
-            GuardarCommand?.RaiseCanExecuteChanged()
+            GuardarCommand?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -108,8 +108,8 @@ Public Class AgenciasMantenimientoViewModel
         End Set
     End Property
 
-    Public Property GuardarCommand As DelegateCommand
-    Public Property NuevaAgenciaCommand As DelegateCommand
+    Public Property GuardarCommand As RelayCommand
+    Public Property NuevaAgenciaCommand As RelayCommand
 
     Public Async Function CargarAsync() As Task
         Dim lista = Await _servicio.LeerAgencias()
@@ -183,7 +183,7 @@ Public Class AgenciasMantenimientoViewModel
             .EsNueva = True
         })
         AplicarFiltro()
-        GuardarCommand?.RaiseCanExecuteChanged()
+        GuardarCommand?.NotifyCanExecuteChanged()
     End Sub
 
     Private Async Sub OnGuardar()

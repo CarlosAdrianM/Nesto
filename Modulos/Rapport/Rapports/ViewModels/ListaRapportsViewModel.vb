@@ -696,7 +696,7 @@ Public Class ListaRapportsViewModel
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
-    ' Comando para actualizar SelectedAction usando DelegateCommand
+    ' Comando para actualizar SelectedAction usando RelayCommand
     Private _tipoRapportCambiaCommand As RelayCommand(Of String)
     Public ReadOnly Property TipoRapportCambiaCommand As RelayCommand(Of String)
         Get

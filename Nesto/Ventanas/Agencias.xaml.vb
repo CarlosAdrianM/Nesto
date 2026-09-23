@@ -51,7 +51,7 @@ Public Class Agencias
         End If
         ' Ponemos e IF para que no entre cada vez que coja el foco
         If IsNothing(viewModel.numeroPedido) OrElse viewModel.numeroPedido.Trim = "" Then
-            viewModel.cmdCargarDatos.Execute() ' Await 
+            viewModel.cmdCargarDatos.Execute(Nothing) ' Await 
             Await Task.Delay(1000)
             txtPedidosNumero.Focus()
             txtPedidosNumero.SelectAll()

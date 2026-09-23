@@ -1,9 +1,9 @@
-﻿Imports Prism.Mvvm
+﻿Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Infrastructure.Shared
 
 Public Class EnvioAgenciaWrapper
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private _numero As Integer
     Public Property Numero As Integer

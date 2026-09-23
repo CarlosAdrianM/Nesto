@@ -105,7 +105,7 @@ Public Class AgenciasMantenimientoViewModelTests
         Dim vm = CrearVm()
         Await vm.CargarAsync()
 
-        vm.NuevaAgenciaCommand.Execute()
+        vm.NuevaAgenciaCommand.Execute(Nothing)
 
         Dim nueva = vm.Agencias.Last()
         Assert.AreEqual(12, nueva.Numero)

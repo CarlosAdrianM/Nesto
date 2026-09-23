@@ -21,14 +21,14 @@ Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
 Imports PdfiumViewer
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Ioc
-Imports Prism.Mvvm
+Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 
 Public Class AgenciasViewModel
-    Inherits BindableBase
+    Inherits ObservableObject
     '    Implements IActiveAware
 
     ' El modo cuadre sirve para cuadrar los saldos iniciales de cada agencia con la contabilidad
@@ -78,30 +78,30 @@ Public Class AgenciasViewModel
         InicializarAsync()
 
         ' Prism
-        cmdCargarDatos = New DelegateCommand(AddressOf OnCargarDatos)
-        cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
-        cmdAgregarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnAgregarReembolsoContabilizar, AddressOf CanAgregarReembolsoContabilizar)
-        cmdRecibirRetorno = New DelegateCommand(Of Object)(AddressOf OnRecibirRetorno, AddressOf CanRecibirRetorno)
-        cmdQuitarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnQuitarReembolsoContabilizar, AddressOf CanQuitarReembolsoContabilizar)
-        cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
-        cmdDescargarImagen = New DelegateCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
-        cmdModificar = New DelegateCommand(Of Object)(AddressOf OnModificar, AddressOf CanModificar)
-        cmdModificarEnvio = New DelegateCommand(Of Object)(AddressOf OnModificarEnvio, AddressOf CanModificarEnvio)
-        cmdImprimirManifiesto = New DelegateCommand(Of Object)(AddressOf OnImprimirManifiesto, AddressOf CanImprimirManifiesto)
-        cmdRehusarEnvio = New DelegateCommand(Of Object)(AddressOf OnRehusarEnvio, AddressOf CanRehusarEnvio)
-        cmdInsertar = New DelegateCommand(Of Object)(AddressOf OnInsertar, AddressOf CanInsertar)
-        InsertarEnvioPendienteCommand = New DelegateCommand(AddressOf OnInsertarEnvioPendiente, AddressOf CanInsertarEnvioPendiente)
-        BorrarEnvioPendienteCommand = New DelegateCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
-        GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
-        AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
-        cmdActualizarSeguimiento = New DelegateCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
-        cmdCargarRetrasados = New DelegateCommand(AddressOf CargarRetrasados)
-        cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
-        CopiarNumeroPedidoCommand = New DelegateCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
+        cmdCargarDatos = New RelayCommand(AddressOf OnCargarDatos)
+        cmdCargarEstado = New RelayCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
+        cmdAgregarReembolsoContabilizar = New RelayCommand(Of Object)(AddressOf OnAgregarReembolsoContabilizar, AddressOf CanAgregarReembolsoContabilizar)
+        cmdRecibirRetorno = New RelayCommand(Of Object)(AddressOf OnRecibirRetorno, AddressOf CanRecibirRetorno)
+        cmdQuitarReembolsoContabilizar = New RelayCommand(Of Object)(AddressOf OnQuitarReembolsoContabilizar, AddressOf CanQuitarReembolsoContabilizar)
+        cmdContabilizarReembolso = New RelayCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
+        cmdDescargarImagen = New RelayCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
+        cmdModificar = New RelayCommand(Of Object)(AddressOf OnModificar, AddressOf CanModificar)
+        cmdModificarEnvio = New RelayCommand(Of Object)(AddressOf OnModificarEnvio, AddressOf CanModificarEnvio)
+        cmdImprimirManifiesto = New RelayCommand(Of Object)(AddressOf OnImprimirManifiesto, AddressOf CanImprimirManifiesto)
+        cmdRehusarEnvio = New RelayCommand(Of Object)(AddressOf OnRehusarEnvio, AddressOf CanRehusarEnvio)
+        cmdInsertar = New RelayCommand(Of Object)(AddressOf OnInsertar, AddressOf CanInsertar)
+        InsertarEnvioPendienteCommand = New RelayCommand(AddressOf OnInsertarEnvioPendiente, AddressOf CanInsertarEnvioPendiente)
+        BorrarEnvioPendienteCommand = New RelayCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
+        GuardarEnvioPendienteCommand = New RelayCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
+        AbrirEnlaceSeguimientoCommand = New RelayCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
+        cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
+        cmdCargarRetrasados = New RelayCommand(AddressOf CargarRetrasados)
+        cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
+        CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
         ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
-        CopiarNumeroEnvioCommand = New DelegateCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
-        CopiarCampoCommand = New DelegateCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
-        CopiarEnvioCompletoCommand = New DelegateCommand(AddressOf OnCopiarEnvioCompleto, AddressOf CanCopiarEnvioCompleto)
+        CopiarNumeroEnvioCommand = New RelayCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
+        CopiarCampoCommand = New RelayCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
+        CopiarEnvioCompletoCommand = New RelayCommand(AddressOf OnCopiarEnvioCompleto, AddressOf CanCopiarEnvioCompleto)
 
         ' NestoAPI#258 slice (b.2): ninguna agencia recibe ya el ViewModel.
         factory.Add("ASM", Function() New AgenciaASM())
@@ -138,7 +138,7 @@ Public Class AgenciasViewModel
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
-        agenciasVM.InsertarEnvioPendienteCommand.Execute()
+        agenciasVM.InsertarEnvioPendienteCommand.Execute(Nothing)
         If etiqueta.Agencia = 0 Then
             agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = 1) ' ASM/GLS
         Else
@@ -179,7 +179,7 @@ Public Class AgenciasViewModel
             Throw New Exception("Agencia no contemplada")
         End If
 
-        agenciasVM.GuardarEnvioPendienteCommand.Execute()
+        agenciasVM.GuardarEnvioPendienteCommand.Execute(Nothing)
         Return agenciasVM.EnvioPendienteSeleccionado IsNot Nothing AndAlso agenciasVM.EnvioPendienteSeleccionado.Numero > 0
     End Function
 
@@ -297,7 +297,7 @@ Public Class AgenciasViewModel
                     ' Nothing y "Rehusado" fallaba con un aviso FALSO ("seleccione una agencia y un
                     ' envío") aunque estuvieran seleccionados (y el combo de retorno salía vacío).
                     ActualizarListas()
-                    cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
+                    cmdPegarCodigoBarras?.NotifyCanExecuteChanged()
                     If String.IsNullOrEmpty(PestannaNombre) Then
                         Return
                     End If
@@ -344,7 +344,7 @@ Public Class AgenciasViewModel
                         listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, value.Numero, fechaFiltro)
                     End If
 
-                    RaisePropertyChanged("") ' para que actualice todos los enlaces
+                    OnPropertyChanged("") ' para que actualice todos los enlaces
                 End If
             Catch ex As Exception
                 ' Incluimos ex.Message porque el catch tapa cualquier fallo del setter, no solo
@@ -354,7 +354,7 @@ Public Class AgenciasViewModel
                 ' registra aquí NO aparece en ELMAH. Pasó el 28/08/2026 con el relleno de Empresa.
                 Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.agenciaSeleccionada")
                 _dialogService.ShowError("Error al seleccionar la agencia " + value.Nombre + ": " + ex.Message)
-                RaisePropertyChanged(NameOf(agenciaSeleccionada))
+                OnPropertyChanged(NameOf(agenciaSeleccionada))
             End Try
 
         End Set
@@ -419,9 +419,9 @@ Public Class AgenciasViewModel
                 End If
                 listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
-                RaisePropertyChanged(NameOf(sumaContabilidad))
-                RaisePropertyChanged(NameOf(descuadreContabilidad))
-                RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
+                OnPropertyChanged(NameOf(sumaContabilidad))
+                OnPropertyChanged(NameOf(descuadreContabilidad))
+                OnPropertyChanged(NameOf(etiquetaBultosTramitados))
                 'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
                 'una vez actualizadas, seleccionar el pedido o el envío actual también
             Catch ex As Exception
@@ -443,7 +443,7 @@ Public Class AgenciasViewModel
             Dim unused1 = SetProperty(_pedidoSeleccionado, value)
 
             If Not IsNothing(cmdInsertar) Then
-                cmdInsertar.RaiseCanExecuteChanged()
+                cmdInsertar.NotifyCanExecuteChanged()
             End If
 
             Dim unused = ActualizarPedidoSeleccionado()
@@ -539,7 +539,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             Dim unused = SetProperty(_listaTiposRetorno, value)
-            RaisePropertyChanged(NameOf(retornoModificar))
+            OnPropertyChanged(NameOf(retornoModificar))
         End Set
     End Property
 
@@ -801,7 +801,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_enlaceSeguimientoEnvio, value)
-            AbrirEnlaceSeguimientoCommand.RaiseCanExecuteChanged()
+            AbrirEnlaceSeguimientoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -826,19 +826,19 @@ Public Class AgenciasViewModel
                 End If
 
                 If Not IsNothing(cmdCargarEstado) Then
-                    cmdCargarEstado.RaiseCanExecuteChanged()
+                    cmdCargarEstado.NotifyCanExecuteChanged()
                 End If
 
                 If Not IsNothing(cmdActualizarSeguimiento) Then
-                    cmdActualizarSeguimiento.RaiseCanExecuteChanged()
+                    cmdActualizarSeguimiento.NotifyCanExecuteChanged()
                 End If
 
                 ' Nesto#418/#422: el menú contextual de copiar depende del envío seleccionado.
                 If Not IsNothing(CopiarNumeroPedidoCommand) Then
-                    CopiarNumeroPedidoCommand.RaiseCanExecuteChanged()
+                    CopiarNumeroPedidoCommand.NotifyCanExecuteChanged()
                 End If
-                CopiarNumeroEnvioCommand?.RaiseCanExecuteChanged()
-                CopiarEnvioCompletoCommand?.RaiseCanExecuteChanged()
+                CopiarNumeroEnvioCommand?.NotifyCanExecuteChanged()
+                CopiarEnvioCompletoCommand?.NotifyCanExecuteChanged()
 
                 ' Nesto#407: el enlace de seguimiento se calcula SIEMPRE (también en Incidentados,
                 ' donde listaTiposRetorno no está cargada porque ActualizarListas solo corre en las
@@ -858,21 +858,21 @@ Public Class AgenciasViewModel
                 End If
 
                 If Not IsNothing(cmdModificarEnvio) Then
-                    cmdModificarEnvio.RaiseCanExecuteChanged()
+                    cmdModificarEnvio.NotifyCanExecuteChanged()
                 End If
 
                 If Not IsNothing(cmdRehusarEnvio) Then
-                    cmdRehusarEnvio.RaiseCanExecuteChanged()
+                    cmdRehusarEnvio.NotifyCanExecuteChanged()
                 End If
 
-                RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
-                RaisePropertyChanged(NameOf(sePuedeModificarEstado))
-                RaisePropertyChanged(NameOf(agenciaSeleccionada))
+                OnPropertyChanged(NameOf(sePuedeModificarReembolso))
+                OnPropertyChanged(NameOf(sePuedeModificarEstado))
+                OnPropertyChanged(NameOf(agenciaSeleccionada))
             Catch ex As Exception
                 Return
             End Try
-            cmdModificar.RaiseCanExecuteChanged()
-            cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
+            cmdModificar.NotifyCanExecuteChanged()
+            cmdPegarCodigoBarras?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -960,7 +960,7 @@ Public Class AgenciasViewModel
                 agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = value.Agencia)
             End If
             _estaCambiandoDePedido = False
-            RaisePropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
+            OnPropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
             ActualizarEstadoComandos()
         End Set
     End Property
@@ -1064,8 +1064,8 @@ Public Class AgenciasViewModel
             End If
 
             'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
-            RaisePropertyChanged(NameOf(empresaSeleccionada))
-            RaisePropertyChanged(NameOf(agenciaSeleccionada))
+            OnPropertyChanged(NameOf(empresaSeleccionada))
+            OnPropertyChanged(NameOf(agenciaSeleccionada))
         End Set
     End Property
 
@@ -1169,7 +1169,7 @@ Public Class AgenciasViewModel
         Set(value As ObservableCollection(Of EnviosAgencia))
             Dim unused = SetProperty(_listaEnviosPedido, value)
             If Not IsNothing(cmdCargarEstado) Then
-                cmdCargarEstado.RaiseCanExecuteChanged()
+                cmdCargarEstado.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -1181,10 +1181,10 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             Dim unused = SetProperty(_listaEnviosTramitados, value)
-            RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
-            RaisePropertyChanged(NameOf(sePuedeModificarEstado))
-            RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
-            cmdImprimirManifiesto.RaiseCanExecuteChanged()
+            OnPropertyChanged(NameOf(sePuedeModificarReembolso))
+            OnPropertyChanged(NameOf(sePuedeModificarEstado))
+            OnPropertyChanged(NameOf(etiquetaBultosTramitados))
+            cmdImprimirManifiesto.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1292,7 +1292,7 @@ Public Class AgenciasViewModel
         }
     End Function
 
-    Public Property cmdCargarRetrasados As DelegateCommand
+    Public Property cmdCargarRetrasados As RelayCommand
 
     Private Sub CargarRetrasados()
         Dim agencia As Integer? = Nothing
@@ -1366,8 +1366,8 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             Dim unused = SetProperty(_listaReembolsos, value)
-            RaisePropertyChanged(NameOf(sumaReembolsos))
-            RaisePropertyChanged(NameOf(descuadreContabilidad))
+            OnPropertyChanged(NameOf(sumaReembolsos))
+            OnPropertyChanged(NameOf(descuadreContabilidad))
         End Set
     End Property
 
@@ -1378,8 +1378,8 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             Dim unused = SetProperty(_listaReembolsosSeleccionados, value)
-            RaisePropertyChanged(NameOf(sumaSeleccionadas))
-            cmdContabilizarReembolso.RaiseCanExecuteChanged()
+            OnPropertyChanged(NameOf(sumaSeleccionadas))
+            cmdContabilizarReembolso.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1413,7 +1413,7 @@ Public Class AgenciasViewModel
                 Return
             End If
             Dim unused = SetProperty(_numClienteContabilizar, value)
-            cmdContabilizarReembolso.RaiseCanExecuteChanged()
+            cmdContabilizarReembolso.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1462,9 +1462,9 @@ Public Class AgenciasViewModel
         End Get
         Set(value As digitalizacion)
             Dim unused = SetProperty(_digitalizacionActual, value)
-            RaisePropertyChanged(NameOf(cmdDescargarImagen))
+            OnPropertyChanged(NameOf(cmdDescargarImagen))
             If Not IsNothing(cmdDescargarImagen) Then
-                cmdDescargarImagen.RaiseCanExecuteChanged()
+                cmdDescargarImagen.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -1476,7 +1476,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Double)
             Dim unused = SetProperty(_reembolsoModificar, value)
-            RaisePropertyChanged(NameOf(envioActual))
+            OnPropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1487,7 +1487,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As tipoIdDescripcion)
             Dim unused = SetProperty(_retornoModificar, value)
-            RaisePropertyChanged(NameOf(envioActual))
+            OnPropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1498,7 +1498,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Integer)
             Dim unused = SetProperty(_estadoModificar, value)
-            RaisePropertyChanged(NameOf(envioActual))
+            OnPropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1541,7 +1541,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosHistoria))
             Dim unused = SetProperty(_listaHistoriaEnvio, value)
-            RaisePropertyChanged(NameOf(mostrarHistoria))
+            OnPropertyChanged(NameOf(mostrarHistoria))
         End Set
     End Property
 
@@ -1696,8 +1696,8 @@ Public Class AgenciasViewModel
             Await RegistrarErrorAgenciaEnElmah(excepcionTramitacion, "AgenciasViewModel.Tramitar")
         End If
 
-        RaisePropertyChanged(NameOf(listaReembolsos))
-        RaisePropertyChanged(NameOf(mensajeError))
+        OnPropertyChanged(NameOf(listaReembolsos))
+        OnPropertyChanged(NameOf(mensajeError))
     End Sub
 
     ' Nesto#367: añade las dimensiones a las observaciones existentes sin pisarlas.
@@ -1999,7 +1999,7 @@ Public Class AgenciasViewModel
         Dim unused1 = listaEnviosPedido.Remove(copiaEnvio)
         Dim unused = listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
-        RaisePropertyChanged(NameOf(listaEnvios))
+        OnPropertyChanged(NameOf(listaEnvios))
     End Sub
 
     ' NestoAPI#259: registra en ELMAH (vía POST /api/Errores) una incidencia/error de agencia desde
@@ -2018,12 +2018,12 @@ Public Class AgenciasViewModel
     ' nº de envío que la agencia devuelve por correo. Solo se permite si la agencia lo
     ' declara con IAgencia.PermiteEditarCodigoBarras y el CodigoBarras está vacío (para
     ' no pisar números ya asignados, propios o de tramitados previos).
-    Private _cmdPegarCodigoBarras As DelegateCommand
-    Public Property cmdPegarCodigoBarras As DelegateCommand
+    Private _cmdPegarCodigoBarras As RelayCommand
+    Public Property cmdPegarCodigoBarras As RelayCommand
         Get
             Return _cmdPegarCodigoBarras
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             _cmdPegarCodigoBarras = value
         End Set
     End Property
@@ -2049,16 +2049,16 @@ Public Class AgenciasViewModel
             envioActual.CodigoBarras = codigoPrevio
             _dialogService.ShowError($"No se pudo guardar el nº de envío: {ex.Message}")
         End Try
-        cmdPegarCodigoBarras.RaiseCanExecuteChanged()
-        RaisePropertyChanged(NameOf(envioActual))
+        cmdPegarCodigoBarras.NotifyCanExecuteChanged()
+        OnPropertyChanged(NameOf(envioActual))
     End Sub
 
-    Private _cmdInsertar As DelegateCommand(Of Object)
-    Public Property cmdInsertar As DelegateCommand(Of Object)
+    Private _cmdInsertar As RelayCommand(Of Object)
+    Public Property cmdInsertar As RelayCommand(Of Object)
         Get
             Return _cmdInsertar
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdInsertar = value
         End Set
     End Property
@@ -2086,7 +2086,7 @@ Public Class AgenciasViewModel
         End If
         Try
             EstaInsertandoEnvio = True
-            cmdInsertar.RaiseCanExecuteChanged()
+            cmdInsertar.NotifyCanExecuteChanged()
             ' #252: el peso es OBLIGATORIO para tramitar. Sin él, el comparador no puede saber qué
             ' agencia es la más barata (la tarifa depende del peso) y la agencia puede rechazar el envío.
             If Peso <= 0D Then
@@ -2102,7 +2102,7 @@ Public Class AgenciasViewModel
             InsertarRegistro(servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno, importeGasto)
         Finally
             EstaInsertandoEnvio = False
-            cmdInsertar.RaiseCanExecuteChanged()
+            cmdInsertar.NotifyCanExecuteChanged()
         End Try
     End Function
 
@@ -2203,12 +2203,12 @@ Public Class AgenciasViewModel
         RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
     End Sub
 
-    Private _cmdCargarEstado As DelegateCommand(Of Object)
-    Public Property cmdCargarEstado As DelegateCommand(Of Object)
+    Private _cmdCargarEstado As RelayCommand(Of Object)
+    Public Property cmdCargarEstado As RelayCommand(Of Object)
         Get
             Return _cmdCargarEstado
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdCargarEstado = value
         End Set
     End Property
@@ -2229,19 +2229,19 @@ Public Class AgenciasViewModel
             ' todas las agencias: sin digitalizaciones queda Nothing (además evita arrastrar
             ' la de un envío anterior).
             digitalizacionActual = estadoEnvioCargado?.listaDigitalizaciones?.LastOrDefault
-            cmdDescargarImagen.RaiseCanExecuteChanged()
+            cmdDescargarImagen.NotifyCanExecuteChanged()
             mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
         End Try
     End Sub
 
-    Private _cmdCargarDatos As DelegateCommand
-    Public Property cmdCargarDatos As DelegateCommand
+    Private _cmdCargarDatos As RelayCommand
+    Public Property cmdCargarDatos As RelayCommand
         Get
             Return _cmdCargarDatos
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             _cmdCargarDatos = value
         End Set
     End Property
@@ -2285,12 +2285,12 @@ Public Class AgenciasViewModel
 
     End Function
 
-    Private _cmdAgregarReembolsoContabilizar As DelegateCommand(Of Object)
-    Public Property cmdAgregarReembolsoContabilizar As DelegateCommand(Of Object)
+    Private _cmdAgregarReembolsoContabilizar As RelayCommand(Of Object)
+    Public Property cmdAgregarReembolsoContabilizar As RelayCommand(Of Object)
         Get
             Return _cmdAgregarReembolsoContabilizar
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdAgregarReembolsoContabilizar = value
         End Set
     End Property
@@ -2301,20 +2301,20 @@ Public Class AgenciasViewModel
         If Not IsNothing(lineaReembolsoSeleccionado) Then
             listaReembolsosSeleccionados.Add(lineaReembolsoSeleccionado)
             Dim unused = listaReembolsos.Remove(lineaReembolsoSeleccionado)
-            RaisePropertyChanged(NameOf(sumaSeleccionadas))
-            RaisePropertyChanged(NameOf(sumaReembolsos))
-            cmdContabilizarReembolso.RaiseCanExecuteChanged()
+            OnPropertyChanged(NameOf(sumaSeleccionadas))
+            OnPropertyChanged(NameOf(sumaReembolsos))
+            cmdContabilizarReembolso.NotifyCanExecuteChanged()
         Else
             mensajeError = "No hay ninguna línea seleccionada"
         End If
     End Sub
 
-    Private _cmdQuitarReembolsoContabilizar As DelegateCommand(Of Object)
-    Public Property cmdQuitarReembolsoContabilizar As DelegateCommand(Of Object)
+    Private _cmdQuitarReembolsoContabilizar As RelayCommand(Of Object)
+    Public Property cmdQuitarReembolsoContabilizar As RelayCommand(Of Object)
         Get
             Return _cmdQuitarReembolsoContabilizar
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdQuitarReembolsoContabilizar = value
         End Set
     End Property
@@ -2325,20 +2325,20 @@ Public Class AgenciasViewModel
         If Not IsNothing(lineaReembolsoContabilizar) Then
             listaReembolsos.Add(lineaReembolsoContabilizar)
             Dim unused = listaReembolsosSeleccionados.Remove(lineaReembolsoContabilizar)
-            RaisePropertyChanged(NameOf(sumaSeleccionadas))
-            RaisePropertyChanged(NameOf(sumaReembolsos))
-            cmdContabilizarReembolso.RaiseCanExecuteChanged()
+            OnPropertyChanged(NameOf(sumaSeleccionadas))
+            OnPropertyChanged(NameOf(sumaReembolsos))
+            cmdContabilizarReembolso.NotifyCanExecuteChanged()
         Else
             mensajeError = "No hay ninguna línea seleccionada"
         End If
     End Sub
 
-    Private _cmdContabilizarReembolso As DelegateCommand(Of Object)
-    Public Property cmdContabilizarReembolso As DelegateCommand(Of Object)
+    Private _cmdContabilizarReembolso As RelayCommand(Of Object)
+    Public Property cmdContabilizarReembolso As RelayCommand(Of Object)
         Get
             Return _cmdContabilizarReembolso
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdContabilizarReembolso = value
         End Set
     End Property
@@ -2387,9 +2387,9 @@ Public Class AgenciasViewModel
                 Dim unused1 = listaReembolsos?.Remove(envio)
             Next
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-            RaisePropertyChanged(NameOf(sumaContabilidad))
-            RaisePropertyChanged(NameOf(descuadreContabilidad))
-            RaisePropertyChanged(NameOf(sumaReembolsos))
+            OnPropertyChanged(NameOf(sumaContabilidad))
+            OnPropertyChanged(NameOf(descuadreContabilidad))
+            OnPropertyChanged(NameOf(sumaReembolsos))
             _dialogService.ShowNotification("Contabilizado Correctamente", "Nº Asiento: " + resultado.Asiento.ToString)
         Catch ex As Exception
             ' Nesto#448: detalle al usuario + ELMAH.
@@ -2398,12 +2398,12 @@ Public Class AgenciasViewModel
         End Try
     End Function
 
-    Private _cmdDescargarImagen As DelegateCommand(Of Object)
-    Public Property cmdDescargarImagen As DelegateCommand(Of Object)
+    Private _cmdDescargarImagen As RelayCommand(Of Object)
+    Public Property cmdDescargarImagen As RelayCommand(Of Object)
         Get
             Return _cmdDescargarImagen
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdDescargarImagen = value
         End Set
     End Property
@@ -2430,12 +2430,12 @@ Public Class AgenciasViewModel
 
 
 
-    Private _cmdModificar As DelegateCommand(Of Object)
-    Public Property cmdModificar As DelegateCommand(Of Object)
+    Private _cmdModificar As RelayCommand(Of Object)
+    Public Property cmdModificar As RelayCommand(Of Object)
         Get
             Return _cmdModificar
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdModificar = value
         End Set
     End Property
@@ -2461,12 +2461,12 @@ Public Class AgenciasViewModel
     End Sub
 
 
-    Private _cmdModificarEnvio As DelegateCommand(Of Object)
-    Public Property cmdModificarEnvio As DelegateCommand(Of Object)
+    Private _cmdModificarEnvio As RelayCommand(Of Object)
+    Public Property cmdModificarEnvio As RelayCommand(Of Object)
         Get
             Return _cmdModificarEnvio
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdModificarEnvio = value
         End Set
     End Property
@@ -2502,12 +2502,12 @@ Public Class AgenciasViewModel
         Return mensaje
     End Function
 
-    Private _cmdImprimirManifiesto As DelegateCommand(Of Object)
-    Public Property cmdImprimirManifiesto As DelegateCommand(Of Object)
+    Private _cmdImprimirManifiesto As RelayCommand(Of Object)
+    Public Property cmdImprimirManifiesto As RelayCommand(Of Object)
         Get
             Return _cmdImprimirManifiesto
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdImprimirManifiesto = value
         End Set
     End Property
@@ -2525,12 +2525,12 @@ Public Class AgenciasViewModel
         })
     End Sub
 
-    Private _cmdRecibirRetorno As DelegateCommand(Of Object)
-    Public Property cmdRecibirRetorno As DelegateCommand(Of Object)
+    Private _cmdRecibirRetorno As RelayCommand(Of Object)
+    Public Property cmdRecibirRetorno As RelayCommand(Of Object)
         Get
             Return _cmdRecibirRetorno
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdRecibirRetorno = value
         End Set
     End Property
@@ -2574,12 +2574,12 @@ Public Class AgenciasViewModel
         End Try
     End Function
 
-    Private _cmdRehusarEnvio As DelegateCommand(Of Object)
-    Public Property cmdRehusarEnvio As DelegateCommand(Of Object)
+    Private _cmdRehusarEnvio As RelayCommand(Of Object)
+    Public Property cmdRehusarEnvio As RelayCommand(Of Object)
         Get
             Return _cmdRehusarEnvio
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdRehusarEnvio = value
         End Set
     End Property
@@ -2639,7 +2639,7 @@ Public Class AgenciasViewModel
             envio.Retorno = retorno.id
             envio.Estado = CShort(estado)
             envio.FechaEntrega = fechaEntrega
-            RaisePropertyChanged(NameOf(listaEnviosTramitados))
+            OnPropertyChanged(NameOf(listaEnviosTramitados))
             mensajeError = resultado.Mensaje
         Catch ex As Exception
             ' Nesto#448: detalle al usuario + ELMAH.
@@ -2648,7 +2648,7 @@ Public Class AgenciasViewModel
         End Try
     End Function
 
-    Public Property BorrarEnvioPendienteCommand() As DelegateCommand
+    Public Property BorrarEnvioPendienteCommand() As RelayCommand
     Private Function CanBorrarEnvioPendiente() As Boolean
         Return Not IsNothing(EnvioPendienteSeleccionado) AndAlso
             (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
@@ -2717,7 +2717,7 @@ Public Class AgenciasViewModel
 
     End Sub
 
-    Public Property InsertarEnvioPendienteCommand() As DelegateCommand
+    Public Property InsertarEnvioPendienteCommand() As RelayCommand
     Private Function CanInsertarEnvioPendiente() As Boolean
         Return Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso Not HayCambiosSinGuardarEnPendientes()
     End Function
@@ -2758,7 +2758,7 @@ Public Class AgenciasViewModel
         AddHandler EnvioPendienteSeleccionado.PropertyChanged, New PropertyChangedEventHandler(AddressOf EnvioPendienteSeleccionadoPropertyChangedEventHandler)
     End Sub
 
-    Public Property GuardarEnvioPendienteCommand As DelegateCommand
+    Public Property GuardarEnvioPendienteCommand As RelayCommand
     Private Function CanGuardarEnvioPendiente() As Boolean
         Return HayCambiosSinGuardarEnPendientes()
     End Function
@@ -2779,7 +2779,7 @@ Public Class AgenciasViewModel
         End Try
     End Sub
 
-    Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand
+    Public Property AbrirEnlaceSeguimientoCommand As RelayCommand
     Private Function CanAbrirEnlaceSeguimientoCommand() As Boolean
         Return EnlaceSeguimientoEnvio <> ""
     End Function
@@ -2793,7 +2793,7 @@ Public Class AgenciasViewModel
     ' sitio, y Ctrl+C sobre el grid copia la fila entera (SelectionUnit por defecto = FullRow). Este
     ' comando deja en el portapapeles SOLO el número. El envío es el seleccionado: la vista fuerza la
     ' selección en el clic derecho para que el menú actúe sobre la fila pulsada, no sobre la anterior.
-    Public Property CopiarNumeroPedidoCommand As DelegateCommand
+    Public Property CopiarNumeroPedidoCommand As RelayCommand
 
     ''' <summary>
     ''' Texto que se copiaría al portapapeles: el nº de pedido del envío seleccionado, o cadena
@@ -2830,7 +2830,7 @@ Public Class AgenciasViewModel
     ' envío completo en HTML con borde de color (mismo formato que el copiado de cabecera de
     ' DetallePedidoVenta).
 
-    Public Property CopiarNumeroEnvioCommand As DelegateCommand
+    Public Property CopiarNumeroEnvioCommand As RelayCommand
 
     Public ReadOnly Property TextoNumeroEnvioParaCopiar As String
         Get
@@ -2863,8 +2863,8 @@ Public Class AgenciasViewModel
     Public Sub EstablecerCampoBajoCursor(nombre As String, valor As String)
         _nombreCampoBajoCursor = nombre
         _valorCampoBajoCursor = valor
-        RaisePropertyChanged(NameOf(TextoCopiarCampoBajoCursor))
-        CopiarCampoCommand?.RaiseCanExecuteChanged()
+        OnPropertyChanged(NameOf(TextoCopiarCampoBajoCursor))
+        CopiarCampoCommand?.NotifyCanExecuteChanged()
     End Sub
 
     Public ReadOnly Property TextoCopiarCampoBajoCursor As String
@@ -2874,7 +2874,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
 
-    Public Property CopiarCampoCommand As DelegateCommand
+    Public Property CopiarCampoCommand As RelayCommand
 
     Private Function CanCopiarCampo() As Boolean
         Return Not String.IsNullOrEmpty(_valorCampoBajoCursor)
@@ -2892,7 +2892,7 @@ Public Class AgenciasViewModel
         End Try
     End Sub
 
-    Public Property CopiarEnvioCompletoCommand As DelegateCommand
+    Public Property CopiarEnvioCompletoCommand As RelayCommand
 
     Private Function CanCopiarEnvioCompleto() As Boolean
         Return envioActual IsNot Nothing
@@ -2946,7 +2946,7 @@ Public Class AgenciasViewModel
 
     ' Actualiza el estado del envío seleccionado a demanda (NestoAPI consulta el seguimiento de la
     ' agencia y persiste), sin esperar al job de Hangfire de cada 2h. Útil sobre todo en Incidentados.
-    Public Property cmdActualizarSeguimiento As DelegateCommand
+    Public Property cmdActualizarSeguimiento As RelayCommand
     Private Function CanActualizarSeguimiento() As Boolean
         Return envioActual IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras)
     End Function
@@ -3479,10 +3479,10 @@ Public Class AgenciasViewModel
         Return changes.Any
     End Function
     Private Sub ActualizarEstadoComandos()
-        InsertarEnvioPendienteCommand.RaiseCanExecuteChanged()
-        BorrarEnvioPendienteCommand.RaiseCanExecuteChanged()
-        GuardarEnvioPendienteCommand.RaiseCanExecuteChanged()
-        RaisePropertyChanged(NameOf(NoEstaInsertandoPendiente))
+        InsertarEnvioPendienteCommand.NotifyCanExecuteChanged()
+        BorrarEnvioPendienteCommand.NotifyCanExecuteChanged()
+        GuardarEnvioPendienteCommand.NotifyCanExecuteChanged()
+        OnPropertyChanged(NameOf(NoEstaInsertandoPendiente))
     End Sub
     Public Sub EnvioPendienteSeleccionadoPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
         Dim envio = CType(sender, EnvioAgenciaWrapper)
@@ -3619,7 +3619,7 @@ End Structure
 #Region "ClasesAuxiliares"
 
 Public Class estadoEnvio
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private _listaExpediciones As New ObservableCollection(Of expedicion)
     Public Property listaExpediciones As ObservableCollection(Of expedicion)
@@ -3644,7 +3644,7 @@ Public Class estadoEnvio
 End Class
 
 Public Class tracking
-    Inherits BindableBase
+    Inherits ObservableObject
     Private _estadoTracking As String
     Public Property estadoTracking As String
         Get
@@ -3669,7 +3669,7 @@ Public Class tracking
 End Class
 
 Public Class digitalizacion
-    Inherits BindableBase
+    Inherits ObservableObject
 
     Private _tipo As String
     Public Property tipo As String
@@ -3693,7 +3693,7 @@ Public Class digitalizacion
 End Class
 
 Public Class expedicion
-    Inherits BindableBase
+    Inherits ObservableObject
     Private _numeroExpedicion As String
     Public Property numeroExpedicion As String
         Get
