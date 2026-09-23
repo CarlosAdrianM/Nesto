@@ -47,7 +47,6 @@ Public Class ClientesViewModel
     ' Nesto#369: factoría que crea HttpClient con AuthTokenHandler (adjunta el JWT → usuario en ELMAH).
     Private _clienteApiFactory As IClienteApiFactory
 
-    'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
     Private EsUsuarioAdministracion As Boolean = False
 

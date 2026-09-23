@@ -102,24 +102,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Include="My Project\app.manifest" />
-    <None Include="My Project\DataSources\Nesto.ViewModels.DeudaViewModel.datasource" />
     <None Include="My Project\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
     <AppDesigner Include="My Project\" />
     <None Include="Nesto_TemporaryKey.pfx" />
-    <None Include="NVDataSet.xsc">
-      <DependentUpon>NVDataSet.xsd</DependentUpon>
-    </None>
-    <None Include="NVDataSet.xsd">
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>NVDataSet.Designer.vb</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="NVDataSet.xss">
-      <DependentUpon>NVDataSet.xsd</DependentUpon>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{C0C07587-41A7-46C8-8FBD-3F9C8EBE2DDC}" />

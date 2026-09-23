@@ -1,5 +1,4 @@
-﻿Imports Nesto.Models.MainModel
-Imports System.Windows.Input
+﻿Imports System.Windows.Input
 Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Data
@@ -75,34 +74,6 @@ Public Class MainViewModel
         End Set
     End Property
 
-    Private _RatiosVenta As RatioVenta
-    Public Property RatiosVenta As RatioVenta
-        Get
-            Return _RatiosVenta
-        End Get
-
-        Set(ByVal value As RatioVenta)
-            Me._RatiosVenta = value
-            OnPropertyChanged("RatiosVenta")
-        End Set
-    End Property
-    Public Property MediaRatioVenta() As Decimal
-        Get
-            Dim decSuma As Decimal
-            For Each item In Me.RatiosVenta
-                decSuma = decSuma + item.Ratio
-            Next
-            If Me.RatiosVenta.Count <> 0 Then
-                decSuma = decSuma / Me.RatiosVenta.Count
-            Else
-                decSuma = 0
-            End If
-            Return decSuma
-        End Get
-        Set(value As Decimal)
-
-        End Set
-    End Property
 
     Public ReadOnly Property mostrarFechas As Visibility
         Get
@@ -129,7 +100,6 @@ Public Class MainViewModel
     Private ReadOnly regionManager As IRegionManager
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
-        'Me._RatiosVenta = RatioVenta.CargarRatiosVenta
         Dim parametros = New Parametros
         CargarVendedor()
         Me.container = container

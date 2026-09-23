@@ -49,7 +49,6 @@ Public Class MenuBarViewModel
         ClientesAgenciasCommand = New RelayCommand(AddressOf OnClientesAgencias)
         AgenciasMantenimientoCommand = New RelayCommand(AddressOf OnAgenciasMantenimiento)
         FamiliasMantenimientoCommand = New RelayCommand(AddressOf OnFamiliasMantenimiento)
-        RatioDeudaCommand = New RelayCommand(AddressOf OnRatioDeuda)
         VideosCommand = New RelayCommand(AddressOf OnVideos)
         NovedadesCommand = New RelayCommand(AddressOf OnNovedades)
         VendedoresComisionesCommand = New RelayCommand(AddressOf OnVendedoresComisiones)
@@ -168,7 +167,6 @@ Public Class MenuBarViewModel
     Public Property ClientesAgenciasCommand As ICommand
     Public Property AgenciasMantenimientoCommand As ICommand
     Public Property FamiliasMantenimientoCommand As ICommand
-    Public Property RatioDeudaCommand As ICommand
     Public Property VideosCommand As ICommand
     Public Property NovedadesCommand As ICommand
     Public Property VendedoresComisionesCommand As ICommand
@@ -322,9 +320,6 @@ Public Class MenuBarViewModel
         NavegarAVista("FamiliasMantenimiento")
     End Sub
 
-    Private Sub OnRatioDeuda()
-        NavegarAVista("Deuda")
-    End Sub
 
     Private Sub OnVideos()
         _regionManager.RequestNavigate("MainRegion", "VideosView")

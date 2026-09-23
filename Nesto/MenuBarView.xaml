@@ -135,7 +135,6 @@
 
             <RibbonGroup x:Name="grpRatio"
                                     Header="Ratios">
-                <RibbonButton Label="Premio Deuda" LargeImageSource="/Images/Premios.png" Command="{Binding RatioDeudaCommand}" />
             </RibbonGroup>
 
             <!-- NestoAPI#350: balances calculados por el servidor (sustituyen a los del Nesto

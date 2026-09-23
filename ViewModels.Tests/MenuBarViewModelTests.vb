@@ -90,11 +90,6 @@ Public Class MenuBarViewModelTests
         Assert.IsNotNull(vm.ClientesAgenciasCommand)
     End Sub
 
-    <TestMethod()>
-    Public Sub MenuBarViewModel_AlCrear_RatioDeudaCommandNoEsNulo()
-        Dim vm = CrearViewModel()
-        Assert.IsNotNull(vm.RatioDeudaCommand)
-    End Sub
 
     <TestMethod()>
     Public Sub MenuBarViewModel_AlCrear_VideosCommandNoEsNulo()

@@ -19,13 +19,8 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="DataSets\dsFichaCliente.Designer.vb" />
-    <Compile Remove="DataSets\dsFichaCliente.vb" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="DataSets\dsFichaCliente.xsc" />
-    <None Remove="DataSets\dsFichaCliente.xsd" />
-    <None Remove="DataSets\dsFichaCliente.xss" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
@@ -54,17 +49,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.Config" />
-    <None Include="DataSets\NVDataSet.xsc">
-      <DependentUpon>NVDataSet.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\NVDataSet.xsd">
-      <SubType>Designer</SubType>
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>NVDataSet1.Designer.vb</LastGenOutput>
-    </None>
-    <None Include="DataSets\NVDataSet.xss">
-      <DependentUpon>NVDataSet.xsd</DependentUpon>
-    </None>
     <None Include="DataSets\ProductosPrestashop.xsc">
       <DependentUpon>ProductosPrestashop.xsd</DependentUpon>
     </None>
@@ -75,39 +59,6 @@
     </None>
     <None Include="DataSets\ProductosPrestashop.xss">
       <DependentUpon>ProductosPrestashop.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\RatioDeudas.xsc">
-      <DependentUpon>RatioDeudas.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\RatioDeudas.xsd">
-      <SubType>Designer</SubType>
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>RatioDeudas.Designer.vb</LastGenOutput>
-    </None>
-    <None Include="DataSets\RatioDeudas.xss">
-      <DependentUpon>RatioDeudas.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\RatioVentas.xsc">
-      <DependentUpon>RatioVentas.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\RatioVentas.xsd">
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>RatioVentas.Designer.vb</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="DataSets\RatioVentas.xss">
-      <DependentUpon>RatioVentas.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\Ubicaciones.xsc">
-      <DependentUpon>Ubicaciones.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\Ubicaciones.xsd">
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>Ubicaciones.Designer.vb</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="DataSets\Ubicaciones.xss">
-      <DependentUpon>Ubicaciones.xsd</DependentUpon>
     </None>
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
