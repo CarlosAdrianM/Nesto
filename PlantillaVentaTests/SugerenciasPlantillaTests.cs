@@ -267,5 +267,71 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region NestoAPI#517: ninguna avalancha de peticiones con el pedido quieto
+
+        private static (PlantillaVentaViewModel vm, IPlantillaVentaService servicio) CrearViewModelConPedido(byte modoQueSugiereElServidor)
+        {
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
+            A.CallTo(() => eventAggregator.GetEvent<ClienteCreadoEvent>()).Returns(A.Fake<ClienteCreadoEvent>());
+            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(modoQueSugiereElServidor));
+            A.CallTo(() => servicio.OfertasSugeridas(A<PedidoVentaDTO>._)).Returns(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
+
+            var vm = new PlantillaVentaViewModel(container, A.Fake<IRegionManager>(), configuracion, servicio,
+                eventAggregator, A.Fake<IDialogService>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
+                A.Fake<IServicioAutenticacion>());
+            vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
+            vm._clienteSeleccionado = new ClienteJson { empresa = "1", cliente = "15191", contacto = "0", iva = "G21", cifNif = "12345678A" };
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { contacto = "0", servirJunto = false };
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta { producto = "38093", cantidad = 5, precio = 10M });
+            return (vm, servicio);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task Sugerencias_ConElPedidoQuieto_NoSeVuelvenAPedir()
+        {
+            // 23/09/26: RDS2016 al 100 % de CPU. Con el pedido sin tocar, ninguna respuesta del servidor puede
+            // provocar otra petición: la segunda y la tercera se descartan por la huella del pedido.
+            var (vm, servicio) = CrearViewModelConPedido(ModosServicio.TRAS_REPONER_DE_TIENDAS);
+
+            await vm.RefrescarSugerencias();
+            await vm.RefrescarSugerencias();
+            await vm.RefrescarSugerencias();
+
+            A.CallTo(() => servicio.OfertasSugeridas(A<PedidoVentaDTO>._)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, vm.PeticionesSugerenciasEnviadas);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task Sugerencias_AunqueElServidorCambieElModo_SeEstabilizan()
+        {
+            // Aplicar el modo sugerido cambia el pedido (una petición más para confirmarlo) y ahí se para.
+            var (vm, servicio) = CrearViewModelConPedido(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ);
+
+            for (int i = 0; i < 6; i++)
+            {
+                await vm.RefrescarSugerencias();
+            }
+
+            Assert.IsTrue(vm.PeticionesSugerenciasEnviadas <= 2, $"Se han pedido {vm.PeticionesSugerenciasEnviadas} veces con el pedido quieto");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task Sugerencias_SiCambiaUnaLinea_SeVuelvenAPedir()
+        {
+            var (vm, servicio) = CrearViewModelConPedido(ModosServicio.TRAS_REPONER_DE_TIENDAS);
+            await vm.RefrescarSugerencias();
+
+            ((LineaPlantillaVenta)vm.ListaFiltrableProductos.ListaOriginal[0]).cantidad = 6;
+            await vm.RefrescarSugerencias();
+
+            Assert.AreEqual(2, vm.PeticionesSugerenciasEnviadas);
+        }
+
+        #endregion
     }
 }

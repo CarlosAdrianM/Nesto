@@ -900,6 +900,27 @@ Public Class PlantillaVentaViewModel
     Private Const RETARDO_SUGERENCIAS_MS As Integer = 1500
 
     Private _timerSugerencias As System.Threading.Timer
+
+    ' NestoAPI#517 (23/09/26): defensa en profundidad contra avalanchas de peticiones. Cada llamada a
+    ' OfertasSugeridas es cara en el servidor y el 23/09 las plantillas abiertas dejaron RDS2016 al 100 %.
+    '  - Huella: el pedido tal cual se manda (JSON). Si es igual al de la última petición, no se pide nada:
+    '    con el pedido quieto, ninguna respuesta puede provocar otra petición.
+    '  - Una sola petición en vuelo: si llega otra mientras tanto, se deja anotada y se reprograma al terminar.
+    Private _huellaUltimaSugerencia As String
+    Private _sugerenciasEnVuelo As Boolean
+    Private _sugerenciasPendientes As Boolean
+
+    ''' <summary>Cuántas veces se ha llamado de verdad al servidor (para los tests de NestoAPI#517).</summary>
+    Friend ReadOnly Property PeticionesSugerenciasEnviadas As Integer
+        Get
+            Return _peticionesSugerenciasEnviadas
+        End Get
+    End Property
+    Private _peticionesSugerenciasEnviadas As Integer
+
+    Friend Shared Function HuellaPedidoSugerencias(pedido As PedidoVentaDTO) As String
+        Return If(pedido Is Nothing, String.Empty, JsonConvert.SerializeObject(pedido))
+    End Function
     Private _sugerenciaModoServicio As ModoServicioSugeridoDTO
     Private _modoServicioElegidoPorUsuario As Boolean
     Private _aplicandoSugerenciaModoServicio As Boolean
@@ -950,13 +971,17 @@ Public Class PlantillaVentaViewModel
     ''' patrón que CargarInfoPortesConDebounce: cada cambio reinicia el reloj.
     ''' </summary>
     Private Sub PedirSugerenciasConDebounce()
-        _timerSugerencias?.Dispose()
-        _timerSugerencias = New System.Threading.Timer(
-            Sub(state) Application.Current?.Dispatcher?.InvokeAsync(
-                Async Function() As Task
-                    Await RefrescarSugerencias()
-                End Function),
-            Nothing, RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
+        ' NestoAPI#517: un único temporizador que se reprograma (antes se creaba y destruía uno por llamada).
+        If _timerSugerencias Is Nothing Then
+            _timerSugerencias = New System.Threading.Timer(
+                Sub(state) Application.Current?.Dispatcher?.InvokeAsync(
+                    Async Function() As Task
+                        Await RefrescarSugerencias()
+                    End Function),
+                Nothing, RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
+        Else
+            _timerSugerencias.Change(RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
+        End If
     End Sub
 
     ''' <summary>
@@ -964,12 +989,26 @@ Public Class PlantillaVentaViewModel
     ''' esto es una ayuda y el pedido se tiene que poder cerrar igual.
     ''' </summary>
     Friend Async Function RefrescarSugerencias() As Task
+        If _sugerenciasEnVuelo Then
+            ' NestoAPI#517: ya hay una en camino; al terminar se vuelve a mirar (y solo se pide si cambió algo).
+            _sugerenciasPendientes = True
+            Return
+        End If
         Try
             Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
             If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any() Then
+                _huellaUltimaSugerencia = Nothing
                 LimpiarSugerencias()
                 Return
             End If
+
+            Dim huella As String = HuellaPedidoSugerencias(pedido)
+            If huella = _huellaUltimaSugerencia Then
+                Return ' NestoAPI#517: el pedido no ha cambiado desde la última respuesta
+            End If
+            _huellaUltimaSugerencia = huella
+            _sugerenciasEnVuelo = True
+            _peticionesSugerenciasEnviadas += 1
 
             Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
             Dim tareaOfertas As Task(Of List(Of SugerenciaOfertaDTO)) = servicio.OfertasSugeridas(pedido)
@@ -978,6 +1017,12 @@ Public Class PlantillaVentaViewModel
             AplicarOfertasSugeridas(Await tareaOfertas.ConfigureAwait(True))
         Catch ex As Exception
             ' Sin sugerencias se sigue trabajando igual: no se molesta al usuario con esto.
+        Finally
+            _sugerenciasEnVuelo = False
+            If _sugerenciasPendientes Then
+                _sugerenciasPendientes = False
+                PedirSugerenciasConDebounce()
+            End If
         End Try
     End Function
 
