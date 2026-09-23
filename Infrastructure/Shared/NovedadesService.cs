@@ -1,8 +1,11 @@
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Nesto.Infrastructure.Shared
@@ -47,6 +50,102 @@ namespace Nesto.Infrastructure.Shared
                 Debug.WriteLine($"[NovedadesService] Error: {ex.Message}");
                 return new List<NovedadUsuario>();
             }
+        }
+
+        // ---- NestoAPI#520: feedback (votos y comentarios) ----
+
+        public async Task VotarNovedad(int novedadId, short voto)
+        {
+            await Enviar(HttpMethod.Put, $"Novedades/{novedadId}/Voto", new { Voto = voto }, "guardar el voto").ConfigureAwait(false);
+        }
+
+        public async Task<List<ComentarioNovedad>> LeerComentarios(int novedadId)
+        {
+            string json = await Enviar(HttpMethod.Get, $"Novedades/{novedadId}/Comentarios", null, "leer los comentarios").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<List<ComentarioNovedad>>(json ?? "[]") ?? new List<ComentarioNovedad>();
+        }
+
+        public async Task<ComentarioNovedad> Comentar(int novedadId, string texto, byte[] imagenPng)
+        {
+            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            var cuerpo = new
+            {
+                Texto = texto,
+                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
+                ImagenTipo = conImagen ? "image/png" : null,
+                VersionCliente = VersionNesto()
+            };
+            string json = await Enviar(HttpMethod.Post, $"Novedades/{novedadId}/Comentarios", cuerpo, "publicar el comentario").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<ComentarioNovedad>(json);
+        }
+
+        public async Task<byte[]> LeerImagenComentario(int comentarioId)
+        {
+            using (var client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync($"Novedades/Comentarios/{comentarioId}/Imagen").ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(await MensajeDeError(response, "leer la imagen").ConfigureAwait(false));
+                }
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            }
+        }
+
+        public async Task BorrarComentario(int comentarioId)
+        {
+            await Enviar(HttpMethod.Delete, $"Novedades/Comentarios/{comentarioId}", null, "borrar el comentario").ConfigureAwait(false);
+        }
+
+        private async Task<string> Enviar(HttpMethod metodo, string url, object cuerpo, string accion)
+        {
+            using (var client = _clienteApiFactory.Crear())
+            using (var request = new HttpRequestMessage(metodo, url))
+            {
+                if (cuerpo != null)
+                {
+                    request.Content = new StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json");
+                }
+                HttpResponseMessage response = await client.SendAsync(request).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(await MensajeDeError(response, accion).ConfigureAwait(false));
+                }
+                return response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>El motivo que da la API (formato de GlobalExceptionFilter o {"Message":...}), o uno genérico.</summary>
+        internal static async Task<string> MensajeDeError(HttpResponseMessage response, string accion)
+        {
+            string contenido = response.Content == null ? null : await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            string motivo = null;
+            if (!string.IsNullOrWhiteSpace(contenido))
+            {
+                try
+                {
+                    motivo = HttpErrorHelper.ParsearErrorHttp(JObject.Parse(contenido));
+                }
+                catch (Exception)
+                {
+                    motivo = contenido.Trim().Trim('"');
+                }
+            }
+            return string.IsNullOrWhiteSpace(motivo)
+                ? $"No se pudo {accion} (error {(int)response.StatusCode})."
+                : $"No se pudo {accion}: {motivo}";
+        }
+
+        /// <summary>Versión de Nesto que comenta (la de ClickOnce; fuera de ClickOnce, la del ensamblado).</summary>
+        internal static string VersionNesto()
+        {
+            string clickOnce = Environment.GetEnvironmentVariable("ClickOnce_CurrentVersion");
+            if (!string.IsNullOrWhiteSpace(clickOnce))
+            {
+                return "Nesto " + clickOnce;
+            }
+            Version version = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+            return version == null ? "Nesto" : "Nesto " + version;
         }
     }
 }

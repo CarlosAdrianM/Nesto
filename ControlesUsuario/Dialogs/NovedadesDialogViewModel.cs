@@ -5,6 +5,7 @@ using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 namespace ControlesUsuario.Dialogs
 {
@@ -17,12 +18,34 @@ namespace ControlesUsuario.Dialogs
     /// </summary>
     public class NovedadesDialogViewModel : ObservableObject, IDialogAware
     {
+        // NestoAPI#520: feedback de los usuarios (votos y comentarios). Sin servicio (tests antiguos) o si la
+        // API no trae los contadores, la ventana se ve exactamente como antes.
+        private readonly INovedadesService _servicio;
+        private readonly IPortapapelesImagenes _portapapeles;
+        private readonly Func<string, bool> _preguntar;
+
+        public NovedadesDialogViewModel() : this(null, null, null) { }
+
+        /// <summary>El que usa el contenedor (Prism/Unity elige el constructor con más parámetros resolubles).</summary>
+        public NovedadesDialogViewModel(INovedadesService servicio)
+            : this(servicio, new PortapapelesImagenesWpf(), PreguntarConMessageBox) { }
+
+        internal NovedadesDialogViewModel(INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar)
+        {
+            _servicio = servicio;
+            _portapapeles = portapapeles;
+            _preguntar = preguntar;
+        }
+
+        private static bool PreguntarConMessageBox(string pregunta)
+            => MessageBox.Show(pregunta, "Novedades", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
         private RelayCommand _closeDialogCommand;
         public RelayCommand CloseDialogCommand =>
             _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
 
         // Novedades agrupadas por versión, de la más NUEVA (índice 0) a la más antigua.
-        private List<IGrouping<string, NovedadUsuario>> _porVersion = new List<IGrouping<string, NovedadUsuario>>();
+        private List<IGrouping<string, NovedadItem>> _porVersion = new List<IGrouping<string, NovedadItem>>();
         private int _indice;
 
         private string _title = "Novedades de Nesto";
@@ -32,8 +55,8 @@ namespace ControlesUsuario.Dialogs
             set { SetProperty(ref _title, value); }
         }
 
-        private List<NovedadUsuario> _novedades = new List<NovedadUsuario>();
-        public List<NovedadUsuario> Novedades
+        private List<NovedadItem> _novedades = new List<NovedadItem>();
+        public List<NovedadItem> Novedades
         {
             get { return _novedades; }
             set { SetProperty(ref _novedades, value); }
@@ -78,7 +101,10 @@ namespace ControlesUsuario.Dialogs
 
             // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
             // parsea; si no, por texto, para no romper con versiones con formato raro).
+            // NestoAPI#520: cada novedad se envuelve UNA vez (al navegar entre versiones se conserva su estado).
             _porVersion = todas
+                .Where(n => n != null)
+                .Select(n => new NovedadItem(n, _servicio, _portapapeles, _preguntar))
                 .GroupBy(n => (n.Version ?? string.Empty).Trim())
                 .OrderByDescending(g => ParsearVersion(g.Key))
                 .ThenByDescending(g => g.Key, StringComparer.Ordinal)
@@ -92,13 +118,13 @@ namespace ControlesUsuario.Dialogs
             if (_porVersion.Count == 0)
             {
                 _indice = 0;
-                Novedades = new List<NovedadUsuario>();
+                Novedades = new List<NovedadItem>();
                 VersionActual = null;
             }
             else
             {
                 _indice = Math.Max(0, Math.Min(indice, _porVersion.Count - 1));
-                IGrouping<string, NovedadUsuario> grupo = _porVersion[_indice];
+                IGrouping<string, NovedadItem> grupo = _porVersion[_indice];
                 Novedades = grupo.ToList();
                 VersionActual = string.IsNullOrWhiteSpace(grupo.Key) ? "Novedades" : $"Versión {grupo.Key}";
             }
