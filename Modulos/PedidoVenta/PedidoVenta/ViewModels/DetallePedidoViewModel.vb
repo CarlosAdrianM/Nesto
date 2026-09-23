@@ -20,6 +20,7 @@ Imports Prism.Services.Dialogs
 Imports System.Windows
 Imports System.Windows.Media
 Imports Unity
+Imports Newtonsoft.Json
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
 Public Class DetallePedidoViewModel
@@ -574,6 +575,7 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_pedido, value)
             If Not IsNothing(_pedido) Then
                 _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
+                ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -2031,6 +2033,10 @@ Public Class DetallePedidoViewModel
         Catch ex As Exception
             dialogService.ShowError($"Error al guardar el pedido: {ex.Message}" & vbCrLf & vbCrLf &
                                    "No se puede crear el albarán/factura sin guardar primero.")
+            Dim rechazoModo = TryCast(ex, ModoServicioNoPermitidoException)
+            If rechazoModo?.ModoSugerido IsNot Nothing Then
+                CambiarAModoValido(rechazoModo.ModoSugerido.Value, Nothing, avisar:=False) ' Nesto#484
+            End If
             Return False ' Error al guardar, cancelar operación
         Finally
             estaBloqueado = False
@@ -2355,6 +2361,12 @@ Public Class DetallePedidoViewModel
 
             ' Issue #135: Gestionar etiqueta de recogida
             Await GestionarEtiquetaRecogida()
+        Catch ex As ModoServicioNoPermitidoException
+            ' Nesto#484 / NestoAPI#518: el modo ya no tiene sentido; se enseña el mensaje y se preselecciona el que sí.
+            dialogService.ShowError(ex.Message)
+            If ex.ModoSugerido.HasValue Then
+                CambiarAModoValido(ex.ModoSugerido.Value, Nothing, avisar:=False)
+            End If
         Catch ex As ValidationException
             dialogService.ShowError("Error de validación:" + vbCrLf + ex.Message)
         Catch ex As Exception
@@ -2712,10 +2724,23 @@ Public Class DetallePedidoViewModel
             ActualizarEtiquetaPortes()
         End If
 
+        ' Nesto#484: cambian las líneas (cantidades, productos, altas y bajas) o su almacén: los modos permitidos
+        ' pueden ser otros. Con retardo y la protección de #517 (huella, una petición en vuelo).
+        If e.PropertyName = NameOf(pedido.BaseImponible) OrElse
+           e.PropertyName = NameOf(pedido.AlmacenesLineas) OrElse
+           e.PropertyName = String.Empty Then
+            _peticionesModos.Programar()
+        End If
+
         ' Nesto#476: el selector de modo de servicio sustituye a la casilla «Servir junto». La
         ' validación del servidor (NestoAPI#161/#220) se dispara solo al salir del modo 1; el
         ' selector no lleva EventTrigger porque SelectionChanged también salta al cargar el pedido.
         If e.PropertyName = NameOf(pedido.ModoServicio) Then
+            ' Nesto#484: si no lo ha cambiado el propio ViewModel, es una elección del usuario en esta edición.
+            If Not _aplicandoModoAutomatico Then
+                _modoElegidoEnEstaEdicion = True
+                AvisoModoServicio = Nothing
+            End If
             Dim anterior As Byte = _modoServicioPrevio
             _modoServicioPrevio = pedido.ModoServicio
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not pedido.servirJunto Then
@@ -2723,6 +2748,119 @@ Public Class DetallePedidoViewModel
             End If
         End If
     End Sub
+
+#Region "Nesto#484 / NestoAPI#518: modos de servicio permitidos (lo común vive en Nesto.Models)"
+    ' Mismo retardo que la plantilla: al terminar de editar, no en cada tecla.
+    Private Const RETARDO_MODOS_MS As Integer = 1500
+
+    Private ReadOnly _selectorModos As New SelectorModosServicio()
+    Private ReadOnly _peticionesModos As New ProgramadorPeticionesConHuella(RETARDO_MODOS_MS,
+        Sub() Application.Current?.Dispatcher?.InvokeAsync(
+            Async Function() As Task
+                Await RefrescarModosPermitidos()
+            End Function))
+    Private _modoElegidoEnEstaEdicion As Boolean
+    Private _aplicandoModoAutomatico As Boolean
+
+    ''' <summary>Las opciones del combo «Servir»: las que no tienen sentido para el pedido, deshabilitadas con su motivo.</summary>
+    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio)
+        Get
+            Return _selectorModos.Opciones
+        End Get
+    End Property
+
+    Private _avisoModoServicio As String
+    ''' <summary>Aviso visible cuando se cambia el modo que eligió el usuario porque dejó de tener sentido.</summary>
+    Public Property AvisoModoServicio As String
+        Get
+            Return _avisoModoServicio
+        End Get
+        Set(value As String)
+            If SetProperty(_avisoModoServicio, value) Then
+                OnPropertyChanged(NameOf(HayAvisoModoServicio))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoModoServicio As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(AvisoModoServicio)
+        End Get
+    End Property
+
+    ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
+    Friend ReadOnly Property PeticionesModosEnviadas As Integer
+        Get
+            Return _peticionesModos.PeticionesEnviadas
+        End Get
+    End Property
+
+    Private Sub ReiniciarModosPermitidos()
+        _modoElegidoEnEstaEdicion = False
+        AvisoModoServicio = Nothing
+        _selectorModos.Aplicar(Nothing)
+        _peticionesModos.OlvidarHuella()
+        _peticionesModos.Programar()
+    End Sub
+
+    ''' <summary>Friend para poder pedirlos a mano en los tests sin esperar al reloj.</summary>
+    Friend Function RefrescarModosPermitidos() As Task
+        Return _peticionesModos.EjecutarAsync(Of PedidoVentaDTO)(
+            AddressOf PedidoParaModos, AddressOf HuellaPedidoModos,
+            Sub() _selectorModos.Aplicar(Nothing), AddressOf PedirModosAlServidor)
+    End Function
+
+    Private Function PedidoParaModos() As PedidoVentaDTO
+        Dim modelo As PedidoVentaDTO = pedido?.Model
+        Return If(modelo Is Nothing OrElse modelo.Lineas Is Nothing OrElse Not modelo.Lineas.Any(), Nothing, modelo)
+    End Function
+
+    Friend Shared Function HuellaPedidoModos(modelo As PedidoVentaDTO) As String
+        Return If(modelo Is Nothing, String.Empty, JsonConvert.SerializeObject(modelo))
+    End Function
+
+    Private Async Function PedirModosAlServidor(modelo As PedidoVentaDTO) As Task
+        AplicarModosPermitidos(Await servicio.ModoServicioSugerido(modelo).ConfigureAwait(True))
+    End Function
+
+    ''' <summary>
+    ''' Refleja lo que dice la API. En un pedido ya grabado el modo NO se cambia solo (el servidor solo lo comprueba
+    ''' si el modo CAMBIA): se deshabilitan las opciones y ya. Solo si el usuario eligió un modo en esta edición y deja
+    ''' de tener sentido, se pasa al que vale y se avisa. En un pedido nuevo que el usuario no ha tocado, el modo por
+    ''' defecto se sustituye por el sugerido si no vale (la preselección de la plantilla, sin aviso).
+    ''' </summary>
+    Friend Sub AplicarModosPermitidos(sugerencia As ModoServicioSugeridoDTO)
+        _selectorModos.Aplicar(sugerencia)
+        If sugerencia Is Nothing OrElse pedido Is Nothing OrElse Not ModosServicio.EsValido(sugerencia.Modo) Then
+            Return
+        End If
+        If _selectorModos.EsPermitido(pedido.ModoServicio) Then
+            Return
+        End If
+        If _modoElegidoEnEstaEdicion Then
+            CambiarAModoValido(sugerencia.Modo, SelectorModosServicio.MotivoDe(sugerencia, pedido.ModoServicio), avisar:=True)
+        ElseIf pedido.numero = 0 Then
+            CambiarAModoValido(sugerencia.Modo, Nothing, avisar:=False)
+        End If
+    End Sub
+
+    Friend Sub CambiarAModoValido(modoValido As Byte, motivo As String, avisar As Boolean)
+        If pedido Is Nothing OrElse Not ModosServicio.EsValido(modoValido) Then
+            Return
+        End If
+        Dim anterior As Byte = pedido.ModoServicio
+        If anterior = modoValido Then
+            Return
+        End If
+        _aplicandoModoAutomatico = True
+        Try
+            pedido.ModoServicio = modoValido
+        Finally
+            _aplicandoModoAutomatico = False
+        End Try
+        AvisoModoServicio = If(avisar, SelectorModosServicio.TextoAvisoCambio(anterior, modoValido, motivo), Nothing)
+    End Sub
+#End Region
 
     Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)
         ' Actualizar el pedido actual si coincide

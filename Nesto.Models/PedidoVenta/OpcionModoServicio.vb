@@ -1,10 +1,9 @@
 ﻿Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Nesto.Models
 
 ''' <summary>
-''' NestoAPI#518 / Nesto#484: una opción del combo «Servir» de la plantilla. Los modos que no tienen sentido
-''' para el pedido se muestran DESHABILITADOS (no ocultos), con el motivo que redacta la API en el tooltip,
-''' para que el usuario vea que existen y por qué no los puede elegir.
+''' NestoAPI#518 / Nesto#484: una opción del combo «Servir» (plantilla y detalle de pedido). Los modos que no
+''' tienen sentido para el pedido se muestran DESHABILITADOS (no ocultos), con el motivo que redacta la API en
+''' el tooltip, para que el usuario vea que existen y por qué no los puede elegir.
 ''' </summary>
 Public Class OpcionModoServicio
     Inherits ObservableObject

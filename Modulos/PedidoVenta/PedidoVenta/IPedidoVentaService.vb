@@ -27,6 +27,9 @@ Public Interface IPedidoVentaService
     Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
     Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String)
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
+    ''' <summary>Nesto#484 / NestoAPI#518: modo sugerido y modos permitidos para el pedido tal cual está en pantalla.
+    ''' Nothing si la API falla (el combo se queda con todas las opciones, como antes).</summary>
+    Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)
     Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase))
 
     ''' <summary>

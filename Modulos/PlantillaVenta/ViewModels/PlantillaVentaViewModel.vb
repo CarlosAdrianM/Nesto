@@ -902,24 +902,20 @@ Public Class PlantillaVentaViewModel
     ' asi que montar 40 lineas no puede convertirse en 40 llamadas. Al cambiar de pagina se pide ya.
     Private Const RETARDO_SUGERENCIAS_MS As Integer = 1500
 
-    Private _timerSugerencias As System.Threading.Timer
-
-    ' NestoAPI#517 (23/09/26): defensa en profundidad contra avalanchas de peticiones. Cada llamada a
-    ' OfertasSugeridas es cara en el servidor y el 23/09 las plantillas abiertas dejaron RDS2016 al 100 %.
-    '  - Huella: el pedido tal cual se manda (JSON). Si es igual al de la última petición, no se pide nada:
-    '    con el pedido quieto, ninguna respuesta puede provocar otra petición.
-    '  - Una sola petición en vuelo: si llega otra mientras tanto, se deja anotada y se reprograma al terminar.
-    Private _huellaUltimaSugerencia As String
-    Private _sugerenciasEnVuelo As Boolean
-    Private _sugerenciasPendientes As Boolean
+    ' NestoAPI#517 (23/09/26): defensa en profundidad contra avalanchas de peticiones (temporizador único, huella
+    ' del pedido y una sola petición en vuelo). Vive en Nesto.Models porque la comparte el detalle de pedido (Nesto#484).
+    Private ReadOnly _peticionesSugerencias As New ProgramadorPeticionesConHuella(RETARDO_SUGERENCIAS_MS,
+        Sub() Application.Current?.Dispatcher?.InvokeAsync(
+            Async Function() As Task
+                Await RefrescarSugerencias()
+            End Function))
 
     ''' <summary>Cuántas veces se ha llamado de verdad al servidor (para los tests de NestoAPI#517).</summary>
     Friend ReadOnly Property PeticionesSugerenciasEnviadas As Integer
         Get
-            Return _peticionesSugerenciasEnviadas
+            Return _peticionesSugerencias.PeticionesEnviadas
         End Get
     End Property
-    Private _peticionesSugerenciasEnviadas As Integer
 
     Friend Shared Function HuellaPedidoSugerencias(pedido As PedidoVentaDTO) As String
         Return If(pedido Is Nothing, String.Empty, JsonConvert.SerializeObject(pedido))
@@ -947,8 +943,12 @@ Public Class PlantillaVentaViewModel
     ''' Nesto#484 / NestoAPI#518: las opciones del combo «Servir». Las que no tienen sentido para el pedido
     ''' (según la API) salen deshabilitadas con su motivo. Sin respuesta del servidor, todas habilitadas.
     ''' </summary>
-    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio) =
-        ModosServicio.Lista.Select(Function(m) New OpcionModoServicio(m)).ToList()
+    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio)
+        Get
+            Return _selectorModos.Opciones
+        End Get
+    End Property
+    Private ReadOnly _selectorModos As New SelectorModosServicio()
 
     Private _avisoModoServicio As String
     ''' <summary>Nesto#484: aviso visible cuando se cambia solo el modo porque el elegido dejó de tener sentido.</summary>
@@ -971,17 +971,11 @@ Public Class PlantillaVentaViewModel
 
     ''' <summary>Nesto#484: habilita/deshabilita las opciones con lo que manda la API (Nothing = todas).</summary>
     Friend Sub AplicarModosPermitidos(sugerencia As ModoServicioSugeridoDTO)
-        Dim permitidos As List(Of Byte) = sugerencia?.ModosPermitidos
-        Dim hayRestriccion As Boolean = permitidos IsNot Nothing AndAlso permitidos.Any()
-        For Each opcion In OpcionesModoServicio
-            opcion.Habilitado = Not hayRestriccion OrElse permitidos.Contains(opcion.Codigo)
-            opcion.MotivoNoPermitido = If(opcion.Habilitado, Nothing,
-                sugerencia?.Modos?.FirstOrDefault(Function(m) m.Modo = opcion.Codigo)?.Motivo)
-        Next
+        _selectorModos.Aplicar(sugerencia)
     End Sub
 
     Private Function ModoPermitido(modo As Byte) As Boolean
-        Return OpcionesModoServicio.Any(Function(o) o.Codigo = modo AndAlso o.Habilitado)
+        Return _selectorModos.EsPermitido(modo)
     End Function
 
     ''' <summary>
@@ -1000,11 +994,7 @@ Public Class PlantillaVentaViewModel
             _aplicandoSugerenciaModoServicio = False
         End Try
         _ultimoModoSugeridoAplicado = modoValido
-        Dim nombreAnterior As String = ModosServicio.Lista.FirstOrDefault(Function(m) m.Codigo = anterior)?.Nombre
-        Dim nombreNuevo As String = ModosServicio.Lista.FirstOrDefault(Function(m) m.Codigo = modoValido)?.Nombre
-        AvisoModoServicio = $"«{nombreAnterior}» ya no tiene sentido para este pedido" &
-            If(String.IsNullOrWhiteSpace(motivo), String.Empty, $" ({motivo.TrimEnd("."c)})") &
-            $": se ha cambiado a «{nombreNuevo}»."
+        AvisoModoServicio = SelectorModosServicio.TextoAvisoCambio(anterior, modoValido, motivo)
     End Sub
 
     Private ReadOnly _ofertasSugeridas As New ObservableCollection(Of SugerenciaOfertaDTO)
@@ -1038,59 +1028,32 @@ Public Class PlantillaVentaViewModel
     ''' patrón que CargarInfoPortesConDebounce: cada cambio reinicia el reloj.
     ''' </summary>
     Private Sub PedirSugerenciasConDebounce()
-        ' NestoAPI#517: un único temporizador que se reprograma (antes se creaba y destruía uno por llamada).
-        If _timerSugerencias Is Nothing Then
-            _timerSugerencias = New System.Threading.Timer(
-                Sub(state) Application.Current?.Dispatcher?.InvokeAsync(
-                    Async Function() As Task
-                        Await RefrescarSugerencias()
-                    End Function),
-                Nothing, RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
-        Else
-            _timerSugerencias.Change(RETARDO_SUGERENCIAS_MS, System.Threading.Timeout.Infinite)
-        End If
+        _peticionesSugerencias.Programar() ' NestoAPI#517: un único temporizador que se reprograma
     End Sub
 
     ''' <summary>
     ''' Friend para poder pedirlas a mano en los tests sin esperar al reloj. Si algo falla no se propaga:
     ''' esto es una ayuda y el pedido se tiene que poder cerrar igual.
     ''' </summary>
-    Friend Async Function RefrescarSugerencias() As Task
-        If _sugerenciasEnVuelo Then
-            ' NestoAPI#517: ya hay una en camino; al terminar se vuelve a mirar (y solo se pide si cambió algo).
-            _sugerenciasPendientes = True
-            Return
-        End If
-        Try
-            Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
-            If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any() Then
-                _huellaUltimaSugerencia = Nothing
-                LimpiarSugerencias()
-                Return
-            End If
+    Friend Function RefrescarSugerencias() As Task
+        ' NestoAPI#517: huella + una sola petición en vuelo (ProgramadorPeticionesConHuella, compartido).
+        Return _peticionesSugerencias.EjecutarAsync(Of PedidoVentaDTO)(
+            AddressOf PedidoParaSugerencias, AddressOf HuellaPedidoSugerencias,
+            AddressOf LimpiarSugerencias, AddressOf PedirSugerenciasAlServidor)
+    End Function
 
-            Dim huella As String = HuellaPedidoSugerencias(pedido)
-            If huella = _huellaUltimaSugerencia Then
-                Return ' NestoAPI#517: el pedido no ha cambiado desde la última respuesta
-            End If
-            _huellaUltimaSugerencia = huella
-            _sugerenciasEnVuelo = True
-            _peticionesSugerenciasEnviadas += 1
+    ''' <summary>El pedido que se manda, o Nothing si todavía no hay líneas que preguntar.</summary>
+    Private Function PedidoParaSugerencias() As PedidoVentaDTO
+        Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
+        Return If(pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any(), Nothing, pedido)
+    End Function
 
-            Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
-            Dim tareaOfertas As Task(Of List(Of SugerenciaOfertaDTO)) = servicio.OfertasSugeridas(pedido)
+    Private Async Function PedirSugerenciasAlServidor(pedido As PedidoVentaDTO) As Task
+        Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
+        Dim tareaOfertas As Task(Of List(Of SugerenciaOfertaDTO)) = servicio.OfertasSugeridas(pedido)
 
-            AplicarSugerenciaModoServicio(Await tareaModo.ConfigureAwait(True))
-            AplicarOfertasSugeridas(Await tareaOfertas.ConfigureAwait(True))
-        Catch ex As Exception
-            ' Sin sugerencias se sigue trabajando igual: no se molesta al usuario con esto.
-        Finally
-            _sugerenciasEnVuelo = False
-            If _sugerenciasPendientes Then
-                _sugerenciasPendientes = False
-                PedirSugerenciasConDebounce()
-            End If
-        End Try
+        AplicarSugerenciaModoServicio(Await tareaModo.ConfigureAwait(True))
+        AplicarOfertasSugeridas(Await tareaOfertas.ConfigureAwait(True))
     End Function
 
     Private Sub LimpiarSugerencias()
@@ -1115,8 +1078,7 @@ Public Class PlantillaVentaViewModel
         ' Nesto#484: si el usuario ELIGIÓ un modo que ya no se puede elegir, se pasa al sugerido y se le avisa.
         ' (Si no eligió nada, es la preselección de siempre: se aplica el sugerido sin aviso.)
         If _modoServicioElegidoPorUsuario AndAlso Not ModoPermitido(ModoServicio) Then
-            Dim motivo As String = sugerencia.Modos?.FirstOrDefault(Function(m) m.Modo = ModoServicio)?.Motivo
-            CambiarAModoValido(sugerencia.Modo, motivo)
+            CambiarAModoValido(sugerencia.Modo, SelectorModosServicio.MotivoDe(sugerencia, ModoServicio))
             Return
         End If
 

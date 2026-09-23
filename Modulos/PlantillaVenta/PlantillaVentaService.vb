@@ -259,9 +259,9 @@ Public Class PlantillaVentaService
                     ' para que el ViewModel pueda preguntar "¿Crear sin pasar validación?"
                     If errorCode = "PEDIDO_VALIDACION_FALLO" Then
                         Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
-                    ElseIf errorCode = "MODO_SERVICIO_NO_PERMITIDO" Then
+                    ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
                         ' NestoAPI#518: el modo elegido ya no tiene sentido; la API dice cuál vale.
-                        Throw New ModoServicioNoPermitidoException(contenido, LeerModoSugerido(detallesError))
+                        Throw ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido)
                     Else
                         Throw New Exception(contenido)
                     End If
@@ -276,14 +276,9 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    ''' <summary>NestoAPI#518: error.details.modoSugerido del rechazo MODO_SERVICIO_NO_PERMITIDO.</summary>
+    ''' <summary>NestoAPI#518: error.details.modoSugerido del rechazo (la lógica vive en Nesto.Models, Nesto#484).</summary>
     Friend Shared Function LeerModoSugerido(detallesError As JObject) As Byte?
-        Dim valor = detallesError?("error")?("details")?("modoSugerido")
-        Dim modo As Byte
-        If valor IsNot Nothing AndAlso Byte.TryParse(valor.ToString(), modo) AndAlso ModosServicio.EsValido(modo) Then
-            Return modo
-        End If
-        Return Nothing
+        Return ModoServicioNoPermitidoException.LeerModoSugerido(detallesError)
     End Function
 
     Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO) Implements IPlantillaVentaService.UnirPedidos

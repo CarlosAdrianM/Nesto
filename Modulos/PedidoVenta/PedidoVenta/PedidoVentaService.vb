@@ -178,6 +178,8 @@ Public Class PedidoVentaService
 
             Catch ex As ValidationException
                 Throw
+            Catch ex As ModoServicioNoPermitidoException
+                Throw ' Nesto#484: el ViewModel lo necesita para preseleccionar el modo que vale
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -230,8 +232,9 @@ Public Class PedidoVentaService
         ' lanza "Error parsing NaN value. Path '', line 1, position 1.", enmascarando el
         ' mensaje real (pedido 918386 en albarán).
         Dim errorCode As String = Nothing
+        Dim detallesError As JObject = Nothing
         Try
-            Dim detallesError As JObject = JsonConvert.DeserializeObject(Of JObject)(respuestaError)
+            detallesError = JsonConvert.DeserializeObject(Of JObject)(respuestaError)
             If detallesError IsNot Nothing AndAlso Not IsNothing(detallesError("error")) Then
                 Dim errorObj As JObject = detallesError("error")
                 errorCode = errorObj("code")?.ToString()
@@ -245,6 +248,9 @@ Public Class PedidoVentaService
 
         If errorCode = "PEDIDO_VALIDACION_FALLO" Then
             Return New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+        ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
+            ' Nesto#484 / NestoAPI#518: el modo elegido ya no tiene sentido; la API dice cuál vale.
+            Return ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
@@ -744,6 +750,8 @@ Public Class PedidoVentaService
                     ' para que el ViewModel pueda preguntar "¿Crear sin pasar validación?"
                     If errorCode = "PEDIDO_VALIDACION_FALLO" Then
                         Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+                    ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
+                        Throw ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido) ' Nesto#484
                     Else
                         Throw New Exception(contenido)
                     End If
@@ -751,8 +759,30 @@ Public Class PedidoVentaService
 
             Catch ex As ValidationException
                 Throw
+            Catch ex As ModoServicioNoPermitidoException
+                Throw
             Catch ex As Exception
                 Throw New Exception("Error al crear el pedido: " + ex.Message)
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#484 / NestoAPI#518: lo mismo que pide la plantilla (POST api/PedidosVenta/ModoServicioSugerido).
+    ''' Nothing si la API falla o es anterior: es una ayuda y el pedido se tiene que poder guardar igual.
+    ''' </summary>
+    Public Async Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO) Implements IPedidoVentaService.ModoServicioSugerido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/ModoServicioSugerido", content).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return JsonConvert.DeserializeObject(Of ModoServicioSugeridoDTO)(cadenaJson)
+            Catch ex As Exception
+                Return Nothing
             End Try
         End Using
     End Function

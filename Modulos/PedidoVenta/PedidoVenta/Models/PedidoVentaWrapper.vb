@@ -461,7 +461,17 @@ Public Class PedidoVentaWrapper
         End If
     End Sub
 
+    ''' <summary>Nesto#484: los almacenes de las líneas (los modos permitidos dependen de ellos: tienda → solo «Según vaya entrando»).</summary>
+    Public ReadOnly Property AlmacenesLineas As String
+        Get
+            Return String.Join(",", Lineas.Select(Function(l) l.Almacen?.Trim()).Distinct())
+        End Get
+    End Property
+
     Private Sub LineaOnPropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(LineaPedidoVentaWrapper.Almacen) Then
+            OnPropertyChanged(NameOf(AlmacenesLineas))
+        End If
         If e.PropertyName = NameOf(BaseImponible) Then
             OnPropertyChanged(NameOf(BaseImponible))
         End If
