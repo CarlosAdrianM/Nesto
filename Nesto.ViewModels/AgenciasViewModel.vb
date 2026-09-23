@@ -1,13 +1,9 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel
 Imports System.Data
-Imports System.Data.Entity.Core.Objects
-Imports System.Data.Entity.Validation
-Imports System.Data.SqlClient
 Imports System.IO
 Imports System.Reflection
 Imports System.Text.RegularExpressions
-Imports System.Transactions
 Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
@@ -2364,142 +2360,11 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        ' Nesto#415 / Nesto#340 (A4.3): con el parámetro de usuario PagarReembolsosPorApi = "API" lo
-        ' contabiliza el servidor y aquí no se abre ningún NestoEntities. El camino de Entity
-        ' Framework de debajo se queda intacto hasta que se valide el cuadre (pies de plomo).
-        If Await PagarReembolsosPorApi() Then
-            Await PagarReembolsosSeleccionadosPorApi(empresaSeleccionada.Número, numClienteContabilizar,
-                                                    agenciaSeleccionada.Numero, listaReembolsosSeleccionados.ToList())
-            Return
-        End If
-
-        Dim asiento As Integer = 0 'para guardar el asiento que devuelve prdContabilizar
-
-        ' Carlos 02/01/24: esta parte hay que refactorizarla inyectando una dependencia de IContabilidadService
-        ' Dim listaPreContabilidad As New List(Of PreContabilidadDTO)
-        ' De momento no lo hacemos porque hay que actualizar la FechaPagoReembolso y eso no está contemplado
-
-
-        ' Empezamos una transacción
-        Dim success As Boolean = False
-        Using transaction As New TransactionScope()
-            Using DbContext As New NestoEntities
-                Try
-                    If Not MODO_CUADRE Then
-                        For Each linea In listaReembolsosSeleccionados
-                            Dim agencia As AgenciasTransporte = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = linea.Agencia).SingleOrDefault
-                            Dim numDocAgencia = If(agencia.Nombre.Length > 10, agencia.Nombre.Substring(0, 10), agencia.Nombre)
-                            Dim unused3 = DbContext.PreContabilidad.Add(New PreContabilidad With {
-                            .Empresa = empresaSeleccionada.Número,
-                            .Diario = "_PagoReemb",
-                            .Asiento = 1,
-                            .Fecha = Today,
-                            .FechaVto = Today,
-                            .TipoApunte = "3",
-                            .TipoCuenta = "1",
-                            .Nº_Cuenta = agencia.CuentaReembolsos,
-                            .Concepto = "Pago reembolso " + linea.Cliente,
-                            .Haber = linea.Reembolso,
-                            .Nº_Documento = numDocAgencia,
-                            .Delegación = "ALG",
-                            .FormaVenta = "VAR"
-                        })
-                        Next
-                        Dim numDoc = If(agenciaSeleccionada.Nombre.Length > 10, agenciaSeleccionada.Nombre.Substring(0, 10), agenciaSeleccionada.Nombre)
-                        Dim unused2 = DbContext.PreContabilidad.Add(New PreContabilidad With {
-                            .Empresa = empresaSeleccionada.Número,
-                            .Diario = "_PagoReemb",
-                            .Asiento = 1,
-                            .Fecha = Today,
-                            .FechaVto = Today,
-                            .TipoApunte = "3",
-                            .TipoCuenta = "2",
-                            .Nº_Cuenta = numClienteContabilizar,
-                            .Contacto = "0",
-                            .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
-                            .Debe = sumaSeleccionadas,
-                            .Nº_Documento = numDoc,
-                            .Delegación = "ALG",
-                            .FormaVenta = "VAR",
-                            .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
-                            .Vendedor = "NV"
-                        })
-                        'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                        success = DbContext.SaveChanges()
-
-                        Dim empresaParam As New SqlParameter("@Empresa", SqlDbType.Char, 3) With {.Value = empresaSeleccionada.Número}
-                        Dim diarioParam As New SqlParameter("@Diario", SqlDbType.Char, 10) With {.Value = "_PagoReemb"}
-                        Dim usuarioParam As New SqlParameter("@Usuario", SqlDbType.Char, 30) With {.Value = _configuracion.usuario}
-                        Dim resultadoParam As New SqlParameter("@Resultado", SqlDbType.Int) With {.Direction = ParameterDirection.Output}
-
-                        Dim unused1 = DbContext.Database.ExecuteSqlCommand("EXEC @Resultado = prdContabilizar @Empresa, @Diario, @Usuario",
-                                    resultadoParam, empresaParam, diarioParam, usuarioParam)
-
-                        asiento = CInt(resultadoParam.Value)
-                    End If
-                    If success AndAlso (asiento > 0 OrElse MODO_CUADRE) Then
-                        Dim fechaAFijar As Date = Today
-                        If MODO_CUADRE Then
-                            fechaAFijar = "01/01/2015"
-                        End If
-                        Dim lineaEncontrada As EnviosAgencia
-                        For Each linea In listaReembolsosSeleccionados
-                            lineaEncontrada = DbContext.EnviosAgencia.Where(Function(e) e.Numero = linea.Numero).Single
-                            lineaEncontrada.FechaPagoReembolso = fechaAFijar
-                        Next
-                        'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                        If DbContext.SaveChanges() Then
-                            RaisePropertyChanged(NameOf(sumaContabilidad))
-                            RaisePropertyChanged(NameOf(descuadreContabilidad))
-                            RaisePropertyChanged(NameOf(sumaReembolsos))
-
-                            transaction.Complete()
-                            success = True ' Marcamos correctas las transacciones
-
-                            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-                        Else
-                            transaction.Dispose()
-                            success = False
-                        End If
-                    Else
-                        transaction.Dispose()
-                        success = False
-                    End If
-
-                    ' Comprobamos que las transacciones sean correctas
-                    If success Then
-                        ' Reset the context since the operation succeeded. 
-                        Dim unused = DbContext.SaveChanges()
-                        _dialogService.ShowNotification("Contabilizado Correctamente", "Nº Asiento: " + asiento.ToString)
-                    Else
-                        transaction.Dispose()
-                        _dialogService.ShowError("Se ha producido un error y no se han grabado los datos")
-                    End If
-                Catch ex As Exception
-                    transaction.Dispose()
-                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
-                End Try
-            End Using ' Cerramos el contexto
-        End Using ' finaliza la transacción
+        ' Nesto#415 / Nesto#340 (A4.3): el pago lo contabiliza el servidor en una transacción. El camino
+        ' de Entity Framework se borró el 23/09/26 tras validarlo en vivo (asiento 1201979 del 21/09).
+        Await PagarReembolsosSeleccionadosPorApi(empresaSeleccionada.Número, numClienteContabilizar,
+                                                agenciaSeleccionada.Numero, listaReembolsosSeleccionados.ToList())
     End Sub
-
-    Private Function PagarReembolsosPorApi() As Task(Of Boolean)
-        Return InterruptorApiEncendido(Parametros.Claves.PagarReembolsosPorApi)
-    End Function
-
-    ''' <summary>
-    ''' Nesto#340 (A4.3/A4.4): los interruptores de pies de plomo. Solo "API" (recortado, sin
-    ''' distinguir mayúsculas) enciende el camino nuevo; cualquier otro valor, la ausencia de fila o
-    ''' un fallo al leer llevan al Entity Framework de siempre.
-    ''' </summary>
-    Private Async Function InterruptorApiEncendido(clave As String) As Task(Of Boolean)
-        Try
-            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, clave)
-            Return String.Equals(valor?.Trim(), "API", StringComparison.OrdinalIgnoreCase)
-        Catch
-            Return False
-        End Try
-    End Function
 
     ''' <summary>
     ''' Nesto#415 / Nesto#340 (A4.3): el pago lo contabiliza el servidor en una transacción (apuntes
@@ -2618,12 +2483,8 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        ' Nesto#340 (A4.4): con ModificarEnvioPorApi = "API" lo hace el servidor; el EF sigue debajo.
-        If Await InterruptorApiEncendido(Parametros.Claves.ModificarEnvioPorApi) Then
-            Await ModificarEnvioPorApi(envioActual, reembolsoModificar, retornoModificar, estadoModificar, False, fechaEntregaModificar)
-            Return
-        End If
-        modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar, fechaEntregaModificar)
+        ' Nesto#340 (A4.4): lo hace el servidor (el camino de Entity Framework se borró el 23/09/26).
+        Await ModificarEnvioPorApi(envioActual, reembolsoModificar, retornoModificar, estadoModificar, False, fechaEntregaModificar)
     End Sub
 
     ''' <summary>
@@ -2734,11 +2595,7 @@ Public Class AgenciasViewModel
             Return
         End If
         Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoObligatorio).FirstOrDefault
-        If Await InterruptorApiEncendido(Parametros.Claves.ModificarEnvioPorApi) Then
-            Await ModificarEnvioPorApi(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
-            Return
-        End If
-        modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
+        Await ModificarEnvioPorApi(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
     End Sub
 
     ''' <summary>
@@ -3497,14 +3354,6 @@ Public Class AgenciasViewModel
         Return envio
     End Function
 
-    Private Function CalcularMovimientoDesliq(env As EnviosAgencia, importeAnterior As Double) As ExtractoCliente
-        Dim movimientos As ObservableCollection(Of ExtractoCliente)
-        Dim concepto As String = _servicio.GenerarConcepto(env)
-
-        movimientos = _servicio.CargarPagoExtractoClientePorEnvio(env, concepto, importeAnterior)
-
-        Return If(movimientos.Count = 0, Nothing, movimientos.LastOrDefault)
-    End Function
     Private Function ConfigurarAgenciaPedido() As AgenciasTransporte
         ' agenciaConfigurar es agenciaSeleccionada. Lo pongo por si se busca agenciaSeleccionada.
         If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Empresa) OrElse IsNothing(listaAgencias) Then
@@ -3605,269 +3454,6 @@ Public Class AgenciasViewModel
         Catch
             ' Si falla el registro, se ignora.
         End Try
-    End Function
-    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, fechaEntrega As Date)
-        modificarEnvio(envio, reembolso, retorno, estado, False, fechaEntrega)
-    End Sub
-    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, rehusar As Boolean, fechaEntrega As Date)
-        Dim historia As New EnviosHistoria
-        Dim modificado As Boolean = False
-        Dim reembolsoAnterior As Double = envio.Reembolso
-
-        ' Carlos 14/12/16: no se pueden modificar los envíos que estén cobrados
-        If Not IsNothing(envio.FechaPagoReembolso) Then
-            _dialogService.ShowError("No se puede modificar este envío, porque ya está cobrado")
-            Return
-        End If
-
-        If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
-            Dim mensajeMostrar = String.Format("¿Es correcto el importe de {0}?", reembolso.ToString("C"))
-            Dim continuar As Boolean
-            _dialogService.ShowConfirmation("¡Atención!", mensajeMostrar, Sub(r)
-                                                                              continuar = r.Result = ButtonResult.OK
-                                                                          End Sub)
-            If Not continuar Then
-                Return
-            End If
-        End If
-
-
-        ' Iniciamos transacción
-        Dim success As Boolean = False
-        Dim detalleError As String = Nothing
-        Using transaction As New TransactionScope()
-            Using DbContext As New NestoEntities
-                Dim numeroEnvio As Integer = envio.Numero ' porque no me deja usar envio en una lambda
-                Dim envioEncontrado As EnviosAgencia = DbContext.EnviosAgencia.Where(Function(e) e.Numero = numeroEnvio).Single
-                Try
-
-                    If envio.Reembolso <> reembolso Then
-
-                        historia.NumeroEnvio = envio.Numero
-                        historia.Campo = "Reembolso"
-                        historia.ValorAnterior = envio.Reembolso.ToString("C")
-                        'reembolsoAnterior = envio.Reembolso
-                        envioEncontrado.Reembolso = reembolso
-                        Dim unused7 = DbContext.EnviosHistoria.Add(historia)
-                        modificado = True
-                    End If
-                    If envio.Retorno <> retorno.id Then
-                        historia.NumeroEnvio = envio.Numero
-                        historia.Campo = "Retorno"
-                        Dim tipoEnvioAnterior As Byte = envio.Retorno
-                        historia.ValorAnterior = (From l In listaTiposRetorno Where l.id = tipoEnvioAnterior Select l.descripcion).FirstOrDefault
-                        envioEncontrado.Retorno = retorno.id
-                        Dim unused6 = DbContext.EnviosHistoria.Add(historia)
-                        modificado = True
-                    End If
-                    If envio.Estado <> estado Then
-                        historia.NumeroEnvio = envio.Numero
-                        historia.Campo = "Estado"
-                        historia.ValorAnterior = envio.Estado
-                        envioEncontrado.Estado = estado
-                        Dim unused5 = DbContext.EnviosHistoria.Add(historia)
-                        modificado = True
-                    End If
-                    If envio.FechaEntrega <> fechaEntrega Then
-                        historia.NumeroEnvio = envio.Numero
-                        historia.Campo = "FechaEntrega"
-                        historia.ValorAnterior = envio.FechaEntrega.ToString
-                        envioEncontrado.FechaEntrega = fechaEntrega
-                        Dim unused4 = DbContext.EnviosHistoria.Add(historia)
-                        modificado = True
-                    End If
-
-                    If modificado Then
-                        historia.Observaciones = observacionesModificacion
-                        'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                        If DbContext.SaveChanges Then
-                            If reembolsoAnterior <> reembolso Then
-                                Dim unused3 = contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
-                                ''DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                                'If Not DbContext.SaveChanges() Then
-                                '    Throw New Exception("No se ha podido contabilizar la modificación del reembolso")
-                                'End If
-                            End If
-                        Else
-                            Throw New Exception("No se han podido guardar los cambios")
-                        End If
-                        ' Si el envío está en listaReembolsos lo actualizamos
-                        Dim envioLista As EnviosAgencia = listaEnviosTramitados.Where(Function(l) l.Numero = numeroEnvio).SingleOrDefault
-                        If Not IsNothing(envioLista) Then
-                            envioLista.Reembolso = reembolso
-                            envioLista.Retorno = retorno.id
-                            envioLista.Estado = estado
-                            envioLista.FechaEntrega = fechaEntrega
-                        End If
-                    End If
-
-                    If rehusar Then
-                        Dim movimientoFactura As ExtractoCliente = _servicio.CalcularMovimientoLiq(envio, reembolsoAnterior)
-                        Dim estadoRehusado As New ObjectParameter("Estado", GetType(String)) With {
-                            .Value = "RHS"
-                        }
-                        envio.Retorno = retorno.id
-                        Dim unused2 = DbContext.SaveChanges()
-                        Dim unused1 = DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
-                    End If
-
-
-
-                    transaction.Complete()
-                    success = True
-
-                Catch ex As Exception
-                    transaction.Dispose()
-                    success = False
-                    ' Nesto#448: el Catch tragaba la excepción (mensaje genérico y nada en ELMAH,
-                    ' así que el gestor centralizado nunca la veía). Se muestra el detalle y se
-                    ' registra server-side.
-                    detalleError = DbValidationErrorHelper.ExtraerMensajeError(ex)
-                    Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.modificarEnvio")
-                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
-                    envioActual = listaEnviosTramitados.FirstOrDefault
-                End Try
-
-                ' Comprobamos que las transacciones sean correctas
-                If success Then
-                    ' Reset the context since the operation succeeded.
-                    Dim unused = DbContext.SaveChanges()
-                    envio = envioEncontrado
-                    RaisePropertyChanged(NameOf(listaEnviosTramitados))
-                Else
-                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr +
-                                             If(detalleError, "(sin detalle)"))
-                End If
-            End Using ' cerramos el contexto breve
-        End Using ' Cerramos la transaccion
-
-    End Sub
-    Public Function contabilizarModificacionReembolso(envio As EnviosAgencia, importeAnterior As Double, importeNuevo As Double) As Integer
-
-        ' Parámetro Rehusar es para marcar el ExtractoCliente como RHS (rehusado)
-
-        Const diarioReembolsos As String = "_Reembolso"
-
-        Dim agenciaEnvio As AgenciasTransporte = _servicio.CargarAgencia(envio.Agencia)
-        If IsNothing(agenciaEnvio.CuentaReembolsos) Then
-            mensajeError = "Esta agencia no tiene establecida una cuenta de reembolsos. No se puede contabilizar."
-            Return -1
-        End If
-
-        Dim empresaEnvio As Empresas = _servicio.CargarEmpresa(envio.Empresa)
-
-        Dim lineaDeshago, lineaRehago As New PreContabilidad
-        Dim asiento As Integer
-        Dim movimientoLiq As ExtractoCliente
-        Dim movimientoDesliq As ExtractoCliente
-        'movimientoLiq = calcularMovimientoLiq(envio)
-
-        ' Iniciamos transacción
-        Dim success As Boolean = False
-        Dim detalleError As String = Nothing
-        Using transaction As New TransactionScope()
-            Using DbContext As New NestoEntities
-
-                Try
-                    ' desliquidamos el reembolso
-                    movimientoDesliq = CalcularMovimientoDesliq(envio, importeAnterior)
-                    If Not IsNothing(movimientoDesliq) AndAlso movimientoDesliq.Importe <> movimientoDesliq.ImportePdte Then
-                        Dim unused3 = DbContext.prdDesliquidar(empresaSeleccionada.Número, movimientoDesliq.Nº_Orden)
-                    End If
-
-                    If importeAnterior <> 0 Then
-                        With lineaDeshago
-                            .Empresa = envio.Empresa.Trim
-                            .Diario = diarioReembolsos.Trim
-                            .Asiento = 1
-                            .TipoApunte = "3" 'Pago
-                            .TipoCuenta = "2" 'Cliente
-                            .Nº_Cuenta = envio.Cliente.Trim
-                            .Contacto = envio.Contacto.Trim
-                            .Fecha = Today
-                            .FechaVto = Today
-                            .Debe = importeAnterior
-                            .Concepto = Left("Deshago Reembolso " + envio.Pedido.ToString + " a " + agenciaEnvio.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
-                            .Contrapartida = agenciaEnvio.CuentaReembolsos.Trim
-                            .Asiento_Automático = False
-                            .FormaPago = empresaEnvio.FormaPagoEfectivo
-                            .Vendedor = envio.Vendedor
-                            .Nº_Documento = envio.Pedido
-                            .Delegación = empresaEnvio.DelegaciónVarios
-                            .FormaVenta = empresaEnvio.FormaVentaVarios
-                            If Not IsNothing(movimientoDesliq) Then
-                                .Liquidado = movimientoDesliq.Nº_Orden
-                            End If
-                        End With
-                    End If
-
-                    movimientoLiq = _servicio.CalcularMovimientoLiq(envio)
-
-                    If importeNuevo <> 0 Then
-                        With lineaRehago
-                            .Empresa = envio.Empresa.Trim
-                            .Diario = diarioReembolsos.Trim
-                            .Asiento = 2
-                            .TipoApunte = "3" 'Pago
-                            .TipoCuenta = "2" 'Cliente
-                            .Nº_Cuenta = envio.Cliente.Trim
-                            .Contacto = envio.Contacto.Trim
-                            .Fecha = Today
-                            .FechaVto = Today
-                            .Haber = importeNuevo
-                            .Concepto = Left("Rehago Reembolso " + envio.Pedido.ToString + " a " + agenciaEnvio.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
-                            .Contrapartida = agenciaEnvio.CuentaReembolsos.Trim
-                            .Asiento_Automático = False
-                            .FormaPago = empresaEnvio.FormaPagoEfectivo
-                            .Vendedor = envio.Vendedor
-
-                            .Nº_Documento = envio.Pedido
-                            .Delegación = empresaEnvio.DelegaciónVarios
-                            .FormaVenta = empresaEnvio.FormaVentaVarios
-                            If Not IsNothing(movimientoLiq) AndAlso movimientoLiq.ImportePdte > 0 Then
-                                .Liquidado = movimientoLiq.Nº_Orden
-                            End If
-                        End With
-                    End If
-
-
-                    If importeAnterior <> 0 Then
-                        Dim unused2 = DbContext.PreContabilidad.Add(lineaDeshago)
-                    End If
-                    If importeNuevo <> 0 Then
-                        Dim unused1 = DbContext.PreContabilidad.Add(lineaRehago)
-                    End If
-                    'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                    If DbContext.SaveChanges() Then
-                        asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos, _configuracion.usuario)
-                        transaction.Complete()
-                        success = True
-                    Else
-                        transaction.Dispose()
-                        success = False
-                    End If
-
-                Catch ex As Exception
-                    transaction.Dispose()
-                    success = False
-                    ' Nesto#448: mismo tratamiento que en modificarEnvio — detalle + ELMAH.
-                    detalleError = DbValidationErrorHelper.ExtraerMensajeError(ex)
-                    Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.contabilizarModificacionReembolso")
-                End Try
-
-                ' Comprobamos que las transacciones sean correctas
-                If success Then
-                    ' Reset the context since the operation succeeded.
-                    Dim unused = DbContext.SaveChanges()
-                Else
-                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr +
-                                             If(detalleError, "(sin detalle)"))
-                    Return -1
-                End If
-            End Using ' Cerramos contexto breve
-        End Using ' Cerramos transacción
-
-        Return asiento
     End Function
     Private Function buscarPedidoAmpliacion(pedido As PedidoAgenciaModel) As EnviosAgencia
         Dim direccion = If(Not String.IsNullOrWhiteSpace(direccionEnvio), direccionEnvio, pedido.Clientes.Dirección)

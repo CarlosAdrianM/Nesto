@@ -11,7 +11,7 @@ Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
 ''' <summary>
-''' Nesto#415 / Nesto#340 (Agencias, slice A4.3): con PagarReembolsosPorApi = "API", «Contabilizar»
+''' Nesto#415 / Nesto#340 (Agencias, slice A4.3): «Contabilizar»
 ''' de la pestaña Reembolsos ya no abre un NestoEntities: el servidor contabiliza y aquí solo se
 ''' refleja (fecha de pago, fuera de la lista, selección vacía).
 ''' </summary>

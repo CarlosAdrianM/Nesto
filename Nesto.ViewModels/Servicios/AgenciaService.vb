@@ -1,5 +1,4 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Data.Entity
 Imports System.Net.Http
 Imports System.Text
 Imports ControlesUsuario.Dialogs
@@ -714,22 +713,6 @@ Public Class AgenciaService
     End Function
 
 
-    Public Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente) Implements IAgenciaService.CargarExtractoCliente
-        Using contexto = New NestoEntities
-            Return If(positivos,
-                New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte > 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS)),
-                New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte < 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS)))
-        End Using
-    End Function
-
-    Public Function CargarPagoExtractoClientePorEnvio(envio As EnviosAgencia, concepto As String, importeAnterior As Double) As ObservableCollection(Of ExtractoCliente) Implements IAgenciaService.CargarPagoExtractoClientePorEnvio
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = envio.Empresa And
-                                                                    e.Número = envio.Cliente And e.Contacto = envio.Contacto And e.Fecha = envio.Fecha And e.TipoApunte = 3 And e.Concepto = concepto And
-                                                                    e.Importe = -importeAnterior)
-        End Using
-    End Function
-
     Public Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorRuta
         Dim agencias As List(Of AgenciasTransporte) = CargarTodasLasAgencias()
         Return If(empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO,
@@ -821,41 +804,6 @@ Public Class AgenciaService
         End Try
     End Function
 
-
-    Private Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente Implements IAgenciaService.CalcularMovimientoLiq
-        Return CalcularMovimientoLiq(env, env.Reembolso)
-    End Function
-    Private Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente Implements IAgenciaService.CalcularMovimientoLiq
-        Dim movimientos As ObservableCollection(Of ExtractoCliente)
-        Dim movimientosConImporte As ObservableCollection(Of ExtractoCliente)
-
-        If env.Cliente.Trim = Constantes.Clientes.Especiales.AMAZON OrElse env.Cliente.Trim = Constantes.Clientes.Especiales.TIENDA_ONLINE Then
-            Return Nothing
-        End If
-
-        movimientos = If(reembolsoAnterior > 0,
-            CargarExtractoCliente(env.Empresa, env.Cliente, True),
-            CargarExtractoCliente(env.Empresa, env.Cliente, False))
-
-
-        If movimientos.Count = 0 Then
-            Return Nothing
-        ElseIf movimientos.Count = 1 Then
-            Return movimientos.SingleOrDefault
-        Else
-            If reembolsoAnterior > 0 Then
-                movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = reembolsoAnterior)
-            Else
-                movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = Today) ' con env.Fecha hay problemas cuando la etiqueta es del día anterior
-            End If
-
-            Return If(movimientosConImporte.Count = 0, movimientos.LastOrDefault, movimientosConImporte.LastOrDefault)
-        End If
-    End Function
-    Private Function GenerarConcepto(envio As EnviosAgencia) As String Implements IAgenciaService.GenerarConcepto
-        Dim agenciaEnvio As AgenciasTransporte = CargarAgencia(envio.Agencia)
-        Return Left("S/Pago pedido " + envio.Pedido.ToString + " a " + agenciaEnvio.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
-    End Function
 
     Public Async Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task Implements IAgenciaService.EnviarCorreoEntregaAgencia
         Using client As HttpClient = _clienteApiFactory.Crear()

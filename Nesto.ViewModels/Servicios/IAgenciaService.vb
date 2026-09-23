@@ -54,8 +54,6 @@ Public Interface IAgenciaService
     Function HayAlgunaLineaConPicking(empresa As String, pedido As Integer) As Boolean
     Function CargarAgenciaPorNombreYCuentaReembolsos(empresa As String, cuentaReembolsos As String, nombreAgencia As String) As AgenciasTransporte
     Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia
-    Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente)
-    Function CargarPagoExtractoClientePorEnvio(envio As EnviosAgencia, concepto As String, importeAnterior As Double) As ObservableCollection(Of ExtractoCliente)
     Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte
     Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia
     Function TramitarEnvio(envio As EnviosAgencia) As String
@@ -82,9 +80,6 @@ Public Interface IAgenciaService
     ' Nesto#340 (Agencias, slice A4.4): reembolso/retorno/estado/fecha de un envío tramitado (y rehusar),
     ' con historia y contabilización en el servidor. Lanza con el motivo del servidor si lo rechaza.
     Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto)
-    Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
-    Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
-    Function GenerarConcepto(envio As EnviosAgencia) As String
     Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task
     Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
     Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task

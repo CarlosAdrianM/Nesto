@@ -12,7 +12,7 @@ Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
 ''' <summary>
-''' Nesto#340 (Agencias, slice A4.4): con ModificarEnvioPorApi = "API", «Modificar» y «Rehusar» de
+''' Nesto#340 (Agencias, slice A4.4): «Modificar» y «Rehusar» de
 ''' la pestaña Tramitados ya no abren un NestoEntities: el servidor guarda, contabiliza y rehúsa, y
 ''' aquí se refleja. Incluye el contrato del JSON con el servidor (ModificacionEnvioServiceTests).
 ''' </summary>
