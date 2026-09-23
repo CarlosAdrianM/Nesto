@@ -228,9 +228,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CSharpAmazonSpAPI" Version="1.9.23" />
-    <PackageReference Include="EntityFramework">
-      <Version>6.5.1</Version>
-    </PackageReference>
     <PackageReference Include="Extended.Wpf.Toolkit">
       <Version>5.0.0</Version>
     </PackageReference>

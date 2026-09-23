@@ -32,7 +32,6 @@
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Data.Entity" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
@@ -110,24 +109,14 @@
     <None Include="DataSets\Ubicaciones.xss">
       <DependentUpon>Ubicaciones.xsd</DependentUpon>
     </None>
-    <EntityDeploy Include="ModelNesto.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>ModelNesto.Designer.vb</LastGenOutput>
-    </EntityDeploy>
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
     </None>
-    <None Include="My Project\DataSources\NestoEntities.datasource" />
     <None Include="My Project\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
-    </None>
-    <None Include="NestoModel.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>NestoModel.tt</DependentUpon>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -135,21 +124,6 @@
     <Service Include="{C0C07587-41A7-46C8-8FBD-3F9C8EBE2DDC}" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="NestoModel.Context.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>NestoModel.Context.vb</LastGenOutput>
-      <DependentUpon>ModelNesto.edmx</DependentUpon>
-    </Content>
-    <Content Include="NestoModel.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>NestoModel.vb</LastGenOutput>
-      <DependentUpon>ModelNesto.edmx</DependentUpon>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="EntityFramework">
-      <Version>6.5.1</Version>
-    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Prism.Unity">
@@ -158,22 +132,5 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="ModelNesto.Designer.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ModelNesto.edmx</DependentUpon>
-    </Compile>
-    <Compile Update="NestoModel.Context.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>NestoModel.Context.tt</DependentUpon>
-    </Compile>
-    <Compile Update="NestoModel.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>NestoModel.tt</DependentUpon>
-    </Compile>
   </ItemGroup>
 </Project>

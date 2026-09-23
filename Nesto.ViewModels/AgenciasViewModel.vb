@@ -2775,7 +2775,7 @@ Public Class AgenciasViewModel
             EnvioPendienteSeleccionado.TieneCambios = False
             listaPendientes.Add(EnvioPendienteSeleccionado)
         Catch ex As Exception
-            _dialogService.ShowError("Error al modificar envío:" + vbCr + DbValidationErrorHelper.ExtraerMensajeError(ex))
+            _dialogService.ShowError("Error al modificar envío:" + vbCr + If(ex.InnerException?.Message, ex.Message))
         End Try
     End Sub
 
@@ -3290,7 +3290,7 @@ Public Class AgenciasViewModel
 
             Catch ex As Exception
                 CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
-                _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + DbValidationErrorHelper.ExtraerMensajeError(ex))
+                _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + If(ex.InnerException?.Message, ex.Message))
             End Try
 
             If Not success Then
