@@ -12,4 +12,17 @@ Public Class ModoServicioSugeridoDTO
     Public Property LineasRosas As Integer
     Public Property LineasRojas As Integer
     Public Property Motivo As String
+    ''' <summary>NestoAPI#518: los modos que se pueden elegir para este pedido (el sugerido siempre está).
+    ''' Vacío o Nothing (API anterior) = todos, como hasta ahora.</summary>
+    Public Property ModosPermitidos As List(Of Byte)
+    ''' <summary>NestoAPI#518: los cuatro modos con su permiso y el motivo de los que no se pueden elegir.</summary>
+    Public Property Modos As List(Of ModoServicioPermitidoDTO)
+End Class
+
+''' <summary>NestoAPI#518: un modo de servicio y, si no tiene sentido para el pedido, por qué (lo redacta la API).</summary>
+Public Class ModoServicioPermitidoDTO
+    Public Property Modo As Byte
+    Public Property Nombre As String
+    Public Property Permitido As Boolean
+    Public Property Motivo As String
 End Class

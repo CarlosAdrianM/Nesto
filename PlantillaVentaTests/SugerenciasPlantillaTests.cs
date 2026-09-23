@@ -333,5 +333,101 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region Nesto#484 / NestoAPI#518: solo se pueden elegir los modos con sentido
+
+        private static ModoServicioSugeridoDTO SugerenciaConPermitidos(byte modo, params byte[] permitidos)
+        {
+            var s = Sugerencia(modo);
+            s.ModosPermitidos = permitidos.ToList();
+            s.Modos = ModosServicio.Lista.Select(m => new ModoServicioPermitidoDTO
+            {
+                Modo = m.Codigo,
+                Nombre = m.Nombre,
+                Permitido = permitidos.Contains(m.Codigo),
+                Motivo = permitidos.Contains(m.Codigo) ? null : "Motivo del servidor."
+            }).ToList();
+            return s;
+        }
+
+        [TestMethod]
+        public void ModosPermitidos_TodoVerde_SoloTodoJuntoHabilitado_ConElMotivoEnLosDemas()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaConPermitidos(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO));
+
+            CollectionAssert.AreEqual(new[] { ModosServicio.TODO_JUNTO },
+                vm.OpcionesModoServicio.Where(o => o.Habilitado).Select(o => o.Codigo).ToArray());
+            Assert.AreEqual("Motivo del servidor.", vm.OpcionesModoServicio.Single(o => o.Codigo == ModosServicio.TRAS_REPONER_DE_TIENDAS).Ayuda);
+            Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.ModoServicio);
+            Assert.IsFalse(vm.HayAvisoModoServicio, "Sin elección del usuario es la preselección de siempre: sin aviso");
+        }
+
+        [TestMethod]
+        public void ModosPermitidos_EnTienda_SoloSegunVayaEntrando()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaConPermitidos(ModosServicio.SEGUN_VAYA_ENTRANDO, ModosServicio.SEGUN_VAYA_ENTRANDO));
+
+            CollectionAssert.AreEqual(new[] { ModosServicio.SEGUN_VAYA_ENTRANDO },
+                vm.OpcionesModoServicio.Where(o => o.Habilitado).Select(o => o.Codigo).ToArray());
+            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio);
+        }
+
+        [TestMethod]
+        public void ModosPermitidos_SiLoQueEligioElUsuarioDejaDeValer_SePasaAlSugeridoYSeLeAvisa()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.ModoServicio = ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ; // elección del usuario (distinta del defecto)
+
+            // Cambian las líneas (o el almacén) y ahora hay stock de todo en Algete: solo vale «Todo junto».
+            vm.AplicarSugerenciaModoServicio(SugerenciaConPermitidos(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO));
+
+            Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.ModoServicio);
+            Assert.IsTrue(vm.HayAvisoModoServicio);
+            StringAssert.Contains(vm.AvisoModoServicio, "Ahora lo que hay");
+            StringAssert.Contains(vm.AvisoModoServicio, "Motivo del servidor");
+        }
+
+        [TestMethod]
+        public void ModosPermitidos_SiLoQueEligioElUsuarioSigueValiendo_NoSeLeToca()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.ModoServicio = ModosServicio.SEGUN_VAYA_ENTRANDO;
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaConPermitidos(ModosServicio.TRAS_REPONER_DE_TIENDAS, 1, 2, 3, 4));
+
+            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio);
+            Assert.IsFalse(vm.HayAvisoModoServicio);
+        }
+
+        [TestMethod]
+        public void ModosPermitidos_ApiSinLaListaNueva_TodosHabilitados()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+
+            vm.AplicarSugerenciaModoServicio(Sugerencia(ModosServicio.TODO_JUNTO));
+
+            Assert.IsTrue(vm.OpcionesModoServicio.All(o => o.Habilitado));
+        }
+
+        [TestMethod]
+        public void LeerModoSugerido_DelRechazoDeLaApi()
+        {
+            var json = Newtonsoft.Json.Linq.JObject.Parse(
+                "{\"error\":{\"code\":\"MODO_SERVICIO_NO_PERMITIDO\",\"message\":\"x\",\"details\":{\"modoSugerido\":1,\"modosPermitidos\":[1]}}}");
+
+            Assert.AreEqual((byte?)ModosServicio.TODO_JUNTO, PlantillaVentaService.LeerModoSugerido(json));
+            Assert.IsNull(PlantillaVentaService.LeerModoSugerido(Newtonsoft.Json.Linq.JObject.Parse("{\"error\":{\"code\":\"OTRO\"}}")));
+        }
+
+        #endregion
     }
 }

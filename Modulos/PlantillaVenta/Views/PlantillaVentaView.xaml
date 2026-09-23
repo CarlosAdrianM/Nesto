@@ -692,7 +692,8 @@
                                  (no a la dirección, Nesto#449); la validación al salir de «Todo junto» la dispara el setter. -->
                             <StackPanel Orientation="Horizontal" Margin="3,0">
                                 <TextBlock Text="Servir:" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                <ComboBox ItemsSource="{x:Static models:ModosServicio.Lista}"
+                                <!-- Nesto#484: los modos sin sentido para el pedido salen deshabilitados con su motivo. -->
+                                <ComboBox ItemsSource="{Binding OpcionesModoServicio}"
                                           DisplayMemberPath="Nombre"
                                           SelectedValuePath="Codigo"
                                           SelectedValue="{Binding ModoServicio, Mode=TwoWay}"
@@ -700,11 +701,17 @@
                                           ToolTip="Cómo se sirve el pedido cuando no hay stock de todo">
                                     <ComboBox.ItemContainerStyle>
                                         <Style TargetType="ComboBoxItem">
-                                            <Setter Property="ToolTip" Value="{Binding Descripcion}"/>
+                                            <Setter Property="IsEnabled" Value="{Binding Habilitado}"/>
+                                            <Setter Property="ToolTip" Value="{Binding Ayuda}"/>
+                                            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
                                         </Style>
                                     </ComboBox.ItemContainerStyle>
                                 </ComboBox>
                             </StackPanel>
+                            <!-- Nesto#484: aviso cuando el modo se cambia solo porque el elegido dejó de tener sentido. -->
+                            <TextBlock Text="{Binding AvisoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontWeight="SemiBold" Foreground="DarkOrange"
+                                       Visibility="{Binding HayAvisoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <!-- Nesto#483: el motivo lo redacta NestoAPI (mismo texto en Nesto, NestoApp y la tienda). -->
                             <TextBlock Text="{Binding MotivoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontStyle="Italic" Foreground="#555555"

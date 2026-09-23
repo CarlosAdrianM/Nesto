@@ -223,6 +223,8 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar código con Estado
             Estado.AlmacenCodigo = If(value IsNot Nothing, value.Codigo, Nothing)
             ActualizarAnadirPortesPorDefecto()
+            ' Nesto#484: los modos permitidos dependen del almacén (en tienda, solo «según vaya entrando»).
+            PedirSugerenciasConDebounce()
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
                 Application.Current.Dispatcher.Invoke(New Action(Async Sub()
                                                                      estaOcupado = True
@@ -873,6 +875,7 @@ Public Class PlantillaVentaViewModel
             ' si contase, la siguiente sugerencia ya no podria cambiar nada (trampa 1 de NestoApp#184).
             If Not _aplicandoSugerenciaModoServicio Then
                 _modoServicioElegidoPorUsuario = True
+                AvisoModoServicio = Nothing ' Nesto#484: el aviso de cambio automático ya no aplica
             End If
             Estado.ModoServicio = value
             Estado.ServirJunto = ModosServicio.EsTodoJunto(value)
@@ -939,6 +942,70 @@ Public Class PlantillaVentaViewModel
             Return Not String.IsNullOrWhiteSpace(MotivoModoServicio)
         End Get
     End Property
+
+    ''' <summary>
+    ''' Nesto#484 / NestoAPI#518: las opciones del combo «Servir». Las que no tienen sentido para el pedido
+    ''' (según la API) salen deshabilitadas con su motivo. Sin respuesta del servidor, todas habilitadas.
+    ''' </summary>
+    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio) =
+        ModosServicio.Lista.Select(Function(m) New OpcionModoServicio(m)).ToList()
+
+    Private _avisoModoServicio As String
+    ''' <summary>Nesto#484: aviso visible cuando se cambia solo el modo porque el elegido dejó de tener sentido.</summary>
+    Public Property AvisoModoServicio As String
+        Get
+            Return _avisoModoServicio
+        End Get
+        Set(value As String)
+            If SetProperty(_avisoModoServicio, value) Then
+                OnPropertyChanged(NameOf(HayAvisoModoServicio))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoModoServicio As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(AvisoModoServicio)
+        End Get
+    End Property
+
+    ''' <summary>Nesto#484: habilita/deshabilita las opciones con lo que manda la API (Nothing = todas).</summary>
+    Friend Sub AplicarModosPermitidos(sugerencia As ModoServicioSugeridoDTO)
+        Dim permitidos As List(Of Byte) = sugerencia?.ModosPermitidos
+        Dim hayRestriccion As Boolean = permitidos IsNot Nothing AndAlso permitidos.Any()
+        For Each opcion In OpcionesModoServicio
+            opcion.Habilitado = Not hayRestriccion OrElse permitidos.Contains(opcion.Codigo)
+            opcion.MotivoNoPermitido = If(opcion.Habilitado, Nothing,
+                sugerencia?.Modos?.FirstOrDefault(Function(m) m.Modo = opcion.Codigo)?.Motivo)
+        Next
+    End Sub
+
+    Private Function ModoPermitido(modo As Byte) As Boolean
+        Return OpcionesModoServicio.Any(Function(o) o.Codigo = modo AndAlso o.Habilitado)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#484: el modo elegido deja de tener sentido (cambian las líneas, el almacén o el stock): se pasa al que
+    ''' vale y se AVISA (Carlos: nada de cambiar en silencio). Si el servidor rechazó al guardar, lo mismo.
+    ''' </summary>
+    Friend Sub CambiarAModoValido(modoValido As Byte, motivo As String)
+        Dim anterior As Byte = ModoServicio
+        If anterior = modoValido OrElse Not ModosServicio.EsValido(modoValido) Then
+            Return
+        End If
+        _aplicandoSugerenciaModoServicio = True
+        Try
+            ModoServicio = modoValido
+        Finally
+            _aplicandoSugerenciaModoServicio = False
+        End Try
+        _ultimoModoSugeridoAplicado = modoValido
+        Dim nombreAnterior As String = ModosServicio.Lista.FirstOrDefault(Function(m) m.Codigo = anterior)?.Nombre
+        Dim nombreNuevo As String = ModosServicio.Lista.FirstOrDefault(Function(m) m.Codigo = modoValido)?.Nombre
+        AvisoModoServicio = $"«{nombreAnterior}» ya no tiene sentido para este pedido" &
+            If(String.IsNullOrWhiteSpace(motivo), String.Empty, $" ({motivo.TrimEnd("."c)})") &
+            $": se ha cambiado a «{nombreNuevo}»."
+    End Sub
 
     Private ReadOnly _ofertasSugeridas As New ObservableCollection(Of SugerenciaOfertaDTO)
     ''' <summary>Nesto#465: las ofertas que el pedido podría aplicar y no está aplicando.</summary>
@@ -1030,6 +1097,8 @@ Public Class PlantillaVentaViewModel
         _sugerenciaModoServicio = Nothing
         _ultimoModoSugeridoAplicado = Nothing
         AplicarOfertasSugeridas(Nothing)
+        AplicarModosPermitidos(Nothing)
+        AvisoModoServicio = Nothing
         OnPropertyChanged(NameOf(MotivoModoServicio))
         OnPropertyChanged(NameOf(HayMotivoModoServicio))
     End Sub
@@ -1041,6 +1110,15 @@ Public Class PlantillaVentaViewModel
         _sugerenciaModoServicio = sugerencia
         OnPropertyChanged(NameOf(MotivoModoServicio))
         OnPropertyChanged(NameOf(HayMotivoModoServicio))
+        AplicarModosPermitidos(sugerencia)
+
+        ' Nesto#484: si el usuario ELIGIÓ un modo que ya no se puede elegir, se pasa al sugerido y se le avisa.
+        ' (Si no eligió nada, es la preselección de siempre: se aplica el sugerido sin aviso.)
+        If _modoServicioElegidoPorUsuario AndAlso Not ModoPermitido(ModoServicio) Then
+            Dim motivo As String = sugerencia.Modos?.FirstOrDefault(Function(m) m.Modo = ModoServicio)?.Motivo
+            CambiarAModoValido(sugerencia.Modo, motivo)
+            Return
+        End If
 
         ' Si el usuario ya eligió modo a mano, no se le pisa: solo se le enseña el motivo.
         If _modoServicioElegidoPorUsuario Then
@@ -3169,6 +3247,12 @@ Public Class PlantillaVentaViewModel
 
             ' Abrimos el pedido
             PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
+        Catch ex As ModoServicioNoPermitidoException
+            ' NestoAPI#518: el stock cambió y el modo ya no vale; se enseña el mensaje y se preselecciona el que sí.
+            dialogService.ShowError(ex.Message)
+            If ex.ModoSugerido.HasValue Then
+                CambiarAModoValido(ex.ModoSugerido.Value, Nothing)
+            End If
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
 
