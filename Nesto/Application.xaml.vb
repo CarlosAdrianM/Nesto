@@ -1,6 +1,7 @@
 ﻿Imports System.Globalization
 Imports System.Windows.Markup
 Imports Azure.Identity
+Imports CommunityToolkit.Mvvm.Messaging
 Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Services
@@ -104,6 +105,9 @@ Partial Public Class Application
         Dim unused29 = containerRegistry.RegisterSingleton(GetType(IMainWindow), GetType(MainWindow))
         Dim unused28 = containerRegistry.RegisterSingleton(GetType(IMenuBar), GetType(MenuBarView))
         Dim unused27 = containerRegistry.RegisterSingleton(GetType(IConfiguracion), GetType(Configuracion))
+        ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
+        ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).
+        Dim unusedMessenger = containerRegistry.RegisterInstance(Of IMessenger)(WeakReferenceMessenger.Default)
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
         ' Nesto#400: credencial con caché de tokens persistida y AuthenticationRecord rehidratado:
