@@ -730,7 +730,9 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition Width="3*"/>
                                 </Grid.ColumnDefinitions>
-                                <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaMinimaEntrega}" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Value="{Binding fechaEntrega}"></xctk:DateTimePicker>
+                                <!-- ClipValueToMinMax: teclear una fecha anterior a la mínima la ajusta a la mínima. Sin él, Xceed
+                                     lanza ArgumentOutOfRangeException desde OnPreviewKeyDown y tumbaba Nesto (ELMAH 24/09/26). -->
+                                <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaMinimaEntrega}" ClipValueToMinMax="True" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Value="{Binding fechaEntrega}"></xctk:DateTimePicker>
                             </Grid>
                             <TextBlock></TextBlock>
                             <TextBlock></TextBlock>
