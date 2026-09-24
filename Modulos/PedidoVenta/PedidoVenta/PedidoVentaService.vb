@@ -180,6 +180,8 @@ Public Class PedidoVentaService
                 Throw
             Catch ex As ModoServicioNoPermitidoException
                 Throw ' Nesto#484: el ViewModel lo necesita para preseleccionar el modo que vale
+            Catch ex As ModoConPickingException
+                Throw ' Nesto#489: el ViewModel ofrece pedirle el cambio a almacén
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -251,6 +253,9 @@ Public Class PedidoVentaService
         ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
             ' Nesto#484 / NestoAPI#518: el modo elegido ya no tiene sentido; la API dice cuál vale.
             Return ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = ModoConPickingException.CODIGO_ERROR Then
+            ' Nesto#489 / NestoAPI#533: con picking el modo ya no se cambia; se puede pedir a almacén.
+            Return ModoConPickingException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
@@ -765,6 +770,44 @@ Public Class PedidoVentaService
                 Throw New Exception("Error al crear el pedido: " + ex.Message)
             End Try
         End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#489 / NestoAPI#533: pide a almacén (por correo, lo manda la API) que cambie el modo de entrega de un
+    ''' pedido que ya tiene picking. Devuelve el texto de la API para enseñárselo al usuario; si la API lo rechaza,
+    ''' lanza una excepción con su mensaje. Nunca promete que se pueda: lo decide almacén.
+    ''' </summary>
+    Public Async Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String) Implements IPedidoVentaService.SolicitarCambioModo
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim solicitud = New With {.Empresa = empresa, .Pedido = pedido, .ModoDeseado = modoDeseado, .Comentario = comentario}
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(solicitud), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("PedidosVenta/SolicitudCambioModo", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido pedir el cambio a almacén ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return LeerTextoRespuesta(body)
+        End Using
+    End Function
+
+    ''' <summary>Ok("texto") de Web API llega como una cadena JSON entre comillas; si no, el cuerpo tal cual.</summary>
+    Friend Shared Function LeerTextoRespuesta(body As String) As String
+        If String.IsNullOrWhiteSpace(body) Then
+            Return "Se lo hemos pedido a almacén."
+        End If
+        Try
+            Dim texto = JsonConvert.DeserializeObject(Of String)(body)
+            If Not String.IsNullOrWhiteSpace(texto) Then
+                Return texto
+            End If
+        Catch
+        End Try
+        Return body
     End Function
 
     ''' <summary>

@@ -886,7 +886,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(ModoServicio))
             OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
             OnPropertyChanged(NameOf(baseImponibleParaPortes))
-            If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) Then
+            If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) AndAlso Not _restaurandoModoGuardado Then
                 OnValidarServirJunto()
             End If
         End Set
@@ -924,6 +924,7 @@ Public Class PlantillaVentaViewModel
     Private _sugerenciaModoServicio As ModoServicioSugeridoDTO
     Private _modoServicioElegidoPorUsuario As Boolean
     Private _aplicandoSugerenciaModoServicio As Boolean
+    Private _restaurandoModoGuardado As Boolean ' Nesto#489: volver al modo grabado no pasa por la validación de salir de «Todo junto»
     Private _ultimoModoSugeridoAplicado As Byte?
 
     ''' <summary>Nesto#483: el texto que manda el servidor explicando el modo («2 líneas hay que traerlas
@@ -3101,6 +3102,8 @@ Public Class PlantillaVentaViewModel
 
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()
+        Dim rechazoConPicking As ModoConPickingException = Nothing ' Nesto#489
+        Dim modoGuardado As Byte? = Nothing
 
         Try
 
@@ -3116,13 +3119,23 @@ Public Class PlantillaVentaViewModel
                 ' ni quitar. Se valida contra el estado FRESCO del pedido (el almacén puede coger
                 ' picking MIENTRAS se edita) para dar un mensaje claro antes del PUT.
                 Dim estadoFresco = Await servicio.CargarPedidoParaPlantilla(clienteSeleccionado.empresa, NumeroPedidoEnEdicion.Value)
+                If estadoFresco IsNot Nothing Then
+                    modoGuardado = ModosServicio.Efectivo(estadoFresco.ModoServicio, estadoFresco.ServirJunto) ' Nesto#489
+                End If
                 Dim errorPicking As String = ValidarLineasConPicking(estadoFresco, pedido)
                 If errorPicking IsNot Nothing Then
                     dialogService.ShowError(errorPicking)
                     Return
                 End If
 
-                Await servicioPedidosVenta.modificarPedido(pedido)
+                Try
+                    Await servicioPedidosVenta.modificarPedido(pedido)
+                Catch ex As ModoConPickingException
+                    rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
+                End Try
+                If rechazoConPicking IsNot Nothing Then
+                    Exit Try ' no se ha guardado nada; se ofrece la solicitud a almacén después del Try
+                End If
                 numPedido = NumeroPedidoEnEdicion.Value.ToString()
                 NumeroPedidoEnEdicion = Nothing
                 ' Refrescar ListaPedidosVenta (está suscrita, igual que tras modificar en DetallePedido)
@@ -3256,9 +3269,28 @@ Public Class PlantillaVentaViewModel
             estaOcupado = False
         End Try
 
-
-
+        If rechazoConPicking IsNot Nothing Then
+            Await ResolverModoConPickingAsync(rechazoConPicking, pedido.empresa, pedido.numero,
+                ModosServicio.Efectivo(pedido.modoServicio, pedido.servirJunto), modoGuardado)
+        End If
     End Sub
+
+    ''' <summary>
+    ''' Nesto#489 / NestoAPI#533: al modificar un pedido desde la plantilla, la API no deja cambiar el modo porque ya
+    ''' tiene picking. No se ha guardado nada: se vuelve al modo guardado y se ofrece pedirle el cambio a almacén.
+    ''' </summary>
+    Friend Async Function ResolverModoConPickingAsync(ex As ModoConPickingException, empresa As String, numero As Integer,
+                                                      modoDeseado As Byte, modoGuardado As Byte?) As Task
+        If modoGuardado.HasValue Then
+            _restaurandoModoGuardado = True
+            Try
+                ModoServicio = modoGuardado.Value
+            Finally
+                _restaurandoModoGuardado = False
+            End Try
+        End If
+        Await SolicitudCambioModoAlmacen.OfrecerAsync(dialogService, servicioPedidosVenta, empresa, numero, modoDeseado, ex.Message)
+    End Function
 
     ''' <summary>
     ''' Nesto#416: ¿este usuario puede saltarse la validación de precios/descuentos?

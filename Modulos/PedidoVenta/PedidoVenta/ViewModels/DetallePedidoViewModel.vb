@@ -2010,6 +2010,8 @@ Public Class DetallePedidoViewModel
         Next
 
         ' Intentar guardar el pedido
+        Dim rechazoConPicking As ModoConPickingException = Nothing
+        Dim modoDeseado As Byte = pedido.ModoServicio
         Try
             textoBusyIndicator = "Guardando pedido..."
             estaBloqueado = True
@@ -2031,6 +2033,8 @@ Public Class DetallePedidoViewModel
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             Return True ' Guardado exitoso, continuar
 
+        Catch ex As ModoConPickingException
+            rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
         Catch ex As Exception
             dialogService.ShowError($"Error al guardar el pedido: {ex.Message}" & vbCrLf & vbCrLf &
                                    "No se puede crear el albarán/factura sin guardar primero.")
@@ -2042,6 +2046,10 @@ Public Class DetallePedidoViewModel
         Finally
             estaBloqueado = False
         End Try
+
+        ' Solo se llega aquí con MODO_CON_PICKING: no se ha guardado, así que no se sigue con albarán/factura.
+        Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
+        Return False
     End Function
 
     Private _abrirFacturarRutasCommand As RelayCommand
@@ -2270,6 +2278,8 @@ Public Class DetallePedidoViewModel
             End If
         Next
 
+        Dim rechazoConPicking As ModoConPickingException = Nothing
+        Dim modoDeseado As Byte = pedido.ModoServicio
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
             Dim crearModificarEx As Exception = Nothing
@@ -2362,6 +2372,8 @@ Public Class DetallePedidoViewModel
 
             ' Issue #135: Gestionar etiqueta de recogida
             Await GestionarEtiquetaRecogida()
+        Catch ex As ModoConPickingException
+            rechazoConPicking = ex ' Nesto#489: en VB no se puede esperar un diálogo dentro del Catch
         Catch ex As ModoServicioNoPermitidoException
             ' Nesto#484 / NestoAPI#518: el modo ya no tiene sentido; se enseña el mensaje y se preselecciona el que sí.
             dialogService.ShowError(ex.Message)
@@ -2378,7 +2390,46 @@ Public Class DetallePedidoViewModel
             CrearFacturaVentaCommand.NotifyCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
+
+        If rechazoConPicking IsNot Nothing Then
+            Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
+        End If
     End Function
+
+    ''' <summary>
+    ''' Nesto#489 / NestoAPI#533: la API no deja cambiar el modo porque el pedido ya tiene picking. El pedido no se
+    ''' ha guardado: se vuelve a enseñar el modo guardado y se ofrece pedirle el cambio a almacén.
+    ''' </summary>
+    Private Async Function ResolverModoConPicking(ex As ModoConPickingException, modoDeseado As Byte) As Task
+        RestaurarModoGuardado()
+        Await SolicitudCambioModoAlmacen.OfrecerAsync(dialogService, servicio, pedido.empresa, pedido.numero, modoDeseado, ex.Message)
+    End Function
+
+    ''' <summary>Nesto#489: vuelve a poner en pantalla el modo del pedido guardado (sin contarlo como elección del
+    ''' usuario ni disparar la validación de «servir junto», porque es lo que ya estaba grabado).</summary>
+    Friend Sub RestaurarModoGuardado()
+        If pedido Is Nothing OrElse _snapshotPedidoGuardado Is Nothing Then
+            Return
+        End If
+        _aplicandoModoAutomatico = True
+        _restaurandoModoGuardado = True
+        Try
+            pedido.ModoServicio = ModosServicio.Efectivo(_snapshotPedidoGuardado.modoServicio, _snapshotPedidoGuardado.servirJunto)
+            ' Tal cual estaba (un pedido anterior al modo lo tiene a Nothing), para no dejarlo como «cambiado».
+            pedido.Model.modoServicio = _snapshotPedidoGuardado.modoServicio
+            pedido.Model.servirJunto = _snapshotPedidoGuardado.servirJunto
+        Finally
+            _aplicandoModoAutomatico = False
+            _restaurandoModoGuardado = False
+        End Try
+        _modoElegidoEnEstaEdicion = False
+        AvisoModoServicio = Nothing
+    End Sub
+
+    ''' <summary>Toma el pedido en pantalla como el guardado (lo que hace la carga). Para los tests.</summary>
+    Friend Sub MarcarComoGuardado()
+        _snapshotPedidoGuardado = pedido?.Model?.CrearSnapshot()
+    End Sub
 
     Public Async Function GestionarEtiquetaRecogida() As Task
         Dim etiquetaExistente = ListaEnlacesSeguimiento?.FirstOrDefault(Function(e) e.Retorno > 0)
@@ -2744,7 +2795,7 @@ Public Class DetallePedidoViewModel
             End If
             Dim anterior As Byte = _modoServicioPrevio
             _modoServicioPrevio = pedido.ModoServicio
-            If ModosServicio.EsTodoJunto(anterior) AndAlso Not pedido.servirJunto Then
+            If ModosServicio.EsTodoJunto(anterior) AndAlso Not pedido.servirJunto AndAlso Not _restaurandoModoGuardado Then
                 OnValidarServirJunto()
             End If
         End If
@@ -2762,6 +2813,7 @@ Public Class DetallePedidoViewModel
             End Function))
     Private _modoElegidoEnEstaEdicion As Boolean
     Private _aplicandoModoAutomatico As Boolean
+    Private _restaurandoModoGuardado As Boolean ' Nesto#489
 
     ''' <summary>Las opciones del combo «Servir»: las que no tienen sentido para el pedido, deshabilitadas con su motivo.</summary>
     Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio)
