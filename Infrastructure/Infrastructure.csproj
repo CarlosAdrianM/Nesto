@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
+    <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
     <PackageReference Include="Prism.Core" Version="8.1.97" />
     <PackageReference Include="Prism.Wpf" Version="8.1.97" />

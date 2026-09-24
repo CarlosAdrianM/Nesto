@@ -152,8 +152,17 @@ Partial Public Class Application
                 Dim factory = provider.Resolve(Of IClienteApiFactory)()
                 Return New BuzonNotificacionesService(factory)
             End Function)
-        ' Nesto#477: aviso de notificaciones nuevas. Por ahora nulo; el push por SignalR llegará en otro tramo.
-        Dim unusedAvisos = containerRegistry.RegisterSingleton(Of IAvisosEnTiempoReal, AvisosEnTiempoRealNulo)()
+        ' NestoAPI#536: la campana (Nesto#477) recibe al momento, por SignalR, el aviso de notificaciones nuevas.
+        ' La conexión se arranca en OnInitialized (tras tener token) salvo que el parámetro AvisosTiempoReal
+        ' sea "NO": entonces no se conecta nunca y se comporta como el antiguo AvisosEnTiempoRealNulo.
+        Dim unusedAvisos = containerRegistry.RegisterSingleton(Of IAvisosEnTiempoReal)(
+            Function(provider)
+                Dim cfg = provider.Resolve(Of IConfiguracion)()
+                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
+                Dim errores = provider.Resolve(Of IServicioRegistroErrores)()
+                Return New AvisosEnTiempoRealSignalR(cfg.servidorAPI, auth,
+                    Sub(ex) errores.RegistrarErrorAsync(ex, "AvisosEnTiempoReal"))
+            End Function)
 
         ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
         Dim unusedAgencias = containerRegistry.RegisterSingleton(Of IServicioAgenciasMantenimiento)(
@@ -328,6 +337,40 @@ Partial Public Class Application
                 If token IsNot Nothing Then
                     System.Diagnostics.Debug.WriteLine("Token obtenido exitosamente al iniciar la aplicación")
                 End If
+                Await IniciarAvisosEnTiempoReal()
             End Function)
+    End Sub
+
+    ' NestoAPI#536: conecta la campana a los avisos por SignalR, salvo que el parámetro AvisosTiempoReal sea "NO".
+    ' Si no se puede leer el parámetro, se conecta igual (la conexión no molesta aunque falle: reintenta sola).
+    Private Async Function IniciarAvisosEnTiempoReal() As Task
+        Try
+            Dim avisos = TryCast(Container.Resolve(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)
+            If avisos Is Nothing Then
+                Return
+            End If
+            Dim valor As String = Nothing
+            Try
+                Dim cfg = Container.Resolve(Of IConfiguracion)()
+                valor = Await cfg.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AvisosTiempoReal)
+            Catch
+                ' Sin parámetro legible se queda el valor por defecto (conectada).
+            End Try
+            If String.Equals(If(valor, String.Empty).Trim(), "NO", StringComparison.OrdinalIgnoreCase) Then
+                Return
+            End If
+            avisos.Iniciar()
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"No se pudieron iniciar los avisos en tiempo real: {ex.Message}")
+        End Try
+    End Function
+
+    Protected Overrides Sub OnExit(e As ExitEventArgs)
+        Try
+            TryCast(Container?.Resolve(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)?.Detener()
+        Catch
+            ' Al cerrar, nada debe impedirlo.
+        End Try
+        MyBase.OnExit(e)
     End Sub
 End Class

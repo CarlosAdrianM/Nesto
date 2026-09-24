@@ -13,6 +13,9 @@
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";
             public const string AlmacenRuta = "AlmacénRuta";
+            // NestoAPI#536: "NO" = la campana no se conecta por SignalR para recibir los avisos al momento
+            // (se queda con su sondeo de seguridad). Cualquier otro valor, o sin fila, = conectada.
+            public const string AvisosTiempoReal = "AvisosTiempoReal";
             public const string CajaDefecto = "CajaDefecto";
             public const string CuentaBancoTarjeta = "CuentaBancoTarjeta";
             public const string ConciliacionBancariaUltimoBanco = "ConciliacionBancariaUltimoBanco";
