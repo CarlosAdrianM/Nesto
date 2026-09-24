@@ -3,7 +3,7 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Rapports;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Threading.Tasks;
@@ -24,7 +24,7 @@ namespace RapportsTests
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
             return new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IRegionManager>(),
-                A.Fake<IDialogService>(), A.Fake<IEventAggregator>());
+                A.Fake<IDialogService>(), new WeakReferenceMessenger());
         }
 
         // Nesto#469 (Carlos, 16/09/26): si se le pregunta y la deja vacía, tiene que confirmar que no lo
@@ -43,7 +43,7 @@ namespace RapportsTests
                     callback?.Invoke(resultado);
                 });
             var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IRegionManager>(),
-                dialogo, A.Fake<IEventAggregator>());
+                dialogo, new WeakReferenceMessenger());
             return (vm, dialogo);
         }
 

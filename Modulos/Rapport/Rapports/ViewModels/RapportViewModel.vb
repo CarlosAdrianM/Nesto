@@ -6,7 +6,7 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Nesto.Infrastructure.Events
 
 Public Class RapportViewModel
@@ -18,14 +18,14 @@ Public Class RapportViewModel
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IRapportService
     Private ReadOnly dialogService As IDialogService
-    Private ReadOnly _eventAggregator As IEventAggregator
+    Private ReadOnly _messenger As IMessenger
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService, eventAggregator As IEventAggregator)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService, messenger As IMessenger)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.regionManager = regionManager
         Me.dialogService = dialogService
-        _eventAggregator = eventAggregator
+        _messenger = messenger
 
         listaTiposRapports = servicio.CargarListaTipos()
 
@@ -337,11 +337,11 @@ Public Class RapportViewModel
                 Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria)
                 QuitarDeMiListado = False
             End If
-            _eventAggregator.GetEvent(Of RapportGuardadoEvent).Publish(0)
+            _messenger.Send(New RapportGuardadoMensaje(0))
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
             ' Nesto#206: la lista ya lo tenía como fila; que sepa que no se ha guardado.
-            _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Publish(rapport)
+            _messenger.Send(New RapportNoGuardadoMensaje(rapport))
             dialogService.ShowError(ex.Message)
         Finally
             _guardandoRapport = False

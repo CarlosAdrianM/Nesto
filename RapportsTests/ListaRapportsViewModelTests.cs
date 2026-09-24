@@ -2,7 +2,7 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Rapports;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Collections.Generic;
@@ -22,7 +22,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel()
         {
             return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
-                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), A.Fake<IEventAggregator>());
+                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]
@@ -67,7 +67,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
             return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
-                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), A.Fake<IEventAggregator>());
+                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]

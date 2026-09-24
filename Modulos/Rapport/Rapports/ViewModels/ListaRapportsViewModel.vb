@@ -7,7 +7,7 @@ Imports Nesto.Infrastructure.[Shared]
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -21,21 +21,19 @@ Public Class ListaRapportsViewModel
     Private ReadOnly servicio As IRapportService
     Private ReadOnly container As IUnityContainer
     Private ReadOnly _dialogService As IDialogService
-    Private ReadOnly _eventAggregator As IEventAggregator
-    Private _subscriptionToken As SubscriptionToken
-    Private _subscriptionTokenNoGuardado As SubscriptionToken
+    Private ReadOnly _messenger As IMessenger
     Private ReadOnly _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
     Public Property vendedor As String
 
 
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IDialogService, eventAggregator As IEventAggregator)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IDialogService, messenger As IMessenger)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.container = container
         _dialogService = dialogService
-        _eventAggregator = eventAggregator
+        _messenger = messenger
 
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         CambiarModoComparativaCommand = New RelayCommand(Of String)(Sub(valor) ModoComparativa = valor)
@@ -764,12 +762,14 @@ Public Class ListaRapportsViewModel
     End Sub
 
     Private Sub OnLoaded()
-        ' Suscríbete solo si no hay una suscripción activa
-        If _subscriptionToken Is Nothing Then
-            _subscriptionToken = _eventAggregator.GetEvent(Of RapportGuardadoEvent).Subscribe(AddressOf ActualizarClientesProbabilidad)
+        ' Suscríbete solo si no hay una suscripción activa (Nesto#490 4C.1: Messenger en vez de IEventAggregator;
+        ' registrar dos veces al mismo receptor lanza, de ahí el IsRegistered).
+        If Not _messenger.IsRegistered(Of RapportGuardadoMensaje)(Me) Then
+            ' Como antes: el 0 del aviso llegaba como grupoSubgrupo "0" (conversión implícita de VB).
+            _messenger.Register(Of RapportGuardadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaRapportsViewModel).ActualizarClientesProbabilidad(CStr(m.Value)))
         End If
-        If _subscriptionTokenNoGuardado Is Nothing Then
-            _subscriptionTokenNoGuardado = _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Subscribe(AddressOf QuitarRapportNoGuardado)
+        If Not _messenger.IsRegistered(Of RapportNoGuardadoMensaje)(Me) Then
+            _messenger.Register(Of RapportNoGuardadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaRapportsViewModel).QuitarRapportNoGuardado(m.Value))
         End If
     End Sub
 
@@ -791,15 +791,9 @@ Public Class ListaRapportsViewModel
     End Sub
 
     Private Sub OnUnloaded()
-        ' Desuscribirse del evento si hay una suscripción activa
-        If _subscriptionToken IsNot Nothing Then
-            _eventAggregator.GetEvent(Of RapportGuardadoEvent).Unsubscribe(_subscriptionToken)
-            _subscriptionToken = Nothing
-        End If
-        If _subscriptionTokenNoGuardado IsNot Nothing Then
-            _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Unsubscribe(_subscriptionTokenNoGuardado)
-            _subscriptionTokenNoGuardado = Nothing
-        End If
+        ' Desuscribirse de los mensajes (no hace nada si no estaba suscrita)
+        _messenger.Unregister(Of RapportGuardadoMensaje)(Me)
+        _messenger.Unregister(Of RapportNoGuardadoMensaje)(Me)
     End Sub
 
 
