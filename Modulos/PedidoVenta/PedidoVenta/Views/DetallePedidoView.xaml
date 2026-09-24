@@ -436,6 +436,7 @@
                                     FormaPago="{Binding pedido.formaPago, Mode=OneWay}"
                                     CCCSeleccionado="{Binding pedido.ccc, Mode=TwoWay}"
                                     MinWidth="250"
+                                    MostrarAviso="True"
                                     Margin="0,3,0,3"
                                     ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
                             </StackPanel>

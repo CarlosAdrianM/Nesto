@@ -23,12 +23,63 @@
         </Style>
     </UserControl.Resources>
 
-    <ComboBox x:Name="comboCCC"
-              ItemsSource="{Binding ElementName=Root, Path=ListaCCCs}"
-              SelectedValue="{Binding ElementName=Root, Path=CCCSeleccionado, Mode=TwoWay}"
-              SelectedValuePath="numero"
-              DisplayMemberPath="Descripcion"
-              ItemContainerStyle="{StaticResource ItemCCCStyle}"
-              MinWidth="200"
-              ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
+    <StackPanel>
+        <ComboBox x:Name="comboCCC"
+                  ItemsSource="{Binding ElementName=Root, Path=ListaCCCs}"
+                  SelectedValue="{Binding ElementName=Root, Path=CCCSeleccionado, Mode=TwoWay}"
+                  SelectedValuePath="numero"
+                  DisplayMemberPath="Descripcion"
+                  ItemContainerStyle="{StaticResource ItemCCCStyle}"
+                  MinWidth="200"
+                  ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
+
+        <!-- Nesto#486: con recibo bancario, qué cuenta se va a cargar y aviso si no vale para el banco -->
+        <TextBlock x:Name="textoCuentaACargar"
+                   Text="{Binding ElementName=Root, Path=TextoCuentaACargar}"
+                   Margin="0,2,0,0"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding ElementName=Root, Path=MostrarAviso}" Value="True"/>
+                                <Condition Binding="{Binding ElementName=Root, Path=HayTextoCuentaACargar}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <Border x:Name="bordeAvisoRecibo"
+                Margin="0,4,0,0"
+                Padding="6,4"
+                CornerRadius="3"
+                BorderThickness="1"
+                BorderBrush="#C62828"
+                Background="#FFF3E0">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding ElementName=Root, Path=MostrarAviso}" Value="True"/>
+                                <Condition Binding="{Binding ElementName=Root, Path=HayAvisoRecibo}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ElementName=Root, Path=AvisoRecibo}"
+                       Foreground="#C62828"
+                       FontWeight="Bold"
+                       TextWrapping="Wrap"
+                       MaxWidth="420"/>
+        </Border>
+    </StackPanel>
 </UserControl>

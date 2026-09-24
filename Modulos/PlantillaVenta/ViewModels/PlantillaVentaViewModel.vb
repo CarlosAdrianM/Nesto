@@ -1443,6 +1443,7 @@ Public Class PlantillaVentaViewModel
                 Estado.PeriodoFacturacion = value.periodoFacturacion
                 Estado.Ruta = value.ruta
                 Estado.Ccc = value.ccc
+                OnPropertyChanged(NameOf(CccSeleccionado)) ' Nesto#486
                 Estado.NoComisiona = value.noComisiona
                 Estado.MantenerJunto = value.mantenerJunto
                 Estado.ServirJunto = value.servirJunto
@@ -1699,6 +1700,34 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Nesto#486: con recibo bancario el paso de finalizar enseña el SelectorCCC (cuenta a cargar
+    ''' y aviso si el cliente no tiene ninguna válida). Misma regla que el detalle de pedido.
+    ''' </summary>
+    Public ReadOnly Property EsReciboBancario As Boolean
+        Get
+            Return ControlesUsuario.ReglaCCCRecibo.EsReciboBancario(FormaPagoSeleccionada?.formaPago)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#486: la cuenta que llevará el pedido (Estado.Ccc). Nace con la de la ficha del
+    ''' contacto (direccionEntregaSeleccionada.ccc, la misma que pondría la API) y el usuario la
+    ''' puede cambiar en el SelectorCCC. Al crear el pedido solo se manda si la forma de pago
+    ''' lleva CCC obligatorio.
+    ''' </summary>
+    Public Property CccSeleccionado As String
+        Get
+            Return Estado.Ccc
+        End Get
+        Set(value As String)
+            If Estado.Ccc <> value Then
+                Estado.Ccc = value
+                OnPropertyChanged()
+            End If
+        End Set
+    End Property
+
     Private _estanGanavisionesMostrados As Boolean
     Public Property EstanGanavisionesMostrados As Boolean
         Get
@@ -1837,6 +1866,7 @@ Public Class PlantillaVentaViewModel
             cmdCrearPedido.NotifyCanExecuteChanged()
             OnPropertyChanged(NameOf(SePuedeFinalizar))
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
+            OnPropertyChanged(NameOf(EsReciboBancario)) ' Nesto#486
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
             ' Issue #159: al cambiar forma de pago puede activar/desactivar EsContraReembolso,
             ' lo que cambia el importe de comisión y la visibilidad de la casilla.

@@ -791,6 +791,23 @@
                             <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding MandarCobroTarjeta}" Visibility="{Binding EsTarjetaPrepago, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3">¿Mandar cobro por tarjeta?</CheckBox>
                             <xctk:WatermarkTextBox Grid.Row="1" Grid.Column="1" Text="{Binding CobroTarjetaCorreo}" Watermark="Correo electrónico para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
                             <xctk:WatermarkTextBox Grid.Row="2" Grid.Column="1" Text="{Binding CobroTarjetaMovil}" Watermark="Móvil para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
+                            <!-- Nesto#486: con recibo bancario, qué cuenta se va a cargar (la de la ficha del contacto,
+                                 la misma que pondría la API) y aviso si el cliente no tiene ninguna válida.
+                                 FormaPago fijo a RCB: solo se ve con recibo, y así no borra Estado.Ccc al pasar
+                                 por otras formas de pago (portes y servir junto lo siguen recibiendo como hoy). -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Grid.RowSpan="3" Margin="3"
+                                        Visibility="{Binding EsReciboBancario, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="Cuenta para el recibo:"/>
+                                <controlesusuario:SelectorCCC
+                                    Empresa="{Binding clienteSeleccionado.empresa, Mode=OneWay}"
+                                    Cliente="{Binding clienteSeleccionado.cliente, Mode=OneWay}"
+                                    Contacto="{Binding direccionEntregaSeleccionada.contacto, Mode=OneWay}"
+                                    FormaPago="RCB"
+                                    CCCSeleccionado="{Binding CccSeleccionado, Mode=TwoWay}"
+                                    MostrarAviso="True"
+                                    MinWidth="300"
+                                    Margin="0,3,0,0"/>
+                            </StackPanel>
                         </Grid>
 
                         <StackPanel Grid.Row="4">

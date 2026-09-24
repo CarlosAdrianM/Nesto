@@ -2,6 +2,7 @@ using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Prism.Ioc;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -144,6 +145,25 @@ namespace ControlesUsuario
             var selector = (SelectorCCC)d;
             if (selector._estaCargando) return; // Prevenir bucles
             selector.ActualizarSeleccionSegunFormaPago();
+            selector.ActualizarAviso();
+        }
+
+        /// <summary>
+        /// Nesto#486: si es true, con recibo bancario enseña debajo del combo la cuenta que se va a
+        /// cargar y, si no vale para el banco, un aviso bien visible. Por defecto false para no
+        /// meter el aviso en las filas de efectos del detalle de pedido.
+        /// </summary>
+        public static readonly DependencyProperty MostrarAvisoProperty =
+            DependencyProperty.Register(
+                nameof(MostrarAviso),
+                typeof(bool),
+                typeof(SelectorCCC),
+                new FrameworkPropertyMetadata(false));
+
+        public bool MostrarAviso
+        {
+            get => (bool)GetValue(MostrarAvisoProperty);
+            set => SetValue(MostrarAvisoProperty, value);
         }
 
         #endregion
@@ -177,6 +197,7 @@ namespace ControlesUsuario
             // Carlos 20/11/24: CRÍTICO - Disparar PropertyChanged para que el binding TwoWay funcione
             // Sin esto, el cambio NO se propaga de vuelta a pedido.ccc
             selector.OnPropertyChanged(nameof(CCCSeleccionado));
+            selector.ActualizarAviso();
         }
 
         #endregion
@@ -196,6 +217,46 @@ namespace ControlesUsuario
                 }
             }
         }
+
+        // Nesto#486: CCCs tal y como llegan de la API; null mientras no se han podido cargar
+        // (sin datos o error), para no avisar de «sin cuenta» sin saberlo.
+        private List<CCCItem> _cccsCargados;
+
+        private string _avisoRecibo;
+        /// <summary>Nesto#486: aviso en naranja/rojo (ReglaCCCRecibo.Aviso) o null.</summary>
+        public string AvisoRecibo
+        {
+            get => _avisoRecibo;
+            private set
+            {
+                if (_avisoRecibo != value)
+                {
+                    _avisoRecibo = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HayAvisoRecibo));
+                }
+            }
+        }
+
+        public bool HayAvisoRecibo => !string.IsNullOrEmpty(AvisoRecibo);
+
+        private string _textoCuentaACargar;
+        /// <summary>Nesto#486: «Se cargará en: ES12 …… 4321 — Banco X» o null.</summary>
+        public string TextoCuentaACargar
+        {
+            get => _textoCuentaACargar;
+            private set
+            {
+                if (_textoCuentaACargar != value)
+                {
+                    _textoCuentaACargar = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HayTextoCuentaACargar));
+                }
+            }
+        }
+
+        public bool HayTextoCuentaACargar => !string.IsNullOrEmpty(TextoCuentaACargar);
 
         #endregion
 
@@ -217,6 +278,8 @@ namespace ControlesUsuario
                 Debug.WriteLine($"[SelectorCCC] Datos incompletos - Saliendo");
                 // Limpiar lista si faltan datos
                 ListaCCCs = new ObservableCollection<CCCItem>();
+                _cccsCargados = null;
+                ActualizarAviso();
                 return;
             }
 
@@ -283,6 +346,7 @@ namespace ControlesUsuario
                 }
 
                 ListaCCCs = lista;
+                _cccsCargados = cccs.ToList();
                 Debug.WriteLine($"[SelectorCCC] Lista asignada con {lista.Count} elementos");
 
                 // Auto-seleccionar según lógica de negocio
@@ -308,10 +372,12 @@ namespace ControlesUsuario
 
                 // Seleccionar "(Sin CCC)" en caso de error
                 CCCSeleccionado = null;
+                _cccsCargados = null;
             }
             finally
             {
                 _estaCargando = false;
+                ActualizarAviso();
             }
         }
 
@@ -347,8 +413,10 @@ namespace ControlesUsuario
             // Lógica de auto-selección según forma de pago
             if (FormaPago?.Trim() == "RCB") // RCB = Recibo Bancario
             {
-                // Forma de pago es RCB (Recibo) → Seleccionar primer CCC válido
-                var primerValido = lista.FirstOrDefault(c => c.EsValido && !string.IsNullOrEmpty(c.numero));
+                // Forma de pago es RCB (Recibo) → Seleccionar primer CCC válido. Nesto#486: antes
+                // uno que la remesa acepte (no de baja y con IBAN correcto).
+                var primerValido = lista.FirstOrDefault(ReglaCCCRecibo.EsValidaParaRecibo)
+                    ?? lista.FirstOrDefault(c => c.EsValido && !string.IsNullOrEmpty(c.numero));
                 Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - FormaPago=RCB, seleccionando primerValido='{primerValido?.numero}'");
                 CCCSeleccionado = primerValido?.numero;
             }
@@ -370,6 +438,21 @@ namespace ControlesUsuario
                 return;
 
             AutoSeleccionarCCC(ListaCCCs);
+        }
+
+        /// <summary>
+        /// Nesto#486: recalcula el aviso y la cuenta a cargar con la regla compartida.
+        /// </summary>
+        private void ActualizarAviso()
+        {
+            if (_cccsCargados == null)
+            {
+                AvisoRecibo = null;
+                TextoCuentaACargar = null;
+                return;
+            }
+            AvisoRecibo = ReglaCCCRecibo.Aviso(FormaPago, _cccsCargados, CCCSeleccionado);
+            TextoCuentaACargar = ReglaCCCRecibo.TextoCuentaACargar(FormaPago, _cccsCargados, CCCSeleccionado);
         }
 
         #endregion
