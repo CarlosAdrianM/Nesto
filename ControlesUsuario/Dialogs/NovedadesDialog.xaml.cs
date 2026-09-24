@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace ControlesUsuario.Dialogs
@@ -61,10 +62,65 @@ namespace ControlesUsuario.Dialogs
                 return;
             }
             NovedadItem destacada = vm.NovedadDestacada;
+            SeguirComentarioDestacado(destacada);
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new System.Action(() =>
             {
                 (ListaNovedades.ItemContainerGenerator.ContainerFromItem(destacada) as FrameworkElement)?.BringIntoView();
             }));
+        }
+
+        // Nesto#477: al llegar desde la campana, el comentario de la notificación se hace visible cuando
+        // la novedad destacada termina de cargar sus comentarios.
+        private NovedadItem _novedadSeguida;
+
+        private void SeguirComentarioDestacado(NovedadItem novedad)
+        {
+            if (_novedadSeguida != null)
+            {
+                _novedadSeguida.PropertyChanged -= OnNovedadDestacadaPropertyChanged;
+            }
+            _novedadSeguida = novedad;
+            if (_novedadSeguida != null)
+            {
+                _novedadSeguida.PropertyChanged += OnNovedadDestacadaPropertyChanged;
+            }
+        }
+
+        private void OnNovedadDestacadaPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(NovedadItem.ComentarioDestacado)
+                || !(sender is NovedadItem novedad) || novedad.ComentarioDestacado == null)
+            {
+                return;
+            }
+            ComentarioItem comentario = novedad.ComentarioDestacado;
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new System.Action(() =>
+            {
+                var contenedor = ListaNovedades.ItemContainerGenerator.ContainerFromItem(novedad) as DependencyObject;
+                (BuscarPorDataContext(contenedor, comentario) as FrameworkElement)?.BringIntoView();
+            }));
+        }
+
+        private static DependencyObject BuscarPorDataContext(DependencyObject padre, object dataContext)
+        {
+            if (padre == null)
+            {
+                return null;
+            }
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(padre); i++)
+            {
+                DependencyObject hijo = VisualTreeHelper.GetChild(padre, i);
+                if (hijo is ContentPresenter presentador && presentador.Content == dataContext)
+                {
+                    return presentador;
+                }
+                DependencyObject encontrado = BuscarPorDataContext(hijo, dataContext);
+                if (encontrado != null)
+                {
+                    return encontrado;
+                }
+            }
+            return null;
         }
     }
 }

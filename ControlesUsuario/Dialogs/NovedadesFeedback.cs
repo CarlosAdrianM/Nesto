@@ -386,7 +386,25 @@ namespace ControlesUsuario.Dialogs
             return true;
         }
 
-        private async Task CargarComentarios()
+        private ComentarioItem _comentarioDestacado;
+        /// <summary>Nesto#477: el comentario al que lleva la notificación (se resalta y la vista lo hace visible).</summary>
+        public ComentarioItem ComentarioDestacado { get => _comentarioDestacado; private set => SetProperty(ref _comentarioDestacado, value); }
+
+        /// <summary>
+        /// Nesto#477: abre los comentarios (sin plegarlos si ya estaban abiertos ni ofrecer el portapapeles:
+        /// se viene a leer) y resalta <paramref name="comentarioADestacar"/> en cuanto llega la lista.
+        /// </summary>
+        internal async Task AbrirComentarios(int? comentarioADestacar)
+        {
+            if (!TieneFeedback)
+            {
+                return;
+            }
+            ComentariosAbiertos = true;
+            await CargarComentarios(comentarioADestacar);
+        }
+
+        private async Task CargarComentarios(int? comentarioADestacar = null)
         {
             try
             {
@@ -397,6 +415,19 @@ namespace ControlesUsuario.Dialogs
                     Comentarios.Add(new ComentarioItem(c));
                 }
                 NumeroComentarios = Comentarios.Count;
+                if (comentarioADestacar.HasValue)
+                {
+                    ComentarioItem destacado = null;
+                    foreach (ComentarioItem c in Comentarios)
+                    {
+                        if (c.Id == comentarioADestacar.Value)
+                        {
+                            destacado = c;
+                            c.Destacado = true;
+                        }
+                    }
+                    ComentarioDestacado = destacado;
+                }
                 // Las miniaturas se piden al desplegar, no antes (no cargar imágenes que nadie mira).
                 foreach (ComentarioItem c in Comentarios)
                 {
@@ -501,6 +532,10 @@ namespace ControlesUsuario.Dialogs
 
         private bool _imagenNoDisponible;
         public bool ImagenNoDisponible { get => _imagenNoDisponible; set => SetProperty(ref _imagenNoDisponible, value); }
+
+        private bool _destacado;
+        /// <summary>Nesto#477: el comentario al que lleva la notificación de la campana.</summary>
+        public bool Destacado { get => _destacado; internal set => SetProperty(ref _destacado, value); }
     }
 
     /// <summary>NestoAPI#520: bytes (PNG/JPEG) → imagen para la miniatura. Null o bytes rotos → sin imagen.</summary>

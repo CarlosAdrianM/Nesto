@@ -218,7 +218,17 @@
                                             <ItemsControl ItemsSource="{Binding Comentarios}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
+                                                        <!-- Nesto#477: el comentario al que lleva la notificación de la campana, resaltado -->
                                                         <Border BorderBrush="#E3E3E3" BorderThickness="0,0,0,1" Padding="0,4,0,6">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Destacado}" Value="True">
+                                                                            <Setter Property="Background" Value="#FFF6D5" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
                                                             <StackPanel>
                                                                 <DockPanel>
                                                                     <Button DockPanel.Dock="Right" Content="Borrar" FontSize="11" Padding="6,0"

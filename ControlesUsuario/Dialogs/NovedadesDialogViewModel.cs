@@ -132,7 +132,20 @@ namespace ControlesUsuario.Dialogs
             _items = todas.Where(n => n != null).Select(CrearItem).ToList();
             Reagrupar();
             MostrarVersion(0);
+
+            // Nesto#477: desde la campana (te han contestado): directos a la novedad y al comentario.
+            if (parameters.ContainsKey(PARAMETRO_NOVEDAD_ID))
+            {
+                int? comentarioId = parameters.ContainsKey(PARAMETRO_COMENTARIO_ID)
+                    ? parameters.GetValue<int>(PARAMETRO_COMENTARIO_ID)
+                    : (int?)null;
+                _ = IrANovedadComentario(parameters.GetValue<int>(PARAMETRO_NOVEDAD_ID), comentarioId);
+            }
         }
+
+        /// <summary>Nesto#477: parámetros del diálogo para abrirlo en una novedad y en uno de sus comentarios.</summary>
+        public const string PARAMETRO_NOVEDAD_ID = "novedadId";
+        public const string PARAMETRO_COMENTARIO_ID = "comentarioId";
 
         private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar);
 
@@ -525,12 +538,10 @@ namespace ControlesUsuario.Dialogs
                 return;
             }
 
-            if (!_items.Any(i => i.Id == encontrada.Id) && _servicio != null)
+            if (!_items.Any(i => i.Id == encontrada.Id))
             {
-                // ObtenerNovedades nunca lanza: si falla, se sigue con la novedad del propio buscador.
-                List<NovedadUsuario> todas = await _servicio.ObtenerNovedades() ?? new List<NovedadUsuario>();
-                var cargadas = new HashSet<int>(_items.Select(i => i.Id));
-                _items.AddRange(todas.Where(n => n != null && !n.EsSugerencia && cargadas.Add(n.Id)).Select(CrearItem));
+                // Si falla, se sigue con la novedad del propio buscador.
+                await CargarTodasLasNovedades();
             }
             NovedadItem item = _items.FirstOrDefault(i => i.Id == encontrada.Id);
             if (item == null)
@@ -538,10 +549,74 @@ namespace ControlesUsuario.Dialogs
                 item = CrearItem(encontrada);
                 _items.Add(item);
             }
+            MostrarConVersion(item);
+        }
+
+        /// <summary>Añade a las cargadas todas las publicadas (en el popup de arranque solo vienen las nuevas).</summary>
+        private async Task CargarTodasLasNovedades()
+        {
+            if (_servicio == null)
+            {
+                return;
+            }
+            // ObtenerNovedades nunca lanza: si falla, se sigue con lo que hay.
+            List<NovedadUsuario> todas = await _servicio.ObtenerNovedades() ?? new List<NovedadUsuario>();
+            var cargadas = new HashSet<int>(_items.Select(i => i.Id));
+            _items.AddRange(todas.Where(n => n != null && !n.EsSugerencia && cargadas.Add(n.Id)).Select(CrearItem));
+        }
+
+        private void MostrarConVersion(NovedadItem item)
+        {
             Reagrupar();
             string version = (item.Version ?? string.Empty).Trim();
             MostrarVersion(_porVersion.FindIndex(g => g.Key == version));
             Destacar(item);
+        }
+
+        #endregion
+
+        #region Nesto#477: abrir en una novedad y un comentario (la campana de notificaciones)
+
+        internal const string MENSAJE_NOVEDAD_NO_ENCONTRADA = "No encuentro la novedad de la notificación: puede que ya no esté publicada.";
+
+        /// <summary>
+        /// Salta a la novedad <paramref name="novedadId"/> (con versión: a su versión; sin ella es una
+        /// sugerencia: a Sugerencias), la resalta, le abre los comentarios y resalta el comentario
+        /// <paramref name="comentarioId"/>. De la notificación solo se tiene el id: se busca en las cargadas,
+        /// luego en todas las publicadas y, si no está, en las sugerencias. Reutiliza el salto del buscador (#487).
+        /// </summary>
+        internal async Task IrANovedadComentario(int novedadId, int? comentarioId)
+        {
+            NovedadItem item = await IrANovedad(novedadId);
+            if (item != null)
+            {
+                await item.AbrirComentarios(comentarioId);
+            }
+        }
+
+        private async Task<NovedadItem> IrANovedad(int novedadId)
+        {
+            NovedadItem item = _items.FirstOrDefault(i => i.Id == novedadId);
+            if (item == null)
+            {
+                await CargarTodasLasNovedades();
+                item = _items.FirstOrDefault(i => i.Id == novedadId);
+            }
+            if (item != null)
+            {
+                MostrarConVersion(item);
+                return item;
+            }
+
+            await IrASugerencias();
+            NovedadItem sugerencia = _sugerencias?.FirstOrDefault(s => s.Id == novedadId);
+            if (sugerencia == null)
+            {
+                MensajeSugerencias = MENSAJE_NOVEDAD_NO_ENCONTRADA;
+                return null;
+            }
+            Destacar(sugerencia);
+            return sugerencia;
         }
 
         private void Destacar(NovedadItem item)
