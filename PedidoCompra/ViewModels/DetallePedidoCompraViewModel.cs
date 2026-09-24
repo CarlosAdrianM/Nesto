@@ -7,7 +7,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -29,18 +29,18 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public IDialogService DialogService { get; }
         public IRegionManager RegionManager { get; }
         public IConfiguracion Configuracion { get; }
-        private IEventAggregator EventAggregator { get; }
+        private IMessenger Messenger { get; }
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IEventAggregator eventAggregator, IServicioAutenticacion servicioAutenticacion)
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IMessenger messenger, IServicioAutenticacion servicioAutenticacion)
         {
             Servicio = servicio;
             DialogService = dialogService;
             RegionManager = regionManager;
             InteractiveBrowserCredential = interactiveBrowserCredential;
             Configuracion = configuracion;
-            EventAggregator = eventAggregator;
+            Messenger = messenger;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
             AmpliarHastaStockMaximoCommand = new RelayCommand(OnAmpliarHastaStockMaximo);
@@ -286,7 +286,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 EstaOcupado = true;
                 Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
                 DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
-                EventAggregator.GetEvent<PedidoCompraModificadoEvent>().Publish(Pedido.Model);
+                Messenger.Send(new PedidoCompraModificadoMensaje(Pedido.Model));
                 ((IRelayCommand<PedidoCompraWrapper>)EnviarPedidoCommand).NotifyCanExecuteChanged();
                 ((IRelayCommand)GuardarPedidoCommand).NotifyCanExecuteChanged();
             }

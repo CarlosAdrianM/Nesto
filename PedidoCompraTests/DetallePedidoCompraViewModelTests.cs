@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.ViewModels;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Collections.Generic;
@@ -32,7 +32,7 @@ namespace PedidoCompraTests
         private DetallePedidoCompraViewModel CrearVm()
         {
             return new DetallePedidoCompraViewModel(_servicio, A.Fake<IDialogService>(), A.Fake<IRegionManager>(), null,
-                A.Fake<IConfiguracion>(), A.Fake<IEventAggregator>(), A.Fake<IServicioAutenticacion>());
+                A.Fake<IConfiguracion>(), new WeakReferenceMessenger(), A.Fake<IServicioAutenticacion>());
         }
 
         private PedidoCompraWrapper PedidoCon(params LineaPedidoCompraDTO[] lineas)

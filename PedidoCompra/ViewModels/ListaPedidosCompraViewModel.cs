@@ -4,7 +4,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -21,20 +21,21 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     {
         public IPedidoCompraService Servicio { get; }
         public IDialogService DialogService { get; }
-        private IEventAggregator EventAggregator { get; }
+        private IMessenger Messenger { get; }
 
-        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IEventAggregator eventAggregator)
+        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IMessenger messenger)
         {
             Servicio = servicio;
             DialogService = dialogService;
-            EventAggregator = eventAggregator;
+            Messenger = messenger;
             CargarPedidosCommand = new RelayCommand(OnCargarPedidos);
 
             ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCompraLookup>());
             ListaPedidos.TieneDatosIniciales = true;
             ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => { CargarPedidoSeleccionado(); };
 
-            EventAggregator.GetEvent<PedidoCompraModificadoEvent>().Subscribe(ActualizarPedidoLookup);
+            // Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
+            Messenger.Register<PedidoCompraModificadoMensaje>(this, (r, m) => ((ListaPedidosCompraViewModel)r).ActualizarPedidoLookup(m.Value));
         }
 
         private bool _estaCargandoListaPedidos;
