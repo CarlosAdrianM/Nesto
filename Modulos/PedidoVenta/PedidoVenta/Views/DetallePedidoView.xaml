@@ -712,9 +712,9 @@
             <StackPanel Grid.Row="1">
                 <!-- Nesto#485: barra de facturación común a todas las pestañas (antes solo en Cabecera), para
                      facturar desde Líneas sin volver a Cabecera. Mismos comandos y reglas de visibilidad.
-                     BarraFacturacion_Click confirma antes la celda en edición de Líneas (el Click se
+                     ConfirmarEdicionLineas_Click confirma antes la celda en edición de Líneas (el Click se
                      dispara antes de ejecutar el comando del botón). -->
-                <UniformGrid Rows="1" Margin="0,0,0,2" ButtonBase.Click="BarraFacturacion_Click">
+                <UniformGrid Rows="1" Margin="0,0,0,2" ButtonBase.Click="ConfirmarEdicionLineas_Click">
                     <!-- Nesto#413: la visibilidad incluye los pedidos con líneas de tienda online (no solo el grupo almacén/tiendas) -->
                     <Button Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
                     <Button Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
@@ -743,7 +743,8 @@
                         <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>
                     </StackPanel>
                 </UniformGrid>
-                <Button Command="{Binding cmdModificarPedido}" Content="{Binding TextoBotonGuardar}" />
+                <!-- Guardar también confirma antes la celda/fila en edición de Líneas -->
+                <Button Command="{Binding cmdModificarPedido}" Content="{Binding TextoBotonGuardar}" Click="ConfirmarEdicionLineas_Click" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3*"/>

@@ -299,14 +299,14 @@ Public Class DetallePedidoView
         End If
     End Sub
 
-#Region "Nesto#485: barra de facturación común a todas las pestañas"
+#Region "Nesto#485: confirmar la edición de Líneas antes de facturar o guardar"
     ''' <summary>
-    ''' Nesto#485: la barra de crear albarán/factura e imprimir está visible desde cualquier pestaña, también
-    ''' desde Líneas con una celda a medio teclear. El Click del botón se dispara ANTES de ejecutar su comando,
-    ''' así que aquí se confirma la edición en curso (celda y fila) para que la última línea tecleada cuente
-    ''' al comprobar cambios sin guardar y al guardar. Si no hay edición, CommitEdit no hace nada.
+    ''' Nesto#485: la barra de crear albarán/factura e imprimir y el botón Guardar están visibles desde cualquier
+    ''' pestaña, también desde Líneas con una celda a medio teclear. El Click del botón se dispara ANTES de ejecutar
+    ''' su comando, así que aquí se confirma la edición en curso (celda y fila) para que la última línea tecleada
+    ''' cuente al comprobar cambios sin guardar y al guardar. Si no hay edición, CommitEdit no hace nada.
     ''' </summary>
-    Private Sub BarraFacturacion_Click(sender As Object, e As RoutedEventArgs)
+    Private Sub ConfirmarEdicionLineas_Click(sender As Object, e As RoutedEventArgs)
         ConfirmarEdicionLineas()
     End Sub
 
