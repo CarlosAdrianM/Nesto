@@ -1184,9 +1184,25 @@ Public Class AgenciasViewModel
             OnPropertyChanged(NameOf(sePuedeModificarReembolso))
             OnPropertyChanged(NameOf(sePuedeModificarEstado))
             OnPropertyChanged(NameOf(etiquetaBultosTramitados))
+            OnPropertyChanged(NameOf(CabeceraTramitados))
             cmdImprimirManifiesto.NotifyCanExecuteChanged()
         End Set
     End Property
+
+    ''' <summary>
+    ''' NestoAPI#516: cabecera de la pestaña Tramitados con cuántos están ya en reparto
+    ''' («Tramitados (3 en reparto)»); sin ninguno, «Tramitados» a secas.
+    ''' </summary>
+    Public ReadOnly Property CabeceraTramitados As String
+        Get
+            Return TextoCabeceraTramitados(listaEnviosTramitados)
+        End Get
+    End Property
+
+    Public Shared Function TextoCabeceraTramitados(envios As IEnumerable(Of EnviosAgencia)) As String
+        Dim enReparto As Integer = If(envios Is Nothing, 0, envios.Count(Function(e) e IsNot Nothing AndAlso e.EnReparto))
+        Return If(enReparto = 0, "Tramitados", $"Tramitados ({enReparto} en reparto)")
+    End Function
 
     ' #387: todos los envíos que siguen incidentados (Estado=3), sin filtro de fecha ni de agencia.
     Private _listaIncidentados As ObservableCollection(Of EnviosAgencia)

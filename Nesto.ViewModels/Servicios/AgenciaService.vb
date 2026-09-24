@@ -438,7 +438,7 @@ Public Class AgenciaService
         Return $"{empresa?.Trim()}|{numero}"
     End Function
 
-    Private Shared Function AEnvioAgencia(dto As EnvioAgenciaListadoDTO, agencias As Dictionary(Of String, AgenciasTransporte)) As EnviosAgencia
+    Friend Shared Function AEnvioAgencia(dto As EnvioAgenciaListadoDTO, agencias As Dictionary(Of String, AgenciasTransporte)) As EnviosAgencia
         Dim agencia As AgenciasTransporte = Nothing
         If agencias IsNot Nothing Then
             Dim unused = agencias.TryGetValue(ClaveAgencia(dto.Empresa, dto.Agencia), agencia)
@@ -485,6 +485,7 @@ Public Class AgenciaService
             .EmailPlaza = dto.EmailPlaza,
             .RowVersion = dto.RowVersion,
             .DetalleEstado = dto.DetalleEstado,
+            .EnReparto = dto.EnReparto,
             .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
                 .Empresa = ComoCharDeLaBD(dto.Empresa, LONGITUD_EMPRESA), .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
         }
@@ -1167,4 +1168,7 @@ Friend Class EnvioAgenciaListadoDTO
     ' NestoAPI#259: motivo del estado tal y como lo da la agencia. Lo escribe el poll de
     ' seguimiento del servidor; aqui es de solo lectura y alimenta la columna "Incidencia".
     Public Property DetalleEstado As String
+    ' NestoAPI#516: tramitado que la agencia ya ha sacado a reparto (derivado de DetalleEstado en la API).
+    ' Con una API anterior no viene y se queda en False.
+    Public Property EnReparto As Boolean
 End Class

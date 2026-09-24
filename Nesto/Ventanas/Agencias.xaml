@@ -427,7 +427,8 @@
                     </DockPanel>
                 </Grid>
             </TabItem>
-            <TabItem Name="tabTramitados" Header="Tramitados">
+            <!-- NestoAPI#516: la cabecera dice cuántos tramitados están ya en reparto -->
+            <TabItem Name="tabTramitados" Header="{Binding CabeceraTramitados}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -520,6 +521,34 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
+                                <!-- NestoAPI#516: la agencia ya lo ha sacado a reparto (dato del envío, no un estado: sigue aquí) -->
+                                <DataGridTemplateColumn Header="Reparto" Width="Auto" SortMemberPath="EnReparto">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock FontWeight="Bold" Foreground="Teal">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value=""/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding EnReparto}" Value="True">
+                                                                <Setter Property="Text" Value="En reparto"/>
+                                                                <Setter Property="ToolTip" Value="La agencia ya lo ha sacado a reparto: en principio se entrega hoy"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <!-- NestoAPI#259/#516: el último texto de la agencia, tal cual -->
+                                <DataGridTextColumn Header="Último evento" Binding="{Binding DetalleEstado}" Width="Auto">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding DetalleEstado}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
                                 <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
                                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
