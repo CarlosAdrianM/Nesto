@@ -340,39 +340,38 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             return ampliadoHastaStockMaximo;
         }
 
-        private async void OnPedidoAmpliar(string ampliarReducir)
+        private void OnPedidoAmpliar(string ampliarReducir)
         {
             try
             {
                 EstaOcupado = true;
-                await Task.Run(() =>
+                // Nesto#488: en el hilo de la UI (antes, Task.Run). Es un cálculo en memoria de unas pocas líneas
+                // y cambia propiedades enlazadas del pedido y de sus líneas: no hay nada que mandar al pool.
+                LineaMaximaCantidad = Pedido.Lineas
+                    .Where(l => l.Model.Subgrupo != Constantes.Productos.Grupos.MUESTRAS)
+                    .OrderByDescending(l => l.Model.StockMaximo).FirstOrDefault();
+                if (LineaMaximaCantidad.Model.StockMaximo <= 0)
                 {
-                    LineaMaximaCantidad = Pedido.Lineas
-                        .Where(l => l.Model.Subgrupo != Constantes.Productos.Grupos.MUESTRAS)
-                        .OrderByDescending(l => l.Model.StockMaximo).FirstOrDefault();
-                    if (LineaMaximaCantidad.Model.StockMaximo <= 0)
-                    {
-                        return;
-                    }
-                    decimal ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal + LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
+                    return;
+                }
+                decimal ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal + LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
 
-                    if (ampliarReducir == "reducir")
-                    {
-                        ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal - LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
-                    }
+                if (ampliarReducir == "reducir")
+                {
+                    ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal - LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
+                }
 
-                    foreach (var linea in Pedido.Lineas)
+                foreach (var linea in Pedido.Lineas)
+                {
+                    linea.Model.CantidadBruta = (int)Math.Round((decimal)linea.Model.StockMaximo * ratioIncremento) + linea.CantidadOriginal;
+                    linea.Cantidad = linea.Model.CantidadBruta > 0 ? linea.Model.CantidadBruta : 0;
+                    if (linea.Model.Multiplos != 0)
                     {
-                        linea.Model.CantidadBruta = (int)Math.Round((decimal)linea.Model.StockMaximo * ratioIncremento) + linea.CantidadOriginal;
-                        linea.Cantidad = linea.Model.CantidadBruta > 0 ? linea.Model.CantidadBruta : 0;
-                        if (linea.Model.Multiplos != 0)
-                        {
-                            linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)linea.Cantidad / linea.Model.Multiplos) * linea.Model.Multiplos);
-                        }
+                        linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)linea.Cantidad / linea.Model.Multiplos) * linea.Model.Multiplos);
                     }
-                    OnPropertyChanged(string.Empty);
-                    OnPropertyChanged(nameof(Pedido));
-                });
+                }
+                OnPropertyChanged(string.Empty);
+                OnPropertyChanged(nameof(Pedido));
             }
             catch (Exception ex)
             {

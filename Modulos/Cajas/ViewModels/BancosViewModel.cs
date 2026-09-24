@@ -1262,16 +1262,18 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             FiltrarRegistros();
         }
+        // Nesto#488: sin ConfigureAwait(false). Tras el await se asignan propiedades enlazadas y se crea la
+        // CollectionView (que es del hilo que la crea): todo eso tiene que ocurrir en el hilo de la UI.
         private async Task CargarApuntesBanco(DateTime fechaDesde, DateTime fechaHasta)
         {
             try
             {
                 IsBusyApuntesBanco = true;
-                List<ApunteBancarioDTO> lista = await _bancosService.LeerApuntesBanco(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.Codigo, fechaDesde, fechaHasta).ConfigureAwait(false);
+                List<ApunteBancarioDTO> lista = await _bancosService.LeerApuntesBanco(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.Codigo, fechaDesde, fechaHasta);
                 ApuntesBanco = [.. lista.Select(apunteBancarioDTO => new ApunteBancarioWrapper(apunteBancarioDTO))];
                 ApuntesBancoCollectionView = CollectionViewSource.GetDefaultView(ApuntesBanco);
-                SaldoInicialBanco = await _bancosService.SaldoBancoInicial(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaDesde).ConfigureAwait(false);
-                SaldoFinalBanco = await _bancosService.SaldoBancoFinal(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaHasta).ConfigureAwait(false);
+                SaldoInicialBanco = await _bancosService.SaldoBancoInicial(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaDesde);
+                SaldoFinalBanco = await _bancosService.SaldoBancoFinal(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaHasta);
             }
             catch (Exception ex)
             {
@@ -1288,10 +1290,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             try
             {
                 IsBusyApuntesContabilidad = true;
-                List<ContabilidadDTO> lista = await _contabilidadService.LeerApuntesContabilidad(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.CuentaContable, fechaDesde, fechaHasta).ConfigureAwait(false);
+                List<ContabilidadDTO> lista = await _contabilidadService.LeerApuntesContabilidad(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.CuentaContable, fechaDesde, fechaHasta);
                 ApuntesContabilidad = [.. lista.Select(contabilidadDTO => new ContabilidadWrapper(contabilidadDTO))];
                 ApuntesContabilidadCollectionView = CollectionViewSource.GetDefaultView(ApuntesContabilidad);
-                SaldoInicialContabilidad = await _contabilidadService.SaldoCuenta(BancoSeleccionado.Banco.Empresa, BancoSeleccionado.Banco.CuentaContable, fechaDesde.AddDays(-1)).ConfigureAwait(false);
+                SaldoInicialContabilidad = await _contabilidadService.SaldoCuenta(BancoSeleccionado.Banco.Empresa, BancoSeleccionado.Banco.CuentaContable, fechaDesde.AddDays(-1));
             }
             catch (Exception ex)
             {

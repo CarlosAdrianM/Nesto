@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
@@ -520,7 +521,7 @@ Public Class ListaRapportsViewModel
     Public Property CambiarAgruparPorCommand As RelayCommand(Of String)
     Private Async Sub OnCargarResumenVentas()
         MostrandoDetalleVentas = False
-        LlamarApiResumenVentasAsync()
+        Await LlamarApiResumenVentasAsync()
     End Sub
 
 
@@ -537,21 +538,30 @@ Public Class ListaRapportsViewModel
         Return Not IsNothing(clienteSeleccionado) Or Not IsNothing(fechaSeleccionada)
     End Function
     Private Async Sub OnCargarListaRapports(arg As Object)
+        Await CargarListaRapportsAsync()
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#488: la carga es una Function que se espera (no un Async Sub lanzado con Task.Run): así
+    ''' quien la llama sabe cuándo ha terminado y todo sigue en el hilo de la UI. Con el RelayCommand de
+    ''' CommunityToolkit, un NotifyCanExecuteChanged desde un hilo del pool toca los botones fuera de su hilo.
+    ''' </summary>
+    Public Async Function CargarListaRapportsAsync() As Task
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, "Vendedor")
         End If
         ResumenListaRapports = String.Empty
         If Not IsNothing(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
-            Await Task.Run(Sub() LlamarApiResumenVentasAsync())
+            Await LlamarApiResumenVentasAsync()
         Else
             Dim parametroVendedor As String
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
             rapportSeleccionado = listaRapports.FirstOrDefault
         End If
-        GenerarResumenCommand.NotifyCanExecuteChanged()
-    End Sub
+        GenerarResumenCommand.NotifyCanExecuteChangedEnUi()
+    End Function
 
     Private _cmdCargarListaRapportsFiltrada As RelayCommand
     Public Property cmdCargarListaRapportsFiltrada As RelayCommand
@@ -604,7 +614,9 @@ Public Class ListaRapportsViewModel
             clienteSeleccionado = cliente.cliente
             contactoSeleccionado = cliente.contacto
             Try
-                Await Task.Run(Sub() cmdCargarListaRapports.Execute(Nothing))
+                ' Nesto#488: esperar la carga DE VERDAD y en el hilo de la UI. Con Task.Run(Execute) el Async Sub
+                ' seguía en el pool: la lista cargada podía llegar después y pisar el rapport nuevo.
+                Await CargarListaRapportsAsync()
             Catch
                 _dialogService.ShowError("No se ha podido cargar la lista de rapports")
             End Try
@@ -830,8 +842,8 @@ Public Class ListaRapportsViewModel
         End If
     End Sub
 
-    Private Async Sub LlamarApiResumenVentasAsync()
-        If String.IsNullOrEmpty(clienteSeleccionado) Then Exit Sub
+    Private Async Function LlamarApiResumenVentasAsync() As Task
+        If String.IsNullOrEmpty(clienteSeleccionado) Then Exit Function
 
         Try
             EstaOcupado = True
@@ -847,7 +859,7 @@ Public Class ListaRapportsViewModel
         Finally
             EstaOcupado = False
         End Try
-    End Sub
+    End Function
 
 #End Region
 End Class
