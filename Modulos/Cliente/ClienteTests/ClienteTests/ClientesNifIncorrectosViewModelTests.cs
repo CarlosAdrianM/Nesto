@@ -54,6 +54,28 @@ namespace ClienteTests
             string paisSugerido = null)
             => new ClienteNifIncorrectoModel { Cliente = cliente, Nombre = "ANA ISABEL", Nif = nif, PaisIntracomunitarioSugerido = paisSugerido };
 
+        // Nesto#488: sin fila seleccionada el pie de acciones no se enseña (se rellenaba el NIF
+        // sin haber elegido cliente y parecía que los botones no funcionaban).
+
+        [TestMethod]
+        public void HayClienteSeleccionado_SigueALaSeleccionYAvisaAlCambiar()
+        {
+            var vm = CrearViewModel();
+            var cambios = new System.Collections.Generic.List<string>();
+            vm.PropertyChanged += (_, e) => cambios.Add(e.PropertyName);
+
+            Assert.IsFalse(vm.HayClienteSeleccionado, "sin selección no hay pie");
+
+            vm.ClienteSeleccionado = Fila(cliente: "23715", nif: "87930889");
+            Assert.IsTrue(vm.HayClienteSeleccionado);
+            CollectionAssert.Contains(cambios, nameof(vm.HayClienteSeleccionado), "la vista tiene que enterarse");
+
+            cambios.Clear();
+            vm.ClienteSeleccionado = null;
+            Assert.IsFalse(vm.HayClienteSeleccionado);
+            CollectionAssert.Contains(cambios, nameof(vm.HayClienteSeleccionado));
+        }
+
         // NestoAPI#354: la sugerencia de NIF-IVA intracomunitario preselecciona tipo 02 + país
         // para que "Marcar como extranjero" sea un clic. La decisión sigue siendo humana.
 

@@ -11,6 +11,10 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              Background="White">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleSiVerdadero"/>
+    </UserControl.Resources>
+
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
         <Grid Margin="10">
             <Grid.RowDefinitions>
@@ -54,7 +58,23 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+            <!-- Nesto#488: sin cliente seleccionado no hay nada que hacer: en vez de los botones
+                 apagados, se dice qué falta. -->
+            <TextBlock Grid.Row="3" Margin="0,10,0,0" FontStyle="Italic" Foreground="Gray"
+                       Text="Selecciona un cliente de la lista para corregir su NIF o marcarlo como extranjero.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HayClienteSeleccionado}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
+                    Visibility="{Binding HayClienteSeleccionado, Converter={StaticResource VisibleSiVerdadero}}">
                 <StackPanel>
                     <!-- NIF correcto: común a los dos caminos (para el extranjero es opcional, si el
                          que hay ya es bueno). -->

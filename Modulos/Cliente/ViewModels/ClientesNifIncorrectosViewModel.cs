@@ -88,9 +88,17 @@ namespace Nesto.Modulos.Cliente
                     CorregirCommand.NotifyCanExecuteChanged();
                     MarcarExtranjeroCommand.NotifyCanExecuteChanged();
                     MarcarNoCensadoCommand.NotifyCanExecuteChanged();
+                    OnPropertyChanged(nameof(HayClienteSeleccionado));
                 }
             }
         }
+
+        /// <summary>
+        /// Nesto#488: sin fila seleccionada el pie de acciones no se enseña. Con los botones a la
+        /// vista pero apagados, se rellenaba el NIF y el país sin haber elegido cliente y parecía
+        /// que la ventana no funcionaba.
+        /// </summary>
+        public bool HayClienteSeleccionado => ClienteSeleccionado != null;
 
         private TipoIdentificacionExtranjera _tipoIdentificacionSeleccionado;
         public TipoIdentificacionExtranjera TipoIdentificacionSeleccionado
