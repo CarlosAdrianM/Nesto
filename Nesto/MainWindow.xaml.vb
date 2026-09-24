@@ -13,7 +13,6 @@ Partial Class MainWindow
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private ReadOnly tituloVentana As String
-    Private _timerVerificacion As DispatcherTimer
     Private _configuracion As IConfiguracion
     Private ReadOnly _novedadesService As INovedadesService
     Private ReadOnly _dialogService As Prism.Services.Dialogs.IDialogService
@@ -23,28 +22,18 @@ Partial Class MainWindow
     Public ReadOnly Property Usuario As String
     Public Property TextoAdvertencia As String
 
-    Private _estaAutenticado As Boolean = False
     ''' <summary>
-    ''' Indica si el usuario está autenticado correctamente con la API.
-    ''' Se actualiza periódicamente y cuando hay errores 401.
+    ''' Nesto#492: estado de la conexión con el servidor que pinta la raya bajo el nombre del usuario
+    ''' (token válido + conexión en tiempo real). Se actualiza por eventos, sin sondeos.
     ''' </summary>
-    Public Property EstaAutenticado As Boolean
-        Get
-            Return _estaAutenticado
-        End Get
-        Set(value As Boolean)
-            If _estaAutenticado <> value Then
-                _estaAutenticado = value
-                RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(NameOf(EstaAutenticado)))
-            End If
-        End Set
-    End Property
+    Public ReadOnly Property IndicadorConexion As IndicadorConexionServidor
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
                    novedadesService As INovedadesService, dialogService As Prism.Services.Dialogs.IDialogService,
-                   campanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel)
+                   campanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel,
+                   avisosEnTiempoReal As IAvisosEnTiempoReal)
 
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
@@ -76,8 +65,12 @@ Partial Class MainWindow
 
         AddHandler SystemEvents.SessionSwitch, AddressOf OnSessionSwitch
 
-        ' Inicializar verificación de autenticación
-        InicializarVerificacionAutenticacion()
+        ' Nesto#492: la raya de conexión con el servidor (antes, un temporizador cada 30 s)
+        IndicadorConexion = New IndicadorConexionServidor(servicioAutenticacion, avisosEnTiempoReal,
+                                                          Sub(accion) Dispatcher.BeginInvoke(accion))
+        IndicadorConexion.Iniciar()
+        AddHandler Me.Closed, Sub(s, e) IndicadorConexion.Dispose()
+        ObtenerTokenAlArrancar()
 
         ' Nesto#372: mostrar las novedades la primera vez que se arranca tras actualizar
         AddHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
@@ -176,37 +169,16 @@ Partial Class MainWindow
     End Sub
 
     ''' <summary>
-    ''' Configura el timer para verificar periódicamente el estado de autenticación.
+    ''' Obtiene el token proactivamente al iniciar; al llegar, el indicador se repinta solo (TokenCambiado).
     ''' </summary>
-    Private Async Sub InicializarVerificacionAutenticacion()
-        ' Obtener token proactivamente al iniciar
-        If _servicioAutenticacion IsNot Nothing Then
-            Await _servicioAutenticacion.ObtenerTokenValidoAsync()
-        End If
-
-        ' Verificar estado inicial
-        VerificarEstadoAutenticacion()
-
-        ' Configurar timer para verificar cada 30 segundos
-        _timerVerificacion = New DispatcherTimer()
-        _timerVerificacion.Interval = TimeSpan.FromSeconds(30)
-        AddHandler _timerVerificacion.Tick, AddressOf OnTimerVerificacion
-        _timerVerificacion.Start()
-    End Sub
-
-    Private Sub OnTimerVerificacion(sender As Object, e As EventArgs)
-        VerificarEstadoAutenticacion()
-    End Sub
-
-    ''' <summary>
-    ''' Verifica si hay un token válido y actualiza el indicador visual.
-    ''' </summary>
-    Public Sub VerificarEstadoAutenticacion()
-        If _servicioAutenticacion IsNot Nothing Then
-            EstaAutenticado = _servicioAutenticacion.TieneTokenValido()
-        Else
-            EstaAutenticado = False
-        End If
+    Private Async Sub ObtenerTokenAlArrancar()
+        Try
+            If _servicioAutenticacion IsNot Nothing Then
+                Await _servicioAutenticacion.ObtenerTokenValidoAsync()
+            End If
+        Catch ex As Exception
+            ' Sin servidor la raya se queda en rojo; no debe romper el arranque
+        End Try
     End Sub
 
     Public Property regionRibbon As Controls.Ribbon.Ribbon Implements IMainWindow.mainRibbon

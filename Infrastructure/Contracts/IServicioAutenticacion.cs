@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Nesto.Infrastructure.Contracts
@@ -40,5 +41,16 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         Task<string> ObtenerTokenValidoAsync();
 
+        /// <summary>
+        /// Nesto#492: hasta cuándo (UTC) <see cref="TieneTokenValido"/> devolverá true con el token actual
+        /// (su caducidad menos el margen); null si no hay token. Permite programar un único aviso en ese momento
+        /// en vez de preguntar periódicamente.
+        /// </summary>
+        DateTime? TokenValidoHastaUtc { get; }
+
+        /// <summary>
+        /// Nesto#492: se ha obtenido, renovado o limpiado el token. Puede llegar desde cualquier hilo.
+        /// </summary>
+        event EventHandler TokenCambiado;
     }
 }

@@ -15,6 +15,10 @@ namespace Nesto.Infrastructure.Shared
         private string _tokenActual;
         private DateTime _expiracionToken;
         private readonly SemaphoreSlim _tokenSemaphore = new SemaphoreSlim(1, 1);
+        private static readonly TimeSpan MARGEN_CADUCIDAD = TimeSpan.FromMinutes(5);
+
+        /// <summary>Nesto#492: se ha obtenido, renovado o limpiado el token.</summary>
+        public event EventHandler TokenCambiado;
 
         public ServicioAutenticacion(string baseUrl)
         {
@@ -43,7 +47,9 @@ namespace Nesto.Infrastructure.Shared
                     {
                         _tokenActual = tokenResponse.Token;
                         _expiracionToken = ExtraerExpiracionToken(_tokenActual);
-                        return _tokenActual;
+                        string token = _tokenActual;
+                        AvisarTokenCambiado();
+                        return token;
                     }
                 }
             }
@@ -57,7 +63,20 @@ namespace Nesto.Infrastructure.Shared
         public bool TieneTokenValido()
         {
             return !string.IsNullOrEmpty(_tokenActual) &&
-                   _expiracionToken > DateTime.UtcNow.AddMinutes(5); // margen de 5 min
+                   _expiracionToken > DateTime.UtcNow.Add(MARGEN_CADUCIDAD); // margen de 5 min
+        }
+
+        public DateTime? TokenValidoHastaUtc
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_tokenActual))
+                {
+                    return null;
+                }
+                DateTime expiracion = _expiracionToken;
+                return expiracion - DateTime.MinValue < MARGEN_CADUCIDAD ? DateTime.MinValue : expiracion - MARGEN_CADUCIDAD;
+            }
         }
 
         public string ObtenerTokenActual()
@@ -69,6 +88,19 @@ namespace Nesto.Infrastructure.Shared
         {
             _tokenActual = null;
             _expiracionToken = DateTime.MinValue;
+            AvisarTokenCambiado();
+        }
+
+        private void AvisarTokenCambiado()
+        {
+            try
+            {
+                TokenCambiado?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe romper la obtención del token.
+            }
         }
 
         // Nuevo método

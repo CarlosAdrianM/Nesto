@@ -28,6 +28,7 @@ namespace Infrastructure.Tests
             public bool Liberada;
 
             public event EventHandler HayNotificacionesNuevas;
+            public event EventHandler Reconectando;
             public event EventHandler Reconectada;
             public event EventHandler Cerrada;
 
@@ -42,6 +43,7 @@ namespace Infrastructure.Tests
             }
 
             public void LlegaAviso() => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty);
+            public void PierdeLaConexion() => Reconectando?.Invoke(this, EventArgs.Empty);
             public void Reconecta() => Reconectada?.Invoke(this, EventArgs.Empty);
             public void SeCierra() => Cerrada?.Invoke(this, EventArgs.Empty);
             public void Dispose() => Liberada = true;
@@ -214,6 +216,130 @@ namespace Infrastructure.Tests
             Assert.AreEqual("t1", primera.Token);
             Assert.IsTrue(primera.Liberada, "La conexión con el token viejo se cierra");
             Assert.AreEqual("t2", segunda.Token);
+            avisos.Detener();
+        }
+
+        // ---- Nesto#492: estado de la conexión (la raya de la ventana principal) ----
+
+        private static void EsperarEstado(AvisosEnTiempoRealSignalR avisos, EstadoConexionTiempoReal esperado)
+        {
+            Assert.IsTrue(SpinWait.SpinUntil(() => avisos.Estado == esperado, TIMEOUT),
+                $"Se esperaba {esperado} y está en {avisos.Estado}");
+        }
+
+        [TestMethod]
+        public void Estado_SinIniciar_EsDesactivado()
+        {
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => new ConexionFalsa(), (espera, ct) => EsperaInfinita(ct), null);
+
+            Assert.AreEqual(EstadoConexionTiempoReal.Desactivado, avisos.Estado);
+            Assert.AreEqual(EstadoConexionTiempoReal.Desactivado, new AvisosEnTiempoRealNulo().Estado);
+        }
+
+        [TestMethod]
+        public async Task Estado_AlConectar_PasaDeConectandoAConectadoYAlDetenerADesactivado()
+        {
+            var conexion = new ConexionFalsa();
+            var estados = new ConcurrentQueue<EstadoConexionTiempoReal>();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            avisos.EstadoCambiado += (s, e) => estados.Enqueue(avisos.Estado);
+
+            avisos.Iniciar();
+            await conexion.Iniciada.Task.WaitAsync(TIMEOUT);
+            EsperarEstado(avisos, EstadoConexionTiempoReal.Conectado);
+            avisos.Detener();
+
+            CollectionAssert.AreEqual(new[] { EstadoConexionTiempoReal.Conectando, EstadoConexionTiempoReal.Conectado, EstadoConexionTiempoReal.Desactivado },
+                estados.ToArray());
+        }
+
+        [TestMethod]
+        public async Task Estado_SiSignalRPierdeLaConexion_ReintentandoYAlRecuperarla_Conectado()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+
+            avisos.Iniciar();
+            await conexion.Iniciada.Task.WaitAsync(TIMEOUT);
+            EsperarEstado(avisos, EstadoConexionTiempoReal.Conectado);
+
+            conexion.PierdeLaConexion();
+            Assert.AreEqual(EstadoConexionTiempoReal.Reintentando, avisos.Estado);
+
+            conexion.Reconecta();
+            Assert.AreEqual(EstadoConexionTiempoReal.Conectado, avisos.Estado);
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task Estado_SiNoConsigueConectar_Reintentando()
+        {
+            var primerReintento = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => new ConexionFalsa { FalloAlIniciar = new InvalidOperationException("sin servidor") },
+                (espera, ct) =>
+                {
+                    _ = primerReintento.TrySetResult(true);
+                    return EsperaInfinita(ct);
+                }, null);
+
+            avisos.Iniciar();
+            await primerReintento.Task.WaitAsync(TIMEOUT);
+
+            Assert.AreEqual(EstadoConexionTiempoReal.Reintentando, avisos.Estado);
+            avisos.Detener();
+            Assert.AreEqual(EstadoConexionTiempoReal.Desactivado, avisos.Estado);
+        }
+
+        [TestMethod]
+        public async Task Estado_SiLaConexionSeCierraYVuelve_ReintentandoYLuegoConectado()
+        {
+            var primera = new ConexionFalsa();
+            var segunda = new ConexionFalsa();
+            var cola = new Queue<ConexionFalsa>(new[] { primera, segunda });
+            var puedeReconectar = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => cola.Dequeue(),
+                (espera, ct) => espera == AvisosEnTiempoRealSignalR.INTERVALO_REVISION_TOKEN
+                    ? EsperaInfinita(ct)
+                    : puedeReconectar.Task,
+                null);
+
+            avisos.Iniciar();
+            await primera.Iniciada.Task.WaitAsync(TIMEOUT);
+            primera.SeCierra();
+            EsperarEstado(avisos, EstadoConexionTiempoReal.Reintentando);
+
+            _ = puedeReconectar.TrySetResult(true);
+            await segunda.Iniciada.Task.WaitAsync(TIMEOUT);
+            EsperarEstado(avisos, EstadoConexionTiempoReal.Conectado);
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task Estado_AlRenovarElToken_NoPasaPorReintentandoYLaConexionViejaNoLoPisa()
+        {
+            var primera = new ConexionFalsa();
+            var segunda = new ConexionFalsa();
+            var cola = new Queue<ConexionFalsa>(new[] { primera, segunda });
+            int revisiones = 0;
+            var estados = new ConcurrentQueue<EstadoConexionTiempoReal>();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1", "t2"),
+                (url, token) => { var c = cola.Dequeue(); c.Token = token; return c; },
+                (espera, ct) => Interlocked.Increment(ref revisiones) == 1 ? Task.CompletedTask : EsperaInfinita(ct),
+                null);
+            avisos.EstadoCambiado += (s, e) => estados.Enqueue(avisos.Estado);
+
+            avisos.Iniciar();
+            await segunda.Iniciada.Task.WaitAsync(TIMEOUT);
+            EsperarEstado(avisos, EstadoConexionTiempoReal.Conectado);
+            primera.PierdeLaConexion();
+
+            Assert.AreEqual(EstadoConexionTiempoReal.Conectado, avisos.Estado, "La conexión sustituida no cambia el estado");
+            CollectionAssert.AreEqual(new[] { EstadoConexionTiempoReal.Conectando, EstadoConexionTiempoReal.Conectado }, estados.ToArray());
             avisos.Detener();
         }
     }

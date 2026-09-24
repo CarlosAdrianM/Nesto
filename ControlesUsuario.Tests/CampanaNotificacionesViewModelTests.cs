@@ -42,6 +42,8 @@ namespace ControlesUsuario.Tests
         private sealed class AvisosFalsos : IAvisosEnTiempoReal
         {
             public event EventHandler HayNotificacionesNuevas;
+            public EstadoConexionTiempoReal Estado => EstadoConexionTiempoReal.Desactivado;
+            public event EventHandler EstadoCambiado { add { } remove { } }
             public void Avisar() => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty);
         }
 

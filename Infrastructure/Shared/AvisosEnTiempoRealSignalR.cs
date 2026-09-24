@@ -17,7 +17,10 @@ namespace Nesto.Infrastructure.Shared
     /// - El token de empleado caduca (8 h): cada <see cref="INTERVALO_REVISION_TOKEN"/> se mira si el
     ///   servicio de autenticación tiene uno nuevo y, si lo tiene, se reconecta con él.
     /// - Tras recuperar una conexión perdida se avisa una vez (pudo llegar algo mientras no había conexión).
-    /// El evento <see cref="HayNotificacionesNuevas"/> llega en un hilo que no es el de la UI.
+    /// - Nesto#492: <see cref="Estado"/> sigue a la conexión real (conectando, conectada, reintentando al
+    ///   perderla o no conseguirla, desactivada si no se ha arrancado o se ha detenido). Renovar el token
+    ///   no cambia el estado: se reconecta enseguida y no se ha perdido nada.
+    /// Los eventos <see cref="HayNotificacionesNuevas"/> y <see cref="EstadoCambiado"/> llegan en un hilo que no es el de la UI.
     /// </summary>
     public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IDisposable
     {
@@ -38,8 +41,16 @@ namespace Nesto.Infrastructure.Shared
         private CancellationTokenSource _cancelacion;
         private Task _bucle;
         private bool _errorRegistrado;
+        private int _estado = (int)EstadoConexionTiempoReal.Desactivado;
+        private IConexionAvisos _conexionActual;
 
         public event EventHandler HayNotificacionesNuevas;
+
+        /// <summary>Nesto#492: cambia <see cref="Estado"/>. Llega en un hilo que no es el de la UI.</summary>
+        public event EventHandler EstadoCambiado;
+
+        /// <summary>Nesto#492: estado actual de la conexión en tiempo real.</summary>
+        public EstadoConexionTiempoReal Estado => (EstadoConexionTiempoReal)Volatile.Read(ref _estado);
 
         public AvisosEnTiempoRealSignalR(string servidorApi, IServicioAutenticacion autenticacion, Action<Exception> registrarError)
             : this(UrlDelHub(servidorApi), autenticacion, (url, token) => new ConexionAvisosSignalR(url, token),
@@ -88,6 +99,7 @@ namespace Nesto.Infrastructure.Shared
                 }
                 _cancelacion = new CancellationTokenSource();
                 CancellationToken ct = _cancelacion.Token;
+                CambiarEstado(EstadoConexionTiempoReal.Conectando);
                 _bucle = Task.Run(() => Bucle(ct));
             }
         }
@@ -110,6 +122,10 @@ namespace Nesto.Infrastructure.Shared
             catch (Exception)
             {
                 // nada
+            }
+            if (bucle != null)
+            {
+                CambiarEstado(EstadoConexionTiempoReal.Desactivado);
             }
         }
 
@@ -134,12 +150,23 @@ namespace Nesto.Infrastructure.Shared
                         throw new InvalidOperationException("No hay token para conectar a los avisos en tiempo real");
                     }
                     conexion = _crearConexion(_urlHub, token);
+                    IConexionAvisos esta = conexion;
                     var cerrada = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     conexion.HayNotificacionesNuevas += (s, e) => Avisar();
-                    conexion.Reconectada += (s, e) => Avisar();
+                    conexion.Reconectando += (s, e) => CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Reintentando, ct);
+                    conexion.Reconectada += (s, e) =>
+                    {
+                        CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Conectado, ct);
+                        Avisar();
+                    };
                     conexion.Cerrada += (s, e) => cerrada.TrySetResult(true);
 
                     await conexion.Iniciar().ConfigureAwait(false);
+                    Volatile.Write(ref _conexionActual, conexion);
+                    if (!ct.IsCancellationRequested)
+                    {
+                        CambiarEstado(EstadoConexionTiempoReal.Conectado);
+                    }
                     fallos = 0;
                     if (avisarAlConectar)
                     {
@@ -160,6 +187,7 @@ namespace Nesto.Infrastructure.Shared
                 }
                 finally
                 {
+                    Volatile.Write(ref _conexionActual, null);
                     DetenerConexion(conexion);
                 }
 
@@ -169,10 +197,12 @@ namespace Nesto.Infrastructure.Shared
                 }
                 if (renovarToken)
                 {
-                    // Se reconecta enseguida con el token nuevo; no se ha perdido nada.
+                    // Se reconecta enseguida con el token nuevo; no se ha perdido nada (el estado no cambia).
                     avisarAlConectar = false;
                     continue;
                 }
+                // Nesto#492: no conectó o se cerró: se va a reintentar tras la espera.
+                CambiarEstado(EstadoConexionTiempoReal.Reintentando);
                 if (fallos == 0)
                 {
                     // Estaba conectada y se cerró: cuenta como fallo para espaciar el siguiente intento.
@@ -229,6 +259,31 @@ namespace Nesto.Infrastructure.Shared
             }
         }
 
+        private void CambiarEstadoSiEsLaActual(IConexionAvisos conexion, EstadoConexionTiempoReal nuevo, CancellationToken ct)
+        {
+            // Una conexión ya sustituida o que se está cerrando no debe pisar el estado de la actual.
+            if (!ct.IsCancellationRequested && ReferenceEquals(Volatile.Read(ref _conexionActual), conexion))
+            {
+                CambiarEstado(nuevo);
+            }
+        }
+
+        private void CambiarEstado(EstadoConexionTiempoReal nuevo)
+        {
+            if (Interlocked.Exchange(ref _estado, (int)nuevo) == (int)nuevo)
+            {
+                return;
+            }
+            try
+            {
+                EstadoCambiado?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
+
         private void RegistrarSiDura(Exception ex, int fallos)
         {
             if (_errorRegistrado || EsperaTrasFallos(fallos) < ESPERA_MAXIMA || _registrarError == null)
@@ -268,6 +323,8 @@ namespace Nesto.Infrastructure.Shared
     {
         /// <summary>El servidor ha llamado a «hayNotificacionesNuevas».</summary>
         event EventHandler HayNotificacionesNuevas;
+        /// <summary>Nesto#492: SignalR ha perdido la conexión y está intentando recuperarla por su cuenta.</summary>
+        event EventHandler Reconectando;
         /// <summary>SignalR ha recuperado la conexión por su cuenta (pudo perderse algún aviso).</summary>
         event EventHandler Reconectada;
         /// <summary>La conexión se ha cerrado del todo (SignalR ya no reintenta).</summary>
@@ -284,6 +341,7 @@ namespace Nesto.Infrastructure.Shared
         private readonly HubConnection _conexion;
 
         public event EventHandler HayNotificacionesNuevas;
+        public event EventHandler Reconectando;
         public event EventHandler Reconectada;
         public event EventHandler Cerrada;
 
@@ -292,6 +350,7 @@ namespace Nesto.Infrastructure.Shared
             _conexion = new HubConnection(urlHub, new Dictionary<string, string> { { "access_token", token } }, useDefaultUrl: false);
             IHubProxy proxy = _conexion.CreateHubProxy(HUB);
             _ = proxy.On(METODO_AVISO, () => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty));
+            _conexion.Reconnecting += () => Reconectando?.Invoke(this, EventArgs.Empty);
             _conexion.Reconnected += () => Reconectada?.Invoke(this, EventArgs.Empty);
             _conexion.Closed += () => Cerrada?.Invoke(this, EventArgs.Empty);
         }

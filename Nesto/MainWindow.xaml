@@ -6,13 +6,15 @@
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
         xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
         xmlns:cun="clr-namespace:ControlesUsuario.Notificaciones;assembly=ControlesUsuario"
+        xmlns:infra="clr-namespace:Nesto.Infrastructure.Shared;assembly=Infrastructure"
         Title="Nesto" 
         x:Name="RibbonWindow"
 		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
     
     <Window.Resources>
-        <!-- Convertidor para el color del indicador de autenticación -->
+        <!-- Nesto#492: colores de la raya de conexión con el servidor (IndicadorConexionServidor) -->
         <SolidColorBrush x:Key="ColorAutenticado" Color="#4CAF50"/>
+        <SolidColorBrush x:Key="ColorConexionAviso" Color="#FFA000"/>
         <SolidColorBrush x:Key="ColorNoAutenticado" Color="#F44336"/>
     </Window.Resources>
 
@@ -30,19 +32,24 @@
         </Ribbon>
         <!-- MainRegion -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-            <!-- Usuario con indicador de autenticación (línea sutil debajo) -->
+            <!-- Usuario con indicador de conexión con el servidor (línea sutil debajo). Nesto#492:
+                 verde = sesión válida y conexión en tiempo real (o tiempo real desactivado);
+                 ámbar = hay sesión pero la conexión en tiempo real está caída (reintentando);
+                 rojo = sin sesión válida. Se actualiza por eventos, sin sondeos. -->
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Text="{Binding Usuario, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="72" Foreground="DarkSlateGray"/>
                 <Border Height="4" CornerRadius="2" Margin="0,-5,0,0" HorizontalAlignment="Center" MinWidth="100">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Background" Value="{StaticResource ColorNoAutenticado}"/>
-                            <Setter Property="ToolTip" Value="No autenticado con la API"/>
+                            <Setter Property="ToolTip" Value="{Binding IndicadorConexion.Descripcion, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Setter Property="Width" Value="{Binding ActualWidth, ElementName=textoUsuario}"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding EstaAutenticado, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <DataTrigger Binding="{Binding IndicadorConexion.Nivel, RelativeSource={RelativeSource AncestorType=Window}}" Value="{x:Static infra:NivelConexionServidor.Correcto}">
                                     <Setter Property="Background" Value="{StaticResource ColorAutenticado}"/>
-                                    <Setter Property="ToolTip" Value="Autenticado correctamente"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IndicadorConexion.Nivel, RelativeSource={RelativeSource AncestorType=Window}}" Value="{x:Static infra:NivelConexionServidor.Aviso}">
+                                    <Setter Property="Background" Value="{StaticResource ColorConexionAviso}"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
