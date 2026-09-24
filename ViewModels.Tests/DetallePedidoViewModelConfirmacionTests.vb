@@ -3,7 +3,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -59,7 +59,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
     Private regionManager As IRegionManager
     Private configuracion As IConfiguracion
     Private servicio As IPedidoVentaService
-    Private eventAggregator As IEventAggregator
+    Private messenger As IMessenger
     Private dialogService As IDialogService
     Private container As IUnityContainer
     Private servicioAutenticacion As IServicioAutenticacion
@@ -69,14 +69,14 @@ Public Class DetallePedidoViewModelConfirmacionTests
         regionManager = A.Fake(Of IRegionManager)
         configuracion = A.Fake(Of IConfiguracion)
         servicio = A.Fake(Of IPedidoVentaService)
-        eventAggregator = A.Fake(Of IEventAggregator)
+        messenger = New WeakReferenceMessenger()
         dialogService = A.Fake(Of IDialogService)
         container = A.Fake(Of IUnityContainer)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub
 
     Private Function CrearViewModel() As DetallePedidoViewModel
-        Return New DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, servicioAutenticacion)
+        Return New DetallePedidoViewModel(regionManager, configuracion, servicio, messenger, dialogService, container, servicioAutenticacion)
     End Function
 
     ''' <summary>

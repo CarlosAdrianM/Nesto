@@ -16,7 +16,7 @@ Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports System.Windows
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
@@ -33,7 +33,7 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly servicioPedidosVenta As IPedidoVentaService
     Private ReadOnly servicioBorradores As IBorradorPlantillaVentaService
-    Private ReadOnly eventAggregator As IEventAggregator
+    Private ReadOnly messenger As IMessenger
     Private ReadOnly dialogService As IDialogService
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
@@ -74,12 +74,12 @@ Public Class PlantillaVentaViewModel
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
-        Me.eventAggregator = eventAggregator
+        Me.messenger = messenger
         Me.dialogService = dialogService
         Me.servicioPedidosVenta = servicioPedidosVenta
         Me.servicioBorradores = servicioBorradores
@@ -162,7 +162,8 @@ Public Class PlantillaVentaViewModel
         EsBusquedaConOR = Not EsBusquedaConAND
         CargarPreferenciaAlmacenes() ' NestoAPI#256 / Nesto#390
 
-        Dim unused = eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
+        ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
+        messenger.Register(Of ClienteCreadoMensaje)(Me, Sub(r, m) DirectCast(r, PlantillaVentaViewModel).ActualizarCliente(m.Value))
 
     End Sub
 
@@ -3125,7 +3126,7 @@ Public Class PlantillaVentaViewModel
                 numPedido = NumeroPedidoEnEdicion.Value.ToString()
                 NumeroPedidoEnEdicion = Nothing
                 ' Refrescar ListaPedidosVenta (está suscrita, igual que tras modificar en DetallePedido)
-                eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+                messenger.Send(New PedidoModificadoMensaje(pedido))
             ElseIf PedidoPendienteSeleccionado = 0 Then
                 Dim crearEx As Exception = Nothing
                 Try

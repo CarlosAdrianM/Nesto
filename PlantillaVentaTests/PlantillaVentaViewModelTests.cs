@@ -7,7 +7,7 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -53,12 +53,12 @@ namespace PlantillaVentaTests
             IRegionManager regionManager = A.Fake<IRegionManager>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
-            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IMessenger messenger = new WeakReferenceMessenger();
             IDialogService dialogService = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -79,12 +79,12 @@ namespace PlantillaVentaTests
             IRegionManager regionManager = A.Fake<IRegionManager>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
-            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IMessenger messenger = new WeakReferenceMessenger();
             IDialogService dialogService = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -107,7 +107,7 @@ namespace PlantillaVentaTests
             IRegionManager regionManager = A.Fake<IRegionManager>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicioMock = A.Fake<IPlantillaVentaService>();
-            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IMessenger messenger = new WeakReferenceMessenger();
             IDialogService dialogServiceMock = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
@@ -115,8 +115,6 @@ namespace PlantillaVentaTests
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
             // Configurar evento para evitar null reference
-            var clienteCreadoEvent = A.Fake<ClienteCreadoEvent>();
-            A.CallTo(() => eventAggregator.GetEvent<ClienteCreadoEvent>()).Returns(clienteCreadoEvent);
 
             // Configurar productos bonificables
             if (productosBonificablesIds == null)
@@ -125,7 +123,7 @@ namespace PlantillaVentaTests
             }
             A.CallTo(() => servicioMock.CargarProductosBonificablesIds()).Returns(Task.FromResult(productosBonificablesIds));
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, eventAggregator, dialogServiceMock, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, messenger, dialogServiceMock, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             return (vm, dialogServiceMock);

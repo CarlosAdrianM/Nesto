@@ -6,7 +6,7 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Collections.Generic;
@@ -25,13 +25,11 @@ namespace PlantillaVentaTests
         private static PlantillaVentaViewModel CrearViewModel()
         {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
-            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IMessenger messenger = new WeakReferenceMessenger();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            var clienteCreadoEvent = A.Fake<ClienteCreadoEvent>();
-            A.CallTo(() => eventAggregator.GetEvent<ClienteCreadoEvent>()).Returns(clienteCreadoEvent);
 
             return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IRegionManager>(), configuracion,
-                A.Fake<IPlantillaVentaService>(), eventAggregator, A.Fake<IDialogService>(),
+                A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IDialogService>(),
                 A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
         }

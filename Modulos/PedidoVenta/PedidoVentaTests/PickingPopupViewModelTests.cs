@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Services.Dialogs;
 using System.Threading.Tasks;
 
@@ -15,7 +15,7 @@ namespace PedidoVentaTests
     public class PickingPopupViewModelTests
     {
         private IPedidoVentaService _servicioPedido;
-        private IEventAggregator _eventAggregator;
+        private IMessenger _messenger;
         private IDialogService _dialogService;
         private IConfiguracion _configuracion;
 
@@ -23,14 +23,14 @@ namespace PedidoVentaTests
         public void Initialize()
         {
             _servicioPedido = A.Fake<IPedidoVentaService>();
-            _eventAggregator = A.Fake<IEventAggregator>();
+            _messenger = new WeakReferenceMessenger();
             _dialogService = A.Fake<IDialogService>();
             _configuracion = A.Fake<IConfiguracion>();
         }
 
         private PickingPopupViewModel CrearViewModel(IInformesService servicioInformes)
         {
-            return new PickingPopupViewModel(_servicioPedido, _eventAggregator, _dialogService, _configuracion, servicioInformes);
+            return new PickingPopupViewModel(_servicioPedido, _messenger, _dialogService, _configuracion, servicioInformes);
         }
 
         [TestMethod]

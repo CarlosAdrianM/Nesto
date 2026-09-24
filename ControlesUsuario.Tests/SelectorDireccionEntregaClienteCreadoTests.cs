@@ -3,9 +3,10 @@ using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -97,7 +98,7 @@ namespace ControlesUsuario.Tests
                     var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
                     A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>.Ignored, A<string>.Ignored, A<decimal?>.Ignored))
                         .Returns(direcciones);
-                    var sut = new SelectorDireccionEntrega(A.Fake<IRegionManager>(), A.Fake<IEventAggregator>(), A.Fake<IConfiguracion>(), servicioDirecciones);
+                    var sut = new SelectorDireccionEntrega(A.Fake<IRegionManager>(), new WeakReferenceMessenger(), A.Fake<IConfiguracion>(), servicioDirecciones);
 
                     // El servicio falso devuelve una tarea ya completada, así que el await no
                     // cambia de hilo y el control sigue en su hilo STA.
@@ -156,6 +157,91 @@ namespace ControlesUsuario.Tests
             var r = EjecutarEnSta(new[] { Direccion("0  ") }, null);
 
             Assert.IsNull(r.Error, r.Error?.ToString());
+            Assert.IsNull(r.ContactoSeleccionado);
+        }
+
+        #endregion
+
+        #region Mensaje ClienteCreado (Nesto#490 4C.1: Messenger en vez de IEventAggregator)
+
+        private static Resultado EnviarClienteCreadoEnSta(Action<SelectorDireccionEntrega, IMessenger> preparar, Clientes clienteCreado)
+        {
+            var resultado = new Resultado();
+            Thread thread = new Thread(() =>
+            {
+                try
+                {
+                    var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
+                    A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>.Ignored, A<string>.Ignored, A<decimal?>.Ignored))
+                        .Returns(new[] { Direccion("0  ", porDefecto: true), Direccion("1  ") });
+                    var messenger = new WeakReferenceMessenger();
+                    var sut = new SelectorDireccionEntrega(A.Fake<IRegionManager>(), messenger, A.Fake<IConfiguracion>(), servicioDirecciones);
+                    preparar(sut, messenger);
+
+                    // Se entrega en el hilo de quien envía (como ThreadOption.PublisherThread de Prism) y,
+                    // con el servicio falso ya completado, el handler async termina aquí mismo.
+                    messenger.Send(new ClienteCreadoMensaje(clienteCreado));
+
+                    resultado.Empresa = sut.Empresa;
+                    resultado.Cliente = sut.Cliente;
+                    resultado.ContactoSeleccionado = sut.DireccionCompleta?.contacto;
+                }
+                catch (Exception ex)
+                {
+                    resultado.Error = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            return resultado;
+        }
+
+        [TestMethod]
+        [TestCategory("SelectorDireccionEntrega")]
+        public void MensajeClienteCreado_ConElControlCargado_PreseleccionaLaDireccionDelContacto()
+        {
+            var cliente = new Clientes { Empresa = "1  ", Nº_Cliente = "12345", Contacto = "1" };
+
+            var r = EnviarClienteCreadoEnSta((sut, m) => sut.SuscribirMensajes(), cliente);
+
+            Assert.IsNull(r.Error, r.Error?.ToString());
+            Assert.AreEqual("12345", r.Cliente);
+            Assert.AreEqual("1  ", r.ContactoSeleccionado);
+        }
+
+        [TestMethod]
+        [TestCategory("SelectorDireccionEntrega")]
+        public void MensajeClienteCreado_LoadedDosVeces_NoLanzaYSigueSuscrito()
+        {
+            // WPF puede lanzar Loaded dos veces; Prism admitía suscribirse dos veces, el Messenger lanza.
+            var cliente = new Clientes { Empresa = "1  ", Nº_Cliente = "12345", Contacto = "1" };
+
+            var r = EnviarClienteCreadoEnSta((sut, m) =>
+            {
+                sut.SuscribirMensajes();
+                sut.SuscribirMensajes();
+                Assert.IsTrue(m.IsRegistered<ClienteCreadoMensaje>(sut));
+            }, cliente);
+
+            Assert.IsNull(r.Error, r.Error?.ToString());
+            Assert.AreEqual("1  ", r.ContactoSeleccionado);
+        }
+
+        [TestMethod]
+        [TestCategory("SelectorDireccionEntrega")]
+        public void MensajeClienteCreado_TrasUnloaded_NoLlega()
+        {
+            var cliente = new Clientes { Empresa = "1  ", Nº_Cliente = "12345", Contacto = "1" };
+
+            var r = EnviarClienteCreadoEnSta((sut, m) =>
+            {
+                sut.SuscribirMensajes();
+                sut.DesuscribirMensajes();
+            }, cliente);
+
+            Assert.IsNull(r.Error, r.Error?.ToString());
+            Assert.IsNull(r.Cliente, "Sin suscripción el control no se entera del cliente creado");
             Assert.IsNull(r.ContactoSeleccionado);
         }
 

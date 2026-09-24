@@ -4,7 +4,7 @@ Imports Nesto.Infrastructure.Services.ServirJunto
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -64,7 +64,7 @@ Public Class DetallePedidoModoServicioTests
 
     Private Shared Function CrearViewModel(servicio As IServirJuntoService, pedido As PedidoVentaDTO) As DetallePedidoViewModel
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IRegionManager), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
-                                            A.Fake(Of IEventAggregator), A.Fake(Of IDialogService), A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
+                                            New WeakReferenceMessenger(), A.Fake(Of IDialogService), A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = servicio
         vm.pedido = New PedidoVentaWrapper(pedido)
         vm.pedido.Lineas.Add(New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "12345", .texto = "CHAMPU", .Cantidad = 1, .estado = -1, .Almacen = "ALG"})

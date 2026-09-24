@@ -12,7 +12,7 @@ using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using Prism.Ioc;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Nesto.Infrastructure.Events;
 using Nesto.Models.Nesto.Models;
 using System.Threading.Tasks;
@@ -29,7 +29,7 @@ namespace ControlesUsuario
     public partial class SelectorDireccionEntrega : UserControl, INotifyPropertyChanged
     {
         private readonly IRegionManager regionManager;
-        private readonly IEventAggregator eventAggregator;
+        private readonly IMessenger messenger;
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDireccionesEntrega _servicioDirecciones; // Carlos 20/11/24: FASE 3 - Inyección de servicio
         private DispatcherTimer timer;
@@ -60,7 +60,7 @@ namespace ControlesUsuario
             try
             {
                 regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
-                eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
+                messenger = ContainerLocator.Container.Resolve<IMessenger>();
                 _configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
                 _servicioDirecciones = ContainerLocator.Container.Resolve<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -78,7 +78,7 @@ namespace ControlesUsuario
         /// </summary>
         public SelectorDireccionEntrega(
             IRegionManager regionManager,
-            IEventAggregator eventAggregator,
+            IMessenger messenger,
             IConfiguracion configuracion,
             IServicioDireccionesEntrega servicioDirecciones)
         {
@@ -93,7 +93,7 @@ namespace ControlesUsuario
             listaDireccionesEntrega.SeleccionarPrimerElemento = false;
 
             this.regionManager = regionManager;
-            this.eventAggregator = eventAggregator;
+            this.messenger = messenger;
             this._configuracion = configuracion;
             this._servicioDirecciones = servicioDirecciones; // Carlos 20/11/24: FASE 3
 
@@ -523,14 +523,28 @@ namespace ControlesUsuario
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            eventAggregator.GetEvent<ClienteCreadoEvent>().Subscribe(OnClienteCreado);
-            eventAggregator.GetEvent<ClienteModificadoEvent>().Subscribe(OnClienteCreado); //hacemos lo mismo que al crear
+            SuscribirMensajes();
         }
 
         private void UserControl_Unloaded(object sender, RoutedEventArgs e)
         {
-            eventAggregator.GetEvent<ClienteCreadoEvent>().Unsubscribe(OnClienteCreado);
-            eventAggregator.GetEvent<ClienteModificadoEvent>().Unsubscribe(OnClienteCreado); //hacemos lo mismo que al crear
+            DesuscribirMensajes();
+        }
+
+        // Nesto#490 (4C.1): Messenger en vez de IEventAggregator. WPF puede lanzar Loaded más de una
+        // vez sin Unloaded entre medias; el Messenger no admite registrar dos veces al mismo receptor
+        // (lanza), así que se comprueba antes. (El antiguo ClienteModificadoEvent no lo publicaba nadie.)
+        internal void SuscribirMensajes()
+        {
+            if (messenger != null && !messenger.IsRegistered<ClienteCreadoMensaje>(this))
+            {
+                messenger.Register<ClienteCreadoMensaje>(this, (r, m) => ((SelectorDireccionEntrega)r).OnClienteCreado(m.Value));
+            }
+        }
+
+        internal void DesuscribirMensajes()
+        {
+            messenger?.Unregister<ClienteCreadoMensaje>(this);
         }
     }
 }

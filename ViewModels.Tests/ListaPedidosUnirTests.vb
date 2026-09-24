@@ -11,7 +11,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.ViewModels
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 
@@ -59,7 +59,7 @@ Public Class ListaPedidosUnirTests
     End Function
 
     Private Function CrearViewModel() As ListaPedidosVentaViewModel
-        Dim vm = New ListaPedidosVentaViewModel(_configuracion, _servicio, A.Fake(Of IEventAggregator)(), _dialogService, A.Fake(Of IRegionManager)())
+        Dim vm = New ListaPedidosVentaViewModel(_configuracion, _servicio, New WeakReferenceMessenger(), _dialogService, A.Fake(Of IRegionManager)())
         vm.ListaPedidos.ElementoSeleccionado = New ResumenPedido With {.empresa = "1", .numero = 200}
         Return vm
     End Function

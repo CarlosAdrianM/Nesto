@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Windows.Controls;
@@ -20,7 +20,7 @@ namespace Producto.Tests
             var regionManager = A.Fake<IRegionManager>();
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IProductoService>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var dialogService = A.Fake<IDialogService>();
             A.CallTo(() => servicio.LeerProducto("KIT")).Returns(new ProductoModel
             {
@@ -39,7 +39,7 @@ namespace Producto.Tests
                 Producto = "NO_KIT"
             });
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
-            var sut = new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, servicioAutenticacion);
+            var sut = new ProductoViewModel(regionManager, configuracion, servicio, messenger, dialogService, servicioAutenticacion);
             sut.ReferenciaBuscar = "KIT";
             sut.PestannaSeleccionada = Pestannas.Kits;
 
@@ -430,10 +430,10 @@ namespace Producto.Tests
             var regionManager = A.Fake<IRegionManager>();
             configuracion = A.Fake<IConfiguracion>();
             servicio = A.Fake<IProductoService>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var dialogService = A.Fake<IDialogService>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
-            return new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, servicioAutenticacion);
+            return new ProductoViewModel(regionManager, configuracion, servicio, messenger, dialogService, servicioAutenticacion);
         }
 
         private static ProductoModel CrearProductoConStock(string id, string familia, string subgrupo)

@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modulos.Producto;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -30,7 +30,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private IRegionManager _regionManager { get; }
         private IConfiguracion _configuracion { get; }
         private IProductoService _servicio { get; }
-        private IEventAggregator _eventAggregator { get; }
+        private IMessenger _messenger { get; }
         private IDialogService _dialogService { get; }
 
         private string _filtroNombre;
@@ -54,12 +54,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator, IDialogService dialogService, IServicioAutenticacion servicioAutenticacion)
+        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IMessenger messenger, IDialogService dialogService, IServicioAutenticacion servicioAutenticacion)
         {
             _regionManager = regionManager;
             _configuracion = configuracion;
             _servicio = servicio;
-            _eventAggregator = eventAggregator;
+            _messenger = messenger;
             _dialogService = dialogService;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
@@ -1215,7 +1215,7 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             if (ProductoResultadoSeleccionado != null)
             {
-                _eventAggregator.GetEvent<ProductoSeleccionadoEvent>().Publish(ProductoResultadoSeleccionado.Producto);
+                _messenger.Send(new ProductoSeleccionadoMensaje(ProductoResultadoSeleccionado.Producto));
                 try
                 {
                     ProductoView view = (ProductoView)_regionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();

@@ -6,7 +6,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,7 @@ namespace ControlesUsuario.Tests
     /// - Auto-selección de dirección por defecto (esDireccionPorDefecto)
     /// - Sincronización entre propiedades Seleccionada y DireccionCompleta
     /// - Debouncing con DispatcherTimer (100ms) para cambios de Cliente
-    /// - Suscripción a eventos ClienteCreadoEvent y ClienteModificadoEvent
+    /// - Suscripción al mensaje ClienteCreadoMensaje (Messenger)
     ///
     /// Carlos 20/11/24: FASE 3 completada - Actualizado para usar IServicioDireccionesEntrega
     /// </summary>
@@ -43,7 +43,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -52,7 +52,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Empresa debería llamar a cargarDatos() directamente
                 // (sin debouncing, según línea 226 de SelectorDireccionEntrega.xaml.cs)
@@ -78,7 +78,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -86,7 +86,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Cliente debería usar ResetTimer() para debouncing
                 // (100ms delay, según líneas 128-130 y 337-348)
@@ -110,7 +110,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -118,7 +118,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar TotalPedido debería llamar a cargarDatos()
                 // (según líneas 290-297)
@@ -144,7 +144,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -160,7 +160,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
 
                 // Inicializar la lista para evitar NullReferenceException
                 sut.listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>
@@ -193,7 +193,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -201,7 +201,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Seleccionada con espacios debería trimmearse
                 // (según OnSeleccionadaChanged, líneas 252-257)
@@ -221,53 +221,8 @@ namespace ControlesUsuario.Tests
 
         #region Test: Event Subscriptions
 
-        [TestMethod]
-        [TestCategory("SelectorDireccionEntrega")]
-        [TestCategory("Events")]
-        public void SelectorDireccionEntrega_AlCargarse_SeSuscribeAClienteCreadoEvent()
-        {
-            // Este test documenta que el control se suscribe a eventos cuando se carga
-            // Según UserControl_Loaded (líneas 433-437):
-            //
-            // eventAggregator.GetEvent<ClienteCreadoEvent>().Subscribe(OnClienteCreado);
-            // eventAggregator.GetEvent<ClienteModificadoEvent>().Subscribe(OnClienteCreado);
-            //
-            // Y se desuscribe en UserControl_Unloaded (líneas 439-443):
-            //
-            // eventAggregator.GetEvent<ClienteCreadoEvent>().Unsubscribe(OnClienteCreado);
-            // eventAggregator.GetEvent<ClienteModificadoEvent>().Unsubscribe(OnClienteCreado);
-            //
-            // Cuando se dispara ClienteCreadoEvent o ClienteModificadoEvent:
-            // 1. Si Empresa es null, se establece desde el cliente creado
-            // 2. Si Cliente es null, se establece desde el cliente creado
-            // 3. Se llama a cargarDatos()
-            // 4. Se selecciona la dirección que coincida con el contacto del cliente creado
-
-            Assert.IsTrue(true,
-                "Este test documenta que el control se suscribe a ClienteCreadoEvent y ClienteModificadoEvent en Loaded");
-        }
-
-        [TestMethod]
-        [TestCategory("SelectorDireccionEntrega")]
-        [TestCategory("Events")]
-        public void SelectorDireccionEntrega_AlDescargarse_SeDesuscribeDeClienteCreadoEvent()
-        {
-            // Este test documenta el comportamiento del método OnClienteCreado
-            // que se invoca cuando se dispara ClienteCreadoEvent o ClienteModificadoEvent
-            //
-            // Según OnClienteCreado (líneas 85-97):
-            // 1. Si Empresa es null en el selector, se establece desde el cliente creado
-            // 2. Si Cliente es null en el selector, se establece desde el cliente creado
-            // 3. Se llama a cargarDatos() para obtener direcciones del cliente
-            // 4. Se selecciona automáticamente la dirección cuyo contacto coincida
-            //    con el contacto del cliente recién creado/modificado
-            //
-            // Este flujo permite que al crear un nuevo contacto desde el selector,
-            // automáticamente se cargue y seleccione esa nueva dirección
-
-            Assert.IsTrue(true,
-                "Este test documenta que OnClienteCreado carga y selecciona la dirección del nuevo contacto");
-        }
+        // Nesto#490 (4C.1): la suscripción al mensaje ClienteCreado (Loaded/Unloaded) tiene tests
+        // reales en SelectorDireccionEntregaClienteCreadoTests (región "Mensaje ClienteCreado").
 
         #endregion
 
@@ -280,7 +235,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
@@ -289,7 +244,7 @@ namespace ControlesUsuario.Tests
             Thread thread = new Thread(() =>
             {
                 // Act
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
@@ -464,7 +419,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange: el servicio lanza al obtener direcciones (p.ej. 500 o error de red)
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
             A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>._, A<string>._, A<decimal?>._))
@@ -475,7 +430,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
                 sut.Empresa = "1";
                 sut.Cliente = "10";
 

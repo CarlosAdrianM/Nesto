@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Newtonsoft.Json.Linq;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -146,7 +146,7 @@ namespace PedidoVentaTests
         };
 
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IDialogService dialogService = null) => new DetallePedidoViewModel(
-            A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, A.Fake<IEventAggregator>(),
+            A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
             dialogService ?? A.Fake<IDialogService>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
 
         [TestMethod]

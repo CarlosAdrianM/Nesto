@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Microsoft.VisualBasic;
 using Nesto.Models.Nesto.Models;
@@ -29,15 +29,15 @@ namespace Nesto.Modulos.Cliente
         public IConfiguracion Configuracion { get; set; }
         private IClienteService Servicio { get; }
 
-        private IEventAggregator EventAggregator { get; }
+        private IMessenger Messenger { get; }
         private IDialogService DialogService { get; }
 
-        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IEventAggregator eventAggregator, IDialogService dialogService)
+        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IDialogService dialogService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             Servicio = servicio;
-            EventAggregator = eventAggregator;
+            Messenger = messenger;
             DialogService = dialogService;
 
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
@@ -802,7 +802,7 @@ namespace Nesto.Modulos.Cliente
                     if (clienteCreado != null)
                     {
                         DialogService.ShowNotification("Cliente Modificado", "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
-                        EventAggregator.GetEvent<ClienteCreadoEvent>().Publish(clienteCreado);
+                        Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                     }
                 } else
                 {
@@ -810,7 +810,7 @@ namespace Nesto.Modulos.Cliente
                     if (clienteCreado!=null)
                     {
                         DialogService.ShowNotification("Cliente Creado", "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
-                        EventAggregator.GetEvent<ClienteCreadoEvent>().Publish(clienteCreado);
+                        Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                         await OfrecerCopiarDatosDelPrincipal(clienteCreado);
                     }
                 }

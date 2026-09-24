@@ -3,7 +3,7 @@ using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -62,7 +62,7 @@ namespace ControlesUsuario.Tests
             // y luego Empresa (dispara carga inmediata), funciona correctamente.
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.Empresa = "1";  // Luego Empresa (dispara cargarDatos directamente)
 
@@ -88,7 +88,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -107,7 +107,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.Empresa = "1";  // Luego Empresa (dispara cargarDatos)
 
@@ -132,7 +132,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -146,7 +146,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.TotalPedido = 150.75m;
                 sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
@@ -171,7 +171,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -185,7 +185,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.TotalPedido = 0; // Cero no se envía (se convertirá a null)
                 sut.Empresa = "1";   // Empresa al final (dispara cargarDatos)
@@ -214,7 +214,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -244,7 +244,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 // NO establecer Seleccionada ni DireccionCompleta
                 sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
@@ -274,7 +274,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -303,7 +303,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Seleccionada = "5"; // Pre-seleccionar contacto 5
                 sut.Cliente = "10";     // Primero Cliente
                 sut.Empresa = "1";      // Empresa al final (dispara cargarDatos)
@@ -334,7 +334,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -349,7 +349,7 @@ namespace ControlesUsuario.Tests
             {
                 try
                 {
-                    sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                    sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                     sut.Cliente = "10"; // Primero Cliente
                     sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
 
@@ -385,7 +385,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
 
             SelectorDireccionEntrega sut = null;
@@ -396,7 +396,7 @@ namespace ControlesUsuario.Tests
             {
                 try
                 {
-                    sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, null);
+                    sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, null);
                     sut.Cliente = "10"; // Primero Cliente
                     sut.Empresa = "1";  // Empresa al final
 
@@ -430,7 +430,7 @@ namespace ControlesUsuario.Tests
         {
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
-            var eventAggregator = A.Fake<IEventAggregator>();
+            var messenger = new WeakReferenceMessenger();
             var regionManager = A.Fake<IRegionManager>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
@@ -442,7 +442,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Establecer cliente primero
                 sut.Empresa = "1";  // Cambiar empresa llama directamente a cargarDatos (sin debouncing)
 

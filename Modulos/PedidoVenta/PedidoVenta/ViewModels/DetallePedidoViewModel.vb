@@ -13,7 +13,7 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
@@ -31,7 +31,7 @@ Public Class DetallePedidoViewModel
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
-    Private ReadOnly eventAggregator As IEventAggregator
+    Private ReadOnly messenger As IMessenger
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly container As IUnityContainer
 
@@ -81,11 +81,11 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
-        Me.eventAggregator = eventAggregator
+        Me.messenger = messenger
         Me.dialogService = dialogService
         Me.container = container
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
@@ -119,14 +119,15 @@ Public Class DetallePedidoViewModel
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
 
-        Dim unused1 = eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
-        Dim unused = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf ActualizarLookup)
-        Dim unused2 = eventAggregator.GetEvent(Of PedidoCreadoEvent).Subscribe(AddressOf OnPedidoCreadoEnDetalle)
+        ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
+        messenger.Register(Of ProductoSeleccionadoMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).InsertarProducto(m.Value))
+        messenger.Register(Of SacarPickingMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).ActualizarLookup())
+        messenger.Register(Of PedidoCreadoMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).OnPedidoCreadoEnDetalle(m.Value))
     End Sub
 
     Private Sub ActualizarLookup()
         If Not IsNothing(pedido) Then
-            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
+            messenger.Send(New PedidoModificadoMensaje(pedido.Model))
         End If
     End Sub
     Private Async Sub InsertarProducto(productoSeleccionado As String)
@@ -580,7 +581,7 @@ Public Class DetallePedidoViewModel
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
             End If
-            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
+            messenger.Send(New PedidoModificadoMensaje(pedido.Model))
             estaActualizarFechaActivo = False
             Dim linea As LineaPedidoVentaDTO = pedido.Model.Lineas.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
@@ -2321,7 +2322,7 @@ Public Class DetallePedidoViewModel
                     .Provincia = If(DireccionEntregaSeleccionada?.provincia, String.Empty),
                     .TieneProductos = tieneProductos
                 }
-                eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(eventArgs)
+                messenger.Send(New PedidoCreadoMensaje(eventArgs))
                 Titulo = $"Pedido Venta ({pedido.numero})"
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
@@ -2354,7 +2355,7 @@ Public Class DetallePedidoViewModel
                 dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
                 ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
-                eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
+                messenger.Send(New PedidoModificadoMensaje(pedido.Model))
                 ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
                 Await ProcesarAvisosModificacion(avisosModificacion)
             End If

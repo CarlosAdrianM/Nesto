@@ -9,7 +9,7 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.LineaPedidoVentaDTO
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Services.Dialogs
 
@@ -20,20 +20,20 @@ Public Class PickingPopupViewModel
     Private Const FILTRO_RUTAS_DEFECTO As String = "(ruta='AT ' or ruta='OT ' or ruta='16 ' or ruta='FW ' or ruta='00 ')"
 
     Private ReadOnly servicio As IPedidoVentaService
-    Private ReadOnly eventAggregator As IEventAggregator
+    Private ReadOnly messenger As IMessenger
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioInformes As IInformesService
 
 
-    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
-        Me.New(servicio, eventAggregator, dialogService, configuracion, New InformesService(configuracion, servicioAutenticacion))
+    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+        Me.New(servicio, messenger, dialogService, configuracion, New InformesService(configuracion, servicioAutenticacion))
     End Sub
 
     ' Constructor para tests: permite inyectar un IInformesService mockeado.
-    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion, servicioInformes As IInformesService)
+    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, configuracion As IConfiguracion, servicioInformes As IInformesService)
         Me.servicio = servicio
-        Me.eventAggregator = eventAggregator
+        Me.messenger = messenger
         Me.dialogService = dialogService
         Me.configuracion = configuracion
         _servicioInformes = servicioInformes
@@ -320,7 +320,7 @@ Public Class PickingPopupViewModel
             End If
             dialogService.ShowNotification("Picking", textoMensaje)
             numeroPicking = Await _servicioInformes.LeerUltimoPicking()
-            eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
+            messenger.Send(New SacarPickingMensaje(1))
         Catch ex As Exception
             Dim tituloError As String
             If esPickingPedido Then

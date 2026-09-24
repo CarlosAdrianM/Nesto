@@ -4,7 +4,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using Nesto.Modules.Producto;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ namespace Producto.Tests
             dialogService = A.Fake<IDialogService>();
             servicio = fake;
             return new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), fake,
-                A.Fake<IEventAggregator>(), dialogService, A.Fake<IServicioAutenticacion>());
+                new WeakReferenceMessenger(), dialogService, A.Fake<IServicioAutenticacion>());
         }
 
         private static VarianteModel Variante(string numero, string valor, int orden, string nombre = null)

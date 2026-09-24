@@ -6,7 +6,7 @@ Imports Nesto.Infrastructure.Events
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
@@ -26,7 +26,7 @@ Public Class ListaPedidosVentaViewModel
     Public Event PedidoCreadoConfirmado(numeroPedido As Integer)
     Public Event PedidoCreacionCancelada()
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, regionManager As IRegionManager)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, regionManager As IRegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
@@ -38,9 +38,12 @@ Public Class ListaPedidosVentaViewModel
         RecalcularTotalesCommand = New RelayCommand(AddressOf RecalcularTotalesSeleccionados)
         ModificarConPlantillaCommand = New RelayCommand(Of ResumenPedido)(AddressOf OnModificarConPlantilla)
 
-        Dim unused3 = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
-        Dim unused2 = eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
-        Dim unused1 = eventAggregator.GetEvent(Of PedidoCreadoEvent).Subscribe(AddressOf OnPedidoCreado)
+        ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
+        messenger.Register(Of SacarPickingMensaje)(Me, Sub(r, m)
+                                                           Dim unused = DirectCast(r, ListaPedidosVentaViewModel).CargarResumenSeleccionado()
+                                                       End Sub)
+        messenger.Register(Of PedidoModificadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).ActualizarResumen(m.Value))
+        messenger.Register(Of PedidoCreadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).OnPedidoCreado(m.Value))
 
         ListaPedidos = New ColeccionFiltrable With {
             .TieneDatosIniciales = True,

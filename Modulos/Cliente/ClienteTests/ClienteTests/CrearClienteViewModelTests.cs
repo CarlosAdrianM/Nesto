@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using FakeItEasy;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
@@ -18,14 +18,14 @@ namespace ClienteTests
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IClienteService Servicio { get; }
-        private IEventAggregator EventAggregator { get; }
+        private IMessenger Messenger { get; }
         private IDialogService DialogService { get; }
         public CrearClienteViewModelTests()
         {
             RegionManager = A.Fake<IRegionManager>();
             Configuracion = A.Fake<IConfiguracion>();
             Servicio = A.Fake<IClienteService>();
-            EventAggregator = A.Fake<IEventAggregator>();
+            Messenger = new WeakReferenceMessenger();
             DialogService = A.Fake<IDialogService>();
         }
 
@@ -34,7 +34,7 @@ namespace ClienteTests
         [TestMethod]
         public void CambiarElPaisFiscal_ArrastraElPaisDeLaDireccion_PeroNoAlReves()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClientePais = "DE";
             Assert.AreEqual("DE", vm.ClientePaisDireccion, "Por defecto la dirección está en el país fiscal");
@@ -47,7 +47,7 @@ namespace ClienteTests
         [TestMethod]
         public async System.Threading.Tasks.Task BuscarSugerencias_UsaElPaisDeLaDireccion()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClientePaisDireccion = "IT";
 
             vm.ClienteDireccionCalleNumero = "Via Roma 1";
@@ -70,7 +70,7 @@ namespace ClienteTests
                     Pais = "Italia",
                     PaisIso = "IT"
                 });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ777" });
 
@@ -93,7 +93,7 @@ namespace ClienteTests
                     Numero = "3",
                     CodigoPostal = "28830"
                 });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ111" });
 
@@ -107,7 +107,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ222", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Avenida de Castilla", CodigoPostal = "28830" });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ222" });
 
@@ -119,7 +119,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion(A<string>.Ignored, A<string>.Ignored))
                 .Throws(new Exception("Places no habilitado"));
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteCodigoPostal = "28004";
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ333" });
@@ -132,7 +132,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ555", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ555" });
 
@@ -145,7 +145,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ555", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ555" });
 
             vm.ClienteDireccionCalleNumero = "Calle Mayor, 2"; // el usuario lo toca a mano
@@ -167,7 +167,7 @@ namespace ClienteTests
                     Poblacion = "Allende",
                     Provincia = "Cantabria"
                 });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ666" });
 
@@ -180,7 +180,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ666", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Allende", Numero = "35", CodigoPostal = "39584", Poblacion = "Allende", Provincia = "Cantabria" });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ666" });
 
             vm.ClienteDireccionCalleNumero = "Calle Allende, 36"; // editado a mano
@@ -192,7 +192,7 @@ namespace ClienteTests
         [TestMethod]
         public void MoverSeleccionSugerencias_ConFlechas_RecorreLaListaSinSalirse()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             var s1 = new SugerenciaDireccionModel { PlaceId = "1" };
             var s2 = new SugerenciaDireccionModel { PlaceId = "2" };
             vm.SugerenciasDireccion.Add(s1);
@@ -220,7 +220,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ444", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             var sugerencia = new SugerenciaDireccionModel { PlaceId = "ChIJ444" };
             vm.SugerenciasDireccion.Add(sugerencia);
             vm.HaySugerenciasDireccion = true;
@@ -238,7 +238,7 @@ namespace ClienteTests
         [TestMethod]
         public async System.Threading.Tasks.Task AplicarSugerenciaSeleccionada_SinResaltada_DevuelveFalseSinLlamarAlServicio()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.HaySugerenciasDireccion = true;
 
             bool aplicada = await vm.AplicarSugerenciaSeleccionadaAsync();
@@ -250,7 +250,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClienteNif = "B111";
 
@@ -260,7 +260,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiNoEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClienteNif = "530021-A";
 
@@ -270,7 +270,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiEsUnNie()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClienteNif = "X/78787";
 
@@ -280,7 +280,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaNombreIsEnabled()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -298,7 +298,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -316,7 +316,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNombre_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -336,7 +336,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_PasarADatosComision_SiOtroClienteTieneEseMovilSeNotifica()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             RespuestaDatosGeneralesClientes respuestaFake = A.Fake<RespuestaDatosGeneralesClientes>();
             ClienteTelefonoLookup clienteFake = new ClienteTelefonoLookup
             {
@@ -365,7 +365,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_PorDefecto_ElPaisEsES()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             Assert.AreEqual("ES", vm.ClientePais);
             Assert.IsFalse(vm.EsPaisExtranjero);
@@ -374,7 +374,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_PaisExtranjero_EsPaisExtranjeroEsTrue()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService)
             {
                 ClientePais = "IT"
             };
@@ -386,7 +386,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_ExtranjeroConNombre_SePuedeAvanzarSinValidarNif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService)
             {
                 ClientePais = "IT",
                 ClienteNif = "IT0280027",
@@ -400,7 +400,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_ExtranjeroSinNombre_NoSePuedeAvanzar()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService)
             {
                 ClientePais = "IT",
                 ClienteNif = "IT0280027"
@@ -416,7 +416,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_CertificadoAeatCaducado_DesbloqueaElNombreAunqueSeaUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteNif = "B111";
             Assert.IsFalse(vm.NombreIsEnabled, "De partida, el nombre de una persona juridica lo pone el censo");
 
@@ -428,7 +428,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_AlMarcarQueElNombreLoEscribeElUsuario_AvisaALaVista()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteNif = "B111";
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
@@ -451,7 +451,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_TrasElModoDegradado_AlCambiarElNifVuelveABloquearseElNombre()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteNif = "B111";
             vm.NombreLoDebeEscribirElUsuario = true;
             Assert.IsTrue(vm.NombreIsEnabled);
@@ -469,7 +469,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_SlConCertificadoCaducado_SecuenciaCompletaDelAlta()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClienteNif = "B12345674";
             Assert.IsFalse(vm.NombreIsEnabled, "Con un CIF el nombre lo pone el censo: se esconde");
@@ -491,7 +491,7 @@ namespace ClienteTests
         [TestMethod]
         public void DiasEnServir_PorDefecto_AbreTodosLosDias()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             Assert.AreEqual("11111", vm.DiasEnServir);
             Assert.IsTrue(vm.SirveLunes && vm.SirveMartes && vm.SirveMiercoles && vm.SirveJueves && vm.SirveViernes);
@@ -500,7 +500,7 @@ namespace ClienteTests
         [TestMethod]
         public void DiasEnServir_AlCargarLaCadena_MarcaLosCheckboxes()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.DiasEnServir = "01110"; // cierra lunes y viernes
 
@@ -514,7 +514,7 @@ namespace ClienteTests
         [TestMethod]
         public void DiasEnServir_AlDesmarcarUnDia_CambiaLaCadenaYAvisa()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             var avisados = new List<string>();
             vm.PropertyChanged += (s, e) => avisados.Add(e.PropertyName);
 
@@ -532,7 +532,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ480", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
-            return new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            return new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
         }
 
         [TestMethod]
@@ -566,7 +566,7 @@ namespace ClienteTests
         [TestMethod]
         public void SinDireccionElegidaDeGoogle_NoSePuedeCrearElCliente()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             vm.ClienteDireccionCalleNumero = "Calle inventada, 3"; // tecleada a mano
 
@@ -590,7 +590,7 @@ namespace ClienteTests
         public void SinNingunaDireccion_SePuedeCrear_PorqueNoHayNadaQueVerificar()
         {
             // Contactos de cobro y altas parciales: misma regla que el servidor (NestoAPI#499).
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
 
             Assert.IsTrue(vm.SePuedeCrearCliente);
         }
@@ -599,7 +599,7 @@ namespace ClienteTests
         public void EnUnaModificacion_NoSeExigeLaDireccionVerificada()
         {
             // Las fichas de años atrás tienen la dirección tecleada: el servidor tampoco las rechaza.
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteDireccion = "CALLE DE TODA LA VIDA, 7";
 
             Assert.IsFalse(vm.SePuedeCrearCliente, "Como alta sí se exige");
@@ -627,7 +627,7 @@ namespace ClienteTests
         [TestMethod]
         public async System.Threading.Tasks.Task CrearCliente_ConLaDireccionTecleada_NiSiquieraLlamaAlServidor()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.ClienteDireccion = "CALLE INVENTADA, 3";
 
             vm.CrearClienteCommand.Execute(null);
@@ -637,9 +637,29 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async System.Threading.Tasks.Task ModificarCliente_EnviaClienteCreadoPorElMessenger()
+        {
+            // Nesto#490 (4C.1): el selector de direcciones y la plantilla se enteran por el IMessenger
+            // (antes ClienteCreadoEvent de Prism). Al modificar se manda el mismo mensaje que al crear.
+            var modificado = new Nesto.Models.Nesto.Models.Clientes { Empresa = "1", Nº_Cliente = "15191", Contacto = "0" };
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.Ignored)).Returns(modificado);
+            var recibidos = new List<Nesto.Models.Nesto.Models.Clientes>();
+            Messenger.Register<Nesto.Infrastructure.Events.ClienteCreadoMensaje>(this, (r, m) => recibidos.Add(m.Value));
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
+            vm.EsUnaModificacion = true;
+            vm.ClienteDireccion = "CALLE DE TODA LA VIDA, 7";
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            Assert.AreEqual(1, recibidos.Count);
+            Assert.AreSame(modificado, recibidos[0]);
+        }
+
+        [TestMethod]
         public void DiasEnServir_DatoAusenteORoto_SeMuestraComoAbreTodosLosDias()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
             vm.SirveLunes = false;
 
             vm.DiasEnServir = null; // cliente antiguo sin dato
