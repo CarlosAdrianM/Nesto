@@ -7,7 +7,6 @@ using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
 using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
