@@ -146,6 +146,15 @@ Partial Public Class Application
                 Return New NovedadesService(factory)
             End Function)
 
+        ' Nesto#477: buzón de notificaciones (campana de la cinta)
+        Dim unusedBuzon = containerRegistry.RegisterSingleton(Of IBuzonNotificacionesService)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New BuzonNotificacionesService(factory)
+            End Function)
+        ' Nesto#477: aviso de notificaciones nuevas. Por ahora nulo; el push por SignalR llegará en otro tramo.
+        Dim unusedAvisos = containerRegistry.RegisterSingleton(Of IAvisosEnTiempoReal, AvisosEnTiempoRealNulo)()
+
         ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
         Dim unusedAgencias = containerRegistry.RegisterSingleton(Of IServicioAgenciasMantenimiento)(
             Function(provider)

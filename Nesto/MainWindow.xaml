@@ -5,6 +5,7 @@
         xmlns:prism="http://prismlibrary.com/"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
         xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+        xmlns:cun="clr-namespace:ControlesUsuario.Notificaciones;assembly=ControlesUsuario"
         Title="Nesto" 
         x:Name="RibbonWindow"
 		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
@@ -21,7 +22,12 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
         <Ribbon Grid.Column="0" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public"
-                prism:RegionManager.RegionName="MainMenuRegion"/>
+                prism:RegionManager.RegionName="MainMenuRegion">
+            <!-- Nesto#477: campana de notificaciones, arriba a la derecha de la cinta (visible con cualquier pestaña) -->
+            <Ribbon.HelpPaneContent>
+                <cun:CampanaNotificaciones x:Name="Campana" x:FieldModifier="Private"/>
+            </Ribbon.HelpPaneContent>
+        </Ribbon>
         <!-- MainRegion -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
             <!-- Usuario con indicador de autenticación (línea sutil debajo) -->

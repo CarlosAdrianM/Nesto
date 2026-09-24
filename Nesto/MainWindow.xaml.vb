@@ -43,10 +43,18 @@ Partial Class MainWindow
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
-                   novedadesService As INovedadesService, dialogService As Prism.Services.Dialogs.IDialogService)
+                   novedadesService As INovedadesService, dialogService As Prism.Services.Dialogs.IDialogService,
+                   campanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel)
 
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
+
+        ' Nesto#477: la campana arranca su refresco al cargarse y se refresca al recuperar el foco
+        ' (ella misma limita esta vía a un refresco cada pocos minutos)
+        Campana.DataContext = campanaNotificaciones
+        AddHandler Me.Activated, Sub(s, e)
+                                     Dim unusedRefresco = campanaNotificaciones.AlActivarseLaVentana()
+                                 End Sub
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.regionManager = regionManager
