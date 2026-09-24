@@ -63,6 +63,42 @@ namespace ControlesUsuario.Dialogs
     }
 
     /// <summary>
+    /// NestoAPI#520/#526: lo común a pegar una captura en un comentario o en una sugerencia: leerla del
+    /// portapapeles y comprobar el límite de la API ANTES de enviar.
+    /// </summary>
+    internal static class CapturaPortapapeles
+    {
+        /// <summary>Mismo límite que la API (2 MB tras decodificar).</summary>
+        public const int TAMANO_MAXIMO_IMAGEN = 2 * 1024 * 1024;
+
+        /// <summary>
+        /// True si lo copiado es una imagen (quepa o no). Si cabe, <paramref name="png"/> la trae; si no,
+        /// <paramref name="aviso"/> explica por qué no se adjunta.
+        /// </summary>
+        public static bool Leer(IPortapapelesImagenes portapapeles, out byte[] png, out string aviso)
+        {
+            png = null;
+            aviso = null;
+            if (portapapeles == null || !portapapeles.HayImagen())
+            {
+                return false;
+            }
+            byte[] leida = portapapeles.LeerImagenPng();
+            if (leida == null || leida.Length == 0)
+            {
+                return false;
+            }
+            if (leida.Length > TAMANO_MAXIMO_IMAGEN)
+            {
+                aviso = $"La imagen copiada ocupa {leida.Length / 1024.0 / 1024.0:0.0} MB y el máximo son 2 MB: haz un recorte más pequeño.";
+                return true;
+            }
+            png = leida;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// NestoAPI#520: una novedad de la ventana, con su feedback (votos y comentarios). Expone los mismos
     /// datos que <see cref="NovedadUsuario"/> para la plantilla. Si la API no trae los contadores (tablas de
     /// feedback aún no creadas) <see cref="TieneFeedback"/> es false y la ventana se ve como siempre.
@@ -70,7 +106,7 @@ namespace ControlesUsuario.Dialogs
     public class NovedadItem : ObservableObject
     {
         /// <summary>Mismo límite que la API (2 MB tras decodificar): se avisa ANTES de enviar.</summary>
-        public const int TAMANO_MAXIMO_IMAGEN = 2 * 1024 * 1024;
+        public const int TAMANO_MAXIMO_IMAGEN = CapturaPortapapeles.TAMANO_MAXIMO_IMAGEN;
 
         private readonly NovedadUsuario _novedad;
         private readonly INovedadesService _servicio;
@@ -105,6 +141,59 @@ namespace ControlesUsuario.Dialogs
         public string Titulo => _novedad.Titulo;
         public string Descripcion => _novedad.Descripcion;
         public string Ambito => _novedad.Ambito;
+
+        // ---- NestoAPI#526: sugerencias de los usuarios (novedades sin versión) ----
+        public bool EsSugerencia => _novedad.EsSugerencia;
+        /// <summary>Lo que escribió el usuario, tal cual.</summary>
+        public string TextoOriginal => _novedad.TextoOriginal;
+        public bool TieneTextoOriginal => EsSugerencia && !string.IsNullOrWhiteSpace(TextoOriginal);
+        /// <summary>En una sugerencia, la descripción es la ampliada que redactamos nosotros: solo se pinta si existe.</summary>
+        public bool TieneDescripcion => !string.IsNullOrWhiteSpace(Descripcion);
+        public string Estado => _novedad.Estado;
+        public string SugeridaPor
+        {
+            get
+            {
+                if (!EsSugerencia)
+                {
+                    return null;
+                }
+                string quien = string.IsNullOrWhiteSpace(_novedad.SugeridaNombre) ? "Sugerida" : $"Sugerida por {_novedad.SugeridaNombre.Trim()}";
+                DateTime? cuando = _novedad.SugeridaFecha;
+                string estado = string.IsNullOrWhiteSpace(Estado) ? string.Empty : $" · {Estado.Trim()}";
+                return cuando.HasValue ? $"{quien} el {cuando.Value:dd/MM/yyyy}{estado}" : quien + estado;
+            }
+        }
+        public bool TieneImagenNovedad => _novedad.TieneImagen;
+
+        private byte[] _imagenNovedad;
+        /// <summary>La captura de la sugerencia (se pide al enseñar la página de sugerencias).</summary>
+        public byte[] ImagenNovedad { get => _imagenNovedad; internal set => SetProperty(ref _imagenNovedad, value); }
+
+        private bool _imagenNovedadNoDisponible;
+        public bool ImagenNovedadNoDisponible { get => _imagenNovedadNoDisponible; private set => SetProperty(ref _imagenNovedadNoDisponible, value); }
+
+        /// <summary>Pide la captura una sola vez; si falla se dice, sin romper nada.</summary>
+        internal async Task CargarImagenNovedad()
+        {
+            if (!TieneImagenNovedad || _servicio == null || ImagenNovedad != null)
+            {
+                return;
+            }
+            try
+            {
+                ImagenNovedad = await _servicio.LeerImagenNovedad(Id);
+                ImagenNovedadNoDisponible = false;
+            }
+            catch (Exception)
+            {
+                ImagenNovedadNoDisponible = true;
+            }
+        }
+
+        private bool _destacada;
+        /// <summary>NestoAPI#527: la que se eligió en el buscador (se resalta y se hace visible).</summary>
+        public bool Destacada { get => _destacada; internal set => SetProperty(ref _destacada, value); }
 
         /// <summary>La API trae feedback (tablas creadas) y hay servicio con el que hablar.</summary>
         public bool TieneFeedback => _servicio != null && _novedad.VotosPositivos.HasValue;
@@ -283,18 +372,13 @@ namespace ControlesUsuario.Dialogs
         /// </summary>
         internal bool PegarImagen()
         {
-            if (_portapapeles == null || !_portapapeles.HayImagen())
+            if (!CapturaPortapapeles.Leer(_portapapeles, out byte[] png, out string aviso))
             {
                 return false;
             }
-            byte[] png = _portapapeles.LeerImagenPng();
-            if (png == null || png.Length == 0)
+            if (png == null)
             {
-                return false;
-            }
-            if (png.Length > TAMANO_MAXIMO_IMAGEN)
-            {
-                Mensaje = $"La imagen copiada ocupa {png.Length / 1024.0 / 1024.0:0.0} MB y el máximo son 2 MB: haz un recorte más pequeño.";
+                Mensaje = aviso;
                 return true;
             }
             ImagenAdjunta = png;

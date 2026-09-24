@@ -4,7 +4,7 @@
              xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
              prism:ViewModelLocator.AutoWireViewModel="True"
-             Width="600" Height="560">
+             Width="620" Height="660">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisible" />
         <local:BytesAImagenConverter x:Key="BytesAImagen" />
@@ -21,15 +21,56 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Qué hay de nuevo" FontSize="18" FontWeight="Bold" Margin="0,0,0,4" />
+        <!-- Nesto#487: título y buscador (NestoAPI#527). Al elegir un resultado se salta a su versión o a Sugerencias. -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,4">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                        Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}">
+                <TextBox Width="190" Text="{Binding TextoBusqueda, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                         ToolTip="Busca en todas las novedades y sugerencias (todas las palabras, con o sin tildes)">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding BuscarCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Content="Buscar" Command="{Binding BuscarCommand}" Padding="8,1" Margin="4,0,0,0" />
+            </StackPanel>
+            <TextBlock Text="Qué hay de nuevo" FontSize="18" FontWeight="Bold" />
+        </DockPanel>
+
+        <StackPanel Grid.Row="1">
+            <TextBlock Text="{Binding MensajeBusqueda}" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,0,0,4"
+                       Visibility="{Binding HayMensajeBusqueda, Converter={StaticResource BoolAVisible}}" />
+            <Border BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,0,0,6"
+                    Visibility="{Binding HayResultadosBusqueda, Converter={StaticResource BoolAVisible}}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Background="#F3F3F3">
+                        <Button DockPanel.Dock="Right" Content="✕" Command="{Binding CerrarBusquedaCommand}" Padding="6,0"
+                                BorderThickness="0" Background="Transparent" ToolTip="Cerrar la búsqueda" />
+                        <TextBlock Text="Elige una para ir a ella:" FontSize="11" Foreground="#555555" Margin="6,2" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ListBox ItemsSource="{Binding ResultadosBusqueda}" SelectedItem="{Binding ResultadoSeleccionado}"
+                             MaxHeight="130" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Donde}" Foreground="#4A90D9" Width="120" />
+                                    <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </StackPanel>
 
         <!-- Navegación entre versiones: solo se muestra una versión a la vez (la más nueva al abrir);
              las flechas permiten consultar las novedades de versiones anteriores/siguientes. -->
-        <Grid Grid.Row="1" Margin="0,0,0,8">
+        <Grid Grid.Row="2" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition />
@@ -40,14 +81,54 @@
             <TextBlock Grid.Column="1" Text="{Binding VersionActual}" HorizontalAlignment="Center"
                        VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#4A90D9" />
             <Button Grid.Column="2" Content="▶" Width="30" Height="24" FontSize="13"
-                    Command="{Binding VersionSiguienteCommand}" ToolTip="Versión siguiente" />
+                    Command="{Binding VersionSiguienteCommand}" ToolTip="Versión siguiente (desde la más nueva, las sugerencias pendientes)" />
         </Grid>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Novedades}">
+        <!-- Nesto#487: cabecera de la página de sugerencias: avisos y cuadro para sugerir (mismo pegado de captura que los comentarios). -->
+        <StackPanel Grid.Row="3" Visibility="{Binding EnSugerencias, Converter={StaticResource BoolAVisible}}">
+            <TextBlock Text="Ideas de los usuarios que aún no están hechas. Vota las que te interesen y coméntalas; las más votadas salen arriba."
+                       TextWrapping="Wrap" Foreground="#555555" Margin="0,0,0,4" />
+            <TextBlock Text="Cargando sugerencias…" Foreground="#777777" Margin="0,0,0,4"
+                       Visibility="{Binding CargandoSugerencias, Converter={StaticResource BoolAVisible}}" />
+            <TextBlock Text="{Binding MensajeSugerencias}" Foreground="#2E6DA4" TextWrapping="Wrap" Margin="0,0,0,4"
+                       Visibility="{Binding HayMensajeSugerencias, Converter={StaticResource BoolAVisible}}" />
+            <Border Visibility="{Binding FormularioSugerenciaAbierto, Converter={StaticResource BoolAVisible}}"
+                    Background="#F7F7F7" CornerRadius="3" Padding="8" Margin="0,0,0,6">
+                <StackPanel>
+                    <TextBlock Text="¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):" FontSize="11" Foreground="#555555" Margin="0,0,0,2" TextWrapping="Wrap" />
+                    <TextBox Text="{Binding TextoSugerencia, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                             TextWrapping="Wrap" MinHeight="54" MaxLength="2000" VerticalScrollBarVisibility="Auto"
+                             PreviewKeyDown="CuadroSugerencia_PreviewKeyDown" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                Visibility="{Binding TieneImagenSugerencia, Converter={StaticResource BoolAVisible}}">
+                        <Image Source="{Binding ImagenSugerencia, Converter={StaticResource BytesAImagen}}" MaxHeight="90" Stretch="Uniform" />
+                        <Button Content="Quitar imagen" Command="{Binding QuitarImagenSugerenciaCommand}" Margin="8,0,0,0"
+                                VerticalAlignment="Top" Padding="6,1" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                        <Button Content="Pegar imagen" Command="{Binding PegarImagenSugerenciaCommand}" Padding="8,2" Margin="0,0,6,0"
+                                ToolTip="Adjunta la imagen que tengas copiada (por ejemplo, un recorte de pantalla)" />
+                        <Button Content="Enviar sugerencia" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="ListaNovedades" ItemsSource="{Binding Novedades}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="0,8,0,8">
+                        <!-- Nesto#487: la elegida en el buscador (o la sugerencia recién creada) se resalta. -->
+                        <Border BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="4,8,4,8">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Destacada}" Value="True">
+                                            <Setter Property="Background" Value="#FFF6D5" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Border CornerRadius="3" Padding="6,1,6,1" VerticalAlignment="Center">
@@ -68,7 +149,25 @@
                                     </Border>
                                     <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <TextBlock Text="{Binding Descripcion}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="#444444" />
+                                <!-- Nesto#487: en una sugerencia, quién/cuándo, lo que escribió el usuario tal cual y su captura;
+                                     la descripción (ampliada, nuestra) solo si la hay. -->
+                                <TextBlock Text="{Binding SugeridaPor}" FontSize="11" Foreground="#777777" Margin="0,3,0,0"
+                                           Visibility="{Binding EsSugerencia, Converter={StaticResource BoolAVisible}}" />
+                                <Border BorderBrush="#C9D9EC" BorderThickness="3,0,0,0" Padding="6,0,0,0" Margin="0,4,0,0"
+                                        Visibility="{Binding TieneTextoOriginal, Converter={StaticResource BoolAVisible}}">
+                                    <TextBlock Text="{Binding TextoOriginal}" TextWrapping="Wrap" FontStyle="Italic" Foreground="#333333" />
+                                </Border>
+                                <TextBlock Text="{Binding Descripcion}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="#444444"
+                                           Visibility="{Binding TieneDescripcion, Converter={StaticResource BoolAVisible}}" />
+                                <Image Source="{Binding ImagenNovedad, Converter={StaticResource BytesAImagen}}" MaxHeight="160"
+                                       HorizontalAlignment="Left" Stretch="Uniform" Margin="0,4,0,0"
+                                       Visibility="{Binding TieneImagenNovedad, Converter={StaticResource BoolAVisible}}">
+                                    <Image.ToolTip>
+                                        <Image Source="{Binding ImagenNovedad, Converter={StaticResource BytesAImagen}}" MaxWidth="900" MaxHeight="700" />
+                                    </Image.ToolTip>
+                                </Image>
+                                <TextBlock Text="(no se pudo cargar la captura)" FontSize="11" Foreground="#999999"
+                                           Visibility="{Binding ImagenNovedadNoDisponible, Converter={StaticResource BoolAVisible}}" />
 
                                 <!-- NestoAPI#520: feedback. Solo si la API trae los contadores (si no, la ventana como siempre). -->
                                 <StackPanel Visibility="{Binding TieneFeedback, Converter={StaticResource BoolAVisible}}" Margin="0,6,0,0">
@@ -168,7 +267,12 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <Button Grid.Row="3" Content="Cerrar" Command="{Binding CloseDialogCommand}"
-                Width="90" Height="28" HorizontalAlignment="Right" Margin="0,10,0,0" IsCancel="True" />
+        <DockPanel Grid.Row="5" Margin="0,10,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Left" Content="Sugerir nueva característica" Command="{Binding AbrirSugerenciaCommand}"
+                    Height="28" Padding="10,0" ToolTip="¿Echas algo en falta en Nesto? Cuéntanoslo y los demás podrán votarlo"
+                    Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}" />
+            <Button DockPanel.Dock="Right" Content="Cerrar" Command="{Binding CloseDialogCommand}"
+                    Width="90" Height="28" IsCancel="True" />
+        </DockPanel>
     </Grid>
 </UserControl>

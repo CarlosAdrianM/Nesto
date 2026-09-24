@@ -25,6 +25,19 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>1, -1 o null si el usuario no ha votado.</summary>
         public short? MiVoto { get; set; }
         public int? NumeroComentarios { get; set; }
+
+        // NestoAPI#526/#527: solo vienen en las sugerencias (novedades sin versión) y en el buscador.
+        /// <summary>Lo que escribió el usuario, tal cual. La <see cref="Descripcion"/> es la versión ampliada, si la hay.</summary>
+        public string TextoOriginal { get; set; }
+        public string SugeridaNombre { get; set; }
+        public DateTime? SugeridaFecha { get; set; }
+        /// <summary>Pendiente, Aceptada, Implementada o Descartada.</summary>
+        public string Estado { get; set; }
+        /// <summary>La sugerencia lleva captura (se pide aparte con <see cref="INovedadesService.LeerImagenNovedad"/>).</summary>
+        public bool TieneImagen { get; set; }
+
+        /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
+        public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
     }
 
     /// <summary>NestoAPI#520: comentario de un usuario en una novedad (la imagen se pide aparte).</summary>
@@ -61,5 +74,16 @@ namespace Nesto.Infrastructure.Contracts
         Task<ComentarioNovedad> Comentar(int novedadId, string texto, byte[] imagenPng);
         Task<byte[]> LeerImagenComentario(int comentarioId);
         Task BorrarComentario(int comentarioId);
+
+        // NestoAPI#526/#527: sugerencias de los usuarios y buscador. También lanzan con el mensaje de la API.
+
+        /// <summary>Sugerencias abiertas (sin versión), las más votadas primero.</summary>
+        Task<List<NovedadUsuario>> LeerSugerencias();
+        /// <summary>Crea una sugerencia; <paramref name="imagenPng"/> es opcional (captura en PNG).</summary>
+        Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng);
+        /// <summary>La captura de una sugerencia.</summary>
+        Task<byte[]> LeerImagenNovedad(int novedadId);
+        /// <summary>Novedades (con versión) y sugerencias (sin versión) que tienen todas las palabras.</summary>
+        Task<List<NovedadUsuario>> Buscar(string texto);
     }
 }

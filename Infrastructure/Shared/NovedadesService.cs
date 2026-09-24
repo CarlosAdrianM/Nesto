@@ -67,34 +67,66 @@ namespace Nesto.Infrastructure.Shared
 
         public async Task<ComentarioNovedad> Comentar(int novedadId, string texto, byte[] imagenPng)
         {
+            string json = await Enviar(HttpMethod.Post, $"Novedades/{novedadId}/Comentarios", CuerpoConCaptura(texto, imagenPng), "publicar el comentario").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<ComentarioNovedad>(json);
+        }
+
+        public Task<byte[]> LeerImagenComentario(int comentarioId)
+            => LeerImagen($"Novedades/Comentarios/{comentarioId}/Imagen");
+
+        public async Task BorrarComentario(int comentarioId)
+        {
+            await Enviar(HttpMethod.Delete, $"Novedades/Comentarios/{comentarioId}", null, "borrar el comentario").ConfigureAwait(false);
+        }
+
+        // ---- NestoAPI#526/#527: sugerencias y buscador. Sin ámbito: la API entiende que es el escritorio. ----
+
+        public async Task<List<NovedadUsuario>> LeerSugerencias()
+        {
+            string json = await Enviar(HttpMethod.Get, "Novedades/Sugerencias", null, "leer las sugerencias").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<List<NovedadUsuario>>(json ?? "[]") ?? new List<NovedadUsuario>();
+        }
+
+        public async Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng)
+        {
+            string json = await Enviar(HttpMethod.Post, "Novedades/Sugerencias", CuerpoConCaptura(texto, imagenPng), "enviar la sugerencia").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<NovedadUsuario>(json);
+        }
+
+        public Task<byte[]> LeerImagenNovedad(int novedadId)
+            => LeerImagen($"Novedades/{novedadId}/Imagen");
+
+        public async Task<List<NovedadUsuario>> Buscar(string texto)
+        {
+            string url = $"Novedades/Buscar?texto={Uri.EscapeDataString(texto ?? string.Empty)}";
+            string json = await Enviar(HttpMethod.Get, url, null, "buscar").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<List<NovedadUsuario>>(json ?? "[]") ?? new List<NovedadUsuario>();
+        }
+
+        /// <summary>Mismo cuerpo para comentar y para sugerir (NuevoComentarioNovedadDTO en la API).</summary>
+        private static object CuerpoConCaptura(string texto, byte[] imagenPng)
+        {
             bool conImagen = imagenPng != null && imagenPng.Length > 0;
-            var cuerpo = new
+            return new
             {
                 Texto = texto,
                 ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
                 ImagenTipo = conImagen ? "image/png" : null,
                 VersionCliente = VersionNesto()
             };
-            string json = await Enviar(HttpMethod.Post, $"Novedades/{novedadId}/Comentarios", cuerpo, "publicar el comentario").ConfigureAwait(false);
-            return JsonConvert.DeserializeObject<ComentarioNovedad>(json);
         }
 
-        public async Task<byte[]> LeerImagenComentario(int comentarioId)
+        private async Task<byte[]> LeerImagen(string url)
         {
             using (var client = _clienteApiFactory.Crear())
             {
-                HttpResponseMessage response = await client.GetAsync($"Novedades/Comentarios/{comentarioId}/Imagen").ConfigureAwait(false);
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new InvalidOperationException(await MensajeDeError(response, "leer la imagen").ConfigureAwait(false));
                 }
                 return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
-        }
-
-        public async Task BorrarComentario(int comentarioId)
-        {
-            await Enviar(HttpMethod.Delete, $"Novedades/Comentarios/{comentarioId}", null, "borrar el comentario").ConfigureAwait(false);
         }
 
         private async Task<string> Enviar(HttpMethod metodo, string url, object cuerpo, string accion)
