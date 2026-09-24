@@ -7,7 +7,7 @@ Imports System.Windows.Controls
 Imports Nesto.Contratos
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Events
+Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Microsoft.Graph
 Imports Prism.Services.Dialogs
@@ -62,8 +62,9 @@ Public Class RemesasViewModel
         _regionManager = container.Resolve(Of IRegionManager)()
         ' Nesto#419: escuchar las liquidaciones del Extracto de Cliente para actualizar en sitio
         ' los efectos afectados (suscripción débil por defecto; se limpia sola al cerrar la vista).
-        container.Resolve(Of IEventAggregator)().GetEvent(Of EfectosLiquidadosEvent) _
-            .Subscribe(AddressOf AplicarEfectosLiquidados, ThreadOption.UIThread)
+        ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator. Antes era ThreadOption.UIThread:
+        ' el Messenger entrega en el hilo de quien envía, así que se encola en el de la UI.
+        SuscribirEfectosLiquidados(container.Resolve(Of IMessenger)())
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
         ' Nesto#340 Fase 1C.14 slices 2 y 4: el setter de empresaActual ya carga remesas e
@@ -188,6 +189,11 @@ Public Class RemesasViewModel
     ' los efectos afectados (importe pendiente y el naranja de negativos), SIN recargar candidatos,
     ' para no perder las marcas que el usuario tuviera hechas. Un efecto saldado a 0 deja de ser
     ' candidato y se quita; el resto de la selección se conserva intacto.
+    Public Sub SuscribirEfectosLiquidados(messenger As IMessenger)
+        messenger.Register(Of EfectosLiquidadosMensaje)(Me,
+            Sub(r, m) DespachadorUi.EnHiloUi(Sub() DirectCast(r, RemesasViewModel).AplicarEfectosLiquidados(m.Value)))
+    End Sub
+
     Public Sub AplicarEfectosLiquidados(payload As EfectosLiquidadosPayload)
         If payload Is Nothing OrElse ListaCandidatos Is Nothing OrElse payload.NuevosImportesPendientes Is Nothing Then
             Return

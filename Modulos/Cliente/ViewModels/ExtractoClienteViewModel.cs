@@ -2,7 +2,7 @@
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -27,23 +27,23 @@ namespace Nesto.Modulos.Cliente
     {
         private readonly IExtractoClienteService _servicio;
         private readonly IDialogService _dialogService;
-        private readonly IEventAggregator _eventAggregator;
+        private readonly IMessenger _messenger;
         private readonly Action<string> _abrirFichero;
 
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
-            IEventAggregator eventAggregator)
-            : this(servicio, dialogService, eventAggregator, null)
+            IMessenger messenger)
+            : this(servicio, dialogService, messenger, null)
         {
         }
 
         // abrirFichero: lo que se hace con el PDF ya en disco (por defecto abrirlo con el visor del
         // sistema); los tests inyectan una captura para no lanzar procesos.
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
-            IEventAggregator eventAggregator, Action<string> abrirFichero)
+            IMessenger messenger, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogService = dialogService;
-            _eventAggregator = eventAggregator;
+            _messenger = messenger;
             _abrirFichero = abrirFichero ?? AbrirConElVisorDelSistema;
             Titulo = "Extracto de Cliente";
             CargarCommand = new RelayCommand(OnCargar, CanCargar);
@@ -248,7 +248,7 @@ namespace Nesto.Modulos.Cliente
                 // recargar candidatos, que perdería las marcas del usuario). Se envían los nuevos
                 // importes pendientes y si el cliente sigue teniendo negativos (Movimientos ya
                 // está refrescado por CargarAsync).
-                _eventAggregator?.GetEvent<EfectosLiquidadosEvent>().Publish(new EfectosLiquidadosPayload
+                _messenger?.Send(new EfectosLiquidadosMensaje(new EfectosLiquidadosPayload
                 {
                     Empresa = origen.Empresa?.Trim(),
                     Cliente = ClienteSeleccionado?.Trim(),
@@ -258,7 +258,7 @@ namespace Nesto.Modulos.Cliente
                         [destino.Id] = resultado.ImportePdteDestino
                     },
                     ClienteSigueConNegativos = Movimientos.Any(m => m.ImportePendiente < 0)
-                });
+                }));
             }
             catch (Exception ex)
             {

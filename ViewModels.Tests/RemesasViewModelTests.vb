@@ -1,6 +1,7 @@
 Imports System.Collections.Generic
 Imports System.Linq
 Imports System.Threading.Tasks
+Imports CommunityToolkit.Mvvm.Messaging
 Imports FakeItEasy
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
@@ -286,6 +287,28 @@ Public Class RemesasViewModelTests
         Assert.IsFalse(vm.ListaCandidatos.Any(Function(c) c.Id = 2), "El efecto saldado a 0 se quita de la lista")
         ' Efecto 3 (otro cliente): la marca del usuario se conserva
         Assert.IsTrue(vm.ListaCandidatos.Single(Function(c) c.Id = 3).Seleccionado, "No se pierde el trabajo del usuario")
+    End Function
+
+    <TestMethod()>
+    Public Async Function MensajeEfectosLiquidados_LlegaARemesasYActualizaEnSitio() As Task
+        ' Nesto#490 (4C.1): el Extracto de Cliente envía EfectosLiquidadosMensaje por el Messenger
+        ' (antes EfectosLiquidadosEvent de Prism con ThreadOption.UIThread). Sin aplicación WPF
+        ' (tests) DespachadorUi lo ejecuta en el acto.
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1, importe:=500D, conNegativos:=True, cliente:="15191")}))
+        Dim vm = CrearViewModel()
+        Await vm.CargarCandidatosAsync()
+        Dim messenger As IMessenger = New WeakReferenceMessenger()
+        vm.SuscribirEfectosLiquidados(messenger)
+
+        messenger.Send(New EfectosLiquidadosMensaje(New EfectosLiquidadosPayload With {
+            .Empresa = "1", .Cliente = "15191", .ClienteSigueConNegativos = False,
+            .NuevosImportesPendientes = New Dictionary(Of Integer, Decimal) From {{1, 300D}}}))
+
+        Dim efecto1 = vm.ListaCandidatos.Single(Function(c) c.Id = 1)
+        Assert.AreEqual(300D, efecto1.ImportePendiente)
+        Assert.IsFalse(efecto1.ClienteConNegativos)
     End Function
 
     <TestMethod()>

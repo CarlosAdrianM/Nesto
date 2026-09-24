@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Events;
+using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -22,9 +22,9 @@ namespace ClienteTests
     {
         private readonly IExtractoClienteService servicio;
         private readonly IDialogService dialogService;
-        // EventAggregator REAL (no fake): GetEvent<T>() devuelve una PubSubEvent concreta difícil
-        // de fingir; con el real, los tests se suscriben y capturan el payload publicado.
-        private readonly IEventAggregator eventAggregator = new EventAggregator();
+        // Messenger REAL (no fake), nuevo en cada test (Nesto#490 4C.1): los tests se registran
+        // y capturan el mensaje enviado.
+        private readonly IMessenger messenger = new WeakReferenceMessenger();
         private bool respuestaConfirmacion = true;
         private readonly List<string> mensajesDialogo = new List<string>();
 
@@ -53,7 +53,7 @@ namespace ClienteTests
                 });
         }
 
-        private ExtractoClienteViewModel CrearViewModel() => new ExtractoClienteViewModel(servicio, dialogService, eventAggregator);
+        private ExtractoClienteViewModel CrearViewModel() => new ExtractoClienteViewModel(servicio, dialogService, messenger);
 
         private static ExtractoClienteModel Movimiento(int id, decimal pendiente, string empresa = "1",
             bool seleccionado = false)
@@ -90,7 +90,7 @@ namespace ClienteTests
         {
             string abierto = null;
             A.CallTo(() => servicio.DescargarFacturaPdf("1", "NV26/001234")).Returns(new byte[] { 0x25, 0x50, 0x44, 0x46 });
-            var vm = new ExtractoClienteViewModel(servicio, dialogService, eventAggregator, ruta => abierto = ruta);
+            var vm = new ExtractoClienteViewModel(servicio, dialogService, messenger, ruta => abierto = ruta);
             var factura = Movimiento(1, 100m);
             factura.Documento = "NV26/001234";
             factura.TieneFactura = true;
@@ -111,7 +111,7 @@ namespace ClienteTests
             string abierto = null;
             A.CallTo(() => servicio.DescargarFacturaPdf(A<string>.Ignored, A<string>.Ignored))
                 .Throws(new Exception("No se pudo obtener la factura NV26/001234: serie sin descarga permitida"));
-            var vm = new ExtractoClienteViewModel(servicio, dialogService, eventAggregator, ruta => abierto = ruta);
+            var vm = new ExtractoClienteViewModel(servicio, dialogService, messenger, ruta => abierto = ruta);
             var factura = Movimiento(1, 100m);
             factura.Documento = "NV26/001234";
             factura.TieneFactura = true;
@@ -241,14 +241,14 @@ namespace ClienteTests
             _ = A.CallTo(() => servicio.LiquidarEfectos("1", 111, 222))
                 .Returns(new ResultadoLiquidacionModel { Exito = true, ImportePdteOrigen = 300m, ImportePdteDestino = 0m });
             EfectosLiquidadosPayload capturado = null;
-            eventAggregator.GetEvent<EfectosLiquidadosEvent>().Subscribe(p => capturado = p);
+            messenger.Register<EfectosLiquidadosMensaje>(this, (r, m) => capturado = m.Value);
             var vm = CrearViewModel();
             vm.ClienteSeleccionado = "15191";
             await vm.CargarAsync();
 
             await vm.LiquidarAsync();
 
-            Assert.IsNotNull(capturado, "Debe publicarse EfectosLiquidadosEvent");
+            Assert.IsNotNull(capturado, "Debe enviarse EfectosLiquidadosMensaje");
             Assert.AreEqual("1", capturado.Empresa);
             Assert.AreEqual("15191", capturado.Cliente);
             Assert.AreEqual(300m, capturado.NuevosImportesPendientes[111]);
