@@ -299,6 +299,27 @@ Public Class DetallePedidoView
         End If
     End Sub
 
+#Region "Nesto#485: barra de facturación común a todas las pestañas"
+    ''' <summary>
+    ''' Nesto#485: la barra de crear albarán/factura e imprimir está visible desde cualquier pestaña, también
+    ''' desde Líneas con una celda a medio teclear. El Click del botón se dispara ANTES de ejecutar su comando,
+    ''' así que aquí se confirma la edición en curso (celda y fila) para que la última línea tecleada cuente
+    ''' al comprobar cambios sin guardar y al guardar. Si no hay edición, CommitEdit no hace nada.
+    ''' </summary>
+    Private Sub BarraFacturacion_Click(sender As Object, e As RoutedEventArgs)
+        ConfirmarEdicionLineas()
+    End Sub
+
+    Private Sub ConfirmarEdicionLineas()
+        Try
+            grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+            grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
+        Catch
+            ' Issue #258: con DataGridTemplateColumn el árbol visual puede no estar estable; no debe impedir facturar
+        End Try
+    End Sub
+#End Region
+
 #Region "Issue #258: CancelEdit Command Handlers"
     ''' <summary>
     ''' Maneja CanExecute del comando CancelEdit para evitar crash con DataGridTemplateColumn.

@@ -180,10 +180,10 @@
                                 </DockPanel>
                             </Grid>
 
-                            <!-- Botones de acción -->
+                            <!-- Botones de acción. Nesto#485: los de crear albarán/factura e imprimir están en la
+                                 barra de facturación, debajo de las pestañas (visibles desde cualquiera) -->
                             <Grid Margin="0,10,0,0">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition/>
                                     <RowDefinition/>
                                     <RowDefinition/>
                                 </Grid.RowDefinitions>
@@ -193,41 +193,14 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <!-- Fila 0: Creación de documentos -->
-                                <!-- Nesto#413: la visibilidad incluye los pedidos con líneas de tienda online (no solo el grupo almacén/tiendas) -->
-                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
-                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
-                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
-                                <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <CheckBox IsChecked="{Binding PapelConMembrete}">Membrete</CheckBox>
-                                    <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>
-                                </StackPanel>
-                                <!-- Fila 1: Impresión (Issue #269: Impresión directa con selección de bandeja) -->
-                                <!-- Clic izquierdo: Imprime directo a impresora con bandeja según "Papel con membrete" -->
-                                <!-- Clic derecho: Menú para descargar PDF (comportamiento anterior) -->
-                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding ImprimirAlbaranDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
-                                    <Button.Content>Imprimir Albarán</Button.Content>
-                                    <Button.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Descargar PDF" Command="{Binding ImprimirAlbaranCommand}"/>
-                                        </ContextMenu>
-                                    </Button.ContextMenu>
-                                </Button>
-                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding ImprimirFacturaDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
-                                    <Button.Content>Imprimir Factura</Button.Content>
-                                    <Button.ContextMenu>
-                                        <ContextMenu>
-                                            <MenuItem Header="Descargar PDF" Command="{Binding ImprimirFacturaCommand}"/>
-                                        </ContextMenu>
-                                    </Button.ContextMenu>
-                                </Button>
-                                <Button Grid.Row="1" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
-                                <Button Grid.Row="1" Grid.Column="3" Command="{Binding CopiarFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Copiar líneas de una factura existente para crear rectificativa o duplicar">Copiar Factura</Button>
-                                <!-- Fila 2: Picking, PDF y presupuestos -->
-                                <Button Grid.Row="2" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                                <Button Grid.Row="2" Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
-                                <Button Grid.Row="2" Grid.Column="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
-                                <Button Grid.Row="2" Grid.Column="3" Command="{Binding PasarAPresupuestoCommand}">Pasar a Presupuesto</Button>
+                                <!-- Fila 0: Rutas y rectificativas -->
+                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
+                                <Button Grid.Row="0" Grid.Column="3" Command="{Binding CopiarFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Copiar líneas de una factura existente para crear rectificativa o duplicar">Copiar Factura</Button>
+                                <!-- Fila 1: Picking, PDF y presupuestos -->
+                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
+                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
+                                <Button Grid.Row="1" Grid.Column="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
+                                <Button Grid.Row="1" Grid.Column="3" Command="{Binding PasarAPresupuestoCommand}">Pasar a Presupuesto</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>
@@ -737,6 +710,39 @@
                 </TabItem>
             </TabControl>
             <StackPanel Grid.Row="1">
+                <!-- Nesto#485: barra de facturación común a todas las pestañas (antes solo en Cabecera), para
+                     facturar desde Líneas sin volver a Cabecera. Mismos comandos y reglas de visibilidad.
+                     BarraFacturacion_Click confirma antes la celda en edición de Líneas (el Click se
+                     dispara antes de ejecutar el comando del botón). -->
+                <UniformGrid Rows="1" Margin="0,0,0,2" ButtonBase.Click="BarraFacturacion_Click">
+                    <!-- Nesto#413: la visibilidad incluye los pedidos con líneas de tienda online (no solo el grupo almacén/tiendas) -->
+                    <Button Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
+                    <Button Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
+                    <Button Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
+                    <!-- Issue #269: Impresión directa con selección de bandeja -->
+                    <!-- Clic izquierdo: Imprime directo a impresora con bandeja según "Papel con membrete" -->
+                    <!-- Clic derecho: Menú para descargar PDF (comportamiento anterior) -->
+                    <Button Command="{Binding ImprimirAlbaranDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
+                        <Button.Content>Imprimir Albarán</Button.Content>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Descargar PDF" Command="{Binding ImprimirAlbaranCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Command="{Binding ImprimirFacturaDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
+                        <Button.Content>Imprimir Factura</Button.Content>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Descargar PDF" Command="{Binding ImprimirFacturaCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <CheckBox IsChecked="{Binding PapelConMembrete}">Membrete</CheckBox>
+                        <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>
+                    </StackPanel>
+                </UniformGrid>
                 <Button Command="{Binding cmdModificarPedido}" Content="{Binding TextoBotonGuardar}" />
                 <Grid>
                     <Grid.ColumnDefinitions>
