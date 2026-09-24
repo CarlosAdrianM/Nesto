@@ -266,6 +266,8 @@ Public Class PedidoVentaModel
         Public Property TrackingPrestashop As String
         Public Property CarrierNameAmazon As String
         Public Property ShippingMethodAmazon As String
+        ' NestoAPI 87cfeb51: Amazon exige CarrierCode en España ("GLS", "Correos Express" u "Other")
+        Public Property CarrierCodeAmazon As String
     End Class
 
     Public Class ParametroStringIntInt

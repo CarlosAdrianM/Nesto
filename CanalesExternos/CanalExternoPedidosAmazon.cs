@@ -393,7 +393,7 @@ namespace Nesto.Modulos.CanalesExternos
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
             DatosEnvioConfirmarAmazon datosEnvio = LeerDatosEnvio(pedido);
-            return await AmazonApiOrdersService.ConfirmarPedido(pedido.PedidoCanalId, datosEnvio.NombreAgencia, datosEnvio.NombreServicio, datosEnvio.NumeroSeguimiento);
+            return await AmazonApiOrdersService.ConfirmarPedido(pedido.PedidoCanalId, datosEnvio.CodigoAgencia, datosEnvio.NombreAgencia, datosEnvio.NombreServicio, datosEnvio.NumeroSeguimiento);
         }
 
         private decimal CambioDivisas { get; set; } = 1;
@@ -402,6 +402,8 @@ namespace Nesto.Modulos.CanalesExternos
         // CarrierName/ShippingMethod de Amazon (RegistroSeguimientoAgencias) y los manda en cada envío.
         // Aquí NO se reconoce ninguna agencia por el enlace de seguimiento: cuando el servidor no manda
         // los datos se dice qué agencia y qué envío son, para darla de alta allí, y el error va a ELMAH.
+        internal const string CARRIER_CODE_OTRO = "Other";
+
         internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(PedidoCanalExterno pedido)
         {
             var envio = pedido?.UltimoEnvio;
@@ -421,6 +423,9 @@ namespace Nesto.Modulos.CanalesExternos
             }
             return new DatosEnvioConfirmarAmazon
             {
+                // Amazon exige CarrierCode en España desde 2021: sin él acepta el feed pero no marca el
+                // pedido como enviado. Si la API es anterior y no lo manda, "Other" + CarrierName.
+                CodigoAgencia = string.IsNullOrWhiteSpace(envio.CarrierCodeAmazon) ? CARRIER_CODE_OTRO : envio.CarrierCodeAmazon.Trim(),
                 NombreAgencia = envio.CarrierNameAmazon,
                 NombreServicio = envio.ShippingMethodAmazon,
                 NumeroSeguimiento = envio.NumeroSeguimiento
@@ -446,6 +451,7 @@ namespace Nesto.Modulos.CanalesExternos
         internal class DatosEnvioConfirmarAmazon
         {
             public string AmazonOrderId { get; set; }
+            public string CodigoAgencia { get; set; }
             public string NombreAgencia { get; set; }
             public string NombreServicio { get; set; }
             public string NumeroSeguimiento { get; set; }
