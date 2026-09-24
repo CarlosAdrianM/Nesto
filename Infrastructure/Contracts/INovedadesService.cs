@@ -55,6 +55,18 @@ namespace Nesto.Infrastructure.Contracts
         public bool EsMio { get; set; }
     }
 
+    /// <summary>
+    /// Nesto#491 (NestoAPI#537): alguien a quien se puede mencionar con @Nombre en un comentario de Novedades.
+    /// </summary>
+    public class Mencionable
+    {
+        /// <summary>Lo que se escribe tras la @ (p. ej. «Alfredo»).</summary>
+        public string Nombre { get; set; }
+        /// <summary>A quién le llega el aviso (p. ej. «NUEVAVISION\Alfredo»).</summary>
+        public string Clave { get; set; }
+        public string Aplicacion { get; set; }
+    }
+
     public interface INovedadesService
     {
         /// <summary>
@@ -85,5 +97,10 @@ namespace Nesto.Infrastructure.Contracts
         Task<byte[]> LeerImagenNovedad(int novedadId);
         /// <summary>Novedades (con versión) y sugerencias (sin versión) que tienen todas las palabras.</summary>
         Task<List<NovedadUsuario>> Buscar(string texto);
+
+        // Nesto#491 (NestoAPI#537): @menciones. Lanza si la API falla (la ventana se queda sin desplegable).
+
+        /// <summary>Los usuarios de Nesto a los que se puede mencionar con @Nombre.</summary>
+        Task<List<Mencionable>> LeerMencionables();
     }
 }

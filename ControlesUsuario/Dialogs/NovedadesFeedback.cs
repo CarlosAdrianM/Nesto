@@ -113,7 +113,8 @@ namespace ControlesUsuario.Dialogs
         private readonly IPortapapelesImagenes _portapapeles;
         private readonly Func<string, bool> _preguntar;
 
-        public NovedadItem(NovedadUsuario novedad, INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar)
+        public NovedadItem(NovedadUsuario novedad, INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar,
+            ListaMencionables mencionables = null)
         {
             _novedad = novedad ?? throw new ArgumentNullException(nameof(novedad));
             _servicio = servicio;
@@ -123,6 +124,8 @@ namespace ControlesUsuario.Dialogs
             _votosNegativos = novedad.VotosNegativos ?? 0;
             _miVoto = novedad.MiVoto;
             _numeroComentarios = novedad.NumeroComentarios ?? 0;
+            // Nesto#491: la lista de mencionables es de la ventana (una petición para todos los cuadros).
+            MencionesComentario = new AutocompletadoMenciones(mencionables ?? new ListaMencionables(servicio));
 
             MeGustaCommand = new AsyncRelayCommand(() => Votar(1));
             NoMeGustaCommand = new AsyncRelayCommand(() => Votar(-1));
@@ -330,6 +333,9 @@ namespace ControlesUsuario.Dialogs
             }
         }
         public bool HayMensaje => !string.IsNullOrWhiteSpace(Mensaje);
+
+        /// <summary>Nesto#491: el desplegable de @menciones del cuadro de comentario.</summary>
+        public AutocompletadoMenciones MencionesComentario { get; }
 
         public IAsyncRelayCommand AbrirComentariosCommand { get; }
         public IAsyncRelayCommand EnviarComentarioCommand { get; }

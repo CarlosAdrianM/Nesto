@@ -109,5 +109,29 @@ namespace Infrastructure.Tests
 
             Assert.AreEqual("/api/Novedades/50/Imagen", handler.Peticiones[0].Url);
         }
+
+        // Nesto#491 (NestoAPI#537): a quién se puede mencionar con @, sin ámbito (usuarios de Nesto).
+        [TestMethod]
+        public async Task LeerMencionables_PideSinAmbitoYDeserializa()
+        {
+            handler.Respuesta = "[{\"Nombre\":\"Alfredo\",\"Clave\":\"NUEVAVISION\\\\Alfredo\",\"Aplicacion\":\"Nesto\"}]";
+
+            List<Mencionable> mencionables = await servicio.LeerMencionables();
+
+            Assert.AreEqual(HttpMethod.Get, handler.Peticiones[0].Metodo);
+            Assert.AreEqual("/api/Novedades/Mencionables", handler.Peticiones[0].Url);
+            Assert.AreEqual(1, mencionables.Count);
+            Assert.AreEqual("Alfredo", mencionables[0].Nombre);
+            Assert.AreEqual("NUEVAVISION\\Alfredo", mencionables[0].Clave);
+        }
+
+        [TestMethod]
+        public async Task LeerMencionables_SiLaApiFalla_Lanza()
+        {
+            handler.Codigo = HttpStatusCode.InternalServerError;
+            handler.Respuesta = "{}";
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => servicio.LeerMencionables());
+        }
     }
 }

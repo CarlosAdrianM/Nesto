@@ -31,6 +31,10 @@ namespace ControlesUsuario.Dialogs
         private readonly INovedadesService _servicio;
         private readonly IPortapapelesImagenes _portapapeles;
         private readonly Func<string, bool> _preguntar;
+        private readonly ListaMencionables _mencionables;
+
+        /// <summary>Nesto#491: el desplegable de @menciones del cuadro «Sugerir nueva característica».</summary>
+        public AutocompletadoMenciones MencionesSugerencia { get; }
 
         public NovedadesDialogViewModel() : this(null, null, null) { }
 
@@ -43,6 +47,9 @@ namespace ControlesUsuario.Dialogs
             _servicio = servicio;
             _portapapeles = portapapeles;
             _preguntar = preguntar ?? (_ => false);
+            // Nesto#491: una sola petición de mencionables por ventana, compartida por todos los cuadros.
+            _mencionables = new ListaMencionables(servicio);
+            MencionesSugerencia = new AutocompletadoMenciones(_mencionables);
 
             AbrirSugerenciaCommand = new AsyncRelayCommand(AbrirOCerrarSugerencia, () => PuedeSugerir);
             EnviarSugerenciaCommand = new AsyncRelayCommand(EnviarSugerencia, () => PuedeSugerir && !string.IsNullOrWhiteSpace(TextoSugerencia) && !EnviandoSugerencia);
@@ -147,7 +154,7 @@ namespace ControlesUsuario.Dialogs
         public const string PARAMETRO_NOVEDAD_ID = "novedadId";
         public const string PARAMETRO_COMENTARIO_ID = "comentarioId";
 
-        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar);
+        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables);
 
         // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
         // parsea; si no, por texto, para no romper con versiones con formato raro).

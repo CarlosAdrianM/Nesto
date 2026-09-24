@@ -103,6 +103,14 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<NovedadUsuario>>(json ?? "[]") ?? new List<NovedadUsuario>();
         }
 
+        // ---- Nesto#491 (NestoAPI#537): a quién se puede mencionar. Sin ámbito: los usuarios de Nesto. ----
+
+        public async Task<List<Mencionable>> LeerMencionables()
+        {
+            string json = await Enviar(HttpMethod.Get, "Novedades/Mencionables", null, "leer a quién se puede mencionar").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<List<Mencionable>>(json ?? "[]") ?? new List<Mencionable>();
+        }
+
         /// <summary>Mismo cuerpo para comentar y para sugerir (NuevoComentarioNovedadDTO en la API).</summary>
         private static object CuerpoConCaptura(string texto, byte[] imagenPng)
         {

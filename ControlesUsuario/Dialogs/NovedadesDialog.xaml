@@ -98,7 +98,8 @@
                     <TextBlock Text="¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):" FontSize="11" Foreground="#555555" Margin="0,0,0,2" TextWrapping="Wrap" />
                     <TextBox Text="{Binding TextoSugerencia, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                              TextWrapping="Wrap" MinHeight="54" MaxLength="2000" VerticalScrollBarVisibility="Auto"
-                             PreviewKeyDown="CuadroSugerencia_PreviewKeyDown" />
+                             PreviewKeyDown="CuadroSugerencia_PreviewKeyDown"
+                             local:MencionesTextBox.Autocompletado="{Binding MencionesSugerencia}" />
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                 Visibility="{Binding TieneImagenSugerencia, Converter={StaticResource BoolAVisible}}">
                         <Image Source="{Binding ImagenSugerencia, Converter={StaticResource BytesAImagen}}" MaxHeight="90" Stretch="Uniform" />
@@ -155,7 +156,7 @@
                                            Visibility="{Binding EsSugerencia, Converter={StaticResource BoolAVisible}}" />
                                 <Border BorderBrush="#C9D9EC" BorderThickness="3,0,0,0" Padding="6,0,0,0" Margin="0,4,0,0"
                                         Visibility="{Binding TieneTextoOriginal, Converter={StaticResource BoolAVisible}}">
-                                    <TextBlock Text="{Binding TextoOriginal}" TextWrapping="Wrap" FontStyle="Italic" Foreground="#333333" />
+                                    <TextBlock local:TextoConMenciones.Texto="{Binding TextoOriginal}" TextWrapping="Wrap" FontStyle="Italic" Foreground="#333333" />
                                 </Border>
                                 <TextBlock Text="{Binding Descripcion}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="#444444"
                                            Visibility="{Binding TieneDescripcion, Converter={StaticResource BoolAVisible}}" />
@@ -237,7 +238,8 @@
                                                                             CommandParameter="{Binding}" ToolTip="Borrar tu comentario" />
                                                                     <TextBlock Text="{Binding Cabecera}" FontSize="11" Foreground="#777777" />
                                                                 </DockPanel>
-                                                                <TextBlock Text="{Binding Texto}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                                                <!-- Nesto#491: las @menciones, resaltadas -->
+                                                                <TextBlock local:TextoConMenciones.Texto="{Binding Texto}" TextWrapping="Wrap" Margin="0,2,0,0" />
                                                                 <Image Source="{Binding Imagen, Converter={StaticResource BytesAImagen}}" MaxHeight="140"
                                                                        HorizontalAlignment="Left" Stretch="Uniform" Margin="0,4,0,0">
                                                                     <Image.ToolTip>
@@ -252,10 +254,11 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <TextBlock Text="Tu comentario (puedes pegar una captura con Ctrl+V):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
+                                            <TextBlock Text="Tu comentario (puedes pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
                                             <TextBox Text="{Binding NuevoTexto, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="44" MaxLength="2000" VerticalScrollBarVisibility="Auto"
-                                                     PreviewKeyDown="CuadroComentario_PreviewKeyDown" />
+                                                     PreviewKeyDown="CuadroComentario_PreviewKeyDown"
+                                                     local:MencionesTextBox.Autocompletado="{Binding MencionesComentario}" />
                                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                                         Visibility="{Binding TieneImagenAdjunta, Converter={StaticResource BoolAVisible}}">
                                                 <Image Source="{Binding ImagenAdjunta, Converter={StaticResource BytesAImagen}}" MaxHeight="90" Stretch="Uniform" />
