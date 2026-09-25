@@ -176,7 +176,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _ = SetProperty(ref _apuntesBancoSeleccionados, value);
                 ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
-                ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
+                ProgramarEvaluacionReglasContabilizacion(); // Nesto#498: en segundo plano, no en CanExecute
             }
         }
 
@@ -220,7 +220,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _ = SetProperty(ref _apuntesContabilidadSeleccionados, value);
                 ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
-                ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
+                ProgramarEvaluacionReglasContabilizacion(); // Nesto#498: en segundo plano, no en CanExecute
             }
         }
 
@@ -675,31 +675,80 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
+        // Nesto#498: CanExecute ya NO evalúa las reglas. Varias hacen llamadas HTTP síncronas por dentro
+        // (ReglaPagoProveedor, ReglaGastoPeriodico...) y el botón pregunta CanExecute en el hilo de la UI
+        // cada vez que cambia la selección: tras cada punteo eran 4 evaluaciones seguidas (hasta 8+
+        // llamadas a la API) con la ventana congelada y «Puntear seleccionados» sin volver. Ahora las
+        // reglas se evalúan una vez por selección, en un hilo del pool, y CanExecute lee el resultado.
+        private IReglaContabilizacion? _reglaContabilizableSeleccion;
+        private int _versionEvaluacionReglas;
+
+        /// <summary>La evaluación de reglas en curso (o la última). Para tests.</summary>
+        internal Task EvaluacionReglasContabilizacion { get; private set; } = Task.CompletedTask;
+
         public bool CanContabilizarApunte()
         {
-            if (EstaContabilizando)
+            return !EstaContabilizando && _reglaContabilizableSeleccion is not null;
+        }
+
+        private void ProgramarEvaluacionReglasContabilizacion()
+        {
+            // Se materializa la selección aquí, en el hilo de la UI (SelectedItems es del DataGrid).
+            List<ApunteBancarioDTO>? apuntesBanco = ApuntesBancoSeleccionados?.Select(a => a.Model).ToList();
+            List<ContabilidadDTO>? apuntesContabilidad = ApuntesContabilidadSeleccionados?.Select(c => c.Model).ToList();
+            int version = ++_versionEvaluacionReglas;
+
+            // Mientras se evalúa la selección nueva, el botón queda gris (no vale la regla de la anterior)
+            _reglaContabilizableSeleccion = null;
+            TextoBotonContabilizar = string.Empty;
+            ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
+
+            EvaluacionReglasContabilizacion = EvaluarReglasContabilizacion(apuntesBanco, apuntesContabilidad, version);
+        }
+
+        private async Task EvaluarReglasContabilizacion(List<ApunteBancarioDTO>? apuntesBanco, List<ContabilidadDTO>? apuntesContabilidad, int version)
+        {
+            if ((apuntesBanco is null || apuntesBanco.Count == 0) && (apuntesContabilidad is null || apuntesContabilidad.Count == 0))
             {
-                return false;
+                return; // Sin nada seleccionado no hay nada que contabilizar
             }
+            // Se cede el turno: al restaurar la selección tras puntear cambian banco y contabilidad
+            // seguidos, y solo merece la pena evaluar la última.
+            await Task.Yield();
+            if (version != _versionEvaluacionReglas)
+            {
+                return;
+            }
+            IReglaContabilizacion? regla = await Task.Run(() => BuscarReglaContabilizable(apuntesBanco, apuntesContabilidad, tragarErrores: true));
+            if (version != _versionEvaluacionReglas)
+            {
+                return; // La selección cambió mientras tanto: este resultado ya no vale
+            }
+            _reglaContabilizableSeleccion = regla;
+            TextoBotonContabilizar = regla?.Nombre ?? string.Empty;
+            ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
+        }
+
+        /// <summary>Solo trabajo: no toca el ViewModel, puede correr fuera del hilo de la UI.</summary>
+        private IReglaContabilizacion? BuscarReglaContabilizable(List<ApunteBancarioDTO>? apuntesBanco, List<ContabilidadDTO>? apuntesContabilidad, bool tragarErrores)
+        {
             foreach (IReglaContabilizacion regla in _reglasContabilizacion)
             {
                 try
                 {
-                    bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
-                    if (esContabilizable)
+                    if (regla.EsContabilizable(apuntesBanco, apuntesContabilidad))
                     {
-                        TextoBotonContabilizar = regla.Nombre;
-                        return true;
+                        return regla;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (tragarErrores)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error en regla {regla.Nombre}: {ex.Message}");
                 }
             }
-            TextoBotonContabilizar = string.Empty;
-            return false;
+            return null;
         }
+
         private async void OnContabilizarApunte()
         {
             IReglaContabilizacion? reglaContabilizable = null;
@@ -710,15 +759,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 EstaContabilizando = true; // Nesto#408: botón gris hasta que termine
                 IsBusyApuntesBanco = true;
                 IsBusyApuntesContabilidad = true;
-                foreach (IReglaContabilizacion regla in _reglasContabilizacion)
-                {
-                    bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
-                    if (esContabilizable)
-                    {
-                        reglaContabilizable = regla;
-                        break;
-                    }
-                }
+                // Nesto#498: también fuera del hilo de la UI (las reglas llaman a la API de forma síncrona)
+                List<ApunteBancarioDTO>? apuntesBancoRegla = ApuntesBancoSeleccionados?.Select(a => a.Model).ToList();
+                List<ContabilidadDTO>? apuntesContabilidadRegla = ApuntesContabilidadSeleccionados?.Select(c => c.Model).ToList();
+                reglaContabilizable = await Task.Run(() => BuscarReglaContabilizable(apuntesBancoRegla, apuntesContabilidadRegla, tragarErrores: false));
                 if (reglaContabilizable is null)
                 {
                     return;

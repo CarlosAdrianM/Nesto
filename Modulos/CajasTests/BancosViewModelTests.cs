@@ -92,8 +92,11 @@ namespace CajasTests
             };
             sut.ApuntesBancoSeleccionados = new[] { new ApunteBancarioWrapper(apunteBanco) };
             sut.ApuntesContabilidadSeleccionados = new[] { new ContabilidadWrapper(new ContabilidadDTO { Debe = 39.95m }) };
+            // Nesto#498: las reglas se evalúan en segundo plano al cambiar la selección
+            Assert.IsTrue(sut.EvaluacionReglasContabilizacion.Wait(10000));
 
             Assert.IsTrue(sut.CanContabilizarApunte(), "Control positivo: la selección es contabilizable");
+            Assert.AreEqual("Stripe", sut.TextoBotonContabilizar, "El texto del botón es el nombre de la regla");
 
             sut.EstaContabilizando = true;
             Assert.IsFalse(sut.CanContabilizarApunte(), "Mientras contabiliza, el botón debe quedar gris");
