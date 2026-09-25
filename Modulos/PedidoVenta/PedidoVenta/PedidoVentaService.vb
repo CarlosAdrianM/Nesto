@@ -188,6 +188,33 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' Nesto#496 / NestoAPI#519: cambia el cliente del pedido. La API decide si se puede y lo recalcula todo.
+    Public Async Function CambiarCliente(empresa As String, numero As Integer, cliente As String, contacto As String, creadoSinPasarValidacion As Boolean) As Task(Of CambiarClientePedidoRespuestaModel) Implements IPedidoVentaService.CambiarCliente
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim peticion = New With {
+                .Cliente = cliente?.Trim(),
+                .Contacto = contacto?.Trim(),
+                .Usuario = configuracion.usuario,
+                .CreadoSinPasarValidacion = creadoSinPasarValidacion
+            }
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"PedidosVenta/{empresa?.Trim()}/{numero}/CambiarCliente", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se ha podido cambiar el cliente del pedido ({CInt(response.StatusCode)}).")
+                End If
+                ' PEDIDO_VALIDACION_FALLO llega como ValidationException, igual que al modificar
+                Throw InterpretarRespuestaError(body)
+            End If
+            Return JsonConvert.DeserializeObject(Of CambiarClientePedidoRespuestaModel)(body)
+        End Using
+    End Function
+
     ' Nesto#420: resta la comisión quitada del reembolso de un envío aún no tramitado.
     Public Async Function RestarReembolsoEnvio(numeroEnvio As Integer, importe As Decimal) As Task(Of Decimal) Implements IPedidoVentaService.RestarReembolsoEnvio
         Using client As HttpClient = _clienteApiFactory.Crear()

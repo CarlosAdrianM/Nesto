@@ -124,6 +124,27 @@
                                             </Style>
                                         </controles:SelectorCliente.Style>
                                     </controles:SelectorCliente>
+                                    <!-- Nesto#496 / NestoAPI#519: pasar el pedido a otro cliente mientras no tenga picking, albarán ni factura.
+                                         Va en un selector aparte: el de arriba está enlazado al pedido y un «Guardar» mandaría el cliente por el PUT. -->
+                                    <Button Content="Cambiar cliente…" HorizontalAlignment="Left" Margin="0,2,0,2" Padding="6,1"
+                                            Command="{Binding AbrirCambioClienteCommand}"
+                                            ToolTip="Pasa el pedido a otro cliente y lo recalcula (condiciones de pago, IVA, precios, portes…). Solo si ninguna línea tiene picking, albarán ni factura."
+                                            Visibility="{Binding PuedeCambiarCliente, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Border BorderBrush="SteelBlue" BorderThickness="1" Padding="4" Margin="0,2,0,4"
+                                            Visibility="{Binding MostrarCambioCliente, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="Nuevo cliente del pedido:" FontWeight="SemiBold"/>
+                                            <controles:SelectorCliente Name="txtSelectorClienteNuevo"
+                                                                       Empresa="1"
+                                                                       Cliente="{Binding DataContext.ClienteNuevo, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                       Contacto="{Binding DataContext.ContactoNuevo, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                       ClienteCompleto="{Binding DataContext.ClienteNuevoCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                                <Button Content="Aplicar" Padding="10,1" Margin="0,0,5,0" Command="{Binding AplicarCambioClienteCommand}"/>
+                                                <Button Content="Cancelar" Padding="10,1" Command="{Binding CancelarCambioClienteCommand}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
                                     <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False" Margin="0,5,0,0">Nota de Entrega</CheckBox>

@@ -86,4 +86,7 @@ Public Interface IPedidoVentaService
     ' tramitado. Devuelve el reembolso resultante. La regla RESTAR (no recalcular) y las
     ' validaciones (envío tramitado = intocable) viven en el servidor.
     Function RestarReembolsoEnvio(numeroEnvio As Integer, importe As Decimal) As Task(Of Decimal)
+    ' Nesto#496 / NestoAPI#519: pasa el pedido a otro cliente y lo recalcula en la API. Lanza ValidationException
+    ' si con el cliente nuevo no pasa la validación (se puede forzar con creadoSinPasarValidacion).
+    Function CambiarCliente(empresa As String, numero As Integer, cliente As String, contacto As String, creadoSinPasarValidacion As Boolean) As Task(Of CambiarClientePedidoRespuestaModel)
 End Interface

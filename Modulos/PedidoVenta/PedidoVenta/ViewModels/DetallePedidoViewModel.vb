@@ -101,6 +101,9 @@ Public Class DetallePedidoViewModel
         cmdCargarPedido = New RelayCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
         CargarProductoCommand = New RelayCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
         AbrirPedidoOrigenCommand = New RelayCommand(AddressOf OnAbrirPedidoOrigen, Function() HayPedidoOrigen) ' Nesto#493
+        AbrirCambioClienteCommand = New RelayCommand(AddressOf OnAbrirCambioCliente, Function() PuedeCambiarCliente) ' Nesto#496
+        CancelarCambioClienteCommand = New RelayCommand(AddressOf OnCancelarCambioCliente)
+        AplicarCambioClienteCommand = New AsyncRelayCommand(AddressOf AplicarCambioClienteAsync, Function() Not String.IsNullOrWhiteSpace(ClienteNuevo))
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -617,6 +620,10 @@ Public Class DetallePedidoViewModel
             CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
             CrearFacturaVentaCommand.NotifyCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
+            ' Nesto#496: otro pedido en pantalla, el panel de cambio de cliente empieza cerrado
+            MostrarCambioCliente = False
+            OnPropertyChanged(NameOf(PuedeCambiarCliente))
+            AbrirCambioClienteCommand?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -3039,6 +3046,124 @@ Public Class DetallePedidoViewModel
         End If
         PedidoVentaViewModel.CargarPedido(pedido.empresa, pedido.pedidoOrigen.Value, container)
     End Sub
+
+#Region "Nesto#496 / NestoAPI#519: cambiar el cliente del pedido"
+    ''' <summary>
+    ''' Si se ofrece el botón «Cambiar cliente…». El selector de la cabecera sigue bloqueado: está enlazado en los
+    ''' dos sentidos al pedido y un «Guardar» mandaría el cliente nuevo por el PUT, que no recalcula nada.
+    ''' </summary>
+    Public ReadOnly Property PuedeCambiarCliente As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso CambioClientePedido.PuedeCambiarse(pedido.Model)
+        End Get
+    End Property
+
+    Private _mostrarCambioCliente As Boolean
+    Public Property MostrarCambioCliente As Boolean
+        Get
+            Return _mostrarCambioCliente
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_mostrarCambioCliente, value)
+        End Set
+    End Property
+
+    Private _clienteNuevo As String
+    Public Property ClienteNuevo As String
+        Get
+            Return _clienteNuevo
+        End Get
+        Set(value As String)
+            If SetProperty(_clienteNuevo, value) Then
+                AplicarCambioClienteCommand?.NotifyCanExecuteChanged()
+            End If
+        End Set
+    End Property
+
+    Private _contactoNuevo As String
+    Public Property ContactoNuevo As String
+        Get
+            Return _contactoNuevo
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_contactoNuevo, value)
+        End Set
+    End Property
+
+    Private _clienteNuevoCompleto As ControlesUsuario.Models.ClienteDTO
+    Public Property ClienteNuevoCompleto As ControlesUsuario.Models.ClienteDTO
+        Get
+            Return _clienteNuevoCompleto
+        End Get
+        Set(value As ControlesUsuario.Models.ClienteDTO)
+            Dim unused = SetProperty(_clienteNuevoCompleto, value)
+        End Set
+    End Property
+
+    Public Property AbrirCambioClienteCommand As RelayCommand
+    Public Property CancelarCambioClienteCommand As RelayCommand
+    Public Property AplicarCambioClienteCommand As AsyncRelayCommand
+
+    Private Sub OnAbrirCambioCliente()
+        ClienteNuevo = Nothing
+        ContactoNuevo = Nothing
+        ClienteNuevoCompleto = Nothing
+        MostrarCambioCliente = True
+    End Sub
+
+    Private Sub OnCancelarCambioCliente()
+        MostrarCambioCliente = False
+    End Sub
+
+    ''' <summary>
+    ''' Confirma, llama a la API y recarga el pedido. Si con el cliente nuevo no pasa la validación, quien puede crear
+    ''' pedidos con errores puede forzarlo (mismo criterio que al modificar). Friend para los tests.
+    ''' </summary>
+    Friend Async Function AplicarCambioClienteAsync() As Task
+        If pedido Is Nothing OrElse String.IsNullOrWhiteSpace(ClienteNuevo) Then
+            Return
+        End If
+        Dim empresa As String = pedido.empresa
+        Dim numero As Integer = pedido.numero
+        Dim contacto As String = If(String.IsNullOrWhiteSpace(ContactoNuevo), ClienteNuevoCompleto?.contacto, ContactoNuevo)
+        Dim confirmacion As String = CambioClientePedido.TextoConfirmacion(numero, pedido.cliente, pedido.contacto,
+                                                                            ClienteNuevo, contacto, ClienteNuevoCompleto?.nombre,
+                                                                            TieneCambiosSinGuardar)
+        If Not Await dialogService.ShowConfirmationAsync(CambioClientePedido.TITULO, confirmacion) Then
+            Return
+        End If
+
+        Dim respuesta As CambiarClientePedidoRespuestaModel = Nothing
+        Dim rechazoValidacion As ValidationException = Nothing
+        Try
+            respuesta = Await servicio.CambiarCliente(empresa, numero, ClienteNuevo, contacto, False)
+        Catch ex As ValidationException
+            rechazoValidacion = ex
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return
+        End Try
+
+        If rechazoValidacion IsNot Nothing Then
+            If Not Await PuedeOmitirValidacion() OrElse
+               Not Await dialogService.ShowConfirmationAsync("Pedido no válido con el cliente nuevo",
+                                                             rechazoValidacion.Message & vbCrLf & "¿Desea cambiar el cliente de todos modos?") Then
+                dialogService.ShowError("No se ha cambiado el cliente:" & vbCrLf & rechazoValidacion.Message)
+                Return
+            End If
+            Try
+                respuesta = Await servicio.CambiarCliente(empresa, numero, ClienteNuevo, contacto, True)
+            Catch ex As Exception
+                dialogService.ShowError(ex.Message)
+                Return
+            End Try
+        End If
+
+        MostrarCambioCliente = False
+        dialogService.ShowNotification(CambioClientePedido.TITULO, CambioClientePedido.TextoResultado(respuesta))
+        cmdCargarPedido.Execute(New ResumenPedido With {.empresa = empresa, .numero = numero})
+    End Function
+#End Region
 
     ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
     Friend ReadOnly Property PeticionesModosFacturacionEnviadas As Integer
