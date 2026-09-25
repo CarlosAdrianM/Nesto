@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Rapports;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
 using idDescripcion = Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO.idDescripcion;
@@ -32,7 +31,7 @@ namespace RapportsTests
         private ListaRapportsViewModel CrearLista()
         {
             return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), _servicio,
-                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), _messenger);
+                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), _messenger);
         }
 
         private static (ListaRapportsViewModel, SeguimientoClienteDTO) ConRapportNuevo(ListaRapportsViewModel vm)

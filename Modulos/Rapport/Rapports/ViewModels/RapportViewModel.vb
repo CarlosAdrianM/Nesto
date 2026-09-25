@@ -2,8 +2,6 @@
 Imports Prism.Regions
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
-Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Messaging
@@ -17,10 +15,10 @@ Public Class RapportViewModel
     Private Const empresaPorDefecto As String = "1"
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IRapportService
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly _messenger As IMessenger
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService, messenger As IMessenger)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IServicioDialogos, messenger As IMessenger)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.regionManager = regionManager
@@ -252,11 +250,11 @@ Public Class RapportViewModel
         Return Not IsNothing(rapport)
     End Function
     Private Async Sub OnCrearCita()
-        Dim p As New DialogParameters
+        Dim p As New ParametrosDialogo
         Dim continuar As Boolean = False
         p.Add("message", "Se va a crear la tarea. ¿Desea continuar?")
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              If r.Result = ButtonResult.OK Then
+                                                              If r.Result = ResultadoBoton.OK Then
                                                                   continuar = True
                                                               End If
                                                           End Sub)
@@ -304,11 +302,11 @@ Public Class RapportViewModel
             Return True
         End If
         Dim continuar As Boolean = False
-        Dim p As New DialogParameters From {
+        Dim p As New ParametrosDialogo From {
             {"message", "No has indicado los empleados del centro." & vbCrLf & "¿Confirmas que no lo rellenas porque no lo sabes?"}
         }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              If r.Result = ButtonResult.OK Then
+                                                              If r.Result = ResultadoBoton.OK Then
                                                                   continuar = True
                                                               End If
                                                           End Sub)

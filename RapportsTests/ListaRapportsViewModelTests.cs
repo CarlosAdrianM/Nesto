@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Rapports;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -22,7 +21,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel()
         {
             return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
-                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), new WeakReferenceMessenger());
+                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]
@@ -67,7 +66,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
             return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
-                A.Fake<IUnityContainer>(), A.Fake<IDialogService>(), new WeakReferenceMessenger());
+                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]
