@@ -403,10 +403,20 @@ namespace ControlesUsuario
                 // ('1'). Sin Trim, "1" != "1  " => se cree que no existe y resetea
                 // ccc a null, mutando pedido.Model.ccc y disparando un falso
                 // "el pedido ha cambiado" al facturar (Issue #254).
-                var existe = lista.Any(c => string.Equals(c.numero?.Trim(), CCCSeleccionado?.Trim(), StringComparison.Ordinal));
-                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCC '{CCCSeleccionado}' existe en lista: {existe}");
-                if (existe)
+                var existente = ReglaCCCRecibo.Buscar(lista, CCCSeleccionado);
+                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCC '{CCCSeleccionado}' existe en lista: {existente != null}");
+                if (existente != null)
+                {
+                    // Nesto#494: el combo busca por SelectedValue con igualdad EXACTA, así que con '1  '
+                    // no encontraba el '1' de la lista y se quedaba en blanco (con la etiqueta de #486
+                    // debajo diciendo la cuenta). Se normaliza al número de la lista; el falso «el pedido
+                    // ha cambiado» de #254 no vuelve porque PedidoVentaDTO compara recortando.
+                    if (!string.Equals(existente.numero, CCCSeleccionado, StringComparison.Ordinal))
+                    {
+                        CCCSeleccionado = existente.numero;
+                    }
                     return; // Mantener selección actual
+                }
                 Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - ¡CCC NO EXISTE EN LISTA! Se va a resetear...");
             }
 

@@ -317,8 +317,10 @@ namespace ControlesUsuario.Tests
             Assert.IsNotNull(cccSeleccionado,
                 "El CCC '1  ' (con padding del char de BD) debe reconocerse como existente " +
                 "en la lista (numero '1' recortado del API) y NO resetearse a null.");
-            Assert.AreEqual("1  ", cccSeleccionado,
-                "Debe mantener la selección previa tal cual, sin mutarla");
+            // Nesto#494: se normaliza al número de la lista ('1'), que es lo único que el combo
+            // (SelectedValue, igualdad exacta) puede enseñar; con '1  ' se quedaba en blanco.
+            Assert.AreEqual("1", cccSeleccionado,
+                "Debe conservar la cuenta del pedido, normalizada al número de la lista para que el combo la muestre");
         }
 
         #endregion

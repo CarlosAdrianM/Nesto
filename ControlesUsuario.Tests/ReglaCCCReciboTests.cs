@@ -159,7 +159,7 @@ namespace ControlesUsuario.Tests
             // La ficha del contacto dice "3" aunque "1" salga antes en la lista: se respeta.
             var sut = CargarSelector(new List<CCCItem> { Valida("1"), Valida("3") }, "RCB", "3  ");
 
-            Assert.AreEqual("3  ", sut.ccc);
+            Assert.AreEqual("3", sut.ccc, "Nesto#494: la cuenta del pedido, normalizada al número de la lista para que el combo la enseñe");
             Assert.IsNull(sut.aviso);
             Assert.AreEqual("Se cargará en: ES91 …… 4321 — CaixaBank", sut.texto);
         }
