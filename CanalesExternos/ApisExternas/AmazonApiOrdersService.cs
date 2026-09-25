@@ -233,7 +233,7 @@ public class AmazonApiOrdersService
         }
     }
 
-    private static string DescribirCadenaError(Exception ex)
+    internal static string DescribirCadenaError(Exception ex)
     {
         var mensajes = new List<string>();
         var actual = ex;
@@ -274,110 +274,9 @@ public class AmazonApiOrdersService
         }        
     }
 
-    // Sondeo del resultado del feed de confirmación: Amazon suele procesarlo en menos de un minuto.
-    internal static readonly TimeSpan INTERVALO_SONDEO_FEED = TimeSpan.FromSeconds(5);
-    internal static readonly TimeSpan ESPERA_MAXIMA_FEED = TimeSpan.FromSeconds(90);
-
-    public static async Task<string> ConfirmarPedido(string amazonOrderId, string codigoAgencia, string nombreAgencia, string nombreServicio, string numeroSeguimiento)
-    {
-        string descripcionEnvio = $"transportista «{nombreAgencia}» (CarrierCode «{codigoAgencia}»), servicio «{nombreServicio}», seguimiento {numeroSeguimiento}";
-        AmazonConnection conexion;
-        string feedId;
-        try
-        {
-            conexion = AmazonApiOrdersService.ConexionAmazon();
-            ConstructFeedService createDocument = new ConstructFeedService(conexion.GetCurrentSellerID, "1.02");
-            var list = new List<OrderFulfillmentMessage>();
-            list.Add(new OrderFulfillmentMessage()
-            {
-                AmazonOrderID = amazonOrderId,
-                FulfillmentDate = DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffK"),
-                FulfillmentData = new FulfillmentData()
-                {
-                    // 24/09/26: desde 2021 Amazon exige CarrierCode en España. Sin él acepta el feed pero
-                    // no marca el pedido como enviado (lo que pasaba con CTT). Con "Other", CarrierName manda.
-                    CarrierCode = codigoAgencia,
-                    CarrierName = nombreAgencia, // "Correos Express",
-                    ShippingMethod = nombreServicio, // "ePaq",
-                    ShipperTrackingNumber = numeroSeguimiento// "{trackingNumber}"
-                }
-            });
-
-            createDocument.AddOrderFulfillmentMessage(list);
-            var xml = createDocument.GetXML();
-            feedId = await conexion.Feed.SubmitFeedAsync(xml, FeedType.POST_ORDER_FULFILLMENT_DATA).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            // 22/09/26: antes se tragaba la excepción y devolvía un texto: nadie se enteraba (ni ELMAH).
-            throw new Exception($"Amazon no ha aceptado la confirmación del pedido {amazonOrderId} " +
-                $"({descripcionEnvio}): {ex.Message}", ex);
-        }
-
-        // 24/09/26: que SubmitFeed devuelva un id solo significa que Amazon ha recibido el fichero.
-        // El resultado real está en el informe de procesamiento del feed.
-        ResultadoFeedAmazon resultado;
-        try
-        {
-            resultado = await EsperarResultadoFeed(conexion, feedId).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            LogDiag($"ConfirmarPedido {amazonOrderId}: no se pudo leer el resultado del feed {feedId}: {DescribirCadenaError(ex)}");
-            resultado = new ResultadoFeedAmazon
-            {
-                Estado = EstadoFeedAmazon.SinConfirmar,
-                Detalle = "No se ha podido leer el resultado del feed: " + ex.Message
-            };
-        }
-
-        switch (resultado.Estado)
-        {
-            case EstadoFeedAmazon.Rechazado:
-                throw new Exception($"Amazon ha rechazado la confirmación del envío del pedido {amazonOrderId} " +
-                    $"({descripcionEnvio}, feed {feedId}): {resultado.Detalle}");
-            case EstadoFeedAmazon.Confirmado:
-                return $"Se ha confirmado correctamente el pedido {amazonOrderId} en Amazon con {nombreAgencia} ({nombreServicio}) y seguimiento {numeroSeguimiento}" +
-                    (string.IsNullOrWhiteSpace(resultado.Detalle) ? string.Empty : $". Avisos de Amazon: {resultado.Detalle}");
-            default:
-                return $"Se ha enviado a Amazon la confirmación del pedido {amazonOrderId} con {nombreAgencia} ({nombreServicio}) y seguimiento {numeroSeguimiento}, " +
-                    $"pero Amazon todavía la está procesando (feed {feedId}). Revisa en Seller Central que el pedido aparece como enviado." +
-                    (string.IsNullOrWhiteSpace(resultado.Detalle) ? string.Empty : $" ({resultado.Detalle})");
-        }
-    }
-
-    private static async Task<ResultadoFeedAmazon> EsperarResultadoFeed(AmazonConnection conexion, string feedId)
-    {
-        var limite = DateTime.UtcNow + ESPERA_MAXIMA_FEED;
-        Feed feed = null;
-        while (true)
-        {
-            await Task.Delay(INTERVALO_SONDEO_FEED).ConfigureAwait(false);
-            feed = await conexion.Feed.GetFeedAsync(feedId, CancellationToken.None).ConfigureAwait(false);
-            if (!FeedEnCurso(feed?.ProcessingStatus) || DateTime.UtcNow >= limite)
-            {
-                break;
-            }
-        }
-
-        ProcessingReportMessage informe = null;
-        if (!FeedEnCurso(feed?.ProcessingStatus) && !string.IsNullOrWhiteSpace(feed?.ResultFeedDocumentId))
-        {
-            try
-            {
-                var documento = await conexion.Feed.GetFeedDocumentAsync(feed.ResultFeedDocumentId, CancellationToken.None).ConfigureAwait(false);
-                informe = await conexion.Feed.GetFeedDocumentProcessingReportAsync(documento, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                // Sin informe se decide solo por el estado (FATAL/CANCELLED = rechazado; DONE = sin verificar).
-                LogDiag($"Feed {feedId}: no se pudo leer el informe de procesamiento: {DescribirCadenaError(ex)}");
-            }
-        }
-        return InterpretarResultadoFeed(feed?.ProcessingStatus, informe);
-    }
-
-    private static bool FeedEnCurso(Feed.ProcessingStatusEnum? estado) =>
+    // Nesto#499: la confirmación de envíos (SubmitFeed + comprobación del resultado en segundo plano)
+    // está en ConfirmadorEnviosAmazon. Aquí quedan las piezas puras que usa: FeedEnCurso e InterpretarResultadoFeed.
+    internal static bool FeedEnCurso(Feed.ProcessingStatusEnum? estado) =>
         estado == null || estado == Feed.ProcessingStatusEnum.INQUEUE || estado == Feed.ProcessingStatusEnum.INPROGRESS;
 
     internal enum EstadoFeedAmazon

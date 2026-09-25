@@ -34,10 +34,15 @@ namespace Nesto.Modulos.CanalesExternos
         private IConfiguracion configuracion;
         private readonly Interfaces.IClientesPorTelefonoService clientesPorTelefono;
 
-        public CanalExternoPedidosAmazon(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesPorTelefono)
+        // Nesto#499: confirma el envío sin esperar al procesamiento del feed; el resultado se comprueba en segundo plano.
+        private readonly ApisExternas.ConfirmadorEnviosAmazon confirmadorEnvios;
+
+        public CanalExternoPedidosAmazon(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesPorTelefono,
+            ApisExternas.IAvisoConfirmacionAmazon avisoConfirmacion = null)
         {
             this.configuracion = configuracion;
             this.clientesPorTelefono = clientesPorTelefono;
+            confirmadorEnvios = new ApisExternas.ConfirmadorEnviosAmazon(avisoConfirmacion);
         }
 
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
@@ -393,7 +398,15 @@ namespace Nesto.Modulos.CanalesExternos
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
             DatosEnvioConfirmarAmazon datosEnvio = LeerDatosEnvio(pedido);
-            return await AmazonApiOrdersService.ConfirmarPedido(pedido.PedidoCanalId, datosEnvio.CodigoAgencia, datosEnvio.NombreAgencia, datosEnvio.NombreServicio, datosEnvio.NumeroSeguimiento);
+            return await confirmadorEnvios.Confirmar(new ApisExternas.ConfirmacionEnvioAmazon
+            {
+                AmazonOrderId = pedido.PedidoCanalId,
+                PedidoNesto = pedido.PedidoNestoId,
+                CodigoAgencia = datosEnvio.CodigoAgencia,
+                NombreAgencia = datosEnvio.NombreAgencia,
+                NombreServicio = datosEnvio.NombreServicio,
+                NumeroSeguimiento = datosEnvio.NumeroSeguimiento
+            });
         }
 
         private decimal CambioDivisas { get; set; } = 1;

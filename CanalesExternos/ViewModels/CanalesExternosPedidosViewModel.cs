@@ -49,7 +49,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _facturasAmazonService = facturasAmazonService;
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion, clientesPorTelefonoService));
-            Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService));
+            // Nesto#499: si Amazon rechaza una confirmación (se comprueba en segundo plano), aviso no modal + ELMAH.
+            var avisoConfirmacionAmazon = new ApisExternas.AvisoConfirmacionAmazonNoModal(
+                dialogService == null ? null : new DialogServiceEnHiloUi(dialogService),
+                () => ContainerLocator.Container?.Resolve<IServicioRegistroErrores>());
+            Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService, avisoConfirmacionAmazon));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService));
             
             CrearComandos();
