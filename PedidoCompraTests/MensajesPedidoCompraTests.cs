@@ -1,12 +1,12 @@
 using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.ViewModels;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Linq;
 
 namespace PedidoCompraTests
@@ -23,7 +23,7 @@ namespace PedidoCompraTests
         public void PedidoCompraModificado_LlegaALaLista_YSustituyeLaFilaDelPedidoSinCrear()
         {
             IMessenger messenger = new WeakReferenceMessenger();
-            var vm = new ListaPedidosCompraViewModel(A.Fake<IPedidoCompraService>(), A.Fake<IDialogService>(), messenger);
+            var vm = new ListaPedidosCompraViewModel(A.Fake<IPedidoCompraService>(), A.Fake<IServicioDialogos>(), messenger);
             vm.ScopedRegionManager = A.Fake<IRegionManager>(); // al cambiar la fila se navega al detalle
             var sinCrear = new PedidoCompraLookup { Empresa = "1", Proveedor = "123" };
             vm.ListaPedidos.ListaOriginal.Add(sinCrear);

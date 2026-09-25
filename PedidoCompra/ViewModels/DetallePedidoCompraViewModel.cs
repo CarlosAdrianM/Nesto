@@ -1,5 +1,4 @@
 ﻿using Azure.Identity;
-using ControlesUsuario.Dialogs;
 using Microsoft.Graph;
 using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
@@ -10,7 +9,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -26,14 +24,14 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     public class DetallePedidoCompraViewModel : ObservableObject, INavigationAware
     {
         public IPedidoCompraService Servicio { get; }
-        public IDialogService DialogService { get; }
+        public IServicioDialogos DialogService { get; }
         public IRegionManager RegionManager { get; }
         public IConfiguracion Configuracion { get; }
         private IMessenger Messenger { get; }
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IMessenger messenger, IServicioAutenticacion servicioAutenticacion)
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IServicioDialogos dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IMessenger messenger, IServicioAutenticacion servicioAutenticacion)
         {
             Servicio = servicio;
             DialogService = dialogService;

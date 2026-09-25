@@ -7,7 +7,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,10 +19,10 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     public class ListaPedidosCompraViewModel : ObservableObject
     {
         public IPedidoCompraService Servicio { get; }
-        public IDialogService DialogService { get; }
+        public IServicioDialogos DialogService { get; }
         private IMessenger Messenger { get; }
 
-        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IMessenger messenger)
+        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IServicioDialogos dialogService, IMessenger messenger)
         {
             Servicio = servicio;
             DialogService = dialogService;
