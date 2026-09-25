@@ -742,6 +742,29 @@ namespace Nesto.Modulos.Cliente
             PersonasContacto.Remove(persona);
         }
         public ICommand CrearClienteCommand { get; private set; }
+        /// <summary>
+        /// NestoAPI#541: si la API no guarda porque el cambio de días cierra un día con pedidos ya en picking,
+        /// se pregunta «¿Avisamos a almacén?». Sí → se repite el PUT confirmado (la API guarda y manda el correo
+        /// a almacén). No → null: no se guarda nada y la ficha se queda como está.
+        /// </summary>
+        internal async Task<Clientes> ModificarClienteConfirmandoDiasConPicking(ClienteCrear cliente)
+        {
+            try
+            {
+                return await Servicio.ModificarCliente(cliente);
+            }
+            catch (DiasEnServirConPickingException ex)
+            {
+                if (!DialogService.ShowConfirmationAnswer(DiasEnServirConPickingException.TITULO, ex.Message))
+                {
+                    DialogService.ShowNotification(DiasEnServirConPickingException.TITULO, "El cambio de días no se ha guardado.");
+                    return null;
+                }
+                cliente.ConfirmarDiasEnServirConPicking = true;
+                return await Servicio.ModificarCliente(cliente);
+            }
+        }
+
         private async void OnCrearCliente()
         {
             // Nesto#480: guarda dura de cliente. La de verdad la hace el servidor (NestoAPI#499) cuando
@@ -798,12 +821,13 @@ namespace Nesto.Modulos.Cliente
                 if (EsUnaModificacion)
                 {
                     cliente.Contacto = ClienteContacto;
-                    Clientes clienteCreado = await Servicio.ModificarCliente(cliente);
-                    if (clienteCreado != null)
+                    Clientes clienteCreado = await ModificarClienteConfirmandoDiasConPicking(cliente);
+                    if (clienteCreado == null)
                     {
-                        DialogService.ShowNotification("Cliente Modificado", "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
-                        Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
+                        return; // NestoAPI#541: el usuario no quiso avisar a almacén; nada guardado, la ficha sigue abierta
                     }
+                    DialogService.ShowNotification("Cliente Modificado", "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
+                    Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                 } else
                 {
                     Clientes clienteCreado = await Servicio.CrearCliente(cliente);

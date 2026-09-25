@@ -185,6 +185,12 @@ namespace Nesto.Modulos.Cliente
                         string textoError = await response.Content.ReadAsStringAsync();
                         JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
                         string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        // NestoAPI#541: la ficha no se guarda hasta que el usuario decida si avisar a almacén
+                        DiasEnServirConPickingException conPicking = DiasEnServirConPickingException.DesdeRespuesta(requestException, mensajeError);
+                        if (conPicking != null)
+                        {
+                            throw conPicking;
+                        }
                         throw new Exception("No se ha podido modificar el cliente " + cliente.Nombre + "\n" + mensajeError);
                     }
                 }

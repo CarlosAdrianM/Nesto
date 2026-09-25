@@ -35,6 +35,11 @@ namespace Nesto.Modulos.Cliente
         public string VendedorPeluqueria { get; set; }
         // Nesto#432: 5 posiciones lunes..viernes, '1' abre y '0' cierra. Null = no tocar en la API.
         public string DiasEnServir { get; set; }
+        /// <summary>
+        /// NestoAPI#541: solo en el reenvío tras aceptar «¿Avisamos a almacén?». Si el cambio de días cierra un día
+        /// y el contacto tiene pedidos con picking, la API rechaza el PUT (DIAS_CON_PICKING) hasta que vaya a true.
+        /// </summary>
+        public bool ConfirmarDiasEnServirConPicking { get; set; }
 
         public string Usuario { get; set; }
 

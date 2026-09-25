@@ -656,6 +656,73 @@ namespace ClienteTests
             Assert.AreSame(modificado, recibidos[0]);
         }
 
+        // NestoAPI#541: cerrar un día con pedidos ya en picking → la API no guarda hasta que el usuario acepte avisar a almacén
+
+        private void ElUsuarioContesta(ButtonResult respuesta)
+        {
+            A.CallTo(() => DialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuesta)));
+        }
+
+        private CrearClienteViewModel VmModificando()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, Messenger, DialogService);
+            vm.EsUnaModificacion = true;
+            vm.ClienteDireccion = "CALLE DE TODA LA VIDA, 7";
+            return vm;
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task ModificarCliente_DiasConPicking_SiAceptaAvisarAAlmacen_RepiteElPutConfirmado()
+        {
+            var modificado = new Nesto.Models.Nesto.Models.Clientes { Empresa = "1", Nº_Cliente = "27120", Contacto = "3" };
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => !c.ConfirmarDiasEnServirConPicking)))
+                .Throws(new DiasEnServirConPickingException("El pedido 925633 ya está en preparación… ¿Avisamos a almacén?", new[] { 925633 }));
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.ConfirmarDiasEnServirConPicking))).Returns(modificado);
+            ElUsuarioContesta(ButtonResult.OK);
+            var recibidos = new List<Nesto.Models.Nesto.Models.Clientes>();
+            Messenger.Register<Nesto.Infrastructure.Events.ClienteCreadoMensaje>(this, (r, m) => recibidos.Add(m.Value));
+            var vm = VmModificando();
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>._)).MustHaveHappenedTwiceExactly();
+            Assert.AreEqual(1, recibidos.Count, "Guardado: se avisa como en cualquier modificación");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task ModificarCliente_DiasConPicking_SiNoQuiereAvisar_NoSeGuardaNada()
+        {
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>._))
+                .Throws(new DiasEnServirConPickingException("¿Avisamos a almacén?", new[] { 925633 }));
+            ElUsuarioContesta(ButtonResult.Cancel);
+            var recibidos = new List<Nesto.Models.Nesto.Models.Clientes>();
+            Messenger.Register<Nesto.Infrastructure.Events.ClienteCreadoMensaje>(this, (r, m) => recibidos.Add(m.Value));
+            var vm = VmModificando();
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.ConfirmarDiasEnServirConPicking))).MustNotHaveHappened();
+            Assert.AreEqual(0, recibidos.Count, "Nada guardado, nada que anunciar");
+        }
+
+        [TestMethod]
+        public void DiasEnServirConPickingException_DesdeRespuesta_SoloConSuCodigo_YConLosPedidos()
+        {
+            var json = Newtonsoft.Json.Linq.JObject.Parse("{\"error\":{\"code\":\"DIAS_CON_PICKING\",\"message\":\"¿Avisamos a almacén?\",\"details\":{\"cliente\":\"27120\",\"contacto\":\"3\",\"pedidos\":[925633,925700]}}}");
+            var otro = Newtonsoft.Json.Linq.JObject.Parse("{\"error\":{\"code\":\"OTRO\",\"message\":\"x\"}}");
+
+            var ex = DiasEnServirConPickingException.DesdeRespuesta(json, "legible");
+
+            Assert.IsNotNull(ex);
+            Assert.AreEqual("¿Avisamos a almacén?", ex.Message);
+            CollectionAssert.AreEqual(new[] { 925633, 925700 }, new List<int>(ex.Pedidos));
+            Assert.IsNull(DiasEnServirConPickingException.DesdeRespuesta(otro, "legible"));
+            Assert.IsNull(DiasEnServirConPickingException.DesdeRespuesta(null, "legible"));
+        }
+
         [TestMethod]
         public void DiasEnServir_DatoAusenteORoto_SeMuestraComoAbreTodosLosDias()
         {
