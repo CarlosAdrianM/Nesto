@@ -1,8 +1,6 @@
 ﻿Imports System.Collections.Specialized
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
-Imports ControlesUsuario.Dialogs
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
 
@@ -12,9 +10,9 @@ Public Class CarteraPagosViewModel
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As ICarteraPagosService
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As ICarteraPagosService, dialogService As IDialogService)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As ICarteraPagosService, dialogService As IServicioDialogos)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
