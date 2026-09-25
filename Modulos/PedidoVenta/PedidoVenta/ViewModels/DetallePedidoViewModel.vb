@@ -100,6 +100,7 @@ Public Class DetallePedidoViewModel
         cmdCambiarIva = New RelayCommand(AddressOf OnCambiarIva)
         cmdCargarPedido = New RelayCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
         CargarProductoCommand = New RelayCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
+        AbrirPedidoOrigenCommand = New RelayCommand(AddressOf OnAbrirPedidoOrigen, Function() HayPedidoOrigen) ' Nesto#493
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -577,6 +578,7 @@ Public Class DetallePedidoViewModel
             If Not IsNothing(_pedido) Then
                 _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
                 ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo
+                ReiniciarModosFacturacionPermitidos() ' Nesto#493
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -2042,6 +2044,7 @@ Public Class DetallePedidoViewModel
             If rechazoModo?.ModoSugerido IsNot Nothing Then
                 CambiarAModoValido(rechazoModo.ModoSugerido.Value, Nothing, avisar:=False) ' Nesto#484
             End If
+            VolverAPedirModosFacturacion() ' Nesto#493: si el rechazo fue por el modo de facturación, que el combo lo refleje
             Return False ' Error al guardar, cancelar operación
         Finally
             estaBloqueado = False
@@ -2383,7 +2386,11 @@ Public Class DetallePedidoViewModel
         Catch ex As ValidationException
             dialogService.ShowError("Error de validación:" + vbCrLf + ex.Message)
         Catch ex As Exception
+            ' Nesto#493 / NestoAPI#542: un modo de facturación no permitido llega como 400 de texto (sin código):
+            ' se enseña el mensaje de la API tal cual y se vuelve a preguntar qué modos valen, para que el combo
+            ' deshabilite el que no.
             dialogService.ShowError(ex.Message)
+            VolverAPedirModosFacturacion()
         Finally
             estaBloqueado = False
             CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
@@ -2784,6 +2791,24 @@ Public Class DetallePedidoViewModel
             _peticionesModos.Programar()
         End If
 
+        ' Nesto#493: los modos de facturación permitidos dependen del cliente, sus plazos y el periodo
+        ' (no del stock ni de las líneas): solo se vuelve a preguntar cuando cambia alguno de esos.
+        If e.PropertyName = NameOf(pedido.plazosPago) OrElse
+           e.PropertyName = NameOf(pedido.periodoFacturacion) OrElse
+           e.PropertyName = NameOf(pedido.contactoCobro) OrElse
+           e.PropertyName = NameOf(pedido.contacto) OrElse
+           e.PropertyName = NameOf(pedido.cliente) OrElse
+           e.PropertyName = String.Empty Then
+            _peticionesModosFacturacion.Programar()
+        End If
+        If e.PropertyName = NameOf(pedido.ModoFacturacion) Then
+            If Not _aplicandoModoFacturacionAutomatico Then
+                _modoFacturacionElegidoEnEstaEdicion = True
+                AvisoModoFacturacion = Nothing
+            End If
+            OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+        End If
+
         ' Nesto#476: el selector de modo de servicio sustituye a la casilla «Servir junto». La
         ' validación del servidor (NestoAPI#161/#220) se dispara solo al salir del modo 1; el
         ' selector no lleva EventTrigger porque SelectionChanged también salta al cargar el pedido.
@@ -2816,7 +2841,7 @@ Public Class DetallePedidoViewModel
     Private _restaurandoModoGuardado As Boolean ' Nesto#489
 
     ''' <summary>Las opciones del combo «Servir»: las que no tienen sentido para el pedido, deshabilitadas con su motivo.</summary>
-    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio)
+    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModo)
         Get
             Return _selectorModos.Opciones
         End Get
@@ -2912,6 +2937,195 @@ Public Class DetallePedidoViewModel
             _aplicandoModoAutomatico = False
         End Try
         AvisoModoServicio = If(avisar, SelectorModosServicio.TextoAvisoCambio(anterior, modoValido, motivo), Nothing)
+    End Sub
+#End Region
+
+#Region "Nesto#493 / NestoAPI#542: modo de facturación (combo «Facturación» en vez de la casilla «Mantener junto»)"
+    ' Mismo patrón que el modo de servicio, con su propio reloj y su propia huella: los modos de facturación
+    ' solo dependen del cliente, los plazos y el periodo, así que cambiar líneas no vuelve a preguntar.
+    Private ReadOnly _selectorModosFacturacion As New SelectorModosFacturacion()
+    Private ReadOnly _peticionesModosFacturacion As New ProgramadorPeticionesConHuella(RETARDO_MODOS_MS,
+        Sub() Application.Current?.Dispatcher?.InvokeAsync(
+            Async Function() As Task
+                Await RefrescarModosFacturacionPermitidos()
+            End Function))
+    Private _modoFacturacionElegidoEnEstaEdicion As Boolean
+    Private _aplicandoModoFacturacionAutomatico As Boolean
+
+    ''' <summary>Las opciones del combo «Facturación»: las que no se pueden elegir, deshabilitadas con su motivo.</summary>
+    Public ReadOnly Property OpcionesModoFacturacion As IReadOnlyList(Of OpcionModo)
+        Get
+            Return _selectorModosFacturacion.Opciones
+        End Get
+    End Property
+
+    ''' <summary>Una nota de entrega no se factura: el combo se queda deshabilitado.</summary>
+    Public ReadOnly Property PuedeElegirModoFacturacion As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso Not pedido.notaEntrega
+        End Get
+    End Property
+
+    ''' <summary>Con «todo ahora» se enseña el aviso fijo de portes (Carlos, 25/09/26).</summary>
+    Public ReadOnly Property EsModoFacturacionTodoAhora As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso ModosFacturacion.EsTodoAhora(pedido.ModoFacturacion)
+        End Get
+    End Property
+
+    Public ReadOnly Property AvisoPortesTodoAhora As String
+        Get
+            Return ModosFacturacion.AVISO_PORTES_TODO_AHORA
+        End Get
+    End Property
+
+    Private _avisoModoFacturacion As String
+    ''' <summary>Aviso visible cuando se cambia el modo que eligió el usuario porque dejó de poder elegirse.</summary>
+    Public Property AvisoModoFacturacion As String
+        Get
+            Return _avisoModoFacturacion
+        End Get
+        Set(value As String)
+            If SetProperty(_avisoModoFacturacion, value) Then
+                OnPropertyChanged(NameOf(HayAvisoModoFacturacion))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoModoFacturacion As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(AvisoModoFacturacion)
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#542: el pedido es una nota de entrega creada sola con lo pendiente de otro pedido.</summary>
+    Public ReadOnly Property HayPedidoOrigen As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso pedido.pedidoOrigen.HasValue
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoPedidoOrigen As String
+        Get
+            If Not HayPedidoOrigen Then
+                Return String.Empty
+            End If
+            Dim albaran As String = If(pedido.albaranOrigen.HasValue, $" (albarán {pedido.albaranOrigen.Value})", String.Empty)
+            Return $"Nota de entrega del pedido {pedido.pedidoOrigen.Value}{albaran}"
+        End Get
+    End Property
+
+    ''' <summary>Alguna línea tiene unidades a recoger (facturadas y aún no entregadas).</summary>
+    Public ReadOnly Property HayLineasARecoger As Boolean
+        Get
+            Return pedido?.Model?.Lineas IsNot Nothing AndAlso pedido.Model.Lineas.Any(Function(l) l.recoger <> 0)
+        End Get
+    End Property
+
+    Private _abrirPedidoOrigenCommand As RelayCommand
+    ''' <summary>Abre el pedido del que sale esta nota de entrega.</summary>
+    Public Property AbrirPedidoOrigenCommand As RelayCommand
+        Get
+            Return _abrirPedidoOrigenCommand
+        End Get
+        Private Set(value As RelayCommand)
+            Dim unused = SetProperty(_abrirPedidoOrigenCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnAbrirPedidoOrigen()
+        If Not HayPedidoOrigen OrElse container Is Nothing Then
+            Return
+        End If
+        PedidoVentaViewModel.CargarPedido(pedido.empresa, pedido.pedidoOrigen.Value, container)
+    End Sub
+
+    ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
+    Friend ReadOnly Property PeticionesModosFacturacionEnviadas As Integer
+        Get
+            Return _peticionesModosFacturacion.PeticionesEnviadas
+        End Get
+    End Property
+
+    Private Sub ReiniciarModosFacturacionPermitidos()
+        _modoFacturacionElegidoEnEstaEdicion = False
+        AvisoModoFacturacion = Nothing
+        _selectorModosFacturacion.Aplicar(Nothing)
+        _peticionesModosFacturacion.OlvidarHuella()
+        _peticionesModosFacturacion.Programar()
+        OnPropertyChanged(NameOf(PuedeElegirModoFacturacion))
+        OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+        OnPropertyChanged(NameOf(HayPedidoOrigen))
+        OnPropertyChanged(NameOf(TextoPedidoOrigen))
+        OnPropertyChanged(NameOf(HayLineasARecoger))
+        AbrirPedidoOrigenCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>Tras un rechazo al guardar: la próxima pregunta sale aunque el pedido no haya cambiado.</summary>
+    Private Sub VolverAPedirModosFacturacion()
+        _peticionesModosFacturacion.OlvidarHuella()
+        _peticionesModosFacturacion.Programar()
+    End Sub
+
+    ''' <summary>Friend para poder pedirlos a mano en los tests sin esperar al reloj.</summary>
+    Friend Function RefrescarModosFacturacionPermitidos() As Task
+        Return _peticionesModosFacturacion.EjecutarAsync(Of PedidoVentaDTO)(
+            AddressOf PedidoParaModosFacturacion, AddressOf HuellaPedidoModosFacturacion,
+            Sub() _selectorModosFacturacion.Aplicar(Nothing), AddressOf PedirModosFacturacionAlServidor)
+    End Function
+
+    Private Function PedidoParaModosFacturacion() As PedidoVentaDTO
+        Dim modelo As PedidoVentaDTO = pedido?.Model
+        Return If(modelo Is Nothing OrElse String.IsNullOrWhiteSpace(modelo.cliente), Nothing, modelo)
+    End Function
+
+    ''' <summary>Solo lo que mira la API: así cambiar líneas o cantidades no vuelve a preguntar.</summary>
+    Friend Shared Function HuellaPedidoModosFacturacion(modelo As PedidoVentaDTO) As String
+        If modelo Is Nothing Then
+            Return String.Empty
+        End If
+        Return String.Join("|", modelo.empresa, modelo.numero, modelo.cliente, modelo.contacto, modelo.contactoCobro,
+                           modelo.plazosPago, modelo.periodoFacturacion, modelo.notaEntrega, modelo.mantenerJunto, modelo.modoFacturacion)
+    End Function
+
+    Private Async Function PedirModosFacturacionAlServidor(modelo As PedidoVentaDTO) As Task
+        AplicarModosFacturacionPermitidos(Await servicio.ModoFacturacionSugerido(modelo).ConfigureAwait(True))
+    End Function
+
+    ''' <summary>
+    ''' Refleja lo que dice la API. A diferencia del modo de servicio, la API comprueba el modo de facturación
+    ''' SIEMPRE que se manda informado (y Nesto lo manda siempre, porque al leer viene con valor): si el que
+    ''' tiene el pedido deja de valer (p. ej. al cambiar los plazos), guardar daría un 400. Por eso se pasa al que
+    ''' vale y se AVISA (Carlos: nada de cambiar en silencio); es lo que el trigger de plazos hacía a escondidas
+    ''' con «Mantener junto». En un pedido nuevo que el usuario no ha tocado es la preselección: sin aviso.
+    ''' </summary>
+    Friend Sub AplicarModosFacturacionPermitidos(sugerencia As ModoFacturacionSugeridoDTO)
+        _selectorModosFacturacion.Aplicar(sugerencia)
+        If sugerencia Is Nothing OrElse pedido Is Nothing OrElse Not ModosFacturacion.EsValido(sugerencia.Modo) Then
+            Return
+        End If
+        If _selectorModosFacturacion.EsPermitido(pedido.ModoFacturacion) Then
+            Return
+        End If
+        Dim avisar As Boolean = _modoFacturacionElegidoEnEstaEdicion OrElse pedido.numero <> 0
+        CambiarAModoFacturacionValido(sugerencia.Modo, If(avisar, SelectorModos.MotivoDe(sugerencia, pedido.ModoFacturacion), Nothing), avisar)
+    End Sub
+
+    Friend Sub CambiarAModoFacturacionValido(modoValido As Byte, motivo As String, avisar As Boolean)
+        If pedido Is Nothing OrElse Not ModosFacturacion.EsValido(modoValido) Then
+            Return
+        End If
+        Dim anterior As Byte = pedido.ModoFacturacion
+        If anterior = modoValido Then
+            Return
+        End If
+        _aplicandoModoFacturacionAutomatico = True
+        Try
+            pedido.ModoFacturacion = modoValido
+        Finally
+            _aplicandoModoFacturacionAutomatico = False
+        End Try
+        AvisoModoFacturacion = If(avisar, SelectorModosFacturacion.TextoAvisoCambio(anterior, modoValido, motivo), Nothing)
     End Sub
 #End Region
 

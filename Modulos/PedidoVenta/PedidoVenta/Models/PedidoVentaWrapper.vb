@@ -256,13 +256,58 @@ Public Class PedidoVentaWrapper
             Model.vistoBuenoPlazosPago = value
         End Set
     End Property
+    ''' <summary>
+    ''' Nesto#493: mantenerJunto y ModoFacturacion se mantienen coherentes entre sí, como servirJunto y
+    ''' ModoServicio. Marcarlo es el modo 2; desmarcarlo con el 2 puesto cae al 1 (un 3 guardado se respeta).
+    ''' </summary>
     Public Property mantenerJunto() As Boolean
         Get
             Return Model.mantenerJunto
         End Get
         Set(value As Boolean)
             Model.mantenerJunto = value
+            If value Then
+                Model.modoFacturacion = ModosFacturacion.AL_COMPLETAR
+            ElseIf Model.modoFacturacion.HasValue AndAlso ModosFacturacion.EsAlCompletar(Model.modoFacturacion.Value) Then
+                Model.modoFacturacion = ModosFacturacion.POR_ENTREGAS
+            End If
+            OnPropertyChanged(NameOf(mantenerJunto))
+            OnPropertyChanged(NameOf(ModoFacturacion))
         End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#493 / NestoAPI#542: el modo de facturación que se enseña en el selector «Facturación». Un pedido
+    ''' anterior al modo (modoFacturacion Nothing) se muestra con el que deriva de mantenerJunto. Al elegir
+    ''' uno, mantenerJunto pasa a ser su derivado (solo el 2 lo marca), que es lo que sigue leyendo el Nesto viejo.
+    ''' </summary>
+    Public Property ModoFacturacion() As Byte
+        Get
+            Return ModosFacturacion.Efectivo(Model.modoFacturacion, Model.mantenerJunto)
+        End Get
+        Set(value As Byte)
+            If ModoFacturacion = value AndAlso Model.modoFacturacion.HasValue Then
+                Return
+            End If
+            Model.modoFacturacion = value
+            Model.mantenerJunto = ModosFacturacion.EsAlCompletar(value)
+            OnPropertyChanged(NameOf(ModoFacturacion))
+            OnPropertyChanged(NameOf(mantenerJunto))
+        End Set
+    End Property
+
+    ''' <summary>NestoAPI#542 (solo lectura): en una nota de entrega automática, el pedido del que sale.</summary>
+    Public ReadOnly Property pedidoOrigen() As Integer?
+        Get
+            Return Model.pedidoOrigen
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#542 (solo lectura): en una nota de entrega automática, el albarán del que sale.</summary>
+    Public ReadOnly Property albaranOrigen() As Integer?
+        Get
+            Return Model.albaranOrigen
+        End Get
     End Property
     ''' <summary>
     ''' Nesto#476: servirJunto y ModoServicio se mantienen coherentes entre sí. Marcar servirJunto

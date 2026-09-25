@@ -830,6 +830,26 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Nesto#493 / NestoAPI#542: POST api/PedidosVenta/ModoFacturacionSugerido. Nothing si la API falla o es
+    ''' anterior: es una ayuda y el pedido se tiene que poder guardar igual (el servidor valida al guardar).
+    ''' </summary>
+    Public Async Function ModoFacturacionSugerido(pedido As PedidoVentaDTO) As Task(Of ModoFacturacionSugeridoDTO) Implements IPedidoVentaService.ModoFacturacionSugerido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/ModoFacturacionSugerido", content).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return JsonConvert.DeserializeObject(Of ModoFacturacionSugeridoDTO)(cadenaJson)
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

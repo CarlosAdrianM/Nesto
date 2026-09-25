@@ -38,6 +38,12 @@
                     <Setter Property="Foreground" Value="Gray"/>
                     <Setter Property="Cursor" Value="No"/>
                 </DataTrigger>
+                <!-- Nesto#493 / NestoAPI#542: línea ya facturada (nota de entrega automática): solo queda entregarla. -->
+                <DataTrigger Binding="{Binding yaFacturado}" Value="True">
+                    <Setter Property="FontStyle" Value="Italic"/>
+                    <Setter Property="Foreground" Value="DarkGreen"/>
+                    <Setter Property="ToolTip" Value="Línea ya facturada: solo queda entregarla"/>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -90,6 +96,12 @@
                                     </i:Interaction.Triggers>
                                     <TextBlock Text="Pedido: "></TextBlock>
                                     <TextBlock Text="{Binding pedido.numero}"></TextBlock>
+                                    <!-- Nesto#493 / NestoAPI#542: una nota de entrega creada sola enlaza con el pedido del que sale. -->
+                                    <TextBlock Visibility="{Binding HayPedidoOrigen, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,4">
+                                        <Hyperlink Command="{Binding AbrirPedidoOrigenCommand}" ToolTip="Abrir el pedido original">
+                                            <Run Text="{Binding TextoPedidoOrigen, Mode=OneWay}"/>
+                                        </Hyperlink>
+                                    </TextBlock>
                                     <TextBlock Text="Cliente: "></TextBlock>
                                     <controles:SelectorCliente Name="txtSelectorCliente"
                                                                Empresa="1"
@@ -213,6 +225,8 @@
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
                                 <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" />
+                                <!-- Nesto#493 / NestoAPI#542: unidades facturadas que no se entregan con el albarán. -->
+                                <DataGridTextColumn Header="A recoger" Width="Auto" MinWidth="55" Binding="{Binding recoger, Mode=OneWay}" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding PrecioUnitario, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -295,7 +309,33 @@
                             <TextBlock Text="{Binding AvisoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontWeight="SemiBold" Foreground="DarkOrange"
                                        Visibility="{Binding HayAvisoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
+                            <!-- Nesto#493 / NestoAPI#542: modo de facturación en vez de la casilla «Mantener junto». Los modos
+                                 que no se pueden elegir (regla de plazos de la API) salen deshabilitados con su motivo; en una
+                                 nota de entrega el combo entero está deshabilitado. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="Facturación:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <ComboBox ItemsSource="{Binding OpcionesModoFacturacion}"
+                                          DisplayMemberPath="Nombre"
+                                          SelectedValuePath="Codigo"
+                                          SelectedValue="{Binding pedido.ModoFacturacion, Mode=TwoWay}"
+                                          IsEnabled="{Binding PuedeElegirModoFacturacion}"
+                                          MinWidth="230"
+                                          ToolTip="Cuándo se factura el pedido (antes, la casilla «Mantener junto»)">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="IsEnabled" Value="{Binding Habilitado}"/>
+                                            <Setter Property="ToolTip" Value="{Binding Ayuda}"/>
+                                            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                            </StackPanel>
+                            <TextBlock Text="{Binding AvisoModoFacturacion}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontWeight="SemiBold" Foreground="DarkOrange"
+                                       Visibility="{Binding HayAvisoModoFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <TextBlock Text="{Binding AvisoPortesTodoAhora}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontStyle="Italic" Foreground="#555555"
+                                       Visibility="{Binding EsModoFacturacionTodoAhora, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
@@ -586,6 +626,8 @@
 
                                 <!-- Issue #258: Columnas deshabilitadas visualmente cuando TipoLinea=0 (Texto) -->
                                 <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" CellStyle="{StaticResource CeldaDeshabilitadaParaTexto}"/>
+                                <!-- Nesto#493 / NestoAPI#542: unidades facturadas que no se entregan con el albarán (solo lectura). -->
+                                <DataGridTextColumn Header="A recoger" Width="Auto" MinWidth="55" Binding="{Binding recoger, Mode=OneWay}" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding PrecioUnitario, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style TargetType="DataGridCell" BasedOn="{StaticResource CeldaNumericaDeshabilitadaParaTexto}">

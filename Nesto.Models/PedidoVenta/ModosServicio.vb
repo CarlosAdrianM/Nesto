@@ -87,18 +87,11 @@ Public NotInheritable Class ModosServicio
     End Function
 End Class
 
+''' <summary>Nesto#493: lo común (código, nombre, descripción) vive en <see cref="ModoItem"/>, compartido con los modos de facturación.</summary>
 Public Class ModoServicioItem
+    Inherits ModoItem
+
     Public Sub New(codigo As Byte, nombre As String, descripcion As String)
-        Me.Codigo = codigo
-        Me.Nombre = nombre
-        Me.Descripcion = descripcion
+        MyBase.New(codigo, nombre, descripcion)
     End Sub
-
-    Public ReadOnly Property Codigo As Byte
-    Public ReadOnly Property Nombre As String
-    Public ReadOnly Property Descripcion As String
-
-    Public Overrides Function ToString() As String
-        Return Nombre
-    End Function
 End Class

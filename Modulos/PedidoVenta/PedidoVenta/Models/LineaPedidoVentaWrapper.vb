@@ -342,6 +342,20 @@ Public Class LineaPedidoVentaWrapper
         End Get
     End Property
 
+    ''' <summary>Nesto#493 / NestoAPI#542 (solo lectura): unidades que no se entregan aunque se facturen.</summary>
+    Public ReadOnly Property recoger As Integer
+        Get
+            Return Model.recoger
+        End Get
+    End Property
+
+    ''' <summary>Nesto#493 / NestoAPI#542 (solo lectura): la línea ya se facturó; solo queda entregarla.</summary>
+    Public ReadOnly Property yaFacturado As Boolean
+        Get
+            Return Model.yaFacturado
+        End Get
+    End Property
+
     Public ReadOnly Property SumaDescuentos As Decimal
         Get
             Return Model.SumaDescuentos

@@ -6,6 +6,8 @@
 ''' El cliente no interpreta nada: preselecciona Modo y enseña Motivo.
 ''' </summary>
 Public Class ModoServicioSugeridoDTO
+    Implements ISugerenciaModos
+
     Public Property Modo As Byte
     Public Property Nombre As String
     Public Property LineasVerdes As Integer
@@ -14,9 +16,14 @@ Public Class ModoServicioSugeridoDTO
     Public Property Motivo As String
     ''' <summary>NestoAPI#518: los modos que se pueden elegir para este pedido (el sugerido siempre está).
     ''' Vacío o Nothing (API anterior) = todos, como hasta ahora.</summary>
-    Public Property ModosPermitidos As List(Of Byte)
+    Public Property ModosPermitidos As List(Of Byte) Implements ISugerenciaModos.ModosPermitidos
     ''' <summary>NestoAPI#518: los cuatro modos con su permiso y el motivo de los que no se pueden elegir.</summary>
     Public Property Modos As List(Of ModoServicioPermitidoDTO)
+
+    ''' <summary>Por qué no vale un modo, según la API (Nothing si no lo dice).</summary>
+    Public Function MotivoDe(modo As Byte) As String Implements ISugerenciaModos.MotivoDe
+        Return Modos?.FirstOrDefault(Function(m) m.Modo = modo)?.Motivo
+    End Function
 End Class
 
 ''' <summary>NestoAPI#518: un modo de servicio y, si no tiene sentido para el pedido, por qué (lo redacta la API).</summary>

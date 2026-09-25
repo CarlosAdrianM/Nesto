@@ -20,6 +20,12 @@ Public Class LineaPedidoVentaDTO
     Public Property iva() As String
     Public Property oferta() As Integer?
     Public Property picking() As Integer
+    ''' <summary>Nesto#493 / NestoAPI#542 (solo lectura): unidades de la línea que NO se entregan con el albarán
+    ''' aunque se facturen (LinPedidoVta.Recoger). Lo escribe el picking en modo de facturación 3 o el Nesto viejo.</summary>
+    Public Property recoger() As Integer
+    ''' <summary>Nesto#493 / NestoAPI#542 (solo lectura): la línea ya se facturó y lo que queda es entregarla
+    ''' (LinPedidoVta.YaFacturado; las líneas de una nota de entrega automática).</summary>
+    Public Property yaFacturado() As Boolean
     Public Property texto As String
     Public Property tipoLinea() As Nullable(Of Byte) = 1
     Public Property vistoBueno() As Boolean

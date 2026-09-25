@@ -945,7 +945,7 @@ Public Class PlantillaVentaViewModel
     ''' Nesto#484 / NestoAPI#518: las opciones del combo «Servir». Las que no tienen sentido para el pedido
     ''' (según la API) salen deshabilitadas con su motivo. Sin respuesta del servidor, todas habilitadas.
     ''' </summary>
-    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModoServicio)
+    Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModo)
         Get
             Return _selectorModos.Opciones
         End Get

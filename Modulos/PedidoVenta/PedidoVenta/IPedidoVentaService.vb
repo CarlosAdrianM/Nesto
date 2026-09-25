@@ -30,6 +30,9 @@ Public Interface IPedidoVentaService
     ''' <summary>Nesto#484 / NestoAPI#518: modo sugerido y modos permitidos para el pedido tal cual está en pantalla.
     ''' Nothing si la API falla (el combo se queda con todas las opciones, como antes).</summary>
     Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)
+    ''' <summary>Nesto#493 / NestoAPI#542: modo de facturación que rige y modos permitidos para el pedido tal cual está
+    ''' en pantalla (solo depende de cliente, plazos y periodo, no del stock). Nothing si la API falla.</summary>
+    Function ModoFacturacionSugerido(pedido As PedidoVentaDTO) As Task(Of ModoFacturacionSugeridoDTO)
     ''' <summary>Nesto#489 / NestoAPI#533: pide a almacén el cambio de modo de un pedido con picking. Devuelve el texto
     ''' de la API para enseñarlo; si la API lo rechaza, lanza una excepción con su mensaje.</summary>
     Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String)

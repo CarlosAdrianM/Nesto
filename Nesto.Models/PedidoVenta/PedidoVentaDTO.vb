@@ -66,6 +66,14 @@ Public Class PedidoVentaDTO
     ''' <summary>Nesto#476 / NestoAPI#482: modo de servicio (ver ModosServicio). Nothing en pedidos
     ''' anteriores al modo: entonces manda servirJunto (True = 1, False = 2).</summary>
     Public Property modoServicio() As Byte?
+    ''' <summary>Nesto#493 / NestoAPI#542: modo de facturación (ver ModosFacturacion). Nothing = no se manda
+    ''' y el servidor lo deriva de mantenerJunto sobre el guardado. Al leer siempre viene con valor.</summary>
+    Public Property modoFacturacion() As Byte?
+    ''' <summary>NestoAPI#542 (solo lectura): en una nota de entrega creada por la API con lo pendiente de un
+    ''' pedido facturado entero, el número de ese pedido.</summary>
+    Public Property pedidoOrigen() As Integer?
+    ''' <summary>NestoAPI#542 (solo lectura): el albarán de ese pedido del que sale lo pendiente.</summary>
+    Public Property albaranOrigen() As Integer?
     Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
@@ -162,6 +170,7 @@ Public Class PedidoVentaDTO
                mantenerJunto = other.mantenerJunto AndAlso
                servirJunto = other.servirJunto AndAlso
                Nullable.Equals(modoServicio, other.modoServicio) AndAlso
+               Nullable.Equals(modoFacturacion, other.modoFacturacion) AndAlso
                avisarConImporteAlCogerPicking = other.avisarConImporteAlCogerPicking AndAlso
                notaEntrega = other.notaEntrega
     End Function
@@ -207,6 +216,9 @@ Public Class PedidoVentaDTO
         End If
         If Not Nullable.Equals(modoServicio, other.modoServicio) Then
             difs.Add($"modoServicio: '{other.modoServicio}' -> '{modoServicio}'")
+        End If
+        If Not Nullable.Equals(modoFacturacion, other.modoFacturacion) Then
+            difs.Add($"modoFacturacion: '{other.modoFacturacion}' -> '{modoFacturacion}'")
         End If
         If avisarConImporteAlCogerPicking <> other.avisarConImporteAlCogerPicking Then
             difs.Add($"avisarConImporteAlCogerPicking: '{other.avisarConImporteAlCogerPicking}' -> '{avisarConImporteAlCogerPicking}'")
@@ -286,6 +298,7 @@ Public Class PedidoVentaDTO
             .mantenerJunto = Me.mantenerJunto,
             .servirJunto = Me.servirJunto,
             .modoServicio = Me.modoServicio,
+            .modoFacturacion = Me.modoFacturacion,
             .notaEntrega = Me.notaEntrega
         }
     End Function
