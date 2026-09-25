@@ -108,6 +108,9 @@ Partial Public Class Application
         ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
         ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).
         Dim unusedMessenger = containerRegistry.RegisterInstance(Of IMessenger)(WeakReferenceMessenger.Default)
+        ' Nesto#490 (4C.2): servicio de diálogos propio. De momento delega en el IDialogService de Prism
+        ' (mismos diálogos, mismo comportamiento); los módulos van pasando a él uno a uno.
+        Dim unusedDialogos = containerRegistry.RegisterSingleton(Of IServicioDialogos, ServicioDialogosPrism)()
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
         ' Nesto#400: credencial con caché de tokens persistida y AuthenticationRecord rehidratado:
