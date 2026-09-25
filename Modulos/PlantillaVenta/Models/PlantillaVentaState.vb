@@ -93,6 +93,12 @@ Public Class PlantillaVentaState
     ''' rige el que deriva de ServirJunto. Se manda en el DTO y se guarda en el borrador.
     ''' </summary>
     Public Property ModoServicio As Byte?
+
+    ''' <summary>
+    ''' Nesto#493 / NestoAPI#542: modo de facturación (1, 2 o 3). Nothing = no se ha elegido ni sugerido y
+    ''' rige el que deriva de MantenerJunto (el servidor lo deriva igual). Se manda en el DTO y va al borrador.
+    ''' </summary>
+    Public Property ModoFacturacion As Byte?
 #End Region
 
 #Region "Líneas de productos"
@@ -452,6 +458,7 @@ Public Class PlantillaVentaState
         MantenerJunto = False
         ServirJunto = False
         ModoServicio = Nothing
+        ModoFacturacion = Nothing
         LineasProducto = New List(Of LineaPlantillaVenta)
         LineasRegalo = New List(Of LineaRegalo)
         FormaVenta = 1
@@ -511,9 +518,10 @@ Public Class PlantillaVentaState
             .origen = Empresa,
             .contactoCobro = Contacto,
             .noComisiona = NoComisiona,
-            .mantenerJunto = MantenerJunto,
+            .mantenerJunto = If(ModoFacturacion.HasValue, ModosFacturacion.EsAlCompletar(ModoFacturacion.Value), MantenerJunto),
             .servirJunto = ServirJunto,
             .modoServicio = ModoServicio,
+            .modoFacturacion = ModoFacturacion, ' Nesto#493: Nothing = que lo derive el servidor de mantenerJunto
             .comentarioPicking = ComentarioPicking,
             .avisarConImporteAlCogerPicking = AvisarConImporteAlCogerPicking,
             .suPedido = SuPedido,

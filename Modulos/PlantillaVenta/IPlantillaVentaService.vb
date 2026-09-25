@@ -26,6 +26,13 @@ Public Interface IPlantillaVentaService
     Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)
 
     ''' <summary>
+    ''' Nesto#493 / NestoAPI#542: el modo de facturación que rige en el pedido que se está montando y los
+    ''' que se pueden elegir (POST api/PedidosVenta/ModoFacturacionSugerido; solo depende del cliente, los
+    ''' plazos y el periodo, no del stock). Nothing si la API falla: el servidor valida al guardar.
+    ''' </summary>
+    Function ModoFacturacionSugerido(pedido As PedidoVentaDTO) As Task(Of ModoFacturacionSugeridoDTO)
+
+    ''' <summary>
     ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando
     ''' (POST api/PedidosVenta/OfertasSugeridas). Lista vacia si la API falla: esto es una ayuda,
     ''' nunca un bloqueo para guardar el pedido.

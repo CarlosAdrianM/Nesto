@@ -893,6 +893,191 @@ Public Class PlantillaVentaViewModel
     End Property
 
 
+#Region "Nesto#493 / NestoAPI#542: modo de facturación (combo «Facturación» en vez de la casilla «Mantener junto»)"
+
+    ' Mismo patrón que el modo de servicio, con su propio reloj y su propia huella: los modos de facturación
+    ' solo dependen del cliente, los plazos y el periodo (no del stock), así que montar líneas no pregunta.
+    Private ReadOnly _selectorModosFacturacion As New SelectorModosFacturacion()
+    Private ReadOnly _peticionesModoFacturacion As New ProgramadorPeticionesConHuella(RETARDO_SUGERENCIAS_MS,
+        Sub() Application.Current?.Dispatcher?.InvokeAsync(
+            Async Function() As Task
+                Await RefrescarModoFacturacion()
+            End Function))
+    Private _modoFacturacionElegidoPorUsuario As Boolean
+    Private _aplicandoSugerenciaModoFacturacion As Boolean
+
+    ''' <summary>
+    ''' El modo de facturación que se enseña en el combo. Sin elección ni sugerencia (Estado.ModoFacturacion
+    ''' Nothing) rige el que deriva del «Mantener junto» de la ficha, que es lo que el servidor derivaría igual.
+    ''' </summary>
+    Public Property ModoFacturacion As Byte
+        Get
+            Return ModosFacturacion.Efectivo(Estado.ModoFacturacion, Estado.MantenerJunto)
+        End Get
+        Set(value As Byte)
+            If ModoFacturacion = value AndAlso Estado.ModoFacturacion.HasValue Then
+                Return
+            End If
+            ' La sugerencia del servidor entra por aquí, la misma ruta que el usuario, pero NO cuenta como
+            ' elección suya (si contase, la siguiente sugerencia ya no podría cambiar nada).
+            If Not _aplicandoSugerenciaModoFacturacion Then
+                _modoFacturacionElegidoPorUsuario = True
+                AvisoModoFacturacion = Nothing
+            End If
+            Estado.ModoFacturacion = value
+            Estado.MantenerJunto = ModosFacturacion.EsAlCompletar(value)
+            OnPropertyChanged(NameOf(ModoFacturacion))
+            OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+        End Set
+    End Property
+
+    ''' <summary>Las opciones del combo «Facturación»: las que no se pueden elegir, deshabilitadas con su motivo.</summary>
+    Public ReadOnly Property OpcionesModoFacturacion As IReadOnlyList(Of OpcionModo)
+        Get
+            Return _selectorModosFacturacion.Opciones
+        End Get
+    End Property
+
+    ''' <summary>Con «todo ahora» se enseña el aviso fijo de portes (Carlos, 25/09/26).</summary>
+    Public ReadOnly Property EsModoFacturacionTodoAhora As Boolean
+        Get
+            Return ModosFacturacion.EsTodoAhora(ModoFacturacion)
+        End Get
+    End Property
+
+    Public ReadOnly Property AvisoPortesTodoAhora As String
+        Get
+            Return ModosFacturacion.AVISO_PORTES_TODO_AHORA
+        End Get
+    End Property
+
+    Private _avisoModoFacturacion As String
+    ''' <summary>Aviso visible cuando se cambia el modo que eligió el usuario porque dejó de poder elegirse.</summary>
+    Public Property AvisoModoFacturacion As String
+        Get
+            Return _avisoModoFacturacion
+        End Get
+        Set(value As String)
+            If SetProperty(_avisoModoFacturacion, value) Then
+                OnPropertyChanged(NameOf(HayAvisoModoFacturacion))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoModoFacturacion As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(AvisoModoFacturacion)
+        End Get
+    End Property
+
+    ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
+    Friend ReadOnly Property PeticionesModoFacturacionEnviadas As Integer
+        Get
+            Return _peticionesModoFacturacion.PeticionesEnviadas
+        End Get
+    End Property
+
+    Private Sub PedirModoFacturacionConDebounce()
+        _peticionesModoFacturacion.Programar()
+    End Sub
+
+    ''' <summary>Tras un rechazo al guardar: la próxima pregunta sale aunque el pedido no haya cambiado.</summary>
+    Private Sub VolverAPedirModoFacturacion()
+        _peticionesModoFacturacion.OlvidarHuella()
+        _peticionesModoFacturacion.Programar()
+    End Sub
+
+    ''' <summary>Friend para poder pedirlo a mano en los tests sin esperar al reloj.</summary>
+    Friend Function RefrescarModoFacturacion() As Task
+        Return _peticionesModoFacturacion.EjecutarAsync(Of PedidoVentaDTO)(
+            AddressOf PedidoParaModoFacturacion, AddressOf HuellaPedidoModoFacturacion,
+            Sub() AplicarModosFacturacionPermitidos(Nothing), AddressOf PedirModoFacturacionAlServidor)
+    End Function
+
+    ''' <summary>El pedido que se manda (no hacen falta líneas), con el número si se está modificando uno: así el
+    ''' servidor contesta con el modo que ya tiene guardado.</summary>
+    Private Function PedidoParaModoFacturacion() As PedidoVentaDTO
+        Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
+        If pedido Is Nothing OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
+            Return Nothing
+        End If
+        pedido.numero = If(NumeroPedidoEnEdicion, 0)
+        Return pedido
+    End Function
+
+    ''' <summary>Solo lo que mira la API: así montar líneas no vuelve a preguntar.</summary>
+    Friend Shared Function HuellaPedidoModoFacturacion(pedido As PedidoVentaDTO) As String
+        If pedido Is Nothing Then
+            Return String.Empty
+        End If
+        Return String.Join("|", pedido.empresa, pedido.numero, pedido.cliente, pedido.contacto, pedido.contactoCobro,
+                           pedido.plazosPago, pedido.periodoFacturacion, pedido.notaEntrega, pedido.mantenerJunto, pedido.modoFacturacion)
+    End Function
+
+    Private Async Function PedirModoFacturacionAlServidor(pedido As PedidoVentaDTO) As Task
+        AplicarSugerenciaModoFacturacion(Await servicio.ModoFacturacionSugerido(pedido).ConfigureAwait(True))
+    End Function
+
+    ''' <summary>Habilita/deshabilita las opciones con lo que manda la API (Nothing = todas).</summary>
+    Friend Sub AplicarModosFacturacionPermitidos(sugerencia As ModoFacturacionSugeridoDTO)
+        _selectorModosFacturacion.Aplicar(sugerencia)
+    End Sub
+
+    ''' <summary>
+    ''' Refleja lo que dice la API: si el usuario eligió un modo que ya no se puede elegir, se pasa al sugerido
+    ''' y se le avisa; si eligió uno que sigue valiendo, no se le toca; si no ha elegido nada, se preselecciona
+    ''' el sugerido sin aviso (para un pedido en edición, el que ya tiene guardado).
+    ''' </summary>
+    Friend Sub AplicarSugerenciaModoFacturacion(sugerencia As ModoFacturacionSugeridoDTO)
+        AplicarModosFacturacionPermitidos(sugerencia)
+        If sugerencia Is Nothing OrElse Not ModosFacturacion.EsValido(sugerencia.Modo) Then
+            Return
+        End If
+        If _modoFacturacionElegidoPorUsuario Then
+            If Not _selectorModosFacturacion.EsPermitido(ModoFacturacion) Then
+                CambiarAModoFacturacionValido(sugerencia.Modo, SelectorModos.MotivoDe(sugerencia, ModoFacturacion))
+            End If
+            Return
+        End If
+        AplicarModoFacturacionSugerido(sugerencia.Modo)
+    End Sub
+
+    Private Sub AplicarModoFacturacionSugerido(modo As Byte)
+        _aplicandoSugerenciaModoFacturacion = True
+        Try
+            ModoFacturacion = modo
+        Finally
+            _aplicandoSugerenciaModoFacturacion = False
+        End Try
+    End Sub
+
+    Friend Sub CambiarAModoFacturacionValido(modoValido As Byte, motivo As String)
+        Dim anterior As Byte = ModoFacturacion
+        If anterior = modoValido OrElse Not ModosFacturacion.EsValido(modoValido) Then
+            Return
+        End If
+        AplicarModoFacturacionSugerido(modoValido)
+        AvisoModoFacturacion = SelectorModosFacturacion.TextoAvisoCambio(anterior, modoValido, motivo)
+    End Sub
+
+    ''' <summary>
+    ''' Al restaurar un borrador: el modo guardado manda; un borrador anterior al modo trae Nothing y entonces
+    ''' rige lo que diga su MantenerJunto. Lo guardado es una elección, no un defecto: la sugerencia no lo pisa.
+    ''' </summary>
+    Friend Sub RestaurarModoFacturacion(modo As Byte?, mantenerJunto As Boolean)
+        Estado.MantenerJunto = mantenerJunto
+        Estado.ModoFacturacion = If(modo.HasValue AndAlso ModosFacturacion.EsValido(modo.Value), modo, Nothing)
+        If Estado.ModoFacturacion.HasValue Then
+            Estado.MantenerJunto = ModosFacturacion.EsAlCompletar(Estado.ModoFacturacion.Value)
+        End If
+        _modoFacturacionElegidoPorUsuario = Estado.ModoFacturacion.HasValue
+        AvisoModoFacturacion = Nothing
+        OnPropertyChanged(NameOf(ModoFacturacion))
+        OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+    End Sub
+
+#End Region
+
 #Region "Nesto#483 y Nesto#465: lo que calcula NestoAPI sobre el pedido que se esta montando"
 
     ' El modo de servicio (NestoAPI#506/#515) y las ofertas no aplicadas (NestoAPI#457) salen los dos del
@@ -1418,7 +1603,6 @@ Public Class PlantillaVentaViewModel
             ' Si estamos restaurando un borrador, aplicar valores ANTES de SetProperty
             ' para que PropertyChanged notifique los bindings con los valores correctos
             If value IsNot Nothing AndAlso _borradorEnRestauracion IsNot Nothing Then
-                value.mantenerJunto = _borradorEnRestauracion.MantenerJunto
                 value.servirJunto = _borradorEnRestauracion.ServirJunto
                 Estado.ModoServicio = _borradorEnRestauracion.ModoServicio ' Nesto#476
                 ' Nesto#483: el modo que traiga el borrador manda sobre lo que sugiera el servidor.
@@ -1435,6 +1619,10 @@ Public Class PlantillaVentaViewModel
                 value.servirJunto = ModosServicio.EsTodoJunto(modoInicial)
                 _modoServicioElegidoPorUsuario = False
                 _ultimoModoSugeridoAplicado = modoInicial
+                ' Nesto#493: el modo de facturación también se reinicia con la dirección: arranca en el que deriva
+                ' del «Mantener junto» de la ficha (como siempre) y lo completa el sugerido de la API.
+                Estado.ModoFacturacion = Nothing
+                _modoFacturacionElegidoPorUsuario = False
             End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
 
@@ -1447,10 +1635,19 @@ Public Class PlantillaVentaViewModel
                 Estado.Ccc = value.ccc
                 OnPropertyChanged(NameOf(CccSeleccionado)) ' Nesto#486
                 Estado.NoComisiona = value.noComisiona
-                Estado.MantenerJunto = value.mantenerJunto
+                ' Nesto#493: el pedido ya no cuelga del mantenerJunto de la dirección: de un borrador se restaura lo
+                ' guardado; si no, el de la ficha es solo el punto de partida del combo «Facturación».
+                If _borradorEnRestauracion IsNot Nothing Then
+                    RestaurarModoFacturacion(_borradorEnRestauracion.ModoFacturacion, _borradorEnRestauracion.MantenerJunto)
+                Else
+                    Estado.MantenerJunto = value.mantenerJunto
+                End If
                 Estado.ServirJunto = value.servirJunto
             End If
             OnPropertyChanged(NameOf(ModoServicio)) ' Nesto#476
+            OnPropertyChanged(NameOf(ModoFacturacion)) ' Nesto#493
+            OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+            PedirModoFacturacionConDebounce()
 
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
@@ -2127,6 +2324,7 @@ Public Class PlantillaVentaViewModel
                 ' Nesto#483 / Nesto#465: al cambiar de paso (sobre todo al llegar a entrega y finalizar,
                 ' que es «antes de guardar») se pide ya lo que calcula el servidor, sin esperar al reloj.
                 PedirSugerenciasConDebounce()
+                PedirModoFacturacionConDebounce() ' Nesto#493
             End If
         End Set
     End Property
@@ -2177,6 +2375,7 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar con Estado
             Estado.PlazosPago = If(value IsNot Nothing, value.plazoPago, Nothing)
             Estado.DescuentoPP = If(value IsNot Nothing, value.descuentoPP, 0D)
+            PedirModoFacturacionConDebounce() ' Nesto#493: la regla de los plazos decide qué modos de facturación valen
             cmdCrearPedido.NotifyCanExecuteChanged()
             OnPropertyChanged(NameOf(SePuedeFinalizar))
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
@@ -2716,8 +2915,10 @@ Public Class PlantillaVentaViewModel
         Dim mantenerJuntoBorrador As Boolean = False
         Dim servirJuntoBorrador As Boolean = False
         Dim modoServicioBorrador As Byte? = Nothing ' Nesto#476
+        Dim modoFacturacionBorrador As Byte? = Nothing ' Nesto#493
 
         If hayBorradorPendiente Then
+            modoFacturacionBorrador = _borradorEnRestauracion.ModoFacturacion
             formaVentaBorrador = _borradorEnRestauracion.FormaVenta
             formaVentaOtrasCodigoBorrador = _borradorEnRestauracion.FormaVentaOtrasCodigo
             fechaEntregaBorrador = _borradorEnRestauracion.FechaEntrega
@@ -2830,9 +3031,7 @@ Public Class PlantillaVentaViewModel
 
             ' Restaurar MantenerJunto y ServirJunto
             If direccionEntregaSeleccionada IsNot Nothing Then
-                If mantenerJuntoBorrador Then
-                    direccionEntregaSeleccionada.mantenerJunto = True
-                End If
+                RestaurarModoFacturacion(modoFacturacionBorrador, mantenerJuntoBorrador) ' Nesto#493
                 If servirJuntoBorrador Then
                     direccionEntregaSeleccionada.servirJunto = True
                 End If
@@ -3260,7 +3459,10 @@ Public Class PlantillaVentaViewModel
                 CambiarAModoValido(ex.ModoSugerido.Value, Nothing)
             End If
         Catch ex As Exception
+            ' Nesto#493 / NestoAPI#542: un modo de facturación no permitido llega como 400 de texto (sin código): se
+            ' enseña tal cual y se vuelve a preguntar qué modos valen, para que el combo deshabilite el que no.
             dialogService.ShowError(ex.Message)
+            VolverAPedirModoFacturacion()
 
             ' Issue #286: Guardar borrador automáticamente en caso de error
             ' Esto permite recuperar el pedido si hay un error de red o del servidor
@@ -3539,9 +3741,9 @@ Public Class PlantillaVentaViewModel
             Next
         End If
 
-        ' Los dos checkboxes bindean contra direccionEntregaSeleccionada, no contra Estado
+        ' Servir junto todavía se lee de direccionEntregaSeleccionada; Mantener junto ya no (Nesto#493): vive en
+        ' Estado, coherente con el combo «Facturación».
         If direccionEntregaSeleccionada IsNot Nothing Then
-            Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
             Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
         End If
         ' Nesto#476: el modo efectivo (coherente con servirJunto) es lo que viaja en el DTO y al borrador
@@ -3914,6 +4116,7 @@ Public Class PlantillaVentaViewModel
             .MantenerJunto = Estado.MantenerJunto,
             .ServirJunto = Estado.ServirJunto,
             .ModoServicio = Estado.ModoServicio,
+            .ModoFacturacion = Estado.ModoFacturacion, ' Nesto#493
             .LineasProducto = Estado.LineasProducto,
             .LineasRegalo = Estado.LineasRegalo,
             .Total = Estado.BaseImponible,
@@ -4175,13 +4378,10 @@ Public Class PlantillaVentaViewModel
 
             ' Restaurar MantenerJunto y ServirJunto si la dirección está cargada
             If direccionEntregaSeleccionada IsNot Nothing Then
-                If borrador.MantenerJunto Then
-                    direccionEntregaSeleccionada.mantenerJunto = True
-                End If
+                RestaurarModoFacturacion(borrador.ModoFacturacion, borrador.MantenerJunto) ' Nesto#493
                 If borrador.ServirJunto Then
                     direccionEntregaSeleccionada.servirJunto = True
                 End If
-                Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
                 Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
                 RestaurarModoServicio(borrador.ModoServicio) ' Nesto#476
                 OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
@@ -4264,9 +4464,8 @@ Public Class PlantillaVentaViewModel
                     OnPropertyChanged(NameOf(fechaEntrega))
                 End If
                 If direccionEntregaSeleccionada IsNot Nothing Then
-                    direccionEntregaSeleccionada.mantenerJunto = _borradorEnRestauracion.MantenerJunto
                     direccionEntregaSeleccionada.servirJunto = _borradorEnRestauracion.ServirJunto
-                    Estado.MantenerJunto = _borradorEnRestauracion.MantenerJunto
+                    RestaurarModoFacturacion(_borradorEnRestauracion.ModoFacturacion, _borradorEnRestauracion.MantenerJunto) ' Nesto#493
                     Estado.ServirJunto = _borradorEnRestauracion.ServirJunto
                     RestaurarModoServicio(_borradorEnRestauracion.ModoServicio) ' Nesto#476
                     OnPropertyChanged(NameOf(direccionEntregaSeleccionada))

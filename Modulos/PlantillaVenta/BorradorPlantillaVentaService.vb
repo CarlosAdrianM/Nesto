@@ -227,6 +227,7 @@ Public Class BorradorPlantillaVentaService
             .ServirJunto = pedido.ServirJunto,
             .ModoServicio = pedido.ModoServicio,
             .MantenerJunto = pedido.MantenerJunto,
+            .ModoFacturacion = pedido.ModoFacturacion, ' Nesto#493
             .LineasProducto = New List(Of LineaPlantillaVenta),
             .LineasRegalo = New List(Of LineaRegalo)
         }

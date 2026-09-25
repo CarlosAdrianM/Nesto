@@ -129,6 +129,11 @@ Public Class BorradorPlantillaVenta
     ''' </summary>
     Public Property ModoServicio As Byte?
 
+    ''' <summary>
+    ''' Nesto#493: modo de facturación (1, 2 o 3). Nothing en borradores anteriores al modo: manda MantenerJunto.
+    ''' </summary>
+    Public Property ModoFacturacion As Byte?
+
     ' ========== Comentarios ==========
     ''' <summary>
     ''' Comentario de picking introducido por el usuario

@@ -430,6 +430,26 @@ Public Class PlantillaVentaService
     End Function
 
     ''' <summary>
+    ''' Nesto#493 / NestoAPI#542: POST api/PedidosVenta/ModoFacturacionSugerido. Nothing si la API falla o es
+    ''' anterior al endpoint: preseleccionar el modo es una ayuda; el servidor valida al guardar.
+    ''' </summary>
+    Public Async Function ModoFacturacionSugerido(pedido As PedidoVentaDTO) As Task(Of ModoFacturacionSugeridoDTO) Implements IPlantillaVentaService.ModoFacturacionSugerido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/ModoFacturacionSugerido", content).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return JsonConvert.DeserializeObject(Of ModoFacturacionSugeridoDTO)(cadenaJson)
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
     ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando. Lista
     ''' vacia ante cualquier fallo: el pedido se tiene que poder guardar igual.
     ''' </summary>

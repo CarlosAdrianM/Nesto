@@ -18,6 +18,9 @@ Public Class PedidoParaPlantillaModel
     Public Property ServirJunto As Boolean
     Public Property ModoServicio As Byte?
     Public Property MantenerJunto As Boolean
+    ''' <summary>Nesto#493: modo de facturación guardado. Nothing mientras la API no lo devuelva aquí: entonces
+    ''' manda MantenerJunto y el sugerido de la API (que lee el guardado por el número) lo completa.</summary>
+    Public Property ModoFacturacion As Byte?
     Public Property FechaEntrega As Date?
     Public Property Almacen As String
     Public Property Lineas As New List(Of LineaParaPlantillaModel)

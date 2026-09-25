@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
+using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
@@ -62,15 +63,19 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void SincronizarListasAlEstado_UsuarioMarcaMantenerJunto_LlegaAlEstado()
+        public void SincronizarListasAlEstado_UsuarioEligeAlCompletar_MantenerJuntoLlegaAlEstado()
         {
+            // Nesto#493: «Mantener junto» ya no es una casilla sobre la dirección sino el modo de facturación
+            // «Al completar el pedido» del combo, que vive en Estado. Tocar la ficha de la dirección no cuenta.
             var vm = CrearViewModel();
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { mantenerJunto = false };
 
-            vm.direccionEntregaSeleccionada.mantenerJunto = true;
+            vm.ModoFacturacion = ModosFacturacion.AL_COMPLETAR;
+            vm.direccionEntregaSeleccionada.mantenerJunto = false;
             vm.SincronizarListasAlEstado();
 
             Assert.IsTrue(vm.Estado.MantenerJunto);
+            Assert.AreEqual((byte?)ModosFacturacion.AL_COMPLETAR, vm.Estado.ModoFacturacion);
         }
 
         [TestMethod]
