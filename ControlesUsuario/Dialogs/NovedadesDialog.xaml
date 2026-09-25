@@ -58,7 +58,7 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Donde}" Foreground="#4A90D9" Width="120" />
+                                    <TextBlock Text="{Binding Donde}" Foreground="#4A90D9" Width="170" />
                                     <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </DataTemplate>

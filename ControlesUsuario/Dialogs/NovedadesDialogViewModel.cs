@@ -181,7 +181,9 @@ namespace ControlesUsuario.Dialogs
                 _indice = Math.Max(0, Math.Min(indice, _porVersion.Count - 1));
                 IGrouping<string, NovedadItem> grupo = _porVersion[_indice];
                 Novedades = grupo.ToList();
-                VersionActual = string.IsNullOrWhiteSpace(grupo.Key) ? "Novedades" : $"Versión {grupo.Key}";
+                VersionActual = string.IsNullOrWhiteSpace(grupo.Key)
+                    ? "Novedades"
+                    : ConFecha($"Versión {grupo.Key}", grupo.Min(n => n.Fecha));
             }
             NotificarNavegacion();
         }
@@ -191,6 +193,13 @@ namespace ControlesUsuario.Dialogs
             VersionAnteriorCommand.NotifyCanExecuteChanged();
             VersionSiguienteCommand.NotifyCanExecuteChanged();
         }
+
+        /// <summary>
+        /// Carlos (25/09/26): la fecha de cada versión junto a su número, para saber si un arreglo es anterior o
+        /// posterior a un día concreto («Versión 1.10.28.2 · 17/09/26»). Sin fecha (datos antiguos), solo el número.
+        /// </summary>
+        internal static string ConFecha(string texto, DateTime fecha)
+            => fecha == default ? texto : $"{texto} · {fecha:dd/MM/yy}";
 
         private static Version ParsearVersion(string version)
             => Version.TryParse(version, out Version v) ? v : new Version(0, 0);
@@ -652,7 +661,9 @@ namespace ControlesUsuario.Dialogs
 
         public NovedadUsuario Novedad { get; }
         public string Titulo => Novedad.Titulo;
-        /// <summary>Dónde está: «Versión 1.10.30.0» o «Sugerencia».</summary>
-        public string Donde => Novedad.EsSugerencia ? "Sugerencia" : $"Versión {Novedad.Version.Trim()}";
+        /// <summary>Dónde está: «Versión 1.10.30.0 · 23/09/26» o «Sugerencia».</summary>
+        public string Donde => Novedad.EsSugerencia
+            ? "Sugerencia"
+            : NovedadesDialogViewModel.ConFecha($"Versión {Novedad.Version.Trim()}", Novedad.Fecha);
     }
 }

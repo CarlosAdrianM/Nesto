@@ -37,6 +37,19 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public void LaCabeceraYElBuscadorLlevanLaFechaDeLaVersion()
+        {
+            // Carlos (25/09/26): para saber si un arreglo es anterior o posterior a un día concreto
+            var a = N("1.10.28.2", "a"); a.Fecha = new System.DateTime(2026, 9, 17);
+            var b = N("1.10.28.2", "b"); b.Fecha = new System.DateTime(2026, 9, 18); // una novedad añadida al día siguiente
+            var vm = CrearVm(a, b);
+
+            Assert.AreEqual("Versión 1.10.28.2 · 17/09/26", vm.VersionActual, "La fecha de la versión es la de su primera novedad");
+            Assert.AreEqual("Versión 1.10.28.2 · 17/09/26", new ResultadoBusquedaNovedad(a).Donde);
+            Assert.AreEqual("Versión 1.10.8.0", NovedadesDialogViewModel.ConFecha("Versión 1.10.8.0", default), "Sin fecha, solo el número");
+        }
+
+        [TestMethod]
         public void EnLaMasNueva_NoSePuedeIrASiguiente_PeroSiAAnterior()
         {
             var vm = CrearVm(N("1.10.7.0", "a"), N("1.10.8.0", "b"));
