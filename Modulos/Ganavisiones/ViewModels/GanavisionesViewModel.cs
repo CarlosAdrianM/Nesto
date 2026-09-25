@@ -1,5 +1,4 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Ganavisiones.Interfaces;
 using Nesto.Modulos.Ganavisiones.Models;
@@ -7,7 +6,6 @@ using Nesto.Modulos.Ganavisiones.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -22,10 +20,10 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
     {
         private readonly IGanavisionesService _ganavisionesService;
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IRegionManager _regionManager;
 
-        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IDialogService dialogService, IRegionManager regionManager)
+        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IServicioDialogos dialogService, IRegionManager regionManager)
         {
             _ganavisionesService = ganavisionesService;
             _configuracion = configuracion;
