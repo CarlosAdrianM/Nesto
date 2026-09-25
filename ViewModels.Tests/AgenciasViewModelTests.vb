@@ -1804,4 +1804,80 @@ Public Class AgenciaViewModelTests
         Assert.IsNull(viewModel.numClienteContabilizar, "Pero no hay con que tramitar ni contabilizar")
     End Sub
 
+    ' ---- Nesto#495 (NestoAPI#505/#494): servicio y retorno de CTT ----
+
+    Private Function ViewModelConCTTSeleccionada() As AgenciasViewModel
+        Dim vm = ViewModelConAgencias(Agencia(13, "CTT"))
+        vm.PestannaNombre = Pestannas.PEDIDOS
+        vm.cmdCargarDatos.Execute(Nothing)
+        vm.agenciaSeleccionada = vm.listaAgencias.Single(Function(a) a.Numero = 13)
+        Return vm
+    End Function
+
+    <TestMethod()>
+    Public Sub CTT_AlSeleccionarla_ElServicioEsEl48h_YNoSePideServicioAlCalcularElCoste()
+        Dim vm = ViewModelConCTTSeleccionada()
+
+        Assert.AreEqual(CByte(48), vm.servicioActual.ServicioId)
+        Assert.IsNull(vm.ServicioForzadoParaCoste(), "Sin forzar, el servidor da el coste del más barato (48 h)")
+    End Sub
+
+    <TestMethod()>
+    Public Sub CTT_ConEl24hForzado_ElCosteSePideDeEseServicio()
+        Dim vm = ViewModelConCTTSeleccionada()
+
+        vm.servicioActual = vm.listaServicios.Single(Function(s) s.ServicioId = 24)
+
+        Assert.AreEqual(CType(24, Byte?), vm.ServicioForzadoParaCoste())
+    End Sub
+
+    <TestMethod()>
+    Public Sub CTT_EtiquetaPendiente_SeEnsenanSuServicioYSuRetorno()
+        Dim vm = ViewModelConCTTSeleccionada()
+        Dim pendiente As New EnviosAgencia With {.Agencia = 13, .Servicio = 24, .Retorno = 2}
+
+        vm.CargarServicioYRetornoDelPendiente(pendiente)
+
+        Assert.AreEqual(CByte(24), vm.servicioActual.ServicioId)
+        Assert.AreEqual(CByte(2), vm.retornoActual.id)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CTT_EtiquetaPendiente_ConUnServicioQueNoEsDeCTT_SeQuedaElDefecto()
+        ' Una pendiente creada con el servicio de otra agencia (p. ej. 96 de GLS) no rompe la pantalla.
+        Dim vm = ViewModelConCTTSeleccionada()
+
+        vm.CargarServicioYRetornoDelPendiente(New EnviosAgencia With {.Agencia = 13, .Servicio = 96, .Retorno = 9})
+
+        Assert.AreEqual(CByte(48), vm.servicioActual.ServicioId)
+        Assert.AreEqual(CByte(0), vm.retornoActual.id)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CTT_AlImprimirUnaPendiente_SeGuardanElServicioYElRetornoElegidos()
+        ' Antes la rama pendiente de InsertarRegistro no tocaba el servicio: el 24 h forzado no llegaba a CTT.
+        Dim vm = ViewModelConCTTSeleccionada()
+        vm.servicioActual = vm.listaServicios.Single(Function(s) s.ServicioId = 24)
+        vm.retornoActual = vm.listaTiposRetorno.Single(Function(r) r.id = 1)
+        Dim pendiente As New EnviosAgencia With {.Agencia = 13, .Servicio = 48, .Retorno = 0}
+
+        vm.AplicarServicioYRetornoAlPendiente(pendiente, New AgenciaCTT(), 13)
+
+        Assert.AreEqual(CByte(24), pendiente.Servicio)
+        Assert.AreEqual(CByte(1), pendiente.Retorno)
+    End Sub
+
+    <TestMethod()>
+    Public Sub AlImprimirUnaPendienteDeOtraAgencia_NoSeTocanServicioNiRetorno()
+        ' Nesto#412: la agencia de la inserción puede no ser la de la pantalla; las listas son de la pantalla.
+        Dim vm = ViewModelConCTTSeleccionada()
+        vm.servicioActual = vm.listaServicios.Single(Function(s) s.ServicioId = 24)
+        Dim pendiente As New EnviosAgencia With {.Agencia = 12, .Servicio = 0, .Retorno = 0}
+
+        vm.AplicarServicioYRetornoAlPendiente(pendiente, New AgenciaInnovatrans(), 12)
+        vm.AplicarServicioYRetornoAlPendiente(pendiente, New AgenciaASM(), 13)
+
+        Assert.AreEqual(CByte(0), pendiente.Servicio)
+    End Sub
+
 End Class

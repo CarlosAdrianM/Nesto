@@ -506,6 +506,9 @@ Public Class AgenciasViewModel
                 If Not IsNothing(listaAgencias) AndAlso Not IsNothing(agenciaConfigurar) Then
                     agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
                 End If
+                If estabaPendiente Then
+                    CargarServicioYRetornoDelPendiente(envioPendiente)
+                End If
             Catch ex As Exception
                 ' Este Catch no enseña nada: deja los campos del envío en blanco y el usuario ni
                 ' se entera de que ha fallado algo. Como mínimo, que quede en ELMAH (Nesto#448).
@@ -530,6 +533,42 @@ Public Class AgenciasViewModel
         Else
             numeroPedido = 36
         End If
+    End Function
+
+    ' NestoAPI#505/#494 (Nesto#495): en las agencias gestionadas por la API (CTT) el servicio (48 h / 24 h)
+    ' y el tipo de retorno viajan a la agencia. Al abrir un pedido con etiqueta PENDIENTE (tienda online,
+    ' NestoApp) se enseñan los del envío pendiente, no los por defecto de la agencia, para que al
+    ' imprimir no se pisen con el defecto. Si el valor no está en la lista, se queda el defecto.
+    Friend Sub CargarServicioYRetornoDelPendiente(envioPendiente As EnviosAgencia)
+        If envioPendiente Is Nothing OrElse Not TypeOf agenciaEspecifica Is AgenciaGestionadaPorApi Then Return
+        If agenciaSeleccionada Is Nothing OrElse envioPendiente.Agencia <> agenciaSeleccionada.Numero Then Return
+        Dim servicio = listaServicios?.FirstOrDefault(Function(s) s.ServicioId = envioPendiente.Servicio)
+        If servicio IsNot Nothing Then servicioActual = servicio
+        If listaTiposRetorno IsNot Nothing AndAlso listaTiposRetorno.Any(Function(r) r.id = envioPendiente.Retorno) Then
+            retornoActual = listaTiposRetorno.First(Function(r) r.id = envioPendiente.Retorno)
+        End If
+    End Sub
+
+    ' NestoAPI#505/#494 (Nesto#495): al imprimir una etiqueta pendiente de una agencia gestionada por la
+    ' API se guardan el servicio y el retorno elegidos en pantalla (antes la rama pendiente los ignoraba
+    ' y el 24 h forzado no llegaba a CTT). Solo si la agencia de la pantalla es la del envío: las listas
+    ' son de esa agencia.
+    Friend Sub AplicarServicioYRetornoAlPendiente(envio As EnviosAgencia, agenciaInsercion As IAgencia, numeroAgenciaInsercion As Integer)
+        If envio Is Nothing OrElse Not TypeOf agenciaInsercion Is AgenciaGestionadaPorApi Then Return
+        If agenciaSeleccionada Is Nothing OrElse agenciaSeleccionada.Numero <> numeroAgenciaInsercion Then Return
+        If servicioActual IsNot Nothing Then envio.Servicio = servicioActual.ServicioId
+        If listaTiposRetorno IsNot Nothing AndAlso listaTiposRetorno.Any(Function(r) r.id = retornoActual.id) Then
+            envio.Retorno = retornoActual.id
+        End If
+    End Sub
+
+    ' NestoAPI#505: servicio a pedir al calcular el ImporteGasto. Solo cuando el usuario ha forzado en una
+    ' agencia gestionada por la API un servicio distinto del defecto (CTT 24h): sin servicio, el servidor
+    ' devuelve el más barato de la agencia, que es el que propone el comparador.
+    Friend Function ServicioForzadoParaCoste() As Byte?
+        If Not TypeOf agenciaEspecifica Is AgenciaGestionadaPorApi OrElse servicioActual Is Nothing Then Return Nothing
+        If servicioActual.ServicioId = agenciaEspecifica.ServicioDefecto Then Return Nothing
+        Return servicioActual.ServicioId
     End Function
 
     Private _listaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
@@ -2130,7 +2169,8 @@ Public Class AgenciasViewModel
         Try
             If IsNothing(agenciaSeleccionada) OrElse IsNothing(pedidoSeleccionado) Then Return 0D
             Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(
-                pedidoSeleccionado.Empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso, pais:=PaisIsoActual())
+                pedidoSeleccionado.Empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso,
+                servicioId:=ServicioForzadoParaCoste(), pais:=PaisIsoActual())
             Return If(opcion?.Coste, 0D)
         Catch ex As Exception
             Return 0D
@@ -3197,6 +3237,7 @@ Public Class AgenciasViewModel
                 If estabaPendiente Then
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
+                    AplicarServicioYRetornoAlPendiente(envioActual, agenciaInsercion, If(agenciaTransporteInsercion?.Numero, 0))
                     ' #252: la etiqueta pendiente se creó con Peso=0; al imprimir el operario indica el
                     ' peso real, que hay que persistir (antes se quedaba a 0 en la rama pendiente). El
                     ' peso es necesario para el coste/comparador y para la tramitación con la agencia.

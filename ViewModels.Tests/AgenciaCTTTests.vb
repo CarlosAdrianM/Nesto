@@ -30,12 +30,45 @@ Public Class AgenciaCTTTests
         Dim agencia = CrearAgencia()
         Assert.AreEqual("CTT", agencia.NombreAgencia)
         Assert.AreEqual(13, agencia.AgenciaId)
-        Assert.AreEqual(13, agencia.ListaServicios.Single().AgenciaId, "La tarifa placeholder lleva el id de la agencia")
+        Assert.IsTrue(agencia.ListaServicios.All(Function(s) s.AgenciaId = 13), "Las tarifas placeholder llevan el id de la agencia")
 
         Dim nemonico As String = Nothing, nombrePlaza As String = Nothing, telefono As String = Nothing, email As String = Nothing
         agencia.calcularPlaza("28001", 34, nemonico, nombrePlaza, telefono, email)
         Assert.AreEqual("CT", nemonico)
         Assert.AreEqual("CTT", nombrePlaza)
+    End Sub
+
+    ' ---- NestoAPI#505 / Nesto#495: servicio urgente forzado a mano ----
+
+    <TestMethod()>
+    Public Sub CTT_OfreceEl48hPorDefectoYEl24hUrgente()
+        Dim agencia = CrearAgencia()
+
+        CollectionAssert.AreEqual(New Byte() {48, 24}, agencia.ListaServicios.Select(Function(s) s.ServicioId).ToArray())
+        Assert.AreEqual(CByte(48), agencia.ServicioDefecto, "El mismo defecto que el servidor (PerfilAgenciaCTT.DefaultsEnvio)")
+        ' AgenciasViewModel hace ListaServicios.Single(ServicioId = ServicioDefecto) al seleccionar la agencia.
+        Assert.AreEqual("CTT 48h", agencia.ListaServicios.Single(Function(s) s.ServicioId = agencia.ServicioDefecto).NombreServicio)
+        StringAssert.Contains(agencia.ListaServicios.Single(Function(s) s.ServicioId = 24).NombreServicio, "urgente")
+    End Sub
+
+    <TestMethod()>
+    Public Sub Innovatrans_SigueConUnSoloServicioPlaceholder()
+        Dim agencia As New AgenciaInnovatrans()
+
+        Assert.AreEqual(CByte(0), agencia.ListaServicios.Single().ServicioId)
+        Assert.AreEqual(CByte(0), agencia.ServicioDefecto)
+        Assert.AreEqual(CByte(0), agencia.ListaTiposRetorno.Single().id)
+    End Sub
+
+    ' ---- NestoAPI#494 / Nesto#495: tipos de retorno ----
+
+    <TestMethod()>
+    Public Sub CTT_TiposDeRetorno_NoConRetornoYRecogidaEnOrigen()
+        Dim agencia = CrearAgencia()
+
+        CollectionAssert.AreEqual(New Byte() {0, 1, 2}, agencia.ListaTiposRetorno.Select(Function(r) r.id).ToArray())
+        Assert.AreEqual("Recogida en origen", agencia.ListaTiposRetorno.Single(Function(r) r.id = AgenciaCTT.RETORNO_RECOGIDA_EN_ORIGEN).descripcion)
+        Assert.AreEqual(CByte(0), agencia.retornoSinRetorno, "Por defecto sin retorno")
     End Sub
 
     <TestMethod()>

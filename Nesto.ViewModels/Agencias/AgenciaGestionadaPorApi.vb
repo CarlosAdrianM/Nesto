@@ -52,16 +52,28 @@ Public MustInherit Class AgenciaGestionadaPorApi
         }
     End Function
 
+    ''' <summary>
+    ''' Servicios que el usuario puede elegir (EnviosAgencia.Servicio y nombre). Por defecto uno solo,
+    ''' con el nombre de la agencia. NestoAPI#505: CTT ofrece 48 h (defecto) y 24 h (urgente). Debe
+    ''' incluir el <see cref="ServicioDefecto"/>. Solo devuelve constantes: se llama desde el constructor.
+    ''' </summary>
+    Protected Overridable Function ServiciosDisponibles() As IEnumerable(Of tipoIdDescripcion)
+        Return {New tipoIdDescripcion(0, NombreAgencia)}
+    End Function
+
+    ''' <summary>Tipos de retorno que se pueden elegir. Por defecto solo "NO" (NestoAPI#494: CTT añade los suyos).</summary>
+    Protected Overridable Function TiposRetornoDisponibles() As IEnumerable(Of tipoIdDescripcion)
+        Return {New tipoIdDescripcion(0, "NO")}
+    End Function
+
     Protected Sub New()
-        ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
-            New tipoIdDescripcion(0, "NO")
-        }
-        ' Las tarifas reales están en NestoAPI (el comparador es server-side). Aquí solo una tarifa
-        ' placeholder con ServicioId = ServicioDefecto para que AgenciasViewModel no falle al hacer
+        ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)(TiposRetornoDisponibles())
+        ' Las tarifas reales están en NestoAPI (el comparador es server-side). Aquí solo tarifas
+        ' placeholder (id y nombre del servicio) para el desplegable, y una con ServicioId =
+        ' ServicioDefecto para que AgenciasViewModel no falle al hacer
         ' ListaServicios.Single(ServicioId = ServicioDefecto) al seleccionar la agencia.
-        ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
-            New TarifaPlaceholder(AgenciaId, NombreAgencia)
-        }
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia)(
+            ServiciosDisponibles().Select(Function(s) CType(New TarifaPlaceholder(AgenciaId, CByte(s.id), s.descripcion), ITarifaAgencia)))
         ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "")
         }
@@ -282,7 +294,7 @@ Public MustInherit Class AgenciaGestionadaPorApi
     Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
 
-    Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
+    Public Overridable ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
             Return 0
         End Get
@@ -331,10 +343,12 @@ Public MustInherit Class AgenciaGestionadaPorApi
         Implements ITarifaAgencia
 
         Private ReadOnly _agenciaId As Integer
+        Private ReadOnly _servicioId As Byte
         Private ReadOnly _nombre As String
 
-        Public Sub New(agenciaId As Integer, nombre As String)
+        Public Sub New(agenciaId As Integer, servicioId As Byte, nombre As String)
             _agenciaId = agenciaId
+            _servicioId = servicioId
             _nombre = nombre
         End Sub
 
@@ -346,7 +360,7 @@ Public MustInherit Class AgenciaGestionadaPorApi
 
         Public ReadOnly Property ServicioId As Byte Implements ITarifaAgencia.ServicioId
             Get
-                Return 0
+                Return _servicioId
             End Get
         End Property
 

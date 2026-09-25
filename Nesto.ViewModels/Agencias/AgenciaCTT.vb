@@ -26,6 +26,38 @@ Public Class AgenciaCTT
         End Get
     End Property
 
+    ' NestoAPI#505: EnviosAgencia.Servicio de CTT. 48 = el económico, el que propone el comparador y el
+    ' que pone el servidor por defecto (PerfilAgenciaCTT.DefaultsEnvio); 24 = urgente, solo si el
+    ' usuario lo fuerza (cuesta más). La API manda a CTT el código de la zona (C24/CBA24/CCA24).
+    Public Const SERVICIO_48H As Byte = 48
+    Public Const SERVICIO_24H As Byte = 24
+
+    ' NestoAPI#494: EnviosAgencia.Retorno de CTT (AgenciaRemotaCTT.RETORNO_* en la API). Mientras el
+    ' parámetro CTTRetornosActivos no esté a 1, la API rechaza los retornos con un mensaje claro.
+    Public Const RETORNO_CON_RETORNO As Byte = 1
+    Public Const RETORNO_RECOGIDA_EN_ORIGEN As Byte = 2
+
+    Public Overrides ReadOnly Property ServicioDefecto As Byte
+        Get
+            Return SERVICIO_48H
+        End Get
+    End Property
+
+    Protected Overrides Function ServiciosDisponibles() As IEnumerable(Of tipoIdDescripcion)
+        Return {
+            New tipoIdDescripcion(SERVICIO_48H, "CTT 48h"),
+            New tipoIdDescripcion(SERVICIO_24H, "CTT 24h (urgente)")
+        }
+    End Function
+
+    Protected Overrides Function TiposRetornoDisponibles() As IEnumerable(Of tipoIdDescripcion)
+        Return {
+            New tipoIdDescripcion(0, "NO"),
+            New tipoIdDescripcion(RETORNO_CON_RETORNO, "Con retorno"),
+            New tipoIdDescripcion(RETORNO_RECOGIDA_EN_ORIGEN, "Recogida en origen")
+        }
+    End Function
+
     ' Tercera Zebra, la que usaba Sending (parámetro ImpresoraAgencia, \\RDS2016\etiquetas1), con rollos
     ' blancos de 100x150: la de bolsas lleva el papel preimpreso de Tipsa y la de GLS es más corta.
     Public Overrides ReadOnly Property ClaveImpresora As String
