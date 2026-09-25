@@ -7,8 +7,6 @@ Imports Prism.Regions
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
-Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
 
@@ -16,13 +14,13 @@ Public Class InventarioViewModel
     Inherits ObservableObject
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Const EMPRESA_DEFECTO As String = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService, clienteApiFactory As IClienteApiFactory)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IServicioDialogos, clienteApiFactory As IClienteApiFactory)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.dialogService = dialogService
