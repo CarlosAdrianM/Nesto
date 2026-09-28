@@ -3536,7 +3536,12 @@ Public Class AgenciasViewModel
         ' Innovatrans + fuel por agencia; el local no, porque sus tarifas se movieron a NestoAPI). Como
         ' este método es síncrono (lo llaman setters), corregimos la selección de forma asíncrona cuando
         ' el servidor responde. Sin esto, Innovatrans NUNCA se elegiría (tarifa placeholder en el cliente).
-        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso, PaisIsoActual())
+        ' NestoAPI#546: en Pendientes la agencia es la del envío pendiente y la respuesta del servidor no
+        ' se aplica (ver AjustarAgenciaConServidor): ni se pregunta, para que no quede ninguna respuesta
+        ' en vuelo que pueda llegar tarde. No se bloquea el formulario mientras tanto: no hay nada que esperar.
+        If PestannaNombre <> Pestannas.PENDIENTES Then
+            AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso, PaisIsoActual())
+        End If
 
         ' Nesto#475: las tarifas locales llevan el numero de agencia de la empresa 1 (ASM=1, CEX=8,
         ' Canteras=11, Innovatrans=12). Al teclear un pedido de otra empresa (el espejo, empresa 3:

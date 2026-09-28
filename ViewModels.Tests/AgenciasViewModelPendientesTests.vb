@@ -142,6 +142,21 @@ Public Class AgenciasViewModelPendientesTests
     End Sub
 
     <TestMethod()>
+    Public Sub Pendientes_AlPincharUnPendienteDeOtraAgencia_NoSeConsultaElComparador()
+        ' NestoAPI#546: en Pendientes la respuesta del comparador no se aplica, así que ni se pide: no
+        ' queda ninguna respuesta en vuelo que pueda llegar tarde y pisar lo que el usuario está viendo.
+        AbrirPendientesConCTTSeleccionada()
+        viewModel.EnvioPendienteSeleccionado = viewModel.listaPendientes.Single(Function(p) p.Numero = 249165)
+        Fake.ClearRecordedCalls(comparador)
+
+        ' Lo que pasó el 28/09: con la pantalla en Pendientes se recargan las agencias (cambio de empresa).
+        viewModel.listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {Agencia(ASM, "ASM"), Agencia(CTT, "CTT")}
+
+        A.CallTo(Function() comparador.MasEconomica(A(Of String).Ignored, A(Of String).Ignored, A(Of Decimal).Ignored, A(Of Decimal).Ignored, A(Of String).Ignored)) _
+            .MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
     Public Sub Pendientes_DespuesDeGuardar_NoSeVuelvenAPisarLosDatos()
         ' «Pongo el retorno, doy a Guardar y no se guarda»: sí se guardaba, pero al recargar el
         ' pendiente tras guardar se repetía lo de arriba y volvía a salir «NO».
