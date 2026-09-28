@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Nesto.Modulos.OfertasCombinadas.ViewModels;
-using Prism.Services.Dialogs;
 using Prism.Regions;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +17,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
     {
         private IOfertasCombinadasService _service;
         private IConfiguracion _configuracion;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
         private IRegionManager _regionManager;
         private IServicioProducto _servicioProducto;
 
@@ -27,7 +26,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         {
             _service = A.Fake<IOfertasCombinadasService>();
             _configuracion = A.Fake<IConfiguracion>();
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
             _regionManager = A.Fake<IRegionManager>();
             _servicioProducto = A.Fake<IServicioProducto>();
 

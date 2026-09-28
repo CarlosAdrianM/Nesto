@@ -7,7 +7,6 @@ using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Nesto.Modulos.OfertasCombinadas.ViewModels;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +30,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
     {
         private IOfertasCombinadasService _service;
         private IConfiguracion _configuracion;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
         private IRegionManager _regionManager;
         private IServicioProducto _servicioProducto;
 
@@ -40,7 +39,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         {
             _service = A.Fake<IOfertasCombinadasService>();
             _configuracion = A.Fake<IConfiguracion>();
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
             _regionManager = A.Fake<IRegionManager>();
             _servicioProducto = A.Fake<IServicioProducto>();
 
@@ -61,15 +60,12 @@ namespace Nesto.Modulos.OfertasCombinadasTests
 
 
         /// <summary>
-        /// ShowConfirmationAnswer es un metodo de EXTENSION, asi que no se puede fakear: por dentro
-        /// llama a ShowDialog("ConfirmationDialog", ..., callback) y se queda con el ButtonResult
-        /// que le devuelva el callback. Eso si es del interfaz, y es lo que se dobla aqui.
+        /// ShowConfirmationAnswer devuelve true solo si el usuario pulsa Aceptar.
         /// </summary>
-        private void ResponderALaConfirmacion(ButtonResult respuesta)
+        private void ResponderALaConfirmacion(ResultadoBoton respuesta)
         {
-            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string _, IDialogParameters __, Action<IDialogResult> callback) =>
-                    callback(new DialogResult(respuesta)));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._))
+                .Returns(respuesta == ResultadoBoton.OK);
         }
 
         #region La conversión de porcentajes
@@ -276,7 +272,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task EliminarCampana_Guardada_PideConfirmacionYBorra()
         {
-            ResponderALaConfirmacion(ButtonResult.OK);
+            ResponderALaConfirmacion(ResultadoBoton.OK);
             var vm = CrearViewModel();
             var campana = new CampanaWrapper(new CampanaModel { Id = 500, Producto = "44166" });
             vm.Campanas.Add(campana);
@@ -291,7 +287,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task EliminarCampana_SiNoSeConfirma_NoBorraNada()
         {
-            ResponderALaConfirmacion(ButtonResult.Cancel);
+            ResponderALaConfirmacion(ResultadoBoton.Cancel);
             var vm = CrearViewModel();
             var campana = new CampanaWrapper(new CampanaModel { Id = 500, Producto = "44166" });
             vm.Campanas.Add(campana);
@@ -360,7 +356,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task CerrarCampana_SiSeConfirma_LlamaAlServicio()
         {
-            ResponderALaConfirmacion(ButtonResult.OK);
+            ResponderALaConfirmacion(ResultadoBoton.OK);
             A.CallTo(() => _service.CerrarCampana(A<string>._, A<DateTime?>._))
                 .Returns(Task.FromResult(new ResultadoOperacionCampanaModel { FilasAfectadas = 2017, ProductosEncolados = 0 }));
             var vm = CrearViewModel();
@@ -376,7 +372,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task BorrarCampana_SiNoSeConfirma_NoBorraNada()
         {
-            ResponderALaConfirmacion(ButtonResult.Cancel);
+            ResponderALaConfirmacion(ResultadoBoton.Cancel);
             var vm = CrearViewModel();
             vm.CampanaSeleccionada = new ResumenCampanaModel { Campana = "Rebajas verano 2026", Filas = 2017 };
 
@@ -389,7 +385,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task BorrarCampana_SiSeConfirma_LlamaAlServicio()
         {
-            ResponderALaConfirmacion(ButtonResult.OK);
+            ResponderALaConfirmacion(ResultadoBoton.OK);
             A.CallTo(() => _service.DeleteCampanaPorNombre(A<string>._))
                 .Returns(Task.FromResult(new ResultadoOperacionCampanaModel { FilasAfectadas = 2017, ProductosEncolados = 0 }));
             var vm = CrearViewModel();

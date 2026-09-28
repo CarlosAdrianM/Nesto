@@ -1,5 +1,4 @@
-﻿using ControlesUsuario.Dialogs;
-using ControlesUsuario.Services;
+﻿using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
@@ -7,7 +6,6 @@ using Nesto.Modulos.OfertasCombinadas.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -31,11 +29,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
     {
         private readonly IOfertasCombinadasService _service;
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IRegionManager _regionManager;
         private readonly IServicioProducto _servicioProducto;
 
-        public OfertasCombinadasViewModel(IOfertasCombinadasService service, IConfiguracion configuracion, IDialogService dialogService, IRegionManager regionManager, IServicioProducto servicioProducto)
+        public OfertasCombinadasViewModel(IOfertasCombinadasService service, IConfiguracion configuracion, IServicioDialogos dialogService, IRegionManager regionManager, IServicioProducto servicioProducto)
         {
             _service = service;
             _configuracion = configuracion;

@@ -7,7 +7,6 @@ using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Nesto.Modulos.OfertasCombinadas.ViewModels;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +26,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
     {
         private IOfertasCombinadasService _service;
         private IConfiguracion _configuracion;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
         private IRegionManager _regionManager;
         private IServicioProducto _servicioProducto;
 
@@ -36,7 +35,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         {
             _service = A.Fake<IOfertasCombinadasService>();
             _configuracion = A.Fake<IConfiguracion>();
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
             _regionManager = A.Fake<IRegionManager>();
             _servicioProducto = A.Fake<IServicioProducto>();
 
@@ -59,11 +58,10 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager, _servicioProducto);
         }
 
-        private void ResponderALaConfirmacion(ButtonResult respuesta)
+        private void ResponderALaConfirmacion(ResultadoBoton respuesta)
         {
-            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string _, IDialogParameters __, Action<IDialogResult> callback) =>
-                    callback(new DialogResult(respuesta)));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._))
+                .Returns(respuesta == ResultadoBoton.OK);
         }
 
         /// <summary>
@@ -201,7 +199,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task Eliminar_SiNoSeConfirma_NoBorraNada()
         {
-            ResponderALaConfirmacion(ButtonResult.Cancel);
+            ResponderALaConfirmacion(ResultadoBoton.Cancel);
             var vm = CrearViewModel();
             var oferta = new OfertaProductoWrapper(new OfertaProductoModel { NOrden = 792, Producto = "44724" });
             vm.OfertasProducto.Add(oferta);
@@ -216,7 +214,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         [TestMethod]
         public async Task Eliminar_SiSeConfirma_BorraYLaQuitaDeLaLista()
         {
-            ResponderALaConfirmacion(ButtonResult.OK);
+            ResponderALaConfirmacion(ResultadoBoton.OK);
             var vm = CrearViewModel();
             var oferta = new OfertaProductoWrapper(new OfertaProductoModel { NOrden = 792, Producto = "44724" });
             vm.OfertasProducto.Add(oferta);
