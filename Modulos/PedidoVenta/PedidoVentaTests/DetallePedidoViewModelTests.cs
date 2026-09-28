@@ -82,6 +82,24 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
+        public async Task GestionarEtiquetaRecogida_AlMarcarla_PideLaAgenciaAlComparador()
+        {
+            // NestoAPI#494 (28/09/26): «Recoger producto» ya no fija GLS ni la agencia del primer envío.
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            DetallePedidoViewModel vm = PrepararVmConEtiquetaPendiente(servicio, ButtonResult.OK);
+            vm.pedido = new PedidoVentaWrapper(new PedidoVentaDTO { empresa = "1", numero = 927115 });
+            vm.ListaEnlacesSeguimiento = new List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 99, Retorno = 0, Estado = 2, AgenciaId = 8 }
+            };
+            vm.RecogerProducto = true;
+
+            await vm.GestionarEtiquetaRecogida();
+
+            A.CallTo(() => servicio.CrearEtiquetaPendiente("1", 927115, 0, 1)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
         public void DetallePedidoViewModel_siAplicaDescuentoEsFalse_noTieneEnCuentaElDescuentoProducto()
         {
             // Arrange

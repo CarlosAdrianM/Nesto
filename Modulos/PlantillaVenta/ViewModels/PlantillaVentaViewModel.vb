@@ -3429,7 +3429,8 @@ Public Class PlantillaVentaViewModel
             ' Issue #135: Crear etiqueta de recogida si se marcó
             If RecogerProducto Then
                 Try
-                    Await servicioPedidosVenta.CrearEtiquetaPendiente(clienteSeleccionado.empresa, CInt(numPedido), 1, 1)
+                    ' NestoAPI#494 (28/09/26): agencia 0 = la elige el comparador de la API (modo envío + retorno)
+                    Await servicioPedidosVenta.CrearEtiquetaPendiente(clienteSeleccionado.empresa, CInt(numPedido), 0, 1)
                 Catch ex As Exception
                     dialogService.ShowError("El pedido se creó correctamente, pero no se pudo crear la etiqueta de recogida: " & ex.Message)
                 End Try

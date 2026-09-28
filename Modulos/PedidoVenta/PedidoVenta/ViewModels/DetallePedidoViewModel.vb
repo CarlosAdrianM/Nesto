@@ -2445,15 +2445,18 @@ Public Class DetallePedidoViewModel
         _snapshotPedidoGuardado = pedido?.Model?.CrearSnapshot()
     End Sub
 
+    ''' <summary>NestoAPI#494: agencia 0 en CrearEtiquetaPendiente = que la elija el comparador de la API.</summary>
+    Friend Const AGENCIA_LA_ELIGE_EL_COMPARADOR As Integer = 0
+
     Public Async Function GestionarEtiquetaRecogida() As Task
         Dim etiquetaExistente = ListaEnlacesSeguimiento?.FirstOrDefault(Function(e) e.Retorno > 0)
         Dim teniaRecogida = etiquetaExistente IsNot Nothing
 
         If RecogerProducto AndAlso Not teniaRecogida Then
-            ' Crear etiqueta pendiente de recogida
-            Dim agenciaId = If(ListaEnlacesSeguimiento?.FirstOrDefault()?.AgenciaId, 1)
+            ' Crear etiqueta pendiente de recogida. NestoAPI#494 (28/09/26): la agencia la elige el
+            ' comparador de la API en modo envío + retorno (antes GLS, o la del primer envío del pedido).
             Try
-                Await servicio.CrearEtiquetaPendiente(pedido.empresa, pedido.numero, agenciaId, 1)
+                Await servicio.CrearEtiquetaPendiente(pedido.empresa, pedido.numero, AGENCIA_LA_ELIGE_EL_COMPARADOR, 1)
             Catch ex As Exception
                 dialogService.ShowError("Error al crear etiqueta de recogida: " & ex.Message)
             End Try
