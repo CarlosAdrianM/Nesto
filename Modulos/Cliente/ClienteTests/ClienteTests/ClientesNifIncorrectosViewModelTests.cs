@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,29 +21,17 @@ namespace ClienteTests
     {
         private readonly INifIncorrectosService servicio;
         private readonly IConfiguracion configuracion;
-        private readonly IDialogService dialogService;
+        private readonly IServicioDialogos dialogService;
         private bool respuestaConfirmacion = true;
 
         public ClientesNifIncorrectosViewModelTests()
         {
             servicio = A.Fake<INifIncorrectosService>();
             configuracion = A.Fake<IConfiguracion>();
-            dialogService = A.Fake<IDialogService>();
-            // ShowConfirmationAnswer/ShowError/ShowNotification son extensiones sobre
-            // ShowDialog: se interceptan aquí (patrón ExtractoClienteViewModelTests).
-            A.CallTo(() => dialogService.ShowDialog(
-                    A<string>.Ignored, A<IDialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
-                .Invokes((string nombre, IDialogParameters parametros, Action<IDialogResult> callback) =>
-                {
-                    if (callback == null)
-                    {
-                        return;
-                    }
-                    IDialogResult resultado = A.Fake<IDialogResult>();
-                    A.CallTo(() => resultado.Result)
-                        .Returns(respuestaConfirmacion ? ButtonResult.OK : ButtonResult.Cancel);
-                    callback(resultado);
-                });
+            dialogService = A.Fake<IServicioDialogos>();
+            // La confirmación contesta lo que diga respuestaConfirmacion (Aceptar o Cancelar).
+            A.CallTo(() => dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored))
+                .ReturnsLazily(() => respuestaConfirmacion);
         }
 
         private ClientesNifIncorrectosViewModel CrearViewModel()

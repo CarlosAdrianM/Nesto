@@ -1,11 +1,11 @@
 ﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +21,7 @@ namespace ClienteTests
     public class ExtractoClienteViewModelTests
     {
         private readonly IExtractoClienteService servicio;
-        private readonly IDialogService dialogService;
+        private readonly IServicioDialogos dialogService;
         // Messenger REAL (no fake), nuevo en cada test (Nesto#490 4C.1): los tests se registran
         // y capturan el mensaje enviado.
         private readonly IMessenger messenger = new WeakReferenceMessenger();
@@ -31,25 +31,20 @@ namespace ClienteTests
         public ExtractoClienteViewModelTests()
         {
             servicio = A.Fake<IExtractoClienteService>();
-            dialogService = A.Fake<IDialogService>();
-            // ShowConfirmationAnswer/ShowError/ShowNotification son extensiones sobre
-            // ShowDialog: se interceptan aquí (patrón DetallePedidoViewModelConfirmacionTests).
-            A.CallTo(() => dialogService.ShowDialog(
-                    A<string>.Ignored, A<IDialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
-                .Invokes((string nombre, IDialogParameters parametros, Action<IDialogResult> callback) =>
+            dialogService = A.Fake<IServicioDialogos>();
+            // Se guarda el mensaje de todo lo que se enseña al usuario (errores, avisos y
+            // confirmaciones); la confirmación contesta lo que diga respuestaConfirmacion.
+            A.CallTo(() => dialogService.ShowError(A<string>.Ignored))
+                .Invokes((string mensaje) => mensajesDialogo.Add(mensaje));
+            A.CallTo(() => dialogService.ShowNotification(A<string>.Ignored))
+                .Invokes((string mensaje) => mensajesDialogo.Add(mensaje));
+            A.CallTo(() => dialogService.ShowNotification(A<string>.Ignored, A<string>.Ignored))
+                .Invokes((string titulo, string mensaje) => mensajesDialogo.Add(mensaje));
+            A.CallTo(() => dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored))
+                .ReturnsLazily((string titulo, string mensaje) =>
                 {
-                    if (parametros != null && parametros.ContainsKey("message"))
-                    {
-                        mensajesDialogo.Add(parametros.GetValue<string>("message"));
-                    }
-                    if (callback == null)
-                    {
-                        return;
-                    }
-                    IDialogResult resultado = A.Fake<IDialogResult>();
-                    A.CallTo(() => resultado.Result)
-                        .Returns(respuestaConfirmacion ? ButtonResult.OK : ButtonResult.Cancel);
-                    callback(resultado);
+                    mensajesDialogo.Add(mensaje);
+                    return respuestaConfirmacion;
                 });
         }
 

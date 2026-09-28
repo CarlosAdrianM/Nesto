@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,13 +19,13 @@ namespace ClienteTests
     {
         private readonly ICodigosPostalesService servicio;
         private readonly IConfiguracion configuracion;
-        private readonly IDialogService dialogService;
+        private readonly IServicioDialogos dialogService;
 
         public MantenimientoCodigosPostalesViewModelTests()
         {
             servicio = A.Fake<ICodigosPostalesService>();
             configuracion = A.Fake<IConfiguracion>();
-            dialogService = A.Fake<IDialogService>();
+            dialogService = A.Fake<IServicioDialogos>();
         }
 
         private MantenimientoCodigosPostalesViewModel CrearViewModel()

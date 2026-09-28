@@ -1,11 +1,10 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,11 +25,11 @@ namespace Nesto.Modulos.Cliente
     public class ExtractoClienteViewModel : ObservableObject, INavigationAware
     {
         private readonly IExtractoClienteService _servicio;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IMessenger _messenger;
         private readonly Action<string> _abrirFichero;
 
-        public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger)
             : this(servicio, dialogService, messenger, null)
         {
@@ -38,7 +37,7 @@ namespace Nesto.Modulos.Cliente
 
         // abrirFichero: lo que se hace con el PDF ya en disco (por defecto abrirlo con el visor del
         // sistema); los tests inyectan una captura para no lanzar procesos.
-        public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger, Action<string> abrirFichero)
         {
             _servicio = servicio;

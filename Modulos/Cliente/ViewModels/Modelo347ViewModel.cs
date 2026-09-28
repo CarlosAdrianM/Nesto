@@ -1,10 +1,8 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -23,12 +21,12 @@ namespace Nesto.Modulos.Cliente
     public class Modelo347ViewModel : ObservableObject, INavigationAware
     {
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IServicioAutenticacion _servicioAutenticacion;
 
         public Modelo347ViewModel(
             IConfiguracion configuracion,
-            IDialogService dialogService,
+            IServicioDialogos dialogService,
             IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));

@@ -1,10 +1,8 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -25,10 +23,10 @@ namespace Nesto.Modulos.Cliente
     {
         private readonly INifIncorrectosService _servicio;
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
 
         public ClientesNifIncorrectosViewModel(INifIncorrectosService servicio,
-            IConfiguracion configuracion, IDialogService dialogService)
+            IConfiguracion configuracion, IServicioDialogos dialogService)
         {
             _servicio = servicio;
             _configuracion = configuracion;

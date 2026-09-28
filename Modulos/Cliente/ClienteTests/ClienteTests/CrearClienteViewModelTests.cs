@@ -6,7 +6,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
 using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
-using Prism.Services.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 
@@ -19,14 +18,14 @@ namespace ClienteTests
         private IConfiguracion Configuracion { get; }
         private IClienteService Servicio { get; }
         private IMessenger Messenger { get; }
-        private IDialogService DialogService { get; }
+        private IServicioDialogos DialogService { get; }
         public CrearClienteViewModelTests()
         {
             RegionManager = A.Fake<IRegionManager>();
             Configuracion = A.Fake<IConfiguracion>();
             Servicio = A.Fake<IClienteService>();
             Messenger = new WeakReferenceMessenger();
-            DialogService = A.Fake<IDialogService>();
+            DialogService = A.Fake<IServicioDialogos>();
         }
 
         // Nesto#436: país de la dirección (puede diferir del fiscal)
@@ -356,7 +355,7 @@ namespace ClienteTests
             vm.PaginaActual = paginaSiguiente;
 
             //Assert
-            A.CallTo(() => DialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => DialogService.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
         }
         */
 
@@ -658,10 +657,11 @@ namespace ClienteTests
 
         // NestoAPI#541: cerrar un día con pedidos ya en picking → la API no guarda hasta que el usuario acepte avisar a almacén
 
-        private void ElUsuarioContesta(ButtonResult respuesta)
+        // ShowConfirmationAnswer devuelve true solo si el usuario pulsa Aceptar.
+        private void ElUsuarioContesta(ResultadoBoton respuesta)
         {
-            A.CallTo(() => DialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuesta)));
+            A.CallTo(() => DialogService.ShowConfirmationAnswer(A<string>._, A<string>._))
+                .Returns(respuesta == ResultadoBoton.OK);
         }
 
         private CrearClienteViewModel VmModificando()
@@ -679,7 +679,7 @@ namespace ClienteTests
             A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => !c.ConfirmarDiasEnServirConPicking)))
                 .Throws(new DiasEnServirConPickingException("El pedido 925633 ya está en preparación… ¿Avisamos a almacén?", new[] { 925633 }));
             A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.ConfirmarDiasEnServirConPicking))).Returns(modificado);
-            ElUsuarioContesta(ButtonResult.OK);
+            ElUsuarioContesta(ResultadoBoton.OK);
             var recibidos = new List<Nesto.Models.Nesto.Models.Clientes>();
             Messenger.Register<Nesto.Infrastructure.Events.ClienteCreadoMensaje>(this, (r, m) => recibidos.Add(m.Value));
             var vm = VmModificando();
@@ -696,7 +696,7 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.ModificarCliente(A<ClienteCrear>._))
                 .Throws(new DiasEnServirConPickingException("¿Avisamos a almacén?", new[] { 925633 }));
-            ElUsuarioContesta(ButtonResult.Cancel);
+            ElUsuarioContesta(ResultadoBoton.Cancel);
             var recibidos = new List<Nesto.Models.Nesto.Models.Clientes>();
             Messenger.Register<Nesto.Infrastructure.Events.ClienteCreadoMensaje>(this, (r, m) => recibidos.Add(m.Value));
             var vm = VmModificando();

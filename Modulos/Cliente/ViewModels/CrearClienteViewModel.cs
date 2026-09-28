@@ -9,8 +9,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Xceed.Wpf.Toolkit;
-using Prism.Services.Dialogs;
-using ControlesUsuario.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Contracts;
@@ -30,9 +28,9 @@ namespace Nesto.Modulos.Cliente
         private IClienteService Servicio { get; }
 
         private IMessenger Messenger { get; }
-        private IDialogService DialogService { get; }
+        private IServicioDialogos DialogService { get; }
 
-        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IDialogService dialogService)
+        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
@@ -988,7 +986,7 @@ namespace Nesto.Modulos.Cliente
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
-                    DialogService.ShowDialog("NotificacionTelefonoView", new DialogParameters { { "clientesMismoTelefono", respuesta.ClientesMismoTelefono } }, null);
+                    DialogService.ShowDialog("NotificacionTelefonoView", new ParametrosDialogo { { "clientesMismoTelefono", respuesta.ClientesMismoTelefono } }, null);
                 }
 
                 ClienteDireccion = respuesta.DireccionFormateada;
