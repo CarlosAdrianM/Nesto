@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Nesto.Modulos.CanalesExternos.ViewModels;
-using Prism.Services.Dialogs;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -20,7 +19,7 @@ namespace CanalesExternosTests
         {
             var configuracion = A.Fake<IConfiguracion>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             var vm = new CanalesExternosCuadreFacturasViewModel(configuracion, servicioAutenticacion, dialogService);
 
             var factoryProp = vm.Factory;

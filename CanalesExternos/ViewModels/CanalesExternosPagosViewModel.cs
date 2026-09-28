@@ -1,5 +1,5 @@
-﻿using ControlesUsuario.Dialogs;
-using Microsoft.VisualBasic;
+﻿using Microsoft.VisualBasic;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
@@ -7,7 +7,6 @@ using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,12 +23,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private const string CUENTA_DIFERENCIA_NEGATIVA_CAMBIO = "66800001";
         private const string CUENTA_DIFERENCIA_POSITIVA_CAMBIO = "76800000";
 
-        private IDialogService dialogService { get; }
+        private IServicioDialogos dialogService { get; }
 
         private readonly ICanalesExternosPagosService _servicio;
         private readonly IContabilidadService _contabilidadService;
 
-        public CanalesExternosPagosViewModel(IDialogService dialogService, ICanalesExternosPagosService canalesExternosPagosService, IContabilidadService contabilidadService)
+        public CanalesExternosPagosViewModel(IServicioDialogos dialogService, ICanalesExternosPagosService canalesExternosPagosService, IContabilidadService contabilidadService)
         {
             Titulo = "Canales Externos Pagos";
             this.dialogService = dialogService;

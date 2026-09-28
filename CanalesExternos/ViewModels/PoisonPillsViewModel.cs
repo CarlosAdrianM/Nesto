@@ -1,10 +1,8 @@
 ﻿using CanalesExternos.Models;
-using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,10 +15,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
     public class PoisonPillsViewModel : ObservableObject
     {
         private readonly IPoisonPillsService _servicio;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IConfiguracion _configuracion;
 
-        public PoisonPillsViewModel(IPoisonPillsService servicio, IDialogService dialogService, IConfiguracion configuracion)
+        public PoisonPillsViewModel(IPoisonPillsService servicio, IServicioDialogos dialogService, IConfiguracion configuracion)
         {
             _servicio = servicio;
             _dialogService = dialogService;

@@ -1,11 +1,9 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -18,9 +16,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
 
-        public CanalesExternosCuadreFacturasViewModel(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IDialogService dialogService)
+        public CanalesExternosCuadreFacturasViewModel(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IServicioDialogos dialogService)
         {
             Titulo = "Cuadre Canales Externos";
             _configuracion = configuracion;

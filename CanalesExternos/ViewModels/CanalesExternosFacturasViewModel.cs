@@ -1,9 +1,7 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,9 +17,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
 
-        public CanalesExternosFacturasViewModel(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IDialogService dialogService)
+        public CanalesExternosFacturasViewModel(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IServicioDialogos dialogService)
         {
             Titulo = "Facturas canales externos";
             _configuracion = configuracion;

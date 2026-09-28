@@ -1,11 +1,10 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Services;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -19,8 +18,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
     {
         private readonly ICanalesExternosProductosService _servicio;
         private readonly IProductoService _servicioProducto;
-        private readonly IDialogService _dialogService;
-        public CanalesExternosProductosViewModel(ICanalesExternosProductosService servicio, IProductoService servicioProducto, IDialogService dialogService) {
+        private readonly IServicioDialogos _dialogService;
+        public CanalesExternosProductosViewModel(ICanalesExternosProductosService servicio, IProductoService servicioProducto, IServicioDialogos dialogService) {
             _dialogService = dialogService;
             Titulo = "Canales externos productos";
 

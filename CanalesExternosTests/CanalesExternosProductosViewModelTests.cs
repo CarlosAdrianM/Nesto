@@ -1,11 +1,10 @@
-using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.ViewModels;
-using Prism.Services.Dialogs;
 using System;
 using System.Threading.Tasks;
 
@@ -16,14 +15,14 @@ namespace CanalesExternosTests
     {
         private ICanalesExternosProductosService _servicio;
         private IProductoService _servicioProducto;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
 
         [TestInitialize]
         public void Setup()
         {
             _servicio = A.Fake<ICanalesExternosProductosService>();
             _servicioProducto = A.Fake<IProductoService>();
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
         }
 
         private CanalesExternosProductosViewModel CrearVm()
@@ -49,8 +48,9 @@ namespace CanalesExternosTests
                 "ProductoSeleccionado debe ser exactamente el producto que devolvió la API, sin volver a buscarlo por ProductoId.");
             Assert.AreEqual(1, vm.ProductosSinVistoBueno.Count);
             Assert.AreSame(productoCreado, vm.ProductosSinVistoBueno[0]);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowError(A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification(A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification(A<string>._, A<string>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
@@ -77,13 +77,7 @@ namespace CanalesExternosTests
 
             await vm.OnAnnadirProductoAsync(); // no debe propagar (en async void mataría la app)
 
-            // ShowError es extension method que internamente llama a ShowDialog("NotificationDialog", ...)
-            // con title="¡Error!" y message=ex.Message. Verificamos el método real, no la extensión.
-            A.CallTo(() => _dialogService.ShowDialog(
-                "NotificationDialog",
-                A<IDialogParameters>.That.Matches(p => p.GetValue<string>("message") == "API caída"),
-                A<Action<IDialogResult>>._))
-                .MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogService.ShowError("API caída")).MustHaveHappenedOnceExactly();
             Assert.IsNull(vm.ProductoSeleccionado);
         }
     }
