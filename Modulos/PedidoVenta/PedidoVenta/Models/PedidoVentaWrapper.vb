@@ -489,11 +489,9 @@ Public Class PedidoVentaWrapper
 
     Private Sub PrepagosCollectionChanged(sender As Object, e As NotifyCollectionChangedEventArgs)
         If e.NewItems IsNot Nothing Then
-            'For Each item As PrepagoDTO In e.NewItems
-            '    If item IsNot Nothing Then
-
-            '    End If
-            'Next
+            For Each item As PrepagoDTO In e.NewItems
+                RellenarPrepagoPorDefecto(item, numero, Prepagos)
+            Next
         End If
 
         If e.OldItems IsNot Nothing Then
@@ -503,6 +501,33 @@ Public Class PedidoVentaWrapper
             '    End If
             'Next
             OnPropertyChanged(String.Empty)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Carlos, 28/09/26: casi todos los prepagos son transferencias a Caixabank, así que el prepago nuevo
+    ''' nace con el concepto «por TRN pedido NNNNNN» y la cuenta 57200013; si es otra cosa, se cambia.
+    ''' Solo rellena lo que venga vacío. El concepto es lo que identifica el prepago al guardar (la API
+    ''' actualiza el que tenga el mismo concepto), así que si ya hay otro con ese texto se numera.
+    ''' </summary>
+    Public Shared Sub RellenarPrepagoPorDefecto(prepago As PrepagoDTO, numeroPedido As Integer, prepagos As IEnumerable(Of PrepagoDTO))
+        If IsNothing(prepago) Then
+            Return
+        End If
+        If String.IsNullOrWhiteSpace(prepago.CuentaContable) Then
+            prepago.CuentaContable = Global.Nesto.Infrastructure.Shared.Constantes.Cuentas.CAIXABANK
+        End If
+        If String.IsNullOrWhiteSpace(prepago.ConceptoAdicional) Then
+            Dim concepto As String = If(numeroPedido > 0, $"por TRN pedido {numeroPedido}", "por TRN pedido")
+            Dim otros = If(prepagos, Enumerable.Empty(Of PrepagoDTO)()).Where(Function(p) p IsNot prepago AndAlso p IsNot Nothing).
+                Select(Function(p) p.ConceptoAdicional?.Trim()).ToList()
+            Dim candidato As String = concepto
+            Dim n As Integer = 2
+            While otros.Contains(candidato)
+                candidato = $"{concepto} ({n})"
+                n += 1
+            End While
+            prepago.ConceptoAdicional = candidato
         End If
     End Sub
 

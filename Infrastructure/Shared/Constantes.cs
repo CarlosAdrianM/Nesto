@@ -51,6 +51,8 @@ namespace Nesto.Infrastructure.Shared
         {
             public const string GASTOS_DATAFONO = "62600008";
             public const string CAJA_PENDIENTE_RECIBIR_TIENDAS = "57000016";
+            /// <summary>Banco donde entran las transferencias: la cuenta por defecto de un prepago nuevo.</summary>
+            public const string CAIXABANK = "57200013";
         }
 
         public class DiariosContables
