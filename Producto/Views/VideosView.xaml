@@ -500,7 +500,7 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Nesto#497: borrar un video duplicado (solo quien tiene permiso) -->
+                    <!-- Nesto#497 + Carlos 28/09/26: retirar un vídeo (baja) o borrar un duplicado (solo quien tiene permiso) -->
                     <Border Background="#FDECEA"
                             BorderBrush="#E57373"
                             BorderThickness="1"
@@ -511,10 +511,18 @@
                                 Converter={StaticResource BooleanToVisibilityConverter},
                                 RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <StackPanel>
-                            <TextBlock Text="Solo para vídeos duplicados (el mismo vídeo de YouTube dos veces). Para retirar un vídeo de la tienda se usa la baja, no el borrado."
+                            <TextBlock Text="Dar de baja: el vídeo deja de salir en Nesto y en la tienda (shorts, vídeos de vida corta...). Borrar: solo para vídeos duplicados (el mismo vídeo de YouTube dos veces)."
                                        FontSize="12"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,10"/>
+                            <Button Content="Dar de baja"
+                                    Command="{Binding DataContext.DarDeBajaVideoCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    HorizontalAlignment="Left"
+                                    Padding="8,4"
+                                    Margin="0,0,0,8"
+                                    FontWeight="Bold"
+                                    Cursor="Hand"/>
                             <Button Content="Borrar vídeo"
                                     Command="{Binding DataContext.BorrarVideoCommand,
                                               RelativeSource={RelativeSource AncestorType=UserControl}}"

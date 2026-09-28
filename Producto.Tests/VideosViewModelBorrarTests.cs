@@ -154,5 +154,42 @@ namespace Producto.Tests
 
             Assert.IsFalse(queda.EsDuplicado);
         }
+
+        // ---- Carlos 28/09/26: dar de baja desde la ventana Vídeos ----
+
+        [TestMethod]
+        public async Task DarDeBaja_ConfirmaQueSi_LlamaALaApiYRecarga()
+        {
+            ConPermiso();
+            ConfirmacionResponde(ButtonResult.OK);
+            _sut.VideoCompletoSeleccionado = Video1981();
+
+            Assert.IsTrue(_sut.DarDeBajaVideoCommand.CanExecute(null));
+            await _sut.DarDeBajaVideoCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.DarDeBajaVideo(1981)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.BorrarVideo(A<int>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.CargarVideos(0, A<int>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task DarDeBaja_ConfirmaQueNo_NoHaceNada()
+        {
+            ConPermiso();
+            ConfirmacionResponde(ButtonResult.Cancel);
+            _sut.VideoCompletoSeleccionado = Video1981();
+
+            await _sut.DarDeBajaVideoCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.DarDeBajaVideo(A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void DarDeBaja_SinGrupo_NoSePuede()
+        {
+            _sut.VideoCompletoSeleccionado = Video1981();
+
+            Assert.IsFalse(_sut.DarDeBajaVideoCommand.CanExecute(null));
+        }
     }
 }

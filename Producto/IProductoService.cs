@@ -33,6 +33,8 @@ namespace Nesto.Modules.Producto
         Task<List<VideoLookupModel>> BuscarVideos(string busqueda, int skip, int take);
         // NestoAPI#545 / Nesto#497: borra un vídeo duplicado (la API rechaza, con su motivo, uno que no lo es).
         Task BorrarVideo(int id);
+        // Carlos 28/09/26: retira un vídeo (FechaBaja): sale de Nesto, del buscador y de la tienda.
+        Task DarDeBajaVideo(int id);
         // NestoAPI#249: grupos de producto disponibles y grupos alternativos por los que puede
         // comisionar un producto marcado (pestaña Comisiones de la ficha).
         Task<List<string>> LeerGruposProducto();

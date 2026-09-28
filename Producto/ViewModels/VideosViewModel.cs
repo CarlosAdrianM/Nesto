@@ -40,6 +40,7 @@ namespace Nesto.Modules.Producto.ViewModels
             AbrirVideoEnNavegadorCommand = new RelayCommand(OnAbrirVideoEnNavegador, CanAbrirVideoEnNavegador);
             AbrirProductoCommand = new RelayCommand<string>(OnAbrirProducto);
             BorrarVideoCommand = new AsyncRelayCommand(OnBorrarVideo, CanBorrarVideo);
+            DarDeBajaVideoCommand = new AsyncRelayCommand(OnDarDeBajaVideo, CanBorrarVideo);
 
             Videos = [];
             Titulo = "Videos";
@@ -99,6 +100,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                     CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
                     BorrarVideoCommand.NotifyCanExecuteChanged();
+                    DarDeBajaVideoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -120,6 +122,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _estaBorrando, value))
                 {
                     BorrarVideoCommand.NotifyCanExecuteChanged();
+                    DarDeBajaVideoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -316,6 +319,52 @@ namespace Nesto.Modules.Producto.ViewModels
             VideoSeleccionado = null;
             VideoCompletoSeleccionado = null;
             await CargarVideosAsync(true);
+        }
+
+        public AsyncRelayCommand DarDeBajaVideoCommand { get; }
+
+        /// <summary>
+        /// Carlos 28/09/26: tienda online retira a su criterio los vídeos que en Nesto no pintan nada
+        /// (shorts, vídeos de vida corta). Es la baja: sale del listado, del buscador y de la tienda,
+        /// y se puede reponer (a mano, quitando la FechaBaja). Mismo permiso que el borrado.
+        /// </summary>
+        private async Task OnDarDeBajaVideo()
+        {
+            VideoModel video = VideoCompletoSeleccionado;
+            if (video == null)
+            {
+                return;
+            }
+
+            if (!await _dialogService.ShowConfirmationAsync("Dar de baja el vídeo", TextoConfirmacionBaja(video)))
+            {
+                return;
+            }
+
+            EstaBorrando = true;
+            try
+            {
+                await _servicio.DarDeBajaVideo(video.Id);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                return;
+            }
+            finally
+            {
+                EstaBorrando = false;
+            }
+
+            _dialogService.ShowNotification("Vídeo dado de baja", $"El vídeo \"{video.Titulo}\" ya no sale en Nesto ni en la tienda.");
+            VideoSeleccionado = null;
+            VideoCompletoSeleccionado = null;
+            await CargarVideosAsync(true);
+        }
+
+        internal static string TextoConfirmacionBaja(VideoModel video)
+        {
+            return $"¿Dar de baja el vídeo \"{video.Titulo}\" (YouTube {video.VideoId})? Dejará de salir en Nesto, en el buscador y en la tienda. Sus productos no se borran y se puede volver a dar de alta.";
         }
 
         internal static string TextoConfirmacionBorrado(VideoModel video)

@@ -961,6 +961,17 @@ namespace Nesto.Modules.Producto
             }
         }
 
+        public async Task DarDeBajaVideo(int id)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.PostAsync($"Videos/{id}/Baja", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                string cuerpo = await response.Content.ReadAsStringAsync();
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido dar de baja el vídeo ({(int)response.StatusCode} {response.StatusCode})");
+            }
+        }
+
         /// <summary>
         /// NestoAPI#545: el motivo viene como {"Message": "..."} (BadRequest) o como una cadena JSON
         /// suelta (403 con Content). Null si no hay nada legible.
