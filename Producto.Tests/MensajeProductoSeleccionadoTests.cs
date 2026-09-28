@@ -7,7 +7,6 @@ using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 
@@ -25,7 +24,7 @@ namespace Producto.Tests
         {
             IMessenger messenger = new WeakReferenceMessenger();
             var vm = new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IProductoService>(),
-                messenger, A.Fake<IDialogService>(), A.Fake<IServicioAutenticacion>());
+                messenger, A.Fake<IServicioDialogos>(), A.Fake<IServicioAutenticacion>());
             vm.ProductoResultadoSeleccionado = new ProductoModel { Producto = "17404" };
             var recibidos = new List<string>();
             messenger.Register<ProductoSeleccionadoMensaje>(this, (r, m) => recibidos.Add(m.Value));

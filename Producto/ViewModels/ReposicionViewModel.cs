@@ -1,9 +1,8 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +14,7 @@ namespace Nesto.Modules.Producto.ViewModels
     {
         
 
-        public ReposicionViewModel(IProductoService servicio, IDialogService dialogService) 
+        public ReposicionViewModel(IProductoService servicio, IServicioDialogos dialogService) 
         {
             Servicio = servicio;
             DialogService = dialogService;
@@ -60,7 +59,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public RelayCommand TraspasarDiarioCommand { get; private set; }
         public IProductoService Servicio { get; }
-        public IDialogService DialogService { get; }
+        public IServicioDialogos DialogService { get; }
         public List<DiarioProductoModel> ListaDiarios { get; private set; }
         public List<DiarioProductoModel> ListaDiariosConMovimientos => ListaDiarios?.Where(d => !d.EstaVacio)?.ToList() ?? new List<DiarioProductoModel>();
         public List<DiarioProductoModel> ListaDiariosSinMovimientos => ListaDiarios?.Where(d => d.EstaVacio)?.ToList() ?? new List<DiarioProductoModel>();        

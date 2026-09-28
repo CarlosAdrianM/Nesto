@@ -5,7 +5,6 @@ using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Windows.Controls;
 
 namespace Producto.Tests
@@ -21,7 +20,7 @@ namespace Producto.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IProductoService>();
             var messenger = new WeakReferenceMessenger();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             A.CallTo(() => servicio.LeerProducto("KIT")).Returns(new ProductoModel
             {
                 Producto = "KIT",
@@ -431,7 +430,7 @@ namespace Producto.Tests
             configuracion = A.Fake<IConfiguracion>();
             servicio = A.Fake<IProductoService>();
             var messenger = new WeakReferenceMessenger();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
             return new ProductoViewModel(regionManager, configuracion, servicio, messenger, dialogService, servicioAutenticacion);
         }

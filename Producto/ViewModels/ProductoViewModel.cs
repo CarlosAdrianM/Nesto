@@ -1,5 +1,4 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
@@ -8,7 +7,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -31,7 +29,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private IConfiguracion _configuracion { get; }
         private IProductoService _servicio { get; }
         private IMessenger _messenger { get; }
-        private IDialogService _dialogService { get; }
+        private IServicioDialogos _dialogService { get; }
 
         private string _filtroNombre;
         private string _filtroFamilia;
@@ -54,7 +52,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IMessenger messenger, IDialogService dialogService, IServicioAutenticacion servicioAutenticacion)
+        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IMessenger messenger, IServicioDialogos dialogService, IServicioAutenticacion servicioAutenticacion)
         {
             _regionManager = regionManager;
             _configuracion = configuracion;
@@ -407,7 +405,7 @@ namespace Nesto.Modules.Producto.ViewModels
         public RelayCommand AbrirActualizarControlesStockCommand { get; }
         private async void OnAbrirActualizarControlesStock()
         {
-            await _dialogService.ShowDialogAsync("ActualizarControlesStockPopupView", new DialogParameters());
+            await _dialogService.ShowDialogAsync("ActualizarControlesStockPopupView", new ParametrosDialogo());
         }
 
         public ICommand AbrirModuloCommand { get; private set; }
@@ -561,14 +559,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
 
-            var dialogParameters = new DialogParameters
+            var dialogParameters = new ParametrosDialogo
             {
                 { "producto", VideoCompletoSeleccionado }
             };
 
             var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
 
-            if (result.Result == ButtonResult.OK)
+            if (result.Result == ResultadoBoton.OK)
             {
                 VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
             }
@@ -1238,12 +1236,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private async void OnCorrigeVideoProducto(ProductoVideoModel producto)
         {
-            var dialogParameters = new DialogParameters();
+            var dialogParameters = new ParametrosDialogo();
             // Aquí puedes pasar el producto como parámetro si usas otro patrón
 
             var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
 
-            if (result.Result == ButtonResult.OK)
+            if (result.Result == ResultadoBoton.OK)
             {
                 VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
             }

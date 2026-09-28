@@ -5,7 +5,6 @@ using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 
 namespace Producto.Tests
 {
@@ -17,7 +16,7 @@ namespace Producto.Tests
     public class VideosViewModelBorrarTests
     {
         private IProductoService _servicio = null!;
-        private IDialogService _dialogos = null!;
+        private IServicioDialogos _dialogos = null!;
         private IConfiguracion _configuracion = null!;
         private VideosViewModel _sut = null!;
 
@@ -25,7 +24,7 @@ namespace Producto.Tests
         public void Setup()
         {
             _servicio = A.Fake<IProductoService>();
-            _dialogos = A.Fake<IDialogService>();
+            _dialogos = A.Fake<IServicioDialogos>();
             _configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => _servicio.CargarVideos(A<int>._, A<int>._)).Returns(Task.FromResult(new List<VideoLookupModel>()));
             _sut = new VideosViewModel(_servicio, _dialogos, _configuracion, A.Fake<IRegionManager>());
@@ -36,10 +35,11 @@ namespace Producto.Tests
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)).Returns(true);
         }
 
-        private void ConfirmacionResponde(ButtonResult respuesta)
+        // ShowConfirmationAsync devuelve true solo si el usuario pulsa Aceptar.
+        private void ConfirmacionResponde(ResultadoBoton respuesta)
         {
-            A.CallTo(() => _dialogos.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string _, IDialogParameters _, Action<IDialogResult> callback) => callback(new DialogResult(respuesta)));
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._))
+                .Returns(Task.FromResult(respuesta == ResultadoBoton.OK));
         }
 
         private static VideoModel Video1981()
@@ -78,7 +78,7 @@ namespace Producto.Tests
         public async Task BorrarVideo_ConfirmaQueSi_BorraYRecargaLaLista()
         {
             ConPermiso();
-            ConfirmacionResponde(ButtonResult.OK);
+            ConfirmacionResponde(ResultadoBoton.OK);
             _sut.VideoCompletoSeleccionado = Video1981();
 
             Assert.IsTrue(_sut.BorrarVideoCommand.CanExecute(null));
@@ -93,7 +93,7 @@ namespace Producto.Tests
         public async Task BorrarVideo_ConfirmaQueNo_NoBorra()
         {
             ConPermiso();
-            ConfirmacionResponde(ButtonResult.Cancel);
+            ConfirmacionResponde(ResultadoBoton.Cancel);
             _sut.VideoCompletoSeleccionado = Video1981();
 
             await _sut.BorrarVideoCommand.ExecuteAsync(null);
@@ -106,16 +106,14 @@ namespace Producto.Tests
         public async Task BorrarVideo_LaApiDiceQueNoEsDuplicado_EnsenaSuMensajeYNoRecarga()
         {
             ConPermiso();
-            ConfirmacionResponde(ButtonResult.OK);
+            ConfirmacionResponde(ResultadoBoton.OK);
             const string motivo = "Este vídeo no está duplicado. Para retirar un vídeo usa la baja, no el borrado.";
             A.CallTo(() => _servicio.BorrarVideo(1981)).ThrowsAsync(new Exception(motivo));
             _sut.VideoCompletoSeleccionado = Video1981();
 
             await _sut.BorrarVideoCommand.ExecuteAsync(null);
 
-            A.CallTo(() => _dialogos.ShowDialog("NotificationDialog",
-                A<IDialogParameters>.That.Matches(p => p.GetValue<string>("message") == motivo),
-                A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogos.ShowError(motivo)).MustHaveHappenedOnceExactly();
             A.CallTo(() => _servicio.CargarVideos(A<int>._, A<int>._)).MustNotHaveHappened();
             Assert.IsFalse(_sut.EstaBorrando);
         }
@@ -161,7 +159,7 @@ namespace Producto.Tests
         public async Task DarDeBaja_ConfirmaQueSi_LlamaALaApiYRecarga()
         {
             ConPermiso();
-            ConfirmacionResponde(ButtonResult.OK);
+            ConfirmacionResponde(ResultadoBoton.OK);
             _sut.VideoCompletoSeleccionado = Video1981();
 
             Assert.IsTrue(_sut.DarDeBajaVideoCommand.CanExecute(null));
@@ -176,7 +174,7 @@ namespace Producto.Tests
         public async Task DarDeBaja_ConfirmaQueNo_NoHaceNada()
         {
             ConPermiso();
-            ConfirmacionResponde(ButtonResult.Cancel);
+            ConfirmacionResponde(ResultadoBoton.Cancel);
             _sut.VideoCompletoSeleccionado = Video1981();
 
             await _sut.DarDeBajaVideoCommand.ExecuteAsync(null);

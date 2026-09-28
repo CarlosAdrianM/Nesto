@@ -1,11 +1,9 @@
-﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,13 +19,13 @@ namespace Nesto.Modules.Producto.ViewModels
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
 
         private readonly IProductoService _servicio;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IConfiguracion _configuracion;
         private readonly IRegionManager _regionManager;
 
         private const int VIDEOS_POR_PAGINA = 20;
 
-        public VideosViewModel(IProductoService servicio, IDialogService dialogService, IConfiguracion configuracion, IRegionManager regionManager)
+        public VideosViewModel(IProductoService servicio, IServicioDialogos dialogService, IConfiguracion configuracion, IRegionManager regionManager)
         {
             _servicio = servicio;
             _dialogService = dialogService;
@@ -234,14 +232,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
 
-            var dialogParameters = new DialogParameters
+            var dialogParameters = new ParametrosDialogo
             {
                 { "producto", VideoCompletoSeleccionado }
             };
 
             var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
 
-            if (result.Result == ButtonResult.OK)
+            if (result.Result == ResultadoBoton.OK)
             {
                 VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
             }
