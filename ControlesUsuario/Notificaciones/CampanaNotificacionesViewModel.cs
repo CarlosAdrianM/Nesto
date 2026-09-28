@@ -22,7 +22,9 @@ namespace ControlesUsuario.Notificaciones
     /// <see cref="DESFASE_MAXIMO_SONDEO"/> para que no coincidan todos los puestos). Un fallo al refrescar se
     /// calla (sin avisos ni ELMAH: la campana no debe molestar).
     /// Al pulsar una notificación se marca leída y, si es la respuesta a un comentario de Novedades,
-    /// se abre la ventana de Novedades en ese comentario.
+    /// se abre la ventana de Novedades en ese comentario; si es el aviso de versión nueva (Nesto#501), en esa
+    /// versión. Nesto#501: junto a la campana, un botón que abre Novedades (antes solo estaba en el menú de la
+    /// cinta y los usuarios no sabían volver a abrirla).
     /// </summary>
     public class CampanaNotificacionesViewModel : ObservableObject
     {
@@ -34,6 +36,7 @@ namespace ControlesUsuario.Notificaciones
 
         private readonly IBuzonNotificacionesService _buzon;
         private readonly IDialogService _dialogService;
+        private readonly IAbridorNovedades _abridorNovedades;
         private readonly Func<DateTime> _ahora;
         private readonly Random _azar;
         private readonly Dispatcher _dispatcher;
@@ -41,14 +44,16 @@ namespace ControlesUsuario.Notificaciones
         private bool _refrescando;
         private DateTime _ultimoRefrescoPorFoco = DateTime.MinValue;
 
-        public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos)
-            : this(buzon, dialogService, avisos, () => DateTime.Now, new Random()) { }
+        public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
+            IAbridorNovedades abridorNovedades)
+            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random()) { }
 
         internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
-            Func<DateTime> ahora, Random azar)
+            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar)
         {
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _dialogService = dialogService;
+            _abridorNovedades = abridorNovedades;
             _ahora = ahora ?? (() => DateTime.Now);
             _azar = azar ?? new Random();
             // Null en los tests (sin Application): entonces el aviso se atiende en el hilo que llega.
@@ -61,6 +66,7 @@ namespace ControlesUsuario.Notificaciones
             AbrirNotificacionCommand = new AsyncRelayCommand<NotificacionBuzonItem>(AbrirNotificacion);
             BorrarNotificacionCommand = new AsyncRelayCommand<NotificacionBuzonItem>(BorrarNotificacion);
             MarcarTodasLeidasCommand = new AsyncRelayCommand(MarcarTodasLeidas, () => Notificaciones.Any(n => !n.Leida));
+            AbrirNovedadesCommand = new AsyncRelayCommand(() => AbrirNovedades(null), () => _abridorNovedades != null);
         }
 
         public ObservableCollection<NotificacionBuzonItem> Notificaciones { get; } = new ObservableCollection<NotificacionBuzonItem>();
@@ -68,6 +74,8 @@ namespace ControlesUsuario.Notificaciones
         public IAsyncRelayCommand<NotificacionBuzonItem> AbrirNotificacionCommand { get; }
         public IAsyncRelayCommand<NotificacionBuzonItem> BorrarNotificacionCommand { get; }
         public IAsyncRelayCommand MarcarTodasLeidasCommand { get; }
+        /// <summary>Nesto#501: el botón de Novedades junto a la campana.</summary>
+        public IAsyncRelayCommand AbrirNovedadesCommand { get; }
 
         private int _noLeidas;
         public int NoLeidas
@@ -236,7 +244,8 @@ namespace ControlesUsuario.Notificaciones
 
         /// <summary>
         /// Marca la notificación leída y la «abre»: la respuesta a un comentario de Novedades abre la ventana
-        /// de Novedades en ese comentario; cualquier otra se despliega para leerla entera.
+        /// de Novedades en ese comentario; el aviso de versión nueva (Nesto#501), en esa versión; cualquier
+        /// otra se despliega para leerla entera.
         /// </summary>
         internal async Task AbrirNotificacion(NotificacionBuzonItem item)
         {
@@ -276,7 +285,23 @@ namespace ControlesUsuario.Notificaciones
                 _dialogService.ShowDialog(DIALOGO_NOVEDADES, parametros, _ => { });
                 return;
             }
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_NUEVA_VERSION_NESTO && _abridorNovedades != null)
+            {
+                await AbrirNovedades(item.Notificacion.Dato("version"));
+                return;
+            }
             item.Desplegada = !item.Desplegada;
+        }
+
+        /// <summary>Nesto#501: cierra el panel y abre Novedades (en <paramref name="version"/> si se indica).</summary>
+        private Task AbrirNovedades(string version)
+        {
+            if (_abridorNovedades == null)
+            {
+                return Task.CompletedTask;
+            }
+            PanelAbierto = false;
+            return _abridorNovedades.Abrir(version);
         }
 
         internal async Task BorrarNotificacion(NotificacionBuzonItem item)

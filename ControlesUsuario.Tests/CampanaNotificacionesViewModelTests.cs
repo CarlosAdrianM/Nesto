@@ -23,6 +23,7 @@ namespace ControlesUsuario.Tests
 
         private IBuzonNotificacionesService buzon;
         private IDialogService dialogos;
+        private IAbridorNovedades abridorNovedades;
         private CampanaNotificacionesViewModel vm;
 
         [TestInitialize]
@@ -30,10 +31,11 @@ namespace ControlesUsuario.Tests
         {
             buzon = A.Fake<IBuzonNotificacionesService>();
             dialogos = A.Fake<IDialogService>();
+            abridorNovedades = A.Fake<IAbridorNovedades>();
             avisos = new AvisosFalsos();
             reloj = Ahora;
             A.CallTo(() => buzon.LeerBuzon(A<bool>._, A<int>._, A<int>._)).Returns(Task.FromResult(new List<NotificacionBuzon>()));
-            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, () => reloj, new Random(1));
+            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1));
         }
 
         private AvisosFalsos avisos;
@@ -115,6 +117,18 @@ namespace ControlesUsuario.Tests
                 FechaCreacion = Ahora.AddMinutes(-5),
                 Leida = leida,
                 Datos = new Dictionary<string, string> { ["tipo"] = "NovedadComentario", ["novedadId"] = "338", ["comentarioId"] = "77" }
+            };
+
+        private static NotificacionBuzon NuevaVersion(int id, bool leida = false)
+            => new NotificacionBuzon
+            {
+                Id = id,
+                Titulo = "Nesto 1.10.32.0 ya está publicado",
+                Cuerpo = "Cuando os venga bien, cerrad Nesto y volved a abrirlo para actualizar a la versión 1.10.32.0. En Novedades tenéis lo que trae.",
+                FechaCreacion = Ahora.AddMinutes(-5),
+                Leida = leida,
+                // Lo que manda NestoAPI en POST api/Notificaciones/NuevaVersionNesto
+                Datos = new Dictionary<string, string> { ["tipo"] = "NuevaVersionNesto", ["version"] = "1.10.32.0" }
             };
 
         private static NotificacionBuzon Otra(int id, bool leida = false)
@@ -264,6 +278,35 @@ namespace ControlesUsuario.Tests
             A.CallTo(() => buzon.MarcarLeida(8)).MustHaveHappenedOnceExactly();
             Assert.IsTrue(vm.Notificaciones[0].Desplegada);
             A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task PulsarAvisoDeVersionNueva_LaMarcaLeidaYAbreNovedadesEnEsaVersion()
+        {
+            // Nesto#501: antes solo se desplegaba el texto («En Novedades tenéis lo que trae»)
+            await CargarCon(NuevaVersion(9));
+            vm.PanelAbierto = true;
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(9)).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(vm.Notificaciones[0].Leida);
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
+            A.CallTo(() => abridorNovedades.Abrir("1.10.32.0")).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public void BotonNovedades_AbreNovedadesYCierraElPanel()
+        {
+            // Nesto#501: el botón junto a la campana
+            vm.PanelAbierto = true;
+
+            Assert.IsTrue(vm.AbrirNovedadesCommand.CanExecute(null));
+            vm.AbrirNovedadesCommand.Execute(null);
+
+            A.CallTo(() => abridorNovedades.Abrir(null)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto);
         }
 
         [TestMethod]

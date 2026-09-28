@@ -13,7 +13,17 @@
         </Style>
     </UserControl.Resources>
     <Grid>
-        <ToggleButton x:Name="BotonCampana" IsChecked="{Binding PanelAbierto, Mode=TwoWay}" ToolTip="{Binding TextoToolTip}"
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <!-- Nesto#501: Novedades a mano, junto a la campana (antes solo en el menú «Nesto» de la cinta) -->
+        <Button x:Name="BotonNovedades" Grid.Column="0" Command="{Binding AbrirNovedadesCommand}" ToolTip="Novedades y sugerencias"
+                Background="Transparent" BorderThickness="0" Padding="4,0" Margin="0,0,4,0" Cursor="Hand" Focusable="False">
+            <TextBlock Text="&#xE789;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,2,0,0"
+                       VerticalAlignment="Center" Foreground="#444444" />
+        </Button>
+        <ToggleButton x:Name="BotonCampana" Grid.Column="1" IsChecked="{Binding PanelAbierto, Mode=TwoWay}" ToolTip="{Binding TextoToolTip}"
                       Background="Transparent" BorderThickness="0" Padding="4,0" Cursor="Hand" Focusable="False">
             <ToggleButton.Style>
                 <Style TargetType="ToggleButton">

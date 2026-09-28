@@ -148,6 +148,8 @@ Partial Public Class Application
                 Dim factory = provider.Resolve(Of IClienteApiFactory)()
                 Return New NovedadesService(factory)
             End Function)
+        ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
+        Dim unusedAbridorNovedades = containerRegistry.Register(Of IAbridorNovedades, AbridorNovedades)()
 
         ' Nesto#477: buzón de notificaciones (campana de la cinta)
         Dim unusedBuzon = containerRegistry.RegisterSingleton(Of IBuzonNotificacionesService)(

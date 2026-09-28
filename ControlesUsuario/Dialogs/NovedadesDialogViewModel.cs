@@ -138,7 +138,7 @@ namespace ControlesUsuario.Dialogs
 
             _items = todas.Where(n => n != null).Select(CrearItem).ToList();
             Reagrupar();
-            MostrarVersion(0);
+            MostrarVersion(IndiceDeVersion(parameters.ContainsKey(PARAMETRO_VERSION) ? parameters.GetValue<string>(PARAMETRO_VERSION) : null));
 
             // Nesto#477: desde la campana (te han contestado): directos a la novedad y al comentario.
             if (parameters.ContainsKey(PARAMETRO_NOVEDAD_ID))
@@ -153,6 +153,18 @@ namespace ControlesUsuario.Dialogs
         /// <summary>Nesto#477: parámetros del diálogo para abrirlo en una novedad y en uno de sus comentarios.</summary>
         public const string PARAMETRO_NOVEDAD_ID = "novedadId";
         public const string PARAMETRO_COMENTARIO_ID = "comentarioId";
+        /// <summary>Nesto#501: abrir en esa versión (el aviso de versión nueva de la campana).</summary>
+        public const string PARAMETRO_VERSION = "version";
+
+        /// <summary>Nesto#501: la página de esa versión; sin ella o si no tiene novedades, la más nueva (0).</summary>
+        private int IndiceDeVersion(string version)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                return 0;
+            }
+            return Math.Max(0, _porVersion.FindIndex(g => g.Key == version.Trim()));
+        }
 
         private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables);
 

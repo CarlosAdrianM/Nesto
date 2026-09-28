@@ -286,6 +286,10 @@
                     Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}" />
             <Button DockPanel.Dock="Right" Content="Cerrar" Command="{Binding CloseDialogCommand}"
                     Width="90" Height="28" IsCancel="True" />
+            <!-- Nesto#501: al cerrarla no sabían volver a abrirla -->
+            <TextBlock DockPanel.Dock="Right" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="#777777" FontSize="11"
+                       TextWrapping="Wrap" MaxWidth="260"
+                       Text="Puedes volver a abrir esta ventana con el megáfono que hay junto a la campana, arriba a la derecha." />
         </DockPanel>
     </Grid>
 </UserControl>

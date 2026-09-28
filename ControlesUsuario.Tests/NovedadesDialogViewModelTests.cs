@@ -71,6 +71,38 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public void ConVersion_AbreEnEsaVersion()
+        {
+            // Nesto#501: el aviso de versión nueva de la campana abre Novedades en su versión
+            var vm = new NovedadesDialogViewModel();
+            var p = new DialogParameters
+            {
+                { "novedades", new List<NovedadUsuario> { N("1.10.7.0", "a"), N("1.10.8.0", "b") } },
+                { NovedadesDialogViewModel.PARAMETRO_VERSION, "1.10.7.0" }
+            };
+
+            vm.OnDialogOpened(p);
+
+            Assert.AreEqual("Versión 1.10.7.0", vm.VersionActual);
+            Assert.IsTrue(vm.VersionSiguienteCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void ConVersionSinNovedades_AbreEnLaMasNueva()
+        {
+            var vm = new NovedadesDialogViewModel();
+            var p = new DialogParameters
+            {
+                { "novedades", new List<NovedadUsuario> { N("1.10.7.0", "a"), N("1.10.8.0", "b") } },
+                { NovedadesDialogViewModel.PARAMETRO_VERSION, "1.10.9.0" }
+            };
+
+            vm.OnDialogOpened(p);
+
+            Assert.AreEqual("Versión 1.10.8.0", vm.VersionActual);
+        }
+
+        [TestMethod]
         public void SinNovedades_NoRompe()
         {
             var vm = CrearVm();

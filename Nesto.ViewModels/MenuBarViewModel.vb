@@ -325,17 +325,11 @@ Public Class MenuBarViewModel
         _regionManager.RequestNavigate("MainRegion", "VideosView")
     End Sub
 
-    ' Nesto#372: consulta del changelog completo desde Herramientas → Ayuda → Novedades
+    ' Nesto#372: consulta del changelog completo desde Herramientas → Ayuda → Novedades.
+    ' Nesto#501: la misma apertura que el botón junto a la campana y el aviso de versión nueva.
     Private Async Sub OnNovedades()
         Try
-            Dim novedadesService = _container.Resolve(Of INovedadesService)()
-            Dim dialogService = _container.Resolve(Of Prism.Services.Dialogs.IDialogService)()
-            Dim novedades = Await novedadesService.ObtenerNovedades()
-            Dim parametros As New Prism.Services.Dialogs.DialogParameters From {
-                {"novedades", novedades}
-            }
-            dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)
-                                                                    End Sub)
+            Await _container.Resolve(Of ControlesUsuario.Dialogs.IAbridorNovedades)().Abrir()
         Catch ex As Exception
             ' Consultar las novedades nunca debe tirar la aplicación
         End Try

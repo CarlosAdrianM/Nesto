@@ -13,6 +13,12 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Tipo que deja la API cuando el asistente contesta un comentario de Novedades.</summary>
         public const string TIPO_NOVEDAD_COMENTARIO = "NovedadComentario";
 
+        /// <summary>
+        /// Nesto#501: tipo del aviso de versión nueva (NestoAPI, POST api/Notificaciones/NuevaVersionNesto,
+        /// ritual del deploy). Trae la versión en Datos["version"].
+        /// </summary>
+        public const string TIPO_NUEVA_VERSION_NESTO = "NuevaVersionNesto";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }
