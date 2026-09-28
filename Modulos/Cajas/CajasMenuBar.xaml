@@ -16,6 +16,11 @@
                 <RibbonButton Label="Bancos" LargeImageSource="Images/Bancos.png"  Command="{Binding AbrirModuloBancosCommand}" />
                 <RibbonButton Label="Mayor Cuenta" LargeImageSource="Images/MayorCuenta.png"  Command="{Binding AbrirModuloMayorCuentaCommand}" />
             </RibbonGroup>
+            <!-- NestoAPI#522: facturas pendientes de Verifactu (sin registrar o incorrectas en la AEAT) -->
+            <RibbonGroup x:Name="grpVerifactu"
+                            Header="Verifactu">
+                <RibbonButton Label="Facturas Verifactu" LargeImageSource="Images/FacturasVerifactu.png"  Command="{Binding AbrirFacturasVerifactuCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

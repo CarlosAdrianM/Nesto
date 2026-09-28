@@ -19,6 +19,12 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public const string TIPO_NUEVA_VERSION_NESTO = "NuevaVersionNesto";
 
+        /// <summary>NestoAPI#522: recordatorio diario a administración de las facturas pendientes de Verifactu.</summary>
+        public const string TIPO_FACTURAS_PENDIENTES_VERIFACTU = "FacturasPendientesVerifactu";
+
+        /// <summary>NestoAPI#522: la ventana (módulo Cajas) que abre ese recordatorio al pulsarlo.</summary>
+        public const string VISTA_FACTURAS_PENDIENTES_VERIFACTU = "FacturasPendientesVerifactuView";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }

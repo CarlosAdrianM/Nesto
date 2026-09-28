@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -23,7 +24,8 @@ namespace ControlesUsuario.Notificaciones
     /// calla (sin avisos ni ELMAH: la campana no debe molestar).
     /// Al pulsar una notificación se marca leída y, si es la respuesta a un comentario de Novedades,
     /// se abre la ventana de Novedades en ese comentario; si es el aviso de versión nueva (Nesto#501), en esa
-    /// versión. Nesto#501: junto a la campana, un botón que abre Novedades (antes solo estaba en el menú de la
+    /// versión; si es el recordatorio de facturas pendientes de Verifactu (NestoAPI#522), se abre esa ventana.
+    /// Nesto#501: junto a la campana, un botón que abre Novedades (antes solo estaba en el menú de la
     /// cinta y los usuarios no sabían volver a abrirla).
     /// </summary>
     public class CampanaNotificacionesViewModel : ObservableObject
@@ -33,10 +35,12 @@ namespace ControlesUsuario.Notificaciones
         public static readonly TimeSpan MINIMO_ENTRE_REFRESCOS_POR_FOCO = TimeSpan.FromMinutes(5);
         internal const int TAMANO_PANEL = 50;
         internal const string DIALOGO_NOVEDADES = "NovedadesDialog";
+        internal const string REGION_PRINCIPAL = "MainRegion";
 
         private readonly IBuzonNotificacionesService _buzon;
         private readonly IDialogService _dialogService;
         private readonly IAbridorNovedades _abridorNovedades;
+        private readonly IRegionManager _regionManager;
         private readonly Func<DateTime> _ahora;
         private readonly Random _azar;
         private readonly Dispatcher _dispatcher;
@@ -45,15 +49,16 @@ namespace ControlesUsuario.Notificaciones
         private DateTime _ultimoRefrescoPorFoco = DateTime.MinValue;
 
         public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades)
-            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random()) { }
+            IAbridorNovedades abridorNovedades, IRegionManager regionManager)
+            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), regionManager) { }
 
         internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar)
+            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IRegionManager regionManager = null)
         {
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _dialogService = dialogService;
             _abridorNovedades = abridorNovedades;
+            _regionManager = regionManager;
             _ahora = ahora ?? (() => DateTime.Now);
             _azar = azar ?? new Random();
             // Null en los tests (sin Application): entonces el aviso se atiende en el hilo que llega.
@@ -288,6 +293,14 @@ namespace ControlesUsuario.Notificaciones
             if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_NUEVA_VERSION_NESTO && _abridorNovedades != null)
             {
                 await AbrirNovedades(item.Notificacion.Dato("version"));
+                return;
+            }
+            // NestoAPI#522: el recordatorio diario de administración abre la ventana de facturas pendientes de
+            // Verifactu (módulo Cajas). Si ya está abierta, se reutiliza la pestaña y se recarga.
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_FACTURAS_PENDIENTES_VERIFACTU && _regionManager != null)
+            {
+                PanelAbierto = false;
+                _regionManager.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU);
                 return;
             }
             item.Desplegada = !item.Desplegada;

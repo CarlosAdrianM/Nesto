@@ -8,6 +8,9 @@ namespace Nesto.Modulos.Cajas
 {
     public class Cajas : IModule, ICajas
     {
+        /// <summary>El nombre con el que se navega a la ventana; la campana usa el mismo (NotificacionBuzon).</summary>
+        public const string FACTURAS_PENDIENTES_VERIFACTU_VIEW = NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU;
+
         public void OnInitialized(IContainerProvider containerProvider)
         {
             var view = containerProvider.Resolve<CajasMenuBar>();
@@ -26,6 +29,9 @@ namespace Nesto.Modulos.Cajas
             containerRegistry.Register<object, CajasView>("CajasView");
             containerRegistry.Register<object, BancosView>("BancosView");
             containerRegistry.Register<object, MayorCuentaView>("MayorCuentaView");
+            // NestoAPI#522: facturas pendientes de Verifactu (también se abre desde la campana)
+            containerRegistry.Register<object, FacturasPendientesVerifactuView>(FACTURAS_PENDIENTES_VERIFACTU_VIEW);
+            containerRegistry.Register<Interfaces.IFacturasVerifactuService, Services.FacturasVerifactuService>();
         }
     }
 }

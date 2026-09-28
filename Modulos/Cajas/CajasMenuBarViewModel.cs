@@ -18,6 +18,7 @@ namespace Nesto.Modulos.Cajas
             AbrirModuloCajasCommand = new RelayCommand(OnAbrirCajasModulo, CanAbrirModuloCajas);
             AbrirModuloBancosCommand = new RelayCommand(OnAbrirBancosModulo, CanAbrirModuloBancos);
             AbrirModuloMayorCuentaCommand = new RelayCommand(OnAbrirMayorCuentaModulo, CanAbrirModuloMayorCuenta);
+            AbrirFacturasVerifactuCommand = new RelayCommand(OnAbrirFacturasVerifactu, CanAbrirFacturasVerifactu);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }
@@ -50,6 +51,18 @@ namespace Nesto.Modulos.Cajas
         private void OnAbrirMayorCuentaModulo()
         {
             RegionManager.RequestNavigate("MainRegion", "MayorCuentaView");
+        }
+
+        // NestoAPI#522: facturas pendientes de Verifactu, para Administración y Dirección
+        public ICommand AbrirFacturasVerifactuCommand { get; private set; }
+        private bool CanAbrirFacturasVerifactu()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        }
+        private void OnAbrirFacturasVerifactu()
+        {
+            RegionManager.RequestNavigate("MainRegion", Cajas.FACTURAS_PENDIENTES_VERIFACTU_VIEW);
         }
     }
 }

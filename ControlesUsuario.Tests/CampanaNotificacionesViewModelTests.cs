@@ -3,6 +3,7 @@ using ControlesUsuario.Notificaciones;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace ControlesUsuario.Tests
         private IBuzonNotificacionesService buzon;
         private IDialogService dialogos;
         private IAbridorNovedades abridorNovedades;
+        private IRegionManager regiones;
         private CampanaNotificacionesViewModel vm;
 
         [TestInitialize]
@@ -32,10 +34,11 @@ namespace ControlesUsuario.Tests
             buzon = A.Fake<IBuzonNotificacionesService>();
             dialogos = A.Fake<IDialogService>();
             abridorNovedades = A.Fake<IAbridorNovedades>();
+            regiones = A.Fake<IRegionManager>();
             avisos = new AvisosFalsos();
             reloj = Ahora;
             A.CallTo(() => buzon.LeerBuzon(A<bool>._, A<int>._, A<int>._)).Returns(Task.FromResult(new List<NotificacionBuzon>()));
-            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1));
+            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1), regiones);
         }
 
         private AvisosFalsos avisos;
@@ -266,6 +269,29 @@ namespace ControlesUsuario.Tests
 
             A.CallTo(() => buzon.MarcarLeida(A<int>._)).MustNotHaveHappened();
             A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task PulsarElRecordatorioDeFacturasVerifactu_AbreEsaVentana()
+        {
+            // NestoAPI#522: la nota diaria a administración lleva a la ventana de facturas pendientes de Verifactu
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 9,
+                Titulo = "Facturas pendientes de Verifactu",
+                Cuerpo = "Hay 2 facturas que Verifactu todavía no da por buenas",
+                FechaCreacion = Ahora.AddHours(-3),
+                Datos = new Dictionary<string, string> { ["tipo"] = "FacturasPendientesVerifactu", ["cantidad"] = "2" }
+            });
+            vm.PanelAbierto = true;
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(9)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
+            A.CallTo(() => regiones.RequestNavigate("MainRegion", "FacturasPendientesVerifactuView")).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
         }
 
         [TestMethod]

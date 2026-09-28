@@ -34,6 +34,7 @@
     </Resource>
     <Resource Include="Images\Bancos.png" />
     <Resource Include="Images\MayorCuenta.png" />
+    <Resource Include="Images\FacturasVerifactu.png" />
   </ItemGroup>
 
 </Project>

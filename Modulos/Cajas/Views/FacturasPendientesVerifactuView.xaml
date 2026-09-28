@@ -1,0 +1,101 @@
+<UserControl x:Class="Nesto.Modulos.Cajas.Views.FacturasPendientesVerifactuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="950"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             Background="White">
+
+    <!-- NestoAPI#522: facturas pendientes de Verifactu (sin registrar o incorrectas en la AEAT), con el
+         motivo y el reintento del envío una vez corregidas. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleSiVerdadero"/>
+    </UserControl.Resources>
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Facturas pendientes de Verifactu" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="{Binding Resumen}" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="Las que no se han podido enviar se reintentan solas cada hora; las incorrectas en la AEAT hay que corregirlas y reintentarlas desde aquí."
+                           Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                <Button Content="Actualizar" Command="{Binding CargarCommand}" Margin="15,0,0,0" Padding="10,2"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Facturas}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding FacturaSeleccionada}"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <!-- Las que la AEAT no acepta: hay que corregirlas a mano -->
+                            <DataTrigger Binding="{Binding Situacion}" Value="Incorrecta en la AEAT">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Background" Value="#FFF4E5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Factura" Binding="{Binding Numero}"/>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="200"/>
+                    <DataGridTextColumn Header="Situación" Binding="{Binding Situacion}"/>
+                    <DataGridTextColumn Header="Estado AEAT" Binding="{Binding Estado}"/>
+                    <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="*"/>
+                    <DataGridTextColumn Header="Último intento" Binding="{Binding UltimoIntento, StringFormat=g}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Grid.Row="3" Margin="0,10,0,0" FontStyle="Italic" Foreground="Gray"
+                       Text="Selecciona una factura para ver el motivo completo y reintentar el envío.">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HayFacturaSeleccionada}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
+                    Visibility="{Binding HayFacturaSeleccionada, Converter={StaticResource VisibleSiVerdadero}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Motivo:" FontWeight="Bold" Margin="0,0,8,4"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FacturaSeleccionada.Motivo, Mode=OneWay}" IsReadOnly="True"
+                             TextWrapping="Wrap" BorderThickness="0" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Qué hacer:" FontWeight="Bold" Margin="0,0,8,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FacturaSeleccionada.QueHacer}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Reintentar el envío" Command="{Binding ReintentarCommand}" Padding="10,2" FontWeight="Bold" MinWidth="140"/>
+                        <TextBlock Text="Vuelve a mandar la factura a Verifactu con el mismo número y la misma fecha (las incorrectas en la AEAT, como subsanación)."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
