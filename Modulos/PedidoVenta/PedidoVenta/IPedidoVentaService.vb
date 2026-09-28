@@ -89,4 +89,7 @@ Public Interface IPedidoVentaService
     ' Nesto#496 / NestoAPI#519: pasa el pedido a otro cliente y lo recalcula en la API. Lanza ValidationException
     ' si con el cliente nuevo no pasa la validación (se puede forzar con creadoSinPasarValidacion).
     Function CambiarCliente(empresa As String, numero As Integer, cliente As String, contacto As String, creadoSinPasarValidacion As Boolean) As Task(Of CambiarClientePedidoRespuestaModel)
+    ' Sugerencia 396 de Novedades: IBAN, beneficiario, concepto, importe y el texto para copiar de un pedido
+    ' prepago por transferencia. Lanza una excepción con el motivo si la API no los da (404, sin cuenta...).
+    Function LeerDatosTransferencia(empresa As String, numero As Integer) As Task(Of DatosTransferenciaPedidoModel)
 End Interface

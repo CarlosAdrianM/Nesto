@@ -123,7 +123,7 @@ Public Class PedidoVentaService
 
             ' Nesto#379: distinguir "no existe" (404) de un error del API. Antes cualquier fallo se
             ' convertía en Nothing y el usuario veía "El producto no existe" aunque fuese un 500.
-            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+            If response.StatusCode = System.Net.HttpStatusCode.NotFound Then
                 Return Nothing
             End If
 
@@ -212,6 +212,28 @@ Public Class PedidoVentaService
                 Throw InterpretarRespuestaError(body)
             End If
             Return JsonConvert.DeserializeObject(Of CambiarClientePedidoRespuestaModel)(body)
+        End Using
+    End Function
+
+    ' Sugerencia 396 de Novedades: los datos para que el cliente pague el pedido prepago por transferencia.
+    Public Async Function LeerDatosTransferencia(empresa As String, numero As Integer) As Task(Of DatosTransferenciaPedidoModel) Implements IPedidoVentaService.LeerDatosTransferencia
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/{empresa?.Trim()}/{numero}/DatosTransferencia")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If response.StatusCode = System.Net.HttpStatusCode.NotFound Then
+                    Throw New Exception($"No se encuentra el pedido {numero}. ¿Está guardado?")
+                End If
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se han podido leer los datos de transferencia del pedido ({CInt(response.StatusCode)}).")
+                End If
+                Throw New Exception(ExtraerMensajeError(body))
+            End If
+            Return JsonConvert.DeserializeObject(Of DatosTransferenciaPedidoModel)(body)
         End Using
     End Function
 

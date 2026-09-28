@@ -109,6 +109,7 @@ Public Class DetallePedidoViewModel
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New RelayCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
         EnviarCobroTarjetaCommand = New RelayCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
+        CopiarDatosTransferenciaCommand = New AsyncRelayCommand(AddressOf CopiarDatosTransferenciaAsync, AddressOf CanCopiarDatosTransferencia) ' Sugerencia 396
         CopiarAlPortapapelesCommand = New RelayCommand(AddressOf OnCopiarAlPortapapeles, AddressOf CanCopiarAlPortapapeles)
         CrearAlbaranVentaCommand = New RelayCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
         CrearFacturaVentaCommand = New RelayCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
@@ -624,6 +625,7 @@ Public Class DetallePedidoViewModel
             MostrarCambioCliente = False
             OnPropertyChanged(NameOf(PuedeCambiarCliente))
             AbrirCambioClienteCommand?.NotifyCanExecuteChanged()
+            NotificarCambioDatosTransferencia() ' Sugerencia 396
         End Set
     End Property
 
@@ -2191,6 +2193,49 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
+    ' Sugerencia 396 de Novedades (Paloma): junto al enlace de pago con tarjeta, un botón que copia de una vez
+    ' el IBAN, el beneficiario, el concepto y el importe para que el cliente pague por transferencia.
+    Public Property CopiarDatosTransferenciaCommand As AsyncRelayCommand
+
+    ''' <summary>Dónde se copia el texto. Se cambia en los tests para no tocar el portapapeles de verdad.</summary>
+    Public Property Portapapeles As IPortapapelesTexto = New PortapapelesTextoWpf()
+
+    Public ReadOnly Property EsPrepagoPorTransferencia As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso DatosTransferenciaPedido.EsPrepagoPorTransferencia(pedido.formaPago, pedido.plazosPago)
+        End Get
+    End Property
+
+    Private Function CanCopiarDatosTransferencia() As Boolean
+        ' El concepto lleva el número de pedido: un pedido sin guardar aún no lo tiene
+        Return EsPrepagoPorTransferencia AndAlso pedido.numero > 0
+    End Function
+
+    Private Sub NotificarCambioDatosTransferencia()
+        OnPropertyChanged(NameOf(EsPrepagoPorTransferencia))
+        CopiarDatosTransferenciaCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>Pide los datos a la API, los copia y devuelve el texto copiado (Nothing si no se ha podido).</summary>
+    Friend Async Function CopiarDatosTransferenciaAsync() As Task(Of String)
+        If Not CanCopiarDatosTransferencia() Then
+            Return Nothing
+        End If
+        Try
+            Dim datos As DatosTransferenciaPedidoModel = Await servicio.LeerDatosTransferencia(pedido.empresa, pedido.numero)
+            If datos Is Nothing OrElse String.IsNullOrWhiteSpace(datos.Texto) Then
+                dialogService.ShowError("No se han podido leer los datos de transferencia del pedido.")
+                Return Nothing
+            End If
+            Portapapeles.CopiarTexto(datos.Texto)
+            dialogService.ShowNotification(DatosTransferenciaPedido.TITULO, DatosTransferenciaPedido.MENSAJE_COPIADOS & vbCrLf & vbCrLf & datos.Texto)
+            Return datos.Texto
+        Catch ex As Exception
+            dialogService.ShowError("No se han podido copiar los datos de transferencia: " & ex.Message)
+            Return Nothing
+        End Try
+    End Function
+
     Private _cmdModificarPedido As RelayCommand
     Public Property cmdModificarPedido As RelayCommand
         Get
@@ -2775,6 +2820,14 @@ Public Class DetallePedidoViewModel
     ' Carlos 09/12/25: Issue #245 - Actualizar EsSerieCursos cuando cambia la serie
     ' Carlos 09/12/25: Issue #253/#52 - Reinicializar FormaVenta y Almacén cuando cambia la serie
     Private Sub OnPedidoPropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
+        ' Sugerencia 396: los datos de transferencia se ofrecen solo en prepago por transferencia de un pedido guardado
+        If e.PropertyName = NameOf(pedido.formaPago) OrElse
+           e.PropertyName = NameOf(pedido.plazosPago) OrElse
+           e.PropertyName = NameOf(pedido.numero) OrElse
+           e.PropertyName = String.Empty Then
+            NotificarCambioDatosTransferencia()
+        End If
+
         If e.PropertyName = NameOf(pedido.serie) Then
             OnPropertyChanged(NameOf(EsSerieCursos))
             OnPropertyChanged(NameOf(HayLineasEditables))

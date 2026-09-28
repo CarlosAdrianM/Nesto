@@ -489,11 +489,21 @@
                                     <RowDefinition/>
                                     <RowDefinition/>
                                     <RowDefinition/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <xctk:WatermarkTextBox Grid.Row="0" Text="{Binding CobroTarjetaCorreo, UpdateSourceTrigger=PropertyChanged}" Watermark="Correo electrónico para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <xctk:WatermarkTextBox Grid.Row="1" Text="{Binding CobroTarjetaMovil, UpdateSourceTrigger=PropertyChanged}" Watermark="Móvil para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Importe para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <Button Grid.Row="3" Command="{Binding EnviarCobroTarjetaCommand}">Mandar enlace pago</Button>
+                                <!-- Sugerencia 396: en prepago por transferencia, copiar IBAN, beneficiario, concepto e importe para el cliente -->
+                                <Button Grid.Row="4" Margin="0,3,0,0" Command="{Binding CopiarDatosTransferenciaCommand}"
+                                        Visibility="{Binding EsPrepagoPorTransferencia, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Copia al portapapeles el IBAN, el beneficiario, el concepto y el importe para que el cliente haga la transferencia">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="Segoe UI Symbol" Text="&#xE16F;" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Copiar datos transferencia" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                             <CheckBox IsChecked="{Binding pedido.CrearEfectosManualmente}">Crear vencimientos manualmente</CheckBox>
                             <StackPanel Visibility="{Binding pedido.CrearEfectosManualmente, Converter={StaticResource BooleanToVisibilityConverter}}">
