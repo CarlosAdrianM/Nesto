@@ -749,6 +749,41 @@ namespace Nesto.Modulos.Cajas.ViewModels
             return null;
         }
 
+        /// <summary>
+        /// Carlos 28/09/26: por qué una regla no ha generado ninguna línea, para el usuario y para ELMAH.
+        /// Pura: se testea sin ventana.
+        /// </summary>
+        internal static string DiagnosticoContabilizacionSinLineas(string regla,
+            IList<ApunteBancarioDTO>? bancoSeleccionados, IList<ApunteBancarioDTO>? bancoSinPuntear,
+            IList<ContabilidadDTO>? contabilidadSeleccionados, IList<ContabilidadDTO>? contabilidadSinPuntear)
+        {
+            int banco = bancoSeleccionados?.Count ?? 0;
+            int bancoLibres = bancoSinPuntear?.Count ?? 0;
+            int conta = contabilidadSeleccionados?.Count ?? 0;
+            int contaLibres = contabilidadSinPuntear?.Count ?? 0;
+            string motivo = bancoLibres == 0 && banco > 0
+                ? "Los movimientos del banco seleccionados ya están punteados del todo."
+                : contaLibres == 0 && conta > 0
+                    ? "Los apuntes de contabilidad seleccionados ya están punteados del todo."
+                    : "La regla no ha generado ningún apunte con lo seleccionado.";
+            return $"{motivo} Regla «{regla}». Banco: {banco} seleccionados, {bancoLibres} sin puntear del todo" +
+                (banco > 0 ? $" (Id {string.Join(", ", bancoSeleccionados!.Select(b => b.Id))})" : string.Empty) +
+                $". Contabilidad: {conta} seleccionados, {contaLibres} sin puntear del todo" +
+                (conta > 0 ? $" (Id {string.Join(", ", contabilidadSeleccionados!.Select(c => c.Id))})" : string.Empty) + ".";
+        }
+
+        private static void RegistrarEnElmah(Exception ex, string contexto)
+        {
+            try
+            {
+                _ = (Prism.Ioc.ContainerLocator.Container?.Resolve(typeof(IServicioRegistroErrores)) as IServicioRegistroErrores)?.RegistrarErrorAsync(ex, contexto);
+            }
+            catch
+            {
+                // El registro es un extra: nunca debe romper la conciliación
+            }
+        }
+
         private async void OnContabilizarApunte()
         {
             IReglaContabilizacion? reglaContabilizable = null;
@@ -787,6 +822,19 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                 if (respuesta is null)
                 {
+                    return;
+                }
+
+                // Carlos 28/09/26: la regla se elige con TODO lo seleccionado, pero contabiliza solo lo que
+                // no está completamente punteado. Si ese filtro deja una lista vacía, la regla devuelve una
+                // respuesta sin líneas y antes salía «Apunte contabilizado correctamente en asiento -1»
+                // (el -1 lo ponía el cliente sin llegar a llamar a la API, así que ELMAH no veía nada).
+                if (!respuesta.CrearFacturas && (respuesta.Lineas is null || !respuesta.Lineas.Any()))
+                {
+                    string diagnostico = DiagnosticoContabilizacionSinLineas(reglaContabilizable.Nombre,
+                        apuntesBancoRegla, apuntesBancoSeleccionados, apuntesContabilidadRegla, apuntesContabilidadSeleccionados);
+                    RegistrarEnElmah(new InvalidOperationException(diagnostico), "Bancos: contabilizar apunte sin líneas");
+                    _dialogService.ShowError("No se ha contabilizado nada.\n" + diagnostico);
                     return;
                 }
 
@@ -833,6 +881,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 else
                 {
                     int asiento = await _contabilidadService.Contabilizar(respuesta.Lineas);
+                    if (asiento <= 0)
+                    {
+                        // prdContabilizar devuelve 0 cuando no queda nada que contabilizar en el diario
+                        string diagnostico = $"La contabilidad ha devuelto el asiento {asiento} (regla «{reglaContabilizable.Nombre}», " +
+                            $"{respuesta.Lineas.Count} líneas, diario {respuesta.Lineas.FirstOrDefault()?.Diario?.Trim()}).";
+                        RegistrarEnElmah(new InvalidOperationException(diagnostico), "Bancos: contabilizar apunte devolvió asiento no válido");
+                        throw new Exception(diagnostico + " No se ha contabilizado nada: vuelve a intentarlo y, si se repite, avisa a informática.");
+                    }
                     textoMensajeFinal = $"Apunte contabilizado correctamente en asiento {asiento}";
                 }
                 await CargarApuntesContabilidad(FechaDesde, FechaHasta);

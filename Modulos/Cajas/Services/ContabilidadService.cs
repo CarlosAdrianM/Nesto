@@ -67,9 +67,10 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<int> Contabilizar(List<PreContabilidadDTO> lineas)
         {
-            if (lineas is null)
+            if (lineas is null || lineas.Count == 0)
             {
-                return -1;
+                // Carlos 28/09/26: antes devolvía -1 y la pantalla lo daba por bueno («asiento -1»)
+                throw new ArgumentException("No hay ninguna línea que contabilizar.", nameof(lineas));
             }
             foreach (var linea in lineas)
             {
