@@ -1234,19 +1234,6 @@ namespace Nesto.Modules.Producto.ViewModels
         #endregion
 
 
-        private async void OnCorrigeVideoProducto(ProductoVideoModel producto)
-        {
-            var dialogParameters = new ParametrosDialogo();
-            // Aquí puedes pasar el producto como parámetro si usas otro patrón
-
-            var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
-
-            if (result.Result == ResultadoBoton.OK)
-            {
-                VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
-            }
-        }
-
         public new async void OnNavigatedTo(NavigationContext navigationContext)
         {
             AlmacenDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);

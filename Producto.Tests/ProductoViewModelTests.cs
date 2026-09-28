@@ -49,6 +49,29 @@ namespace Producto.Tests
             Assert.AreEqual(Pestannas.Filtros, sut.PestannaSeleccionada);
         }
 
+        [TestMethod]
+        public void ReportarErrorDelVideo_AbreLaCorreccionConElVideoSeleccionado_YLoRecargaAlGuardar()
+        {
+            // 28/09/26: «📢 Reportar error» de la ficha abre CorreccionVideoProductoView con el vídeo en
+            // el parámetro «producto» (es la clave que lee su OnDialogOpened); al aceptar, se recarga.
+            var servicio = A.Fake<IProductoService>();
+            var dialogService = A.Fake<IServicioDialogos>();
+            var video = new VideoModel { Id = 1981, Titulo = "Protocolo facial" };
+            A.CallTo(() => dialogService.ShowDialogAsync("CorreccionVideoProductoView", A<ParametrosDialogo>._))
+                .Returns(Task.FromResult(new ResultadoDialogo(ResultadoBoton.OK)));
+            var sut = new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
+                new WeakReferenceMessenger(), dialogService, A.Fake<IServicioAutenticacion>());
+            sut.VideoCompletoSeleccionado = video;
+
+            Assert.IsTrue(sut.CorrigeVideoProductoCommand.CanExecute(null));
+            sut.CorrigeVideoProductoCommand.Execute(null);
+
+            A.CallTo(() => dialogService.ShowDialogAsync("CorreccionVideoProductoView",
+                A<ParametrosDialogo>.That.Matches(p => p.ContainsKey("producto") && p.GetValue<VideoModel>("producto") == video)))
+                .MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.CargarVideoCompleto(1981)).MustHaveHappenedOnceExactly();
+        }
+
         // Issue #341: la búsqueda contextual debe respetar los filtros de Familia
         // y Subgrupo activos en el panel de filtros (Contains case-insensitive).
 
