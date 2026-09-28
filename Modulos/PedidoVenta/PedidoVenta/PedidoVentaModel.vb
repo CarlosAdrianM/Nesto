@@ -226,8 +226,8 @@ Public Class PedidoVentaModel
         Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
             Return (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse
                     (Not IsNothing(nombre) AndAlso nombre.ToLower.Contains(filtro.ToLower)) OrElse
-                    (Not IsNothing(cliente) AndAlso cliente.Trim.ToLower.Equals(filtro.ToLower)) OrElse
-                    (Not IsNothing(vendedor) AndAlso vendedor.Trim.ToLower.Equals(filtro.ToLower)) OrElse
+                    (Not IsNothing(cliente) AndAlso cliente.Trim.ToLower.Equals(filtro.Trim.ToLower)) OrElse
+                    (Not IsNothing(vendedor) AndAlso vendedor.Trim.ToLower.Equals(filtro.Trim.ToLower)) OrElse
                     (numero = convertirCadenaInteger(filtro))
         End Function
 
