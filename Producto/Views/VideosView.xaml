@@ -163,6 +163,24 @@
                                                    FontWeight="Bold"
                                                    Foreground="DarkBlue"/>
                                     </Border>
+
+                                    <!-- Nesto#497: hay otro video con el mismo video de YouTube -->
+                                    <Border Background="#FDECEA"
+                                            BorderBrush="#E57373"
+                                            BorderThickness="1"
+                                            CornerRadius="2"
+                                            Padding="4,2"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,3,0,0"
+                                            ToolTip="Hay otro vídeo en la lista con el mismo vídeo de YouTube"
+                                            Visibility="{Binding EsDuplicado, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock FontSize="9"
+                                                   FontWeight="Bold"
+                                                   Foreground="DarkRed">
+                                            <Run Text="DUPLICADO"/>
+                                            <Run Text="{Binding Id, Mode=OneWay, StringFormat='(Id {0})'}"/>
+                                        </TextBlock>
+                                    </Border>
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>
@@ -476,6 +494,33 @@
                                     HorizontalAlignment="Left"
                                     Padding="8,4"
                                     Background="DarkOrange"
+                                    Foreground="White"
+                                    FontWeight="Bold"
+                                    Cursor="Hand"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Nesto#497: borrar un video duplicado (solo quien tiene permiso) -->
+                    <Border Background="#FDECEA"
+                            BorderBrush="#E57373"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="0,0,0,15"
+                            Visibility="{Binding DataContext.PuedeBorrarVideos,
+                                Converter={StaticResource BooleanToVisibilityConverter},
+                                RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <StackPanel>
+                            <TextBlock Text="Solo para vídeos duplicados (el mismo vídeo de YouTube dos veces). Para retirar un vídeo de la tienda se usa la baja, no el borrado."
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,10"/>
+                            <Button Content="Borrar vídeo"
+                                    Command="{Binding DataContext.BorrarVideoCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    HorizontalAlignment="Left"
+                                    Padding="8,4"
+                                    Background="DarkRed"
                                     Foreground="White"
                                     FontWeight="Bold"
                                     Cursor="Hand"/>

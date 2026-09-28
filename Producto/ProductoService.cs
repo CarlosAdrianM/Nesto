@@ -949,5 +949,42 @@ namespace Nesto.Modules.Producto
                 throw;
             }
         }
+
+        public async Task BorrarVideo(int id)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.DeleteAsync($"Videos/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                string cuerpo = await response.Content.ReadAsStringAsync();
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido borrar el vídeo ({(int)response.StatusCode} {response.StatusCode})");
+            }
+        }
+
+        /// <summary>
+        /// NestoAPI#545: el motivo viene como {"Message": "..."} (BadRequest) o como una cadena JSON
+        /// suelta (403 con Content). Null si no hay nada legible.
+        /// </summary>
+        internal static string MotivoDelErrorDeTexto(string cuerpo)
+        {
+            if (string.IsNullOrWhiteSpace(cuerpo))
+            {
+                return null;
+            }
+            try
+            {
+                JToken token = JToken.Parse(cuerpo);
+                if (token is JObject objeto)
+                {
+                    return MotivoDelError(objeto);
+                }
+                string texto = token.Type == JTokenType.String ? token.ToString() : null;
+                return string.IsNullOrWhiteSpace(texto) ? null : texto;
+            }
+            catch (JsonReaderException)
+            {
+                return cuerpo.Trim();
+            }
+        }
     }
 }

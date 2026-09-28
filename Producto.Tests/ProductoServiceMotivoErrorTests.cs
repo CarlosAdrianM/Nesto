@@ -32,5 +32,14 @@ namespace Producto.Tests
             Assert.IsNull(ProductoService.MotivoDelError(null));
             Assert.IsNull(ProductoService.MotivoDelError(JObject.Parse("{}")));
         }
+
+        [TestMethod]
+        public void MotivoDelErrorDeTexto_BadRequestO403ConCadena()
+        {
+            // NestoAPI#545: 400 llega como {"Message": "..."}; 403 con Content(...) como cadena JSON suelta.
+            Assert.AreEqual("Usa la baja", ProductoService.MotivoDelErrorDeTexto("{\"Message\":\"Usa la baja\"}"));
+            Assert.AreEqual("Solo Dirección", ProductoService.MotivoDelErrorDeTexto("\"Solo Dirección\""));
+            Assert.IsNull(ProductoService.MotivoDelErrorDeTexto(""));
+        }
     }
 }

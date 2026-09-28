@@ -39,6 +39,7 @@ namespace Nesto.Modules.Producto.ViewModels
             CorrigeVideoProductoCommand = new RelayCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
             AbrirVideoEnNavegadorCommand = new RelayCommand(OnAbrirVideoEnNavegador, CanAbrirVideoEnNavegador);
             AbrirProductoCommand = new RelayCommand<string>(OnAbrirProducto);
+            BorrarVideoCommand = new AsyncRelayCommand(OnBorrarVideo, CanBorrarVideo);
 
             Videos = [];
             Titulo = "Videos";
@@ -97,6 +98,28 @@ namespace Nesto.Modules.Producto.ViewModels
                     );
                     OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                     CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
+                    BorrarVideoCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        // Nesto#497: el botón «Borrar vídeo» solo lo ve quien puede borrar (NestoAPI#545): quien
+        // lleva los vídeos (TiendaOnline), Dirección e Informática. La API lo vuelve a comprobar.
+        private bool? _puedeBorrarVideos;
+        public bool PuedeBorrarVideos => _puedeBorrarVideos ??=
+            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE) ||
+            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) ||
+            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
+
+        private bool _estaBorrando;
+        public bool EstaBorrando
+        {
+            get => _estaBorrando;
+            set
+            {
+                if (SetProperty(ref _estaBorrando, value))
+                {
+                    BorrarVideoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -250,6 +273,57 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        public AsyncRelayCommand BorrarVideoCommand { get; }
+
+        private bool CanBorrarVideo()
+        {
+            return VideoCompletoSeleccionado != null && PuedeBorrarVideos && !EstaBorrando;
+        }
+
+        /// <summary>
+        /// Nesto#497: borra el vídeo seleccionado tras confirmarlo. La API solo borra si está
+        /// duplicado; si no, su mensaje explica que para retirarlo se usa la baja.
+        /// </summary>
+        private async Task OnBorrarVideo()
+        {
+            VideoModel video = VideoCompletoSeleccionado;
+            if (video == null)
+            {
+                return;
+            }
+
+            if (!await _dialogService.ShowConfirmationAsync("Borrar vídeo", TextoConfirmacionBorrado(video)))
+            {
+                return;
+            }
+
+            EstaBorrando = true;
+            try
+            {
+                await _servicio.BorrarVideo(video.Id);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                return;
+            }
+            finally
+            {
+                EstaBorrando = false;
+            }
+
+            _dialogService.ShowNotification("Vídeo borrado", $"Se ha borrado el vídeo \"{video.Titulo}\".");
+            VideoSeleccionado = null;
+            VideoCompletoSeleccionado = null;
+            await CargarVideosAsync(true);
+        }
+
+        internal static string TextoConfirmacionBorrado(VideoModel video)
+        {
+            int productos = video.Productos?.Count ?? 0;
+            return $"¿Seguro que quieres borrar el vídeo \"{video.Titulo}\" (YouTube {video.VideoId}) y sus {productos} productos? No se puede deshacer.";
+        }
+
         #endregion
 
         #region Metodos
@@ -286,6 +360,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     Videos.Add(video);
                 }
+                MarcarDuplicados(Videos);
 
                 HayMasVideos = nuevosVideos.Count == VIDEOS_POR_PAGINA;
             }
@@ -296,6 +371,26 @@ namespace Nesto.Modules.Producto.ViewModels
             finally
             {
                 EstaCargando = false;
+            }
+        }
+
+        /// <summary>
+        /// Nesto#497: marca los vídeos que comparten VideoId de YouTube con otro de la lista (el
+        /// 25/09/26, 1981 y 1983 duplicaban a 1980 y 1982). Solo ve lo cargado: los duplicados se
+        /// publican a la vez y salen juntos en la lista.
+        /// </summary>
+        internal static void MarcarDuplicados(IEnumerable<VideoLookupModel> videos)
+        {
+            List<VideoLookupModel> lista = videos.ToList();
+            HashSet<string> repetidos = lista
+                .Where(v => !string.IsNullOrWhiteSpace(v.VideoId))
+                .GroupBy(v => v.VideoId.Trim(), StringComparer.Ordinal)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (VideoLookupModel video in lista)
+            {
+                video.EsDuplicado = !string.IsNullOrWhiteSpace(video.VideoId) && repetidos.Contains(video.VideoId.Trim());
             }
         }
 
