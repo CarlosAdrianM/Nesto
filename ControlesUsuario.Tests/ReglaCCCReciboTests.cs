@@ -113,12 +113,33 @@ namespace ControlesUsuario.Tests
         {
             var cccs = new List<CCCItem> { Valida("1"), DeBaja("2") };
 
-            Assert.AreEqual("Se cargará en: ES91 …… 4321 — CaixaBank", ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "1"));
-            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "2"));
-            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("EFC", cccs, "1"));
+            // Desplegable en blanco: la etiqueta es lo único que dice la cuenta
+            Assert.AreEqual("Se cargará en: ES91 …… 4321 — CaixaBank", ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "1", null));
+            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "2", null));
+            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("EFC", cccs, "1", null));
         }
 
-        private static (string ccc, string aviso, bool hayAviso, string texto) CargarSelector(IEnumerable<CCCItem> cccs, string formaPago, string cccPrevio)
+        [TestMethod]
+        public void TextoCuentaACargar_SiElDesplegableYaEnseñaEsaCuenta_NoLaRepite()
+        {
+            // Nesto#500: desde #494 el combo enseña la cuenta del pedido; la etiqueta decía lo mismo debajo.
+            var cccs = new List<CCCItem> { Valida("1"), Valida("3") };
+
+            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "1", "1"));
+            // El ccc del pedido llega relleno con espacios y el de la API recortado (#254/#494)
+            Assert.IsNull(ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "1  ", "1"));
+        }
+
+        [TestMethod]
+        public void TextoCuentaACargar_SiElDesplegableEnseñaOtraCuenta_DiceEnCualSeCarga()
+        {
+            var cccs = new List<CCCItem> { Valida("1"), Valida("3") };
+
+            Assert.AreEqual("Se cargará en: ES91 …… 4321 — CaixaBank", ReglaCCCRecibo.TextoCuentaACargar("RCB", cccs, "3", "1"));
+        }
+
+        private static (string ccc, string aviso, bool hayAviso, string texto) CargarSelector(IEnumerable<CCCItem> cccs, string formaPago, string cccPrevio,
+            string cccDespues = null)
         {
             var servicioCCC = A.Fake<IServicioCCC>();
             A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
@@ -134,6 +155,10 @@ namespace ControlesUsuario.Tests
                 sut.Contacto = "0";
                 sut.Cliente = "10";
                 sut.Empresa = "1";
+                if (cccDespues != null)
+                {
+                    sut.CCCSeleccionado = cccDespues;
+                }
                 // Los DependencyProperty solo se leen desde el hilo que creó el control
                 resultado = (sut.CCCSeleccionado, sut.AvisoRecibo, sut.HayAvisoRecibo, sut.TextoCuentaACargar);
             });
@@ -161,7 +186,30 @@ namespace ControlesUsuario.Tests
 
             Assert.AreEqual("3", sut.ccc, "Nesto#494: la cuenta del pedido, normalizada al número de la lista para que el combo la enseñe");
             Assert.IsNull(sut.aviso);
+            Assert.IsNull(sut.texto, "Nesto#500: el desplegable ya enseña la cuenta; la etiqueta no la repite");
+        }
+
+        [TestMethod]
+        public void SelectorCCC_ReciboConCuentaQueElDesplegableNoEnseña_DiceEnCualSeCarga()
+        {
+            // Nesto#500: si el combo sale en blanco (el ccc llega relleno después de cargar y su
+            // SelectedValue busca con igualdad exacta), la etiqueta sí aporta: dice la cuenta.
+            var sut = CargarSelector(new List<CCCItem> { Valida("1"), Valida("3") }, "RCB", "3  ", cccDespues: "1  ");
+
+            Assert.AreEqual("1  ", sut.ccc);
+            Assert.IsNull(sut.aviso);
             Assert.AreEqual("Se cargará en: ES91 …… 4321 — CaixaBank", sut.texto);
+        }
+
+        [TestMethod]
+        public void SelectorCCC_ReciboSinCuentaValida_SiempreAvisaEnRojo()
+        {
+            // Nesto#500: el aviso en rojo se queda siempre (información nueva), aunque la etiqueta ya no salga.
+            var sut = CargarSelector(new List<CCCItem> { DeBaja("2"), Valida("1") }, "RCB", "2");
+
+            Assert.AreEqual(ReglaCCCRecibo.AVISO_CUENTA_ELEGIDA_NO_VALIDA, sut.aviso);
+            Assert.IsTrue(sut.hayAviso);
+            Assert.IsNull(sut.texto);
         }
 
         [TestMethod]

@@ -93,15 +93,27 @@ namespace ControlesUsuario
 
         /// <summary>
         /// Texto «Se cargará en: …» de la cuenta elegida, solo con recibo y cuenta válida.
+        /// Nesto#500: y solo si el desplegable NO la está enseñando ya (<paramref name="cccEnDesplegable"/>,
+        /// null si sale en blanco): desde #494 el combo enseña la cuenta del pedido y la etiqueta repetía lo
+        /// mismo. Se compara recortando, porque el ccc del pedido llega relleno con espacios y el de la API
+        /// recortado (#254/#494).
         /// </summary>
-        public static string TextoCuentaACargar(string formaPago, IEnumerable<CCCItem> cccs, string cccSeleccionado)
+        public static string TextoCuentaACargar(string formaPago, IEnumerable<CCCItem> cccs, string cccSeleccionado, string cccEnDesplegable)
         {
             if (!EsReciboBancario(formaPago))
             {
                 return null;
             }
             CCCItem elegida = Buscar(cccs, cccSeleccionado);
-            return EsValidaParaRecibo(elegida) ? $"Se cargará en: {Resumen(elegida)}" : null;
+            if (!EsValidaParaRecibo(elegida))
+            {
+                return null;
+            }
+            if (string.Equals(elegida.numero?.Trim(), cccEnDesplegable?.Trim(), StringComparison.Ordinal))
+            {
+                return null;
+            }
+            return $"Se cargará en: {Resumen(elegida)}";
         }
     }
 }

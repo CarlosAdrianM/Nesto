@@ -462,7 +462,21 @@ namespace ControlesUsuario
                 return;
             }
             AvisoRecibo = ReglaCCCRecibo.Aviso(FormaPago, _cccsCargados, CCCSeleccionado);
-            TextoCuentaACargar = ReglaCCCRecibo.TextoCuentaACargar(FormaPago, _cccsCargados, CCCSeleccionado);
+            TextoCuentaACargar = ReglaCCCRecibo.TextoCuentaACargar(FormaPago, _cccsCargados, CCCSeleccionado, CCCEnDesplegable());
+        }
+
+        /// <summary>
+        /// Nesto#500: la cuenta que enseña el desplegable, o null si sale en blanco. El combo busca por
+        /// SelectedValue (SelectedValuePath="numero") con igualdad EXACTA, así que se busca igual: con
+        /// '1  ' sin normalizar (#494) el combo sale en blanco y la etiqueta «Se cargará en…» sí aporta.
+        /// </summary>
+        private string CCCEnDesplegable()
+        {
+            if (ListaCCCs == null || string.IsNullOrEmpty(CCCSeleccionado))
+            {
+                return null;
+            }
+            return ListaCCCs.FirstOrDefault(c => string.Equals(c?.numero, CCCSeleccionado, StringComparison.Ordinal))?.numero;
         }
 
         #endregion

@@ -33,7 +33,7 @@
                   MinWidth="200"
                   ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
 
-        <!-- Nesto#486: con recibo bancario, qué cuenta se va a cargar y aviso si no vale para el banco -->
+        <!-- Nesto#486: con recibo bancario, qué cuenta se va a cargar (Nesto#500: solo si el desplegable no la enseña ya) y aviso si no vale para el banco -->
         <TextBlock x:Name="textoCuentaACargar"
                    Text="{Binding ElementName=Root, Path=TextoCuentaACargar}"
                    Margin="0,2,0,0"
