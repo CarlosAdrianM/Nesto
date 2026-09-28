@@ -41,7 +41,15 @@ Public Class AgenciasViewModel
     Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _servicio As IAgenciaService
     Private ReadOnly _configuracion As IConfiguracion
-    Private ReadOnly _comparadorAgencias As IServicioComparadorAgencias
+    Private _comparadorAgencias As IServicioComparadorAgencias
+
+    ''' <summary>Solo para tests (InternalsVisibleTo "ViewModels.Tests"): el constructor crea el
+    ''' comparador contra el servidor y sin esto no hay forma de simular su respuesta.</summary>
+    Friend WriteOnly Property ComparadorAgencias As IServicioComparadorAgencias
+        Set(value As IServicioComparadorAgencias)
+            _comparadorAgencias = value
+        End Set
+    End Property
     Public ReadOnly _dialogService As IDialogService
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _contabilidadService As IContabilidadService
@@ -314,10 +322,16 @@ Public Class AgenciasViewModel
                     If PestannaNombre = Pestannas.PENDIENTES Then
                         ActualizarListas()
                         If Not IsNothing(EnvioPendienteSeleccionado) AndAlso Not _estaCambiandoDePedido Then
-                            EnvioPendienteSeleccionado.Pais = agenciaEspecifica.paisDefecto
-                            EnvioPendienteSeleccionado.Retorno = agenciaEspecifica.retornoSinRetorno
-                            EnvioPendienteSeleccionado.Servicio = agenciaEspecifica.ServicioDefecto
-                            EnvioPendienteSeleccionado.Horario = agenciaEspecifica.HorarioDefecto
+                            ' 28/09/26: el usuario cambia la agencia del pendiente. Antes se le ponían
+                            ' SIEMPRE los defectos de la nueva agencia pero NO la agencia, y así quedaron
+                            ' envíos de GLS con el servicio 48 y el horario 0 de CTT. Ahora el envío pasa a
+                            ' la agencia elegida y solo se cambia a su defecto lo que no existe en ella: el
+                            ' retorno «con retorno» (1), por ejemplo, existe en GLS y en CTT y se conserva.
+                            EnvioPendienteSeleccionado.Agencia = value.Numero
+                            If Not MismaEmpresa(EnvioPendienteSeleccionado.Empresa, value.Empresa) Then
+                                EnvioPendienteSeleccionado.Empresa = value.Empresa
+                            End If
+                            Dim unused2 = AjustarPendienteALasListasDeLaAgencia(EnvioPendienteSeleccionado, incluirPais:=True)
                         End If
                         Dim envioCreandose = listaPendientes.SingleOrDefault(Function(e) e.Numero = 0)
                         If Not IsNothing(envioCreandose) Then
@@ -992,17 +1006,99 @@ Public Class AgenciasViewModel
             Return _envioPendienteSeleccionado
         End Get
         Set(ByVal value As EnvioAgenciaWrapper)
-            Dim unused = SetProperty(_envioPendienteSeleccionado, value)
+            ' 28/09/26 (envío 249165): primero se pone la pantalla en la agencia del pendiente y
+            ' DESPUÉS se avisa a la vista del cambio de envío, para que los desplegables de servicio,
+            ' horario y retorno reciban el envío con las listas de SU agencia y no con las de la
+            ' agencia anterior.
+            _envioPendienteSeleccionado = value
             _estaCambiandoDePedido = True
-            If Not IsNothing(value) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso value.Agencia <> agenciaSeleccionada.Numero Then
-                empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = value.Empresa)
-                agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = value.Agencia)
-            End If
-            _estaCambiandoDePedido = False
+            Try
+                If Not IsNothing(value) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso value.Agencia <> agenciaSeleccionada.Numero Then
+                    ' Solo se cambia la empresa si es OTRA: reasignarla recarga las agencias y lanza el
+                    ' comparador del pedido de la pestaña Pedidos. Y se compara sin el relleno del
+                    ' char(3) ("1" = "1  "): con el "=" pelado el Single lanzaba aquí dentro.
+                    If IsNothing(empresaSeleccionada) OrElse Not MismaEmpresa(empresaSeleccionada.Número, value.Empresa) Then
+                        Dim empresaEnvio = listaEmpresas?.FirstOrDefault(Function(e) MismaEmpresa(e.Número, value.Empresa))
+                        If Not IsNothing(empresaEnvio) Then
+                            empresaSeleccionada = empresaEnvio
+                        End If
+                    End If
+                    Dim agenciaEnvio = listaAgencias?.FirstOrDefault(Function(a) a.Numero = value.Agencia)
+                    If Not IsNothing(agenciaEnvio) Then
+                        agenciaSeleccionada = agenciaEnvio
+                    End If
+                End If
+                AvisarSiElPendienteNoEncajaEnSuAgencia(value)
+            Finally
+                _estaCambiandoDePedido = False
+            End Try
+            OnPropertyChanged(NameOf(EnvioPendienteSeleccionado))
             OnPropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
             ActualizarEstadoComandos()
         End Set
     End Property
+
+    ' Empresa es char(3): la misma empresa puede llegar como "1" o como "1  " según de dónde venga.
+    Private Shared Function MismaEmpresa(una As String, otra As String) As Boolean
+        Return String.Equals(If(una, String.Empty).Trim(), If(otra, String.Empty).Trim(), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private _avisoPendienteCorregido As String
+
+    ' 28/09/26: al PINCHAR un pendiente no se pisan sus valores guardados. La única excepción es un
+    ' pendiente cuyo SERVICIO no existe en su agencia (el 249165: GLS con el servicio 48 y el
+    ' horario 0 de CTT), que arrastra los valores de otra agencia. Dejarlo tal cual son desplegables
+    ' en blanco que nadie ve, así que lo que no existe en la agencia pasa a su defecto, el envío
+    ' queda pendiente de guardar y se avisa arriba en rojo, para que quien lo mire decida y guarde.
+    ' El servicio 0 NO cuenta: es «sin elegir», lo dejan así la tienda online y NestoApp en CTT e
+    ' Innovatrans (unos 200 envíos desde agosto) y al imprimir se resuelve al de la pantalla.
+    Private Sub AvisarSiElPendienteNoEncajaEnSuAgencia(envio As EnvioAgenciaWrapper)
+        Dim aviso As String = Nothing
+        If Not IsNothing(envio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso envio.Agencia = agenciaSeleccionada.Numero AndAlso
+                envio.Servicio <> 0 AndAlso Not IsNothing(listaServicios) AndAlso listaServicios.Any() AndAlso
+                Not listaServicios.Any(Function(s) s.ServicioId = envio.Servicio) Then
+            Dim corregidos = AjustarPendienteALasListasDeLaAgencia(envio, incluirPais:=False)
+            If corregidos.Any() Then
+                envio.TieneCambios = True
+                Dim varios As Boolean = corregidos.Count > 1
+                aviso = $"El envío {envio.Numero} tenía {String.Join(" y ", corregidos)}, que no {If(varios, "existen", "existe")} en {agenciaSeleccionada.Nombre?.Trim()}: " &
+                    $"se {If(varios, "han puesto los", "ha puesto el")} de por defecto. Revíselo y guarde."
+            End If
+        End If
+        If Not IsNothing(aviso) Then
+            mensajeError = aviso
+        ElseIf Not String.IsNullOrEmpty(_avisoPendienteCorregido) AndAlso mensajeError = _avisoPendienteCorregido Then
+            mensajeError = String.Empty
+        End If
+        _avisoPendienteCorregido = aviso
+    End Sub
+
+    ' Deja el servicio, el horario y el retorno (y el país, si se pide) del pendiente dentro de las
+    ' listas de la agencia de la pantalla: lo que no existe en ellas pasa al defecto de la agencia y
+    ' lo que existe se respeta. Devuelve lo que ha corregido, para el aviso.
+    Private Function AjustarPendienteALasListasDeLaAgencia(envio As EnvioAgenciaWrapper, incluirPais As Boolean) As List(Of String)
+        Dim corregidos As New List(Of String)
+        If IsNothing(envio) OrElse IsNothing(agenciaEspecifica) Then
+            Return corregidos
+        End If
+        If Not IsNothing(listaServicios) AndAlso listaServicios.Any() AndAlso Not listaServicios.Any(Function(s) s.ServicioId = envio.Servicio) Then
+            corregidos.Add($"el servicio {envio.Servicio}")
+            envio.Servicio = agenciaEspecifica.ServicioDefecto
+        End If
+        If Not IsNothing(listaHorarios) AndAlso listaHorarios.Any() AndAlso Not listaHorarios.Any(Function(h) h.id = envio.Horario) Then
+            corregidos.Add($"el horario {envio.Horario}")
+            envio.Horario = agenciaEspecifica.HorarioDefecto
+        End If
+        If Not IsNothing(listaTiposRetorno) AndAlso listaTiposRetorno.Any() AndAlso Not listaTiposRetorno.Any(Function(r) r.id = envio.Retorno) Then
+            corregidos.Add($"el retorno {envio.Retorno}")
+            envio.Retorno = agenciaEspecifica.retornoSinRetorno
+        End If
+        If incluirPais AndAlso Not IsNothing(listaPaises) AndAlso listaPaises.Any() AndAlso Not listaPaises.Any(Function(p) p.Id = envio.Pais) Then
+            corregidos.Add($"el país {envio.Pais}")
+            envio.Pais = agenciaEspecifica.paisDefecto
+        End If
+        Return corregidos
+    End Function
 
     Private _listaEnvios As ObservableCollection(Of EnviosAgencia)
     Public Property listaEnvios As ObservableCollection(Of EnviosAgencia)
@@ -2827,9 +2923,14 @@ Public Class AgenciasViewModel
                 _servicio.Modificar(envio)
             End If
             Dim unused = listaPendientes.Remove(EnvioPendienteSeleccionado)
-            EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
-            EnvioPendienteSeleccionado.TieneCambios = False
-            listaPendientes.Add(EnvioPendienteSeleccionado)
+            Dim envioGuardado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
+            envioGuardado.TieneCambios = False
+            ' 28/09/26: el envío que sustituye al guardado también tiene que avisar de sus cambios,
+            ' como los que se cargan en la lista. Sin esto, un segundo cambio sin cambiar de fila
+            ' no encendía el botón Guardar («doy a Guardar y no se guarda»).
+            AddHandler envioGuardado.PropertyChanged, New PropertyChangedEventHandler(AddressOf EnvioPendienteSeleccionadoPropertyChangedEventHandler)
+            listaPendientes.Add(envioGuardado)
+            EnvioPendienteSeleccionado = envioGuardado
         Catch ex As Exception
             _dialogService.ShowError("Error al modificar envío:" + vbCr + If(ex.InnerException?.Message, ex.Message))
         End Try
@@ -3470,6 +3571,12 @@ Public Class AgenciasViewModel
             Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso, pais)
             ' Si cambió el pedido mientras respondía el servidor, no tocamos la selección actual.
             If IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedidoNumero Then Return
+            ' 28/09/26 (envío 249165): en Pendientes la agencia de la pantalla es la del envío
+            ' pendiente, no la del pedido que se quedó abierto en la pestaña Pedidos. Al pinchar un
+            ' pendiente de otra agencia se recargan las agencias, eso llama a ConfigurarAgenciaPedido
+            ' y la respuesta del servidor llegaba DESPUÉS y devolvía la pantalla a su agencia (CTT en
+            ' Madrid), pisando el retorno, el servicio y el horario del pendiente con los de CTT.
+            If PestannaNombre = Pestannas.PENDIENTES Then Return
             If opcion Is Nothing OrElse IsNothing(listaAgencias) Then Return
             Dim agenciaServidor = listaAgencias.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Numero = opcion.AgenciaId)
             If agenciaServidor Is Nothing Then Return
