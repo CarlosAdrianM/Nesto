@@ -7,7 +7,6 @@ using Nesto.Modulos.PedidoVenta;
 using Newtonsoft.Json.Linq;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -145,9 +144,9 @@ namespace PedidoVentaTests
             Lineas = new List<LineaPedidoVentaDTO> { new LineaPedidoVentaDTO { id = 1, Producto = "38093", Cantidad = 2, almacen = "ALG", tipoLinea = 1 } }
         };
 
-        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IDialogService dialogService = null) => new DetallePedidoViewModel(
+        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService = null) => new DetallePedidoViewModel(
             A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-            dialogService ?? A.Fake<IDialogService>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+            dialogService ?? A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
 
         [TestMethod]
         public async Task Detalle_AlAbrirUnPedidoGrabado_DeshabilitaLasOpcionesPeroNoCambiaElModo()
@@ -215,15 +214,14 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._))
                 .ThrowsAsync(new ModoServicioNoPermitidoException("El modo «Tras reponer de tiendas» no tiene sentido. Elige «Todo junto» y vuelve a guardar.", ModosServicio.TODO_JUNTO));
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             DetallePedidoViewModel vm = Vm(servicio, dialogService);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosServicio.TRAS_REPONER_DE_TIENDAS));
 
             await vm.ModificarPedidoAsync();
 
             Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.pedido.ModoServicio);
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                    A<IDialogParameters>.That.Matches(p => p.GetValue<string>("message").Contains("Elige «Todo junto»")), A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogService.ShowError(A<string>.That.Contains("Elige «Todo junto»")))
                 .MustHaveHappened();
         }
     }

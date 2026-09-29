@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Services;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity;
@@ -36,7 +35,7 @@ namespace PedidoVentaTests
         private DetallePedidoViewModel CrearDetalle()
         {
             return new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), _servicio,
-                _messenger, A.Fake<IDialogService>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                _messenger, A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
         }
 
         private ListaPedidosVentaViewModel CrearLista()

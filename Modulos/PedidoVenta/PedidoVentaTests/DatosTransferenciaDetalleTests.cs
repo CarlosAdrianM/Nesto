@@ -6,7 +6,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -40,7 +39,7 @@ namespace PedidoVentaTests
             Lineas = new List<LineaPedidoVentaDTO>()
         };
 
-        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IDialogService dialogService, PedidoVentaDTO pedido, PortapapelesDePrueba portapapeles = null)
+        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService, PedidoVentaDTO pedido, PortapapelesDePrueba portapapeles = null)
         {
             var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
@@ -65,7 +64,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void Detalle_PrepagoPorTransferencia_BotonVisibleYHabilitado()
         {
-            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido());
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido());
 
             Assert.IsTrue(vm.EsPrepagoPorTransferencia);
             Assert.IsTrue(vm.CopiarDatosTransferenciaCommand.CanExecute(null));
@@ -74,7 +73,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void Detalle_OtraFormaDePago_NoSeOfrece()
         {
-            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido(formaPago: "RCB", plazosPago: "PRE"));
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(formaPago: "RCB", plazosPago: "PRE"));
 
             Assert.IsFalse(vm.EsPrepagoPorTransferencia);
             Assert.IsFalse(vm.CopiarDatosTransferenciaCommand.CanExecute(null));
@@ -83,7 +82,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void Detalle_TransferenciaSinPrepago_NoSeOfrece()
         {
-            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido(plazosPago: "CONTADO"));
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(plazosPago: "CONTADO"));
 
             Assert.IsFalse(vm.EsPrepagoPorTransferencia);
             Assert.IsFalse(vm.CopiarDatosTransferenciaCommand.CanExecute(null));
@@ -92,7 +91,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void Detalle_AlCambiarAPrepagoPorTransferencia_ApareceElBoton()
         {
-            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido(formaPago: "RCB", plazosPago: "1/30"));
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(formaPago: "RCB", plazosPago: "1/30"));
             var cambiadas = new List<string>();
             vm.PropertyChanged += (s, e) => cambiadas.Add(e.PropertyName);
             bool puedeEjecutarCambio = false;
@@ -111,7 +110,7 @@ namespace PedidoVentaTests
         public void Detalle_PedidoSinGuardar_VisiblePeroDeshabilitado()
         {
             // El concepto lleva el nº de pedido: hasta que no se guarda no hay nada que copiar
-            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido(numero: 0));
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(numero: 0));
 
             Assert.IsTrue(vm.EsPrepagoPorTransferencia);
             Assert.IsFalse(vm.CopiarDatosTransferenciaCommand.CanExecute(null));
@@ -134,7 +133,7 @@ namespace PedidoVentaTests
                 Importe = 121.12M,
                 Texto = TEXTO
             });
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             var portapapeles = new PortapapelesDePrueba();
             var vm = Vm(servicio, dialogService, Pedido(), portapapeles);
 
@@ -142,10 +141,8 @@ namespace PedidoVentaTests
 
             Assert.AreEqual(TEXTO, copiado);
             CollectionAssert.AreEqual(new List<string> { TEXTO }, portapapeles.Copiados);
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                A<IDialogParameters>.That.Matches(p => p.GetValue<string>("title") == DatosTransferenciaPedido.TITULO &&
-                                                       p.GetValue<string>("message").Contains(TEXTO)),
-                A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogService.ShowNotification(DatosTransferenciaPedido.TITULO,
+                A<string>.That.Contains(TEXTO))).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -154,7 +151,7 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.LeerDatosTransferencia(A<string>._, A<int>._))
                 .ThrowsAsync(new Exception("La empresa 1 no tiene ninguna cuenta bancaria para recibir transferencias."));
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             var portapapeles = new PortapapelesDePrueba();
             var vm = Vm(servicio, dialogService, Pedido(), portapapeles);
 
@@ -162,9 +159,7 @@ namespace PedidoVentaTests
 
             Assert.IsNull(copiado);
             Assert.AreEqual(0, portapapeles.Copiados.Count);
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                A<IDialogParameters>.That.Matches(p => p.GetValue<string>("message").Contains("cuenta bancaria")),
-                A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogService.ShowError(A<string>.That.Contains("cuenta bancaria"))).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -172,7 +167,7 @@ namespace PedidoVentaTests
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             var portapapeles = new PortapapelesDePrueba();
-            var vm = Vm(servicio, A.Fake<IDialogService>(), Pedido(formaPago: "TAR"), portapapeles);
+            var vm = Vm(servicio, A.Fake<IServicioDialogos>(), Pedido(formaPago: "TAR"), portapapeles);
 
             Assert.IsNull(await vm.CopiarDatosTransferenciaAsync());
             A.CallTo(() => servicio.LeerDatosTransferencia(A<string>._, A<int>._)).MustNotHaveHappened();

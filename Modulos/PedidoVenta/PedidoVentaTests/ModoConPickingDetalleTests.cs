@@ -7,7 +7,6 @@ using Nesto.Modulos.PedidoVenta;
 using Newtonsoft.Json.Linq;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -41,16 +40,15 @@ namespace PedidoVentaTests
             Lineas = new List<LineaPedidoVentaDTO> { new LineaPedidoVentaDTO { id = 1, Producto = "38093", Cantidad = 2, almacen = "ALG", tipoLinea = 1 } }
         };
 
-        private static IDialogService DialogoQueResponde(ButtonResult respuesta)
+        private static IServicioDialogos DialogoQueResponde(bool acepta)
         {
-            IDialogService dialogService = A.Fake<IDialogService>();
-            A.CallTo(() => dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuesta)));
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogService.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(acepta));
             return dialogService;
         }
 
         /// <summary>Pedido grabado «Según vaya entrando» que el usuario pasa a «Todo junto» y la API rechaza.</summary>
-        private static DetallePedidoViewModel VmConCambioRechazado(IPedidoVentaService servicio, IDialogService dialogService)
+        private static DetallePedidoViewModel VmConCambioRechazado(IPedidoVentaService servicio, IServicioDialogos dialogService)
         {
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new ModoConPickingException(MOTIVO));
             var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
@@ -61,8 +59,8 @@ namespace PedidoVentaTests
             return vm;
         }
 
-        private static bool EsDialogo(IDialogParameters p, string contiene) =>
-            p != null && p.ContainsKey("message") && p.GetValue<string>("message").Contains(contiene);
+        private static bool EsDialogo(string mensaje, string contiene) =>
+            mensaje != null && mensaje.Contains(contiene);
 
         // ---------- Lo que llega de la API ----------
 
@@ -88,15 +86,13 @@ namespace PedidoVentaTests
         public async Task Detalle_ConPicking_EnsenaElMotivoYOfreceLaSolicitud()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            IDialogService dialogService = DialogoQueResponde(ButtonResult.Cancel);
+            IServicioDialogos dialogService = DialogoQueResponde(false);
             DetallePedidoViewModel vm = VmConCambioRechazado(servicio, dialogService);
 
             await vm.ModificarPedidoAsync();
 
-            A.CallTo(() => dialogService.ShowDialog("ConfirmationDialog",
-                    A<IDialogParameters>.That.Matches(p => EsDialogo(p, "ya está en preparación") && EsDialogo(p, "«Todo junto»")
-                        && p.GetValue<string>("title") == SolicitudCambioModoAlmacen.TITULO),
-                    A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogService.ShowConfirmationAsync(SolicitudCambioModoAlmacen.TITULO,
+                    A<string>.That.Matches(m => EsDialogo(m, "ya está en preparación") && EsDialogo(m, "«Todo junto»"))))
                 .MustHaveHappenedOnceExactly();
         }
 
@@ -105,14 +101,13 @@ namespace PedidoVentaTests
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.SolicitarCambioModo(A<string>._, A<int>._, A<byte>._, A<string>._)).Returns(RESPUESTA_OK);
-            IDialogService dialogService = DialogoQueResponde(ButtonResult.OK);
+            IServicioDialogos dialogService = DialogoQueResponde(true);
             DetallePedidoViewModel vm = VmConCambioRechazado(servicio, dialogService);
 
             await vm.ModificarPedidoAsync();
 
             A.CallTo(() => servicio.SolicitarCambioModo("1", 926879, ModosServicio.TODO_JUNTO, A<string>._)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                    A<IDialogParameters>.That.Matches(p => EsDialogo(p, "Se lo hemos pedido a almacén")), A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogService.ShowNotification(A<string>._, A<string>.That.Matches(m => EsDialogo(m, "Se lo hemos pedido a almacén"))))
                 .MustHaveHappened();
         }
 
@@ -120,7 +115,7 @@ namespace PedidoVentaTests
         public async Task Detalle_ConPicking_SiRechaza_NoLlamaAlEndpoint()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            IDialogService dialogService = DialogoQueResponde(ButtonResult.Cancel);
+            IServicioDialogos dialogService = DialogoQueResponde(false);
             DetallePedidoViewModel vm = VmConCambioRechazado(servicio, dialogService);
 
             await vm.ModificarPedidoAsync();
@@ -131,7 +126,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public async Task Detalle_ConPicking_VuelveAlModoGuardado_AcepteONo()
         {
-            foreach (ButtonResult respuesta in new[] { ButtonResult.OK, ButtonResult.Cancel })
+            foreach (bool respuesta in new[] { true, false })
             {
                 IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
                 A.CallTo(() => servicio.SolicitarCambioModo(A<string>._, A<int>._, A<byte>._, A<string>._)).Returns(RESPUESTA_OK);
@@ -151,16 +146,14 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.SolicitarCambioModo(A<string>._, A<int>._, A<byte>._, A<string>._))
                 .ThrowsAsync(new Exception("No se ha podido mandar el correo a almacén. Llámales o escríbeles directamente."));
-            IDialogService dialogService = DialogoQueResponde(ButtonResult.OK);
+            IServicioDialogos dialogService = DialogoQueResponde(true);
             DetallePedidoViewModel vm = VmConCambioRechazado(servicio, dialogService);
 
             await vm.ModificarPedidoAsync();
 
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                    A<IDialogParameters>.That.Matches(p => EsDialogo(p, "Llámales o escríbeles")), A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogService.ShowError(A<string>.That.Matches(m => EsDialogo(m, "Llámales o escríbeles"))))
                 .MustHaveHappened();
-            A.CallTo(() => dialogService.ShowDialog("NotificationDialog",
-                    A<IDialogParameters>.That.Matches(p => EsDialogo(p, "Se lo hemos pedido")), A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogService.ShowNotification(A<string>._, A<string>.That.Matches(m => EsDialogo(m, "Se lo hemos pedido"))))
                 .MustNotHaveHappened();
         }
 

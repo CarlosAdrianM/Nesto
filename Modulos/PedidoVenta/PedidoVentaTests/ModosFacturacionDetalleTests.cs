@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -209,9 +208,9 @@ namespace PedidoVentaTests
             Lineas = new List<LineaPedidoVentaDTO> { new LineaPedidoVentaDTO { id = 1, Producto = "38093", Cantidad = 2, almacen = "ALG", tipoLinea = 1 } }
         };
 
-        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IDialogService dialogService = null) => new DetallePedidoViewModel(
+        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService = null) => new DetallePedidoViewModel(
             A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-            dialogService ?? A.Fake<IDialogService>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+            dialogService ?? A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
 
         [TestMethod]
         public async Task Detalle_PedidoGrabadoCuyoModoYaNoVale_PasaAlSugeridoYAvisa_PorqueGuardarDariaUn400()

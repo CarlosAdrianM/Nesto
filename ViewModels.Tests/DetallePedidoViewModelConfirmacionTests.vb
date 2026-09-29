@@ -5,7 +5,6 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports Unity
 
 ''' <summary>
@@ -60,7 +59,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
     Private configuracion As IConfiguracion
     Private servicio As IPedidoVentaService
     Private messenger As IMessenger
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private container As IUnityContainer
     Private servicioAutenticacion As IServicioAutenticacion
 
@@ -70,7 +69,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
         configuracion = A.Fake(Of IConfiguracion)
         servicio = A.Fake(Of IPedidoVentaService)
         messenger = New WeakReferenceMessenger()
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         container = A.Fake(Of IUnityContainer)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub
@@ -80,24 +79,10 @@ Public Class DetallePedidoViewModelConfirmacionTests
     End Function
 
     ''' <summary>
-    ''' Cuando dialogService.ShowDialog se llama por la extensión ShowConfirmationAnswer,
-    ''' simula que el usuario pulsa el botón correspondiente devolviendo OK o Cancel.
+    ''' Simula que el usuario pulsa el botón correspondiente (OK o Cancel) en las confirmaciones.
     ''' </summary>
     Private Sub ConfigurarRespuestaConfirmacion(respuestaOk As Boolean)
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      ' Nesto#421: ShowError llama a ShowDialog SIN callback; guard para que un
-                      ' test que pase por un error no reviente el host con NullReferenceException.
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(respuestaOk, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
-                  End Sub)
+        DialogosDePrueba.Configurar(dialogService, Function() respuestaOk)
     End Sub
 
     ' Nesto#413 (remate de Nesto#410, caso real Laura con pedido AMZ/STK): la VISIBILIDAD de los
@@ -147,10 +132,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
 
         ' Assert
         Assert.IsTrue(resultado, "Si el plazo está permitido, debe devolver True sin preguntar al usuario.")
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+        A.CallTo(dialogService).MustNotHaveHappened()
     End Sub
 
     <TestMethod()>
@@ -189,22 +171,11 @@ Public Class DetallePedidoViewModelConfirmacionTests
     Public Sub CrearAlbaranYFactura_SiLaFacturaFalla_RecargaElPedidoYAvisaQueElAlbaranSiSeCreo()
         ' Arrange: todas las confirmaciones responden OK y se capturan los mensajes de diálogo
         Dim mensajesDialogo As New List(Of String)
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If parametros IsNot Nothing AndAlso parametros.ContainsKey("message") Then
-                          mensajesDialogo.Add(parametros.GetValue(Of String)("message"))
-                      End If
-                      ' ShowError llama a ShowDialog SIN callback: no hay nada que responder.
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(ButtonResult.OK)
-                      callback(resultado)
-                  End Sub)
+        DialogosDePrueba.Configurar(dialogService, Function() True, Sub(nombre, mensaje)
+                                                           If mensaje IsNot Nothing Then
+                                                               mensajesDialogo.Add(mensaje)
+                                                           End If
+                                                       End Sub)
 
         Dim vm = CrearViewModel()
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687})
@@ -286,15 +257,11 @@ Public Class DetallePedidoViewModelConfirmacionTests
     <TestMethod()>
     Public Sub MostrarAvisosFacturacion_ConAvisos_LosMuestraEnModal()
         Dim mensajesDialogo As New List(Of String)
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If parametros IsNot Nothing AndAlso parametros.ContainsKey("message") Then
-                          mensajesDialogo.Add(parametros.GetValue(Of String)("message"))
-                      End If
-                  End Sub)
+        DialogosDePrueba.Configurar(dialogService, Function() False, Sub(nombre, mensaje)
+                                                           If mensaje IsNot Nothing Then
+                                                               mensajesDialogo.Add(mensaje)
+                                                           End If
+                                                       End Sub)
         Dim vm = CrearViewModel()
 
         vm.MostrarAvisosFacturacion(New CrearFacturaResponseDTO With {
@@ -312,10 +279,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
         vm.MostrarAvisosFacturacion(New CrearFacturaResponseDTO With {.NumeroFactura = "NV1"})
         vm.MostrarAvisosFacturacion(Nothing)
 
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+        A.CallTo(dialogService).MustNotHaveHappened()
     End Sub
 
     <TestMethod()>

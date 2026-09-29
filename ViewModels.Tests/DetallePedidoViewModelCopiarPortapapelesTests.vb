@@ -4,7 +4,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.PedidoVenta
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports Unity
 
 ''' <summary>
@@ -20,7 +19,7 @@ Public Class DetallePedidoViewModelCopiarPortapapelesTests
     Private configuracion As IConfiguracion
     Private servicio As IPedidoVentaService
     Private messenger As IMessenger
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private container As IUnityContainer
     Private servicioAutenticacion As IServicioAutenticacion
 
@@ -30,7 +29,7 @@ Public Class DetallePedidoViewModelCopiarPortapapelesTests
         configuracion = A.Fake(Of IConfiguracion)
         servicio = A.Fake(Of IPedidoVentaService)
         messenger = New WeakReferenceMessenger()
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         container = A.Fake(Of IUnityContainer)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub

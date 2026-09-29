@@ -7,7 +7,6 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports Unity
 
 ''' <summary>
@@ -19,7 +18,7 @@ Imports Unity
 <TestClass()>
 Public Class DetallePedidoBorrarLineasServirJuntoTests
 
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private servicioServirJunto As IServirJuntoService
     Private mensajesDialogo As List(Of String)
     Private dialogosMostrados As List(Of String)
@@ -28,31 +27,21 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
 
     <TestInitialize()>
     Public Sub Initialize()
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         servicioServirJunto = A.Fake(Of IServirJuntoService)
         mensajesDialogo = New List(Of String)
         dialogosMostrados = New List(Of String)
         respuestasConfirmacion = New Queue(Of Boolean)
         lineasEnviadas = New List(Of List(Of ProductoBonificadoConCantidadRequest))
 
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      dialogosMostrados.Add(nombre)
-                      If parametros IsNot Nothing AndAlso parametros.ContainsKey("message") Then
-                          mensajesDialogo.Add(parametros.GetValue(Of String)("message"))
-                      End If
-                      ' ShowError llama a ShowDialog SIN callback: no hay nada que responder.
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim ok = If(respuestasConfirmacion.Count > 0, respuestasConfirmacion.Dequeue(), True)
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
-                  End Sub)
+        DialogosDePrueba.Configurar(dialogService,
+            Function() If(respuestasConfirmacion.Count > 0, respuestasConfirmacion.Dequeue(), True),
+            Sub(nombre, mensaje)
+                dialogosMostrados.Add(nombre)
+                If mensaje IsNot Nothing Then
+                    mensajesDialogo.Add(mensaje)
+                End If
+            End Sub)
     End Sub
 
     Private Sub ElServidorResponde(ParamArray respuestas() As ValidarServirJuntoResponse)

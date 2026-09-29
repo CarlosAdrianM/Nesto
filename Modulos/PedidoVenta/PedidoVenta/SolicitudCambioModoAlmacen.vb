@@ -1,7 +1,6 @@
 ﻿Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' Nesto#489 / NestoAPI#533: cuando la API no deja cambiar el modo de entrega porque el pedido ya tiene picking
@@ -19,16 +18,6 @@ Public NotInheritable Class SolicitudCambioModoAlmacen
         Return motivo & vbCrLf & vbCrLf &
             $"¿Quieres pedirle a almacén que lo cambien a «{ModosServicio.Nombre(modoDeseado)}»? " &
             "Lo intentarán, pero puede que ya no llegue a tiempo."
-    End Function
-
-    ''' <summary>
-    ''' Nesto#490 (4C.2): sobrecarga para quien sigue con el IDialogService de Prism (el detalle de pedido,
-    ''' hasta que se migre PedidoVenta). Delega en la de IServicioDialogos con ServicioDialogosPrism: mismos diálogos.
-    ''' </summary>
-    Public Shared Function OfrecerAsync(dialogService As IDialogService, servicio As IPedidoVentaService,
-                                        empresa As String, pedido As Integer, modoDeseado As Byte,
-                                        motivo As String) As Task(Of Boolean)
-        Return OfrecerAsync(New ServicioDialogosPrism(dialogService), servicio, empresa, pedido, modoDeseado, motivo)
     End Function
 
     ''' <summary>

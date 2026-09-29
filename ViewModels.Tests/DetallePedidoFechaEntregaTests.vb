@@ -6,7 +6,6 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports Unity
 
 ''' <summary>
@@ -33,7 +32,7 @@ Public Class DetallePedidoFechaEntregaTests
 
     <TestMethod()>
     Public Sub CambiarFechaDeCabecera_SoloCambiaLasLineasSinPicking_YAvisa()
-        Dim dialogo = A.Fake(Of IDialogService)
+        Dim dialogo = A.Fake(Of IServicioDialogos)
         Dim vm = CrearViewModel(dialogo)
         Dim conPicking = New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "38669", .Cantidad = 1, .estado = 1, .picking = 99600, .Almacen = "ALG", .fechaEntrega = New Date(2026, 9, 22)}
         Dim sinPicking = New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "38667", .Cantidad = 1, .estado = -1, .picking = 0, .Almacen = "ALG", .fechaEntrega = New Date(2026, 9, 22)}
@@ -45,12 +44,12 @@ Public Class DetallePedidoFechaEntregaTests
 
         Assert.AreEqual(New Date(2026, 9, 22), conPicking.fechaEntrega, "La línea con picking conserva su fecha")
         Assert.AreEqual(New Date(2026, 9, 24), sinPicking.fechaEntrega, "La línea sin picking cambia")
-        A.CallTo(Sub() dialogo.ShowDialog("NotificationDialog", A(Of IDialogParameters).That.Matches(Function(p) MensajeDe(p).Contains("solo en las líneas sin picking")), A(Of Action(Of IDialogResult)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogo.ShowNotification(A(Of String).Ignored, A(Of String).That.Matches(Function(m) m IsNot Nothing AndAlso m.Contains("solo en las líneas sin picking")))).MustHaveHappenedOnceExactly()
     End Sub
 
     <TestMethod()>
     Public Sub CambiarFechaDeCabecera_TodasConPicking_NoCambiaNadaYAvisa()
-        Dim dialogo = A.Fake(Of IDialogService)
+        Dim dialogo = A.Fake(Of IServicioDialogos)
         Dim vm = CrearViewModel(dialogo)
         Dim linea = New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "38669", .Cantidad = 1, .estado = 1, .picking = 99600, .Almacen = "ALG", .fechaEntrega = New Date(2026, 9, 22)}
         vm.pedido.Lineas.Add(linea)
@@ -59,26 +58,22 @@ Public Class DetallePedidoFechaEntregaTests
         vm.fechaEntrega = New Date(2026, 9, 24) ' el setter ya propaga, como en la pantalla
 
         Assert.AreEqual(New Date(2026, 9, 22), linea.fechaEntrega)
-        A.CallTo(Sub() dialogo.ShowDialog("NotificationDialog", A(Of IDialogParameters).That.Matches(Function(p) MensajeDe(p).Contains("Ninguna línea")), A(Of Action(Of IDialogResult)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogo.ShowNotification(A(Of String).Ignored, A(Of String).That.Matches(Function(m) m IsNot Nothing AndAlso m.Contains("Ninguna línea")))).MustHaveHappenedOnceExactly()
     End Sub
 
     <TestMethod()>
     Public Sub CambiarFechaDeCabecera_SinLineasProtegidas_NoAvisa()
-        Dim dialogo = A.Fake(Of IDialogService)
+        Dim dialogo = A.Fake(Of IServicioDialogos)
         Dim vm = CrearViewModel(dialogo)
         vm.pedido.Lineas.Add(New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "38667", .Cantidad = 1, .estado = -1, .picking = 0, .Almacen = "ALG"})
         vm.UsarFechasIndividuales = False
 
         vm.fechaEntrega = New Date(2026, 9, 24) ' el setter ya propaga, como en la pantalla
 
-        A.CallTo(Sub() dialogo.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+        A.CallTo(dialogo).MustNotHaveHappened()
     End Sub
 
-    Private Shared Function MensajeDe(p As IDialogParameters) As String
-        Return If(p.GetValue(Of String)("message"), String.Empty)
-    End Function
-
-    Private Shared Function CrearViewModel(dialogo As IDialogService) As DetallePedidoViewModel
+    Private Shared Function CrearViewModel(dialogo As IServicioDialogos) As DetallePedidoViewModel
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IRegionManager), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
                                             New WeakReferenceMessenger(), dialogo, A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = A.Fake(Of IServirJuntoService)

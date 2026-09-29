@@ -16,7 +16,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports System.Windows
 Imports System.Windows.Media
 Imports Unity
@@ -32,7 +31,7 @@ Public Class DetallePedidoViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly messenger As IMessenger
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly container As IUnityContainer
 
     Private ivaOriginal As String
@@ -81,7 +80,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
@@ -1039,7 +1038,7 @@ Public Class DetallePedidoViewModel
         If IsNothing(pedido) Then
             Return
         End If
-        dialogService.ShowDialog("PickingPopupView", New DialogParameters From {
+        dialogService.ShowDialog("PickingPopupView", New ParametrosDialogo From {
             {"pedidoPicking", pedido.Model}
         }, Nothing)
     End Sub
@@ -2074,7 +2073,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnAbrirFacturarRutas()
-        ' Abrir el diálogo de Facturar Rutas usando Prism DialogService (modal)
+        ' Abrir el diálogo de Facturar Rutas (modal)
         System.Diagnostics.Debug.WriteLine("=== OnAbrirFacturarRutas - Llamando dialogService.ShowDialog ===")
         dialogService.ShowDialog("FacturarRutasPopup", Nothing, Sub(result)
                                                                     System.Diagnostics.Debug.WriteLine($"=== Diálogo cerrado. Result: {result.Result} ===")
@@ -2097,8 +2096,8 @@ Public Class DetallePedidoViewModel
     End Property
 
     Private Sub OnCopiarFactura()
-        ' Abrir el diálogo de Copiar Factura / Crear Rectificativa usando Prism DialogService
-        Dim parameters As New DialogParameters()
+        ' Abrir el diálogo de Copiar Factura / Crear Rectificativa
+        Dim parameters As New ParametrosDialogo()
 
         ' Si tenemos un pedido cargado, pasar su empresa y cliente como valores iniciales
         If Not IsNothing(pedido) Then
@@ -2112,7 +2111,7 @@ Public Class DetallePedidoViewModel
         End If
 
         dialogService.ShowDialog("CopiarFacturaView", parameters, Sub(result)
-                                                                      If result.Result = ButtonResult.OK Then
+                                                                      If result.Result = ResultadoBoton.OK Then
                                                                           ' El usuario quiere abrir el pedido creado
                                                                           Dim numeroPedido = result.Parameters.GetValue(Of Integer)("numeroPedido")
                                                                           If numeroPedido > 0 Then
@@ -2269,13 +2268,13 @@ Public Class DetallePedidoViewModel
         For Each linea In sinGrupo
             Dim descripcionLinea As String = If(String.IsNullOrWhiteSpace(linea.texto), linea.Producto, linea.texto.Trim())
             Dim grupoElegido As String = Nothing
-            Dim parametrosDialogo As New DialogParameters From {
+            Dim parametrosDialogo As New ParametrosDialogo From {
                 {"mensaje", $"La línea de inmovilizado '{descripcionLinea}' tiene que comisionar por un grupo de producto. ¿Por cuál comisiona?"},
                 {"grupos", grupos}
             }
             dialogService.ShowDialog("SelectorGrupoComisionDialog", parametrosDialogo,
                 Sub(r)
-                    If r.Result = ButtonResult.OK Then
+                    If r.Result = ResultadoBoton.OK Then
                         grupoElegido = r.Parameters.GetValue(Of String)("grupo")
                     End If
                 End Sub)

@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -34,15 +33,14 @@ namespace PedidoVentaTests
             }
         };
 
-        private static IDialogService DialogoQueResponde(ButtonResult respuesta)
+        private static IServicioDialogos DialogoQueResponde(bool respuesta)
         {
-            IDialogService dialogService = A.Fake<IDialogService>();
-            A.CallTo(() => dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuesta)));
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogService.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(respuesta));
             return dialogService;
         }
 
-        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IDialogService dialogService, PedidoVentaDTO pedido = null)
+        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService, PedidoVentaDTO pedido = null)
         {
             var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
@@ -94,8 +92,8 @@ namespace PedidoVentaTests
         [TestMethod]
         public void PuedeCambiarCliente_EnElDetalle_SigueAlPedido()
         {
-            Assert.IsTrue(Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>()).PuedeCambiarCliente);
-            Assert.IsFalse(Vm(A.Fake<IPedidoVentaService>(), A.Fake<IDialogService>(), Pedido(picking: 3)).PuedeCambiarCliente);
+            Assert.IsTrue(Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>()).PuedeCambiarCliente);
+            Assert.IsFalse(Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(picking: 3)).PuedeCambiarCliente);
         }
 
         #endregion
@@ -108,7 +106,7 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.CambiarCliente("1", 926000, "20000", "0", false))
                 .Returns(new CambiarClientePedidoRespuestaModel { Numero = 926000, ClienteAnterior = "10000", ContactoAnterior = "0", Cliente = "20000", Contacto = "0" });
-            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(ButtonResult.OK));
+            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(true));
             vm.AbrirCambioClienteCommand.Execute(null);
             vm.ClienteNuevo = "20000";
             vm.ContactoNuevo = "0";
@@ -124,7 +122,7 @@ namespace PedidoVentaTests
         public async Task AplicarCambioCliente_SiNoConfirma_NoLlamaALaApi()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(ButtonResult.Cancel));
+            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(false));
             vm.AbrirCambioClienteCommand.Execute(null);
             vm.ClienteNuevo = "20000";
 
@@ -140,7 +138,7 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.CambiarCliente(A<string>._, A<int>._, A<string>._, A<string>._, false))
                 .ThrowsAsync(new ValidationException("Oferta no permitida para el cliente 20000"));
-            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(ButtonResult.OK));
+            DetallePedidoViewModel vm = Vm(servicio, DialogoQueResponde(true));
             vm.ClienteNuevo = "20000";
 
             await vm.AplicarCambioClienteAsync();
