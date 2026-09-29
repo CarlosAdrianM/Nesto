@@ -114,4 +114,13 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public string SubGrupo { get; set; }
         public bool Denegar { get; set; }
     }
+
+    /// <summary>NestoAPI#233: lo que se ha mandado a los vendedores de NestoApp y a cuántos dispositivos ha llegado.</summary>
+    public class ResultadoInformarVendedoresModel
+    {
+        public string Titulo { get; set; }
+        public string Cuerpo { get; set; }
+        public string Ruta { get; set; }
+        public int DispositivosNotificados { get; set; }
+    }
 }

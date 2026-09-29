@@ -38,5 +38,9 @@ namespace Nesto.Modulos.OfertasCombinadas.Interfaces
         Task<OfertaPermitidaFamiliaModel> CreateOfertaPermitidaFamilia(OfertaPermitidaFamiliaCreateModel oferta);
         Task<OfertaPermitidaFamiliaModel> UpdateOfertaPermitidaFamilia(int nOrden, OfertaPermitidaFamiliaCreateModel oferta);
         Task<OfertaPermitidaFamiliaModel> DeleteOfertaPermitidaFamilia(int nOrden);
+
+        // NestoAPI#233: push a los vendedores de NestoApp. Guardar NO avisa; solo se llama si el
+        // usuario dice que sí a la pregunta de después de guardar. tipo: combinada, familia o escalonada.
+        Task<ResultadoInformarVendedoresModel> InformarVendedores(string tipo, int id, bool esNueva);
     }
 }

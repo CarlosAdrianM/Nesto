@@ -715,23 +715,62 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 };
 
                 OfertaCombinadaModel resultado;
-                if (oferta.Id == 0)
+                bool esNueva = oferta.Id == 0;
+                if (esNueva)
                 {
                     resultado = await _service.CreateOfertaCombinada(createModel);
-                    _dialogService.ShowNotification($"Oferta combinada '{resultado.Nombre}' creada");
                 }
                 else
                 {
                     resultado = await _service.UpdateOfertaCombinada(oferta.Id, createModel);
-                    _dialogService.ShowNotification($"Oferta combinada '{resultado.Nombre}' actualizada");
                 }
 
                 oferta.ActualizarDesdeServidor(resultado);
                 CargarDetalles();
+                await PreguntarSiInformarVendedores(TIPO_OFERTA_COMBINADA, resultado.Id, esNueva,
+                    $"Oferta combinada '{resultado.Nombre}' {(esNueva ? "creada" : "actualizada")}.");
             }
             catch (Exception ex)
             {
                 _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        // NestoAPI#233: claves del tipo de oferta en la API (y en la ruta del deeplink de NestoApp).
+        internal const string TIPO_OFERTA_COMBINADA = "combinada";
+        internal const string TIPO_OFERTA_FAMILIA = "familia";
+        internal const string TIPO_OFERTA_ESCALONADA = "escalonada";
+        internal const string PREGUNTA_INFORMAR_VENDEDORES = "¿Desea informar a los vendedores de la oferta que se acaba de autorizar?";
+
+        /// <summary>
+        /// NestoAPI#233 (Carlos, 29/09/26): guardar una oferta NO avisa a nadie. Tras un guardado correcto se
+        /// pregunta si se quiere informar a los vendedores de NestoApp, y solo si se dice que sí se manda la push.
+        /// Si el aviso falla, la oferta ya está guardada: se dice así para que nadie la vuelva a guardar.
+        /// </summary>
+        private async Task PreguntarSiInformarVendedores(string tipo, int id, bool esNueva, string mensajeGuardado)
+        {
+            EstaCargando = false;
+            bool informar = _dialogService.ShowConfirmationAnswer("Informar a los vendedores",
+                mensajeGuardado + Environment.NewLine + Environment.NewLine + PREGUNTA_INFORMAR_VENDEDORES);
+            if (!informar)
+            {
+                return;
+            }
+
+            try
+            {
+                EstaCargando = true;
+                ResultadoInformarVendedoresModel resultado = await _service.InformarVendedores(tipo, id, esNueva);
+                _dialogService.ShowNotification(
+                    $"Se ha informado a los vendedores ({resultado?.DispositivosNotificados ?? 0} dispositivos):{Environment.NewLine}{Environment.NewLine}{resultado?.Cuerpo}");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"La oferta se ha guardado, pero no se ha podido informar a los vendedores: {ex.Message}");
             }
             finally
             {
@@ -938,18 +977,19 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 };
 
                 OfertaEscalonadaModel resultado;
-                if (oferta.Id == 0)
+                bool esNueva = oferta.Id == 0;
+                if (esNueva)
                 {
                     resultado = await _service.CreateOfertaEscalonada(createModel);
-                    _dialogService.ShowNotification($"Oferta escalonada '{resultado.Nombre}' creada");
                 }
                 else
                 {
                     resultado = await _service.UpdateOfertaEscalonada(oferta.Id, createModel);
-                    _dialogService.ShowNotification($"Oferta escalonada '{resultado.Nombre}' actualizada");
                 }
 
                 oferta.ActualizarDesdeServidor(resultado);
+                await PreguntarSiInformarVendedores(TIPO_OFERTA_ESCALONADA, resultado.Id, esNueva,
+                    $"Oferta escalonada '{resultado.Nombre}' {(esNueva ? "creada" : "actualizada")}.");
             }
             catch (Exception ex)
             {
@@ -1204,18 +1244,27 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 var createModel = oferta.CrearModeloGuardado(Empresa);
 
                 OfertaPermitidaFamiliaModel resultado;
-                if (oferta.NOrden == 0)
+                bool esNueva = oferta.NOrden == 0;
+                if (esNueva)
                 {
                     resultado = await _service.CreateOfertaPermitidaFamilia(createModel);
-                    _dialogService.ShowNotification($"Oferta por familia '{resultado.Familia}' creada");
                 }
                 else
                 {
                     resultado = await _service.UpdateOfertaPermitidaFamilia(oferta.NOrden, createModel);
-                    _dialogService.ShowNotification($"Oferta por familia '{resultado.Familia}' actualizada");
                 }
 
                 oferta.ActualizarDesdeServidor(resultado);
+                string mensajeGuardado = $"Oferta por familia '{resultado.Familia}' {(esNueva ? "creada" : "actualizada")}.";
+                if (resultado.Denegar)
+                {
+                    // NestoAPI#564: una denegación no es una oferta que comunicar a los vendedores.
+                    _dialogService.ShowNotification(mensajeGuardado);
+                }
+                else
+                {
+                    await PreguntarSiInformarVendedores(TIPO_OFERTA_FAMILIA, resultado.NOrden, esNueva, mensajeGuardado);
+                }
             }
             catch (Exception ex)
             {

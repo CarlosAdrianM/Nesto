@@ -488,6 +488,25 @@ namespace Nesto.Modulos.OfertasCombinadas.Services
 
         #endregion
 
+        // NestoAPI#233: POST api/OfertasAutorizadas/{tipo}/{id}/InformarVendedores
+        public async Task<ResultadoInformarVendedoresModel> InformarVendedores(string tipo, int id, bool esNueva)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            string urlConsulta = $"OfertasAutorizadas/{tipo}/{id}/InformarVendedores?esNueva={(esNueva ? "true" : "false")}";
+            HttpResponseMessage response = await client.PostAsync(urlConsulta, new StringContent(string.Empty, Encoding.UTF8, "application/json"));
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<ResultadoInformarVendedoresModel>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
         private static async Task<string> GetErrorMessage(HttpResponseMessage response)
         {
             string textoError = await response.Content.ReadAsStringAsync();
