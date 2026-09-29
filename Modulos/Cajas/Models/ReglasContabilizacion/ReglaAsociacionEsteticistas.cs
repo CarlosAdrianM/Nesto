@@ -11,12 +11,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            // Nesto#502: la regla sale solo del movimiento bancario; no exige apuntes de contabilidad seleccionados
+            if (apuntesBancarios is null || !apuntesBancarios.Any())
             {
                 return new ReglaContabilizacionResponse();
             }
             var apunteBancario = apuntesBancarios.First();
-            var apunteContabilidad = apuntesContabilidad.First();
 
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();

@@ -20,13 +20,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            // Nesto#502: la regla sale solo del movimiento bancario; no exige apuntes de contabilidad seleccionados
+            if (apuntesBancarios is null || !apuntesBancarios.Any())
             {
                 return new ReglaContabilizacionResponse();
             }
 
             ApunteBancarioDTO apunteBancario = apuntesBancarios.First();
-            ContabilidadDTO apunteContabilidad = apuntesContabilidad.First();
 
             // Buscar el registro que contiene el concepto de Madrid
             var registroMadrid = apunteBancario.RegistrosConcepto.FirstOrDefault(r =>
