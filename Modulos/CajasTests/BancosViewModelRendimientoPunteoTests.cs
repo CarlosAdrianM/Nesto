@@ -14,7 +14,6 @@ using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
-using Prism.Services.Dialogs;
 using Unity;
 
 namespace CajasTests
@@ -74,7 +73,7 @@ namespace CajasTests
                 .ReturnsLazily(async () => { Interlocked.Increment(ref escenario.LlamadasApi); await Task.Delay(RETARDO_API_MS); return string.Empty; });
             A.CallTo(() => bancosService.CrearPunteo(A<int?>._, A<int?>._, A<decimal>._, A<string>._, A<int?>._)).Returns(1);
 
-            var sut = new BancosViewModel(bancosService, contabilidadService, A.Fake<IConfiguracion>(), A.Fake<IDialogService>(),
+            var sut = new BancosViewModel(bancosService, contabilidadService, A.Fake<IConfiguracion>(), A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
             var banco = A.Fake<IBancoConciliacion>();
             A.CallTo(() => banco.Banco).Returns(new BancoDTO { Codigo = "TEST01" });

@@ -1,21 +1,21 @@
+using Nesto.Infrastructure.Contracts;
 using FakeItEasy;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
-using Prism.Services.Dialogs;
 
 namespace CajasTests
 {
     [TestClass]
     public class ReglaAyuntamientoMadridTests
     {
-        private IDialogService _dialogService = null!;
+        private IServicioDialogos _dialogService = null!;
         private ReglaAyuntamientoMadrid _regla = null!;
         private BancoDTO _banco = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
             _regla = new ReglaAyuntamientoMadrid(_dialogService);
             _banco = new BancoDTO
             {
@@ -223,15 +223,7 @@ namespace CajasTests
             };
 
             // Configurar mock para devolver texto
-            A.CallTo(() => _dialogService.ShowDialog(
-                A<string>.That.IsEqualTo("InputTextDialog"),
-                A<IDialogParameters>._,
-                A<Action<IDialogResult>>._))
-                .Invokes((string name, IDialogParameters p, Action<IDialogResult> callback) =>
-                {
-                    var resultParams = new DialogParameters { { "text", "IAE 2024" } };
-                    callback(new DialogResult(ButtonResult.OK, resultParams));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns("IAE 2024");
 
             // Act
             var resultado = _regla.ApuntesContabilizar([apunteBanco], [new ContabilidadDTO()], _banco);
@@ -262,14 +254,7 @@ namespace CajasTests
             };
 
             // Configurar mock para simular cancelacion (devuelve null)
-            A.CallTo(() => _dialogService.ShowDialog(
-                A<string>.That.IsEqualTo("InputTextDialog"),
-                A<IDialogParameters>._,
-                A<Action<IDialogResult>>._))
-                .Invokes((string name, IDialogParameters p, Action<IDialogResult> callback) =>
-                {
-                    callback(new DialogResult(ButtonResult.Cancel));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns(null);
 
             // Act
             var resultado = _regla.ApuntesContabilizar([apunteBanco], [new ContabilidadDTO()], _banco);

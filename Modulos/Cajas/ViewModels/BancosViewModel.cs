@@ -13,7 +13,6 @@ using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -36,7 +35,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IBancosService _bancosService;
         private readonly IContabilidadService _contabilidadService;
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IPedidoCompraService _pedidoCompraService;
         private readonly List<IReglaContabilizacion> _reglasContabilizacion;
         private readonly IUnityContainer _container;
@@ -44,7 +43,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         private const string SIMBOLO_PUNTEO_CONCILIACION = "*";
 
-        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IDialogService dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container, IRecursosHumanosService recursosHumanosService)
+        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container, IRecursosHumanosService recursosHumanosService)
         {
             _bancosService = bancosService;
             _contabilidadService = contabilidadService;
@@ -80,7 +79,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             // que Prism fallaba al resolver IDialogWindow: "An unexpected error occured while
             // resolving 'Prism.Services.Dialogs.IDialogWindow'". Se les pasa el servicio envuelto
             // para que sus dialogos salgan siempre en el hilo bueno.
-            IDialogService dialogServiceReglas = new DialogServiceEnHiloUi(_dialogService);
+            IServicioDialogos dialogServiceReglas = new ServicioDialogosEnHiloUi(_dialogService);
 
             _reglasContabilizacion =
             [

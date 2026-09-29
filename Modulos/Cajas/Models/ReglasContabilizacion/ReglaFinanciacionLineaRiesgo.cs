@@ -1,7 +1,7 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Nesto.Infrastructure.Contracts;
+using ControlesUsuario.Dialogs;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.ViewModels;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +11,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaFinanciacionLineaRiesgo : IReglaContabilizacion
     {
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IRecursosHumanosService _recursosHumanosService;
 
-        public ReglaFinanciacionLineaRiesgo(IDialogService dialogService, IRecursosHumanosService recursosHumanosService)
+        public ReglaFinanciacionLineaRiesgo(IServicioDialogos dialogService, IRecursosHumanosService recursosHumanosService)
         {
             _dialogService = dialogService;
             _recursosHumanosService = recursosHumanosService;

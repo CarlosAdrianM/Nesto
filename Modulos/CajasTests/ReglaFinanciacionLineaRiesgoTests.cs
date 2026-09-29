@@ -1,8 +1,8 @@
-﻿using FakeItEasy;
+﻿using Nesto.Infrastructure.Contracts;
+using FakeItEasy;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
-using Prism.Services.Dialogs;
 
 namespace CajasTests
 {
@@ -13,7 +13,7 @@ namespace CajasTests
         public void ReglaFinanciacionLineaRiesgo_ConSoloUnApunteDeBancoYUnoDeContabilidad_NoSePuedeContabilizar()
         {
             // Arrange
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancario = new ApunteBancarioDTO
@@ -47,7 +47,7 @@ namespace CajasTests
         public void ReglaFinanciacionLineaRiesgo_ConDosApuntesDeBancoYUnoDeContabilidad_SePuedeContabilizar()
         {
             // Arrange
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO
@@ -96,7 +96,7 @@ namespace CajasTests
         public void ReglaFinanciacionLineaRiesgo_ConCuatroApuntesDeBancoYDosDeContabilidad_SePuedeContabilizar()
         {
             // Arrange
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO
@@ -150,7 +150,7 @@ namespace CajasTests
             // Por ejemplo: se han aplazado 15000 € de un pago de 20000€. Tendríamos un apunte de banco de -20000€ y otro de -5000 menos intereses y dos de contabilidad de -15000€ y -5000€
 
             // Arrange
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO
@@ -199,16 +199,9 @@ namespace CajasTests
         public void ReglaFinanciacionLineaRiesgo_SiSeHaAplazadoElImporteTotalmente_ApuntesContabilizarEstaCuadradoElDebeYElHaber()
         {
             // Arrange            
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             // Configuramos el fake para que siempre responda "Sí"
-            A.CallTo(() => _dialogService.ShowDialog(
-                A<string>.That.Matches(x => x == "ConfirmationDialog"),
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) => {
-                var result = new DialogResult(ButtonResult.OK);
-                callback(result);
-            });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO
@@ -268,33 +261,12 @@ namespace CajasTests
             // El usuario introduce 18546.63 como importe a financiar.
 
             // Arrange
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
-            // Mock general de ShowDialog que maneja todos los diálogos
-            A.CallTo(() => _dialogService.ShowDialog(
-                A<string>.Ignored,
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) => {
-                if (name == "NotificationDialog")
-                {
-                    // ShowNotification pasa callback null, no hacer nada
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                }
-                else if (name == "InputAmountDialog")
-                {
-                    var dialogParams = new DialogParameters
-                    {
-                        { "amount", 18546.63m }
-                    };
-                    callback?.Invoke(new DialogResult(ButtonResult.OK, dialogParams));
-                }
-                else if (name == "ConfirmationDialog")
-                {
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                }
-            });
+            // Todos los diálogos: el importe manual es 18546,63 y se confirma siempre
+            A.CallTo(() => _dialogService.GetAmount(A<string>._, A<string>._)).Returns(18546.63m);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
 
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO
@@ -354,16 +326,9 @@ namespace CajasTests
             // Por ejemplo: se han aplazado 15000 € de un pago de 20000 €
 
             // Arrange            
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             // Configuramos el fake para que siempre responda "Sí"
-            A.CallTo(() => _dialogService.ShowDialog(
-                A<string>.That.Matches(x => x == "ConfirmationDialog"),
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) => {
-                var result = new DialogResult(ButtonResult.OK);
-                callback(result);
-            });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
             var apunteBancarioCargo = new ApunteBancarioDTO

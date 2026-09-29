@@ -1,8 +1,8 @@
+using Nesto.Infrastructure.Contracts;
 using FakeItEasy;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
-using Prism.Services.Dialogs;
 
 namespace CajasTests
 {
@@ -63,7 +63,7 @@ namespace CajasTests
                 ]
             };
 
-            ReglaContabilizacionResponse respuesta = new ReglaAyuntamientoMadrid(A.Fake<IDialogService>()).ApuntesContabilizar([ibi], [], _banco);
+            ReglaContabilizacionResponse respuesta = new ReglaAyuntamientoMadrid(A.Fake<IServicioDialogos>()).ApuntesContabilizar([ibi], [], _banco);
 
             Assert.AreEqual(1, respuesta.Lineas.Count);
             Assert.AreEqual("63100000", respuesta.Lineas[0].Cuenta);

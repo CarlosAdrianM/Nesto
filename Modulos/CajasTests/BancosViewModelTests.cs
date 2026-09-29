@@ -7,7 +7,6 @@ using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
 
@@ -75,7 +74,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -112,7 +111,7 @@ namespace CajasTests
         public void RegularizarDiferencia_ElUltimoAvisoAlBotonLlegaConElDescuadreYaRecalculado()
         {
             var sut = new BancosViewModel(A.Fake<IBancosService>(), A.Fake<IContabilidadService>(), A.Fake<IConfiguracion>(),
-                A.Fake<IDialogService>(), A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
+                A.Fake<IServicioDialogos>(), A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
             bool? canEnElUltimoAviso = null;
             sut.RegularizarDiferenciaCommand.CanExecuteChanged += (s, e) => canEnElUltimoAviso = sut.RegularizarDiferenciaCommand.CanExecute(null);
 
@@ -130,7 +129,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -155,7 +154,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -181,7 +180,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -217,7 +216,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -262,7 +261,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 100, "*", null)).Returns(3);
@@ -306,7 +305,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(null, 1, 100, "*", 1)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 100, "*", 1)).Returns(4);
@@ -348,7 +347,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(null, 1, 100, "*", 2)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 250, "*", 2)).Returns(4);
@@ -398,7 +397,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 30, "*", null)).Returns(5);
@@ -450,7 +449,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, -30, "*", null)).Returns(5);
@@ -502,7 +501,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -170, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 70, "*", null)).Returns(5);
@@ -554,7 +553,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -1, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 11, "*", null)).Returns(5);
@@ -606,7 +605,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 60, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 4, 10, "*", null)).Returns(5);
@@ -666,7 +665,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             var _container = A.Fake<IUnityContainer>();
@@ -692,7 +691,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             var _container = A.Fake<IUnityContainer>();
@@ -728,7 +727,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 4, A<decimal>._, "*", null)).Returns(5);
@@ -792,20 +791,10 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>.Ignored, A<DialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
-                .Invokes(call =>
-                {
-                    // Extraer el Action<IDialogResult> de los argumentos
-                    Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
-
-                    // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    // Null-safe: ShowNotification/ShowError llaman a ShowDialog SIN callback; invocar null
-                    // mataba el host de tests con NRE en un hilo de fondo ("Serie de pruebas anulada").
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
@@ -849,20 +838,10 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>.Ignored, A<DialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
-                .Invokes(call =>
-                {
-                    // Extraer el Action<IDialogResult> de los argumentos
-                    Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
-
-                    // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    // Null-safe: ShowNotification/ShowError llaman a ShowDialog SIN callback; invocar null
-                    // mataba el host de tests con NRE en un hilo de fondo ("Serie de pruebas anulada").
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
@@ -904,19 +883,11 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    // Extraer el Action<IDialogResult> de los argumentos
-                    Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
-
-                    // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
@@ -966,19 +937,11 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(3, 4, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    // Extraer el Action<IDialogResult> de los argumentos
-                    Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
-
-                    // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
@@ -1035,19 +998,11 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    // Extraer el Action<IDialogResult> de los argumentos
-                    Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
-
-                    // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
@@ -1092,7 +1047,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1115,7 +1070,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1142,7 +1097,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1165,7 +1120,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1189,7 +1144,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1198,21 +1153,10 @@ namespace CajasTests
                 .Returns(true);
 
             // Simular GetText para devolver el número de orden
-            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    var parameters = new DialogParameters { { "text", apunteContabilidadId.ToString() } };
-                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns(apunteContabilidadId.ToString());
 
             // Simular confirmación
-            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
 
             A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
                 .Returns(Task.FromResult(new List<ConciliacionEliminadaDTO>
@@ -1238,7 +1182,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1247,21 +1191,10 @@ namespace CajasTests
                 .Returns(true);
 
             // Simular GetText
-            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    var parameters = new DialogParameters { { "text", "12345" } };
-                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns("12345");
 
             // Simular cancelación de confirmación
-            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    callback?.Invoke(new DialogResult(ButtonResult.Cancel));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(false);
 
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
@@ -1282,7 +1215,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1291,28 +1224,17 @@ namespace CajasTests
                 .Returns(true);
 
             // Simular GetText
-            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    var parameters = new DialogParameters { { "text", apunteContabilidadId.ToString() } };
-                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns(apunteContabilidadId.ToString());
 
             // Simular confirmación
-            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    callback?.Invoke(new DialogResult(ButtonResult.OK));
-                });
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
 
             A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
                 .Returns(Task.FromResult(new List<ConciliacionEliminadaDTO>()));
 
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
             bool notificacionMostrada = false;
-            A.CallTo(() => _dialogService.ShowDialog("NotificationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+            A.CallTo(() => _dialogService.ShowNotification(A<string>._))
                 .Invokes(() => notificacionMostrada = true);
 
             // Act
@@ -1330,7 +1252,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1339,13 +1261,7 @@ namespace CajasTests
                 .Returns(true);
 
             // Simular GetText con texto no numérico
-            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    var parameters = new DialogParameters { { "text", "texto_no_valido" } };
-                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns("texto_no_valido");
 
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
@@ -1364,7 +1280,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -1373,12 +1289,7 @@ namespace CajasTests
                 .Returns(true);
 
             // Simular cancelación del input
-            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call =>
-                {
-                    var callback = call.GetArgument<Action<IDialogResult>>(2);
-                    callback?.Invoke(new DialogResult(ButtonResult.Cancel));
-                });
+            A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns(null);
 
             var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
@@ -1401,7 +1312,7 @@ namespace CajasTests
             var _bancosService = A.Fake<IBancosService>();
             var _contabilidadService = A.Fake<IContabilidadService>();
             var _configuracion = A.Fake<IConfiguracion>();
-            var _dialogService = A.Fake<IDialogService>();
+            var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();

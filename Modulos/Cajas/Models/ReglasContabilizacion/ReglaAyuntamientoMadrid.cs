@@ -1,6 +1,6 @@
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Dialogs;
 using Nesto.Modulos.Cajas.ViewModels;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +9,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaAyuntamientoMadrid : IReglaContabilizacion
     {
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
 
-        public ReglaAyuntamientoMadrid(IDialogService dialogService)
+        public ReglaAyuntamientoMadrid(IServicioDialogos dialogService)
         {
             _dialogService = dialogService;
         }

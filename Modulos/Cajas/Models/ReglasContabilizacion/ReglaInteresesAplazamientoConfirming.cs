@@ -1,6 +1,6 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Nesto.Infrastructure.Contracts;
+using ControlesUsuario.Dialogs;
 using Nesto.Modulos.Cajas.ViewModels;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,9 +9,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaInteresesAplazamientoConfirming : IReglaContabilizacion
     {
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
 
-        public ReglaInteresesAplazamientoConfirming(IDialogService dialogService)
+        public ReglaInteresesAplazamientoConfirming(IServicioDialogos dialogService)
         {
             _dialogService = dialogService;
         }
