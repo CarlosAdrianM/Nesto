@@ -1800,6 +1800,9 @@ Public Class AgenciasViewModel
         If envioActual.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
+        If Not ConfirmarDireccionPropia(envioActual) Then
+            Return
+        End If
 
         Dim envioATramitar = envioActual ' Capturar referencia
         Dim excepcionTramitacion As Exception = Nothing
@@ -1850,6 +1853,45 @@ Public Class AgenciasViewModel
         OnPropertyChanged(NameOf(listaReembolsos))
         OnPropertyChanged(NameOf(mensajeError))
     End Sub
+
+    ' Carlos 29/09/26 (pedido 927075): un pedido de la tienda online (cliente 31517) salió por CTT a
+    ' nuestra propia dirección, la de la ficha genérica, en vez de a la de la clienta (que va en los
+    ' comentarios del pedido). Antes de registrar un envío que va a Río Tiétar, 11 (Algete), el
+    ' usuario lo tiene que confirmar. Se pregunta una vez por envío (imprimir y tramitar no repiten).
+    Private ReadOnly _enviosADireccionPropiaConfirmados As New HashSet(Of Integer)
+
+    Friend Function ConfirmarDireccionPropia(envio As EnviosAgencia) As Boolean
+        If envio Is Nothing OrElse Not EsDireccionDeNuevaVision(envio.Direccion, envio.CodPostal) Then
+            Return True
+        End If
+        If _enviosADireccionPropiaConfirmados.Contains(envio.Numero) Then
+            Return True
+        End If
+        Dim mensaje As String = $"El envío {envio.Numero} (pedido {envio.Pedido}) va a la dirección de Nueva Visión: " &
+            $"{envio.Direccion?.Trim()}, {envio.CodPostal?.Trim()} {envio.Poblacion?.Trim()}." & vbCrLf & vbCrLf &
+            "Si es un pedido de la tienda online, la dirección del cliente está en los comentarios del pedido: " &
+            "corrígela antes de seguir." & vbCrLf & vbCrLf &
+            "¿Seguro que quieres mandar el envío a nuestra dirección?"
+        If Not _dialogService.ShowConfirmationAnswer("Envío a Nueva Visión", mensaje) Then
+            Return False
+        End If
+        Dim unused = _enviosADireccionPropiaConfirmados.Add(envio.Numero)
+        Return True
+    End Function
+
+    ''' <summary>Río Tiétar, 11 - 28110 Algete, con o sin tildes, «C/», «Calle»...</summary>
+    Public Shared Function EsDireccionDeNuevaVision(direccion As String, codPostal As String) As Boolean
+        If String.IsNullOrWhiteSpace(direccion) OrElse String.IsNullOrWhiteSpace(codPostal) Then
+            Return False
+        End If
+        If codPostal.Trim() <> "28110" Then
+            Return False
+        End If
+        Dim sinTildes As String = New String(direccion.Normalize(Text.NormalizationForm.FormD) _
+            .Where(Function(c) Globalization.CharUnicodeInfo.GetUnicodeCategory(c) <> Globalization.UnicodeCategory.NonSpacingMark) _
+            .ToArray()).ToUpperInvariant()
+        Return sinTildes.Contains("TIETAR")
+    End Function
 
     ' Nesto#367: añade las dimensiones a las observaciones existentes sin pisarlas.
     Public Shared Function CombinarObservaciones(observacionesActuales As String, dimensiones As String) As String
@@ -1914,6 +1956,10 @@ Public Class AgenciasViewModel
         End If
         EstaOcupado = True
         Try
+            If Not ConfirmarDireccionPropia(envioActual) Then
+                Return
+            End If
+
             ' Nesto#367: las agencias que lo exigen (Canteras) necesitan las dimensiones de los
             ' bultos en el aviso de recogida. Las pide aquí, al imprimir la etiqueta, el operario que
             ' ha preparado el pedido (es quien mejor las conoce) y se guardan en el envío, de donde
