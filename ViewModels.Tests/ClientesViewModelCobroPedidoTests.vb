@@ -7,14 +7,13 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.Rapports
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 ' Sugerencia 417 de Novedades (Paloma, 29/09/26): enlace de pago y datos de transferencia de un pedido desde la
 ' pestaña Pedidos de la ficha del cliente, con lo mismo que usa el detalle del pedido.
 <TestClass()>
 Public Class ClientesViewModelCobroPedidoTests
 
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
     Private _servicioPedidos As IPedidoVentaService
     Private _copiado As String
     Private _vm As ClientesViewModel
@@ -29,7 +28,7 @@ Public Class ClientesViewModelCobroPedidoTests
 
     <TestInitialize()>
     Public Sub Initialize()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
         _servicioPedidos = A.Fake(Of IPedidoVentaService)()
         _vm = New ClientesViewModel(A.Fake(Of IConfiguracion)(), _dialogService, A.Fake(Of IClienteComercialService)(),
                                     A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)()) With {
@@ -40,13 +39,7 @@ Public Class ClientesViewModelCobroPedidoTests
     End Sub
 
     Private Sub ElUsuarioConfirma(ok As Boolean)
-        A.CallTo(Sub() _dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If callback Is Nothing Then Return
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
-                  End Sub)
+        A.CallTo(Function() _dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(ok)
     End Sub
 
     Private Async Function SeleccionarPedido(numero As Integer, estadoLinea As Short, Optional formaPago As String = "RCB", Optional plazos As String = "CONTADO") As Task(Of ResumenPedido)

@@ -6,7 +6,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.Rapports
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 ' Nesto#340 (1C.8, slice 4): primeros tests reales del VM. Los antiguos (2014) eran de
 ' integración contra la BD de producción y estaban comentados; el constructor de tests nuevo
@@ -15,7 +14,7 @@ Imports Prism.Services.Dialogs
 Public Class ClientesViewModelTests
 
     Private _configuracion As IConfiguracion
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
     Private _servicio As IClienteComercialService
     Private _servicioRapports As IRapportService
     Private _servicioAutenticacion As IServicioAutenticacion
@@ -23,7 +22,7 @@ Public Class ClientesViewModelTests
     <TestInitialize()>
     Public Sub Initialize()
         _configuracion = A.Fake(Of IConfiguracion)()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
         _servicio = A.Fake(Of IClienteComercialService)()
         _servicioRapports = A.Fake(Of IRapportService)()
         _servicioAutenticacion = A.Fake(Of IServicioAutenticacion)()

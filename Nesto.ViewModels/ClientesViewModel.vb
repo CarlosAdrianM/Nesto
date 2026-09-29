@@ -22,7 +22,6 @@ Imports Nesto.Modulos.Rapports
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 Imports Unity
 
 Public Interface IOService
@@ -40,7 +39,7 @@ Public Class ClientesViewModel
     ' (listaEmpresas por API + borrado del código muerto de FamiliasVendedor).
     Public Property configuracion As IConfiguracion
     Private ReadOnly Property contenedor As IUnityContainer
-    Private ReadOnly Property dialogService As IDialogService
+    Private ReadOnly Property dialogService As IServicioDialogos
     Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
     Private ReadOnly Property servicioAutenticacion As IServicioAutenticacion
@@ -90,7 +89,7 @@ Public Class ClientesViewModel
         cargarDatos()
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.contenedor = contenedor
         Me.dialogService = dialogService
@@ -123,7 +122,7 @@ Public Class ClientesViewModel
     ' queda a Nothing) ni el contenedor de Prism, y no dispara cargarDatos. ListaClientesFiltrable
     ' queda a Nothing a propósito: el setter de clienteActivo no dispara las cargas HTTP en
     ' cascada. Unity sigue eligiendo el constructor de 6 parámetros (el más largo).
-    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         Me.servicio = servicio
@@ -1301,11 +1300,11 @@ Public Class ClientesViewModel
     End Function
     Private Sub GuardarVendedores(ByVal param As Object)
         Dim continuar As Boolean = False
-        Dim p As New DialogParameters From {
+        Dim p As New ParametrosDialogo From {
             {"message", "¿Desea guardar los cambios (vendedores, estado y país fiscal)?"}
         }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              If r.Result = ButtonResult.OK Then
+                                                              If r.Result = ResultadoBoton.OK Then
                                                                   continuar = True
                                                               End If
                                                           End Sub)
@@ -1341,7 +1340,7 @@ Public Class ClientesViewModel
 
             mensajeError = "Cliente guardado correctamente"
 
-            Dim c As New DialogParameters From {
+            Dim c As New ParametrosDialogo From {
                 {"message", "Se han guardado correctamente los cambios"}
             }
             dialogService.ShowDialog("NotificationDialog", c, Sub(r)
@@ -1645,7 +1644,7 @@ Public Class ClientesViewModel
             End Try
 
             Dim mensaje As String = If(errorReclamacion.InnerException IsNot Nothing, errorReclamacion.InnerException.Message, errorReclamacion.Message)
-            Dim p As New DialogParameters From {
+            Dim p As New ParametrosDialogo From {
                 {"message", "No se ha podido reclamar la deuda." & vbCrLf & vbCrLf & mensaje}
             }
             dialogService.ShowDialog("NotificationDialog", p, Sub(r)
@@ -1851,11 +1850,11 @@ Public Class ClientesViewModel
         Return conceptoValido AndAlso ImporteReclamarDeuda >= 1 AndAlso (Not IsNothing(CorreoReclamarDeuda) OrElse Not IsNothing(MovilReclamarDeuda))
     End Function
     Private Sub OnConfirmarReclamarDeuda()
-        Dim p As New DialogParameters From {
+        Dim p As New ParametrosDialogo From {
             {"message", "¿Desea reclamar la deuda?"}
         }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              If r.Result = ButtonResult.OK Then
+                                                              If r.Result = ResultadoBoton.OK Then
                                                                   ReclamarDeudaCommand.Execute(Nothing)
                                                               End If
                                                           End Sub)
@@ -1866,11 +1865,11 @@ Public Class ClientesViewModel
         Return Not IsNothing(DeudaSeleccionada) AndAlso EsUsuarioAdministracion AndAlso Not String.IsNullOrWhiteSpace(MotivoCambioEstado)
     End Function
     Private Async Sub OnGuardarEfectoDeuda()
-        Dim p As New DialogParameters
+        Dim p As New ParametrosDialogo
         Dim confirmacion As Boolean
         p.Add("message", "¿Desea guardar los cambios?")
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              confirmacion = r.Result = ButtonResult.OK
+                                                              confirmacion = r.Result = ResultadoBoton.OK
                                                           End Sub)
         If Not confirmacion Then
             Return
