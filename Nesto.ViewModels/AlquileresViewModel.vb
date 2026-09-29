@@ -7,7 +7,6 @@ Imports System.Windows.Controls
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Models.Nesto.Models
-Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Contratos
 Imports System.IO
@@ -20,14 +19,14 @@ Imports Unity
 Public Class AlquileresViewModel
     Inherits ObservableObject
 
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly configuracion As IConfiguracion
     ' Nesto#340 Fase 1C: la lectura de productos, detalle y el grid principal ya no usan EF, sino el API.
     Private ReadOnly _productosAlquilerService As IProductosAlquilerService
     ' Nesto#340 Fase 1C.3: dirty flag que sustituye a DbContext.ChangeTracker.HasChanges().
     Private _hayCambios As Boolean
 
-    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion, container As IUnityContainer)
+    Public Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -39,7 +38,7 @@ Public Class AlquileresViewModel
     End Sub
 
     ' Constructor para tests: permite inyectar un IProductosAlquilerService fake.
-    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion, productosAlquilerService As IProductosAlquilerService)
+    Public Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, productosAlquilerService As IProductosAlquilerService)
         Me.dialogService = dialogService
         Me.configuracion = configuracion
         _productosAlquilerService = productosAlquilerService
@@ -566,7 +565,7 @@ Public Class AlquileresViewModel
     Private Sub OnInicializarAlquiler(arg As Object)
         Dim continuar As Boolean
         dialogService.ShowConfirmation("Inicializar", "¿Desea inicializar los campos de este alquiler?", Sub(r)
-                                                                                                             continuar = (r.Result = ButtonResult.OK)
+                                                                                                             continuar = (r.Result = ResultadoBoton.OK)
                                                                                                          End Sub)
         If Not continuar OrElse IsNothing(LineaSeleccionada) Then
             Return

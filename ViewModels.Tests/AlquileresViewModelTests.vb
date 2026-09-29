@@ -5,18 +5,17 @@ Imports FakeItEasy
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.Alquileres
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 <TestClass()>
 Public Class AlquileresViewModelTests
 
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
     Private _configuracion As IConfiguracion
     Private _servicio As IProductosAlquilerService
 
     <TestInitialize()>
     Public Sub Initialize()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
         _configuracion = A.Fake(Of IConfiguracion)()
         _servicio = A.Fake(Of IProductosAlquilerService)()
 

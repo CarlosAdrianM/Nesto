@@ -6,7 +6,6 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' NestoAPI#406: mantenimiento de familias. Existe para una sola cosa: marcar qué familias se
@@ -22,9 +21,9 @@ Public Class FamiliasMantenimientoViewModel
 
     Private ReadOnly _servicio As IServicioFamiliasMantenimiento
     Private ReadOnly _configuracion As IConfiguracion
-    Private ReadOnly _dialogService As IDialogService
+    Private ReadOnly _dialogService As IServicioDialogos
 
-    Public Sub New(servicio As IServicioFamiliasMantenimiento, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(servicio As IServicioFamiliasMantenimiento, configuracion As IConfiguracion, dialogService As IServicioDialogos)
         _servicio = servicio
         _configuracion = configuracion
         _dialogService = dialogService

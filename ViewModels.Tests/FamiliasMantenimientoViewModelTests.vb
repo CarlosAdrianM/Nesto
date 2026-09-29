@@ -7,7 +7,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' NestoAPI#406: la pantalla que permite marcar qué familias se venden al público al mismo
@@ -18,13 +17,13 @@ Public Class FamiliasMantenimientoViewModelTests
 
     Private _servicio As IServicioFamiliasMantenimiento
     Private _configuracion As IConfiguracion
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
 
     <TestInitialize()>
     Public Sub Inicializar()
         _servicio = A.Fake(Of IServicioFamiliasMantenimiento)()
         _configuracion = A.Fake(Of IConfiguracion)()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
     End Sub
 
     Private Shared Function Familia(numero As String, descripcion As String, marcada As Boolean) As FamiliaMantenimiento

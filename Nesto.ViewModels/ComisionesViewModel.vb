@@ -8,7 +8,6 @@ Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports Unity
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.Comisiones
@@ -20,8 +19,8 @@ Public Class ComisionesViewModel
 
     Private container As IUnityContainer
     Private configuracion As IConfiguracion
-    Private ReadOnly _dialogService As IDialogService
-    Public ReadOnly Property DialogService As IDialogService
+    Private ReadOnly _dialogService As IServicioDialogos
+    Public ReadOnly Property DialogService As IServicioDialogos
         Get
             Return _dialogService
         End Get
@@ -34,7 +33,7 @@ Public Class ComisionesViewModel
     Private mesAnteriorAnnoPasado As String
     Private ReadOnly Property _servicio As ComisionesService
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
-    Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IServicioDialogos)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If

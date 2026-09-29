@@ -3,7 +3,6 @@ Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 Imports Unity
 Imports Unity.Resolution
 
@@ -42,7 +41,7 @@ Public Class ComisionesViewModelTests
     Private Shared Function CrearViewModel() As ComisionesViewModel
         Dim container = A.Fake(Of IUnityContainer)()
         Dim configuracion = A.Fake(Of IConfiguracion)()
-        Dim dialogService = A.Fake(Of IDialogService)()
+        Dim dialogService = A.Fake(Of IServicioDialogos)()
 
         A.CallTo(Function() container.Resolve(GetType(IServicioAutenticacion), A(Of String).Ignored, A(Of ResolverOverride()).Ignored)).
             Returns(A.Fake(Of IServicioAutenticacion)())
@@ -67,7 +66,7 @@ Public Class ComisionesViewModelTests
                       Assert.IsNull(vm.ComisionAnualResumenActual, "Sin vendedor no hay comision que calcular")
                       ' Sin la guarda, la NullReferenceException la recoge el Try de RecalcularComisionAsync
                       ' y acaba en un dialogo de error delante de la usuaria. No debe salir nada.
-                      A.CallTo(Sub() vm.DialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+                      A.CallTo(Sub() vm.DialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
                   End Sub)
     End Sub
 
