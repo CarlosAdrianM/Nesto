@@ -9,7 +9,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 
 Public Class ListaPedidosVentaViewModel
     Inherits ObservableObject
@@ -17,7 +16,7 @@ Public Class ListaPedidosVentaViewModel
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly regionManager As IRegionManager
 
     Private vendedor As String
@@ -26,7 +25,7 @@ Public Class ListaPedidosVentaViewModel
     Public Event PedidoCreadoConfirmado(numeroPedido As Integer)
     Public Event PedidoCreacionCancelada()
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, regionManager As IRegionManager)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, regionManager As IRegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
@@ -203,7 +202,7 @@ Public Class ListaPedidosVentaViewModel
         Dim mensajeConfirmacion As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", pedidoAUnir.numero, pedidoDestino.numero)
         Dim continuar As Boolean
         dialogService.ShowConfirmation("Unir pedidos", mensajeConfirmacion, Sub(r)
-                                                                                continuar = r.Result = ButtonResult.OK
+                                                                                continuar = r.Result = ResultadoBoton.OK
                                                                             End Sub)
         If Not continuar Then
             Return
@@ -222,7 +221,7 @@ Public Class ListaPedidosVentaViewModel
             If errorValidacion IsNot Nothing Then
                 Dim confirmarSinValidar As Boolean
                 dialogService.ShowConfirmation("Pedido no válido", errorValidacion.Message & vbCrLf & "¿Desea unirlos de todos modos?", Sub(r)
-                                                                                                                                          confirmarSinValidar = r.Result = ButtonResult.OK
+                                                                                                                                          confirmarSinValidar = r.Result = ResultadoBoton.OK
                                                                                                                                       End Sub)
                 If Not confirmarSinValidar Then
                     Throw errorValidacion

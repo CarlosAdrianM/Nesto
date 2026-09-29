@@ -42,7 +42,7 @@ namespace PedidoVentaTests
         private ListaPedidosVentaViewModel CrearLista()
         {
             return new ListaPedidosVentaViewModel(A.Fake<IConfiguracion>(), _servicio, _messenger,
-                A.Fake<IDialogService>(), A.Fake<IRegionManager>());
+                A.Fake<IServicioDialogos>(), A.Fake<IRegionManager>());
         }
 
         [TestMethod]
@@ -127,7 +127,7 @@ namespace PedidoVentaTests
             A.CallTo(() => configuracion.UsuarioEnGrupo(A<string>._)).Returns(true);
             var informes = A.Fake<IInformesService>();
             A.CallTo(() => informes.LeerUltimoPicking()).Returns(Task.FromResult(42));
-            var vm = new PickingPopupViewModel(_servicio, _messenger, A.Fake<IDialogService>(), configuracion, informes)
+            var vm = new PickingPopupViewModel(_servicio, _messenger, A.Fake<IServicioDialogos>(), configuracion, informes)
             {
                 esPickingRutas = true
             };

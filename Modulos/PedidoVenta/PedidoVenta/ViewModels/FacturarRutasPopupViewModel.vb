@@ -18,14 +18,14 @@ Public Class FacturarRutasPopupViewModel
     Implements IDialogAware
 
     Private ReadOnly configuracion As IConfiguracion
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly servicioFacturacion As IServicioFacturacionRutas
     Private ReadOnly servicioImpresion As IServicioImpresionDocumentos
     Private ReadOnly container As IUnityContainer
 
 #Region "Constructor"
 
-    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, container As IUnityContainer)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, container As IUnityContainer)
         System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel.New() EJECUTADO ===")
 
         Me.configuracion = configuracion
@@ -357,13 +357,13 @@ Public Class FacturarRutasPopupViewModel
             PersistirErrores(errores)
 
             ' Crear parámetros para el diálogo
-            Dim parametros As New DialogParameters From {
+            Dim parametros As New ParametrosDialogo From {
                 {"errores", errores}
             }
 
             System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - Llamando ShowDialog con {errores.Count} errores")
 
-            ' Mostrar el diálogo de errores usando Prism DialogService (modal)
+            ' Mostrar el diálogo de errores (modal)
             dialogService.ShowDialog("ErroresFacturacionRutasPopup", parametros, Nothing)
 
             System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - ShowDialog completado")

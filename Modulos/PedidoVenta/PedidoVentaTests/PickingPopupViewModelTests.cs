@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Services.Dialogs;
 using System.Threading.Tasks;
 
 namespace PedidoVentaTests
@@ -16,7 +15,7 @@ namespace PedidoVentaTests
     {
         private IPedidoVentaService _servicioPedido;
         private IMessenger _messenger;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
         private IConfiguracion _configuracion;
 
         [TestInitialize]
@@ -24,7 +23,7 @@ namespace PedidoVentaTests
         {
             _servicioPedido = A.Fake<IPedidoVentaService>();
             _messenger = new WeakReferenceMessenger();
-            _dialogService = A.Fake<IDialogService>();
+            _dialogService = A.Fake<IServicioDialogos>();
             _configuracion = A.Fake<IConfiguracion>();
         }
 

@@ -13,7 +13,6 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.ViewModels
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' Nesto#416: unir pedidos desde la lista.
@@ -22,36 +21,36 @@ Imports Prism.Services.Dialogs
 ''' rechazo era por validación de precios/descuentos, no se ofrecía "¿de todos modos?" (sí se
 ''' ofrece al crear un pedido).
 '''
-''' Los diálogos son métodos de EXTENSIÓN (estáticos, no fakeables): se configura el ShowDialog
-''' real de IDialogService, que es al que acaban llamando todos.
+''' Nesto#490 (4C.2): se fakea IServicioDialogos (ShowConfirmation, ShowNotification y ShowError).
 ''' </summary>
 <TestClass()>
 Public Class ListaPedidosUnirTests
 
     Private _servicio As IPedidoVentaService
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
     Private _configuracion As IConfiguracion
     Private _dialogosMostrados As List(Of Tuple(Of String, String))
 
     <TestInitialize()>
     Public Sub Initialize()
         _servicio = A.Fake(Of IPedidoVentaService)()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
         _configuracion = A.Fake(Of IConfiguracion)()
         _dialogosMostrados = New List(Of Tuple(Of String, String))
     End Sub
 
     ''' <summary>Responde a las confirmaciones con el botón indicado y registra todos los diálogos.</summary>
-    Private Sub ResponderConfirmaciones(resultado As ButtonResult)
-        Dim res = New DialogResult(resultado)
-        A.CallTo(Sub() _dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)) _
-            .Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(
-                Sub(nombre, parametros, callback)
-                    _dialogosMostrados.Add(Tuple.Create(nombre, parametros.GetValue(Of String)("message")))
-                    If callback IsNot Nothing Then
-                        callback(res)
-                    End If
+    Private Sub ResponderConfirmaciones(resultado As ResultadoBoton)
+        A.CallTo(Sub() _dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+            .Invokes(Of String, String, Action(Of ResultadoDialogo))(
+                Sub(titulo, mensaje, callback)
+                    _dialogosMostrados.Add(Tuple.Create(titulo, mensaje))
+                    callback?.Invoke(New ResultadoDialogo(resultado))
                 End Sub)
+        A.CallTo(Sub() _dialogService.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)) _
+            .Invokes(Of String, String)(Sub(titulo, mensaje) _dialogosMostrados.Add(Tuple.Create(titulo, mensaje)))
+        A.CallTo(Sub() _dialogService.ShowError(A(Of String).Ignored)) _
+            .Invokes(Of String)(Sub(mensaje) _dialogosMostrados.Add(Tuple.Create("Error", mensaje)))
     End Sub
 
     Private Function HayMensajeQueContenga(texto As String) As Boolean
@@ -67,7 +66,7 @@ Public Class ListaPedidosUnirTests
     <TestMethod()>
     Public Async Function Unir_SiElServidorFalla_MuestraErrorYNoDiceQueSeUnioCorrectamente() As Task
         ' El bug gordo: sin Await, el "correctamente" salía aunque la unión hubiera fallado
-        ResponderConfirmaciones(ButtonResult.OK)
+        ResponderConfirmaciones(ResultadoBoton.OK)
         A.CallTo(Function() _servicio.UnirPedidos(A(Of String).Ignored, A(Of Integer).Ignored, A(Of Integer).Ignored, A(Of Boolean).Ignored)) _
             .Throws(New Exception("No se pudo unir"))
         Dim vm = CrearViewModel()
@@ -80,7 +79,7 @@ Public Class ListaPedidosUnirTests
 
     <TestMethod()>
     Public Async Function Unir_ErrorDeValidacion_PreguntaYReintentaSinPasarValidacion() As Task
-        ResponderConfirmaciones(ButtonResult.OK)
+        ResponderConfirmaciones(ResultadoBoton.OK)
         A.CallTo(Function() _servicio.UnirPedidos(A(Of String).Ignored, A(Of Integer).Ignored, A(Of Integer).Ignored, False)) _
             .Throws(New ValidationException("No se encuentra autorizado el descuento del 50 %"))
         A.CallTo(Function() _servicio.UnirPedidos(A(Of String).Ignored, A(Of Integer).Ignored, A(Of Integer).Ignored, True)) _
@@ -97,7 +96,7 @@ Public Class ListaPedidosUnirTests
 
     <TestMethod()>
     Public Async Function Unir_ErrorDeValidacion_SiElUsuarioDiceQueNo_NoReintentaYMuestraElError() As Task
-        ResponderConfirmaciones(ButtonResult.Cancel)
+        ResponderConfirmaciones(ResultadoBoton.Cancel)
         A.CallTo(Function() _servicio.UnirPedidos(A(Of String).Ignored, A(Of Integer).Ignored, A(Of Integer).Ignored, A(Of Boolean).Ignored)) _
             .Throws(New ValidationException("No se encuentra autorizado el descuento del 50 %"))
         Dim vm = CrearViewModel()

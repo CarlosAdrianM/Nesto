@@ -21,17 +21,17 @@ Public Class PickingPopupViewModel
 
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly messenger As IMessenger
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioInformes As IInformesService
 
 
-    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.New(servicio, messenger, dialogService, configuracion, New InformesService(configuracion, servicioAutenticacion))
     End Sub
 
     ' Constructor para tests: permite inyectar un IInformesService mockeado.
-    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IDialogService, configuracion As IConfiguracion, servicioInformes As IInformesService)
+    Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, configuracion As IConfiguracion, servicioInformes As IInformesService)
         Me.servicio = servicio
         Me.messenger = messenger
         Me.dialogService = dialogService
