@@ -21,6 +21,11 @@
                             Header="Verifactu">
                 <RibbonButton Label="Facturas Verifactu" LargeImageSource="Images/FacturasVerifactu.png"  Command="{Binding AbrirFacturasVerifactuCommand}" />
             </RibbonGroup>
+            <!-- Nesto#261: auditoría de enlaces de pago (quién y cuándo creó cada enlace y adónde se envió) -->
+            <RibbonGroup x:Name="grpCobros"
+                            Header="Cobros">
+                <RibbonButton Label="Enlaces de pago" LargeImageSource="Images/Bancos.png"  Command="{Binding AbrirAuditoriaEnlacesPagoCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

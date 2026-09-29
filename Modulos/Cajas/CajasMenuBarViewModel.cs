@@ -19,6 +19,7 @@ namespace Nesto.Modulos.Cajas
             AbrirModuloBancosCommand = new RelayCommand(OnAbrirBancosModulo, CanAbrirModuloBancos);
             AbrirModuloMayorCuentaCommand = new RelayCommand(OnAbrirMayorCuentaModulo, CanAbrirModuloMayorCuenta);
             AbrirFacturasVerifactuCommand = new RelayCommand(OnAbrirFacturasVerifactu, CanAbrirFacturasVerifactu);
+            AbrirAuditoriaEnlacesPagoCommand = new RelayCommand(OnAbrirAuditoriaEnlacesPago, CanAbrirAuditoriaEnlacesPago);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }
@@ -63,6 +64,18 @@ namespace Nesto.Modulos.Cajas
         private void OnAbrirFacturasVerifactu()
         {
             RegionManager.RequestNavigate("MainRegion", Cajas.FACTURAS_PENDIENTES_VERIFACTU_VIEW);
+        }
+
+        // Nesto#261: auditoría de enlaces de pago, para Administración y Dirección (la API tampoco deja a nadie más)
+        public ICommand AbrirAuditoriaEnlacesPagoCommand { get; private set; }
+        private bool CanAbrirAuditoriaEnlacesPago()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        }
+        private void OnAbrirAuditoriaEnlacesPago()
+        {
+            RegionManager.RequestNavigate("MainRegion", Cajas.AUDITORIA_ENLACES_PAGO_VIEW);
         }
     }
 }
