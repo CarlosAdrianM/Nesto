@@ -186,8 +186,13 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaPedidos}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaPedidos}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                          SelectedItem="{Binding PedidoSeleccionadoCobro}">
                                     <i:Interaction.Triggers>
                                         <i:EventTrigger EventName="MouseDoubleClick">
                                             <i:InvokeCommandAction Command="{Binding Path=DataContext.CargarPedidoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding Path=SelectedItem, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=DataGrid}}" />
@@ -208,6 +213,18 @@
                                         </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
+                                <!-- Sugerencia 417 (Paloma): enlace de pago del pedido seleccionado sin abrirlo -->
+                                <StackPanel Grid.Column="1" Margin="3">
+                                    <TextBlock Text="{Binding TextoCobroPedido}" TextWrapping="Wrap" Margin="3" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Correo-e:" Margin="3,6,3,0"/>
+                                    <TextBox Text="{Binding CorreoReclamarDeuda, UpdateSourceTrigger=PropertyChanged}" Margin="3"/>
+                                    <TextBlock Text="Móvil:" Margin="3,3,3,0"/>
+                                    <TextBox Text="{Binding MovilReclamarDeuda, UpdateSourceTrigger=PropertyChanged}" Margin="3"/>
+                                    <Button Command="{Binding EnviarEnlacePagoPedidoCommand}" Margin="3,6,3,3" Padding="5"
+                                            ToolTip="Manda al cliente el enlace de pago con tarjeta por el total del pedido (igual que desde el detalle del pedido)">Enviar enlace de pago</Button>
+                                    <Button Command="{Binding CopiarDatosTransferenciaPedidoCommand}" Margin="3" Padding="5"
+                                            ToolTip="Solo en pedidos prepago por transferencia: copia el IBAN, el beneficiario, el concepto y el importe">Copiar datos de transferencia</Button>
+                                </StackPanel>
                             </Grid>
                         </TabItem>
                         <TabItem Header="Deudas">

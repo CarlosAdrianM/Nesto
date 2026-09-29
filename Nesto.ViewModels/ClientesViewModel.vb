@@ -998,6 +998,7 @@ Public Class ClientesViewModel
         Set(value As String)
             Dim unused = SetProperty(_correoReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
+            EnviarEnlacePagoPedidoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1020,6 +1021,7 @@ Public Class ClientesViewModel
         Set(value As String)
             Dim unused = SetProperty(_movilReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
+            EnviarEnlacePagoPedidoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1661,6 +1663,182 @@ Public Class ClientesViewModel
         }
         Dim unused = System.Diagnostics.Process.Start(psi)
     End Sub
+
+#Region "Cobro de un pedido desde la pestaña Pedidos (sugerencia 417)"
+    ' Sugerencia 417 de Novedades (Paloma, 29/09/26): en la pestaña Pedidos, al seleccionar un pedido pendiente,
+    ' mandar el enlace de pago (o copiar los datos de la transferencia si es prepago) sin abrir el pedido. Usa lo
+    ' mismo que el detalle del pedido (IPedidoVentaService.EnviarCobroTarjeta y LeerDatosTransferencia), con el
+    ' total del pedido recién leído de la API y el correo y el móvil del cliente (los de la pestaña Deudas).
+
+    Private _servicioPedidos As IPedidoVentaService
+    ''' <summary>Se resuelve del contenedor la primera vez; los tests lo asignan.</summary>
+    Public Property ServicioPedidos As IPedidoVentaService
+        Get
+            If _servicioPedidos Is Nothing AndAlso contenedor IsNot Nothing Then
+                _servicioPedidos = contenedor.Resolve(Of IPedidoVentaService)()
+            End If
+            Return _servicioPedidos
+        End Get
+        Set(value As IPedidoVentaService)
+            _servicioPedidos = value
+        End Set
+    End Property
+
+    ''' <summary>Dónde se copian el enlace y los datos de transferencia. Se cambia en los tests.</summary>
+    Public Property PortapapelesCobroPedido As IPortapapelesTexto = New PortapapelesTextoWpf()
+
+    Private _pedidoSeleccionadoCobro As ResumenPedido
+    Public Property PedidoSeleccionadoCobro As ResumenPedido
+        Get
+            Return _pedidoSeleccionadoCobro
+        End Get
+        Set(value As ResumenPedido)
+            If SetProperty(_pedidoSeleccionadoCobro, value) Then
+                Dim unused = CargarPedidoParaCobroAsync(value)
+            End If
+        End Set
+    End Property
+
+    Private _pedidoParaCobro As PedidoVentaDTO
+    ''' <summary>El pedido seleccionado, leído entero de la API (Nothing mientras carga o si no hay).</summary>
+    Public Property PedidoParaCobro As PedidoVentaDTO
+        Get
+            Return _pedidoParaCobro
+        End Get
+        Private Set(value As PedidoVentaDTO)
+            Dim unused = SetProperty(_pedidoParaCobro, value)
+            OnPropertyChanged(NameOf(ImporteCobroPedido))
+            OnPropertyChanged(NameOf(PedidoCobroPendiente))
+            OnPropertyChanged(NameOf(PedidoCobroEsPrepagoPorTransferencia))
+            OnPropertyChanged(NameOf(TextoCobroPedido))
+            EnviarEnlacePagoPedidoCommand.NotifyCanExecuteChanged()
+            CopiarDatosTransferenciaPedidoCommand.NotifyCanExecuteChanged()
+        End Set
+    End Property
+
+    ''' <summary>Total del pedido con IVA: lo mismo que propone el detalle del pedido para el cobro con tarjeta.</summary>
+    Public ReadOnly Property ImporteCobroPedido As Decimal
+        Get
+            Return If(PedidoParaCobro Is Nothing, 0D, PedidoParaCobro.Total)
+        End Get
+    End Property
+
+    ''' <summary>Pendiente = le queda alguna línea sin facturar. Lo ya facturado se cobra desde Deudas.</summary>
+    Public ReadOnly Property PedidoCobroPendiente As Boolean
+        Get
+            Return PedidoParaCobro IsNot Nothing AndAlso PedidoParaCobro.Lineas IsNot Nothing AndAlso
+                PedidoParaCobro.Lineas.Any(Function(l) Not l.estaFacturada)
+        End Get
+    End Property
+
+    Public ReadOnly Property PedidoCobroEsPrepagoPorTransferencia As Boolean
+        Get
+            Return PedidoParaCobro IsNot Nothing AndAlso
+                DatosTransferenciaPedido.EsPrepagoPorTransferencia(PedidoParaCobro.formaPago, PedidoParaCobro.plazosPago)
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoCobroPedido As String
+        Get
+            If PedidoSeleccionadoCobro Is Nothing Then
+                Return "Selecciona un pedido para mandar el enlace de pago."
+            End If
+            If PedidoParaCobro Is Nothing Then
+                Return $"Cargando el pedido {PedidoSeleccionadoCobro.numero}…"
+            End If
+            If Not PedidoCobroPendiente Then
+                Return $"El pedido {PedidoParaCobro.numero} ya está facturado: se cobra desde la pestaña Deudas."
+            End If
+            Return $"Pedido {PedidoParaCobro.numero}: {ImporteCobroPedido.ToString("C", CultureInfo.GetCultureInfo("es-ES"))} (IVA incluido)"
+        End Get
+    End Property
+
+    Friend Async Function CargarPedidoParaCobroAsync(resumen As ResumenPedido) As Task
+        PedidoParaCobro = Nothing
+        OnPropertyChanged(NameOf(TextoCobroPedido))
+        If resumen Is Nothing OrElse resumen.numero <= 0 OrElse ServicioPedidos Is Nothing Then
+            Return
+        End If
+        Try
+            Dim empresa As String = If(String.IsNullOrWhiteSpace(resumen.empresa), empresaActual, resumen.empresa)
+            Dim leido As PedidoVentaDTO = Await ServicioPedidos.cargarPedido(empresa, resumen.numero)
+            ' Si mientras cargaba se ha seleccionado otro, se descarta: nunca se cobra el pedido equivocado
+            If PedidoSeleccionadoCobro Is resumen Then
+                PedidoParaCobro = leido
+            End If
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido leer el pedido {resumen.numero}: {ex.Message}")
+        End Try
+    End Function
+
+    Private _enviarEnlacePagoPedidoCommand As AsyncRelayCommand
+    Public ReadOnly Property EnviarEnlacePagoPedidoCommand As AsyncRelayCommand
+        Get
+            If _enviarEnlacePagoPedidoCommand Is Nothing Then
+                _enviarEnlacePagoPedidoCommand = New AsyncRelayCommand(AddressOf EnviarEnlacePagoPedidoAsync, AddressOf CanEnviarEnlacePagoPedido)
+            End If
+            Return _enviarEnlacePagoPedidoCommand
+        End Get
+    End Property
+
+    Friend Function CanEnviarEnlacePagoPedido() As Boolean
+        Return PedidoCobroPendiente AndAlso ImporteCobroPedido > 0 AndAlso
+            (Not String.IsNullOrWhiteSpace(CorreoReclamarDeuda) OrElse Not String.IsNullOrWhiteSpace(MovilReclamarDeuda))
+    End Function
+
+    Friend Async Function EnviarEnlacePagoPedidoAsync() As Task
+        If Not CanEnviarEnlacePagoPedido() Then
+            Return
+        End If
+        Dim pedido As PedidoVentaDTO = PedidoParaCobro
+        Dim destino As String = String.Join(" y ", {CorreoReclamarDeuda, MovilReclamarDeuda}.Where(Function(d) Not String.IsNullOrWhiteSpace(d)))
+        If Not dialogService.ShowConfirmationAnswer("Enlace de pago",
+                $"¿Mandar a {destino} el enlace de pago del pedido {pedido.numero} por {ImporteCobroPedido.ToString("C", CultureInfo.GetCultureInfo("es-ES"))}?") Then
+            Return
+        End If
+        Try
+            Dim enlace As String = Await ServicioPedidos.EnviarCobroTarjeta(CorreoReclamarDeuda, MovilReclamarDeuda, ImporteCobroPedido,
+                pedido.numero.ToString(), pedido.empresa, pedido.cliente)
+            If Not String.IsNullOrEmpty(enlace) Then
+                PortapapelesCobroPedido.CopiarTexto(enlace)
+                dialogService.ShowNotification("Enlace de pago", "Enlace de pago enviado y copiado al portapapeles:" & vbCrLf & enlace)
+            Else
+                dialogService.ShowNotification("Enlace de pago", "Enlace de pago enviado correctamente.")
+            End If
+        Catch ex As Exception
+            dialogService.ShowError("No se ha podido crear el enlace de pago: " & ex.Message)
+        End Try
+    End Function
+
+    Private _copiarDatosTransferenciaPedidoCommand As AsyncRelayCommand
+    Public ReadOnly Property CopiarDatosTransferenciaPedidoCommand As AsyncRelayCommand
+        Get
+            If _copiarDatosTransferenciaPedidoCommand Is Nothing Then
+                _copiarDatosTransferenciaPedidoCommand = New AsyncRelayCommand(AddressOf CopiarDatosTransferenciaPedidoAsync,
+                    Function() PedidoCobroPendiente AndAlso PedidoCobroEsPrepagoPorTransferencia)
+            End If
+            Return _copiarDatosTransferenciaPedidoCommand
+        End Get
+    End Property
+
+    Friend Async Function CopiarDatosTransferenciaPedidoAsync() As Task
+        Dim pedido As PedidoVentaDTO = PedidoParaCobro
+        If pedido Is Nothing OrElse Not PedidoCobroEsPrepagoPorTransferencia Then
+            Return
+        End If
+        Try
+            Dim datos As DatosTransferenciaPedidoModel = Await ServicioPedidos.LeerDatosTransferencia(pedido.empresa, pedido.numero)
+            If datos Is Nothing OrElse String.IsNullOrWhiteSpace(datos.Texto) Then
+                dialogService.ShowError("No se han podido leer los datos de transferencia del pedido.")
+                Return
+            End If
+            PortapapelesCobroPedido.CopiarTexto(datos.Texto)
+            dialogService.ShowNotification(DatosTransferenciaPedido.TITULO, DatosTransferenciaPedido.MENSAJE_COPIADOS & vbCrLf & vbCrLf & datos.Texto)
+        Catch ex As Exception
+            dialogService.ShowError("No se han podido copiar los datos de transferencia: " & ex.Message)
+        End Try
+    End Function
+#End Region
 
     Public Property ConfirmarReclamarDeudaCommand As RelayCommand
     Private Function CanConfirmarReclamarDeuda() As Boolean
