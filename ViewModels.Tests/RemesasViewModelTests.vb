@@ -7,18 +7,17 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 <TestClass()>
 Public Class RemesasViewModelTests
 
-    Private _dialogService As IDialogService
+    Private _dialogService As IServicioDialogos
     Private _configuracion As IConfiguracion
     Private _servicio As IRemesasService
 
     <TestInitialize()>
     Public Sub Initialize()
-        _dialogService = A.Fake(Of IDialogService)()
+        _dialogService = A.Fake(Of IServicioDialogos)()
         _configuracion = A.Fake(Of IConfiguracion)()
         _servicio = A.Fake(Of IRemesasService)()
 
@@ -207,18 +206,11 @@ Public Class RemesasViewModelTests
     ' NestoAPI#332: pestaña Crear Remesa (candidatos preseleccionados por el servidor + crear)
 
     Private Sub ConfirmarSiempre(respuestaOk As Boolean)
-        A.CallTo(Sub() _dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(respuestaOk, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
-                  End Sub)
+        Dim resultado = New ResultadoDialogo(If(respuestaOk, ResultadoBoton.OK, ResultadoBoton.Cancel))
+        A.CallTo(Sub() _dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(titulo As String, mensaje As String, callback As Action(Of ResultadoDialogo)) callback?.Invoke(resultado))
+        A.CallTo(Sub() _dialogService.ShowDialog(A(Of String).Ignored, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(nombre As String, parametros As ParametrosDialogo, callback As Action(Of ResultadoDialogo)) callback?.Invoke(resultado))
     End Sub
 
     Private Function Candidato(id As Integer, Optional preseleccionado As Boolean = True,
@@ -532,22 +524,16 @@ Public Class RemesasViewModelTests
     ' asertar sobre el contenido del aviso (p. ej. el detalle de los negativos, 17/08/26).
     Private Sub ResponderPorTitulo(respuestas As Dictionary(Of String, Boolean),
                                    Optional mensajes As Dictionary(Of String, String) = Nothing)
-        A.CallTo(Sub() _dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+        A.CallTo(Sub() _dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(titulo As String, mensaje As String, callback As Action(Of ResultadoDialogo))
                       If callback Is Nothing Then
                           Return
                       End If
-                      Dim titulo = parametros.GetValue(Of String)("title")
                       If mensajes IsNot Nothing Then
-                          mensajes(titulo) = parametros.GetValue(Of String)("message")
+                          mensajes(titulo) = mensaje
                       End If
                       Dim ok As Boolean = respuestas.ContainsKey(titulo) AndAlso respuestas(titulo)
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
+                      callback(New ResultadoDialogo(If(ok, ResultadoBoton.OK, ResultadoBoton.Cancel)))
                   End Sub)
     End Sub
 

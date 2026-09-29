@@ -10,7 +10,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Prism.Regions
 Imports Microsoft.Graph
-Imports Prism.Services.Dialogs
 Imports Azure.Identity
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
@@ -31,7 +30,7 @@ Public Class RemesasViewModel
     Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     ' Nesto#340 Fase 1C.14: servicio API que va sustituyendo los accesos EF de este VM.
     Private ReadOnly _remesasService As IRemesasService
     ' Nesto#419: para abrir la ventana de Extracto de Cliente (misma MainRegion, como pestaña).
@@ -49,7 +48,7 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IDialogService, container As IUnityContainer)
+    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IServicioDialogos, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -90,7 +89,7 @@ Public Class RemesasViewModel
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
-    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, remesasService As IRemesasService)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, remesasService As IRemesasService)
         Titulo = "Remesas"
         Me.configuracion = configuracion
         Me.dialogService = dialogService
@@ -286,7 +285,7 @@ Public Class RemesasViewModel
                 "Estos efectos están retenidos porque su envío no consta entregado:" & vbCrLf &
                 detalleForzados & vbCrLf & vbCrLf &
                 "¿Remesarlos al banco IGUALMENTE?",
-                Sub(r) confirmarForzados = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+                Sub(r) confirmarForzados = r.Result = ResultadoBoton.OK)
             If Not confirmarForzados Then
                 mensajeError = "Remesa no creada. Desmarque los efectos retenidos o acepte el aviso para forzarlos."
                 Return
@@ -314,7 +313,7 @@ Public Class RemesasViewModel
                 "negativos quedarán pendientes para liquidarlos cuando corresponda (doble clic " &
                 "en el efecto naranja abre el Extracto de Cliente)." & vbCrLf & vbCrLf &
                 "¿Crear la remesa SIN liquidar esos movimientos?",
-                Sub(r) continuarSinLiquidar = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+                Sub(r) continuarSinLiquidar = r.Result = ResultadoBoton.OK)
             If Not continuarSinLiquidar Then
                 mensajeError = "Remesa no creada. Liquide los negativos en el Extracto de Cliente " &
                     "(doble clic en el efecto naranja) y vuelva a pulsar Crear remesa; si no quiere " &
@@ -333,7 +332,7 @@ Public Class RemesasViewModel
         Dim confirmado As Boolean = False
         dialogService.ShowConfirmation("Crear remesa",
             $"¿Crear la remesa con {seleccionados.Count} efectos por un total de {importe:C} al banco {BancoRemesa}, {textoVencimientos}?",
-            Sub(r) confirmado = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+            Sub(r) confirmado = r.Result = ResultadoBoton.OK)
         If Not confirmado Then
             Return
         End If
@@ -361,7 +360,7 @@ Public Class RemesasViewModel
             Dim imprimir As Boolean = False
             dialogService.ShowConfirmation("Imprimir remesa",
                 $"¿Desea imprimir la remesa {numeroCreado}?",
-                Sub(r) imprimir = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+                Sub(r) imprimir = r.Result = ResultadoBoton.OK)
             If imprimir Then
                 Await ImprimirRemesaAsync(numeroCreado)
             End If
@@ -910,11 +909,11 @@ Public Class RemesasViewModel
     End Function
     Private Async Sub OnCrearTareasPlanner()
         Const MAX_CHECKLIST_ITEMS As Integer = 20
-        Dim p As New DialogParameters
+        Dim p As New ParametrosDialogo
         Dim continuar As Boolean = False
         p.Add("message", "¿Desea crear las tareas en Planner?")
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              If r.Result = ButtonResult.OK Then
+                                                              If r.Result = ResultadoBoton.OK Then
                                                                   continuar = True
                                                               End If
                                                           End Sub)
