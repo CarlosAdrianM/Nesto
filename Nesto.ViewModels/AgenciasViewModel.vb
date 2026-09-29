@@ -1879,12 +1879,13 @@ Public Class AgenciasViewModel
         Return True
     End Function
 
-    ''' <summary>Río Tiétar, 11 - 28110 Algete, con o sin tildes, «C/», «Calle»...</summary>
+    ''' <summary>Río Tiétar, 11 - Algete, con o sin tildes, «C/», «Calle»... El CP de siempre es el 28110,
+    ''' pero Google da el 28119 para la nave: los dos somos nosotros.</summary>
     Public Shared Function EsDireccionDeNuevaVision(direccion As String, codPostal As String) As Boolean
         If String.IsNullOrWhiteSpace(direccion) OrElse String.IsNullOrWhiteSpace(codPostal) Then
             Return False
         End If
-        If codPostal.Trim() <> "28110" Then
+        If codPostal.Trim() <> "28110" AndAlso codPostal.Trim() <> "28119" Then
             Return False
         End If
         Dim sinTildes As String = New String(direccion.Normalize(Text.NormalizationForm.FormD) _

@@ -42,6 +42,7 @@ Public Class AgenciasViewModelDireccionPropiaTests
     <DataRow("C/ RÍO TIÉTAR, 11", "28110")>
     <DataRow("Calle Rio Tietar 11", "28110 ")>
     <DataRow("RIO TIETAR 11", "28110")>
+    <DataRow("RIO TIETAR 11", "28119")>
     <DataRow("c/ río tiétar, 11 nave", "28110")>
     Public Sub EsDireccionDeNuevaVision_NuestraDireccion(direccion As String, codPostal As String)
         Assert.IsTrue(AgenciasViewModel.EsDireccionDeNuevaVision(direccion, codPostal))
