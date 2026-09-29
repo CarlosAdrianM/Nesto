@@ -60,6 +60,9 @@ Partial Public Class Application
         AddHandler AppDomain.CurrentDomain.UnhandledException, AddressOf OnAppDomainUnhandledException
         AddHandler TaskScheduler.UnobservedTaskException, AddressOf OnUnobservedTaskException
 
+        ' Carlos 29/09/26: Tab + escribir en las celdas con AutocompleteBehavior/CuentaContableBehavior (sin ratón)
+        ControlesUsuario.Behaviors.EdicionCeldaConTeclado.Registrar()
+
         MyBase.OnStartup(e)
     End Sub
 

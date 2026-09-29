@@ -186,6 +186,8 @@ namespace ControlesUsuario.Behaviors
             AssociatedObject.LostFocus += OnLostFocus;
             AssociatedObject.PreviewKeyDown += OnPreviewKeyDown;
             AssociatedObject.GotFocus += OnGotFocus;
+            AssociatedObject.PreviewLostKeyboardFocus += OnPreviewLostKeyboardFocus;
+            AssociatedObject.Loaded += OnLoaded;
             _borderBrushOriginal = AssociatedObject.BorderBrush;
             System.Diagnostics.Debug.WriteLine($"[CuentaContableBehavior] OnAttached: Behavior attached to TextBox");
         }
@@ -200,6 +202,8 @@ namespace ControlesUsuario.Behaviors
                     AssociatedObject.LostFocus -= OnLostFocus;
                     AssociatedObject.PreviewKeyDown -= OnPreviewKeyDown;
                     AssociatedObject.GotFocus -= OnGotFocus;
+                    AssociatedObject.PreviewLostKeyboardFocus -= OnPreviewLostKeyboardFocus;
+                    AssociatedObject.Loaded -= OnLoaded;
                 }
             }
             catch
@@ -241,12 +245,26 @@ namespace ControlesUsuario.Behaviors
                 if (e.Key == Key.Enter || e.Key == Key.Tab)
                 {
                     _valorAnterior = AssociatedObject.Text;
+                    // Con Enter el DataGrid confirma la celda sin que el TextBox pierda antes el foco
+                    ExpandirTexto();
                 }
             }
             catch
             {
                 // Ignorar errores si el visual tree fue destruido
             }
+        }
+
+        private void OnPreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            // Antes de que el binding (UpdateSourceTrigger=LostFocus) mande el texto al origen
+            ExpandirTexto();
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // Carlos 29/09/26: editar con teclado en celdas de plantilla (Tab + escribir, F2)
+            EdicionCeldaConTeclado.AlCargarEditor(AssociatedObject);
         }
 
         private async void OnLostFocus(object sender, RoutedEventArgs e)
@@ -264,6 +282,37 @@ namespace ControlesUsuario.Behaviors
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Carlos 29/09/26: 572.13 → 57200013 EN EL MOMENTO, sin esperar a comprobar que la cuenta existe. La
+        /// comprobación es asíncrona y termina cuando la celda ya ha guardado lo escrito; además solo sabía
+        /// escribir en una propiedad «Producto», así que en los prepagos (CuentaContable) se quedaba «572.13».
+        /// Como el texto se cambia antes de que se actualice el binding, vale para cualquier propiedad enlazada.
+        /// </summary>
+        internal void ExpandirTexto()
+        {
+            try
+            {
+                if (AssociatedObject == null || !DebeValidar())
+                {
+                    return;
+                }
+                string texto = AssociatedObject.Text?.Trim();
+                if (string.IsNullOrEmpty(texto) || !CuentaContableHelper.TryExpandirCuenta(texto, out string cuentaExpandida))
+                {
+                    return;
+                }
+                if (cuentaExpandida != AssociatedObject.Text)
+                {
+                    AssociatedObject.Text = cuentaExpandida;
+                    AssociatedObject.CaretIndex = cuentaExpandida.Length;
+                }
+            }
+            catch
+            {
+                // Ignorar errores si el visual tree fue destruido
+            }
+        }
 
         private bool DebeValidar()
         {

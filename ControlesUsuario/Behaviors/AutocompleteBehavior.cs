@@ -227,6 +227,7 @@ namespace ControlesUsuario.Behaviors
             AssociatedObject.TextChanged += OnTextChanged;
             AssociatedObject.PreviewKeyDown += OnPreviewKeyDown;
             AssociatedObject.LostFocus += OnLostFocus;
+            AssociatedObject.Loaded += OnLoaded;
 
             System.Diagnostics.Debug.WriteLine($"[AutocompleteBehavior] OnAttached: Behavior attached, TipoBusqueda={TipoBusqueda}");
         }
@@ -245,12 +246,13 @@ namespace ControlesUsuario.Behaviors
                 AssociatedObject.TextChanged -= OnTextChanged;
                 AssociatedObject.PreviewKeyDown -= OnPreviewKeyDown;
                 AssociatedObject.LostFocus -= OnLostFocus;
+                AssociatedObject.Loaded -= OnLoaded;
             }
 
             // Limpiar popup
             if (_listBox != null)
             {
-                _listBox.PreviewMouseLeftButtonUp -= OnListBoxItemSelected;
+                _listBox.PreviewMouseLeftButtonDown -= OnListBoxItemSelected;
             }
 
             _popup = null;
@@ -270,9 +272,16 @@ namespace ControlesUsuario.Behaviors
                 BorderThickness = new Thickness(1),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(171, 173, 179)),
                 Background = Brushes.White,
-                DisplayMemberPath = "TextoMostrar"
+                DisplayMemberPath = "TextoMostrar",
+                // Carlos 29/09/26: la lista no se queda con el foco. Si lo cogía al hacer clic, el TextBox lo perdía,
+                // la celda del DataGrid terminaba la edición y la cuenta elegida no llegaba al campo.
+                Focusable = false
             };
-            _listBox.PreviewMouseLeftButtonUp += OnListBoxItemSelected;
+            Style estiloItem = new Style(typeof(ListBoxItem));
+            estiloItem.Setters.Add(new Setter(UIElement.FocusableProperty, false));
+            _listBox.ItemContainerStyle = estiloItem;
+            // Al PULSAR (no al soltar): antes de que nada le quite el foco al TextBox
+            _listBox.PreviewMouseLeftButtonDown += OnListBoxItemSelected;
 
             _popup = new Popup
             {
@@ -427,10 +436,22 @@ namespace ControlesUsuario.Behaviors
 
         private void OnListBoxItemSelected(object sender, MouseButtonEventArgs e)
         {
-            if (_listBox.SelectedItem is AutocompleteItem item)
+            ListBoxItem contenedor = ItemsControl.ContainerFromElement(_listBox, e.OriginalSource as DependencyObject) as ListBoxItem;
+            if (contenedor?.DataContext is AutocompleteItem item)
             {
                 SeleccionarItem(item);
+                e.Handled = true;
+                if (AssociatedObject != null && !AssociatedObject.IsKeyboardFocusWithin)
+                {
+                    _ = AssociatedObject.Focus();
+                }
             }
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            // Carlos 29/09/26: editar con teclado en celdas de plantilla (Tab + escribir, F2)
+            EdicionCeldaConTeclado.AlCargarEditor(AssociatedObject);
         }
 
         private void OnLostFocus(object sender, RoutedEventArgs e)
