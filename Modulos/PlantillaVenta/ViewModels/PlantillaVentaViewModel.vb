@@ -3,7 +3,6 @@ Imports System.ComponentModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Net.Http
 Imports System.Text
-Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
@@ -19,7 +18,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports Unity
 Imports Xceed.Wpf.Toolkit
 
@@ -34,7 +32,7 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly servicioPedidosVenta As IPedidoVentaService
     Private ReadOnly servicioBorradores As IBorradorPlantillaVentaService
     Private ReadOnly messenger As IMessenger
-    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly dialogService As IServicioDialogos
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
 
@@ -74,7 +72,7 @@ Public Class PlantillaVentaViewModel
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IServicioDialogos, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
@@ -1475,7 +1473,7 @@ Public Class PlantillaVentaViewModel
                     Dim mensajeError As String = String.Format("A este cliente le faltan datos. Si continua es{0}posible que no pueda finalizar el pedido. Elija entre rellenar los{0}datos que faltan (Cancel) o continuar con el pedido (OK)", Environment.NewLine)
                     Dim continuar As Boolean
                     dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
-                                                                                                   continuar = r.Result = ButtonResult.OK
+                                                                                                   continuar = r.Result = ResultadoBoton.OK
                                                                                                End Sub)
                     If continuar Then
                         SeleccionarElCliente(value)

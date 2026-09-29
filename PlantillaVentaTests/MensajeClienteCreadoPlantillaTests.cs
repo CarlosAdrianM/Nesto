@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Messaging;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -8,7 +8,6 @@ using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
 
@@ -28,7 +27,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
             var vm = new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IRegionManager>(), configuracion,
-                A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IDialogService>(), A.Fake<IPedidoVentaService>(),
+                A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(),
                 A.Fake<IBorradorPlantillaVentaService>(), A.Fake<IServicioAutenticacion>());
             var enLista = new ClienteJson { empresa = "1", cliente = "15191", contacto = "0", nombre = "NOMBRE VIEJO" };
             vm.listaClientes = new ObservableCollection<ClienteJson> { enLista };

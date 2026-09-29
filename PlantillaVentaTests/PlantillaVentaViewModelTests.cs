@@ -1,5 +1,4 @@
-﻿using ControlesUsuario.Dialogs;
-using ControlesUsuario.Models;
+﻿using ControlesUsuario.Models;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -9,7 +8,6 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,7 +52,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
@@ -80,7 +78,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
@@ -100,7 +98,7 @@ namespace PlantillaVentaTests
 
         #region Ganavisiones - FASE 6 Tests
 
-        private (PlantillaVentaViewModel ViewModel, IDialogService DialogService) CrearViewModelConMocks(
+        private (PlantillaVentaViewModel ViewModel, IServicioDialogos DialogService) CrearViewModelConMocks(
             HashSet<string> productosBonificablesIds = null)
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
@@ -108,7 +106,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicioMock = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
-            IDialogService dialogServiceMock = A.Fake<IDialogService>();
+            IServicioDialogos dialogServiceMock = A.Fake<IServicioDialogos>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
 
@@ -129,25 +127,21 @@ namespace PlantillaVentaTests
             return (vm, dialogServiceMock);
         }
 
-        // Helper para verificar que se llamó a ShowDialog con ConfirmationDialog
-        // ShowConfirmation es un método de extensión que internamente llama a ShowDialog
-        private static void VerifyConfirmationDialogCalled(IDialogService dialogServiceMock, int times = 1)
+        // Helper para verificar que se pidió confirmación (antes: ShowDialog("ConfirmationDialog") de Prism,
+        // que es lo que abren ShowConfirmation, ShowConfirmationAnswer y ShowConfirmationAsync)
+        private static void VerifyConfirmationDialogCalled(IServicioDialogos dialogServiceMock, int times = 1)
         {
+            var confirmaciones = A.CallTo(dialogServiceMock)
+                .Where(call => call.Method.Name.StartsWith("ShowConfirmation")
+                    || (call.Method.Name == nameof(IServicioDialogos.ShowDialog) && (string)call.Arguments[0] == "ConfirmationDialog")
+                    || (call.Method.Name == nameof(IServicioDialogos.ShowDialogAsync) && (string)call.Arguments[0] == "ConfirmationDialog"));
             if (times == 0)
             {
-                A.CallTo(() => dialogServiceMock.ShowDialog(
-                    "ConfirmationDialog",
-                    A<IDialogParameters>.Ignored,
-                    A<Action<IDialogResult>>.Ignored
-                )).MustNotHaveHappened();
+                confirmaciones.MustNotHaveHappened();
             }
             else
             {
-                A.CallTo(() => dialogServiceMock.ShowDialog(
-                    "ConfirmationDialog",
-                    A<IDialogParameters>.Ignored,
-                    A<Action<IDialogResult>>.Ignored
-                )).MustHaveHappened(times, Times.Exactly);
+                confirmaciones.MustHaveHappened(times, Times.Exactly);
             }
         }
 
@@ -320,17 +314,11 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            // Configurar ShowDialog para que simule que el usuario acepta
-            A.CallTo(() => dialogServiceMock.ShowDialog(
-                "ConfirmationDialog",
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
-            {
-                var result = A.Fake<IDialogResult>();
-                A.CallTo(() => result.Result).Returns(ButtonResult.OK);
-                callback(result);
-            });
+            // Configurar las confirmaciones para que simulen que el usuario acepta
+            A.CallTo(() => dialogServiceMock.ShowConfirmation(A<string>.Ignored, A<string>.Ignored, A<Action<ResultadoDialogo>>.Ignored))
+                .Invokes((string title, string message, Action<ResultadoDialogo> callback) => callback(new ResultadoDialogo(ResultadoBoton.OK)));
+            A.CallTo(() => dialogServiceMock.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            A.CallTo(() => dialogServiceMock.ShowConfirmationAsync(A<string>.Ignored, A<string>.Ignored)).Returns(Task.FromResult(true));
 
             vm.OnNavigatedTo(null);
             await Task.Delay(100);

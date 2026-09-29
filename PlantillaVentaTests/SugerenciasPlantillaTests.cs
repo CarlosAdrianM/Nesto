@@ -1,4 +1,4 @@
-using ControlesUsuario.Models;
+﻿using ControlesUsuario.Models;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -9,7 +9,6 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -33,7 +32,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
@@ -279,7 +278,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => servicio.OfertasSugeridas(A<PedidoVentaDTO>._)).Returns(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
 
             var vm = new PlantillaVentaViewModel(container, A.Fake<IRegionManager>(), configuracion, servicio,
-                messenger, A.Fake<IDialogService>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
+                messenger, A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm._clienteSeleccionado = new ClienteJson { empresa = "1", cliente = "15191", contacto = "0", iva = "G21", cifNif = "12345678A" };

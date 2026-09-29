@@ -10,7 +10,6 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Unity;
 
 namespace PlantillaVentaTests
@@ -23,7 +22,7 @@ namespace PlantillaVentaTests
     public class BorrarBorradorAlCrearPedidoTests
     {
         private IBorradorPlantillaVentaService _servicioBorradores;
-        private IDialogService _dialogService;
+        private IServicioDialogos _dialogService;
         private readonly List<string> _mensajes = new List<string>();
         private bool _respuestaUsuario = true;
         private int _preguntas;
@@ -32,24 +31,16 @@ namespace PlantillaVentaTests
         public void Setup()
         {
             _servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
-            _dialogService = A.Fake<IDialogService>();
-            A.CallTo(() => _dialogService.ShowDialog(
-                    A<string>.Ignored, A<IDialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
-                .Invokes((string nombre, IDialogParameters parametros, Action<IDialogResult> callback) =>
+            _dialogService = A.Fake<IServicioDialogos>();
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored))
+                .ReturnsLazily((string titulo, string mensaje) =>
                 {
-                    if (parametros != null && parametros.ContainsKey("message"))
-                    {
-                        _mensajes.Add(parametros.GetValue<string>("message"));
-                    }
-                    if (callback == null)
-                    {
-                        return; // ShowError no espera respuesta
-                    }
+                    _mensajes.Add(mensaje);
                     _preguntas++;
-                    var resultado = A.Fake<IDialogResult>();
-                    A.CallTo(() => resultado.Result).Returns(_respuestaUsuario ? ButtonResult.OK : ButtonResult.Cancel);
-                    callback(resultado);
+                    return _respuestaUsuario;
                 });
+            A.CallTo(() => _dialogService.ShowError(A<string>.Ignored))
+                .Invokes((string mensaje) => _mensajes.Add(mensaje)); // ShowError no espera respuesta
         }
 
         private PlantillaVentaViewModel CrearViewModel()

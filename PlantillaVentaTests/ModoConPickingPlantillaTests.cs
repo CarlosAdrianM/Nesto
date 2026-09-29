@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
@@ -8,7 +8,6 @@ using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using ControlesUsuario.Models;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -24,7 +23,7 @@ namespace PlantillaVentaTests
     [TestClass]
     public class ModoConPickingPlantillaTests
     {
-        private static PlantillaVentaViewModel CrearViewModel(IDialogService dialogService, IPedidoVentaService pedidoVentaService)
+        private static PlantillaVentaViewModel CrearViewModel(IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService)
         {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
@@ -35,11 +34,10 @@ namespace PlantillaVentaTests
             return vm;
         }
 
-        private static IDialogService DialogoQueResponde(ButtonResult respuesta)
+        private static IServicioDialogos DialogoQueResponde(bool acepta)
         {
-            IDialogService dialogService = A.Fake<IDialogService>();
-            A.CallTo(() => dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuesta)));
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogService.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(acepta));
             return dialogService;
         }
 
@@ -48,7 +46,7 @@ namespace PlantillaVentaTests
         {
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             A.CallTo(() => pedidoVentaService.SolicitarCambioModo(A<string>._, A<int>._, A<byte>._, A<string>._)).Returns("Se lo hemos pedido a almacén.");
-            PlantillaVentaViewModel vm = CrearViewModel(DialogoQueResponde(ButtonResult.OK), pedidoVentaService);
+            PlantillaVentaViewModel vm = CrearViewModel(DialogoQueResponde(true), pedidoVentaService);
             vm.ModoServicio = ModosServicio.TODO_JUNTO; // el cambio del usuario
 
             await vm.ResolverModoConPickingAsync(new ModoConPickingException("Ya tiene picking."), "1", 926879,
@@ -62,7 +60,7 @@ namespace PlantillaVentaTests
         public async Task Plantilla_ConPicking_SiRechaza_NoLlamaAlEndpoint()
         {
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
-            PlantillaVentaViewModel vm = CrearViewModel(DialogoQueResponde(ButtonResult.Cancel), pedidoVentaService);
+            PlantillaVentaViewModel vm = CrearViewModel(DialogoQueResponde(false), pedidoVentaService);
             vm.ModoServicio = ModosServicio.TODO_JUNTO;
 
             await vm.ResolverModoConPickingAsync(new ModoConPickingException("Ya tiene picking."), "1", 926879,

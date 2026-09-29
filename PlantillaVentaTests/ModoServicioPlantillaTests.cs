@@ -9,7 +9,6 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Unity;
 
 namespace PlantillaVentaTests
@@ -29,7 +28,7 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
-            IDialogService dialogService = A.Fake<IDialogService>();
+            IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");

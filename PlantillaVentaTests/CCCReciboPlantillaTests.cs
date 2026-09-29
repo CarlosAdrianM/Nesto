@@ -1,4 +1,4 @@
-using ControlesUsuario.Models;
+﻿using ControlesUsuario.Models;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -8,7 +8,6 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using Unity;
 
@@ -29,7 +28,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
             return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IRegionManager>(), configuracion,
-                A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IDialogService>(),
+                A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
         }

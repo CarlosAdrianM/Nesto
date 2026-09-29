@@ -1,4 +1,5 @@
 ﻿Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
 Imports Prism.Services.Dialogs
 
@@ -21,9 +22,19 @@ Public NotInheritable Class SolicitudCambioModoAlmacen
     End Function
 
     ''' <summary>
+    ''' Nesto#490 (4C.2): sobrecarga para quien sigue con el IDialogService de Prism (el detalle de pedido,
+    ''' hasta que se migre PedidoVenta). Delega en la de IServicioDialogos con ServicioDialogosPrism: mismos diálogos.
+    ''' </summary>
+    Public Shared Function OfrecerAsync(dialogService As IDialogService, servicio As IPedidoVentaService,
+                                        empresa As String, pedido As Integer, modoDeseado As Byte,
+                                        motivo As String) As Task(Of Boolean)
+        Return OfrecerAsync(New ServicioDialogosPrism(dialogService), servicio, empresa, pedido, modoDeseado, motivo)
+    End Function
+
+    ''' <summary>
     ''' Enseña el motivo, pregunta y, si acepta, pide el cambio. Devuelve True si se llegó a pedir (la API lo aceptó).
     ''' </summary>
-    Public Shared Async Function OfrecerAsync(dialogService As IDialogService, servicio As IPedidoVentaService,
+    Public Shared Async Function OfrecerAsync(dialogService As IServicioDialogos, servicio As IPedidoVentaService,
                                               empresa As String, pedido As Integer, modoDeseado As Byte,
                                               motivo As String) As Task(Of Boolean)
         Dim pedir As Boolean = Await dialogService.ShowConfirmationAsync(TITULO, TextoPregunta(motivo, modoDeseado))
