@@ -26,6 +26,7 @@ namespace ControlesUsuario.Tests
         private IDialogService dialogos;
         private IAbridorNovedades abridorNovedades;
         private IRegionManager regiones;
+        private IAbridorPedidos abridorPedidos;
         private CampanaNotificacionesViewModel vm;
 
         [TestInitialize]
@@ -35,10 +36,11 @@ namespace ControlesUsuario.Tests
             dialogos = A.Fake<IDialogService>();
             abridorNovedades = A.Fake<IAbridorNovedades>();
             regiones = A.Fake<IRegionManager>();
+            abridorPedidos = A.Fake<IAbridorPedidos>();
             avisos = new AvisosFalsos();
             reloj = Ahora;
             A.CallTo(() => buzon.LeerBuzon(A<bool>._, A<int>._, A<int>._)).Returns(Task.FromResult(new List<NotificacionBuzon>()));
-            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1), regiones);
+            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1), regiones, abridorPedidos);
         }
 
         private AvisosFalsos avisos;
@@ -292,6 +294,44 @@ namespace ControlesUsuario.Tests
             A.CallTo(() => regiones.RequestNavigate("MainRegion", "FacturasPendientesVerifactuView")).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.Notificaciones[0].Desplegada);
             A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task PulsarUnAvisoConPedido_AbreEsePedido()
+        {
+            // NestoAPI#555: «El pedido 927075 ha cogido picking» lleva al pedido
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 11,
+                Titulo = "El pedido 927075 ha cogido picking",
+                Cuerpo = "Cliente 15191: 121,00 € a cobrar (IVA incluido).",
+                FechaCreacion = Ahora.AddMinutes(-5),
+                Datos = new Dictionary<string, string> { ["tipo"] = "AvisoPickingConImporte", ["empresa"] = "1", ["pedido"] = "927075" }
+            });
+            vm.PanelAbierto = true;
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(11)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto);
+            A.CallTo(() => abridorPedidos.Abrir("1", 927075)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public async Task PulsarUnAvisoConPedidoSinEmpresa_AbreEnLaEmpresaPorDefecto()
+        {
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 12,
+                Titulo = "NIF incorrecto",
+                FechaCreacion = Ahora.AddMinutes(-5),
+                Datos = new Dictionary<string, string> { ["tipo"] = "Otro", ["pedido"] = "927075" }
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => abridorPedidos.Abrir("1", 927075)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

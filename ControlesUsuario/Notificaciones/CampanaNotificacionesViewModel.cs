@@ -41,6 +41,7 @@ namespace ControlesUsuario.Notificaciones
         private readonly IDialogService _dialogService;
         private readonly IAbridorNovedades _abridorNovedades;
         private readonly IRegionManager _regionManager;
+        private readonly IAbridorPedidos _abridorPedidos;
         private readonly Func<DateTime> _ahora;
         private readonly Random _azar;
         private readonly Dispatcher _dispatcher;
@@ -49,16 +50,18 @@ namespace ControlesUsuario.Notificaciones
         private DateTime _ultimoRefrescoPorFoco = DateTime.MinValue;
 
         public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades, IRegionManager regionManager)
-            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), regionManager) { }
+            IAbridorNovedades abridorNovedades, IRegionManager regionManager, IAbridorPedidos abridorPedidos)
+            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), regionManager, abridorPedidos) { }
 
         internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IRegionManager regionManager = null)
+            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IRegionManager regionManager = null,
+            IAbridorPedidos abridorPedidos = null)
         {
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _dialogService = dialogService;
             _abridorNovedades = abridorNovedades;
             _regionManager = regionManager;
+            _abridorPedidos = abridorPedidos;
             _ahora = ahora ?? (() => DateTime.Now);
             _azar = azar ?? new Random();
             // Null en los tests (sin Application): entonces el aviso se atiende en el hilo que llega.
@@ -303,8 +306,20 @@ namespace ControlesUsuario.Notificaciones
                 _regionManager.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU);
                 return;
             }
+            // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
+            // abre ese pedido. Va detrás de los tipos con destino propio.
+            int? pedido = item.Notificacion.DatoEntero("pedido");
+            if (pedido.HasValue && pedido.Value > 0 && _abridorPedidos != null)
+            {
+                PanelAbierto = false;
+                string empresa = item.Notificacion.Dato("empresa");
+                _abridorPedidos.Abrir(string.IsNullOrWhiteSpace(empresa) ? EMPRESA_POR_DEFECTO : empresa.Trim(), pedido.Value);
+                return;
+            }
             item.Desplegada = !item.Desplegada;
         }
+
+        internal const string EMPRESA_POR_DEFECTO = "1";
 
         /// <summary>Nesto#501: cierra el panel y abre Novedades (en <paramref name="version"/> si se indica).</summary>
         private Task AbrirNovedades(string version)

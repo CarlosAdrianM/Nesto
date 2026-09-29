@@ -153,6 +153,8 @@ Partial Public Class Application
             End Function)
         ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
         Dim unusedAbridorNovedades = containerRegistry.Register(Of IAbridorNovedades, AbridorNovedades)()
+        ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno
+        Dim unusedAbridorPedidos = containerRegistry.Register(Of IAbridorPedidos, AbridorPedidos)()
 
         ' Nesto#477: buzón de notificaciones (campana de la cinta)
         Dim unusedBuzon = containerRegistry.RegisterSingleton(Of IBuzonNotificacionesService)(
