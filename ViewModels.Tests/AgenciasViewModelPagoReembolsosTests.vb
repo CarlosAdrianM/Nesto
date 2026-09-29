@@ -6,7 +6,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -20,7 +19,7 @@ Public Class AgenciasViewModelPagoReembolsosTests
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private servicioPedidos As IPedidoVentaService
     Private servicioAutenticacion As IServicioAutenticacion
     Private viewModel As AgenciasViewModel
@@ -33,7 +32,7 @@ Public Class AgenciasViewModelPagoReembolsosTests
         configuracion = A.Fake(Of IConfiguracion)
         regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
@@ -79,8 +78,7 @@ Public Class AgenciasViewModelPagoReembolsosTests
         Assert.IsNull(pagado2.FechaPagoReembolso)
         Assert.AreEqual(3, viewModel.listaReembolsos.Count)
         Assert.AreEqual(2, viewModel.listaReembolsosSeleccionados.Count, "la selección se conserva para reintentar")
-        ' ShowError pasa por ShowDialog sin callback.
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustHaveHappenedOnceExactly()
     End Function
 
 End Class

@@ -435,7 +435,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 // guardado fallaba (p. ej. el POST del A2 rechazado por el servidor), el usuario
                 // veía el éxito y la etiqueta no existía. Además el async void no tenía catch:
                 // una excepción del flujo (p. ej. "Agencia no contemplada") tumbaba el proceso.
-                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion);
+                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
 
                 EstaOcupado = false;
                 if (etiquetaCreada)

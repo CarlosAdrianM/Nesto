@@ -6,7 +6,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -19,7 +18,7 @@ Public Class AgenciasViewModelRetornosTests
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private servicioPedidos As IPedidoVentaService
     Private servicioAutenticacion As IServicioAutenticacion
     Private viewModel As AgenciasViewModel
@@ -31,7 +30,7 @@ Public Class AgenciasViewModelRetornosTests
         configuracion = A.Fake(Of IConfiguracion)
         regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
@@ -42,22 +41,10 @@ Public Class AgenciasViewModelRetornosTests
         viewModel.lineaRetornoSeleccionado = retorno
     End Sub
 
-    ''' <summary>
-    ''' ShowConfirmation es una extensión sobre ShowDialog: se simula que el usuario pulsa OK o
-    ''' Cancelar. ShowError también pasa por ShowDialog pero sin callback (guard).
-    ''' </summary>
     Private Sub ElUsuarioContesta(ok As Boolean)
-        A.CallTo(Sub() dialogService.ShowDialog(
-                    A(Of String).Ignored,
-                    A(Of IDialogParameters).Ignored,
-                    A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(titulo As String, mensaje As String, callback As Action(Of ResultadoDialogo))
+                      callback?.Invoke(New ResultadoDialogo(If(ok, ResultadoBoton.OK, ResultadoBoton.Cancel)))
                   End Sub)
     End Sub
 
@@ -102,8 +89,9 @@ Public Class AgenciasViewModelRetornosTests
         Assert.AreEqual(2, viewModel.listaRetornos.Count)
         Assert.IsNull(retorno.FechaRetornoRecibido)
         StringAssert.Contains(viewModel.mensajeError, "error")
-        ' ShowError pasa por ShowDialog (sin callback): además de la confirmación, hubo un aviso.
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustHaveHappenedTwiceExactly()
+        ' Además de la confirmación, hubo un aviso.
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustHaveHappenedOnceExactly()
     End Function
 
     <TestMethod()>
@@ -113,7 +101,8 @@ Public Class AgenciasViewModelRetornosTests
         Await viewModel.RecibirRetornoSeleccionado()
 
         A.CallTo(Function() servicio.RecibirRetorno(A(Of Integer).Ignored)).MustNotHaveHappened()
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
         Assert.AreEqual("No hay ninguna línea seleccionada", viewModel.mensajeError)
     End Function
 

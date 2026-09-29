@@ -25,7 +25,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 
 Public Class AgenciasViewModel
     Inherits ObservableObject
@@ -50,7 +49,7 @@ Public Class AgenciasViewModel
             _comparadorAgencias = value
         End Set
     End Property
-    Public ReadOnly _dialogService As IDialogService
+    Public ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _contabilidadService As IContabilidadService
 
@@ -64,7 +63,7 @@ Public Class AgenciasViewModel
 
     Private ReadOnly _servicioInformes As InformesService
 
-    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService, servicioPedidos As IPedidoVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioPedidos As IPedidoVentaService, servicioAutenticacion As IServicioAutenticacion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -142,16 +141,7 @@ Public Class AgenciasViewModel
     ' éxito hacía perder tiempo a los compañeros buscando una etiqueta que no existía. Ahora
     ' devuelve si se guardó DE VERDAD: el Insertar estampa en el envío el Numero generado por la
     ' BD (identity), así que Numero > 0 = insertado.
-    ''' <summary>
-    ''' Nesto#490 (4C.2): sobrecarga para quien ya usa IServicioDialogos (CanalesExternosPedidos) y no tiene
-    ''' el IDialogService de Prism que necesita Agencias: lo resuelve del contenedor (el mismo singleton que
-    ''' se inyectaba antes). Puente hasta que se migre Agencias; entonces se quita.
-    ''' </summary>
-    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion) As Boolean
-        Return CrearEtiquetaPendiente(etiqueta, regionManager, configuracion, ContainerLocator.Container.Resolve(Of IDialogService)())
-    End Function
-
-    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService) As Boolean
+    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IServicioDialogos) As Boolean
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
@@ -2556,7 +2546,7 @@ Public Class AgenciasViewModel
     Private Async Sub OnContabilizarReembolso(arg As Object)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Contabilizar", "¿Desea contabilizar?", Sub(r)
-                                                                                    continuar = r.Result = ButtonResult.OK
+                                                                                    continuar = r.Result = ResultadoBoton.OK
                                                                                 End Sub)
         If Not continuar OrElse IsNothing(listaReembolsosSeleccionados) Then
             Return
@@ -2654,7 +2644,7 @@ Public Class AgenciasViewModel
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
-                                                                               continuar = r.Result = ButtonResult.OK
+                                                                               continuar = r.Result = ResultadoBoton.OK
                                                                            End Sub)
         If Not continuar Then
             Return
@@ -2685,7 +2675,7 @@ Public Class AgenciasViewModel
         Dim mensajeMostrar = MensajeConfirmarModificarEnvio(envioActual.Cliente, envioActual.Direccion, envioActual.Reembolso, CDec(reembolsoModificar))
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
-                                                                               continuar = r.Result = ButtonResult.OK
+                                                                               continuar = r.Result = ResultadoBoton.OK
                                                                            End Sub)
         If Not continuar Then
             Return
@@ -2764,7 +2754,7 @@ Public Class AgenciasViewModel
         Dim mensajeMostrar As String = String.Format("¿Confirma que ha recibido el retorno del pedido {0}?", retorno.Pedido.ToString)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Retorno", mensajeMostrar, Sub(r)
-                                                                       continuar = r.Result = ButtonResult.OK
+                                                                       continuar = r.Result = ResultadoBoton.OK
                                                                    End Sub)
         If Not continuar Then
             Return
@@ -2822,7 +2812,7 @@ Public Class AgenciasViewModel
         If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("¡Atención!", String.Format("¿Es correcto el importe de {0}?", reembolso.ToString("C")), Sub(r)
-                                                                                                                                  continuar = r.Result = ButtonResult.OK
+                                                                                                                                  continuar = r.Result = ResultadoBoton.OK
                                                                                                                               End Sub)
             If Not continuar Then
                 Return
@@ -3352,7 +3342,7 @@ Public Class AgenciasViewModel
                     "¿Desea actualizar los datos?", envioActual.Pedido.ToString, textoConfirmar)
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("Ampliación", mensajeMostrar, Sub(r)
-                                                                              continuar = r.Result = ButtonResult.OK
+                                                                              continuar = r.Result = ResultadoBoton.OK
                                                                           End Sub)
             If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")
@@ -3368,7 +3358,7 @@ Public Class AgenciasViewModel
         If Not hayAlgunaLineaConPicking Then
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("Pedido Sin Picking", "Este pedido no tiene ninguna línea con picking. ¿Desea insertar el pedido de todos modos?", Sub(r)
-                                                                                                                                                                   continuar = r.Result = ButtonResult.OK
+                                                                                                                                                                   continuar = r.Result = ResultadoBoton.OK
                                                                                                                                                                End Sub)
             If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")

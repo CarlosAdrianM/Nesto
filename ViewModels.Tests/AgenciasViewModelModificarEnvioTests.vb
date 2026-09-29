@@ -7,7 +7,6 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Newtonsoft.Json
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -19,14 +18,14 @@ Imports System.Threading.Tasks
 <TestClass()>
 Public Class AgenciasViewModelModificarEnvioTests
     Private servicio As IAgenciaService
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private viewModel As AgenciasViewModel
     Private envio As EnviosAgencia
 
     <TestInitialize()>
     Public Sub Initialize()
         servicio = A.Fake(Of IAgenciaService)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), servicio, A.Fake(Of IConfiguracion), dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         viewModel.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
@@ -36,14 +35,9 @@ Public Class AgenciasViewModelModificarEnvioTests
     End Sub
 
     Private Sub ElUsuarioContesta(ok As Boolean)
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      If callback Is Nothing Then
-                          Return
-                      End If
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback(resultado)
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(titulo As String, mensaje As String, callback As Action(Of ResultadoDialogo))
+                      callback?.Invoke(New ResultadoDialogo(If(ok, ResultadoBoton.OK, ResultadoBoton.Cancel)))
                   End Sub)
     End Sub
 
@@ -116,7 +110,8 @@ Public Class AgenciasViewModelModificarEnvioTests
 
         Assert.AreEqual(121.5D, envio.Reembolso)
         Assert.AreEqual(CByte(1), envio.Retorno)
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
     End Function
 
     <TestMethod()>

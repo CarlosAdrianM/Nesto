@@ -8,7 +8,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -25,7 +24,7 @@ Public Class AgenciasViewModelPendientesTests
 
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private comparador As IServicioComparadorAgencias
     Private respuestaComparador As TaskCompletionSource(Of OpcionEnvioAgencia)
     Private viewModel As AgenciasViewModel
@@ -37,7 +36,7 @@ Public Class AgenciasViewModelPendientesTests
     Public Sub Initialize()
         servicio = A.Fake(Of IAgenciaService)
         configuracion = A.Fake(Of IConfiguracion)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         comparador = A.Fake(Of IServicioComparadorAgencias)
         ' El comparador del servidor contesta TARDE, como en la vida real: la respuesta llega
         ' cuando el setter que lo lanzó ya ha terminado.

@@ -8,7 +8,6 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.ViewModels
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' Nesto#340: ViewModel de mantenimiento de agencias (alta/edición, fuel y cuarentena).
@@ -18,13 +17,13 @@ Public Class AgenciasMantenimientoViewModelTests
 
     Private servicio As IServicioAgenciasMantenimiento
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
 
     <TestInitialize()>
     Public Sub Init()
         servicio = A.Fake(Of IServicioAgenciasMantenimiento)
         configuracion = A.Fake(Of IConfiguracion)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         A.CallTo(Function() servicio.LeerAgencias()).Returns(Task.FromResult(New List(Of AgenciaMantenimiento)()))
         A.CallTo(Function() configuracion.leerParametro(A(Of String).Ignored, A(Of String).Ignored)).Returns(Task.FromResult(""))
     End Sub

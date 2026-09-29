@@ -4,7 +4,6 @@ Imports FakeItEasy
 Imports System.Collections.ObjectModel
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Ioc
-Imports Prism.Services.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta
@@ -22,7 +21,7 @@ Public Class AgenciaViewModelTests
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private servicioPedidos As IPedidoVentaService
     Private servicioAutenticacion As IServicioAutenticacion
 
@@ -53,7 +52,7 @@ Public Class AgenciaViewModelTests
         container = A.Fake(Of IContainerProvider)
         regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
         viewModel = Nothing
@@ -679,16 +678,7 @@ Public Class AgenciaViewModelTests
             .Número = 1,
             .Clientes = New ClienteAgenciaModel()
         }
-        'A.CallTo(Sub() dialogService.
-        '             ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-        '             Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(New DialogResult(ButtonResult.OK)))
-        A.CallTo(Sub() dialogService.
-             ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-             Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c)
-                                                                                 If c IsNot Nothing Then
-                                                                                     c(New DialogResult(ButtonResult.OK))
-                                                                                 End If
-                                                                             End Sub)
+        ElUsuarioAceptaTodo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.cmdCargarDatos.Execute(Nothing)
         Dim horario As tipoIdDescripcion = New tipoIdDescripcion With {.id = 1, .descripcion = "horario estándar"}
@@ -1276,9 +1266,18 @@ Public Class AgenciaViewModelTests
 
         viewModel.cmdInsertar.Execute(Nothing)
 
-        ' Sin peso no se crea el envío (se aborta antes de InsertarRegistro). ShowError es método de
-        ' extensión de IDialogService y FakeItEasy no puede verificarlo, así que comprobamos el efecto.
+        ' Sin peso no se crea el envío (se aborta antes de InsertarRegistro). Se comprueba el efecto.
         A.CallTo(Function() servicio.Insertar(A(Of EnviosAgencia).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    ''' <summary>El usuario acepta todas las confirmaciones (y no teclea ningún texto).</summary>
+    Private Sub ElUsuarioAceptaTodo()
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
+        A.CallTo(Sub() dialogService.ShowConfirmation(A(Of String).Ignored, A(Of String).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+         .Invokes(Sub(titulo As String, mensaje As String, callback As Action(Of ResultadoDialogo))
+                      callback?.Invoke(New ResultadoDialogo(ResultadoBoton.OK))
+                  End Sub)
+        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns(Nothing)
     End Sub
 
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()
@@ -1343,10 +1342,7 @@ Public Class AgenciaViewModelTests
         Dim envioSinWrapper As EnviosAgencia = envio.ToEnvioAgencia
         envioSinWrapper.AgenciasTransporte = agencia
         A.CallTo(Function() servicio.CargarEnvio("1", 12345)).Returns(envioSinWrapper)
-        Dim res = New DialogResult(ButtonResult.OK)
-        A.CallTo(Sub() dialogService.
-                     ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-                     Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(res))
+        ElUsuarioAceptaTodo()
 
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
@@ -1419,9 +1415,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
         A.CallTo(Function() servicio.CargarListaEnviosTramitadosPorFecha(A(Of String).Ignored, A(Of Date).Ignored)).Returns(New ObservableCollection(Of EnviosAgencia))
-        A.CallTo(Sub() dialogService.
-                     ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-                     Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(New DialogResult(ButtonResult.OK)))
+        ElUsuarioAceptaTodo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.cmdCargarDatos.Execute(Nothing)
     End Sub
@@ -1619,13 +1613,8 @@ Public Class AgenciaViewModelTests
 
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras", .Numero = 11, .Empresa = "1"}
 
-        ' DialogServiceExtensions.ShowError envuelve un ShowDialog("NotificationDialog", {title:"¡Error!", message:...}, null).
-        ' Si la asignación de Canteras lanza por dentro, el catch del setter muestra ese diálogo.
-        A.CallTo(Sub() dialogService.
-                     ShowDialog("NotificationDialog",
-                                A(Of IDialogParameters).That.Matches(Function(p) p.GetValue(Of String)("title") = "¡Error!"),
-                                A(Of Action(Of IDialogResult)).Ignored)) _
-            .MustNotHaveHappened()
+        ' Si la asignación de Canteras lanza por dentro, el catch del setter muestra un error.
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
     End Sub
 
     ' Nesto#359: flag PermiteEditarCodigoBarras. Canteras lo declara True para que el
@@ -1695,7 +1684,8 @@ Public Class AgenciaViewModelTests
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
-        ' Sin mock de ShowDialog → callback no se invoca → GetText devuelve Nothing → Return temprano.
+        ' El usuario cancela: GetText devuelve Nothing → Return temprano.
+        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns(Nothing)
 
         viewModel.cmdPegarCodigoBarras.Execute(Nothing)
 
@@ -1705,13 +1695,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub cmdPegarCodigoBarras_DialogConTexto_AsignaCodigoYLlamaAModificar()
-        Dim fakeResult = A.Fake(Of IDialogResult)
-        A.CallTo(Function() fakeResult.Result).Returns(ButtonResult.OK)
-        Dim params = New DialogParameters From {{"text", "ENVIO-12345"}}
-        A.CallTo(Function() fakeResult.Parameters).Returns(params)
-        A.CallTo(Sub() dialogService.
-                     ShowDialog("InputTextDialog", A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-                     Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(fakeResult))
+        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns("ENVIO-12345")
 
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}

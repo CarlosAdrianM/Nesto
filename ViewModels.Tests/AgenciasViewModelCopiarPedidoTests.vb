@@ -5,7 +5,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' Nesto#418: en Agencias → Incidentados el usuario necesita el nº de pedido para buscarlo en otro
@@ -22,7 +21,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private servicioPedidos As IPedidoVentaService
     Private servicioAutenticacion As IServicioAutenticacion
 
@@ -31,7 +30,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
         regionManager = A.Fake(Of IRegionManager)
         servicio = A.Fake(Of IAgenciaService)
         configuracion = A.Fake(Of IConfiguracion)
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub

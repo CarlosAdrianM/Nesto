@@ -8,7 +8,6 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 
 ''' <summary>
 ''' Nesto#340: mantenimiento de agencias de transporte. El usuario crea agencias nuevas (p.ej.
@@ -21,9 +20,9 @@ Public Class AgenciasMantenimientoViewModel
 
     Private ReadOnly _servicio As IServicioAgenciasMantenimiento
     Private ReadOnly _configuracion As IConfiguracion
-    Private ReadOnly _dialogService As IDialogService
+    Private ReadOnly _dialogService As IServicioDialogos
 
-    Public Sub New(servicio As IServicioAgenciasMantenimiento, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(servicio As IServicioAgenciasMantenimiento, configuracion As IConfiguracion, dialogService As IServicioDialogos)
         _servicio = servicio
         _configuracion = configuracion
         _dialogService = dialogService

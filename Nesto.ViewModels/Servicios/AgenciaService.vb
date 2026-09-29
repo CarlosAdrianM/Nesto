@@ -10,18 +10,17 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Prism.Ioc
-Imports Prism.Services.Dialogs
 
 Public Class AgenciaService
     Implements IAgenciaService
 
     Private ReadOnly configuracion As IConfiguracion
-    Private ReadOnly _dialogService As IDialogService
+    Private ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
     Private ReadOnly _servicioAgencias As IServicioAgenciasMantenimiento
 
-    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _dialogService = dialogService
         _servicioAutenticacion = servicioAutenticacion

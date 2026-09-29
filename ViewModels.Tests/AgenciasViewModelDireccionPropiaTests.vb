@@ -5,32 +5,29 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Prism.Regions
-Imports Prism.Services.Dialogs
 
 ' Carlos 29/09/26 (pedido 927075): un envío de la tienda online salió por CTT a nuestra dirección
 ' (la de la ficha genérica 31517). Registrar un envío a Río Tiétar, 11 exige confirmarlo.
 <TestClass()>
 Public Class AgenciasViewModelDireccionPropiaTests
-    Private dialogService As IDialogService
+    Private dialogService As IServicioDialogos
     Private viewModel As AgenciasViewModel
     Private vecesPreguntado As Integer
 
     <TestInitialize()>
     Public Sub Initialize()
-        dialogService = A.Fake(Of IDialogService)
+        dialogService = A.Fake(Of IServicioDialogos)
         viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), A.Fake(Of IAgenciaService), A.Fake(Of IConfiguracion), dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         vecesPreguntado = 0
     End Sub
 
     Private Sub ElUsuarioContesta(ok As Boolean)
-        A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)) _
-         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
-                      vecesPreguntado += 1
-                      Dim resultado = A.Fake(Of IDialogResult)
-                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
-                      callback?.Invoke(resultado)
-                  End Sub)
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)) _
+         .ReturnsLazily(Function(titulo As String, mensaje As String)
+                            vecesPreguntado += 1
+                            Return ok
+                        End Function)
     End Sub
 
     Private Shared Function Envio927075() As EnviosAgencia
