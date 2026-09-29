@@ -3,7 +3,6 @@ using FikaAmazonAPI.AmazonSpApiSDK.Models.Feeds;
 using FikaAmazonAPI.ConstructFeed;
 using FikaAmazonAPI.ConstructFeed.Messages;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -281,11 +280,11 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
     {
         internal const string DIALOGO = "NotificationDialog";
 
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly Func<IServicioRegistroErrores> _registroErrores;
 
-        /// <param name="dialogService">Debe abrir en el hilo de UI (p. ej. ControlesUsuario.Dialogs.DialogServiceEnHiloUi).</param>
-        public AvisoConfirmacionAmazonNoModal(IDialogService dialogService, Func<IServicioRegistroErrores> registroErrores)
+        /// <param name="dialogService">Su <c>Show</c> no modal ya abre en el hilo de UI (Nesto#490 4C.2).</param>
+        public AvisoConfirmacionAmazonNoModal(IServicioDialogos dialogService, Func<IServicioRegistroErrores> registroErrores)
         {
             _dialogService = dialogService;
             _registroErrores = registroErrores;
@@ -309,7 +308,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
             try
             {
-                _dialogService?.Show(DIALOGO, new DialogParameters
+                _dialogService?.Show(DIALOGO, new ParametrosDialogo
                 {
                     { "title", titulo },
                     { "message", mensaje }

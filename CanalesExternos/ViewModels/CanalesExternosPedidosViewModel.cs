@@ -7,8 +7,6 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Nesto.ViewModels;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Services.Dialogs;
-using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
@@ -26,7 +24,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
-        private IDialogService DialogService { get; }
+        private IServicioDialogos DialogService { get; }
         public IPedidoVentaService PedidoVentaService { get; }
 
         public event EventHandler CanalSeleccionadoHaCambiado;
@@ -39,7 +37,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private readonly IFacturasAmazonService _facturasAmazonService;
 
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
@@ -50,8 +48,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion, clientesPorTelefonoService));
             // Nesto#499: si Amazon rechaza una confirmación (se comprueba en segundo plano), aviso no modal + ELMAH.
+            // El Show no modal de IServicioDialogos ya abre en el hilo de UI (antes, DialogServiceEnHiloUi).
             var avisoConfirmacionAmazon = new ApisExternas.AvisoConfirmacionAmazonNoModal(
-                dialogService == null ? null : new DialogServiceEnHiloUi(dialogService),
+                dialogService,
                 () => ContainerLocator.Container?.Resolve<IServicioRegistroErrores>());
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService, avisoConfirmacionAmazon));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService));
@@ -436,7 +435,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 // guardado fallaba (p. ej. el POST del A2 rechazado por el servidor), el usuario
                 // veía el éxito y la etiqueta no existía. Además el async void no tenía catch:
                 // una excepción del flujo (p. ej. "Agencia no contemplada") tumbaba el proceso.
-                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
+                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion);
 
                 EstaOcupado = false;
                 if (etiquetaCreada)

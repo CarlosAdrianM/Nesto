@@ -162,6 +162,31 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         [TestMethod]
+        public void Show_AbreNoModalConLosMismosParametros()
+        {
+            // Nesto#490 (4C.2): el aviso no modal de Amazon (Nesto#499) usaba IDialogService.Show.
+            IDialogParameters capturados = null;
+            A.CallTo(() => _prism.Show(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes((string nombre, IDialogParameters parametros, Action<IDialogResult> callback) => capturados = parametros);
+
+            _servicio.Show("NotificationDialog", new ParametrosDialogo { { "title", "Aviso" }, { "message", "Texto" } }, null);
+
+            A.CallTo(() => _prism.Show("NotificationDialog", A<IDialogParameters>._, null)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _prism.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
+            Assert.AreEqual("Aviso", capturados.GetValue<string>("title"));
+            Assert.AreEqual("Texto", capturados.GetValue<string>("message"));
+        }
+
+        [TestMethod]
+        public async Task Show_DesdeOtroHilo_AbreIgual()
+        {
+            // Sin Application (tests) no hay dispatcher: se llama directamente, como DialogServiceEnHiloUi.
+            await Task.Run(() => _servicio.Show("NotificationDialog", null, null));
+
+            A.CallTo(() => _prism.Show("NotificationDialog", null, null)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
         public async Task ShowDialogAsync_DevuelveElResultadoTraducido()
         {
             ResponderCon(ButtonResult.No, new DialogParameters { { "motivo", "x" } });

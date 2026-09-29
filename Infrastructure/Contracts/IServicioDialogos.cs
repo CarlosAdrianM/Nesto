@@ -63,5 +63,12 @@ namespace Nesto.Infrastructure.Contracts
 
         /// <summary>Como <see cref="ShowDialog"/>, pero devuelve el resultado como Task.</summary>
         Task<ResultadoDialogo> ShowDialogAsync(string name, ParametrosDialogo parameters = null);
+
+        /// <summary>
+        /// Abre NO modal el diálogo registrado con ese nombre (no bloquea al usuario ni a quien llama).
+        /// Se puede llamar desde cualquier hilo: el diálogo se abre siempre en el hilo de UI. Pensado
+        /// para avisos que llegan de tareas en segundo plano (Nesto#499, confirmaciones de Amazon).
+        /// </summary>
+        void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback);
     }
 }

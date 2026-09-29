@@ -2,6 +2,7 @@ using FakeItEasy;
 using FikaAmazonAPI.AmazonSpApiSDK.Models.Feeds;
 using FikaAmazonAPI.ConstructFeed.Messages;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
 using System;
 using System.Collections.Generic;
@@ -190,6 +191,24 @@ namespace CanalesExternosTests
             Assert.AreNotSame(verificacionPrimera, confirmador.UltimaVerificacion);
             Assert.AreEqual(2, esperas.Count, "Cada confirmación lleva su propia verificación");
             await Task.WhenAll(primera, segunda);
+        }
+
+        [TestMethod]
+        public async Task AvisoNoModal_AbreLaNotificacionSinBloquear()
+        {
+            // Nesto#490 (4C.2): el aviso pasa de IDialogService.Show (Prism) a IServicioDialogos.Show: mismo diálogo no modal.
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.Show("NotificationDialog", A<ParametrosDialogo>._, null))
+                .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> callback) => parametros = p);
+            var aviso = new AvisoConfirmacionAmazonNoModal(dialogos, null);
+
+            await aviso.Avisar("Título", "Mensaje", Envio(), "FEED1");
+
+            A.CallTo(() => dialogos.Show("NotificationDialog", A<ParametrosDialogo>._, null)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
+            Assert.AreEqual("Título", parametros.GetValue<string>("title"));
+            Assert.AreEqual("Mensaje", parametros.GetValue<string>("message"));
         }
 
         [TestMethod]

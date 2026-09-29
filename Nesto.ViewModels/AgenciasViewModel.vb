@@ -142,6 +142,15 @@ Public Class AgenciasViewModel
     ' éxito hacía perder tiempo a los compañeros buscando una etiqueta que no existía. Ahora
     ' devuelve si se guardó DE VERDAD: el Insertar estampa en el envío el Numero generado por la
     ' BD (identity), así que Numero > 0 = insertado.
+    ''' <summary>
+    ''' Nesto#490 (4C.2): sobrecarga para quien ya usa IServicioDialogos (CanalesExternosPedidos) y no tiene
+    ''' el IDialogService de Prism que necesita Agencias: lo resuelve del contenedor (el mismo singleton que
+    ''' se inyectaba antes). Puente hasta que se migre Agencias; entonces se quita.
+    ''' </summary>
+    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion) As Boolean
+        Return CrearEtiquetaPendiente(etiqueta, regionManager, configuracion, ContainerLocator.Container.Resolve(Of IDialogService)())
+    End Function
+
     Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService) As Boolean
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)

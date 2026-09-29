@@ -6,7 +6,6 @@ using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.ViewModels;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Unity;
 
 namespace CanalesExternosTests
@@ -25,7 +24,7 @@ namespace CanalesExternosTests
             return new CanalesExternosPedidosViewModel(
                 A.Fake<IRegionManager>(),
                 A.Fake<IConfiguracion>(),
-                A.Fake<IDialogService>(),
+                A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoVentaService>(),
                 A.Fake<IUnityContainer>(),
                 A.Fake<IFacturasAmazonService>(),

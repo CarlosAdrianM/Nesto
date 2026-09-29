@@ -69,6 +69,11 @@ namespace ControlesUsuario.Dialogs
         public async Task<ResultadoDialogo> ShowDialogAsync(string name, ParametrosDialogo parameters = null)
             => DesdeResultadoPrism(await _prism.ShowDialogAsync(name, AParametrosPrism(parameters)));
 
+        // No modal y en el hilo de UI (como hacía DialogServiceEnHiloUi para el aviso de Amazon, Nesto#499):
+        // quien lo usa suele estar en una tarea en segundo plano y WPF no puede crear la ventana fuera de la UI.
+        public void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
+            => DialogServiceEnHiloUi.EnHiloUi(() => _prism.Show(name, AParametrosPrism(parameters), Traducir(callback)));
+
         // Un callback null se pasa como null, igual que antes: Prism ya no lo invoca.
         private static Action<IDialogResult> Traducir(Action<ResultadoDialogo> callback)
             => callback == null ? null : r => callback(DesdeResultadoPrism(r));

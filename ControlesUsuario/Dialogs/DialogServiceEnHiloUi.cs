@@ -49,7 +49,7 @@ namespace ControlesUsuario.Dialogs
         public void ShowDialog(string name, IDialogParameters parameters, Action<IDialogResult> callback, string windowName)
             => EnHiloUi(() => _interno.ShowDialog(name, parameters, callback, windowName));
 
-        private static void EnHiloUi(Action accion)
+        internal static void EnHiloUi(Action accion)
         {
             Dispatcher dispatcher = Application.Current?.Dispatcher;
             // Sin Application (tests, procesos sin UI) o ya en el hilo bueno: llamada directa.
