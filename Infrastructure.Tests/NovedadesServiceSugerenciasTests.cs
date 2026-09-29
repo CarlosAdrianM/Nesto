@@ -83,6 +83,35 @@ namespace Infrastructure.Tests
             Assert.AreEqual(60, creada.Id);
         }
 
+        // NestoAPI#558: «Algo no funciona» es el mismo POST, marcado como incidencia y con la pantalla.
+        [TestMethod]
+        public async Task AvisarAlgoNoFunciona_MandaElMismoCuerpoConEsIncidenciaYPantalla()
+        {
+            handler.Respuesta = "{\"Id\":558,\"Categoria\":\"Incidencia\",\"EsIncidencia\":true}";
+
+            NovedadUsuario creada = await servicio.AvisarAlgoNoFunciona("Se queda colgado", null, " PlantillaVenta ");
+
+            Assert.AreEqual(HttpMethod.Post, handler.Peticiones[0].Metodo);
+            Assert.AreEqual("/api/Novedades/Sugerencias", handler.Peticiones[0].Url);
+            JObject cuerpo = JObject.Parse(handler.Peticiones[0].Cuerpo);
+            Assert.AreEqual("Se queda colgado", (string)cuerpo["Texto"]);
+            Assert.IsTrue((bool)cuerpo["EsIncidencia"]);
+            Assert.AreEqual("PlantillaVenta", (string)cuerpo["Pantalla"]);
+            StringAssert.StartsWith((string)cuerpo["VersionCliente"], "Nesto");
+            Assert.IsTrue(creada.EsIncidencia);
+        }
+
+        [TestMethod]
+        public async Task AvisarAlgoNoFunciona_BadRequest_LanzaConElMotivoDeLaApi()
+        {
+            handler.Codigo = HttpStatusCode.BadRequest;
+            handler.Respuesta = "{\"Message\":\"El texto es obligatorio\"}";
+
+            var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => servicio.AvisarAlgoNoFunciona(" ", null, null));
+
+            Assert.AreEqual("No se pudo enviar el aviso: El texto es obligatorio", ex.Message);
+        }
+
         [TestMethod]
         public async Task Sugerir_BadRequest_LanzaConElMotivoDeLaApi()
         {

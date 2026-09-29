@@ -36,6 +36,14 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>La sugerencia lleva captura (se pide aparte con <see cref="INovedadesService.LeerImagenNovedad"/>).</summary>
         public bool TieneImagen { get; set; }
 
+        /// <summary>NestoAPI#558: «Algo no funciona» (categoría Incidencia), no una idea nueva.</summary>
+        public bool EsIncidencia { get; set; }
+        /// <summary>
+        /// NestoAPI#558: en las incidencias, versión, pantalla y errores de ELMAH de la última hora. La API
+        /// solo lo manda a Dirección / Informática.
+        /// </summary>
+        public string Contexto { get; set; }
+
         /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
         public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
     }
@@ -93,6 +101,11 @@ namespace Nesto.Infrastructure.Contracts
         Task<List<NovedadUsuario>> LeerSugerencias();
         /// <summary>Crea una sugerencia; <paramref name="imagenPng"/> es opcional (captura en PNG).</summary>
         Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng);
+        /// <summary>
+        /// NestoAPI#558: «Algo no funciona». Mismo formulario que <see cref="Sugerir"/>, pero la API lo guarda
+        /// como incidencia y le añade el contexto (versión, <paramref name="pantalla"/> y errores de ELMAH).
+        /// </summary>
+        Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, byte[] imagenPng, string pantalla);
         /// <summary>La captura de una sugerencia.</summary>
         Task<byte[]> LeerImagenNovedad(int novedadId);
         /// <summary>Novedades (con versión) y sugerencias (sin versión) que tienen todas las palabras.</summary>

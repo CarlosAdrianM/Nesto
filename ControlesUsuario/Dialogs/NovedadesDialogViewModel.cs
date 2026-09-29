@@ -52,6 +52,7 @@ namespace ControlesUsuario.Dialogs
             MencionesSugerencia = new AutocompletadoMenciones(_mencionables);
 
             AbrirSugerenciaCommand = new AsyncRelayCommand(AbrirOCerrarSugerencia, () => PuedeSugerir);
+            AbrirIncidenciaCommand = new AsyncRelayCommand(AbrirOCerrarIncidencia, () => PuedeSugerir);
             EnviarSugerenciaCommand = new AsyncRelayCommand(EnviarSugerencia, () => PuedeSugerir && !string.IsNullOrWhiteSpace(TextoSugerencia) && !EnviandoSugerencia);
             PegarImagenSugerenciaCommand = new RelayCommand(() => PegarImagenSugerencia());
             QuitarImagenSugerenciaCommand = new RelayCommand(() => ImagenSugerencia = null, () => ImagenSugerencia != null);
@@ -131,6 +132,8 @@ namespace ControlesUsuario.Dialogs
             {
                 Title = parameters.GetValue<string>("title");
             }
+            // NestoAPI#558: la pantalla que había abierta, para el contexto de «Algo no funciona»
+            _pantalla = parameters.ContainsKey(PARAMETRO_PANTALLA) ? parameters.GetValue<string>(PARAMETRO_PANTALLA) : null;
 
             List<NovedadUsuario> todas = parameters.ContainsKey("novedades")
                 ? (parameters.GetValue<List<NovedadUsuario>>("novedades") ?? new List<NovedadUsuario>())
@@ -155,6 +158,9 @@ namespace ControlesUsuario.Dialogs
         public const string PARAMETRO_COMENTARIO_ID = "comentarioId";
         /// <summary>Nesto#501: abrir en esa versión (el aviso de versión nueva de la campana).</summary>
         public const string PARAMETRO_VERSION = "version";
+        /// <summary>NestoAPI#558: la pantalla activa al abrir Novedades (va en el contexto de las incidencias).</summary>
+        public const string PARAMETRO_PANTALLA = "pantalla";
+        private string _pantalla;
 
         /// <summary>Nesto#501: la página de esa versión; sin ella o si no tiene novedades, la más nueva (0).</summary>
         private int IndiceDeVersion(string version)
@@ -270,7 +276,7 @@ namespace ControlesUsuario.Dialogs
                 _sugerencias = lista.Where(n => n != null).Select(CrearItem).ToList();
                 if (_sugerencias.Count == 0)
                 {
-                    MensajeSugerencias = "Todavía no hay sugerencias. ¿Echas algo en falta? Cuéntanoslo con «Sugerir nueva característica».";
+                    MensajeSugerencias = "Todavía no hay sugerencias. ¿Echas algo en falta? Cuéntanoslo con «Sugerir una mejora»; si algo no va bien, con «Algo no funciona».";
                 }
             }
             catch (Exception ex)
@@ -294,6 +300,30 @@ namespace ControlesUsuario.Dialogs
 
         private bool _formularioSugerenciaAbierto;
         public bool FormularioSugerenciaAbierto { get => _formularioSugerenciaAbierto; private set => SetProperty(ref _formularioSugerenciaAbierto, value); }
+
+        private bool _formularioEsIncidencia;
+        /// <summary>
+        /// NestoAPI#558: el cuadro está en modo «Algo no funciona» (mismo formulario que sugerir: texto y
+        /// captura; la API lo guarda como incidencia y le añade el contexto).
+        /// </summary>
+        public bool FormularioEsIncidencia
+        {
+            get => _formularioEsIncidencia;
+            private set
+            {
+                if (SetProperty(ref _formularioEsIncidencia, value))
+                {
+                    OnPropertyChanged(nameof(TextoAyudaFormulario));
+                    OnPropertyChanged(nameof(TextoBotonEnviarFormulario));
+                }
+            }
+        }
+
+        public string TextoAyudaFormulario => FormularioEsIncidencia
+            ? "¿Qué no funciona? Cuéntanos qué estabas haciendo y qué ha pasado (puedes pegar una captura con Ctrl+V):"
+            : "¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):";
+
+        public string TextoBotonEnviarFormulario => FormularioEsIncidencia ? "Enviar aviso" : "Enviar sugerencia";
 
         private string _textoSugerencia;
         public string TextoSugerencia
@@ -337,12 +367,18 @@ namespace ControlesUsuario.Dialogs
         }
 
         public IAsyncRelayCommand AbrirSugerenciaCommand { get; }
+        public IAsyncRelayCommand AbrirIncidenciaCommand { get; }
         public IAsyncRelayCommand EnviarSugerenciaCommand { get; }
         public IRelayCommand PegarImagenSugerenciaCommand { get; }
         public IRelayCommand QuitarImagenSugerenciaCommand { get; }
 
-        /// <summary>«Sugerir nueva característica»: lleva a Sugerencias y abre (o cierra) el cuadro.</summary>
-        internal async Task AbrirOCerrarSugerencia()
+        /// <summary>«Sugerir una mejora»: lleva a Sugerencias y abre (o cierra) el cuadro.</summary>
+        internal Task AbrirOCerrarSugerencia() => AbrirOCerrarFormulario(false);
+
+        /// <summary>NestoAPI#558: «Algo no funciona»: el mismo cuadro, en modo aviso.</summary>
+        internal Task AbrirOCerrarIncidencia() => AbrirOCerrarFormulario(true);
+
+        private async Task AbrirOCerrarFormulario(bool incidencia)
         {
             if (!PuedeSugerir)
             {
@@ -350,13 +386,21 @@ namespace ControlesUsuario.Dialogs
             }
             if (FormularioSugerenciaAbierto)
             {
-                FormularioSugerenciaAbierto = false;
+                if (FormularioEsIncidencia == incidencia)
+                {
+                    FormularioSugerenciaAbierto = false;
+                    return;
+                }
+                // NestoAPI#558: con el cuadro abierto, el otro botón solo cambia de modo (no se pierde lo escrito)
+                FormularioEsIncidencia = incidencia;
                 return;
             }
+            FormularioEsIncidencia = incidencia;
             FormularioSugerenciaAbierto = true;
             // Igual que al comentar: si hay una imagen copiada, se ofrece adjuntarla una vez por apertura.
             if (ImagenSugerencia == null && _portapapeles != null && _portapapeles.HayImagen()
-                && _preguntar("Tienes una imagen copiada en el portapapeles. ¿Quieres adjuntarla a tu sugerencia?"))
+                && _preguntar("Tienes una imagen copiada en el portapapeles. ¿Quieres adjuntarla a tu "
+                    + (incidencia ? "aviso?" : "sugerencia?")))
             {
                 PegarImagenSugerencia();
             }
@@ -399,7 +443,10 @@ namespace ControlesUsuario.Dialogs
             try
             {
                 byte[] imagen = ImagenSugerencia;
-                NovedadUsuario creada = await _servicio.Sugerir(TextoSugerencia.Trim(), imagen);
+                bool incidencia = FormularioEsIncidencia;
+                NovedadUsuario creada = incidencia
+                    ? await _servicio.AvisarAlgoNoFunciona(TextoSugerencia.Trim(), imagen, _pantalla)
+                    : await _servicio.Sugerir(TextoSugerencia.Trim(), imagen);
                 TextoSugerencia = null;
                 ImagenSugerencia = null;
                 FormularioSugerenciaAbierto = false;
@@ -425,7 +472,9 @@ namespace ControlesUsuario.Dialogs
                 }
                 Novedades = _sugerencias.ToList();
                 Destacar(item);
-                MensajeSugerencias = "¡Gracias! Tu sugerencia ya está en la lista: los demás pueden votarla y comentarla.";
+                MensajeSugerencias = incidencia
+                    ? "¡Gracias por avisar! Lo revisaremos y te diremos en qué versión queda arreglado."
+                    : "¡Gracias! Tu sugerencia ya está en la lista: los demás pueden votarla y comentarla.";
             }
             catch (Exception ex)
             {

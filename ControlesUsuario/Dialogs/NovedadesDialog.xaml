@@ -86,7 +86,7 @@
 
         <!-- Nesto#487: cabecera de la página de sugerencias: avisos y cuadro para sugerir (mismo pegado de captura que los comentarios). -->
         <StackPanel Grid.Row="3" Visibility="{Binding EnSugerencias, Converter={StaticResource BoolAVisible}}">
-            <TextBlock Text="Ideas de los usuarios que aún no están hechas. Vota las que te interesen y coméntalas; las más votadas salen arriba."
+            <TextBlock Text="Ideas de los usuarios que aún no están hechas (y avisos de cosas que no funcionan). Vota las que te interesen y coméntalas; las más votadas salen arriba."
                        TextWrapping="Wrap" Foreground="#555555" Margin="0,0,0,4" />
             <TextBlock Text="Cargando sugerencias…" Foreground="#777777" Margin="0,0,0,4"
                        Visibility="{Binding CargandoSugerencias, Converter={StaticResource BoolAVisible}}" />
@@ -95,7 +95,7 @@
             <Border Visibility="{Binding FormularioSugerenciaAbierto, Converter={StaticResource BoolAVisible}}"
                     Background="#F7F7F7" CornerRadius="3" Padding="8" Margin="0,0,0,6">
                 <StackPanel>
-                    <TextBlock Text="¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):" FontSize="11" Foreground="#555555" Margin="0,0,0,2" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding TextoAyudaFormulario}" FontSize="11" Foreground="#555555" Margin="0,0,0,2" TextWrapping="Wrap" />
                     <TextBox Text="{Binding TextoSugerencia, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                              TextWrapping="Wrap" MinHeight="54" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                              PreviewKeyDown="CuadroSugerencia_PreviewKeyDown"
@@ -109,7 +109,7 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
                         <Button Content="Pegar imagen" Command="{Binding PegarImagenSugerenciaCommand}" Padding="8,2" Margin="0,0,6,0"
                                 ToolTip="Adjunta la imagen que tengas copiada (por ejemplo, un recorte de pantalla)" />
-                        <Button Content="Enviar sugerencia" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
+                        <Button Content="{Binding TextoBotonEnviarFormulario}" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -143,6 +143,10 @@
                                                     <DataTrigger Binding="{Binding Categoria}" Value="Corregido">
                                                         <Setter Property="Background" Value="#C9762B" />
                                                     </DataTrigger>
+                                                    <!-- NestoAPI#558: «Algo no funciona» -->
+                                                    <DataTrigger Binding="{Binding Categoria}" Value="Incidencia">
+                                                        <Setter Property="Background" Value="#C0392B" />
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
@@ -160,6 +164,12 @@
                                 </Border>
                                 <TextBlock Text="{Binding Descripcion}" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="#444444"
                                            Visibility="{Binding TieneDescripcion, Converter={StaticResource BoolAVisible}}" />
+                                <!-- NestoAPI#558: contexto automático de la incidencia (la API solo lo manda a Dirección / Informática) -->
+                                <Border Background="#FBEFEF" CornerRadius="3" Padding="6,3" Margin="0,4,0,0"
+                                        Visibility="{Binding TieneContexto, Converter={StaticResource BoolAVisible}}">
+                                    <TextBox Text="{Binding Contexto, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                             TextWrapping="Wrap" FontFamily="Consolas" FontSize="11" Foreground="#6B2B2B" />
+                                </Border>
                                 <Image Source="{Binding ImagenNovedad, Converter={StaticResource BytesAImagen}}" MaxHeight="160"
                                        HorizontalAlignment="Left" Stretch="Uniform" Margin="0,4,0,0"
                                        Visibility="{Binding TieneImagenNovedad, Converter={StaticResource BoolAVisible}}">
@@ -281,8 +291,13 @@
         </ScrollViewer>
 
         <DockPanel Grid.Row="5" Margin="0,10,0,0" LastChildFill="False">
-            <Button DockPanel.Dock="Left" Content="Sugerir nueva característica" Command="{Binding AbrirSugerenciaCommand}"
+            <Button DockPanel.Dock="Left" Content="💡 Sugerir una mejora" Command="{Binding AbrirSugerenciaCommand}"
                     Height="28" Padding="10,0" ToolTip="¿Echas algo en falta en Nesto? Cuéntanoslo y los demás podrán votarlo"
+                    Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}" />
+            <!-- NestoAPI#558: los usuarios no sabían dónde avisar de un error; mismo formulario que sugerir -->
+            <Button DockPanel.Dock="Left" Content="🐞 Algo no funciona" Command="{Binding AbrirIncidenciaCommand}"
+                    Height="28" Padding="10,0" Margin="6,0,0,0"
+                    ToolTip="¿Algo no va como debería? Cuéntanos qué ha pasado; nos llega con la versión y los errores de la última hora"
                     Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}" />
             <Button DockPanel.Dock="Right" Content="Cerrar" Command="{Binding CloseDialogCommand}"
                     Width="90" Height="28" IsCancel="True" />

@@ -1,7 +1,9 @@
 using Nesto.Infrastructure.Contracts;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ControlesUsuario.Dialogs
@@ -24,13 +26,53 @@ namespace ControlesUsuario.Dialogs
     {
         internal const string DIALOGO_NOVEDADES = "NovedadesDialog";
 
+        internal const string REGION_PRINCIPAL = "MainRegion";
+
         private readonly INovedadesService _novedadesService;
         private readonly IDialogService _dialogService;
+        private readonly IRegionManager _regionManager;
 
         public AbridorNovedades(INovedadesService novedadesService, IDialogService dialogService)
+            : this(novedadesService, dialogService, null) { }
+
+        /// <summary>El que usa el contenedor. NestoAPI#558: con la región principal se sabe qué pantalla había abierta.</summary>
+        public AbridorNovedades(INovedadesService novedadesService, IDialogService dialogService, IRegionManager regionManager)
         {
             _novedadesService = novedadesService ?? throw new ArgumentNullException(nameof(novedadesService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _regionManager = regionManager;
+        }
+
+        /// <summary>
+        /// NestoAPI#558: el nombre de la vista activa de la región principal (sin el «View» del final), para
+        /// el contexto de «Algo no funciona». null si no hay o no se puede saber: nunca lanza.
+        /// </summary>
+        internal string PantallaActiva()
+        {
+            try
+            {
+                if (_regionManager == null || !_regionManager.Regions.ContainsRegionWithName(REGION_PRINCIPAL))
+                {
+                    return null;
+                }
+                return NombrePantalla(_regionManager.Regions[REGION_PRINCIPAL].ActiveViews.FirstOrDefault());
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        internal static string NombrePantalla(object vista)
+        {
+            string nombre = vista?.GetType().Name;
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                return null;
+            }
+            return nombre.Length > 4 && nombre.EndsWith("View", StringComparison.Ordinal)
+                ? nombre.Substring(0, nombre.Length - 4)
+                : nombre;
         }
 
         public async Task Abrir(string version = null)
@@ -46,6 +88,11 @@ namespace ControlesUsuario.Dialogs
                 if (!string.IsNullOrWhiteSpace(version))
                 {
                     parametros.Add(NovedadesDialogViewModel.PARAMETRO_VERSION, version.Trim());
+                }
+                string pantalla = PantallaActiva();
+                if (pantalla != null)
+                {
+                    parametros.Add(NovedadesDialogViewModel.PARAMETRO_PANTALLA, pantalla);
                 }
                 _dialogService.ShowDialog(DIALOGO_NOVEDADES, parametros, _ => { });
             }

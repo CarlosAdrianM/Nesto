@@ -93,6 +93,23 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<NovedadUsuario>(json);
         }
 
+        public async Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, byte[] imagenPng, string pantalla)
+        {
+            // NestoAPI#558: el mismo POST que las sugerencias, marcado como incidencia y con la pantalla abierta
+            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            var cuerpo = new
+            {
+                Texto = texto,
+                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
+                ImagenTipo = conImagen ? "image/png" : null,
+                VersionCliente = VersionNesto(),
+                EsIncidencia = true,
+                Pantalla = string.IsNullOrWhiteSpace(pantalla) ? null : pantalla.Trim()
+            };
+            string json = await Enviar(HttpMethod.Post, "Novedades/Sugerencias", cuerpo, "enviar el aviso").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<NovedadUsuario>(json);
+        }
+
         public Task<byte[]> LeerImagenNovedad(int novedadId)
             => LeerImagen($"Novedades/{novedadId}/Imagen");
 

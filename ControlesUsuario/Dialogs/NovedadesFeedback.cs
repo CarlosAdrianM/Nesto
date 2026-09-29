@@ -153,6 +153,11 @@ namespace ControlesUsuario.Dialogs
         /// <summary>En una sugerencia, la descripción es la ampliada que redactamos nosotros: solo se pinta si existe.</summary>
         public bool TieneDescripcion => !string.IsNullOrWhiteSpace(Descripcion);
         public string Estado => _novedad.Estado;
+        /// <summary>NestoAPI#558: aviso de «Algo no funciona» (sale con la etiqueta Incidencia).</summary>
+        public bool EsIncidencia => _novedad.EsIncidencia;
+        /// <summary>NestoAPI#558: versión, pantalla y errores de ELMAH. Solo llega a Dirección / Informática.</summary>
+        public string Contexto => _novedad.Contexto;
+        public bool TieneContexto => !string.IsNullOrWhiteSpace(Contexto);
         public string SugeridaPor
         {
             get
@@ -161,7 +166,8 @@ namespace ControlesUsuario.Dialogs
                 {
                     return null;
                 }
-                string quien = string.IsNullOrWhiteSpace(_novedad.SugeridaNombre) ? "Sugerida" : $"Sugerida por {_novedad.SugeridaNombre.Trim()}";
+                string verbo = EsIncidencia ? "Avisado" : "Sugerida";
+                string quien = string.IsNullOrWhiteSpace(_novedad.SugeridaNombre) ? verbo : $"{verbo} por {_novedad.SugeridaNombre.Trim()}";
                 DateTime? cuando = _novedad.SugeridaFecha;
                 string estado = string.IsNullOrWhiteSpace(Estado) ? string.Empty : $" · {Estado.Trim()}";
                 return cuando.HasValue ? $"{quien} el {cuando.Value:dd/MM/yyyy}{estado}" : quien + estado;
