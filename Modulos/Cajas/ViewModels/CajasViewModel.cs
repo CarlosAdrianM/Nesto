@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -29,7 +28,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public const string CUENTA_TESORERIA_PGC = "57";
         private const int DIAS_ATRAS_PERMITIDOS = 4;
         private readonly IConfiguracion _configuracion;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IClientesService _clientesService;
         private string _cuentaCajaDefecto;
         private string _cuentaTarjetaDefecto;
@@ -41,7 +40,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService, IServicioAutenticacion servicioAutenticacion)
+        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IServicioDialogos dialogService, IClientesService clientesService, IServicioAutenticacion servicioAutenticacion)
         {
             Titulo = "Cajas";
             Servicio = servicio;

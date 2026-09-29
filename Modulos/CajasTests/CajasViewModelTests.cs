@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
-using Prism.Services.Dialogs;
 
 namespace CajasTests
 {
@@ -14,7 +13,7 @@ namespace CajasTests
         private static CajasViewModel CrearViewModel(IContabilidadService servicioContabilidad)
         {
             var configuracion = A.Fake<IConfiguracion>();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             var servicioClientes = A.Fake<IClientesService>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
             return new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes, servicioAutenticacion);
@@ -97,7 +96,7 @@ namespace CajasTests
             // Arrange
             var servicioContabilidad = A.Fake<IContabilidadService>();
             var configuracion = A.Fake<IConfiguracion>();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             var servicioClientes = A.Fake<IClientesService>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
             var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes, servicioAutenticacion);
@@ -121,7 +120,7 @@ namespace CajasTests
             // Arrange
             var servicioContabilidad = A.Fake<IContabilidadService>();
             var configuracion = A.Fake<IConfiguracion>();
-            var dialogService = A.Fake<IDialogService>();
+            var dialogService = A.Fake<IServicioDialogos>();
             var servicioClientes = A.Fake<IClientesService>();
             var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
             var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes, servicioAutenticacion);
