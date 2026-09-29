@@ -57,6 +57,31 @@ namespace Nesto.Modulos.Cajas.Services
             }
         }
 
+        /// <summary>
+        /// NestoAPI#392: declara como simplificada (F2; sus rectificativas R5) una factura cuyo NIF no se puede
+        /// conseguir. Si la API no lo permite (p. ej. supera el límite de la simplificada) lanza con su mensaje.
+        /// </summary>
+        public async Task<ResultadoReintentoVerifactuModel> DeclararSimplificada(string empresa, string numero, string motivo)
+        {
+            using (HttpClient client = await CrearCliente())
+            {
+                HttpContent contenido = new StringContent(
+                    JsonConvert.SerializeObject(new { Empresa = empresa?.Trim(), Numero = numero?.Trim(), Motivo = motivo?.Trim() }),
+                    Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("Verifactu/DeclararSimplificada", contenido);
+                string body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    string mensaje = response.StatusCode == HttpStatusCode.Forbidden
+                        ? "solo pueden hacerlo Administración y Dirección"
+                        : ExtraerMensaje(response, body);
+                    throw new Exception($"No se pudo declarar como simplificada la factura {numero?.Trim()}: {mensaje}");
+                }
+                return JsonConvert.DeserializeObject<ResultadoReintentoVerifactuModel>(body)
+                    ?? new ResultadoReintentoVerifactuModel { Exitoso = false, Mensaje = "La API no ha devuelto respuesta" };
+            }
+        }
+
         private async Task<HttpClient> CrearCliente()
         {
             var client = new HttpClient { BaseAddress = new Uri(_configuracion.servidorAPI) };

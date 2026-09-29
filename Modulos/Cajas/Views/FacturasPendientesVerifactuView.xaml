@@ -83,6 +83,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Motivo:" FontWeight="Bold" Margin="0,0,8,4"/>
                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FacturaSeleccionada.Motivo, Mode=OneWay}" IsReadOnly="True"
@@ -92,6 +93,13 @@
                     <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
                         <Button Content="Reintentar el envío" Command="{Binding ReintentarCommand}" Padding="10,2" FontWeight="Bold" MinWidth="140"/>
                         <TextBlock Text="Vuelve a mandar la factura a Verifactu con el mismo número y la misma fecha (las incorrectas en la AEAT, como subsanación)."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                    </StackPanel>
+                    <!-- NestoAPI#392: NIF inconseguible → declararla como simplificada (F2; sus rectificativas R5) -->
+                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding PuedeDeclararSimplificadaSeleccionada, Converter={StaticResource VisibleSiVerdadero}}">
+                        <Button Content="Declarar como simplificada" Command="{Binding DeclararSimplificadaCommand}" Padding="10,2" MinWidth="140"/>
+                        <TextBlock Text="Solo si el NIF real no se puede conseguir y la factura no pasa de 400 €: se declara sin NIF ni nombre del cliente (y su rectificativa como R5). Pide el motivo."
                                    Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
                     </StackPanel>
                 </Grid>

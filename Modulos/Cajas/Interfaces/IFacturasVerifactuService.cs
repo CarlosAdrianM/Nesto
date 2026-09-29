@@ -11,5 +11,7 @@ namespace Nesto.Modulos.Cajas.Interfaces
     {
         Task<List<FacturaPendienteVerifactuModel>> LeerFacturasPendientes();
         Task<ResultadoReintentoVerifactuModel> ReintentarFactura(string empresa, string numero);
+        /// <summary>NestoAPI#392: POST api/Verifactu/DeclararSimplificada (solo Administración y Dirección, motivo obligatorio).</summary>
+        Task<ResultadoReintentoVerifactuModel> DeclararSimplificada(string empresa, string numero, string motivo);
     }
 }

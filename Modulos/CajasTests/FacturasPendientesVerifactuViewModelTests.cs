@@ -129,5 +129,85 @@ namespace CajasTests
 
             Assert.AreEqual("NV2615002", vm.FacturaSeleccionada?.Numero);
         }
+
+        #region NestoAPI#392: declarar como simplificada
+
+        private static FacturaPendienteVerifactuModel FacturaConNifInconseguible(string numero = "NV2613367")
+        {
+            FacturaPendienteVerifactuModel factura = Factura(numero, "Sin datos fiscales", puedeReintentar: false,
+                motivo: "Marcada como NO CENSADO (07) pero el NIF '1000000' no tiene un formato válido de NIF");
+            factura.PuedeDeclararSimplificada = true;
+            return factura;
+        }
+
+        [TestMethod]
+        public async Task DeclararSimplificada_SoloSeOfreceCuandoLaApiDiceQueElProblemaEsElNif()
+        {
+            await CargarCon(Factura("NV2615001"), FacturaConNifInconseguible());
+
+            vm.FacturaSeleccionada = vm.Facturas[0];
+            Assert.IsFalse(vm.PuedeDeclararSimplificadaSeleccionada);
+            Assert.IsFalse(vm.DeclararSimplificadaCommand.CanExecute(null));
+
+            vm.FacturaSeleccionada = vm.Facturas[1];
+            Assert.IsTrue(vm.PuedeDeclararSimplificadaSeleccionada);
+            Assert.IsTrue(vm.DeclararSimplificadaCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task DeclararSimplificada_PideElMotivoYLlamaALaApiConEl()
+        {
+            await CargarCon(FacturaConNifInconseguible());
+            vm.FacturaSeleccionada = vm.Facturas[0];
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("  Cliente de paso, no da el DNI ");
+            FacturaPendienteVerifactuModel actualizada = Factura("NV2613367", "Pendiente de enviar");
+            actualizada.DeclararSimplificada = true;
+            A.CallTo(() => servicio.DeclararSimplificada("1", "NV2613367", "Cliente de paso, no da el DNI"))
+                .Returns(new ResultadoReintentoVerifactuModel { Exitoso = true, Mensaje = "La factura NV2613367 se declarará como simplificada", Factura = actualizada });
+
+            await vm.DeclararSimplificadaAsync();
+
+            A.CallTo(() => servicio.DeclararSimplificada("1", "NV2613367", "Cliente de paso, no da el DNI")).MustHaveHappenedOnceExactly();
+            Assert.AreSame(actualizada, vm.Facturas.Single());
+            Assert.AreSame(actualizada, vm.FacturaSeleccionada);
+            Assert.IsFalse(vm.PuedeDeclararSimplificadaSeleccionada, "Ya marcada: el botón desaparece");
+            A.CallTo(() => dialogos.ShowNotification("Verifactu", A<string>.That.Contains("simplificada"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task DeclararSimplificada_CanceladoONoHayMotivo_NoLlamaALaApi()
+        {
+            await CargarCon(FacturaConNifInconseguible());
+            vm.FacturaSeleccionada = vm.Facturas[0];
+
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns(null!);
+            await vm.DeclararSimplificadaAsync();
+            A.CallTo(() => dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("   ");
+            await vm.DeclararSimplificadaAsync();
+            A.CallTo(() => dialogos.ShowError(A<string>.That.Contains("motivo"))).MustHaveHappenedOnceExactly();
+
+            A.CallTo(() => servicio.DeclararSimplificada(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task DeclararSimplificada_PorEncimaDelLimite_MuestraElMensajeDeLaApiYLaFacturaSigueIgual()
+        {
+            await CargarCon(FacturaConNifInconseguible());
+            FacturaPendienteVerifactuModel original = vm.Facturas[0];
+            vm.FacturaSeleccionada = original;
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("No da el DNI");
+            A.CallTo(() => servicio.DeclararSimplificada(A<string>._, A<string>._, A<string>._))
+                .Throws(new Exception("No se pudo declarar como simplificada la factura NV2613367: La factura NV2613367 es de 484,00 € ... No hay salida sin el NIF"));
+
+            await vm.DeclararSimplificadaAsync();
+
+            A.CallTo(() => dialogos.ShowError(A<string>.That.Contains("No hay salida sin el NIF"))).MustHaveHappenedOnceExactly();
+            Assert.AreSame(original, vm.Facturas.Single());
+            Assert.IsFalse(vm.EstaOcupado);
+        }
+
+        #endregion
     }
 }

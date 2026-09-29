@@ -31,6 +31,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             Titulo = "Facturas Verifactu";
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             ReintentarCommand = new AsyncRelayCommand(ReintentarAsync, CanReintentar);
+            DeclararSimplificadaCommand = new AsyncRelayCommand(DeclararSimplificadaAsync, CanDeclararSimplificada);
         }
 
         public string Titulo { get; }
@@ -57,7 +58,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _facturaSeleccionada, value))
                 {
                     OnPropertyChanged(nameof(HayFacturaSeleccionada));
+                    OnPropertyChanged(nameof(PuedeDeclararSimplificadaSeleccionada));
                     ReintentarCommand.NotifyCanExecuteChanged();
+                    DeclararSimplificadaCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -74,6 +77,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _estaOcupado, value))
                 {
                     ReintentarCommand.NotifyCanExecuteChanged();
+                    DeclararSimplificadaCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -143,20 +147,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 EstaOcupado = true;
                 ResultadoReintentoVerifactuModel resultado = await _servicio.ReintentarFactura(factura.Empresa ?? string.Empty, factura.Numero ?? string.Empty);
-                int posicion = Facturas.IndexOf(factura);
-                if (resultado.Factura == null)
-                {
-                    // Ya no está pendiente: sale de la lista
-                    Facturas.Remove(factura);
-                    FacturaSeleccionada = null;
-                }
-                else if (posicion >= 0)
-                {
-                    // Sigue pendiente, con el motivo nuevo
-                    Facturas[posicion] = resultado.Factura;
-                    FacturaSeleccionada = resultado.Factura;
-                }
-                OnPropertyChanged(nameof(Resumen));
+                ActualizarFila(factura, resultado);
                 if (resultado.Exitoso)
                 {
                     _dialogService.ShowNotification("Verifactu", resultado.Mensaje ?? $"Factura {factura.Numero} enviada.");
@@ -164,6 +155,81 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 else
                 {
                     _dialogService.ShowError(resultado.Mensaje ?? $"No se ha podido enviar la factura {factura.Numero}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        /// <summary>Deja la fila como la devuelve la API: fuera si ya no está pendiente; si no, con el estado nuevo.</summary>
+        private void ActualizarFila(FacturaPendienteVerifactuModel factura, ResultadoReintentoVerifactuModel resultado)
+        {
+            int posicion = Facturas.IndexOf(factura);
+            if (resultado.Factura == null)
+            {
+                // Ya no está pendiente: sale de la lista
+                _ = Facturas.Remove(factura);
+                FacturaSeleccionada = null;
+            }
+            else if (posicion >= 0)
+            {
+                // Sigue pendiente, con el motivo nuevo
+                Facturas[posicion] = resultado.Factura;
+                FacturaSeleccionada = resultado.Factura;
+            }
+            OnPropertyChanged(nameof(Resumen));
+        }
+
+        /// <summary>NestoAPI#392: el botón solo se enseña cuando el problema de la factura es el NIF.</summary>
+        public bool PuedeDeclararSimplificadaSeleccionada => FacturaSeleccionada?.PuedeDeclararSimplificada == true;
+
+        public IAsyncRelayCommand DeclararSimplificadaCommand { get; }
+        private bool CanDeclararSimplificada() => PuedeDeclararSimplificadaSeleccionada && !EstaOcupado;
+
+        /// <summary>
+        /// NestoAPI#392: factura completa con un NIF que no se puede conseguir → se declara como simplificada (F2, sin
+        /// destinatario) y sus rectificativas como R5. Pide el motivo (obligatorio, queda registrado). La API rechaza
+        /// las que superan el límite de la simplificada: entonces no hay más salida que conseguir el NIF.
+        /// </summary>
+        public async Task DeclararSimplificadaAsync()
+        {
+            if (!CanDeclararSimplificada())
+            {
+                return;
+            }
+            FacturaPendienteVerifactuModel factura = FacturaSeleccionada!;
+            string? motivo = _dialogService.GetText("Declarar como simplificada",
+                $"La factura {factura.Numero} se declarará a Verifactu como SIMPLIFICADA (F2, sin NIF ni nombre del cliente) " +
+                "y sus rectificativas como R5. Hacedlo solo si el NIF real no se puede conseguir.\n\n" +
+                "Motivo (obligatorio, queda registrado):");
+            if (motivo == null)
+            {
+                return; // cancelado
+            }
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                _dialogService.ShowError("Hay que indicar el motivo por el que se declara como simplificada.");
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                ResultadoReintentoVerifactuModel resultado = await _servicio.DeclararSimplificada(
+                    factura.Empresa ?? string.Empty, factura.Numero ?? string.Empty, motivo.Trim());
+                ActualizarFila(factura, resultado);
+                if (resultado.Exitoso)
+                {
+                    _dialogService.ShowNotification("Verifactu", resultado.Mensaje ?? $"La factura {factura.Numero} se declarará como simplificada.");
+                }
+                else
+                {
+                    _dialogService.ShowError(resultado.Mensaje ?? $"No se ha podido declarar como simplificada la factura {factura.Numero}.");
                 }
             }
             catch (Exception ex)

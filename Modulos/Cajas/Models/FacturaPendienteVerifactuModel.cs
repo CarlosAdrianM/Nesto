@@ -21,6 +21,10 @@ namespace Nesto.Modulos.Cajas.Models
         public string? QueHacer { get; set; }
         public DateTime? UltimoIntento { get; set; }
         public bool PuedeReintentar { get; set; }
+        /// <summary>NestoAPI#392: marcada para declararse como simplificada (F2; si es rectificativa, R5).</summary>
+        public bool DeclararSimplificada { get; set; }
+        /// <summary>NestoAPI#392: el problema es el NIF y se puede ofrecer «Declarar como simplificada».</summary>
+        public bool PuedeDeclararSimplificada { get; set; }
     }
 
     /// <summary>NestoAPI#522: respuesta de POST api/Verifactu/ReintentarFactura.</summary>
