@@ -362,8 +362,8 @@ Public Class MenuBarViewModel
         ' Caso real 20/08/26: ya no es un MessageBox de solo lectura — la ventana muestra además
         ' los parámetros que el SERVIDOR declare editables para este usuario (p. ej. Tienda
         ' Online puede cambiarse el almacén de pedidos entre AMZ y ALG), con combo y validación.
-        Dim dialogService = _container.Resolve(Of Prism.Services.Dialogs.IDialogService)()
-        Dim parametrosDialogo As New Prism.Services.Dialogs.DialogParameters From {
+        Dim dialogService = _container.Resolve(Of IServicioDialogos)()
+        Dim parametrosDialogo As New ParametrosDialogo From {
             {"informacion", textoMensaje}
         }
         dialogService.ShowDialog("ParametrosUsuarioDialog", parametrosDialogo, Sub(r)
