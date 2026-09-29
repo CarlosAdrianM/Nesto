@@ -330,7 +330,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             Contiene(oferta.Nombre, filtro);
 
         internal static bool CoincideOfertaFamilia(OfertaPermitidaFamiliaWrapper oferta, string filtro) =>
-            Contiene(oferta.Familia, filtro) || Contiene(oferta.FamiliaDescripcion, filtro) || Contiene(oferta.FiltroProducto, filtro);
+            Contiene(oferta.Familia, filtro) || Contiene(oferta.FamiliaDescripcion, filtro) || Contiene(oferta.FiltroProducto, filtro)
+            || Contiene(oferta.SubGrupo, filtro);
 
         internal static bool CoincideOfertaEscalonada(OfertaEscalonadaWrapper oferta, string filtro) =>
             Contiene(oferta.Nombre, filtro);
@@ -1200,14 +1201,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 EstaCargando = true;
 
-                var createModel = new OfertaPermitidaFamiliaCreateModel
-                {
-                    Empresa = Empresa,
-                    Familia = oferta.Familia?.Trim(),
-                    CantidadConPrecio = oferta.CantidadConPrecio,
-                    CantidadRegalo = oferta.CantidadRegalo,
-                    FiltroProducto = oferta.FiltroProducto
-                };
+                var createModel = oferta.CrearModeloGuardado(Empresa);
 
                 OfertaPermitidaFamiliaModel resultado;
                 if (oferta.NOrden == 0)
@@ -2042,6 +2036,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             CantidadConPrecio = model.CantidadConPrecio;
             CantidadRegalo = model.CantidadRegalo;
             FiltroProducto = model.FiltroProducto;
+            SubGrupo = model.SubGrupo;
+            Denegar = model.Denegar;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             _rastreandoCambios = true;
@@ -2057,10 +2053,30 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             CantidadConPrecio = model.CantidadConPrecio;
             CantidadRegalo = model.CantidadRegalo;
             FiltroProducto = model.FiltroProducto;
+            SubGrupo = model.SubGrupo;
+            Denegar = model.Denegar;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             _rastreandoCambios = true;
             HaCambiado = false;
+        }
+
+        /// <summary>
+        /// Lo que se manda a la API al guardar. NestoAPI#564: SubGrupo y Denegar viajan siempre; sin
+        /// subgrupo se manda "" (no null), porque en el PUT null significa «conserva lo que haya».
+        /// </summary>
+        public OfertaPermitidaFamiliaCreateModel CrearModeloGuardado(string empresa)
+        {
+            return new OfertaPermitidaFamiliaCreateModel
+            {
+                Empresa = empresa,
+                Familia = Familia?.Trim(),
+                CantidadConPrecio = CantidadConPrecio,
+                CantidadRegalo = CantidadRegalo,
+                FiltroProducto = FiltroProducto,
+                SubGrupo = SubGrupo?.Trim().ToUpperInvariant() ?? string.Empty,
+                Denegar = Denegar
+            };
         }
 
         public int NOrden { get; set; }
@@ -2098,6 +2114,22 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _filtroProducto;
             set { if (SetProperty(ref _filtroProducto, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // NestoAPI#564: la regla puede limitarse a un subgrupo de la familia (Genéricos + DES).
+        private string _subGrupo;
+        public string SubGrupo
+        {
+            get => _subGrupo;
+            set { if (SetProperty(ref _subGrupo, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // NestoAPI#564: al revés que las demás, PROHÍBE el N+M en vez de permitirlo.
+        private bool _denegar;
+        public bool Denegar
+        {
+            get => _denegar;
+            set { if (SetProperty(ref _denegar, value) && _rastreandoCambios) HaCambiado = true; }
         }
 
         public string Usuario { get; set; }

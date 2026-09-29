@@ -95,6 +95,9 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public short CantidadConPrecio { get; set; }
         public short CantidadRegalo { get; set; }
         public string FiltroProducto { get; set; }
+        // NestoAPI#564: subgrupo al que se limita la regla (null = toda la familia) y si PROHÍBE la oferta.
+        public string SubGrupo { get; set; }
+        public bool Denegar { get; set; }
         public string Usuario { get; set; }
         public DateTime FechaModificacion { get; set; }
     }
@@ -106,5 +109,9 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public short CantidadConPrecio { get; set; }
         public short CantidadRegalo { get; set; }
         public string FiltroProducto { get; set; }
+        // NestoAPI#564: se mandan SIEMPRE. En el PUT la API conserva lo que haya si llegan a null
+        // (para los Nesto antiguos), así que "sin subgrupo" viaja como "" y no como null.
+        public string SubGrupo { get; set; }
+        public bool Denegar { get; set; }
     }
 }

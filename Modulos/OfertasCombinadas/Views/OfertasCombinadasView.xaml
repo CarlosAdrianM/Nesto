@@ -507,6 +507,13 @@
                                 <Style TargetType="DataGridRow">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                    <Style.Triggers>
+                                        <!-- NestoAPI#564: una denegación (Genéricos + DES 6+1) no puede
+                                             parecer otra «Genéricos 6+1» repetida. -->
+                                        <DataTrigger Binding="{Binding Denegar}" Value="True">
+                                            <Setter Property="Background" Value="#FFF0F0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
@@ -574,6 +581,41 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
+
+                                <!-- Subgrupo (NestoAPI#564): vacío = toda la familia -->
+                                <DataGridTextColumn Header="Subgrupo" Binding="{Binding SubGrupo, UpdateSourceTrigger=LostFocus}" Width="70">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                            <Setter Property="ToolTip" Value="Si se rellena, la regla solo aplica a los productos de ese subgrupo (p. ej. DES). Vacío = toda la familia."/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="MaxLength" Value="3"/>
+                                            <Setter Property="CharacterCasing" Value="Upper"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Denegar (NestoAPI#564) -->
+                                <DataGridCheckBoxColumn Header="Denegar" Binding="{Binding Denegar, UpdateSourceTrigger=PropertyChanged}" Width="65">
+                                    <DataGridCheckBoxColumn.ElementStyle>
+                                        <Style TargetType="CheckBox">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="Al revés que las demás: PROHÍBE expresamente esta oferta en vez de permitirla"/>
+                                        </Style>
+                                    </DataGridCheckBoxColumn.ElementStyle>
+                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                        <Style TargetType="CheckBox">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                </DataGridCheckBoxColumn>
 
                                 <!-- Acciones -->
                                 <DataGridTemplateColumn Header="Acciones" Width="150">

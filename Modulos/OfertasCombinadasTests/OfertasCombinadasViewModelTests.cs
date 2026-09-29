@@ -415,5 +415,93 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
                 .MustHaveHappened();
         }
+
+        #region Ofertas por familia: Subgrupo y Denegar (NestoAPI#564)
+
+        private static OfertaPermitidaFamiliaModel DenegacionGenericosDes() => new OfertaPermitidaFamiliaModel
+        {
+            NOrden = 900, Familia = "Genéricos", CantidadConPrecio = 6, CantidadRegalo = 1,
+            SubGrupo = "DES", Denegar = true
+        };
+
+        [TestMethod]
+        public void OfertaFamilia_DesdeServidor_CargaSubGrupoYDenegarSinMarcarCambios()
+        {
+            var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes());
+
+            Assert.AreEqual("DES", oferta.SubGrupo);
+            Assert.IsTrue(oferta.Denegar);
+            Assert.IsFalse(oferta.HaCambiado);
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_CambiarDenegarOSubGrupo_MarcaCambios()
+        {
+            var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes());
+            oferta.Denegar = false;
+            Assert.IsTrue(oferta.HaCambiado, "Cambiar Denegar tiene que mostrar el botón Guardar");
+
+            var otra = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes());
+            otra.SubGrupo = "PEL";
+            Assert.IsTrue(otra.HaCambiado, "Cambiar el subgrupo tiene que mostrar el botón Guardar");
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_CrearModeloGuardado_MandaSubGrupoYDenegar()
+        {
+            var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes()) { SubGrupo = " des " };
+
+            var modelo = oferta.CrearModeloGuardado("1");
+
+            Assert.AreEqual("1", modelo.Empresa);
+            Assert.AreEqual("Genéricos", modelo.Familia);
+            Assert.AreEqual("DES", modelo.SubGrupo);
+            Assert.IsTrue(modelo.Denegar);
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_CrearModeloGuardado_SinSubGrupoMandaCadenaVacia()
+        {
+            // En el PUT la API conserva el subgrupo si llega null (Nesto antiguo): para quitarlo hay que mandar "".
+            var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes()) { SubGrupo = null };
+
+            var modelo = oferta.CrearModeloGuardado("1");
+
+            Assert.AreEqual(string.Empty, modelo.SubGrupo);
+        }
+
+        [TestMethod]
+        public async Task OfertaFamilia_GuardarExistente_EnviaSubGrupoYDenegarALaApi()
+        {
+            OfertaPermitidaFamiliaCreateModel enviado = null;
+            A.CallTo(() => _service.UpdateOfertaPermitidaFamilia(A<int>._, A<OfertaPermitidaFamiliaCreateModel>._))
+                .Invokes((int _, OfertaPermitidaFamiliaCreateModel m) => enviado = m)
+                .Returns(Task.FromResult(DenegacionGenericosDes()));
+            var vm = CrearViewModel();
+            var oferta = new OfertaPermitidaFamiliaWrapper(new OfertaPermitidaFamiliaModel
+            {
+                NOrden = 900, Familia = "Genéricos", CantidadConPrecio = 6, CantidadRegalo = 1
+            });
+            oferta.SubGrupo = "DES";
+            oferta.Denegar = true;
+
+            vm.GuardarOfertaFamiliaCommand.Execute(oferta);
+            await Task.Delay(50);
+
+            A.CallTo(() => _service.UpdateOfertaPermitidaFamilia(900, A<OfertaPermitidaFamiliaCreateModel>._)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual("DES", enviado.SubGrupo);
+            Assert.IsTrue(enviado.Denegar);
+            Assert.IsFalse(oferta.HaCambiado, "Recién guardada no puede quedar marcada como sucia");
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_FiltroDeTexto_EncuentraPorSubGrupo()
+        {
+            var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes());
+
+            Assert.IsTrue(OfertasCombinadasViewModel.CoincideOfertaFamilia(oferta, "des"));
+        }
+
+        #endregion
     }
 }
