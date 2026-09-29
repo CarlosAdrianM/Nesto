@@ -211,7 +211,11 @@ namespace ClienteTests
             });
             var vm = CrearViewModel();
             var parametros = new NavigationParameters { { "cliente", "15191" } };
-            var contexto = new NavigationContext(null, new Uri("ExtractoClienteView", UriKind.Relative), parametros);
+            // El NavigationContext de Prism descarta los parámetros si no tiene un servicio de navegación
+            // con región (así llegan en la navegación real); con null, OnNavigatedTo no recibía el cliente.
+            var navegacion = A.Fake<IRegionNavigationService>();
+            A.CallTo(() => navegacion.Region).Returns(A.Fake<IRegion>());
+            var contexto = new NavigationContext(navegacion, new Uri("ExtractoClienteView", UriKind.Relative), parametros);
 
             vm.OnNavigatedTo(contexto);
             await Task.Yield(); // dejar terminar el CargarAsync disparado por la navegación
