@@ -89,6 +89,22 @@ Public Class DetallePedidoViewModelConfirmacionTests
     ' botones de facturación debe incluir los pedidos con líneas de tienda online, no solo el
     ' grupo almacén/tiendas. El habilitado fino lo deciden los Can* de cada comando.
 
+    ' Incidencia 434 de Novedades (30/09/26): Laura, de tienda online, no tenía «Copiar Factura»
+    <TestMethod()>
+    Public Sub PuedeCopiarFactura_TiendaOnline_True()
+        Assert.IsTrue(DetallePedidoViewModel.PuedeCopiarFactura(esDeAlmacen:=False, esDeTiendaOnline:=True))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeCopiarFactura_Almacen_True()
+        Assert.IsTrue(DetallePedidoViewModel.PuedeCopiarFactura(esDeAlmacen:=True, esDeTiendaOnline:=False))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeCopiarFactura_NiAlmacenNiTiendaOnline_False()
+        Assert.IsFalse(DetallePedidoViewModel.PuedeCopiarFactura(esDeAlmacen:=False, esDeTiendaOnline:=False))
+    End Sub
+
     <TestMethod()>
     Public Sub DebeMostrarBotonesFacturacion_UsuarioFueraDelGrupoConPedidoOnline_True()
         Assert.IsTrue(DetallePedidoViewModel.DebeMostrarBotonesFacturacion(esGrupoQuePuedeFacturar:=False, tieneLineaTiendaOnline:=True))

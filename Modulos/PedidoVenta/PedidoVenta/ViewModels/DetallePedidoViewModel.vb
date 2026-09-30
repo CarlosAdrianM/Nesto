@@ -314,6 +314,7 @@ Public Class DetallePedidoViewModel
         Set(value As Boolean)
             If SetProperty(_esGrupoAlmacen, value) Then
                 OnPropertyChanged(NameOf(MostrarBotonesFacturacion))
+                OnPropertyChanged(NameOf(MostrarCopiarFactura))
             End If
         End Set
     End Property
@@ -2124,9 +2125,26 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Private Function CanCopiarFactura() As Boolean
-        ' Issue #85: Temporalmente restringido solo a Informatica mientras se termina de desarrollar
-        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+        Return PuedeCopiarFactura(configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN),
+                                  configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE))
     End Function
+
+    ''' <summary>
+    ''' Incidencia 434 de Novedades (Laura, 30/09/26): la tienda online también copia facturas
+    ''' (traspasos entre clientes) y no veía el botón. Pueden almacén y tienda online.
+    ''' </summary>
+    Public Shared Function PuedeCopiarFactura(esDeAlmacen As Boolean, esDeTiendaOnline As Boolean) As Boolean
+        Return esDeAlmacen OrElse esDeTiendaOnline
+    End Function
+
+    ''' <summary>
+    ''' El botón se enseña a quien puede usarlo y, como hasta ahora, a los grupos que facturan.
+    ''' </summary>
+    Public ReadOnly Property MostrarCopiarFactura As Boolean
+        Get
+            Return EsGrupoQuePuedeFacturar OrElse CanCopiarFactura()
+        End Get
+    End Property
 #End Region
 
     Private _descargarPresupuestoCommand As RelayCommand
