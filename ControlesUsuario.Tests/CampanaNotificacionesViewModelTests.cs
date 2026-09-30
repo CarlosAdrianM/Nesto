@@ -23,7 +23,7 @@ namespace ControlesUsuario.Tests
         private static readonly DateTime Ahora = new DateTime(2026, 9, 24, 12, 0, 0);
 
         private IBuzonNotificacionesService buzon;
-        private IDialogService dialogos;
+        private IServicioDialogos dialogos;
         private IAbridorNovedades abridorNovedades;
         private IRegionManager regiones;
         private IAbridorPedidos abridorPedidos;
@@ -33,7 +33,7 @@ namespace ControlesUsuario.Tests
         public void Setup()
         {
             buzon = A.Fake<IBuzonNotificacionesService>();
-            dialogos = A.Fake<IDialogService>();
+            dialogos = A.Fake<IServicioDialogos>();
             abridorNovedades = A.Fake<IAbridorNovedades>();
             regiones = A.Fake<IRegionManager>();
             abridorPedidos = A.Fake<IAbridorPedidos>();
@@ -247,9 +247,9 @@ namespace ControlesUsuario.Tests
             await CargarCon(Respuesta(7));
             vm.PanelAbierto = true;
             A.CallTo(() => buzon.ContarNoLeidas()).Returns(Task.FromResult(0));
-            IDialogParameters parametros = null;
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string nombre, IDialogParameters p, Action<IDialogResult> cb) => parametros = p);
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
 
             await vm.AbrirNotificacion(vm.Notificaciones[0]);
 
@@ -257,7 +257,7 @@ namespace ControlesUsuario.Tests
             Assert.IsTrue(vm.Notificaciones[0].Leida);
             Assert.AreEqual(0, vm.NoLeidas);
             Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
-            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
             Assert.AreEqual(338, parametros.GetValue<int>(NovedadesDialogViewModel.PARAMETRO_NOVEDAD_ID));
             Assert.AreEqual(77, parametros.GetValue<int>(NovedadesDialogViewModel.PARAMETRO_COMENTARIO_ID));
         }
@@ -270,7 +270,7 @@ namespace ControlesUsuario.Tests
             await vm.AbrirNotificacion(vm.Notificaciones[0]);
 
             A.CallTo(() => buzon.MarcarLeida(A<int>._)).MustNotHaveHappened();
-            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -293,7 +293,7 @@ namespace ControlesUsuario.Tests
             Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
             A.CallTo(() => regiones.RequestNavigate("MainRegion", "FacturasPendientesVerifactuView")).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.Notificaciones[0].Desplegada);
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
@@ -343,7 +343,7 @@ namespace ControlesUsuario.Tests
 
             A.CallTo(() => buzon.MarcarLeida(8)).MustHaveHappenedOnceExactly();
             Assert.IsTrue(vm.Notificaciones[0].Desplegada);
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
@@ -385,7 +385,7 @@ namespace ControlesUsuario.Tests
 
             Assert.IsFalse(vm.Notificaciones[0].Leida);
             Assert.AreEqual(1, vm.NoLeidas);
-            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
         }
 
         // ---- Marcar todas y borrar ----

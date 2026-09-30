@@ -1,6 +1,5 @@
 using Nesto.Infrastructure.Contracts;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,14 +28,14 @@ namespace ControlesUsuario.Dialogs
         internal const string REGION_PRINCIPAL = "MainRegion";
 
         private readonly INovedadesService _novedadesService;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IRegionManager _regionManager;
 
-        public AbridorNovedades(INovedadesService novedadesService, IDialogService dialogService)
+        public AbridorNovedades(INovedadesService novedadesService, IServicioDialogos dialogService)
             : this(novedadesService, dialogService, null) { }
 
         /// <summary>El que usa el contenedor. NestoAPI#558: con la región principal se sabe qué pantalla había abierta.</summary>
-        public AbridorNovedades(INovedadesService novedadesService, IDialogService dialogService, IRegionManager regionManager)
+        public AbridorNovedades(INovedadesService novedadesService, IServicioDialogos dialogService, IRegionManager regionManager)
         {
             _novedadesService = novedadesService ?? throw new ArgumentNullException(nameof(novedadesService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
@@ -81,7 +80,7 @@ namespace ControlesUsuario.Dialogs
             {
                 // ObtenerNovedades nunca lanza: si falla, la ventana sale vacía (y con Sugerencias).
                 List<NovedadUsuario> novedades = await _novedadesService.ObtenerNovedades() ?? new List<NovedadUsuario>();
-                var parametros = new DialogParameters
+                var parametros = new ParametrosDialogo
                 {
                     { "novedades", novedades }
                 };

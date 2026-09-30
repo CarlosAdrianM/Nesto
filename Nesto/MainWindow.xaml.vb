@@ -15,7 +15,7 @@ Partial Class MainWindow
     Private ReadOnly tituloVentana As String
     Private _configuracion As IConfiguracion
     Private ReadOnly _novedadesService As INovedadesService
-    Private ReadOnly _dialogService As Prism.Services.Dialogs.IDialogService
+    Private ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _versionActual As String
     Public Property Maquina As String
     Public Property Delegacion As String
@@ -31,7 +31,7 @@ Partial Class MainWindow
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
-                   novedadesService As INovedadesService, dialogService As Prism.Services.Dialogs.IDialogService,
+                   novedadesService As INovedadesService, dialogService As IServicioDialogos,
                    campanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel,
                    avisosEnTiempoReal As IAvisosEnTiempoReal)
 
@@ -94,7 +94,7 @@ Partial Class MainWindow
             If NovedadesHelper.DebeMostrarNovedades(_versionActual, ultimaVista) Then
                 Dim novedades = Await _novedadesService.ObtenerNovedades(ultimaVista?.Trim())
                 If novedades.Count > 0 Then
-                    Dim parametros As New Prism.Services.Dialogs.DialogParameters From {
+                    Dim parametros As New ParametrosDialogo From {
                         {"novedades", novedades}
                     }
                     _dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)

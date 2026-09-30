@@ -17,8 +17,8 @@ namespace ControlesUsuario.Tests
     public class AbridorNovedadesTests
     {
         private INovedadesService servicio;
-        private IDialogService dialogos;
-        private IDialogParameters parametros;
+        private IServicioDialogos dialogos;
+        private ParametrosDialogo parametros;
         private AbridorNovedades sut;
         private readonly List<NovedadUsuario> novedades = new List<NovedadUsuario> { new NovedadUsuario { Id = 1, Version = "1.10.32.0" } };
 
@@ -26,10 +26,10 @@ namespace ControlesUsuario.Tests
         public void Setup()
         {
             servicio = A.Fake<INovedadesService>();
-            dialogos = A.Fake<IDialogService>();
+            dialogos = A.Fake<IServicioDialogos>();
             A.CallTo(() => servicio.ObtenerNovedades(null)).Returns(Task.FromResult(novedades));
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string nombre, IDialogParameters p, Action<IDialogResult> cb) => parametros = p);
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
             sut = new AbridorNovedades(servicio, dialogos);
         }
 
@@ -38,7 +38,7 @@ namespace ControlesUsuario.Tests
         {
             await sut.Abrir();
 
-            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog("NovedadesDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
             Assert.AreSame(novedades, parametros.GetValue<List<NovedadUsuario>>("novedades"));
             Assert.IsFalse(parametros.ContainsKey(NovedadesDialogViewModel.PARAMETRO_VERSION));
         }
@@ -54,7 +54,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task Abrir_SiFallaElDialogo_NoLanza()
         {
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
                 .Throws(new InvalidOperationException("sin ventana"));
 
             await sut.Abrir();

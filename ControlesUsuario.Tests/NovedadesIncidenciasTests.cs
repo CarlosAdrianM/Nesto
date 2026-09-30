@@ -149,10 +149,10 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task AbridorNovedades_PasaLaPantallaActivaSinElSufijoView()
         {
-            var dialogos = A.Fake<IDialogService>();
-            IDialogParameters parametros = null;
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string nombre, IDialogParameters p, Action<IDialogResult> cb) => parametros = p);
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
             A.CallTo(() => servicio.ObtenerNovedades(null)).Returns(Task.FromResult(new List<NovedadUsuario>()));
             var regionManager = A.Fake<IRegionManager>();
             var region = A.Fake<IRegion>();
@@ -170,10 +170,10 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task AbridorNovedades_SinRegionManager_NoPasaPantalla()
         {
-            var dialogos = A.Fake<IDialogService>();
-            IDialogParameters parametros = null;
-            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string nombre, IDialogParameters p, Action<IDialogResult> cb) => parametros = p);
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
 
             await new AbridorNovedades(servicio, dialogos).Abrir();
 

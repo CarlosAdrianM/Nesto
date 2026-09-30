@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
@@ -38,7 +37,7 @@ namespace ControlesUsuario.Notificaciones
         internal const string REGION_PRINCIPAL = "MainRegion";
 
         private readonly IBuzonNotificacionesService _buzon;
-        private readonly IDialogService _dialogService;
+        private readonly IServicioDialogos _dialogService;
         private readonly IAbridorNovedades _abridorNovedades;
         private readonly IRegionManager _regionManager;
         private readonly IAbridorPedidos _abridorPedidos;
@@ -49,11 +48,11 @@ namespace ControlesUsuario.Notificaciones
         private bool _refrescando;
         private DateTime _ultimoRefrescoPorFoco = DateTime.MinValue;
 
-        public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
+        public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IServicioDialogos dialogService, IAvisosEnTiempoReal avisos,
             IAbridorNovedades abridorNovedades, IRegionManager regionManager, IAbridorPedidos abridorPedidos)
             : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), regionManager, abridorPedidos) { }
 
-        internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IDialogService dialogService, IAvisosEnTiempoReal avisos,
+        internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IServicioDialogos dialogService, IAvisosEnTiempoReal avisos,
             IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IRegionManager regionManager = null,
             IAbridorPedidos abridorPedidos = null)
         {
@@ -281,7 +280,7 @@ namespace ControlesUsuario.Notificaciones
             if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_NOVEDAD_COMENTARIO && novedadId.HasValue && _dialogService != null)
             {
                 PanelAbierto = false;
-                var parametros = new DialogParameters
+                var parametros = new ParametrosDialogo
                 {
                     { NovedadesDialogViewModel.PARAMETRO_NOVEDAD_ID, novedadId.Value }
                 };

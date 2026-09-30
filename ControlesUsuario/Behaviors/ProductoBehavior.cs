@@ -4,7 +4,6 @@ using ControlesUsuario.Services;
 using Microsoft.Xaml.Behaviors;
 using Nesto.Infrastructure.Contracts;
 using Prism.Ioc;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -533,31 +532,31 @@ namespace ControlesUsuario.Behaviors
             var dialogService = ResolverDialogService();
             if (dialogService == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SeleccionarProductoDuplicado: IDialogService no disponible");
+                System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SeleccionarProductoDuplicado: IServicioDialogos no disponible");
                 MostrarError("Código de barras duplicado: elija el producto manualmente");
                 return null;
             }
 
-            var parameters = new DialogParameters
+            var parameters = new ParametrosDialogo
             {
                 { "candidatos", candidatos }
             };
 
             var resultado = await dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", parameters);
-            if (resultado != null && resultado.Result == ButtonResult.OK)
+            if (resultado != null && resultado.Result == ResultadoBoton.OK)
             {
                 return resultado.Parameters.GetValue<string>("producto");
             }
             return null;
         }
 
-        private IDialogService ResolverDialogService()
+        private IServicioDialogos ResolverDialogService()
         {
             try
             {
                 if (ContainerLocator.Container != null)
                 {
-                    return ContainerLocator.Container.Resolve<IDialogService>();
+                    return ContainerLocator.Container.Resolve<IServicioDialogos>();
                 }
             }
             catch
