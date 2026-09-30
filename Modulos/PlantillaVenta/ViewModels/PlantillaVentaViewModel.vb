@@ -2065,6 +2065,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
             OnPropertyChanged(NameOf(EsReciboBancario)) ' Nesto#486
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
+            OnPropertyChanged(NameOf(TieneSaldoAFavor))
             ' Issue #159: al cambiar forma de pago puede activar/desactivar EsContraReembolso,
             ' lo que cambia el importe de comisión y la visibilidad de la casilla.
             CargarInfoPortesConDebounce()
@@ -2292,9 +2293,66 @@ Public Class PlantillaVentaViewModel
                 If MandarCobroTarjeta Then
                     CargarCorreoYMovilTarjeta.Execute(Nothing)
                 End If
+                ' Nesto#505: al ir a cobrar, avisar de lo que el cliente tiene a su favor
+                Dim unused = CargarSaldoAFavorAsync()
             End If
         End Set
     End Property
+
+#Region "Saldo a favor del cliente al mandar el cobro (Nesto#505)"
+    Private _saldoAFavor As SaldoAFavorCliente
+    ''' <summary>
+    ''' Lo que el cliente tiene a su favor en el extracto. Solo se enseña: puede ser una entrega a
+    ''' cuenta de otro pedido o una reserva para un evento, así que descontarlo lo decide el
+    ''' usuario (<see cref="DescontarSaldoAFavor"/>), después de mirarlo en el extracto.
+    ''' </summary>
+    Public Property SaldoAFavor As SaldoAFavorCliente
+        Get
+            Return _saldoAFavor
+        End Get
+        Private Set(value As SaldoAFavorCliente)
+            If SetProperty(_saldoAFavor, value) Then
+                OnPropertyChanged(NameOf(TieneSaldoAFavor))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property TieneSaldoAFavor As Boolean
+        Get
+            Return MandarCobroTarjeta AndAlso SaldoAFavor IsNot Nothing AndAlso SaldoAFavor.HayAlgoAFavor
+        End Get
+    End Property
+
+    Private _descontarSaldoAFavor As Boolean
+    ''' <summary>Desmarcado siempre de entrada: sin confirmación expresa, el enlace sale por el total.</summary>
+    Public Property DescontarSaldoAFavor As Boolean
+        Get
+            Return _descontarSaldoAFavor
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_descontarSaldoAFavor, value)
+        End Set
+    End Property
+
+    Friend Async Function CargarSaldoAFavorAsync() As Task
+        DescontarSaldoAFavor = False
+        If Not MandarCobroTarjeta OrElse IsNothing(clienteSeleccionado) Then
+            SaldoAFavor = Nothing
+            Return
+        End If
+        Dim cliente As String = clienteSeleccionado.cliente
+        Dim saldo As SaldoAFavorCliente = Nothing
+        Try
+            saldo = Await servicio.CargarSaldoAFavor(cliente)
+        Catch ex As Exception
+            ' Es un aviso: si no se puede leer, el cobro sigue como siempre
+        End Try
+        ' Si mientras tanto se ha desmarcado o se ha cambiado de cliente, este saldo ya no pinta nada
+        If MandarCobroTarjeta AndAlso Not IsNothing(clienteSeleccionado) AndAlso clienteSeleccionado.cliente = cliente Then
+            SaldoAFavor = saldo
+        End If
+    End Function
+#End Region
 
     Private _recogerProducto As Boolean
     Public Property RecogerProducto As Boolean
@@ -2378,6 +2436,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(SePuedeFinalizar))
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
+            OnPropertyChanged(NameOf(TieneSaldoAFavor))
             If Not IsNothing(_plazoPagoSeleccionado) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute(Nothing)
             End If
@@ -3417,10 +3476,24 @@ Public Class PlantillaVentaViewModel
 
             If MandarCobroTarjeta Then
                 Dim pedidoCreado As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(pedido.empresa, numPedido)
-                Dim enlace = Await servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, pedido.empresa, clienteSeleccionado.cliente)
-                If Not String.IsNullOrEmpty(enlace) Then
-                    Clipboard.SetText(enlace)
-                    dialogService.ShowNotification("Cobro tarjeta", "Enlace de pago copiado al portapapeles:" & vbCrLf & enlace)
+                ' Nesto#505: el saldo a favor solo se descuenta si el usuario lo ha marcado expresamente
+                Dim descontado As Decimal = SaldoAFavorCliente.SaldoADescontar(SaldoAFavor, DescontarSaldoAFavor, clienteSeleccionado.cliente)
+                Dim importeEnlace As Decimal = SaldoAFavorCliente.ImporteDelEnlace(pedidoCreado.Total, descontado)
+                If importeEnlace <= 0 Then
+                    dialogService.ShowNotification("Cobro tarjeta", "El saldo a favor del cliente cubre el pedido entero: no se ha mandado enlace de pago." & vbCrLf &
+                                                   "Recuerda aplicar ese saldo al pedido en el extracto.")
+                Else
+                    Dim enlace = Await servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, importeEnlace, numPedido, pedido.empresa, clienteSeleccionado.cliente)
+                    If Not String.IsNullOrEmpty(enlace) Then
+                        Clipboard.SetText(enlace)
+                        Dim aviso As String = "Enlace de pago copiado al portapapeles:" & vbCrLf & enlace
+                        If descontado > 0 Then
+                            aviso &= vbCrLf & vbCrLf & String.Format(Globalization.CultureInfo.GetCultureInfo("es-ES"),
+                                "El enlace sale por {0:C2}: el pedido son {1:C2} y se han descontado {2:C2} del saldo a favor. Recuerda aplicar ese saldo al pedido en el extracto.",
+                                importeEnlace, pedidoCreado.Total, descontado)
+                        End If
+                        dialogService.ShowNotification("Cobro tarjeta", aviso)
+                    End If
                 End If
             End If
 
@@ -4396,6 +4469,8 @@ Public Class PlantillaVentaViewModel
             EnviarPorGlovo = borrador.ServirPorGlovo
             Estado.MandarCobroTarjeta = borrador.MandarCobroTarjeta
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
+            ' Nesto#505: el borrador no pasa por el setter, así que el aviso del saldo se carga aquí
+            Dim cargaSaldoAFavor = CargarSaldoAFavorAsync()
 
             ' Nesto#380: restaurar la casilla "Recoger Producto"
             RecogerProducto = borrador.RecogerProducto

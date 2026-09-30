@@ -818,6 +818,28 @@
                             <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding MandarCobroTarjeta}" Visibility="{Binding EsTarjetaPrepago, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3">¿Mandar cobro por tarjeta?</CheckBox>
                             <xctk:WatermarkTextBox Grid.Row="1" Grid.Column="1" Text="{Binding CobroTarjetaCorreo}" Watermark="Correo electrónico para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
                             <xctk:WatermarkTextBox Grid.Row="2" Grid.Column="1" Text="{Binding CobroTarjetaMovil}" Watermark="Móvil para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
+                            <!-- Nesto#505 (sugerencia de Paloma): al ir a mandar el cobro, avisar de lo que el cliente
+                                 tiene a su favor. Solo informa; descontarlo del enlace lo decide el usuario, y la
+                                 casilla sale siempre desmarcada (puede ser una entrega a cuenta de otro pedido). -->
+                            <Border Grid.Row="3" Grid.Column="1" Grid.RowSpan="3" Margin="3,6,3,3" Padding="8" MaxWidth="420"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                                    Background="#FFF8E1" BorderBrush="#F0C36D" BorderThickness="1" CornerRadius="3"
+                                    Visibility="{Binding TieneSaldoAFavor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SaldoAFavor.Resumen}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                    <ItemsControl ItemsSource="{Binding SaldoAFavor.Movimientos}" Margin="8,3,0,3">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Texto}" TextWrapping="Wrap"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding SaldoAFavor.AvisoPendienteDePago}" TextWrapping="Wrap" Foreground="#B00020" Margin="0,0,0,3"
+                                               Visibility="{Binding SaldoAFavor.TieneAvisoPendienteDePago, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
+                                    <TextBlock Text="Mira en el extracto del cliente a qué corresponde antes de descontarlo." TextWrapping="Wrap" FontStyle="Italic"/>
+                                    <CheckBox IsChecked="{Binding DescontarSaldoAFavor}" Content="{Binding SaldoAFavor.TextoDescontar}" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
                             <!-- Nesto#486: con recibo bancario, qué cuenta se va a cargar (la de la ficha del contacto,
                                  la misma que pondría la API) y aviso si el cliente no tiene ninguna válida.
                                  FormaPago fijo a RCB: solo se ve con recibo, y así no borra Estado.Ccc al pasar

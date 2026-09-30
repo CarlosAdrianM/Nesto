@@ -14,6 +14,11 @@ Public Interface IPlantillaVentaService
     Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String)
     Function EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String)
+    ''' <summary>
+    ''' Nesto#505: lo que el cliente tiene a su favor en el extracto (GET api/ExtractosCliente/SaldoAFavor).
+    ''' Devuelve Nothing si la API falla o es anterior al endpoint: entonces no hay aviso y todo sigue como siempre.
+    ''' </summary>
+    Function CargarSaldoAFavor(cliente As String) As Task(Of SaldoAFavorCliente)
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)

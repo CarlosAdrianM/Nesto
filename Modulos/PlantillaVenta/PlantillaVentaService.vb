@@ -200,6 +200,29 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function CargarSaldoAFavor(cliente As String) As Task(Of SaldoAFavorCliente) Implements IPlantillaVentaService.CargarSaldoAFavor
+        If String.IsNullOrWhiteSpace(cliente) Then
+            Return Nothing
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim response = Await client.GetAsync("ExtractosCliente/SaldoAFavor?cliente=" & Uri.EscapeDataString(cliente.Trim())).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Dim saldo = JsonConvert.DeserializeObject(Of SaldoAFavorCliente)(cadenaJson)
+                If saldo IsNot Nothing Then
+                    saldo.Cliente = cliente.Trim()
+                End If
+                Return saldo
+            Catch ex As Exception
+                ' Es un aviso: si no se puede leer, el cobro sigue como siempre
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
     Public Async Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer)) Implements IPlantillaVentaService.CargarListaPendientes
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
