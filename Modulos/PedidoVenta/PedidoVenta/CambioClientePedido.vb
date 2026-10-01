@@ -14,13 +14,20 @@ Public NotInheritable Class CambioClientePedido
     Private Const ESTADO_EN_CURSO As Short = 1
 
     ''' <summary>
-    ''' Si tiene sentido ofrecer el cambio: pedido ya guardado, que no es nota de entrega, sin líneas con picking,
-    ''' albarán o factura y sin prepagos ni efectos a mano. La API lo vuelve a comprobar (y mira también los
-    ''' envíos de agencia y los cobros con tarjeta, que la pantalla no tiene).
+    ''' Si tiene sentido ofrecer el cambio: pedido ya guardado, sin líneas con picking, albarán o factura y sin
+    ''' prepagos ni efectos a mano (en una nota de entrega, solo lo primero). La API lo vuelve a comprobar (y mira
+    ''' también los envíos de agencia y los cobros con tarjeta, que la pantalla no tiene).
     ''' </summary>
     Public Shared Function PuedeCambiarse(pedido As PedidoVentaDTO) As Boolean
-        If pedido Is Nothing OrElse pedido.numero = 0 OrElse String.IsNullOrWhiteSpace(pedido.cliente) OrElse pedido.notaEntrega Then
+        If pedido Is Nothing OrElse pedido.numero = 0 OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
             Return False
+        End If
+        ' NestoAPI#582: una nota de entrega ya está facturada (yaFacturado es lo normal) y solo mueve mercancía; se
+        ' puede pasar a otro cliente (p. ej. del renting al cliente final) mientras no haya empezado a salir. La API
+        ' solo le cambia cliente, contacto y ruta.
+        If pedido.notaEntrega Then
+            Return pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any(Function(l) l.picking <> 0 OrElse l.estado > ESTADO_EN_CURSO OrElse
+                                                                              l.Albaran.HasValue OrElse Not String.IsNullOrWhiteSpace(l.Factura))
         End If
         If pedido.Lineas IsNot Nothing AndAlso pedido.Lineas.Any(Function(l) l.picking <> 0 OrElse l.estado > ESTADO_EN_CURSO OrElse
                                                                   l.yaFacturado OrElse l.Albaran.HasValue OrElse

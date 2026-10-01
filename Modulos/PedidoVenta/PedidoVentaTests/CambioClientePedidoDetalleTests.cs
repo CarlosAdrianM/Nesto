@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Unity;
 
@@ -69,15 +70,37 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void PuedeCambiarse_PedidoNuevoONotaDeEntrega_No()
+        public void PuedeCambiarse_PedidoNuevo_No()
         {
             PedidoVentaDTO nuevo = Pedido();
             nuevo.numero = 0;
-            PedidoVentaDTO nota = Pedido();
-            nota.notaEntrega = true;
 
             Assert.IsFalse(CambioClientePedido.PuedeCambiarse(nuevo));
-            Assert.IsFalse(CambioClientePedido.PuedeCambiarse(nota));
+        }
+
+        // NestoAPI#582: la nota 927519 (renting) salió a nombre de Grenke y Alfredo no tenía el botón para pasarla
+        // al cliente final. Una nota ya está facturada (yaFacturado): eso no bloquea; picking o albarán, sí.
+        [TestMethod]
+        public void PuedeCambiarse_NotaDeEntregaYaFacturadaSinPicking_Si()
+        {
+            PedidoVentaDTO nota = Pedido();
+            nota.notaEntrega = true;
+            nota.Lineas.Single().yaFacturado = true;
+
+            Assert.IsTrue(CambioClientePedido.PuedeCambiarse(nota));
+        }
+
+        [TestMethod]
+        public void PuedeCambiarse_NotaDeEntregaConPickingOAlbaran_No()
+        {
+            PedidoVentaDTO conPicking = Pedido(picking: 99700);
+            conPicking.notaEntrega = true;
+            conPicking.Lineas.Single().yaFacturado = true;
+            PedidoVentaDTO conAlbaran = Pedido(estado: 2);
+            conAlbaran.notaEntrega = true;
+
+            Assert.IsFalse(CambioClientePedido.PuedeCambiarse(conPicking));
+            Assert.IsFalse(CambioClientePedido.PuedeCambiarse(conAlbaran));
         }
 
         [TestMethod]
