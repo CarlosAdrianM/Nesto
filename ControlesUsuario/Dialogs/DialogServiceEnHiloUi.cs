@@ -19,7 +19,7 @@ namespace ControlesUsuario.Dialogs
     /// mensaje tan poco explicativo. O sea que el arreglo que libero la UI rompio justo las
     /// reglas que hablan con el usuario.
     ///
-    /// Como todas las extensiones de <see cref="DialogServiceExtensions"/> (ShowError,
+    /// Como todas las extensiones de Prism que había (ShowError,
     /// ShowNotification, ShowConfirmationAnswer, GetAmount...) acaban llamando a ShowDialog o a
     /// Show, envolver esos dos metodos las arregla todas de una vez, sin tocar ninguna regla.
     ///

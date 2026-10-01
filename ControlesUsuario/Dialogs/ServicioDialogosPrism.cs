@@ -1,18 +1,18 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Prism.Services.Dialogs;
 using System;
-using System.Threading.Tasks;
 
 namespace ControlesUsuario.Dialogs
 {
     /// <summary>
-    /// Nesto#490 (4C.2): primera implementación de <see cref="IServicioDialogos"/>. Delegación pura
-    /// en el <see cref="IDialogService"/> de Prism y en <see cref="DialogServiceExtensions"/>: los
-    /// diálogos que se abren, sus parámetros y su resultado son exactamente los de antes. Solo
-    /// traduce <see cref="ParametrosDialogo"/>/<see cref="ResultadoDialogo"/> a y desde los tipos
-    /// de Prism. Cuando todos los módulos usen la interfaz, se sustituirá por una sin Prism.
+    /// Nesto#490 (4C.2): primera implementación de <see cref="IServicioDialogos"/>, sobre el
+    /// <see cref="IDialogService"/> de Prism: los diálogos que se abren, sus parámetros y su
+    /// resultado son exactamente los de antes. Los diálogos genéricos (ShowError, ShowConfirmation...)
+    /// los compone <see cref="ServicioDialogosBase"/>; aquí solo se abre el diálogo con Prism y se
+    /// traducen <see cref="ParametrosDialogo"/>/<see cref="ResultadoDialogo"/> a y desde sus tipos.
+    /// Convive con <see cref="ServicioDialogosNesto"/> (ventana propia) mientras dure el piloto.
     /// </summary>
-    public class ServicioDialogosPrism : IServicioDialogos
+    public class ServicioDialogosPrism : ServicioDialogosBase
     {
         private readonly IDialogService _prism;
 
@@ -21,57 +21,12 @@ namespace ControlesUsuario.Dialogs
             _prism = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
         }
 
-        public void ShowNotification(string message) => _prism.ShowNotification(message);
-
-        public void ShowNotification(string title, string message) => _prism.ShowNotification(title, message);
-
-        public void ShowError(string message) => _prism.ShowError(message);
-
-        public void ShowConfirmation(string message, Action<ResultadoDialogo> callBack)
-            => _prism.ShowConfirmation(message, Traducir(callBack));
-
-        public void ShowConfirmation(string title, string message, Action<ResultadoDialogo> callBack)
-            => _prism.ShowConfirmation(title, message, Traducir(callBack));
-
-        public bool ShowConfirmationAnswer(string title, string message) => _prism.ShowConfirmationAnswer(title, message);
-
-        public Task<bool> ShowConfirmationAsync(string message) => _prism.ShowConfirmationAsync(message);
-
-        public Task<bool> ShowConfirmationAsync(string title, string message) => _prism.ShowConfirmationAsync(title, message);
-
-        public void ShowInputAmount(string message, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputAmount(message, Traducir(callback));
-
-        public void ShowInputAmount(string title, string message, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputAmount(title, message, Traducir(callback));
-
-        public void ShowInputAmount(string title, string message, string defaultAmount, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputAmount(title, message, defaultAmount, Traducir(callback));
-
-        public decimal? GetAmount(string title, string message) => _prism.GetAmount(title, message);
-
-        public void ShowInputText(string message, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputText(message, Traducir(callback));
-
-        public void ShowInputText(string title, string message, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputText(title, message, Traducir(callback));
-
-        public void ShowInputText(string title, string message, string defaultText, Action<ResultadoDialogo> callback)
-            => _prism.ShowInputText(title, message, defaultText, Traducir(callback));
-
-        public string GetText(string title, string message) => _prism.GetText(title, message);
-
-        public string GetText(string title, string message, string defaultText) => _prism.GetText(title, message, defaultText);
-
-        public void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
+        public override void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
             => _prism.ShowDialog(name, AParametrosPrism(parameters), Traducir(callback));
-
-        public async Task<ResultadoDialogo> ShowDialogAsync(string name, ParametrosDialogo parameters = null)
-            => DesdeResultadoPrism(await _prism.ShowDialogAsync(name, AParametrosPrism(parameters)));
 
         // No modal y en el hilo de UI (como hacía DialogServiceEnHiloUi para el aviso de Amazon, Nesto#499):
         // quien lo usa suele estar en una tarea en segundo plano y WPF no puede crear la ventana fuera de la UI.
-        public void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
+        public override void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
             => DialogServiceEnHiloUi.EnHiloUi(() => _prism.Show(name, AParametrosPrism(parameters), Traducir(callback)));
 
         // Un callback null se pasa como null, igual que antes: Prism ya no lo invoca.

@@ -7,11 +7,11 @@ using System.Linq;
 namespace ControlesUsuario.Tests.Dialogs
 {
     /// <summary>
-    /// Tests para DialogServiceExtensions, especialmente para validar limpieza de mensajes con JSON.
+    /// Tests de ShowError (ServicioDialogosBase, antes extensiones del IDialogService de Prism), especialmente para validar limpieza de mensajes con JSON.
     /// Carlos 20/11/24: Verifica que los errores con JSON se muestren solo con el texto limpio.
     /// </summary>
     [TestClass]
-    public class DialogServiceExtensionsTests
+    public class ServicioDialogosMensajeErrorTests
     {
         /// <summary>
         /// Verifica que un mensaje de error simple se muestre tal cual.
@@ -37,7 +37,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeSimple);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeSimple);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -71,7 +71,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeConJson);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeConJson);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -104,7 +104,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeConJson);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeConJson);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -137,7 +137,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeConJson);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeConJson);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -170,7 +170,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeConJson);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeConJson);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -202,7 +202,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(jsonSinEstructuraError);
+            new ServicioDialogosPrism(dialogService).ShowError(jsonSinEstructuraError);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -235,7 +235,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act
-            dialogService.ShowError(mensajeConJson);
+            new ServicioDialogosPrism(dialogService).ShowError(mensajeConJson);
 
             // Assert
             Assert.IsNotNull(parametrosCapturados, "ShowDialog debería haber sido llamado");
@@ -266,12 +266,12 @@ namespace ControlesUsuario.Tests.Dialogs
                 });
 
             // Act & Assert - null
-            dialogService.ShowError(null);
+            new ServicioDialogosPrism(dialogService).ShowError(null);
             Assert.IsNull(parametrosCapturados?.GetValue<string>("message"),
                 "Un mensaje null debería mantenerse como null");
 
             // Act & Assert - empty
-            dialogService.ShowError("");
+            new ServicioDialogosPrism(dialogService).ShowError("");
             Assert.AreEqual("", parametrosCapturados?.GetValue<string>("message"),
                 "Un mensaje vacío debería mantenerse vacío");
         }
