@@ -76,6 +76,9 @@ namespace ControlesUsuario.Dialogs
         public string GetText(string title, string message, string defaultText)
             => EnHiloUi(() => _interno.GetText(title, message, defaultText));
 
+        public DateTime? GetDate(string title, string message, DateTime? defaultDate)
+            => EnHiloUi(() => _interno.GetDate(title, message, defaultDate));
+
         public void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
             => EnHiloUi(() => _interno.ShowDialog(name, parameters, callback));
 

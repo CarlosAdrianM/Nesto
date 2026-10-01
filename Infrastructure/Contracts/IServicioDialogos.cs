@@ -61,6 +61,12 @@ namespace Nesto.Infrastructure.Contracts
         string GetText(string title, string message);
         string GetText(string title, string message, string defaultText);
 
+        /// <summary>
+        /// NestoAPI#582: pide una fecha (con la propuesta <paramref name="defaultDate"/>). Null si el usuario
+        /// dice «Todavía no se sabe» o cierra.
+        /// </summary>
+        DateTime? GetDate(string title, string message, DateTime? defaultDate);
+
         /// <summary>Abre modal el diálogo registrado con ese nombre.</summary>
         void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback);
 

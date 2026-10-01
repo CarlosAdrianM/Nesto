@@ -597,6 +597,28 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    Public Async Function LeerNotasEntregaSinFecha(empresa As String, numeroPedido As Integer) As Task(Of List(Of NotaEntregaSinFecha)) Implements IPedidoVentaService.LeerNotasEntregaSinFecha
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/{empresa?.Trim()}/{numeroPedido}/NotasEntregaSinFecha")
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of NotaEntregaSinFecha))(cuerpo), New List(Of NotaEntregaSinFecha))
+        End Using
+    End Function
+
+    Public Async Function PonerFechaEntregaNota(empresa As String, nota As Integer, fechaEntrega As Date) As Task Implements IPedidoVentaService.PonerFechaEntregaNota
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim cuerpoPeticion = New With {.FechaEntrega = fechaEntrega.Date, .Usuario = configuracion.usuario}
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpoPeticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"PedidosVenta/{empresa?.Trim()}/{nota}/FechaEntrega", content)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync()))
+            End If
+        End Using
+    End Function
+
     Public Async Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO) Implements IPedidoVentaService.CrearFacturaVenta
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

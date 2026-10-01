@@ -1578,6 +1578,7 @@ Public Class DetallePedidoViewModel
         Try
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
             dialogService.ShowNotification($"Albarán {albaran} creado correctamente")
+            Await PreguntarFechaNotasEntregaAsync(pedido.empresa.ToString, pedido.numero) ' NestoAPI#582
 
             ' Carlos 05/12/24: Recargar pedido para que las líneas muestren estado 2 (albarán)
             ' y se habilite el botón de crear factura
@@ -1590,6 +1591,30 @@ Public Class DetallePedidoViewModel
             CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
     End Sub
+
+    ''' <summary>
+    ''' NestoAPI#582: lo que se deja en carpeta va a una nota de entrega que nace sin fecha (para no colarse en el picking
+    ''' de hoy). Justo después del albarán se pregunta cuándo se entrega; «Todavía no se sabe» la deja sin fecha.
+    ''' Nunca rompe el albarán: si algo falla, lo dice y la fecha se pone luego a mano en la nota.
+    ''' </summary>
+    Friend Async Function PreguntarFechaNotasEntregaAsync(empresa As String, numeroPedido As Integer) As Task
+        Try
+            Dim notas As List(Of NotaEntregaSinFecha) = Await servicio.LeerNotasEntregaSinFecha(empresa, numeroPedido)
+            For Each nota In notas
+                Dim fecha As Date? = dialogService.GetDate("Fecha de entrega",
+                    $"Lo que se queda en carpeta va en la nota de entrega {nota.Numero}. ¿Cuándo se entrega?", Date.Today.AddDays(1))
+                If fecha.HasValue Then
+                    Await servicio.PonerFechaEntregaNota(empresa, nota.Numero, fecha.Value)
+                Else
+                    dialogService.ShowNotification("Nota de entrega sin fecha",
+                        $"La nota de entrega {nota.Numero} se queda sin fecha de entrega: no saldrá en el picking hasta que se la pongas.")
+                End If
+            Next
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido poner la fecha de entrega de la nota de entrega: {ex.Message}" & vbCrLf &
+                "La nota está creada sin fecha; pónsela a mano cuando se sepa.")
+        End Try
+    End Function
 
     Private _crearFacturaVentaCommand As RelayCommand
     Public Property CrearFacturaVentaCommand As RelayCommand
@@ -1872,6 +1897,7 @@ Public Class DetallePedidoViewModel
         End If
         Try
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            Await PreguntarFechaNotasEntregaAsync(pedido.empresa.ToString, pedido.numero) ' NestoAPI#582
             Try
                 Dim resultado As CrearFacturaResponseDTO = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
 

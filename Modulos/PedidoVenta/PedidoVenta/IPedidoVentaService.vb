@@ -22,6 +22,10 @@ Public Interface IPedidoVentaService
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer, Optional sinPasarValidacion As Boolean = False) As Task(Of PedidoVentaDTO)
     Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer)
     Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO)
+    ''' <summary>NestoAPI#582: las notas de entrega de ese pedido que siguen sin fecha de entrega.</summary>
+    Function LeerNotasEntregaSinFecha(empresa As String, numeroPedido As Integer) As Task(Of List(Of NotaEntregaSinFecha))
+    ''' <summary>NestoAPI#582: pone la fecha de entrega a una nota de entrega (y le quita el aviso de «sin fecha»).</summary>
+    Function PonerFechaEntregaNota(empresa As String, nota As Integer, fechaEntrega As Date) As Task
     Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
     Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String)
     Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())

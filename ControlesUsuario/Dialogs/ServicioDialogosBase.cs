@@ -21,6 +21,25 @@ namespace ControlesUsuario.Dialogs
         public const string ConfirmationDialog = "ConfirmationDialog";
         public const string InputAmountDialog = "InputAmountDialog";
         public const string InputTextDialog = "InputTextDialog";
+        public const string InputDateDialog = "InputDateDialog";
+
+        public DateTime? GetDate(string title, string message, DateTime? defaultDate)
+        {
+            DateTime? fecha = null;
+            var parametros = new ParametrosDialogo { { "title", title }, { "message", message } };
+            if (defaultDate.HasValue)
+            {
+                parametros.Add("defaultDate", defaultDate.Value);
+            }
+            ShowDialog(InputDateDialog, parametros, r =>
+            {
+                if (r.Result == ResultadoBoton.OK && r.Parameters.ContainsKey("date"))
+                {
+                    fecha = r.Parameters.GetValue<DateTime>("date");
+                }
+            });
+            return fecha;
+        }
 
         /// <summary>Abre modal el diálogo registrado con ese nombre.</summary>
         public abstract void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback);

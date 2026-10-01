@@ -266,6 +266,7 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
         containerRegistry.RegisterDialog(Of InputTextDialog, InputTextDialogViewModel)
+        containerRegistry.RegisterDialog(Of InputDateDialog, InputDateDialogViewModel) ' NestoAPI#582
         containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
         containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
         ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)
