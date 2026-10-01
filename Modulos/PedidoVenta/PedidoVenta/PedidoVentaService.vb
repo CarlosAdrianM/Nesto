@@ -325,7 +325,7 @@ Public Class PedidoVentaService
         Return contenido
     End Function
 
-    Public Async Function sacarPickingPedido(empresa As String, numero As Integer) As Task Implements IPedidoVentaService.sacarPickingPedido
+    Public Async Function sacarPickingPedido(empresa As String, numero As Integer, Optional ignorarCierreCliente As Boolean = False) As Task Implements IPedidoVentaService.sacarPickingPedido
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
@@ -339,14 +339,19 @@ Public Class PedidoVentaService
                 Dim urlConsulta As String = "Picking"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroPedido=" + numero.ToString
+                If ignorarCierreCliente Then
+                    urlConsulta += "&ignorarCierreCliente=true"
+                End If
 
                 response = Await client.GetAsync(urlConsulta)
 
                 respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+                    LanzarErrorPicking(respuesta)
                 End If
 
+            Catch ex As PickingClienteCerradoException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se ha podido sacar el picking del pedido " + numero.ToString + vbCr + vbCr + ex.Message)
             Finally
@@ -373,9 +378,11 @@ Public Class PedidoVentaService
 
                 respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+                    LanzarErrorPicking(respuesta)
                 End If
 
+            Catch ex As PickingClienteCerradoException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se han podido sacar los picking del cliente " + cliente, ex)
             Finally
@@ -384,6 +391,28 @@ Public Class PedidoVentaService
 
         End Using
     End Function
+    ''' <summary>
+    ''' El error de un picking: si el servidor dice que el cliente cierra el día de la entrega
+    ''' (PICKING_CLIENTE_CERRADO), una excepción propia con SOLO el mensaje, para que la pantalla pueda preguntar
+    ''' si se le asigna igualmente; si no, la de siempre.
+    ''' </summary>
+    Friend Shared Sub LanzarErrorPicking(respuesta As String)
+        Dim mensajeCierre As String = Nothing
+        Try
+            Dim detalles As JObject = JsonConvert.DeserializeObject(Of JObject)(respuesta)
+            Dim errorObj As JObject = TryCast(detalles?("error"), JObject)
+            If errorObj IsNot Nothing AndAlso errorObj("code")?.ToString() = PickingClienteCerradoException.CODIGO_ERROR Then
+                mensajeCierre = errorObj("message")?.ToString()
+            End If
+        Catch
+            ' No es JSON: se trata como siempre
+        End Try
+        If mensajeCierre IsNot Nothing Then
+            Throw New PickingClienteCerradoException(mensajeCierre)
+        End If
+        Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+    End Sub
+
     Public Async Function sacarPickingPedido() As Task Implements IPedidoVentaService.sacarPickingPedido
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

@@ -164,5 +164,67 @@ namespace PedidoVentaTests
 
             Assert.IsFalse(vm.cmdSacarPicking.CanExecute(null));
         }
+
+        // 01/10/26 (Alfredo, cliente 5057 «LOS LUNES CIERRA»): el picking de un pedido no sale porque el cliente
+        // cierra el día de la entrega. Antes decía «No hay stock suficiente…»; ahora lo dice y, en el picking de UN
+        // pedido, pregunta si se le asigna igualmente.
+
+        private PickingPopupViewModel PickingDeUnPedido(int pedido)
+        {
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.esPickingPedido = true;
+            vm.numeroPedidoPicking = pedido;
+            return vm;
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_PedidoConElClienteCerrado_PreguntaYSiConfirmaLoSacaIgualmente()
+        {
+            var vm = PickingDeUnPedido(927586);
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("1", 927586, false))
+                .Throws(new PickingClienteCerradoException("El pedido 927586 no sale: el cliente 5057 cierra el lunes 05/10/2026."));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored,
+                A<string>.That.Contains("¿Aún así quieres asignarle picking?"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("1", 927586, true)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogService.ShowNotification("Picking", A<string>.That.Contains("927586"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_PedidoConElClienteCerrado_SiNoConfirma_NoLoSaca()
+        {
+            var vm = PickingDeUnPedido(927586);
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("1", 927586, false))
+                .Throws(new PickingClienteCerradoException("El cliente cierra ese día."));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(false);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("1", 927586, true)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification("Picking", A<string>.Ignored)).MustNotHaveHappened();
+            Assert.IsFalse(vm.estaSacandoPicking);
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_DeUnCliente_ConElClienteCerrado_SoloAvisaSinPreguntar()
+        {
+            // La pregunta es solo para el picking de UN pedido.
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.esPickingPedido = false;
+            vm.esPickingCliente = true;
+            vm.numeroClientePicking = "5057";
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("5057"))
+                .Throws(new PickingClienteCerradoException("El cliente 5057 cierra el lunes."));
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification(A<string>.Ignored, A<string>.That.Contains("cierra el lunes"))).MustHaveHappenedOnceExactly();
+        }
     }
 }

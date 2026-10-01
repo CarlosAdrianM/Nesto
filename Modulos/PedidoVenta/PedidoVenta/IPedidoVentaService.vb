@@ -12,7 +12,7 @@ Public Interface IPedidoVentaService
     ' lista vacía si el PUT responde 204 sin cuerpo. Los llamantes que no los procesan pueden
     ' seguir haciendo Await sin capturar el resultado.
     Function modificarPedido(pedido As PedidoVentaDTO) As Task(Of List(Of AvisoPedidoModel))
-    Function sacarPickingPedido(empresa As String, numero As Integer) As Task
+    Function sacarPickingPedido(empresa As String, numero As Integer, Optional ignorarCierreCliente As Boolean = False) As Task
     Function sacarPickingPedido(cliente As String) As Task
     Function sacarPickingPedido() As Task
     Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))

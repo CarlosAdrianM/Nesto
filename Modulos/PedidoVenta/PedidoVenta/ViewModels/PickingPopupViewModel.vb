@@ -291,6 +291,15 @@ Public Class PickingPopupViewModel
         Return Not estaSacandoPicking AndAlso configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
     End Function
     Private Async Sub OnSacarPicking(pedidoPicking As PedidoVentaDTO)
+        Await SacarPickingAsync(pedidoPicking)
+    End Sub
+
+    ''' <summary>
+    ''' Saca el picking elegido. 01/10/26 (Alfredo, cliente 5057 «LOS LUNES CIERRA»): si el pedido no sale porque el
+    ''' cliente cierra el día de la entrega, en el picking de UN pedido se pregunta «¿Aún así quieres asignarle
+    ''' picking?» y, si se confirma, se pide otra vez ignorando el cierre. En los de cliente y rutas solo se avisa.
+    ''' </summary>
+    Friend Async Function SacarPickingAsync(pedidoPicking As PedidoVentaDTO) As Task
         Try
             estaSacandoPicking = True
             If esPickingPedido Then
@@ -300,7 +309,20 @@ Public Class PickingPopupViewModel
                 Else
                     empresaPicking = Constantes.Empresas.EMPRESA_DEFECTO
                 End If
-                Await servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
+                ' VB no admite Await dentro de un Catch: se guarda el aviso y se decide fuera.
+                Dim cierre As PickingClienteCerradoException = Nothing
+                Try
+                    Await servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking, False)
+                Catch ex As PickingClienteCerradoException
+                    cierre = ex
+                End Try
+                If cierre IsNot Nothing Then
+                    If Not dialogService.ShowConfirmationAnswer("Picking pedido " + numeroPedidoPicking.ToString,
+                                                                cierre.Message + vbCrLf + vbCrLf + "¿Aún así quieres asignarle picking?") Then
+                        Return
+                    End If
+                    Await servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking, True)
+                End If
             ElseIf esPickingCliente Then
                 Await servicio.sacarPickingPedido(numeroClientePicking)
             ElseIf esPickingRutas Then
@@ -342,6 +364,6 @@ Public Class PickingPopupViewModel
         Finally
             estaSacandoPicking = False
         End Try
-    End Sub
+    End Function
 
 End Class
