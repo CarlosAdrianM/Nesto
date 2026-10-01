@@ -63,6 +63,9 @@
             public const string UsarBusquedaContextualAND = "UsarBusquedaContextualAND";
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";
+            // Nesto#490 (4C.2, paso 3): "1" = los diálogos se abren en la ventana propia de Nesto
+            // (ServicioDialogosNesto) en vez de en la de Prism. Piloto: cualquier otro valor, o sin fila, = Prism.
+            public const string VentanaDialogosPropia = "VentanaDialogosPropia";
             public const string VistoBuenoVentas = "VistoBuenoVentas";
         }
     }

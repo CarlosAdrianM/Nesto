@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace Nesto.Infrastructure.Contracts
@@ -9,7 +9,7 @@ namespace Nesto.Infrastructure.Contracts
     ///
     /// Plan en tres pasos (como se hizo con los eventos → IMessenger en el 4C.1):
     /// 1. Esta interfaz, con una primera implementación (<c>ControlesUsuario.Dialogs.ServicioDialogosPrism</c>)
-    ///    que se limita a delegar en el IDialogService de Prism y en <c>DialogServiceExtensions</c>:
+    ///    que se limita a delegar en el IDialogService de Prism:
     ///    mismo comportamiento, mismos diálogos registrados.
     /// 2. Migrar las llamadas módulo a módulo: se cambia el tipo inyectado y poco más, porque los
     ///    métodos se llaman IGUAL que las extensiones de Prism (ShowError, ShowNotification,
@@ -17,8 +17,11 @@ namespace Nesto.Infrastructure.Contracts
     ///    sea mecánica y no haya que tocar cientos de líneas.
     /// 3. Cambiar la implementación por una sin Prism. Por eso aquí NO aparece ningún tipo de
     ///    Prism: los parámetros y el resultado son <see cref="ParametrosDialogo"/> y
-    ///    <see cref="ResultadoDialogo"/>. Los ViewModels de los propios diálogos (IDialogAware)
-    ///    siguen con Prism hasta ese paso.
+    ///    <see cref="ResultadoDialogo"/>. Hecho en piloto: <c>ControlesUsuario.Dialogs.ServicioDialogosNesto</c>
+    ///    (ventana propia), que se activa por usuario con el parámetro VentanaDialogosPropia. Los
+    ///    diálogos genéricos se componen una sola vez en <c>ServicioDialogosBase</c>. Los ViewModels
+    ///    de los diálogos pasarán de IDialogAware a <see cref="IDialogoNesto"/> cuando la ventana
+    ///    propia sea la de todos (la de Prism no sabe abrirlos).
     ///
     /// Los diálogos genéricos (NotificationDialog, ConfirmationDialog, InputAmountDialog,
     /// InputTextDialog) se registran en Application.RegisterTypes; los de cada módulo, en su
