@@ -1099,8 +1099,11 @@ Public Class ClientesViewModel
     End Property
     ' Nesto#340 (1C.8, slice 5): el dirty pasa del ChangeTracker de EF al flag EsModificado de
     ' los POCOs CCCModel (mismo patrón que AlquilerModel en 1C.3).
+    ' Regresión ELMAH 30/09/26 (PK_CCC, cliente 41978): mientras se guarda, el botón no se puede volver a
+    ' pulsar. Con el servidor tardando, siete clics mandaban siete PUT que se soltaban a la vez.
+    Private _guardando As Boolean
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return Not IsNothing(cuentaActiva) AndAlso Not IsNothing(cuentasBanco) AndAlso
+        Return Not _guardando AndAlso Not IsNothing(cuentaActiva) AndAlso Not IsNothing(cuentasBanco) AndAlso
             cuentasBanco.Any(Function(c) c.EsModificado) AndAlso
             (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1))
     End Function
@@ -1116,10 +1119,15 @@ Public Class ClientesViewModel
                 Return
             End If
 
+            If _guardando Then
+                Return
+            End If
             Dim modificados = cuentasBanco.Where(Function(c) c.EsModificado).ToList()
             If Not modificados.Any() Then
                 Return
             End If
+            _guardando = True
+            CommandManager.InvalidateRequerySuggested()
 
             Dim peticion As New GuardarCCCsRequest With {
                 .empresa = empresaActual,
@@ -1148,6 +1156,11 @@ Public Class ClientesViewModel
             mensajeError = ExcepcionMasInterna(ex).Message
             Dim servicioErrores = contenedor?.Resolve(Of IServicioRegistroErrores)()
             Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, "ClientesViewModel.Guardar (Nuevo Mandato / CCC)")
+        Finally
+            If _guardando Then
+                _guardando = False
+                CommandManager.InvalidateRequerySuggested()
+            End If
         End Try
 
     End Sub

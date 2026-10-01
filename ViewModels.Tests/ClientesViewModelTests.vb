@@ -172,6 +172,32 @@ Public Class ClientesViewModelTests
         Assert.AreEqual(String.Empty, vm.mensajeError)
     End Sub
 
+    ' Regresión (ELMAH 30/09/26, PK_CCC, cliente 41978): con el servidor tardando, Magan pulsó
+    ' «Guardar Cambios» 7 veces en ~10 s (el botón seguía activo hasta la respuesta). Las 7 PUT
+    ' se soltaron a la vez: una grabó la cuenta y las otras 6 chocaron con la clave primaria.
+    <TestMethod()>
+    Public Sub Guardar_MientrasGuarda_ElBotonSeDesactivaYUnSegundoClicNoMandaNada()
+        Dim pendiente As New TaskCompletionSource(Of GuardarCCCsRespuesta)
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)).Returns(pendiente.Task)
+        Dim vm = CrearViewModel()
+        Dim modificado As New CCCModel With {.Número = "1"}
+        modificado.Entidad = "2100"
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel) From {modificado}
+        vm.cuentaActiva = modificado
+
+        vm.cmdGuardar.Execute(Nothing)
+
+        Assert.IsFalse(vm.cmdGuardar.CanExecute(Nothing), "Mientras guarda, el botón no se puede pulsar")
+        vm.cmdGuardar.Execute(Nothing)
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)).MustHaveHappenedOnceExactly()
+
+        pendiente.SetResult(New GuardarCCCsRespuesta With {
+            .extractoOtroCCC = New List(Of ExtractoCCCModel),
+            .pedidosOtroCCC = New List(Of cabeceraPedidoAgrupada)
+        })
+        Assert.IsFalse(modificado.EsModificado)
+    End Sub
+
     <TestMethod()>
     Public Sub Guardar_SiElServicioFallaInformaElErrorYNoLimpiaElFlag()
         A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
