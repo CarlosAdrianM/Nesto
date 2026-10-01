@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.CanalesExternos.Interfaces
@@ -32,5 +32,8 @@ namespace Nesto.Modulos.CanalesExternos.Interfaces
         // (GET api/PedidosVenta/PorReferenciaCanal); 0 = no hay. Antes lo resolvía
         // PrestashopService con EF.
         Task<int> BuscarPedidoPorReferenciaCanalAsync(string referencia);
+        // NestoAPI#583: el IVA de la ficha del producto (GET api/Productos?empresa&id). Null si no existe o no
+        // se puede leer: entonces la importación lo deduce del precio, como antes.
+        Task<string> LeerIvaProductoAsync(string empresa, string producto);
     }
 }

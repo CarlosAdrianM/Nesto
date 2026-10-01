@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Newtonsoft.Json;
 using System;
@@ -69,6 +69,34 @@ namespace Nesto.Modulos.CanalesExternos.Services
                 throw new Exception($"Error {(int)respuesta.StatusCode} al buscar el pedido por referencia: {cuerpo}");
             }
             return JsonConvert.DeserializeObject<int>(cuerpo);
+        }
+
+        public async Task<string> LeerIvaProductoAsync(string empresa, string producto)
+        {
+            if (string.IsNullOrWhiteSpace(producto))
+            {
+                return null;
+            }
+            try
+            {
+                using HttpClient client = await CrearClienteAsync();
+                HttpResponseMessage respuesta = await client.GetAsync($"Productos?empresa={Uri.EscapeDataString(empresa?.Trim() ?? "1")}&id={Uri.EscapeDataString(producto.Trim())}");
+                if (!respuesta.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                var datos = JsonConvert.DeserializeObject<IvaProductoRespuesta>(await respuesta.Content.ReadAsStringAsync());
+                return string.IsNullOrWhiteSpace(datos?.iva) ? null : datos.iva.Trim();
+            }
+            catch (Exception)
+            {
+                return null; // sin ficha, se deduce del precio como antes
+            }
+        }
+
+        private class IvaProductoRespuesta
+        {
+            public string iva { get; set; }
         }
 
         private async Task<HttpClient> CrearClienteAsync()

@@ -215,5 +215,54 @@ namespace CanalesExternosTests
             StringAssert.Contains(ex.Message, "248987");
             StringAssert.Contains(ex.Message, "NestoAPI");
         }
+    
+        // NestoAPI#583: los cursos son exentos (IVA EX en su ficha) y llegan de la tienda al 0 %. La importación
+        // deducía el IVA del precio y trataba el 0 % como G21, así que el pedido salía al 21 % y Laura tenía que
+        // poner la cabecera en EX a mano (pedidos 923017, 925168, 927517). Ahora manda la ficha del producto.
+        [TestMethod]
+        public void DecidirIvaLinea_CursoExentoAlCeroPorCiento_UsaElIvaDeLaFicha()
+        {
+            var decision = CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("90004", "EX", porcentajeIvaTienda: 0, importeSinIva: 165m);
+
+            Assert.AreEqual("EX", decision.TipoIva);
+            Assert.IsNull(decision.Aviso);
+        }
+
+        [TestMethod]
+        public void DecidirIvaLinea_ProductoNormalAl21_UsaLaFichaSinAviso()
+        {
+            var decision = CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("38272", "G21", porcentajeIvaTienda: .21M, importeSinIva: 10m);
+
+            Assert.AreEqual("G21", decision.TipoIva);
+            Assert.IsNull(decision.Aviso);
+        }
+
+        [TestMethod]
+        public void DecidirIvaLinea_SiLaTiendaNoCuadraConLaFicha_MandaLaFichaYAvisa()
+        {
+            var decision = CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("90004", "EX", porcentajeIvaTienda: .21M, importeSinIva: 165m);
+
+            Assert.AreEqual("EX", decision.TipoIva);
+            StringAssert.Contains(decision.Aviso, "90004");
+            StringAssert.Contains(decision.Aviso, "21");
+            StringAssert.Contains(decision.Aviso, "EX");
+        }
+
+        [TestMethod]
+        public void DecidirIvaLinea_RegaloACeroEuros_NoAvisa()
+        {
+            var decision = CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("38272", "G21", porcentajeIvaTienda: 0, importeSinIva: 0);
+
+            Assert.AreEqual("G21", decision.TipoIva);
+            Assert.IsNull(decision.Aviso, "Un regalo a 0 € no dice nada del IVA");
+        }
+
+        [TestMethod]
+        public void DecidirIvaLinea_SinFicha_DeduceDelPrecioComoAntes()
+        {
+            Assert.AreEqual("G21", CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("X", null, .21M, 10m).TipoIva);
+            Assert.AreEqual("R10", CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("X", null, .10M, 10m).TipoIva);
+            Assert.AreEqual("SR", CanalExternoPedidosPrestashopNuevaVision.DecidirIvaLinea("X", "  ", .04M, 10m).TipoIva);
+        }
     }
 }

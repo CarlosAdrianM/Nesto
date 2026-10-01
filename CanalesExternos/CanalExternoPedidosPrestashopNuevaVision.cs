@@ -337,6 +337,7 @@ namespace Nesto.Modulos.CanalesExternos
             PedidoVentaDTO pedidoSalida = pedido.Pedido;
             // añadir líneas
             var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
+            var avisosIva = new List<string>();
             foreach (var linea in listaLineasXML)
             {
                 decimal porcentajeIva;
@@ -352,25 +353,24 @@ namespace Nesto.Modulos.CanalesExternos
                     porcentajeIva = 0;
                 }
 
+                string productoRef = linea.Element("product_reference").Value;
+                byte tipoLineaProducto = EsCuentaContable(productoRef) ? (byte)2 : (byte)1;
+                // NestoAPI#583: en las líneas de producto manda la ficha (los cursos son EX y llegan al 0 %).
                 string tipoIva;
-                if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                if (tipoLineaProducto == 1)
                 {
-                    tipoIva = "G21";
-                }
-                else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
-                {
-                    tipoIva = "R10";
-                }
-                else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
-                {
-                    tipoIva = "SR";
+                    string ivaFicha = await clientesLookup.LeerIvaProductoAsync(pedidoSalida.empresa, productoRef);
+                    DecisionIva decision = DecidirIvaLinea(productoRef, ivaFicha, porcentajeIva, importeSinIva);
+                    tipoIva = decision.TipoIva;
+                    if (decision.Aviso != null)
+                    {
+                        avisosIva.Add(decision.Aviso);
+                    }
                 }
                 else
                 {
-                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
+                    tipoIva = TipoIvaPorPrecio(porcentajeIva, importeSinIva, importeConIva);
                 }
-                string productoRef = linea.Element("product_reference").Value;
-                byte tipoLineaProducto = EsCuentaContable(productoRef) ? (byte)2 : (byte)1;
 
                 LineaPedidoVentaDTO lineaNesto = new()
                 {
@@ -399,6 +399,14 @@ namespace Nesto.Modulos.CanalesExternos
                 }
 
                 pedidoSalida.Lineas.Add(lineaNesto);
+            }
+
+            if (avisosIva.Any())
+            {
+                string textoAvisos = string.Join(Environment.NewLine, avisosIva);
+                pedidoSalida.comentarios = string.IsNullOrWhiteSpace(pedidoSalida.comentarios)
+                    ? textoAvisos
+                    : pedidoSalida.comentarios + Environment.NewLine + textoAvisos;
             }
 
             // Añadir portes
@@ -472,6 +480,60 @@ namespace Nesto.Modulos.CanalesExternos
 
             return pedidoSalida.Lineas;
 
+        }
+
+        /// <summary>Lo de siempre: el tipo de IVA deducido del precio con y sin IVA de la tienda.</summary>
+        internal static string TipoIvaPorPrecio(decimal porcentajeIva, decimal importeSinIva, decimal importeConIva)
+        {
+            if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "G21";
+            }
+            if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "R10";
+            }
+            if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "SR";
+            }
+            throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
+        }
+
+        internal sealed class DecisionIva
+        {
+            public string TipoIva { get; set; }
+            /// <summary>Texto para los comentarios del pedido si la tienda no cuadra con la ficha; null si cuadra.</summary>
+            public string Aviso { get; set; }
+        }
+
+        // Porcentaje de los tipos de IVA de producto con un cliente nacional normal (ParametrosIVA de G21).
+        private static readonly Dictionary<string, decimal> PORCENTAJE_IVA_PRODUCTO = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["G21"] = .21M, ["R10"] = .10M, ["SR"] = .04M, ["EX"] = 0
+        };
+
+        /// <summary>
+        /// NestoAPI#583: el tipo de IVA de una línea de producto lo manda su ficha en Nesto (los cursos son EX y
+        /// llegan de la tienda al 0 %, que antes se convertía en G21). El precio de la tienda solo sirve para
+        /// avisar si no cuadra con la ficha, o para deducirlo si no hay ficha (como antes).
+        /// </summary>
+        internal static DecisionIva DecidirIvaLinea(string producto, string ivaFicha, decimal porcentajeIvaTienda, decimal importeSinIva)
+        {
+            if (string.IsNullOrWhiteSpace(ivaFicha))
+            {
+                decimal importeConIva = importeSinIva * (1 + porcentajeIvaTienda);
+                return new DecisionIva { TipoIva = TipoIvaPorPrecio(porcentajeIvaTienda, importeSinIva, importeConIva) };
+            }
+
+            string tipoFicha = ivaFicha.Trim();
+            string aviso = null;
+            // Una línea a 0 € (regalo) no dice nada del IVA: no se compara.
+            if (importeSinIva != 0 && PORCENTAJE_IVA_PRODUCTO.TryGetValue(tipoFicha, out decimal porcentajeFicha) && porcentajeFicha != porcentajeIvaTienda)
+            {
+                aviso = $"ATENCIÓN IVA: el producto {producto?.Trim()} viene de la tienda al {porcentajeIvaTienda:P0} y su ficha es {tipoFicha}; se ha puesto {tipoFicha}. Revisa el precio.";
+            }
+            return new DecisionIva { TipoIva = tipoFicha, Aviso = aviso };
         }
 
         // Cuentas contables que Prestashop envía como producto en order_rows
