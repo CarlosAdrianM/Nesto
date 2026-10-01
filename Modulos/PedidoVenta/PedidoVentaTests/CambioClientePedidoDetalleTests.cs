@@ -69,6 +69,24 @@ namespace PedidoVentaTests
             Assert.IsFalse(CambioClientePedido.PuedeCambiarse(Pedido(estado: 2)));
         }
 
+        // Carlos, 01/10/26: el grupo Administración también crea albaranes y facturas de venta desde el detalle
+        // (hasta ahora solo Almacén y Tiendas; la API no filtra por grupo).
+        [DataTestMethod]
+        [DataRow("Almacén", true)]
+        [DataRow("Tiendas", true)]
+        [DataRow("Administración", true)]
+        [DataRow("Compras", false)]
+        public void EsGrupoQuePuedeFacturar_SegunElGrupoDelUsuario(string grupo, bool puede)
+        {
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.UsuarioEnGrupo(A<string>._)).ReturnsLazily((string g) => g == grupo);
+
+            var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), configuracion, A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
+                A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+
+            Assert.AreEqual(puede, vm.EsGrupoQuePuedeFacturar);
+        }
+
         [TestMethod]
         public void PuedeCambiarse_PedidoNuevo_No()
         {

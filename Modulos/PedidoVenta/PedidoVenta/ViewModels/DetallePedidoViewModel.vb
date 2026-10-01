@@ -121,7 +121,9 @@ Public Class DetallePedidoViewModel
         AbrirFacturarRutasCommand = New RelayCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
         CopiarFacturaCommand = New RelayCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
 
-        EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
+        ' Carlos 01/10/26: Administración también crea albaranes y facturas de venta
+        EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) OrElse
+            configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
 
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
         messenger.Register(Of ProductoSeleccionadoMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).InsertarProducto(m.Value))
