@@ -2342,6 +2342,19 @@ Public Class DetallePedidoViewModel
     ''' con los de GruposProducto) para cada línea de inmovilizado NUEVA sin grupo. Devuelve
     ''' False si el usuario cancela alguna: el guardado se aborta sin tocar nada.
     ''' </summary>
+    ''' <summary>
+    ''' ELMAH 02/10/26 (Javier, 927535): dos líneas nuevas llegaron al PUT sin usuario y la API no las guardó
+    ''' («El campo Usuario es obligatorio»). El usuario de la línea solo se ponía al terminar de cargar el producto.
+    ''' Una línea nueva (id 0) solo la ha podido meter quien está editando el pedido en esta ventana: es su autor.
+    ''' Las líneas que ya existían conservan el suyo.
+    ''' </summary>
+    Friend Shared Sub AsignarAutorLineasNuevas(lineas As IEnumerable(Of LineaPedidoVentaDTO), usuario As String)
+        If lineas Is Nothing Then Return
+        For Each linea In lineas.Where(Function(l) l.id = 0 AndAlso String.IsNullOrWhiteSpace(l.Usuario))
+            linea.Usuario = usuario
+        Next
+    End Sub
+
     Public Async Function PedirGrupoParaInmovilizados() As Task(Of Boolean)
         Dim sinGrupo = pedido.Model.Lineas.Where(
             Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = TIPO_LINEA_INMOVILIZADO AndAlso
@@ -2404,6 +2417,7 @@ Public Class DetallePedidoViewModel
 
         ' Modificamos el usuario del pedido
         pedido.Model.Usuario = configuracion.usuario
+        AsignarAutorLineasNuevas(pedido.Model.Lineas, configuracion.usuario)
 
         ' Issue #258: Eliminar líneas de producto (TipoLinea=1) sin referencia
         ' Esto evita enviar la línea en blanco que se crea al dar Enter tras la última referencia
