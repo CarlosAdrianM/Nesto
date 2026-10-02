@@ -17,6 +17,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using static ControlesUsuario.Models.SelectorProveedorModel;
+using Prism.Ioc;
 
 namespace ControlesUsuario
 {
@@ -27,9 +28,17 @@ namespace ControlesUsuario
     {
         private SelectorProveedorViewModel _vm;
         private DispatcherTimer _timer;
+        // Nesto#490 (4C.3): el selector se crea desde XAML, así que el ViewModel se resuelve aquí
+        // del contenedor (antes lo hacía el ViewModelLocator de Prism durante InitializeComponent).
         public SelectorProveedor()
+            : this(ContainerLocator.Container.Resolve<SelectorProveedorViewModel>())
+        {
+        }
+
+        public SelectorProveedor(SelectorProveedorViewModel vm)
         {
             InitializeComponent();
+            DataContext = vm;
 
             PrepararSelector();
         }

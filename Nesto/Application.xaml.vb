@@ -336,12 +336,6 @@ Partial Public Class Application
         regionBehaviors.AddIfMissing(LimpiarVistaAlQuitarRegionBehavior.BehaviorKey, GetType(LimpiarVistaAlQuitarRegionBehavior))
     End Sub
 
-    Protected Overrides Sub ConfigureViewModelLocator()
-        MyBase.ConfigureViewModelLocator()
-        ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
-        ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
-    End Sub
-
     Protected Overrides Sub OnInitialized()
         MyBase.OnInitialized()
 

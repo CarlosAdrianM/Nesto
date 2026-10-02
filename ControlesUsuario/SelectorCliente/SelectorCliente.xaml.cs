@@ -27,16 +27,15 @@ namespace ControlesUsuario
         private DispatcherTimer timer;
         private SelectorClienteViewModel vm;
 
+        // Nesto#490 (4C.3): el selector se crea desde XAML, así que el ViewModel se resuelve aquí
+        // del contenedor (antes lo hacía el ViewModelLocator de Prism durante InitializeComponent).
         public SelectorCliente()
+            : this(ContainerLocator.Container.Resolve<SelectorClienteViewModel>(), ContainerLocator.Container.Resolve<IRegionManager>())
         {
-            InitializeComponent();
-            PrepararSelectorCliente();
-            regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
         }
 
         public SelectorCliente(SelectorClienteViewModel vm, IRegionManager regionManager)
         {
-            // Este constructor se usa únicamente para poder hacer tests
             InitializeComponent();
             DataContext = vm;
             PrepararSelectorCliente();

@@ -10,7 +10,6 @@
              d:DataContext="{d:DesignInstance Type=viewmodels:SelectorClienteViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Loaded="UserControl_Loaded">
     <UserControl.Resources>
         <controles:EstadoColorConverter x:Key="estadoColorConverter" />
