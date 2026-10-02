@@ -9,7 +9,7 @@ namespace ControlesUsuario.Tests.Dialogs
 {
     /// <summary>
     /// Nesto#490 (4C.2): el envoltorio de hilo de UI del cuadre de banco (caso real 21/08/26) pasa
-    /// de IDialogService a IServicioDialogos. Mismas garantías que <see cref="DialogServiceEnHiloUiTests"/>.
+    /// de IDialogService a IServicioDialogos. Mismas garantías que tenía el envoltorio de Prism (DialogServiceEnHiloUi, borrado el 02/10/26).
     /// </summary>
     [TestClass]
     public class ServicioDialogosEnHiloUiTests

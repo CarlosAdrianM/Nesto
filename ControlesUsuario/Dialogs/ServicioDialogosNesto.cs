@@ -40,7 +40,7 @@ namespace ControlesUsuario.Dialogs
 
         // No modal: por contrato se puede llamar desde cualquier hilo (avisos de tareas en segundo plano).
         public override void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
-            => DialogServiceEnHiloUi.EnHiloUi(() => PrepararVentana(name, parameters, callback).Show());
+            => ServicioDialogosEnHiloUi.EnHiloUi(() => PrepararVentana(name, parameters, callback).Show());
 
         /// <summary>Crea la ventana con el diálogo dentro, lista para enseñar (modal o no).</summary>
         internal VentanaDialogo PrepararVentana(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)

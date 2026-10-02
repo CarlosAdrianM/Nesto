@@ -24,10 +24,10 @@ namespace ControlesUsuario.Dialogs
         public override void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
             => _prism.ShowDialog(name, AParametrosPrism(parameters), Traducir(callback));
 
-        // No modal y en el hilo de UI (como hacía DialogServiceEnHiloUi para el aviso de Amazon, Nesto#499):
+        // No modal y en el hilo de UI (con ServicioDialogosEnHiloUi, como el aviso de Amazon de Nesto#499):
         // quien lo usa suele estar en una tarea en segundo plano y WPF no puede crear la ventana fuera de la UI.
         public override void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
-            => DialogServiceEnHiloUi.EnHiloUi(() => _prism.Show(name, AParametrosPrism(parameters), Traducir(callback)));
+            => ServicioDialogosEnHiloUi.EnHiloUi(() => _prism.Show(name, AParametrosPrism(parameters), Traducir(callback)));
 
         // Un callback null se pasa como null, igual que antes: Prism ya no lo invoca.
         private static Action<IDialogResult> Traducir(Action<ResultadoDialogo> callback)

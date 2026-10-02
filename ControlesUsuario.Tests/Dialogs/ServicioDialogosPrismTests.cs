@@ -180,7 +180,7 @@ namespace ControlesUsuario.Tests.Dialogs
         [TestMethod]
         public async Task Show_DesdeOtroHilo_AbreIgual()
         {
-            // Sin Application (tests) no hay dispatcher: se llama directamente, como DialogServiceEnHiloUi.
+            // Sin Application (tests) no hay dispatcher: se llama directamente, como ServicioDialogosEnHiloUi.
             await Task.Run(() => _servicio.Show("NotificationDialog", null, null));
 
             A.CallTo(() => _prism.Show("NotificationDialog", null, null)).MustHaveHappenedOnceExactly();

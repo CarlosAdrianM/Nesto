@@ -1,23 +1,32 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using System;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace ControlesUsuario.Dialogs
 {
     /// <summary>
-    /// Nesto#490 (4C.2): lo mismo que <see cref="DialogServiceEnHiloUi"/>, pero sobre
-    /// <see cref="IServicioDialogos"/>. Abre los diálogos SIEMPRE en el hilo de UI aunque quien
-    /// llame esté en un hilo de pool.
+    /// Nesto#490 (4C.2): envoltorio de <see cref="IServicioDialogos"/> que abre los diálogos SIEMPRE
+    /// en el hilo de UI, aunque quien llame esté en un hilo de pool.
     ///
-    /// POR QUÉ EXISTE (caso real 21/08/26, cuadre de banco): las reglas de contabilización corren
-    /// dentro de un <c>Task.Run</c> (NestoAPI#384/#386) y varias le preguntan cosas al usuario;
-    /// WPF no puede crear una Window fuera del hilo de UI. Ver el comentario de
-    /// <see cref="DialogServiceEnHiloUi"/> para la historia completa.
+    /// POR QUÉ EXISTE (caso real 21/08/26, cuadre de banco): al contabilizar un apunte con la
+    /// regla de "línea de riesgo" saltaba
+    /// <c>"An unexpected error occured while resolving 'Prism.Services.Dialogs.IDialogWindow'"</c>.
+    /// El arreglo de NestoAPI#384/#386 (17/08) pasó a ejecutar las reglas dentro de un
+    /// <c>Task.Run</c> para que las llamadas HTTP síncronas no interbloquearan la ventana; pero
+    /// varias reglas LE PREGUNTAN COSAS AL USUARIO desde dentro, y WPF no puede crear una Window
+    /// fuera del hilo de UI. O sea que el arreglo que liberó la UI rompió justo las reglas que
+    /// hablan con el usuario.
     ///
-    /// Se envuelve cada método entero (no solo ShowDialog/Show como en el envoltorio de Prism,
-    /// porque aquí GetAmount, ShowConfirmationAnswer, etc. son métodos del servicio y no
-    /// extensiones que acaben en ShowDialog). Igual que antes, con <c>Dispatcher.Invoke</c>
-    /// SÍNCRONO: los métodos que devuelven valor lo recogen del diálogo modal.
+    /// Se envuelve cada método entero (GetAmount, ShowConfirmationAnswer, etc. son métodos del
+    /// servicio). Se usa <c>Dispatcher.Invoke</c> SÍNCRONO a propósito: los métodos que devuelven
+    /// valor lo recogen del diálogo modal, así que hay que esperar a que el usuario conteste. No hay
+    /// riesgo de interbloqueo mientras el hilo de UI esté esperando con <c>await</c> —que es como
+    /// quedó tras NestoAPI#384— y no bloqueado con <c>.Wait()</c>.
+    ///
+    /// Hasta el 02/10/26 existía también DialogServiceEnHiloUi, lo mismo sobre el IDialogService
+    /// de Prism; se borró cuando ya no lo usaba nadie.
     /// </summary>
     public class ServicioDialogosEnHiloUi : IServicioDialogos
     {
@@ -88,12 +97,22 @@ namespace ControlesUsuario.Dialogs
         public void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
             => EnHiloUi(() => _interno.Show(name, parameters, callback));
 
-        private static void EnHiloUi(Action accion) => DialogServiceEnHiloUi.EnHiloUi(accion);
+        internal static void EnHiloUi(Action accion)
+        {
+            Dispatcher dispatcher = Application.Current?.Dispatcher;
+            // Sin Application (tests, procesos sin UI) o ya en el hilo bueno: llamada directa.
+            if (dispatcher == null || dispatcher.CheckAccess())
+            {
+                accion();
+                return;
+            }
+            dispatcher.Invoke(accion);
+        }
 
         private static T EnHiloUi<T>(Func<T> funcion)
         {
             T resultado = default;
-            DialogServiceEnHiloUi.EnHiloUi(() => resultado = funcion());
+            EnHiloUi(() => resultado = funcion());
             return resultado;
         }
     }
