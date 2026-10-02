@@ -10,14 +10,21 @@ namespace Nesto.Infrastructure.Contracts
     /// 3. Cambiar la implementación por una sin Prism. Por eso aquí NO aparece ningún tipo de Prism:
     ///    los parámetros son <see cref="ParametrosNavegacion"/>.
     ///
-    /// Solo cubre navegar a una vista por nombre. Lo que manipula las regiones a mano (añadir y
-    /// activar vistas en los maestro-detalle de PedidoVenta y PedidoCompra, los RegionManager con
-    /// ámbito) y lo que recibe la navegación (INavigationAware) se queda en Prism hasta un paso posterior.
+    /// Cubre navegar a una vista por nombre y, desde el paso 3, saber cuál es la vista activa de una
+    /// región y cerrarla. Lo que añade vistas a mano (pestañas nuevas, los maestro-detalle de
+    /// PedidoVenta y PedidoCompra con RegionManager con ámbito) y lo que recibe la navegación
+    /// (INavigationAware) sigue en Prism.
     /// </summary>
     public interface IServicioNavegacion
     {
         void RequestNavigate(string regionName, string source);
         void RequestNavigate(string regionName, string source, ParametrosNavegacion parameters);
+
+        /// <summary>La vista activa de la región; null si no hay ninguna o la región no existe. Nunca lanza.</summary>
+        object VistaActiva(string regionName);
+
+        /// <summary>Cierra la vista activa de la región (la desactiva y la quita), si la hay.</summary>
+        void CerrarVistaActiva(string regionName);
     }
 
     /// <summary>

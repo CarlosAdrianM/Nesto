@@ -1,5 +1,4 @@
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,17 +28,17 @@ namespace ControlesUsuario.Dialogs
 
         private readonly INovedadesService _novedadesService;
         private readonly IServicioDialogos _dialogService;
-        private readonly IRegionManager _regionManager;
+        private readonly IServicioNavegacion _navegacion;
 
         public AbridorNovedades(INovedadesService novedadesService, IServicioDialogos dialogService)
             : this(novedadesService, dialogService, null) { }
 
         /// <summary>El que usa el contenedor. NestoAPI#558: con la región principal se sabe qué pantalla había abierta.</summary>
-        public AbridorNovedades(INovedadesService novedadesService, IServicioDialogos dialogService, IRegionManager regionManager)
+        public AbridorNovedades(INovedadesService novedadesService, IServicioDialogos dialogService, IServicioNavegacion navegacion)
         {
             _novedadesService = novedadesService ?? throw new ArgumentNullException(nameof(novedadesService));
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-            _regionManager = regionManager;
+            _navegacion = navegacion;
         }
 
         /// <summary>
@@ -50,11 +49,7 @@ namespace ControlesUsuario.Dialogs
         {
             try
             {
-                if (_regionManager == null || !_regionManager.Regions.ContainsRegionWithName(REGION_PRINCIPAL))
-                {
-                    return null;
-                }
-                return NombrePantalla(_regionManager.Regions[REGION_PRINCIPAL].ActiveViews.FirstOrDefault());
+                return NombrePantalla(_navegacion?.VistaActiva(REGION_PRINCIPAL));
             }
             catch (Exception)
             {

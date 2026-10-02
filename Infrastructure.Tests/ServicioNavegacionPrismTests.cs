@@ -4,6 +4,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
 using Prism.Regions;
 using System;
+using System.Collections.Generic;
 
 namespace Nesto.Infrastructure.Tests
 {
@@ -67,6 +68,56 @@ namespace Nesto.Infrastructure.Tests
         public void Constructor_SinRegionManager_Lanza()
         {
             Assert.ThrowsException<ArgumentNullException>(() => new ServicioNavegacionPrism(null));
+        }
+
+        [TestMethod]
+        public void VistaActiva_DevuelveLaPrimeraVistaActivaDeLaRegion()
+        {
+            var vista = new object();
+            ConfigurarRegion("MainRegion", vista);
+
+            Assert.AreSame(vista, _servicio.VistaActiva("MainRegion"));
+        }
+
+        [TestMethod]
+        public void VistaActiva_SiLaRegionNoExiste_DevuelveNull()
+        {
+            A.CallTo(() => _regionManager.Regions.ContainsRegionWithName("MainRegion")).Returns(false);
+
+            Assert.IsNull(_servicio.VistaActiva("MainRegion"));
+        }
+
+        [TestMethod]
+        public void CerrarVistaActiva_DesactivaYQuitaLaVistaActiva()
+        {
+            var vista = new object();
+            IRegion region = ConfigurarRegion("MainRegion", vista);
+
+            _servicio.CerrarVistaActiva("MainRegion");
+
+            A.CallTo(() => region.Deactivate(vista)).MustHaveHappenedOnceExactly()
+                .Then(A.CallTo(() => region.Remove(vista)).MustHaveHappenedOnceExactly());
+        }
+
+        [TestMethod]
+        public void CerrarVistaActiva_SinVistaActiva_NoQuitaNada()
+        {
+            IRegion region = ConfigurarRegion("MainRegion");
+
+            _servicio.CerrarVistaActiva("MainRegion");
+
+            A.CallTo(() => region.Remove(A<object>._)).MustNotHaveHappened();
+        }
+
+        private IRegion ConfigurarRegion(string nombre, params object[] activas)
+        {
+            var region = A.Fake<IRegion>();
+            var vistas = A.Fake<IViewsCollection>();
+            A.CallTo(() => vistas.GetEnumerator()).ReturnsLazily(() => new List<object>(activas).GetEnumerator());
+            A.CallTo(() => region.ActiveViews).Returns(vistas);
+            A.CallTo(() => _regionManager.Regions.ContainsRegionWithName(nombre)).Returns(true);
+            A.CallTo(() => _regionManager.Regions[nombre]).Returns(region);
+            return region;
         }
     }
 }

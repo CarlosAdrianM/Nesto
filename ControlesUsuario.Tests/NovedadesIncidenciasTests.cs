@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -154,15 +153,10 @@ namespace ControlesUsuario.Tests
             A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
                 .Invokes((string nombre, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
             A.CallTo(() => servicio.ObtenerNovedades(null)).Returns(Task.FromResult(new List<NovedadUsuario>()));
-            var regionManager = A.Fake<IRegionManager>();
-            var region = A.Fake<IRegion>();
-            var vistas = A.Fake<IViewsCollection>();
-            A.CallTo(() => regionManager.Regions.ContainsRegionWithName("MainRegion")).Returns(true);
-            A.CallTo(() => regionManager.Regions["MainRegion"]).Returns(region);
-            A.CallTo(() => region.ActiveViews).Returns(vistas);
-            A.CallTo(() => vistas.GetEnumerator()).ReturnsLazily(() => new List<object> { new PlantillaVentaView() }.GetEnumerator());
+            var navegacion = A.Fake<IServicioNavegacion>();
+            A.CallTo(() => navegacion.VistaActiva("MainRegion")).Returns(new PlantillaVentaView());
 
-            await new AbridorNovedades(servicio, dialogos, regionManager).Abrir();
+            await new AbridorNovedades(servicio, dialogos, navegacion).Abrir();
 
             Assert.AreEqual("PlantillaVenta", parametros.GetValue<string>(NovedadesDialogViewModel.PARAMETRO_PANTALLA));
         }

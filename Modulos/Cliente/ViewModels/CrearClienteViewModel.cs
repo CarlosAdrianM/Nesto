@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.VisualBasic;
 using Nesto.Models.Nesto.Models;
 using System;
@@ -23,16 +23,16 @@ namespace Nesto.Modulos.Cliente
         public const string DATOS_COMISIONES = "DatosComisiones";
         private const string DATOS_PAGO = "DatosPago";
         private const string DATOS_CONTACTO = "DatosContacto";
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         public IConfiguracion Configuracion { get; set; }
         private IClienteService Servicio { get; }
 
         private IMessenger Messenger { get; }
         private IServicioDialogos DialogService { get; }
 
-        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService)
+        public CrearClienteViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
             Servicio = servicio;
             Messenger = messenger;
@@ -694,27 +694,27 @@ namespace Nesto.Modulos.Cliente
         public ICommand AbrirModuloCommand { get; private set; }
         private void OnAbrirModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "CrearClienteView");
+            Navegacion.RequestNavigate("MainRegion", "CrearClienteView");
         }
 
         public ICommand AbrirModelo347Command { get; private set; }
         private void OnAbrirModelo347()
         {
-            RegionManager.RequestNavigate("MainRegion", "Modelo347View");
+            Navegacion.RequestNavigate("MainRegion", "Modelo347View");
         }
 
         // Nesto#419: ventana de Extracto de Cliente (v1 = consultar pendientes + liquidar)
         public ICommand AbrirExtractoClienteCommand { get; private set; }
         private void OnAbrirExtractoCliente()
         {
-            RegionManager.RequestNavigate("MainRegion", "ExtractoClienteView");
+            Navegacion.RequestNavigate("MainRegion", "ExtractoClienteView");
         }
 
         // Nesto#417: clientes con NIF incorrecto para Verifactu, con corrección rápida
         public ICommand AbrirNifIncorrectosCommand { get; private set; }
         private void OnAbrirNifIncorrectos()
         {
-            RegionManager.RequestNavigate("MainRegion", "ClientesNifIncorrectosView");
+            Navegacion.RequestNavigate("MainRegion", "ClientesNifIncorrectosView");
         }
 
         // Nesto#442: mantenimiento de códigos postales, solo Dirección y Tienda online
@@ -726,7 +726,7 @@ namespace Nesto.Modulos.Cliente
         }
         private void OnAbrirCodigosPostales()
         {
-            RegionManager.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
+            Navegacion.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }
@@ -837,12 +837,7 @@ namespace Nesto.Modulos.Cliente
                     }
                 }
                 
-                var view = RegionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
-                if (view != null)
-                {
-                    RegionManager.Regions["MainRegion"].Deactivate(view);
-                    RegionManager.Regions["MainRegion"].Remove(view);
-                }
+                Navegacion.CerrarVistaActiva("MainRegion");
             } catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
