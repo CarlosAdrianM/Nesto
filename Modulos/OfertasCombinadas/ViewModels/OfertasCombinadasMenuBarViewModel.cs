@@ -1,19 +1,18 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 {
     public class OfertasCombinadasMenuBarViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
 
-        public OfertasCombinadasMenuBarViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public OfertasCombinadasMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
 
             AbrirModuloOfertasCombinadasCommand = new RelayCommand(OnAbrirOfertasCombinadasModulo, CanAbrirModuloOfertasCombinadas);
@@ -28,7 +27,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
         private void OnAbrirOfertasCombinadasModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "OfertasCombinadasView");
+            Navegacion.RequestNavigate("MainRegion", "OfertasCombinadasView");
         }
     }
 }

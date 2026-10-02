@@ -1,18 +1,17 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.Cajas
 {
     public class CajasMenuBarViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
-        public CajasMenuBarViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public CajasMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
 
             AbrirModuloCajasCommand = new RelayCommand(OnAbrirCajasModulo, CanAbrirModuloCajas);
@@ -31,7 +30,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirCajasModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "CajasView");
+            Navegacion.RequestNavigate("MainRegion", "CajasView");
         }
 
         public ICommand AbrirModuloBancosCommand { get; private set; }
@@ -41,7 +40,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirBancosModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "BancosView");
+            Navegacion.RequestNavigate("MainRegion", "BancosView");
         }
 
         public ICommand AbrirModuloMayorCuentaCommand { get; private set; }
@@ -51,7 +50,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirMayorCuentaModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "MayorCuentaView");
+            Navegacion.RequestNavigate("MainRegion", "MayorCuentaView");
         }
 
         // NestoAPI#522: facturas pendientes de Verifactu, para Administración y Dirección
@@ -63,7 +62,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirFacturasVerifactu()
         {
-            RegionManager.RequestNavigate("MainRegion", Cajas.FACTURAS_PENDIENTES_VERIFACTU_VIEW);
+            Navegacion.RequestNavigate("MainRegion", Cajas.FACTURAS_PENDIENTES_VERIFACTU_VIEW);
         }
 
         // Nesto#261: auditoría de enlaces de pago, para Administración y Dirección (la API tampoco deja a nadie más)
@@ -75,7 +74,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirAuditoriaEnlacesPago()
         {
-            RegionManager.RequestNavigate("MainRegion", Cajas.AUDITORIA_ENLACES_PAGO_VIEW);
+            Navegacion.RequestNavigate("MainRegion", Cajas.AUDITORIA_ENLACES_PAGO_VIEW);
         }
     }
 }

@@ -1,24 +1,24 @@
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using Nesto.Modulos.Cajas;
 
 namespace CajasTests
 {
     /// <summary>
     /// Nesto#490 (4C.4): qué vista abre cada botón del menú. Se escribieron contra el IRegionManager
-    /// de Prism ANTES de migrar la navegación, para que la migración no cambie nada.
+    /// de Prism ANTES de migrar la navegación (commit 33c736cb) y, al pasar el menú a
+    /// IServicioNavegacion, solo ha cambiado el tipo del fake: mismas regiones y mismas vistas.
     /// </summary>
     [TestClass]
     public class CajasMenuBarViewModelNavegacionTests
     {
-        private IRegionManager _navegacion = null!;
+        private IServicioNavegacion _navegacion = null!;
         private CajasMenuBarViewModel _menu = null!;
 
         [TestInitialize]
         public void Inicializar()
         {
-            _navegacion = A.Fake<IRegionManager>();
+            _navegacion = A.Fake<IServicioNavegacion>();
             _menu = new CajasMenuBarViewModel(_navegacion, A.Fake<IConfiguracion>());
         }
 

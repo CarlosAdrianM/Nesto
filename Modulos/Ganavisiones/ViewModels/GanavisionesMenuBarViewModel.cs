@@ -1,19 +1,18 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.Ganavisiones.ViewModels
 {
     public class GanavisionesMenuBarViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
 
-        public GanavisionesMenuBarViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public GanavisionesMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
 
             AbrirModuloGanavisionesCommand = new RelayCommand(OnAbrirGanavisionesModulo, CanAbrirModuloGanavisiones);
@@ -29,7 +28,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
 
         private void OnAbrirGanavisionesModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "GanavisionesView");
+            Navegacion.RequestNavigate("MainRegion", "GanavisionesView");
         }
     }
 }

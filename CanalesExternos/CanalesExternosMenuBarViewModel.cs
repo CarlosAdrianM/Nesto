@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System.Windows.Input;
 using Nesto.Infrastructure.Shared;
 using Nesto.Infrastructure.Contracts;
@@ -8,11 +7,11 @@ namespace Nesto.Modulos.CanalesExternos
 {
     public class CanalesExternosMenuBarViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
-        public CanalesExternosMenuBarViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public CanalesExternosMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
 
             AbrirModuloPedidosCommand = new RelayCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
@@ -30,7 +29,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirModuloFacturas()
         {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosFacturasView");
+            Navegacion.RequestNavigate("MainRegion", "CanalesExternosFacturasView");
         }
 
         public ICommand AbrirModuloCuadreFacturasCommand { get; private set; }
@@ -40,7 +39,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirModuloCuadreFacturas()
         {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosCuadreFacturasView");
+            Navegacion.RequestNavigate("MainRegion", "CanalesExternosCuadreFacturasView");
         }
 
         public ICommand AbrirModuloPedidosCommand { get; private set; }
@@ -50,7 +49,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirPedidosModulo()
         {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosPedidosView");
+            Navegacion.RequestNavigate("MainRegion", "CanalesExternosPedidosView");
         }
 
         public ICommand AbrirModuloPagosCommand { get; private set; }
@@ -60,7 +59,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirModuloPagos()
         {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosPagosView");
+            Navegacion.RequestNavigate("MainRegion", "CanalesExternosPagosView");
         }
 
 
@@ -71,7 +70,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirModuloProductos()
         {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosProductosView");
+            Navegacion.RequestNavigate("MainRegion", "CanalesExternosProductosView");
         }
 
         public ICommand AbrirModuloPoisonPillsCommand { get; private set; }
@@ -81,7 +80,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private void OnAbrirModuloPoisonPills()
         {
-            RegionManager.RequestNavigate("MainRegion", "PoisonPillsView");
+            Navegacion.RequestNavigate("MainRegion", "PoisonPillsView");
         }
     }
 }

@@ -1,18 +1,17 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System.Windows.Input;
 
 namespace Nesto.Modules.Producto
 {
     public class ProductoMenuBarViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
+        private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
-        public ProductoMenuBarViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public ProductoMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
         {
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             Configuracion = configuracion;
 
             AbrirModuloFichaCommand = new RelayCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
@@ -26,7 +25,7 @@ namespace Nesto.Modules.Producto
         }
         private void OnAbrirModuloFicha()
         {
-            RegionManager.RequestNavigate("MainRegion", "ProductoView");
+            Navegacion.RequestNavigate("MainRegion", "ProductoView");
         }
 
         public ICommand AbrirModuloReposicionCommand { get; private set; }
@@ -36,7 +35,7 @@ namespace Nesto.Modules.Producto
         }
         private void OnAbrirModuloReposicion()
         {
-            RegionManager.RequestNavigate("MainRegion", "ReposicionView");
+            Navegacion.RequestNavigate("MainRegion", "ReposicionView");
         }
     }
 }
