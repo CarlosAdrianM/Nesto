@@ -89,8 +89,10 @@ Public Class RemesasViewModel
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
-    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, remesasService As IRemesasService)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, remesasService As IRemesasService,
+                   Optional regionManager As IRegionManager = Nothing)
         Titulo = "Remesas"
+        _regionManager = regionManager
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         _remesasService = remesasService
