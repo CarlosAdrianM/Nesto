@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -44,7 +43,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             SelectorDireccionEntrega sut = null;
@@ -52,7 +51,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Empresa debería llamar a cargarDatos() directamente
                 // (sin debouncing, según línea 226 de SelectorDireccionEntrega.xaml.cs)
@@ -79,14 +78,14 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             string resultado = null;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Cliente debería usar ResetTimer() para debouncing
                 // (100ms delay, según líneas 128-130 y 337-348)
@@ -111,14 +110,14 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             decimal resultado = 0;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar TotalPedido debería llamar a cargarDatos()
                 // (según líneas 290-297)
@@ -145,7 +144,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             DireccionesEntregaCliente direccionTest = new DireccionesEntregaCliente
@@ -160,7 +159,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
 
                 // Inicializar la lista para evitar NullReferenceException
                 sut.listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>
@@ -194,14 +193,14 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             string resultado = null;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Seleccionada con espacios debería trimmearse
                 // (según OnSeleccionadaChanged, líneas 252-257)
@@ -236,7 +235,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             SelectorDireccionEntrega sut = null;
@@ -244,7 +243,7 @@ namespace ControlesUsuario.Tests
             Thread thread = new Thread(() =>
             {
                 // Act
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
@@ -420,7 +419,7 @@ namespace ControlesUsuario.Tests
             // Arrange: el servicio lanza al obtener direcciones (p.ej. 500 o error de red)
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
             A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>._, A<string>._, A<decimal?>._))
                 .Throws(new Exception("boom API"));
@@ -430,7 +429,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioDirecciones);
+                var sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioDirecciones);
                 sut.Empresa = "1";
                 sut.Cliente = "10";
 

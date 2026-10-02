@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -75,7 +74,7 @@ namespace ControlesUsuario.Tests
             SelectorCliente sut = null;
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             A.CallTo(() => servicio.CargarCliente(A<string>._, A<string>._, A<string>._)).Returns(new ClienteDTO
             {
                 cliente = "10",
@@ -90,7 +89,7 @@ namespace ControlesUsuario.Tests
             Thread thread = new Thread(() =>
             {
                 // Establecer los enlaces en el control de usuario
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 BindingOperations.SetBinding(sut, SelectorCliente.ClienteProperty, clienteBinding);
                 BindingOperations.SetBinding(sut, SelectorCliente.ContactoProperty, contactoBinding);
 
@@ -116,7 +115,7 @@ namespace ControlesUsuario.Tests
             SelectorCliente sut = null;
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             A.CallTo(() => servicio.CargarCliente(A<string>._, A<string>._, A<string>._)).Returns(new ClienteDTO
             {
                 cliente = "10",
@@ -133,7 +132,7 @@ namespace ControlesUsuario.Tests
                 var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };
                 // Establecer los enlaces en el control de usuario
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 BindingOperations.SetBinding(sut, SelectorCliente.ClienteProperty, clienteBinding);
                 BindingOperations.SetBinding(sut, SelectorCliente.ContactoProperty, contactoBinding);
 
@@ -159,7 +158,7 @@ namespace ControlesUsuario.Tests
             SelectorCliente sut = null;
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             A.CallTo(() => servicio.CargarCliente("1", "10000", A<string>._)).Returns(new ClienteDTO
             {
                 empresa = "1",
@@ -184,7 +183,7 @@ namespace ControlesUsuario.Tests
                 var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };
                 // Establecer los enlaces en el control de usuario
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 BindingOperations.SetBinding(sut, SelectorCliente.ClienteProperty, clienteBinding);
                 BindingOperations.SetBinding(sut, SelectorCliente.ContactoProperty, contactoBinding);
 
@@ -218,7 +217,7 @@ namespace ControlesUsuario.Tests
             SelectorCliente sut = null;
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             SelectorClienteViewModel vm = new SelectorClienteViewModel(configuracion, servicio);
             List<PedidoVentaDTO> listaPedidos = new List<PedidoVentaDTO>();
             PedidoFiltrableSeleccionado = new();
@@ -229,7 +228,7 @@ namespace ControlesUsuario.Tests
                 var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };
                 // Establecer los enlaces en el control de usuario
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 BindingOperations.SetBinding(sut, SelectorCliente.ClienteProperty, clienteBinding);
                 BindingOperations.SetBinding(sut, SelectorCliente.ContactoProperty, contactoBinding);
 
@@ -255,7 +254,7 @@ namespace ControlesUsuario.Tests
             SelectorCliente sut = null;
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             A.CallTo(() => servicio.CargarCliente(A<string>._, A<string>._, A<string>._)).Returns(new ClienteDTO
             {
                 cliente = "10000",
@@ -270,7 +269,7 @@ namespace ControlesUsuario.Tests
                 var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };
                 // Establecer los enlaces en el control de usuario
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 BindingOperations.SetBinding(sut, SelectorCliente.ClienteProperty, clienteBinding);
                 BindingOperations.SetBinding(sut, SelectorCliente.ContactoProperty, contactoBinding);
 
@@ -332,7 +331,7 @@ namespace ControlesUsuario.Tests
                     contacto = "1"
                 }
             });
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             SelectorClienteViewModel vm = new SelectorClienteViewModel(configuracion, servicio);            
             PedidoFiltrable pedidoSeleccionadoInicial = new PedidoFiltrable
             {
@@ -354,7 +353,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 // Crear los enlaces con las dependency properties del control de usuario
                 var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };
@@ -440,7 +439,7 @@ namespace ControlesUsuario.Tests
                     contacto = "1"
                 }
             });
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             SelectorClienteViewModel vm = new SelectorClienteViewModel(configuracion, servicio);
             PedidoFiltrable pedidoSeleccionadoInicial = new PedidoFiltrable
             {
@@ -466,7 +465,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorCliente(vm, regionManager);
+                sut = new SelectorCliente(vm, navegacion);
                 // Crear los enlaces con las dependency properties del control de usuario
                 var clienteBinding = new Binding("MiColeccionFiltrable.ElementoSeleccionado.Cliente") { Source = this };
                 var contactoBinding = new Binding("MiColeccionFiltrable.ElementoSeleccionado.Contacto") { Source = this };
@@ -547,7 +546,7 @@ namespace ControlesUsuario.Tests
         //            contacto = "2"
         //        }
         //    });
-        //    IRegionManager regionManager = A.Fake<IRegionManager>();
+        //    IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
         //    SelectorClienteViewModel vm = new SelectorClienteViewModel(configuracion, servicio);
         //    PedidoFiltrable pedidoSeleccionadoInicial = new PedidoFiltrable
         //    {
@@ -569,7 +568,7 @@ namespace ControlesUsuario.Tests
 
         //    Thread thread = new Thread(() =>
         //    {
-        //        sut = new SelectorCliente(vm, regionManager);
+        //        sut = new SelectorCliente(vm, navegacion);
         //        // Crear los enlaces con las dependency properties del control de usuario
         //        var clienteBinding = new Binding("PedidoFiltrableSeleccionado.Cliente") { Source = this };
         //        var contactoBinding = new Binding("PedidoFiltrableSeleccionado.Contacto") { Source = this };

@@ -2,8 +2,8 @@ using FakeItEasy;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Regions;
 using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 
 namespace Producto.Tests
 {
@@ -11,15 +11,15 @@ namespace Producto.Tests
     public class CorreccionVideoProductoViewModelTests
     {
         private IProductoService _productoService = null!;
-        private IRegionManager _regionManager = null!;
+        private IServicioNavegacion _navegacion = null!;
         private CorreccionVideoProductoViewModel _sut = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _productoService = A.Fake<IProductoService>();
-            _regionManager = A.Fake<IRegionManager>();
-            _sut = new CorreccionVideoProductoViewModel(_productoService, _regionManager);
+            _navegacion = A.Fake<IServicioNavegacion>();
+            _sut = new CorreccionVideoProductoViewModel(_productoService, _navegacion);
         }
 
         private void AnadirEditable(string? referencia, string? nombreVideo = "Alta Frecuencia")

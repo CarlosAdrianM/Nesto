@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
@@ -39,7 +38,7 @@ namespace ControlesUsuario.Notificaciones
         private readonly IBuzonNotificacionesService _buzon;
         private readonly IServicioDialogos _dialogService;
         private readonly IAbridorNovedades _abridorNovedades;
-        private readonly IRegionManager _regionManager;
+        private readonly IServicioNavegacion _navegacion;
         private readonly IAbridorPedidos _abridorPedidos;
         private readonly Func<DateTime> _ahora;
         private readonly Random _azar;
@@ -49,17 +48,17 @@ namespace ControlesUsuario.Notificaciones
         private DateTime _ultimoRefrescoPorFoco = DateTime.MinValue;
 
         public CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IServicioDialogos dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades, IRegionManager regionManager, IAbridorPedidos abridorPedidos)
-            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), regionManager, abridorPedidos) { }
+            IAbridorNovedades abridorNovedades, IServicioNavegacion navegacion, IAbridorPedidos abridorPedidos)
+            : this(buzon, dialogService, avisos, abridorNovedades, () => DateTime.Now, new Random(), navegacion, abridorPedidos) { }
 
         internal CampanaNotificacionesViewModel(IBuzonNotificacionesService buzon, IServicioDialogos dialogService, IAvisosEnTiempoReal avisos,
-            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IRegionManager regionManager = null,
+            IAbridorNovedades abridorNovedades, Func<DateTime> ahora, Random azar, IServicioNavegacion navegacion = null,
             IAbridorPedidos abridorPedidos = null)
         {
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _dialogService = dialogService;
             _abridorNovedades = abridorNovedades;
-            _regionManager = regionManager;
+            _navegacion = navegacion;
             _abridorPedidos = abridorPedidos;
             _ahora = ahora ?? (() => DateTime.Now);
             _azar = azar ?? new Random();
@@ -299,10 +298,10 @@ namespace ControlesUsuario.Notificaciones
             }
             // NestoAPI#522: el recordatorio diario de administración abre la ventana de facturas pendientes de
             // Verifactu (módulo Cajas). Si ya está abierta, se reutiliza la pestaña y se recarga.
-            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_FACTURAS_PENDIENTES_VERIFACTU && _regionManager != null)
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_FACTURAS_PENDIENTES_VERIFACTU && _navegacion != null)
             {
                 PanelAbierto = false;
-                _regionManager.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU);
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU);
                 return;
             }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)

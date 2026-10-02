@@ -1,5 +1,4 @@
 ﻿using ControlesUsuario.Models;
-using Prism.Regions;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -23,23 +22,23 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorCliente : UserControl, INotifyPropertyChanged
     {
-        private readonly IRegionManager regionManager;
+        private readonly IServicioNavegacion navegacion;
         private DispatcherTimer timer;
         private SelectorClienteViewModel vm;
 
         // Nesto#490 (4C.3): el selector se crea desde XAML, así que el ViewModel se resuelve aquí
         // del contenedor (antes lo hacía el ViewModelLocator de Prism durante InitializeComponent).
         public SelectorCliente()
-            : this(ContainerLocator.Container.Resolve<SelectorClienteViewModel>(), ContainerLocator.Container.Resolve<IRegionManager>())
+            : this(ContainerLocator.Container.Resolve<SelectorClienteViewModel>(), ContainerLocator.Container.Resolve<IServicioNavegacion>())
         {
         }
 
-        public SelectorCliente(SelectorClienteViewModel vm, IRegionManager regionManager)
+        public SelectorCliente(SelectorClienteViewModel vm, IServicioNavegacion navegacion)
         {
             InitializeComponent();
             DataContext = vm;
             PrepararSelectorCliente();
-            this.regionManager = regionManager;
+            this.navegacion = navegacion;
         }
 
 
@@ -494,12 +493,12 @@ namespace ControlesUsuario
 
         private void btnButtonEditar_Click(object sender, RoutedEventArgs e)
         {
-            var parameters = new NavigationParameters();
+            var parameters = new ParametrosNavegacion();
             ClienteDTO curItem = ((ListViewItem)lstClientes.ContainerFromElement((Button)sender)).Content as ClienteDTO;
             parameters.Add("empresaParameter", curItem.empresa);
             parameters.Add("clienteParameter", curItem.cliente);
             parameters.Add("contactoParameter", curItem.contacto);
-            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
+            navegacion.RequestNavigate("MainRegion", "CrearClienteView", parameters);
         }
 
         public int NumeroDeDirecciones() => selectorEntrega.listaDireccionesEntrega is null || selectorEntrega.listaDireccionesEntrega.Lista is null ? 

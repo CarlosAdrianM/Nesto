@@ -5,7 +5,6 @@ using Nesto.Modulos.Ganavisiones.Models;
 using Nesto.Modulos.Ganavisiones.ViewModels;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -21,14 +20,14 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         private readonly IGanavisionesService _ganavisionesService;
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDialogos _dialogService;
-        private readonly IRegionManager _regionManager;
+        private readonly IServicioNavegacion _navegacion;
 
-        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IServicioDialogos dialogService, IRegionManager regionManager)
+        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IServicioDialogos dialogService, IServicioNavegacion navegacion)
         {
             _ganavisionesService = ganavisionesService;
             _configuracion = configuracion;
             _dialogService = dialogService;
-            _regionManager = regionManager;
+            _navegacion = navegacion;
 
             Ganavisiones = new ObservableCollection<GanavisionWrapper>();
 
@@ -299,11 +298,11 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         private void OnAbrirProducto(GanavisionWrapper ganavision)
         {
             if (ganavision == null || string.IsNullOrWhiteSpace(ganavision.ProductoId)) return;
-            var parameters = new NavigationParameters
+            var parameters = new ParametrosNavegacion
             {
                 { "numeroProductoParameter", ganavision.ProductoId.Trim() }
             };
-            _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+            _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
         #endregion

@@ -25,17 +25,17 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     {
         public IPedidoCompraService Servicio { get; }
         public IServicioDialogos DialogService { get; }
-        public IRegionManager RegionManager { get; }
+        public IServicioNavegacion Navegacion { get; }
         public IConfiguracion Configuracion { get; }
         private IMessenger Messenger { get; }
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IServicioDialogos dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IMessenger messenger, IServicioAutenticacion servicioAutenticacion)
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IServicioDialogos dialogService, IServicioNavegacion navegacion, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IMessenger messenger, IServicioAutenticacion servicioAutenticacion)
         {
             Servicio = servicio;
             DialogService = dialogService;
-            RegionManager = regionManager;
+            Navegacion = navegacion;
             InteractiveBrowserCredential = interactiveBrowserCredential;
             Configuracion = configuracion;
             Messenger = messenger;
@@ -142,11 +142,11 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             {
                 return;
             }
-            NavigationParameters parameters = new()
+            ParametrosNavegacion parameters = new()
             {
                 { "numeroProductoParameter", linea.Producto }
             };
-            RegionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+            Navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
         public ICommand EnviarPedidoCommand { get; private set; }

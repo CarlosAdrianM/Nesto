@@ -21,16 +21,16 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IProductoService _servicio;
         private readonly IServicioDialogos _dialogService;
         private readonly IConfiguracion _configuracion;
-        private readonly IRegionManager _regionManager;
+        private readonly IServicioNavegacion _navegacion;
 
         private const int VIDEOS_POR_PAGINA = 20;
 
-        public VideosViewModel(IProductoService servicio, IServicioDialogos dialogService, IConfiguracion configuracion, IRegionManager regionManager)
+        public VideosViewModel(IProductoService servicio, IServicioDialogos dialogService, IConfiguracion configuracion, IServicioNavegacion navegacion)
         {
             _servicio = servicio;
             _dialogService = dialogService;
             _configuracion = configuracion;
-            _regionManager = regionManager;
+            _navegacion = navegacion;
 
             CargarMasVideosCommand = new RelayCommand(OnCargarMasVideos, CanCargarMasVideos);
             BuscarCommand = new RelayCommand(OnBuscar, CanBuscar);
@@ -266,11 +266,11 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             if (!string.IsNullOrEmpty(productoId))
             {
-                var parameters = new NavigationParameters
+                var parameters = new ParametrosNavegacion
                 {
                     { "numeroProductoParameter", productoId }
                 };
-                _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+                _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
             }
         }
 

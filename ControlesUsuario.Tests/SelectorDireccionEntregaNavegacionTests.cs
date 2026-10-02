@@ -6,7 +6,6 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models.Nesto.Models;
-using Prism.Regions;
 using System;
 using System.Reflection;
 using System.Threading;
@@ -17,7 +16,7 @@ namespace ControlesUsuario.Tests
     /// <summary>
     /// Nesto#490 (4C.4): «Crear contacto» del selector de direcciones abre la ficha de cliente nueva con el
     /// NIF y el nombre de la dirección. Escrita contra el IRegionManager de Prism ANTES de migrar la
-    /// navegación. El botón «Editar» de cada dirección busca su fila en la lista y no se puede probar sin pantalla.
+    /// navegación (d7b3b306); al pasar a IServicioNavegacion solo ha cambiado el tipo del fake. El botón «Editar» de cada dirección busca su fila en la lista y no se puede probar sin pantalla.
     /// </summary>
     [TestClass]
     public class SelectorDireccionEntregaNavegacionTests
@@ -25,10 +24,10 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public void CrearContacto_AbreLaFichaDeClienteConNifYNombre()
         {
-            var navegacion = A.Fake<IRegionManager>();
-            NavigationParameters recibidos = null;
-            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "CrearClienteView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
+            var navegacion = A.Fake<IServicioNavegacion>();
+            ParametrosNavegacion recibidos = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "CrearClienteView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => recibidos = p);
             Exception error = null;
 
             var hilo = new Thread(() =>

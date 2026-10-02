@@ -3,30 +3,30 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Regions;
 
 namespace Producto.Tests
 {
     /// <summary>
     /// Nesto#490 (4C.4): las pantallas de vídeos abren la ficha de productos. Escritas contra el
-    /// IRegionManager de Prism ANTES de migrar la navegación, para que la migración no cambie nada.
+    /// IRegionManager de Prism ANTES de migrar la navegación (d7b3b306); al pasar a
+    /// IServicioNavegacion solo ha cambiado el tipo del fake: mismas regiones, vistas y claves.
     /// </summary>
     [TestClass]
     public class ProductoNavegacionTests
     {
-        private IRegionManager _navegacion = null!;
+        private IServicioNavegacion _navegacion = null!;
         private IProductoService _servicio = null!;
-        private NavigationParameters? _recibidos;
+        private ParametrosNavegacion? _recibidos;
 
         [TestInitialize]
         public void Inicializar()
         {
-            _navegacion = A.Fake<IRegionManager>();
+            _navegacion = A.Fake<IServicioNavegacion>();
             _servicio = A.Fake<IProductoService>();
             A.CallTo(() => _servicio.CargarVideos(A<int>._, A<int>._)).Returns(Task.FromResult(new List<VideoLookupModel>()));
             _recibidos = null;
-            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => _recibidos = p);
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => _recibidos = p);
         }
 
         [TestMethod]

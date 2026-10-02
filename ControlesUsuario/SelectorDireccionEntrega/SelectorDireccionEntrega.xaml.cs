@@ -2,7 +2,6 @@
 using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
-using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -28,7 +27,7 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorDireccionEntrega : UserControl, INotifyPropertyChanged
     {
-        private readonly IRegionManager regionManager;
+        private readonly IServicioNavegacion navegacion;
         private readonly IMessenger messenger;
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDireccionesEntrega _servicioDirecciones; // Carlos 20/11/24: FASE 3 - Inyección de servicio
@@ -59,7 +58,7 @@ namespace ControlesUsuario
 
             try
             {
-                regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
+                navegacion = ContainerLocator.Container.Resolve<IServicioNavegacion>();
                 messenger = ContainerLocator.Container.Resolve<IMessenger>();
                 _configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
                 _servicioDirecciones = ContainerLocator.Container.Resolve<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
@@ -77,7 +76,7 @@ namespace ControlesUsuario
         /// Carlos 20/11/24: FASE 3 - Agregado parámetro servicioDirecciones para hacerlo testeable.
         /// </summary>
         public SelectorDireccionEntrega(
-            IRegionManager regionManager,
+            IServicioNavegacion navegacion,
             IMessenger messenger,
             IConfiguracion configuracion,
             IServicioDireccionesEntrega servicioDirecciones)
@@ -92,7 +91,7 @@ namespace ControlesUsuario
             listaDireccionesEntrega.VaciarAlSeleccionar = false;
             listaDireccionesEntrega.SeleccionarPrimerElemento = false;
 
-            this.regionManager = regionManager;
+            this.navegacion = navegacion;
             this.messenger = messenger;
             this._configuracion = configuracion;
             this._servicioDirecciones = servicioDirecciones; // Carlos 20/11/24: FASE 3
@@ -501,12 +500,12 @@ namespace ControlesUsuario
 
         private void btnButtonEditar_Click(object sender, RoutedEventArgs e)
         {
-            var parameters = new NavigationParameters();
+            var parameters = new ParametrosNavegacion();
             DireccionesEntregaCliente curItem = ((ListViewItem)lstDirecciones.ContainerFromElement((Button)sender)).Content as DireccionesEntregaCliente;
             parameters.Add("empresaParameter", Empresa);
             parameters.Add("clienteParameter", Cliente.Trim());
             parameters.Add("contactoParameter", curItem.contacto);
-            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
+            navegacion.RequestNavigate("MainRegion", "CrearClienteView", parameters);
         }
 
         private void btnCrearContacto_Click(object sender, RoutedEventArgs e)
@@ -515,10 +514,10 @@ namespace ControlesUsuario
             {
                 return;
             }
-            var parameters = new NavigationParameters();
+            var parameters = new ParametrosNavegacion();
             parameters.Add("nifParameter", DireccionCompleta.nif);
             parameters.Add("nombreParameter", DireccionCompleta.nombre);
-            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
+            navegacion.RequestNavigate("MainRegion", "CrearClienteView", parameters);
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)

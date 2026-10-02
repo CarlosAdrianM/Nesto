@@ -6,7 +6,6 @@ using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System.Collections.Generic;
 using System.Windows.Data;
 using System.Threading.Tasks;
@@ -30,7 +29,7 @@ namespace PedidoCompraTests
 
         private DetallePedidoCompraViewModel CrearVm()
         {
-            return new DetallePedidoCompraViewModel(_servicio, A.Fake<IServicioDialogos>(), A.Fake<IRegionManager>(), null,
+            return new DetallePedidoCompraViewModel(_servicio, A.Fake<IServicioDialogos>(), A.Fake<IServicioNavegacion>(), null,
                 A.Fake<IConfiguracion>(), new WeakReferenceMessenger(), A.Fake<IServicioAutenticacion>());
         }
 

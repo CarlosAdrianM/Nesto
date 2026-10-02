@@ -4,7 +4,6 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -35,7 +34,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direccionesEsperadas = new List<DireccionesEntregaCliente>
@@ -62,7 +61,7 @@ namespace ControlesUsuario.Tests
             // y luego Empresa (dispara carga inmediata), funciona correctamente.
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.Empresa = "1";  // Luego Empresa (dispara cargarDatos directamente)
 
@@ -89,7 +88,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direccionesEsperadas = new List<DireccionesEntregaCliente>
@@ -107,7 +106,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.Empresa = "1";  // Luego Empresa (dispara cargarDatos)
 
@@ -133,7 +132,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direcciones = new List<DireccionesEntregaCliente> { };
@@ -146,7 +145,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.TotalPedido = 150.75m;
                 sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
@@ -172,7 +171,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direcciones = new List<DireccionesEntregaCliente> { };
@@ -185,7 +184,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 sut.TotalPedido = 0; // Cero no se envía (se convertirá a null)
                 sut.Empresa = "1";   // Empresa al final (dispara cargarDatos)
@@ -215,7 +214,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direcciones = new List<DireccionesEntregaCliente>
@@ -244,7 +243,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Primero Cliente
                 // NO establecer Seleccionada ni DireccionCompleta
                 sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
@@ -275,7 +274,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             var direcciones = new List<DireccionesEntregaCliente>
@@ -303,7 +302,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Seleccionada = "5"; // Pre-seleccionar contacto 5
                 sut.Cliente = "10";     // Primero Cliente
                 sut.Empresa = "1";      // Empresa al final (dispara cargarDatos)
@@ -335,7 +334,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             A.CallTo(() => servicioMock.ObtenerDireccionesEntrega(A<string>._, A<string>._, A<decimal?>._))
@@ -349,7 +348,7 @@ namespace ControlesUsuario.Tests
             {
                 try
                 {
-                    sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                    sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                     sut.Cliente = "10"; // Primero Cliente
                     sut.Empresa = "1";  // Empresa al final (dispara cargarDatos)
 
@@ -386,7 +385,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
 
             SelectorDireccionEntrega sut = null;
             bool seLanzoExcepcion = false;
@@ -396,7 +395,7 @@ namespace ControlesUsuario.Tests
             {
                 try
                 {
-                    sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, null);
+                    sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, null);
                     sut.Cliente = "10"; // Primero Cliente
                     sut.Empresa = "1";  // Empresa al final
 
@@ -431,7 +430,7 @@ namespace ControlesUsuario.Tests
             // Arrange
             var configuracion = A.Fake<IConfiguracion>();
             var messenger = new WeakReferenceMessenger();
-            var regionManager = A.Fake<IRegionManager>();
+            var navegacion = A.Fake<IServicioNavegacion>();
             var servicioMock = A.Fake<IServicioDireccionesEntrega>();
 
             A.CallTo(() => servicioMock.ObtenerDireccionesEntrega(A<string>._, A<string>._, A<decimal?>._))
@@ -442,7 +441,7 @@ namespace ControlesUsuario.Tests
             // Act
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, messenger, configuracion, servicioMock);
+                sut = new SelectorDireccionEntrega(navegacion, messenger, configuracion, servicioMock);
                 sut.Cliente = "10"; // Establecer cliente primero
                 sut.Empresa = "1";  // Cambiar empresa llama directamente a cargarDatos (sin debouncing)
 

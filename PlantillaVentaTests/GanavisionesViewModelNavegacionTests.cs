@@ -3,33 +3,33 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Ganavisiones.Interfaces;
 using Nesto.Modulos.Ganavisiones.ViewModels;
-using Prism.Regions;
 
 namespace PlantillaVentaTests
 {
     /// <summary>
     /// Nesto#490 (4C.4): «Abrir producto» de Ganavisiones navega a la ficha del producto. Escritas contra el
-    /// IRegionManager de Prism ANTES de migrar la navegación, para que la migración no cambie nada.
+    /// IRegionManager de Prism ANTES de migrar la navegación (d7b3b306); al pasar a
+    /// IServicioNavegacion solo ha cambiado el tipo del fake: mismas regiones, vistas y claves.
     /// </summary>
     [TestClass]
     public class GanavisionesViewModelNavegacionTests
     {
-        private IRegionManager _navegacion = null!;
+        private IServicioNavegacion _navegacion = null!;
         private GanavisionesViewModel _vm = null!;
 
         [TestInitialize]
         public void Inicializar()
         {
-            _navegacion = A.Fake<IRegionManager>();
+            _navegacion = A.Fake<IServicioNavegacion>();
             _vm = new GanavisionesViewModel(A.Fake<IGanavisionesService>(), A.Fake<IConfiguracion>(), A.Fake<IServicioDialogos>(), _navegacion);
         }
 
         [TestMethod]
         public void AbrirProducto_AbreLaFichaDelProductoSinEspacios()
         {
-            NavigationParameters recibidos = null!;
-            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
+            ParametrosNavegacion recibidos = null!;
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => recibidos = p);
 
             _vm.AbrirProductoCommand.Execute(new GanavisionWrapper { ProductoId = " 12345 " });
 

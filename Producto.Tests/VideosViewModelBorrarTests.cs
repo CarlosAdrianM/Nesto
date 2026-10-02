@@ -4,7 +4,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Regions;
 
 namespace Producto.Tests
 {
@@ -27,7 +26,7 @@ namespace Producto.Tests
             _dialogos = A.Fake<IServicioDialogos>();
             _configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => _servicio.CargarVideos(A<int>._, A<int>._)).Returns(Task.FromResult(new List<VideoLookupModel>()));
-            _sut = new VideosViewModel(_servicio, _dialogos, _configuracion, A.Fake<IRegionManager>());
+            _sut = new VideosViewModel(_servicio, _dialogos, _configuracion, A.Fake<IServicioNavegacion>());
         }
 
         private void ConPermiso()
@@ -69,7 +68,7 @@ namespace Producto.Tests
             {
                 IConfiguracion configuracion = A.Fake<IConfiguracion>();
                 A.CallTo(() => configuracion.UsuarioEnGrupo(grupo)).Returns(true);
-                var sut = new VideosViewModel(_servicio, _dialogos, configuracion, A.Fake<IRegionManager>());
+                var sut = new VideosViewModel(_servicio, _dialogos, configuracion, A.Fake<IServicioNavegacion>());
                 Assert.IsTrue(sut.PuedeBorrarVideos, grupo);
             }
         }

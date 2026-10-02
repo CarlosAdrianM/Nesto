@@ -3,7 +3,6 @@ using ControlesUsuario.Notificaciones;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ namespace ControlesUsuario.Tests
         private IBuzonNotificacionesService buzon;
         private IServicioDialogos dialogos;
         private IAbridorNovedades abridorNovedades;
-        private IRegionManager regiones;
+        private IServicioNavegacion navegacion;
         private IAbridorPedidos abridorPedidos;
         private CampanaNotificacionesViewModel vm;
 
@@ -35,12 +34,12 @@ namespace ControlesUsuario.Tests
             buzon = A.Fake<IBuzonNotificacionesService>();
             dialogos = A.Fake<IServicioDialogos>();
             abridorNovedades = A.Fake<IAbridorNovedades>();
-            regiones = A.Fake<IRegionManager>();
+            navegacion = A.Fake<IServicioNavegacion>();
             abridorPedidos = A.Fake<IAbridorPedidos>();
             avisos = new AvisosFalsos();
             reloj = Ahora;
             A.CallTo(() => buzon.LeerBuzon(A<bool>._, A<int>._, A<int>._)).Returns(Task.FromResult(new List<NotificacionBuzon>()));
-            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1), regiones, abridorPedidos);
+            vm = new CampanaNotificacionesViewModel(buzon, dialogos, avisos, abridorNovedades, () => reloj, new Random(1), navegacion, abridorPedidos);
         }
 
         private AvisosFalsos avisos;
@@ -291,7 +290,7 @@ namespace ControlesUsuario.Tests
 
             A.CallTo(() => buzon.MarcarLeida(9)).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
-            A.CallTo(() => regiones.RequestNavigate("MainRegion", "FacturasPendientesVerifactuView")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "FacturasPendientesVerifactuView")).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.Notificaciones[0].Desplegada);
             A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
         }

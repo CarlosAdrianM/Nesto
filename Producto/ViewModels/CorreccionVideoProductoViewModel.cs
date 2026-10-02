@@ -1,26 +1,26 @@
 ﻿using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
     public class CorreccionVideoProductoViewModel : ObservableObject, IDialogAware
     {
         private readonly IProductoService _productoService;
-        private readonly IRegionManager _regionManager;
+        private readonly IServicioNavegacion _navegacion;
         private Action<IDialogResult> _requestClose;
 
-        public CorreccionVideoProductoViewModel(IProductoService productoService, IRegionManager regionManager)
+        public CorreccionVideoProductoViewModel(IProductoService productoService, IServicioNavegacion navegacion)
         {
             _productoService = productoService;
-            _regionManager = regionManager;
+            _navegacion = navegacion;
             ProductosEditables = [];
 
             GuardarCommand = new RelayCommand(OnGuardar, CanGuardar);
@@ -207,13 +207,13 @@ namespace Nesto.Modules.Producto.ViewModels
             // Cerramos el diálogo primero: navegar con el diálogo modal encima genera
             // experiencia confusa y no tenemos cambios sin guardar (los cambios se registran
             // vía ResumenCambios y el CanGuardar lo advertiría si los hubiese).
-            var parameters = new NavigationParameters
+            var parameters = new ParametrosNavegacion
             {
                 { "busquedaContextualParameter", nombre }
             };
 
             _requestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
-            _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+            _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
         private void OnAbrirVideo()

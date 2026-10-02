@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -98,7 +97,7 @@ namespace ControlesUsuario.Tests
                     var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
                     A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>.Ignored, A<string>.Ignored, A<decimal?>.Ignored))
                         .Returns(direcciones);
-                    var sut = new SelectorDireccionEntrega(A.Fake<IRegionManager>(), new WeakReferenceMessenger(), A.Fake<IConfiguracion>(), servicioDirecciones);
+                    var sut = new SelectorDireccionEntrega(A.Fake<IServicioNavegacion>(), new WeakReferenceMessenger(), A.Fake<IConfiguracion>(), servicioDirecciones);
 
                     // El servicio falso devuelve una tarea ya completada, así que el await no
                     // cambia de hilo y el control sigue en su hilo STA.
@@ -175,7 +174,7 @@ namespace ControlesUsuario.Tests
                     A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>.Ignored, A<string>.Ignored, A<decimal?>.Ignored))
                         .Returns(new[] { Direccion("0  ", porDefecto: true), Direccion("1  ") });
                     var messenger = new WeakReferenceMessenger();
-                    var sut = new SelectorDireccionEntrega(A.Fake<IRegionManager>(), messenger, A.Fake<IConfiguracion>(), servicioDirecciones);
+                    var sut = new SelectorDireccionEntrega(A.Fake<IServicioNavegacion>(), messenger, A.Fake<IConfiguracion>(), servicioDirecciones);
                     preparar(sut, messenger);
 
                     // Se entrega en el hilo de quien envía (como ThreadOption.PublisherThread de Prism) y,
