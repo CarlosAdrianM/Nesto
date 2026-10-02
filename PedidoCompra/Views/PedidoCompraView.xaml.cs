@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Nesto.Modulos.PedidoCompra.ViewModels;
 
 namespace Nesto.Modulos.PedidoCompra.Views
 {
@@ -26,9 +27,10 @@ namespace Nesto.Modulos.PedidoCompra.Views
         public IContainerProvider ContainerProvider { get; }
 
         private bool Cargado = false;
-        public PedidoCompraView(IContainerProvider containerProvider)
+        public PedidoCompraView(IContainerProvider containerProvider, PedidoCompraViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
             ContainerProvider = containerProvider;
         }
 

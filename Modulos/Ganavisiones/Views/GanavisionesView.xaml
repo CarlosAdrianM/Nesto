@@ -5,7 +5,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Nesto.Modulos.Ganavisiones.Views"
              xmlns:prism="http://prismlibrary.com/"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"

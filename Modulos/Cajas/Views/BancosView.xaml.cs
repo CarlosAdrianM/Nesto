@@ -22,9 +22,10 @@ namespace Nesto.Modulos.Cajas.Views
     /// </summary>
     public partial class BancosView : UserControl
     {
-        public BancosView()
+        public BancosView(BancosViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)

@@ -8,7 +8,6 @@
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:local="clr-namespace:Nesto.Modules.Producto.Views"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              d:DataContext="{d:DesignInstance Type=viewmodels:VideosViewModel}"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1200"

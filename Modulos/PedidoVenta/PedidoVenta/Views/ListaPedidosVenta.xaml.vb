@@ -1,6 +1,11 @@
 ﻿Imports Prism.Regions
 
 Public Class ListaPedidosVenta
+
+    Public Sub New(viewModel As ListaPedidosVentaViewModel)
+        InitializeComponent()
+        DataContext = viewModel
+    End Sub
     Private Sub txtFiltro_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltro.GotFocus
         txtFiltro.SelectAll()
     End Sub

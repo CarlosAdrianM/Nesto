@@ -17,9 +17,10 @@ namespace Nesto.Modules.Producto.Views
     {
         private VideosViewModel _viewModel;
 
-        public VideosView()
+        public VideosView(VideosViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)

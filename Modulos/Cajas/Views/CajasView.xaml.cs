@@ -12,9 +12,10 @@ namespace Nesto.Modulos.Cajas.Views
     /// </summary>
     public partial class CajasView : UserControl
     {
-        public CajasView()
+        public CajasView(CajasViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)

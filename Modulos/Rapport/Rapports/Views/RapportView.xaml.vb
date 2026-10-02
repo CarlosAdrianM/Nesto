@@ -2,10 +2,11 @@
 
 Public Class RapportView
 
-    Public Sub New()
+    Public Sub New(viewModel As RapportViewModel)
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
+        DataContext = viewModel
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
     End Sub
 End Class

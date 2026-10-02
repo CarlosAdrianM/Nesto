@@ -6,7 +6,6 @@
              xmlns:local="clr-namespace:Nesto.Modules.Producto.Views"
              xmlns:prism="http://prismlibrary.com/" xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels" 
              d:DataContext="{d:DesignInstance Type=viewmodels:ReposicionViewModel}"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Background="White">

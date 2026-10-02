@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using Nesto.Modulos.Cajas.ViewModels;
 
 namespace Nesto.Modulos.Cajas.Views
 {
@@ -7,9 +8,10 @@ namespace Nesto.Modulos.Cajas.Views
     /// </summary>
     public partial class FacturasPendientesVerifactuView : UserControl
     {
-        public FacturasPendientesVerifactuView()
+        public FacturasPendientesVerifactuView(FacturasPendientesVerifactuViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

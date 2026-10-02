@@ -1,8 +1,9 @@
 ﻿Class CarteraPagosView
-    Public Sub New()
+    Public Sub New(viewModel As CarteraPagosViewModel)
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
+        DataContext = viewModel
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
 

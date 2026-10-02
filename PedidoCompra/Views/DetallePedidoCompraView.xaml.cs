@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Nesto.Modulos.PedidoCompra.ViewModels;
 
 namespace Nesto.Modulos.PedidoCompra.Views
 {
@@ -24,9 +25,10 @@ namespace Nesto.Modulos.PedidoCompra.Views
     /// </summary>
     public partial class DetallePedidoCompraView : UserControl
     {
-        public DetallePedidoCompraView()
+        public DetallePedidoCompraView(DetallePedidoCompraViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 

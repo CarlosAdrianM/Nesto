@@ -14,9 +14,10 @@ namespace Nesto.Modulos.OfertasCombinadas.Views
         private OfertaCombinadaWrapper _itemPendienteFocoOfertas;
         private OfertaPermitidaFamiliaWrapper _itemPendienteFocoFamilia;
 
-        public OfertasCombinadasView()
+        public OfertasCombinadasView(OfertasCombinadasViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
             DataContextChanged += OnDataContextChanged;
             dgOfertasCombinadas.LoadingRow += OnLoadingRowOfertas;
             dgOfertasFamilia.LoadingRow += OnLoadingRowFamilia;

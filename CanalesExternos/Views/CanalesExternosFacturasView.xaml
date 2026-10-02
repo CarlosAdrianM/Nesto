@@ -5,7 +5,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:prism="http://prismlibrary.com/"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000" Language="es-ES">
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">

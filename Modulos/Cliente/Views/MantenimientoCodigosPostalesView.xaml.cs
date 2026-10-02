@@ -7,9 +7,10 @@ namespace Nesto.Modulos.Cliente
     /// </summary>
     public partial class MantenimientoCodigosPostalesView : UserControl
     {
-        public MantenimientoCodigosPostalesView()
+        public MantenimientoCodigosPostalesView(MantenimientoCodigosPostalesViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

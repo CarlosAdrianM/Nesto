@@ -13,9 +13,10 @@ namespace Nesto.Modulos.CanalesExternos.Views
     /// </summary>
     public partial class CanalesExternosPedidosView : UserControl
     {
-        public CanalesExternosPedidosView()
+        public CanalesExternosPedidosView(CanalesExternosPedidosViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {

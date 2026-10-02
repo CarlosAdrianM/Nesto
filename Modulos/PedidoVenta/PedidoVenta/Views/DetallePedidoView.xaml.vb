@@ -3,6 +3,11 @@ Imports System.Windows.Input
 Imports System.Windows.Threading
 
 Public Class DetallePedidoView
+
+    Public Sub New(viewModel As DetallePedidoViewModel)
+        InitializeComponent()
+        DataContext = viewModel
+    End Sub
     Private actualizarTotales As Boolean = False
     Private lineaEnEdicion As LineaPedidoVentaWrapper = Nothing
     ' Issue #258: Guardar el último tipoLinea usado para heredarlo en líneas nuevas

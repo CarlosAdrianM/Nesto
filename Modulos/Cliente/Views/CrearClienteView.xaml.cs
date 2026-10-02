@@ -12,9 +12,10 @@ namespace Nesto.Modulos.Cliente
     /// </summary>
     public partial class CrearClienteView : UserControl
     {
-        public CrearClienteView()
+        public CrearClienteView(CrearClienteViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
             Loaded += (s, e) =>
             {
                 Dispatcher.BeginInvoke(DispatcherPriority.Input,

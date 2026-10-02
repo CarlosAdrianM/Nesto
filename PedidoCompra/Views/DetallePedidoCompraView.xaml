@@ -10,8 +10,7 @@
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoCompra.Views"
              d:DataContext="{d:DesignInstance Type=viewmodels:DetallePedidoCompraViewModel}"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800"
-             prism:ViewModelLocator.AutoWireViewModel="True">
+             d:DesignHeight="450" d:DesignWidth="800">
 
     <Grid>
         <Grid.RowDefinitions>

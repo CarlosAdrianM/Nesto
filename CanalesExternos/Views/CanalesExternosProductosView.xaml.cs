@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using Nesto.Modulos.CanalesExternos.ViewModels;
 
 namespace Nesto.Modulos.CanalesExternos.Views
 {
@@ -7,9 +8,10 @@ namespace Nesto.Modulos.CanalesExternos.Views
     /// </summary>
     public partial class CanalesExternosProductosView : UserControl
     {
-        public CanalesExternosProductosView()
+        public CanalesExternosProductosView(CanalesExternosProductosViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

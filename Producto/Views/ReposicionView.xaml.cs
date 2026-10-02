@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Nesto.Modules.Producto.ViewModels;
 
 namespace Nesto.Modules.Producto.Views
 {
@@ -20,9 +21,10 @@ namespace Nesto.Modules.Producto.Views
     /// </summary>
     public partial class ReposicionView : UserControl
     {
-        public ReposicionView()
+        public ReposicionView(ReposicionViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

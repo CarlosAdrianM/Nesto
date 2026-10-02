@@ -8,9 +8,10 @@ namespace Nesto.Modulos.Cliente
     /// </summary>
     public partial class Modelo347View : UserControl
     {
-        public Modelo347View()
+        public Modelo347View(Modelo347ViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

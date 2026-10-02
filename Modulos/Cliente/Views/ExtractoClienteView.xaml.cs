@@ -8,9 +8,10 @@ namespace Nesto.Modulos.Cliente
     /// </summary>
     public partial class ExtractoClienteView : UserControl
     {
-        public ExtractoClienteView()
+        public ExtractoClienteView(ExtractoClienteViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

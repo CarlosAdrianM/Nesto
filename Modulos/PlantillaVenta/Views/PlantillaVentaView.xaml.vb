@@ -2,9 +2,10 @@ Imports System.ComponentModel
 Imports System.Windows.Threading
 
 Partial Public Class PlantillaVentaView
-    Public Sub New()
+    Public Sub New(viewModel As PlantillaVentaViewModel)
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
+        DataContext = viewModel
     End Sub
 
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter

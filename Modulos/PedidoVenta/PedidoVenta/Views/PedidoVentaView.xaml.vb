@@ -9,9 +9,10 @@ Public Class PedidoVentaView
     Private cargado As Boolean = False
 
 
-    Public Sub New(container As IUnityContainer)
+    Public Sub New(container As IUnityContainer, viewModel As PedidoVentaViewModel)
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
+        DataContext = viewModel
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.container = container
     End Sub

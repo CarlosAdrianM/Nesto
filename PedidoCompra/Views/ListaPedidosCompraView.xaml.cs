@@ -22,9 +22,10 @@ namespace Nesto.Modulos.PedidoCompra.Views
     /// </summary>
     public partial class ListaPedidosCompraView : UserControl
     {
-        public ListaPedidosCompraView()
+        public ListaPedidosCompraView(ListaPedidosCompraViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
 
         public void CambiarRegionManager(IRegionManager newRegionManager)

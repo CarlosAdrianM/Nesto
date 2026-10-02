@@ -8,9 +8,10 @@ namespace Nesto.Modulos.Cliente
     /// </summary>
     public partial class ClientesNifIncorrectosView : UserControl
     {
-        public ClientesNifIncorrectosView()
+        public ClientesNifIncorrectosView(ClientesNifIncorrectosViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

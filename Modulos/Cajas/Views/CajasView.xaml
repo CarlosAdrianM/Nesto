@@ -6,7 +6,6 @@
              xmlns:local="clr-namespace:Nesto.Modulos.Cajas.Views"
              xmlns:prism="http://prismlibrary.com/" xmlns:viewmodels="clr-namespace:Nesto.Modulos.Cajas.ViewModels" 
              d:DataContext="{d:DesignInstance Type=viewmodels:CajasViewModel}"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"

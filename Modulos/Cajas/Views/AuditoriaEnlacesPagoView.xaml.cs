@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using Nesto.Modulos.Cajas.ViewModels;
 
 namespace Nesto.Modulos.Cajas.Views
 {
@@ -7,9 +8,10 @@ namespace Nesto.Modulos.Cajas.Views
     /// </summary>
     public partial class AuditoriaEnlacesPagoView : UserControl
     {
-        public AuditoriaEnlacesPagoView()
+        public AuditoriaEnlacesPagoView(AuditoriaEnlacesPagoViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
         }
     }
 }

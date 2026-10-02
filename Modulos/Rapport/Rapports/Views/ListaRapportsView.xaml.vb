@@ -5,10 +5,11 @@ Imports System.Windows.Data
 Imports Nesto.Modulos.Rapports
 
 Partial Public Class ListaRapportsView
-    Public Sub New()
+    Public Sub New(viewModel As ListaRapportsViewModel)
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
+        DataContext = viewModel
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
 
     End Sub

@@ -11,8 +11,7 @@
       xmlns:models="clr-namespace:Nesto.Modulos.CanalesExternos.Models"
       xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
       xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-      d:DataContext="{d:DesignInstance Type=viewmodels:CanalesExternosProductosViewModel}"
-      prism:ViewModelLocator.AutoWireViewModel="True"        
+      d:DataContext="{d:DesignInstance Type=viewmodels:CanalesExternosProductosViewModel}"        
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800">
 

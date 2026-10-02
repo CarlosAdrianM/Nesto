@@ -13,9 +13,10 @@ namespace Nesto.Modulos.Ganavisiones.Views
     {
         private GanavisionWrapper _itemPendienteFoco;
 
-        public GanavisionesView()
+        public GanavisionesView(GanavisionesViewModel viewModel)
         {
             InitializeComponent();
+            DataContext = viewModel;
             DataContextChanged += OnDataContextChanged;
             dgGanavisiones.LoadingRow += OnLoadingRow;
 

@@ -7,7 +7,6 @@
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="1000"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Background="White">
 
     <!-- Nesto#261: auditoría de enlaces de pago (solo lectura): quién y cuándo creó cada enlace, para qué
