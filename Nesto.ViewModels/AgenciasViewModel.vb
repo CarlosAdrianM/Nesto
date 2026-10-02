@@ -51,6 +51,7 @@ Public Class AgenciasViewModel
     End Property
     Public ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioPedidos As IPedidoVentaService
+    Private ReadOnly _facturadorEtiqueta As FacturadorAlImprimirEtiqueta
     Private ReadOnly _contabilidadService As IContabilidadService
 
     Private empresaDefecto As String
@@ -73,6 +74,7 @@ Public Class AgenciasViewModel
         _configuracion = configuracion
         _dialogService = dialogService
         _servicioPedidos = servicioPedidos
+        _facturadorEtiqueta = New FacturadorAlImprimirEtiqueta(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
         ' Nesto#340: comparador de agencias server-side (de momento en "shadow": se compara con el
         ' cálculo local sin afectar a la selección real, para validar el endpoint con datos reales).
@@ -2010,94 +2012,9 @@ Public Class AgenciasViewModel
                 Return
             End If
 
-            ' Crear albarán y factura
-            Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
-            Dim resultadoFactura As CrearFacturaResponseDTO
-            Try
-                resultadoFactura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
-            Catch exFactura As Exception
-                ' Nesto#421: el albarán SÍ se creó pero la factura falló (igual que en
-                ' DetallePedido). El mensaje tiene que decir explícitamente qué se hizo y qué no,
-                ' para que el usuario reintente SOLO la factura y no se quede confundido pensando
-                ' que no se hizo nada (o que ya estaba albaraneado sin saber por qué).
-                _dialogService.ShowError($"El albarán {albaran} se creó correctamente, pero la factura NO se pudo crear: {exFactura.Message}" & vbCrLf &
-                    "Corrija el problema y reintente SOLO la factura (desde la ventana del pedido o facturación de rutas).")
-                RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
-                Return
-            End Try
-            Dim factura = resultadoFactura.NumeroFactura
-            ' NestoAPI#327: los avisos de facturación (p. ej. NIF no registrado en la AEAT)
-            ' le tienen que saltar al que factura, también desde Agencias.
-            If resultadoFactura?.Avisos IsNot Nothing Then
-                For Each avisoFactura In resultadoFactura.Avisos
-                    _dialogService.ShowError(avisoFactura)
-                Next
-            End If
-
-            Dim mensaje = If(factura <> Constantes.PeriodosFacturacion.FIN_DE_MES,
-                $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",
-                $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}")
-
-            ' Si el checkbox "Imprimir documento" NO está marcado, mostrar notificación y salir
-            If Not _imprimirDocumentoAlFacturar Then
-                _dialogService.ShowNotification("Facturación", mensaje)
-                RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
-                Return
-            End If
-
-            ' IMPORTANTE: Usar el mismo servicio que facturación de rutas para determinar qué imprimir
-            ' Esto asegura que se apliquen las mismas reglas: copias, bandeja, tipo de documento
-            System.Diagnostics.Debug.WriteLine($"=== IMPRESIÓN AGENCIAS - Pedido {envioActual.Pedido} ===")
-            System.Diagnostics.Debug.WriteLine($"Factura: {factura}, Albarán: {albaran}")
-
-            Try
-                ' Obtener documentos con la misma lógica que facturación de rutas
-                Dim documentos = Await _servicioPedidos.ObtenerDocumentosImpresion(
-                    envioActual.Empresa,
-                    envioActual.Pedido,
-                    factura,
-                    albaran)
-
-                System.Diagnostics.Debug.WriteLine($"Documentos recibidos: {documentos.TipoDocumentoPrincipal}")
-                System.Diagnostics.Debug.WriteLine($"Total documentos para imprimir: {documentos.TotalDocumentosParaImprimir}")
-
-                If Not documentos.HayDocumentosParaImprimir Then
-                    System.Diagnostics.Debug.WriteLine("⚠ No hay documentos para imprimir")
-                    _dialogService.ShowNotification("Facturación", mensaje)
-                    RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
-                    Return
-                End If
-
-                ' Imprimir usando ServicioImpresionDocumentos (ya usado en facturación de rutas)
-                Dim servicioImpresion As New ServicioImpresionDocumentos()
-
-                ' Imprimir facturas
-                If documentos.Facturas IsNot Nothing AndAlso documentos.Facturas.Any() Then
-                    Dim resultadoFacturas = Await servicioImpresion.ImprimirFacturas(documentos.Facturas)
-                    System.Diagnostics.Debug.WriteLine($"✓ Facturas impresas: {resultadoFacturas.DocumentosImpresos}, Errores: {resultadoFacturas.DocumentosConError}")
-                End If
-
-                ' Imprimir albaranes
-                If documentos.Albaranes IsNot Nothing AndAlso documentos.Albaranes.Any() Then
-                    Dim resultadoAlbaranes = Await servicioImpresion.ImprimirAlbaranes(documentos.Albaranes)
-                    System.Diagnostics.Debug.WriteLine($"✓ Albaranes impresos: {resultadoAlbaranes.DocumentosImpresos}, Errores: {resultadoAlbaranes.DocumentosConError}")
-                End If
-
-                ' Imprimir notas de entrega
-                If documentos.NotasEntrega IsNot Nothing AndAlso documentos.NotasEntrega.Any() Then
-                    Dim resultadoNotas = Await servicioImpresion.ImprimirNotasEntrega(documentos.NotasEntrega)
-                    System.Diagnostics.Debug.WriteLine($"✓ Notas de entrega impresas: {resultadoNotas.DocumentosImpresos}, Errores: {resultadoNotas.DocumentosConError}")
-                End If
-
-                System.Diagnostics.Debug.WriteLine($"✓✓✓ IMPRESIÓN COMPLETADA ✓✓✓")
-
-                ' Mostrar notificación DESPUÉS de imprimir (no antes, para no bloquear la impresión)
-                _dialogService.ShowNotification("Facturación", mensaje)
-
-            Catch ex As Exception
-                System.Diagnostics.Debug.WriteLine($"❌ Error al imprimir documentos: {ex.Message}")
-                _dialogService.ShowError($"Error al imprimir documento: {ex.Message}")
-            End Try
+            ' NestoAPI#592: el mismo camino que la facturación de rutas (albarán, factura, nota de entrega,
+            ' traspaso, avisos e impresión). Antes se llamaba aquí a CrearAlbaran + CrearFactura por separado.
+            Await _facturadorEtiqueta.FacturarAsync(envioActual.Empresa, envioActual.Pedido, _imprimirDocumentoAlFacturar)
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception

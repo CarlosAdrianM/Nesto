@@ -14,4 +14,10 @@ Public Class FacturaCreadaDTO
     ''' Serie de la factura
     ''' </summary>
     Public Property Serie As String
+
+    ''' <summary>
+    ''' NestoAPI#327/#592: avisos de la facturación (p. ej. NIF no registrado en la AEAT) que tienen que
+    ''' llegarle al que factura, venga de Agencias o de la facturación de rutas.
+    ''' </summary>
+    Public Property Avisos As List(Of String) = New List(Of String)
 End Class

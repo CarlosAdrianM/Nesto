@@ -14,6 +14,12 @@ Namespace Services
         Function FacturarRutas(request As FacturarRutasRequestDTO) As Task(Of FacturarRutasResponseDTO)
 
         ''' <summary>
+        ''' NestoAPI#592: factura UN pedido por el mismo camino que la facturación de rutas (lo usa
+        ''' «Facturar al imprimir etiqueta» de Agencias). Misma respuesta que FacturarRutas.
+        ''' </summary>
+        Function FacturarPedido(empresa As String, pedido As Integer) As Task(Of FacturarRutasResponseDTO)
+
+        ''' <summary>
         ''' Genera un preview (simulación) de facturación SIN crear nada en la BD.
         ''' Muestra qué albaranes, facturas y notas de entrega se crearían con sus importes.
         ''' </summary>

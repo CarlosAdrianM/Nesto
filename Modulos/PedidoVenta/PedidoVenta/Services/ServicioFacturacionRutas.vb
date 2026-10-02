@@ -26,7 +26,19 @@ Namespace Services
         ''' <summary>
         ''' Factura pedidos por rutas (propia o agencias)
         ''' </summary>
-        Public Async Function FacturarRutas(request As FacturarRutasRequestDTO) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarRutas
+        Public Function FacturarRutas(request As FacturarRutasRequestDTO) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarRutas
+            Return PostarFacturacion("FacturacionRutas/Facturar", request, "Error al facturar rutas")
+        End Function
+
+        ''' <summary>
+        ''' NestoAPI#592: factura un pedido por el mismo camino que la facturación de rutas.
+        ''' </summary>
+        Public Function FacturarPedido(empresa As String, pedido As Integer) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarPedido
+            Return PostarFacturacion("FacturacionRutas/FacturarPedido", New With {.Empresa = empresa, .Pedido = pedido}, $"Error al facturar el pedido {pedido}")
+        End Function
+
+        ' Llamada común de Facturar y FacturarPedido: misma autorización, mismo timeout, misma respuesta.
+        Private Async Function PostarFacturacion(ruta As String, request As Object, textoError As String) As Task(Of FacturarRutasResponseDTO)
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Try
                     ' Carlos 20/11/24: Aumentar timeout para facturación masiva de rutas (500 segundos)
@@ -37,20 +49,14 @@ Namespace Services
                         Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
                     End If
 
-                    ' Serializar request a JSON
                     Dim content As HttpContent = New StringContent(
                         JsonConvert.SerializeObject(request),
                         Encoding.UTF8,
                         "application/json")
 
-                    ' Construir URL completa asegurando formato correcto
                     Dim baseUrl As String = configuracion.servidorAPI.TrimEnd("/"c)
-                    Dim fullUrl As String = $"{baseUrl}/FacturacionRutas/Facturar"
+                    Dim response As HttpResponseMessage = Await client.PostAsync($"{baseUrl}/{ruta}", content)
 
-                    ' Llamar al endpoint
-                    Dim response As HttpResponseMessage = Await client.PostAsync(fullUrl, content)
-
-                    ' Verificar respuesta exitosa
                     If response.StatusCode = Net.HttpStatusCode.Unauthorized Then
                         ' Token expirado o inválido, limpiar y notificar
                         servicioAutenticacion.LimpiarToken()
@@ -59,16 +65,13 @@ Namespace Services
 
                     response.EnsureSuccessStatusCode()
 
-                    ' Deserializar respuesta
                     Dim responseBody As String = Await response.Content.ReadAsStringAsync()
-                    Dim resultado As FacturarRutasResponseDTO = JsonConvert.DeserializeObject(Of FacturarRutasResponseDTO)(responseBody)
-
-                    Return resultado
+                    Return JsonConvert.DeserializeObject(Of FacturarRutasResponseDTO)(responseBody)
 
                 Catch uex As UnauthorizedAccessException
                     Throw ' Re-lanzar excepciones de autorización
                 Catch ex As Exception
-                    Throw New Exception($"Error al facturar rutas: {ex.Message}", ex)
+                    Throw New Exception($"{textoError}: {ex.Message}", ex)
                 End Try
             End Using
         End Function
