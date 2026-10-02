@@ -112,7 +112,9 @@ namespace ControlesUsuario.Dialogs
         private static T EnHiloUi<T>(Func<T> funcion)
         {
             T resultado = default;
-            EnHiloUi(() => resultado = funcion());
+            // Lambda de sentencia a propósito: «() => resultado = funcion()» es una expresión que devuelve T,
+            // así que el compilador escogería esta misma sobrecarga genérica y se llamaría a sí misma sin fin.
+            EnHiloUi(() => { resultado = funcion(); });
             return resultado;
         }
     }
