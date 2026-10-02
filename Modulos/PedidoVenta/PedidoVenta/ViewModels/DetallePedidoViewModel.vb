@@ -70,6 +70,8 @@ Public Class DetallePedidoViewModel
 #End Region
 
     Private _servicioServirJunto As IServirJuntoService
+    ' Las notas de entrega no llevan albarán: se procesan por el camino de Facturar rutas (NestoAPI#592).
+    Friend Property Facturador As FacturadorPedido
     ''' <summary>Nesto#452: inyectable desde los tests (en producción se crea en el constructor).</summary>
     Friend Property ServicioServirJunto As IServirJuntoService
         Get
@@ -88,6 +90,7 @@ Public Class DetallePedidoViewModel
         Me.dialogService = dialogService
         Me.container = container
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
+        Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
         cmdAbrirPicking = New RelayCommand(AddressOf OnAbrirPicking)
@@ -1568,6 +1571,11 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
+        If EsNotaEntrega Then
+            Await ProcesarNotaEntregaAsync()
+            Return
+        End If
+
         If Not ConfirmarSiPlazoNoPermitido() Then
             Return
         End If
@@ -1591,6 +1599,34 @@ Public Class DetallePedidoViewModel
             CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
     End Sub
+
+    Friend ReadOnly Property EsNotaEntrega As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso pedido.notaEntrega
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' ELMAH 01-02/10/26 (Andre): el albarán de una nota de entrega daba «El pedido es nota de entrega»
+    ''' (prdCrearAlbaránVta no deja albaranear notas). Una nota no lleva albarán ni factura: se procesa como en
+    ''' Facturar rutas (estado -2 y baja del stock de lo «de carpeta»). No imprime nada: eso lo hace Facturar rutas.
+    ''' </summary>
+    Friend Async Function ProcesarNotaEntregaAsync() As Task
+        If Not dialogService.ShowConfirmationAnswer("Nota de entrega",
+                $"El pedido {pedido.numero} es una nota de entrega: no lleva albarán ni factura.{vbCrLf}¿Quieres procesarla como en Facturar rutas?") Then
+            Return
+        End If
+        Try
+            Await Facturador.FacturarAsync(pedido.empresa.ToString, pedido.numero, imprimirDocumentos:=False)
+            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido procesar la nota de entrega: {ex.Message}")
+        Finally
+            CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
+            CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
+        End Try
+    End Function
 
     ''' <summary>
     ''' NestoAPI#582: lo que se deja en carpeta va a una nota de entrega que nace sin fecha (para no colarse en el picking
@@ -1885,6 +1921,11 @@ Public Class DetallePedidoViewModel
     Private Async Sub OnCrearAlbaranYFacturaVenta()
         ' Carlos 04/12/25: Verificar cambios sin guardar antes de crear albarán y factura (Issue #254)
         If Not Await VerificarYGuardarCambiosPendientes() Then
+            Return
+        End If
+
+        If EsNotaEntrega Then
+            Await ProcesarNotaEntregaAsync()
             Return
         End If
 

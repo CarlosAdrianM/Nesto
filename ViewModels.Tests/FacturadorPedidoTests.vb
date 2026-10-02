@@ -1,4 +1,4 @@
-Imports FakeItEasy
+﻿Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.PedidoVenta
@@ -12,18 +12,18 @@ Imports System.Threading.Tasks
 ''' (FacturarPedido) y enseña lo mismo: avisos de la factura, errores, nota de entrega e impresión.
 ''' </summary>
 <TestClass()>
-Public Class FacturadorAlImprimirEtiquetaTests
+Public Class FacturadorPedidoTests
     Private facturacion As IServicioFacturacionRutas
     Private impresion As IServicioImpresionDocumentos
     Private dialogos As IServicioDialogos
-    Private facturador As FacturadorAlImprimirEtiqueta
+    Private facturador As FacturadorPedido
 
     <TestInitialize()>
     Public Sub Inicializar()
         facturacion = A.Fake(Of IServicioFacturacionRutas)()
         impresion = A.Fake(Of IServicioImpresionDocumentos)()
         dialogos = A.Fake(Of IServicioDialogos)()
-        facturador = New FacturadorAlImprimirEtiqueta(facturacion, impresion, dialogos)
+        facturador = New FacturadorPedido(facturacion, impresion, dialogos)
     End Sub
 
     Private Sub Responder(respuesta As FacturarRutasResponseDTO)

@@ -51,7 +51,7 @@ Public Class AgenciasViewModel
     End Property
     Public ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioPedidos As IPedidoVentaService
-    Private ReadOnly _facturadorEtiqueta As FacturadorAlImprimirEtiqueta
+    Private ReadOnly _facturadorEtiqueta As FacturadorPedido
     Private ReadOnly _contabilidadService As IContabilidadService
 
     Private empresaDefecto As String
@@ -74,7 +74,7 @@ Public Class AgenciasViewModel
         _configuracion = configuracion
         _dialogService = dialogService
         _servicioPedidos = servicioPedidos
-        _facturadorEtiqueta = New FacturadorAlImprimirEtiqueta(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
+        _facturadorEtiqueta = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
         ' Nesto#340: comparador de agencias server-side (de momento en "shadow": se compara con el
         ' cálculo local sin afectar a la selección real, para validar el endpoint con datos reales).
