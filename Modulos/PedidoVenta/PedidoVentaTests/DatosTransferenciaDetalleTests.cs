@@ -5,7 +5,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -41,7 +40,7 @@ namespace PedidoVentaTests
 
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService, PedidoVentaDTO pedido, PortapapelesDePrueba portapapeles = null)
         {
-            var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
             vm.Portapapeles = portapapeles ?? new PortapapelesDePrueba();
             vm.pedido = new PedidoVentaWrapper(pedido);

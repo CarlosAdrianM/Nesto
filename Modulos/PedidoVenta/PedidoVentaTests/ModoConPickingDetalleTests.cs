@@ -6,7 +6,6 @@ using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Newtonsoft.Json.Linq;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -51,7 +50,7 @@ namespace PedidoVentaTests
         private static DetallePedidoViewModel VmConCambioRechazado(IPedidoVentaService servicio, IServicioDialogos dialogService)
         {
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new ModoConPickingException(MOTIVO));
-            var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(Pedido(926879, ModosServicio.SEGUN_VAYA_ENTRANDO));
             vm.MarcarComoGuardado();

@@ -4,14 +4,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using Unity;
 
 namespace PedidoVentaTests
 {
     /// <summary>
     /// Nesto#490 (4C.4): desde el detalle del pedido, «cargar producto» abre la ficha del producto de la línea.
-    /// Escrita contra el IRegionManager de Prism ANTES de migrar la navegación.
+    /// Escrita contra el IRegionManager de Prism ANTES de migrar la navegación (d7b3b306); al pasar a
+    /// IServicioNavegacion solo ha cambiado el tipo del fake.
     /// </summary>
     [TestClass]
     public class DetallePedidoViewModelNavegacionTests
@@ -19,12 +19,12 @@ namespace PedidoVentaTests
         [TestMethod]
         public void CargarProducto_AbreLaFichaDelProductoDeLaLinea()
         {
-            IRegionManager navegacion = A.Fake<IRegionManager>();
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             var vm = new DetallePedidoViewModel(navegacion, A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
                 A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
-            NavigationParameters recibidos = null;
-            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "ProductoView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
+            ParametrosNavegacion recibidos = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "ProductoView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => recibidos = p);
 
             vm.CargarProductoCommand.Execute(new LineaPedidoVentaDTO { Producto = "38093" });
 

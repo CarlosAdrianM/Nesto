@@ -5,20 +5,20 @@ Imports Nesto.Infrastructure.Models
 Imports Nesto.Modulos.CarteraPagos
 Imports Nesto.Modulos.Inventario
 Imports Nesto.ViewModels
-Imports Prism.Regions
 
 ''' <summary>
 ''' Nesto#490 (4C.4): adónde navegan Cartera de pagos, Inventario y Remesas. Escritas contra el
-''' IRegionManager de Prism ANTES de migrar la navegación, para que la migración no cambie nada.
+''' IRegionManager de Prism ANTES de migrar la navegación (d7b3b306); al pasar a IServicioNavegacion
+''' solo ha cambiado el tipo del fake: mismas regiones, vistas y claves.
 ''' </summary>
 <TestClass()>
 Public Class NavegacionViewModelsTests
 
-    Private _navegacion As IRegionManager
+    Private _navegacion As IServicioNavegacion
 
     <TestInitialize()>
     Public Sub Inicializar()
-        _navegacion = A.Fake(Of IRegionManager)()
+        _navegacion = A.Fake(Of IServicioNavegacion)()
     End Sub
 
     <TestMethod()>
@@ -41,9 +41,9 @@ Public Class NavegacionViewModelsTests
 
     <TestMethod()>
     Public Sub Remesas_AbrirExtractoCliente_AbreElExtractoDelClienteSinEspacios()
-        Dim recibidos As NavigationParameters = Nothing
-        A.CallTo(Sub() _navegacion.RequestNavigate("MainRegion", "ExtractoClienteView", A(Of NavigationParameters).Ignored)) _
-            .Invokes(Sub(region As String, vista As String, p As NavigationParameters) recibidos = p)
+        Dim recibidos As ParametrosNavegacion = Nothing
+        A.CallTo(Sub() _navegacion.RequestNavigate("MainRegion", "ExtractoClienteView", A(Of ParametrosNavegacion).Ignored)) _
+            .Invokes(Sub(region As String, vista As String, p As ParametrosNavegacion) recibidos = p)
         Dim vm As New RemesasViewModel(A.Fake(Of IConfiguracion)(), A.Fake(Of IServicioDialogos)(), ServicioRemesas(), _navegacion)
 
         vm.AbrirExtractoCliente(New EfectoCandidatoModel With {.Cliente = " 15191 "})

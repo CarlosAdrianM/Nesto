@@ -8,7 +8,6 @@ Imports Nesto.Contratos
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Prism.Regions
 Imports Microsoft.Graph
 Imports Azure.Identity
 Imports Nesto.Infrastructure.Shared
@@ -34,7 +33,7 @@ Public Class RemesasViewModel
     ' Nesto#340 Fase 1C.14: servicio API que va sustituyendo los accesos EF de este VM.
     Private ReadOnly _remesasService As IRemesasService
     ' Nesto#419: para abrir la ventana de Extracto de Cliente (misma MainRegion, como pestaña).
-    Private ReadOnly _regionManager As IRegionManager
+    Private ReadOnly _navegacion As IServicioNavegacion
 
     Public Structure tipoRemesa
         Public Sub New(
@@ -58,7 +57,7 @@ Public Class RemesasViewModel
         Me.dialogService = dialogService
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _remesasService = New RemesasService(configuracion, servicioAutenticacion)
-        _regionManager = container.Resolve(Of IRegionManager)()
+        _navegacion = container.Resolve(Of IServicioNavegacion)()
         ' Nesto#419: escuchar las liquidaciones del Extracto de Cliente para actualizar en sitio
         ' los efectos afectados (suscripción débil por defecto; se limpia sola al cerrar la vista).
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator. Antes era ThreadOption.UIThread:
@@ -90,9 +89,9 @@ Public Class RemesasViewModel
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
     Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, remesasService As IRemesasService,
-                   Optional regionManager As IRegionManager = Nothing)
+                   Optional navegacion As IServicioNavegacion = Nothing)
         Titulo = "Remesas"
-        _regionManager = regionManager
+        _navegacion = navegacion
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         _remesasService = remesasService
@@ -230,12 +229,12 @@ Public Class RemesasViewModel
     ' allí, EfectosLiquidadosEvent actualiza este efecto en sitio (AplicarEfectosLiquidados).
     Public Sub AbrirExtractoCliente(candidatoSeleccionado As Object)
         Dim candidato = TryCast(candidatoSeleccionado, EfectoCandidatoModel)
-        If candidato Is Nothing OrElse String.IsNullOrWhiteSpace(candidato.Cliente) OrElse _regionManager Is Nothing Then
+        If candidato Is Nothing OrElse String.IsNullOrWhiteSpace(candidato.Cliente) OrElse _navegacion Is Nothing Then
             Return
         End If
-        Dim parametros As New NavigationParameters()
+        Dim parametros As New ParametrosNavegacion()
         parametros.Add("cliente", candidato.Cliente.Trim())
-        _regionManager.RequestNavigate("MainRegion", "ExtractoClienteView", parametros)
+        _navegacion.RequestNavigate("MainRegion", "ExtractoClienteView", parametros)
     End Sub
 
     ' Detalle de los negativos por cliente para el aviso previo a crear la remesa (ajuste

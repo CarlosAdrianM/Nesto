@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -43,7 +42,7 @@ namespace PedidoVentaTests
 
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService, PedidoVentaDTO pedido = null)
         {
-            var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(pedido ?? Pedido());
             return vm;
@@ -81,7 +80,7 @@ namespace PedidoVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.UsuarioEnGrupo(A<string>._)).ReturnsLazily((string g) => g == grupo);
 
-            var vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), configuracion, A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), configuracion, A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
                 A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
 
             Assert.AreEqual(puede, vm.EsGrupoQuePuedeFacturar);

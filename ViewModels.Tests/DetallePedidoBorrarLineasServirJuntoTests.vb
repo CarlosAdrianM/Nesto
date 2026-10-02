@@ -6,7 +6,6 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Prism.Regions
 Imports Unity
 
 ''' <summary>
@@ -62,7 +61,7 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
     End Sub
 
     Private Function CrearViewModelConPedido(ParamArray lineas() As LineaPedidoVentaWrapper) As DetallePedidoViewModel
-        Dim vm = New DetallePedidoViewModel(A.Fake(Of IRegionManager), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
+        Dim vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
                                             New WeakReferenceMessenger(), dialogService, A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = servicioServirJunto
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687, .servirJunto = False})

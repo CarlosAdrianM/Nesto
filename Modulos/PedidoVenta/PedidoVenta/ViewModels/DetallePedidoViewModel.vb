@@ -27,7 +27,7 @@ Public Class DetallePedidoViewModel
     Implements INavigationAware
 
     Private estaActualizarFechaActivo As Boolean = True
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly messenger As IMessenger
@@ -80,8 +80,8 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
-        Me.regionManager = regionManager
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
+        Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.messenger = messenger
@@ -1261,10 +1261,10 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnCargarProducto(linea As LineaPedidoVentaDTO)
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"numeroProductoParameter", linea.Producto}
         }
-        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
+        navegacion.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
     ' Carlos 20/11/24: MÉTODO VIEJO DE CCC - DESHABILITADO

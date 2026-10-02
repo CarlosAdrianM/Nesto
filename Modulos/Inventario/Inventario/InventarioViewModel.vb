@@ -3,7 +3,6 @@ Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Regions
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.ComponentModel
@@ -12,7 +11,7 @@ Imports Nesto.Infrastructure.[Shared]
 
 Public Class InventarioViewModel
     Inherits ObservableObject
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly dialogService As IServicioDialogos
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
@@ -20,8 +19,8 @@ Public Class InventarioViewModel
 
     Const EMPRESA_DEFECTO As String = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IServicioDialogos, clienteApiFactory As IClienteApiFactory)
-        Me.regionManager = regionManager
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, dialogService As IServicioDialogos, clienteApiFactory As IClienteApiFactory)
+        Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         _clienteApiFactory = clienteApiFactory
@@ -158,7 +157,7 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Sub OnAbrirInventario()
-        regionManager.RequestNavigate("MainRegion", "InventarioView")
+        navegacion.RequestNavigate("MainRegion", "InventarioView")
     End Sub
 
     Private _cmdActualizarMovimientos As RelayCommand

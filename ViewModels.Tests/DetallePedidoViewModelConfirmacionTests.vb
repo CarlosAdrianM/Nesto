@@ -4,7 +4,6 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Prism.Regions
 Imports Unity
 
 ''' <summary>
@@ -55,7 +54,7 @@ End Class
 <TestClass()>
 Public Class DetallePedidoViewModelConfirmacionTests
 
-    Private regionManager As IRegionManager
+    Private navegacion As IServicioNavegacion
     Private configuracion As IConfiguracion
     Private servicio As IPedidoVentaService
     Private messenger As IMessenger
@@ -65,7 +64,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
 
     <TestInitialize()>
     Public Sub Initialize()
-        regionManager = A.Fake(Of IRegionManager)
+        navegacion = A.Fake(Of IServicioNavegacion)
         configuracion = A.Fake(Of IConfiguracion)
         servicio = A.Fake(Of IPedidoVentaService)
         messenger = New WeakReferenceMessenger()
@@ -75,7 +74,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
     End Sub
 
     Private Function CrearViewModel() As DetallePedidoViewModel
-        Return New DetallePedidoViewModel(regionManager, configuracion, servicio, messenger, dialogService, container, servicioAutenticacion)
+        Return New DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, servicioAutenticacion)
     End Function
 
     ''' <summary>

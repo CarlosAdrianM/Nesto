@@ -1,19 +1,18 @@
 ﻿Imports System.Collections.Specialized
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Regions
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
 
 Public Class CarteraPagosViewModel
     Inherits ObservableObject
 
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As ICarteraPagosService
     Private ReadOnly dialogService As IServicioDialogos
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As ICarteraPagosService, dialogService As IServicioDialogos)
-        Me.regionManager = regionManager
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As ICarteraPagosService, dialogService As IServicioDialogos)
+        Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
@@ -79,7 +78,7 @@ Public Class CarteraPagosViewModel
         Return True
     End Function
     Private Sub OnAbrirCarteraPagos(arg As Object)
-        regionManager.RequestNavigate("MainRegion", "CarteraPagosView")
+        navegacion.RequestNavigate("MainRegion", "CarteraPagosView")
     End Sub
 
     Private _cmdCrearFicheroRemesa As RelayCommand(Of Object)

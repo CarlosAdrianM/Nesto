@@ -3,7 +3,6 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -27,7 +26,7 @@ namespace PedidoVentaTests
         {
             servicio = A.Fake<IPedidoVentaService>();
             dialogos = A.Fake<IServicioDialogos>();
-            vm = new DetallePedidoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
+            vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
                 dialogos, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
         }
 
