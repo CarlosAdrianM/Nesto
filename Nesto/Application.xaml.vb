@@ -338,12 +338,8 @@ Partial Public Class Application
 
     Protected Overrides Sub ConfigureViewModelLocator()
         MyBase.ConfigureViewModelLocator()
-        ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
-        ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
-        ViewModelLocationProvider.Register(GetType(AgenciasMantenimiento).ToString, GetType(AgenciasMantenimientoViewModel))
-        ViewModelLocationProvider.Register(GetType(FamiliasMantenimiento).ToString, GetType(FamiliasMantenimientoViewModel))
     End Sub
 
     Protected Overrides Sub OnInitialized()

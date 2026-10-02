@@ -5,8 +5,7 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
-    xmlns:local="clr-namespace:Nesto.Views"
-    prism:ViewModelLocator.AutoWireViewModel="True">
+    xmlns:local="clr-namespace:Nesto.Views">
 
     <UserControl.Resources>
         <!-- #3: total en € por grupo (fecha de cargo) en la cabecera del detalle -->

@@ -13,6 +13,11 @@ Imports Nesto.ViewModels
 ' recálculo de anchos DESPUÉS del layout (prioridad Loaded del Dispatcher).
 Partial Public Class Remesas
 
+    Public Sub New(viewModel As RemesasViewModel)
+        InitializeComponent()
+        DataContext = viewModel
+    End Sub
+
     Private Sub GridDetalleRemesa_TargetUpdated(sender As Object, e As DataTransferEventArgs)
         If e.Property IsNot ItemsControl.ItemsSourceProperty Then
             Return
