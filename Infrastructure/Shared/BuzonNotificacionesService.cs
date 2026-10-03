@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -52,11 +52,27 @@ namespace Nesto.Infrastructure.Shared
             await Enviar(HttpMethod.Delete, $"Notificaciones/Buzon/{id}", "borrar la notificación").ConfigureAwait(false);
         }
 
-        private async Task<string> Enviar(HttpMethod metodo, string url, string accion)
+        public async Task<string> CerrarAvisoFicha(int avisoId, string resultado)
+        {
+            string cuerpo = JsonConvert.SerializeObject(new { Resultado = resultado });
+            string json = await Enviar(HttpMethod.Post, $"Almacen/AvisosFicha/{avisoId}/Cerrar", "cerrar el aviso", cuerpo).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+            // La API contesta Ok("texto"): llega como cadena JSON
+            return json.TrimStart().StartsWith("\"") ? JsonConvert.DeserializeObject<string>(json) : json;
+        }
+
+        private async Task<string> Enviar(HttpMethod metodo, string url, string accion, string cuerpoJson = null)
         {
             using (var client = _clienteApiFactory.Crear())
             using (var request = new HttpRequestMessage(metodo, url))
             {
+                if (cuerpoJson != null)
+                {
+                    request.Content = new StringContent(cuerpoJson, System.Text.Encoding.UTF8, "application/json");
+                }
                 HttpResponseMessage response = await client.SendAsync(request).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {

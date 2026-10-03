@@ -1,4 +1,4 @@
-<UserControl x:Class="ControlesUsuario.Notificaciones.CampanaNotificaciones"
+﻿<UserControl x:Class="ControlesUsuario.Notificaciones.CampanaNotificaciones"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
@@ -85,6 +85,16 @@
                                                     VerticalAlignment="Top" ToolTip="Borrar la notificación"
                                                     Command="{Binding DataContext.BorrarNotificacionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}" />
+                                            <!-- Nesto#509: los avisos de dato mal en la ficha (Ariadna#8) se cierran aquí -->
+                                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="22,0,0,6"
+                                                        Visibility="{Binding MostrarBotonesAvisoFicha, Converter={StaticResource BoolAVisible}}">
+                                                <Button Content="Cambiado" Padding="10,2" Margin="0,0,6,0" ToolTip="Ya se ha corregido la ficha"
+                                                        Command="{Binding DataContext.CerrarAvisoFichaCambiadoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Content="Estaba bien" Padding="10,2" ToolTip="El dato de la ficha era correcto"
+                                                        Command="{Binding DataContext.CerrarAvisoFichaEstabaBienCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" />
+                                            </StackPanel>
                                             <Button Style="{StaticResource BotonPlano}" Padding="0"
                                                     Command="{Binding DataContext.AbrirNotificacionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}">

@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
@@ -73,6 +73,8 @@ namespace ControlesUsuario.Notificaciones
             BorrarNotificacionCommand = new AsyncRelayCommand<NotificacionBuzonItem>(BorrarNotificacion);
             MarcarTodasLeidasCommand = new AsyncRelayCommand(MarcarTodasLeidas, () => Notificaciones.Any(n => !n.Leida));
             AbrirNovedadesCommand = new AsyncRelayCommand(() => AbrirNovedades(null), () => _abridorNovedades != null);
+            CerrarAvisoFichaCambiadoCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => CerrarAvisoFicha(i, NotificacionBuzon.RESULTADO_AVISO_CAMBIADO));
+            CerrarAvisoFichaEstabaBienCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => CerrarAvisoFicha(i, NotificacionBuzon.RESULTADO_AVISO_ESTABA_BIEN));
         }
 
         public ObservableCollection<NotificacionBuzonItem> Notificaciones { get; } = new ObservableCollection<NotificacionBuzonItem>();
@@ -82,6 +84,10 @@ namespace ControlesUsuario.Notificaciones
         public IAsyncRelayCommand MarcarTodasLeidasCommand { get; }
         /// <summary>Nesto#501: el botón de Novedades junto a la campana.</summary>
         public IAsyncRelayCommand AbrirNovedadesCommand { get; }
+        /// <summary>Nesto#509: cierra un aviso de dato mal en la ficha (Ariadna#8) porque ya se ha corregido.</summary>
+        public IAsyncRelayCommand<NotificacionBuzonItem> CerrarAvisoFichaCambiadoCommand { get; }
+        /// <summary>Nesto#509: cierra un aviso de dato mal en la ficha porque el dato estaba bien.</summary>
+        public IAsyncRelayCommand<NotificacionBuzonItem> CerrarAvisoFichaEstabaBienCommand { get; }
 
         private int _noLeidas;
         public int NoLeidas
@@ -330,6 +336,45 @@ namespace ControlesUsuario.Notificaciones
             return _abridorNovedades.Abrir(version);
         }
 
+        /// <summary>
+        /// Nesto#509: cierra el aviso en la API (al mozo que avisó le llega la respuesta en Ariadna) y lo da por
+        /// leído. Si la API no deja (no es del equipo, ya estaba cerrado…), se enseña el motivo y sigue abierto.
+        /// </summary>
+        internal async Task CerrarAvisoFicha(NotificacionBuzonItem item, string resultado)
+        {
+            int? avisoId = item?.Notificacion.DatoEntero("avisoId");
+            if (!avisoId.HasValue)
+            {
+                return;
+            }
+            Mensaje = null;
+            try
+            {
+                string respuesta = await _buzon.CerrarAvisoFicha(avisoId.Value, resultado);
+                item.AvisoCerrado = true;
+                Mensaje = string.IsNullOrWhiteSpace(respuesta) ? "Aviso cerrado." : respuesta;
+            }
+            catch (Exception ex)
+            {
+                Mensaje = ex.Message;
+                return;
+            }
+            if (!item.Leida)
+            {
+                try
+                {
+                    await _buzon.MarcarLeida(item.Id);
+                    item.Leida = true;
+                    NoLeidas--;
+                }
+                catch (Exception)
+                {
+                    // El aviso ya está cerrado, que es lo importante; la marca de leída se pondrá en otro momento.
+                }
+                MarcarTodasLeidasCommand.NotifyCanExecuteChanged();
+            }
+        }
+
         internal async Task BorrarNotificacion(NotificacionBuzonItem item)
         {
             if (item == null)
@@ -396,6 +441,27 @@ namespace ControlesUsuario.Notificaciones
 
         private bool _leida;
         public bool Leida { get => _leida; internal set => SetProperty(ref _leida, value); }
+
+        /// <summary>Nesto#509: un aviso de dato mal en la ficha (Ariadna#8) que se puede cerrar desde aquí.</summary>
+        public bool EsAvisoFichaProducto => Notificacion.Tipo == NotificacionBuzon.TIPO_AVISO_FICHA_PRODUCTO
+            && Notificacion.DatoEntero("avisoId").HasValue;
+
+        private bool _avisoCerrado;
+        /// <summary>Nesto#509: ya se ha cerrado desde la campana (sin recargar el panel).</summary>
+        public bool AvisoCerrado
+        {
+            get => _avisoCerrado;
+            internal set
+            {
+                if (SetProperty(ref _avisoCerrado, value))
+                {
+                    OnPropertyChanged(nameof(MostrarBotonesAvisoFicha));
+                }
+            }
+        }
+
+        /// <summary>Nesto#509: los botones «Cambiado» / «Estaba bien».</summary>
+        public bool MostrarBotonesAvisoFicha => EsAvisoFichaProducto && !AvisoCerrado;
 
         private bool _desplegada;
         /// <summary>El cuerpo entero (plegada se ven dos líneas).</summary>

@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using System;
@@ -23,10 +23,12 @@ namespace Infrastructure.Tests
             public readonly List<(HttpMethod Metodo, string Url)> Peticiones = new List<(HttpMethod, string)>();
             public HttpStatusCode Codigo = HttpStatusCode.OK;
             public string Respuesta = "[]";
+            public string UltimoCuerpo;
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 Peticiones.Add((request.Method, request.RequestUri.PathAndQuery));
+                UltimoCuerpo = request.Content?.ReadAsStringAsync().Result;
                 return Task.FromResult(new HttpResponseMessage(Codigo) { Content = new StringContent(Respuesta, Encoding.UTF8, "application/json") });
             }
         }
@@ -147,6 +149,31 @@ namespace Infrastructure.Tests
             var n = new NotificacionBuzon { Datos = new Dictionary<string, string> { ["Tipo"] = "X", ["novedadId"] = "abc" } };
             Assert.AreEqual("X", n.Tipo);
             Assert.IsNull(n.DatoEntero("novedadId"));
+        }
+
+        // Nesto#509: cerrar un aviso de dato mal en la ficha (Ariadna#8) desde la campana.
+        [TestMethod]
+        public async Task CerrarAvisoFicha_PostAlAvisoConElResultado_YDevuelveElTexto()
+        {
+            handler.Respuesta = "\"Aviso 42 cerrado: cambiado.\"";
+
+            string texto = await servicio.CerrarAvisoFicha(42, NotificacionBuzon.RESULTADO_AVISO_CAMBIADO);
+
+            Assert.AreEqual(HttpMethod.Post, handler.Peticiones[0].Metodo);
+            Assert.AreEqual("/api/Almacen/AvisosFicha/42/Cerrar", handler.Peticiones[0].Url);
+            Assert.AreEqual("{\"Resultado\":\"Cambiado\"}", handler.UltimoCuerpo);
+            Assert.AreEqual("Aviso 42 cerrado: cambiado.", texto);
+        }
+
+        [TestMethod]
+        public async Task CerrarAvisoFicha_YaCerrado_LanzaConElMotivo()
+        {
+            handler.Codigo = HttpStatusCode.Conflict;
+            handler.Respuesta = "{\"error\":{\"message\":\"El aviso ya estaba cerrado.\"}}";
+
+            var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => servicio.CerrarAvisoFicha(42, NotificacionBuzon.RESULTADO_AVISO_ESTABA_BIEN));
+
+            StringAssert.Contains(ex.Message, "ya estaba cerrado");
         }
     }
 }

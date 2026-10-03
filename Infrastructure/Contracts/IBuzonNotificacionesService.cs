@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -24,6 +24,14 @@ namespace Nesto.Infrastructure.Contracts
 
         /// <summary>NestoAPI#522: la ventana (módulo Cajas) que abre ese recordatorio al pulsarlo.</summary>
         public const string VISTA_FACTURAS_PENDIENTES_VERIFACTU = "FacturasPendientesVerifactuView";
+
+        /// <summary>
+        /// Nesto#509 (Ariadna#8): un mozo dice que un dato de la ficha de un producto está mal. Trae Datos["avisoId"] y
+        /// Datos["producto"]; se cierra con <see cref="RESULTADO_AVISO_CAMBIADO"/> o <see cref="RESULTADO_AVISO_ESTABA_BIEN"/>.
+        /// </summary>
+        public const string TIPO_AVISO_FICHA_PRODUCTO = "AvisoFichaProducto";
+        public const string RESULTADO_AVISO_CAMBIADO = "Cambiado";
+        public const string RESULTADO_AVISO_ESTABA_BIEN = "EstabaBien";
 
         public int Id { get; set; }
         public string Titulo { get; set; }
@@ -70,5 +78,12 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Devuelve cuántas se han marcado.</summary>
         Task<int> MarcarTodasLeidas();
         Task Eliminar(int id);
+
+        /// <summary>
+        /// Nesto#509: cierra un aviso de dato mal en la ficha (POST api/Almacen/AvisosFicha/{avisoId}/Cerrar) con
+        /// <see cref="NotificacionBuzon.RESULTADO_AVISO_CAMBIADO"/> o <see cref="NotificacionBuzon.RESULTADO_AVISO_ESTABA_BIEN"/>.
+        /// Devuelve el texto de la API (lo que ha pasado). Lanza con su motivo (no es del equipo, ya cerrado…).
+        /// </summary>
+        Task<string> CerrarAvisoFicha(int avisoId, string resultado);
     }
 }
