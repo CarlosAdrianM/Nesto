@@ -49,6 +49,14 @@ Public Class AgenciasViewModel
             _comparadorAgencias = value
         End Set
     End Property
+    Private _servicioBultosAriadna As IServicioBultosAriadna
+
+    ''' <summary>Solo para tests: el constructor crea el servicio contra el servidor (Nesto#507).</summary>
+    Friend WriteOnly Property ServicioBultosAriadna As IServicioBultosAriadna
+        Set(value As IServicioBultosAriadna)
+            _servicioBultosAriadna = value
+        End Set
+    End Property
     Public ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _facturadorEtiqueta As FacturadorPedido
@@ -79,6 +87,8 @@ Public Class AgenciasViewModel
         ' Nesto#340: comparador de agencias server-side (de momento en "shadow": se compara con el
         ' cálculo local sin afectar a la selección real, para validar el endpoint con datos reales).
         _comparadorAgencias = New ComparadorAgenciasService(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
+        ' Nesto#507: los bultos (y sus fotos) del packing de Ariadna
+        _servicioBultosAriadna = New ServicioBultosAriadna(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
 
         Titulo = "Agencias"
 
@@ -107,6 +117,7 @@ Public Class AgenciasViewModel
         cmdCargarRetrasados = New RelayCommand(AddressOf CargarRetrasados)
         cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
+        VerFotosBultosAriadnaCommand = New RelayCommand(AddressOf OnVerFotosBultosAriadna, AddressOf CanVerFotosBultosAriadna)
         ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
         CopiarNumeroEnvioCommand = New RelayCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
         CopiarCampoCommand = New RelayCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
@@ -545,6 +556,10 @@ Public Class AgenciasViewModel
                 _dialogService.ShowError(ex.Message)
             End Try
 
+            ' Nesto#507: fuera del Try de arriba, para que un fallo al montar el envío no impida proponer los
+            ' bultos del packing de Ariadna (y al revés: ProponerBultosAriadnaAsync no lanza nunca).
+            BultosAriadna = Nothing
+            Await ProponerBultosAriadnaAsync(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
         Else
             numeroPedido = 36
         End If
@@ -635,6 +650,32 @@ Public Class AgenciasViewModel
         Set(value As Integer)
             Dim unused = SetProperty(_bultos, value)
         End Set
+    End Property
+
+    ' Nesto#507: los bultos que el mozo hizo en el packing de Ariadna para el pedido seleccionado.
+    Private _bultosAriadna As New List(Of BultoAriadna)
+    Public Property BultosAriadna As List(Of BultoAriadna)
+        Get
+            Return _bultosAriadna
+        End Get
+        Set(value As List(Of BultoAriadna))
+            Dim unused = SetProperty(_bultosAriadna, If(value, New List(Of BultoAriadna)))
+            OnPropertyChanged(NameOf(TextoBultosAriadna))
+            OnPropertyChanged(NameOf(VisibilidadBultosAriadna))
+            VerFotosBultosAriadnaCommand?.NotifyCanExecuteChanged()
+        End Set
+    End Property
+
+    Public ReadOnly Property TextoBultosAriadna As String
+        Get
+            Return PropuestaBultosAriadna.Texto(BultosAriadna)
+        End Get
+    End Property
+
+    Public ReadOnly Property VisibilidadBultosAriadna As Visibility
+        Get
+            Return If(BultosAriadna.Any(), Visibility.Visible, Visibility.Collapsed)
+        End Get
     End Property
 
     Private _peso As Decimal
@@ -2913,6 +2954,46 @@ Public Class AgenciasViewModel
     ' sitio, y Ctrl+C sobre el grid copia la fila entera (SelectionUnit por defecto = FullRow). Este
     ' comando deja en el portapapeles SOLO el número. El envío es el seleccionado: la vista fuerza la
     ' selección en el clic derecho para que el menú actúe sobre la fila pulsada, no sobre la anterior.
+    ' Nesto#507: abre en el navegador la foto de cada bulto de Ariadna (enlaces temporales de la API).
+    Public Property VerFotosBultosAriadnaCommand As RelayCommand
+    Private Function CanVerFotosBultosAriadna() As Boolean
+        Return BultosAriadna.Any(Function(b) b.TieneFoto)
+    End Function
+    Private Async Sub OnVerFotosBultosAriadna()
+        Try
+            For Each bulto In BultosAriadna.Where(Function(b) b.TieneFoto).GroupBy(Function(b) b.Id).Select(Function(g) g.First()).OrderBy(Function(b) b.Bulto)
+                Dim enlace As String = Await _servicioBultosAriadna.EnlaceFoto(bulto.Id)
+                If Not String.IsNullOrWhiteSpace(enlace) Then
+                    Dim unused = Process.Start(New ProcessStartInfo(enlace) With {.UseShellExecute = True})
+                End If
+            Next
+        Catch ex As Exception
+            _dialogService.ShowError($"No se han podido abrir las fotos de los bultos: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#507: pone los bultos del packing de Ariadna (si el pedido se preparó con Ariadna). Si el usuario ya
+    ''' había tecleado otro número no se pisa: se le avisa. Si la API falla, todo sigue como antes (queda en ELMAH).
+    ''' </summary>
+    Private Async Function ProponerBultosAriadnaAsync(empresa As String, pedido As Integer) As Task
+        Try
+            Dim lista As List(Of BultoAriadna) = Await _servicioBultosAriadna.LeerBultosDelPedido(empresa, pedido)
+            If IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedido Then
+                Return ' el usuario ya está en otro pedido
+            End If
+            BultosAriadna = lista
+            Dim propuesta = PropuestaBultosAriadna.Proponer(bultos, lista)
+            bultos = propuesta.Bultos
+            If Not String.IsNullOrEmpty(propuesta.Aviso) Then
+                _dialogService.ShowNotification("Bultos", propuesta.Aviso)
+            End If
+        Catch ex As Exception
+            BultosAriadna = New List(Of BultoAriadna)
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ProponerBultosAriadna")
+        End Try
+    End Function
+
     Public Property CopiarNumeroPedidoCommand As RelayCommand
 
     ''' <summary>
