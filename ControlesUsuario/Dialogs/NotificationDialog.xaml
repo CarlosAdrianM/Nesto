@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
-             MinWidth="300" MinHeight="110">
+             MinWidth="300" MinHeight="110" MaxWidth="600">
     <Grid x:Name="LayoutRoot" Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition />

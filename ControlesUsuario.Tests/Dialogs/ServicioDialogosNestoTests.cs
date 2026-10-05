@@ -225,6 +225,27 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         [TestMethod]
+        public void UnAvisoEnLaVentanaPropia_AlAgrandarlaSeEnsanchaAunqueElDialogoLleveTope()
+        {
+            // El tope de 600 del diálogo es para la ventana de Prism (crece sin límite con el texto);
+            // la propia lo suelta al pintarse para que se pueda agrandar.
+            EjecutarEnSTA(() =>
+            {
+                var aviso = new NotificationDialog { DataContext = new DialogoDePrueba() };
+                var servicio = ServicioQueDevuelve(() => aviso);
+                VentanaDialogo ventana = servicio.PrepararVentana("MiDialogo", null, null);
+                ventana.Show();
+                Bombear();
+
+                ventana.Width = 900;
+                Bombear();
+
+                Assert.IsTrue(aviso.ActualWidth > VentanaDialogo.ANCHO_MAXIMO_INICIAL, $"El aviso ocupa {aviso.ActualWidth}");
+                ventana.Close();
+            });
+        }
+
+        [TestMethod]
         public void LosDialogosDeMensaje_NoTienenUnTamanoFijo()
         {
             EjecutarEnSTA(() =>

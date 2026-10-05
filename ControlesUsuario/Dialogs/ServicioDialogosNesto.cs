@@ -159,6 +159,12 @@ namespace ControlesUsuario.Dialogs
             SizeToContent = SizeToContent.Manual;
             MaxWidth = double.PositiveInfinity;
             MaxHeight = double.PositiveInfinity;
+            // Los diálogos de aviso llevan su propio tope (para la ventana de Prism, que crecería sin límite con
+            // un texto largo): aquí ya no hace falta
+            if (Content is FrameworkElement vista && vista.MaxWidth == ANCHO_MAXIMO_INICIAL)
+            {
+                vista.MaxWidth = double.PositiveInfinity;
+            }
         }
 
         /// <summary>Resultado con el que pidió cerrarse el diálogo; null si se cerró con la X.</summary>
