@@ -177,6 +177,11 @@
                                 <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0">
                                     <Button Command="{Binding DescargarFacturasCommand}" Padding="15,5">Descargar</Button>
                                     <CheckBox IsChecked="{Binding MostrarImagenesFacturas}" VerticalAlignment="Center" Margin="10,0,0,0">Mostrar imágenes</CheckBox>
+                                    <!-- Nesto#259: las marcadas, en un solo correo, al correo escrito (se propone el de facturas del cliente) -->
+                                    <TextBlock Text="Correo:" VerticalAlignment="Center" Margin="25,0,5,0"/>
+                                    <TextBox Text="{Binding CorreoEnvioFacturas, UpdateSourceTrigger=PropertyChanged}" Width="280" VerticalContentAlignment="Center"
+                                             ToolTip="Uno o varios correos, separados por punto y coma. Se propone el de facturas del cliente."/>
+                                    <Button Command="{Binding EnviarFacturasPorCorreoCommand}" Padding="15,5" Margin="5,0,0,0">Enviar por correo</Button>
                                 </StackPanel>
                             </Grid>
                         </TabItem>

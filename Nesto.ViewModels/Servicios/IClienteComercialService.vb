@@ -36,4 +36,15 @@ Public Interface IClienteComercialService
     ''' garantía de permisos vive en el servidor.
     ''' </summary>
     Function LeerVendedoresEquipo(empresa As String, vendedor As String) As Task(Of List(Of VendedorDTO))
+    ''' <summary>
+    ''' Nesto#259: el correo de facturas del cliente de esa factura (GET Facturas/CorreoFacturas), para proponerlo
+    ''' al mandarla. Cadena vacía si no tiene.
+    ''' </summary>
+    Function LeerCorreoFacturas(empresa As String, numeroFactura As String) As Task(Of String)
+    ''' <summary>
+    ''' Nesto#259: manda las facturas en un solo correo a los correos escritos («;» o «,» para varios)
+    ''' (POST Facturas/EnviarPorCorreo). Si la API lo rechaza (400), lanza la excepción con su motivo; si el correo
+    ''' no sale (502), devuelve el resultado con Enviado = False y el mensaje.
+    ''' </summary>
+    Function EnviarFacturasPorCorreo(empresa As String, facturas As List(Of String), correos As String) As Task(Of ResultadoEnvioFacturasCorreo)
 End Interface

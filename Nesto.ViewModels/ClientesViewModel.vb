@@ -908,9 +908,58 @@ Public Class ClientesViewModel
         Set(value As ObservableCollection(Of FacturaClienteDTO))
             If SetProperty(_facturasSeleccionadas, value) Then
                 CommandManager.InvalidateRequerySuggested()
+                ' Nesto#259: se propone el correo de facturas del cliente (solo propuesta: no bloquea nada)
+                Dim unused = ProponerCorreoFacturasAsync()
             End If
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#259: a dónde se mandan las facturas marcadas. Se propone el correo de facturas del cliente, pero se puede
+    ''' cambiar (varios separados por «;» o «,»).
+    ''' </summary>
+    Private _correoEnvioFacturas As String
+    Public Property CorreoEnvioFacturas As String
+        Get
+            Return _correoEnvioFacturas
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_correoEnvioFacturas, value)
+        End Set
+    End Property
+
+    ' El último correo propuesto y de qué cliente: si el usuario no lo ha cambiado y marca facturas de otro cliente,
+    ' se cambia por el de ese cliente; lo que haya escrito él no se pisa nunca.
+    Private _ultimoCorreoPropuesto As String
+    Private _clienteDelCorreoPropuesto As String
+
+    Public Async Function ProponerCorreoFacturasAsync() As Task
+        Dim primera As FacturaClienteDTO = FacturasSeleccionadas?.FirstOrDefault()
+        If primera Is Nothing OrElse servicio Is Nothing Then
+            Return
+        End If
+        Dim cliente As String = primera.Cliente?.Trim()
+        Dim escritoPorElUsuario As Boolean = Not String.IsNullOrWhiteSpace(CorreoEnvioFacturas) AndAlso
+            Not String.Equals(CorreoEnvioFacturas, _ultimoCorreoPropuesto, StringComparison.OrdinalIgnoreCase)
+        Dim yaEsDeEsteCliente As Boolean = Not String.IsNullOrWhiteSpace(CorreoEnvioFacturas) AndAlso cliente = _clienteDelCorreoPropuesto
+        If escritoPorElUsuario OrElse yaEsDeEsteCliente Then
+            Return
+        End If
+        Try
+            Dim correo As String = Await servicio.LeerCorreoFacturas(primera.Empresa?.Trim(), primera.Documento?.Trim())
+            If String.IsNullOrWhiteSpace(correo) Then
+                Return
+            End If
+            ' Mientras se leía, el usuario puede haber escrito otro: el suyo manda
+            If String.IsNullOrWhiteSpace(CorreoEnvioFacturas) OrElse String.Equals(CorreoEnvioFacturas, _ultimoCorreoPropuesto, StringComparison.OrdinalIgnoreCase) Then
+                _ultimoCorreoPropuesto = correo.Trim()
+                _clienteDelCorreoPropuesto = cliente
+                CorreoEnvioFacturas = _ultimoCorreoPropuesto
+            End If
+        Catch
+            ' Solo es una propuesta: sin ella el usuario escribe el correo
+        End Try
+    End Function
 
     Private _listaPedidos As ObservableCollection(Of ResumenPedido)
     Public Property ListaPedidos As ObservableCollection(Of ResumenPedido)
@@ -1450,6 +1499,57 @@ Public Class ClientesViewModel
 
 
     End Sub
+
+    Private _enviarFacturasPorCorreoCommand As ICommand
+    ''' <summary>Nesto#259 (Manuel, 05/10/26): las facturas marcadas, en un solo correo, al correo escrito.</summary>
+    Public ReadOnly Property EnviarFacturasPorCorreoCommand() As ICommand
+        Get
+            If _enviarFacturasPorCorreoCommand Is Nothing Then
+                _enviarFacturasPorCorreoCommand = New RelayCommandLegado(AddressOf OnEnviarFacturasPorCorreo, AddressOf CanDescargarFacturas)
+            End If
+            Return _enviarFacturasPorCorreoCommand
+        End Get
+    End Property
+    Private Async Sub OnEnviarFacturasPorCorreo(ByVal param As Object)
+        Await EnviarFacturasPorCorreoAsync()
+    End Sub
+
+    Public Async Function EnviarFacturasPorCorreoAsync() As Task
+        If FacturasSeleccionadas Is Nothing OrElse Not FacturasSeleccionadas.Any() Then
+            Return
+        End If
+        Dim correos As String = CorreoEnvioFacturas?.Trim()
+        If String.IsNullOrWhiteSpace(correos) Then
+            dialogService.ShowError("Escribe el correo al que quieres mandar las facturas.")
+            Return
+        End If
+        Dim numeros As List(Of String) = FacturasSeleccionadas _
+            .Select(Function(f) f.Documento?.Trim()) _
+            .Where(Function(n) Not String.IsNullOrEmpty(n)) _
+            .Distinct() _
+            .ToList()
+        Dim pregunta As String = If(numeros.Count = 1,
+            $"¿Enviar la factura {numeros(0)} a {correos}?",
+            $"¿Enviar {numeros.Count} facturas a {correos}?")
+        If Not dialogService.ShowConfirmationAnswer("Enviar facturas por correo", pregunta) Then
+            Return
+        End If
+
+        estaOcupado = True
+        Try
+            Dim empresa As String = FacturasSeleccionadas.First().Empresa?.Trim()
+            Dim resultado As ResultadoEnvioFacturasCorreo = Await servicio.EnviarFacturasPorCorreo(empresa, numeros, correos)
+            If resultado.Enviado Then
+                dialogService.ShowNotification("Facturas enviadas", resultado.Mensaje)
+            Else
+                dialogService.ShowError(resultado.Mensaje)
+            End If
+        Catch ex As Exception
+            dialogService.ShowError("No se han enviado las facturas: " & If(ex.InnerException?.Message, ex.Message))
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
 
     Private _cargarPedidoCommand As ICommand
     Public ReadOnly Property CargarPedidoCommand() As ICommand

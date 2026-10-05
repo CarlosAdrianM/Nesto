@@ -161,4 +161,44 @@ Public Class ClienteComercialService
             Return JsonConvert.DeserializeObject(Of GuardarCCCsRespuesta)(respuesta)
         End Using
     End Function
+
+    Public Async Function LeerCorreoFacturas(empresa As String, numeroFactura As String) As Task(Of String) Implements IClienteComercialService.LeerCorreoFacturas
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim urlConsulta As String = "Facturas/CorreoFacturas?empresa=" + Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) +
+                "&numeroFactura=" + Uri.EscapeDataString(If(numeroFactura?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                ' Solo es una propuesta: sin ella el usuario escribe el correo
+                Return String.Empty
+            End If
+            Dim respuesta = JObject.Parse(Await response.Content.ReadAsStringAsync())
+            Return If(respuesta("Correo")?.ToString(), String.Empty)
+        End Using
+    End Function
+
+    Public Async Function EnviarFacturasPorCorreo(empresa As String, facturas As List(Of String), correos As String) As Task(Of ResultadoEnvioFacturasCorreo) Implements IClienteComercialService.EnviarFacturasPorCorreo
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim peticion = New With {.Empresa = empresa, .Facturas = facturas, .Correos = New List(Of String) From {correos}}
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync("Facturas/EnviarPorCorreo", content)
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            If response.IsSuccessStatusCode OrElse response.StatusCode = Net.HttpStatusCode.BadGateway Then
+                ' 502: el servidor de correo no lo ha aceptado; el resultado trae el mensaje para el usuario
+                Dim resultado = JsonConvert.DeserializeObject(Of ResultadoEnvioFacturasCorreo)(respuesta)
+                If resultado IsNot Nothing Then
+                    Return resultado
+                End If
+            End If
+            Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+        End Using
+    End Function
+End Class
+
+''' <summary>Nesto#259: lo que contesta POST Facturas/EnviarPorCorreo.</summary>
+Public Class ResultadoEnvioFacturasCorreo
+    Public Property Enviado As Boolean
+    Public Property Facturas As List(Of String) = New List(Of String)
+    Public Property Omitidas As List(Of String) = New List(Of String)
+    Public Property Correos As List(Of String) = New List(Of String)
+    Public Property Mensaje As String
 End Class
