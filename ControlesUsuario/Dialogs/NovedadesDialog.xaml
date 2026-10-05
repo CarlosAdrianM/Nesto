@@ -99,6 +99,7 @@
                     <TextBox Text="{Binding TextoSugerencia, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                              TextWrapping="Wrap" MinHeight="54" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                              PreviewKeyDown="CuadroSugerencia_PreviewKeyDown"
+                             local:PegarImagenTextBox.Comando="{Binding PegarImagenSugerenciaCommand}"
                              local:MencionesTextBox.Autocompletado="{Binding MencionesSugerencia}" />
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                 Visibility="{Binding TieneImagenSugerencia, Converter={StaticResource BoolAVisible}}">
@@ -268,6 +269,7 @@
                                             <TextBox Text="{Binding NuevoTexto, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="44" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                                                      PreviewKeyDown="CuadroComentario_PreviewKeyDown"
+                                                     local:PegarImagenTextBox.Comando="{Binding PegarImagenCommand}"
                                                      local:MencionesTextBox.Autocompletado="{Binding MencionesComentario}" />
                                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
                                                         Visibility="{Binding TieneImagenAdjunta, Converter={StaticResource BoolAVisible}}">
