@@ -109,6 +109,7 @@ Public Class AgenciasViewModel
         cmdImprimirManifiesto = New RelayCommand(Of Object)(AddressOf OnImprimirManifiesto, AddressOf CanImprimirManifiesto)
         cmdRehusarEnvio = New RelayCommand(Of Object)(AddressOf OnRehusarEnvio, AddressOf CanRehusarEnvio)
         cmdInsertar = New RelayCommand(Of Object)(AddressOf OnInsertar, AddressOf CanInsertar)
+        DescontarPrepagosCommand = New RelayCommand(AddressOf OnDescontarPrepagos, Function() HayAvisoPrepagos)
         InsertarEnvioPendienteCommand = New RelayCommand(AddressOf OnInsertarEnvioPendiente, AddressOf CanInsertarEnvioPendiente)
         BorrarEnvioPendienteCommand = New RelayCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
         GuardarEnvioPendienteCommand = New RelayCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
@@ -476,11 +477,24 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    ' NestoAPI#569: best-effort; si no se pueden leer, no hay aviso (como hasta ahora) y queda en ELMAH.
+    Private Async Function LeerPrepagosPendientesAsync(empresa As String, pedido As Integer) As Task(Of Decimal)
+        Try
+            Return Await _servicio.ImportePrepagosPendientes(empresa, pedido)
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.LeerPrepagosPendientes")
+            Return 0D
+        End Try
+    End Function
+
     Private Async Function ActualizarPedidoSeleccionado() As Task
         If Not IsNothing(pedidoSeleccionado) Then
             Try
                 Dim cliente = _servicio.LeerPedidoParaAgencia(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número).Clientes
                 reembolso = Await _servicio.ImporteReembolso(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
+                ' NestoAPI#569: solo se avisa; el reembolso se queda como lo propone el servidor
+                _prepagosDecididos = False
+                prepagosPendientes = Await LeerPrepagosPendientesAsync(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
                 bultos = 1
                 nombreEnvio = If(cliente.Nombre IsNot Nothing, cliente.Nombre.Trim, "")
                 direccionEnvio = If(cliente.Dirección IsNot Nothing, cliente.Dirección.Trim, "")
@@ -628,9 +642,92 @@ Public Class AgenciasViewModel
             Return _reembolso
         End Get
         Set(value As Decimal)
-            Dim unused = SetProperty(_reembolso, value)
+            If SetProperty(_reembolso, value) Then
+                NotificarAvisoPrepagos()
+            End If
         End Set
     End Property
+
+    ' NestoAPI#569 (Carlos 05/10/26): el reembolso propuesto NO descuenta los prepagos del pedido (lo que el
+    ' cliente ya ha pagado por adelantado). Se avisa junto al reembolso y, al insertar, se pregunta una vez:
+    ' quien hace la etiqueta decide si los descuenta (igual no quiere).
+    Private _prepagosPendientes As Decimal
+    Public Property prepagosPendientes As Decimal
+        Get
+            Return _prepagosPendientes
+        End Get
+        Set(value As Decimal)
+            If SetProperty(_prepagosPendientes, value) Then
+                NotificarAvisoPrepagos()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Ya ha decidido (descontado o no) en este pedido: no se vuelve a avisar ni a preguntar.</summary>
+    Private _prepagosDecididos As Boolean
+
+    Public ReadOnly Property HayAvisoPrepagos As Boolean
+        Get
+            Return Not _prepagosDecididos AndAlso prepagosPendientes > 0D AndAlso reembolso > 0D
+        End Get
+    End Property
+
+    Public ReadOnly Property AvisoPrepagos As String
+        Get
+            If Not HayAvisoPrepagos Then Return String.Empty
+            Return $"El pedido tiene {prepagosPendientes:C} pagados por adelantado. El reembolso propuesto ({reembolso:C}) no los descuenta."
+        End Get
+    End Property
+
+    ''' <summary>El botón junto al reembolso dice cuánto hay prepagado («Descontar 50,00 € prepagados»).</summary>
+    Public ReadOnly Property TextoBotonPrepagos As String
+        Get
+            Return If(HayAvisoPrepagos, $"Descontar {prepagosPendientes:C} prepagados", String.Empty)
+        End Get
+    End Property
+
+    Public ReadOnly Property VisibilidadAvisoPrepagos As Visibility
+        Get
+            Return If(HayAvisoPrepagos, Visibility.Visible, Visibility.Collapsed)
+        End Get
+    End Property
+
+    Public Property DescontarPrepagosCommand As RelayCommand
+
+    Public Shared Function ReembolsoDescontandoPrepagos(reembolsoPropuesto As Decimal, prepagos As Decimal) As Decimal
+        Return Math.Max(0D, reembolsoPropuesto - Math.Max(0D, prepagos))
+    End Function
+
+    Private Sub OnDescontarPrepagos()
+        _prepagosDecididos = True
+        reembolso = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
+        NotificarAvisoPrepagos()
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#569: antes de crear la etiqueta, si sigue habiendo prepagos sin decidir, se pregunta una vez si se
+    ''' descuentan del reembolso. Friend para probarlo sin pasar por toda la inserción.
+    ''' </summary>
+    Friend Sub DecidirPrepagosAntesDeInsertar()
+        If Not HayAvisoPrepagos Then Return
+        Dim quedaria As Decimal = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
+        Dim descontar As Boolean = _dialogService.ShowConfirmationAnswer("Prepago del pedido",
+            $"El pedido tiene {prepagosPendientes:C} ya pagados por adelantado y la etiqueta lleva {reembolso:C} de reembolso.{Environment.NewLine}{Environment.NewLine}" &
+            $"¿Descontar los {prepagosPendientes:C} del reembolso? Quedaría en {quedaria:C}.")
+        _prepagosDecididos = True
+        If descontar Then
+            reembolso = quedaria
+        End If
+        NotificarAvisoPrepagos()
+    End Sub
+
+    Private Sub NotificarAvisoPrepagos()
+        OnPropertyChanged(NameOf(HayAvisoPrepagos))
+        OnPropertyChanged(NameOf(AvisoPrepagos))
+        OnPropertyChanged(NameOf(VisibilidadAvisoPrepagos))
+        OnPropertyChanged(NameOf(TextoBotonPrepagos))
+        DescontarPrepagosCommand?.NotifyCanExecuteChanged()
+    End Sub
 
     Private _importeAsegurado As Decimal
     Public Property importeAsegurado As Decimal
@@ -2254,6 +2351,8 @@ Public Class AgenciasViewModel
             If Peso <= 0D Then
                 Throw New Exception("Indica el peso del envío antes de imprimir: es necesario para elegir la agencia más barata y para tramitar con la agencia.")
             End If
+            ' NestoAPI#569: antes del coste (depende del reembolso) y de crear la etiqueta
+            DecidirPrepagosAntesDeInsertar()
             ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
             ' para la zona del destino REAL. Puede corregir agenciaSeleccionada (a la más barata que sí
             ' cubra) o lanzar si NINGUNA agencia cubre la zona (lo captura el llamante y avisa).

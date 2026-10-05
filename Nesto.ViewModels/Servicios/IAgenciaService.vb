@@ -84,6 +84,9 @@ Public Interface IAgenciaService
     Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
     Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task
     Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal)
+    ' NestoAPI#569: lo que el cliente ya ha pagado por adelantado en el pedido (prepagos sin facturar).
+    ' El reembolso NO lo descuenta: Agencias avisa y decide quien hace la etiqueta.
+    Function ImportePrepagosPendientes(empresa As String, pedido As Integer) As Task(Of Decimal)
 
     ' Nesto#359: envía un correo (vía /api/Correos/Enviar) con el PDF de la factura del
     ' pedido adjunto. Lo usa AgenciaCanteras.LlamadaWebService para notificar recogidas a

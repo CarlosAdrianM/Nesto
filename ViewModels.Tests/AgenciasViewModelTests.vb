@@ -1900,4 +1900,111 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(CByte(0), pendiente.Servicio)
     End Sub
 
+    ' NestoAPI#569 (Carlos 05/10/26): el reembolso de la etiqueta NO descuenta solo los prepagos del pedido;
+    ' se avisa a quien la hace y decide él (igual no quiere descontarlo).
+
+    <TestMethod()>
+    Public Sub ReembolsoDescontandoPrepagos_RestaSinBajarDeCero()
+        Assert.AreEqual(150D, AgenciasViewModel.ReembolsoDescontandoPrepagos(200D, 50D))
+        Assert.AreEqual(0D, AgenciasViewModel.ReembolsoDescontandoPrepagos(200D, 250D))
+        Assert.AreEqual(200D, AgenciasViewModel.ReembolsoDescontandoPrepagos(200D, 0D))
+    End Sub
+
+    <TestMethod()>
+    Public Sub AlElegirUnPedidoConPrepago_SeAvisaYElReembolsoNoCambia()
+        Dim pedido = PedidoParaPrepagos()
+        A.CallTo(Function() servicio.ImporteReembolso("1", 12345)).Returns(Task.FromResult(200D))
+        A.CallTo(Function() servicio.ImportePrepagosPendientes("1", 12345)).Returns(Task.FromResult(50D))
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+
+        viewModel.pedidoSeleccionado = pedido
+
+        Assert.AreEqual(200D, viewModel.reembolso, "No se descuenta solo")
+        Assert.AreEqual(50D, viewModel.prepagosPendientes)
+        Assert.IsTrue(viewModel.HayAvisoPrepagos)
+        StringAssert.Contains(viewModel.AvisoPrepagos, (50D).ToString("C"))
+    End Sub
+
+    <TestMethod()>
+    Public Sub SinReembolso_NoHayAvisoDePrepagos()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.reembolso = 0D
+        viewModel.prepagosPendientes = 50D
+
+        Assert.IsFalse(viewModel.HayAvisoPrepagos)
+    End Sub
+
+    <TestMethod()>
+    Public Sub DescontarPrepagos_DejaElReembolsoEnLaDiferenciaYQuitaElAviso()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.reembolso = 200D
+        viewModel.prepagosPendientes = 50D
+
+        viewModel.DescontarPrepagosCommand.Execute(Nothing)
+
+        Assert.AreEqual(150D, viewModel.reembolso)
+        Assert.IsFalse(viewModel.HayAvisoPrepagos)
+    End Sub
+
+    <TestMethod()>
+    Public Sub AlInsertarConPrepagoSinDecidir_PreguntaYSiDiceQueSi_Descuenta()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.reembolso = 200D
+        viewModel.prepagosPendientes = 50D
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
+
+        viewModel.DecidirPrepagosAntesDeInsertar()
+        viewModel.DecidirPrepagosAntesDeInsertar()
+
+        Assert.AreEqual(150D, viewModel.reembolso)
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub AlInsertarConPrepagoSinDecidir_SiDiceQueNo_ElReembolsoSeQueda()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.reembolso = 200D
+        viewModel.prepagosPendientes = 50D
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
+
+        viewModel.DecidirPrepagosAntesDeInsertar()
+
+        Assert.AreEqual(200D, viewModel.reembolso)
+        Assert.IsFalse(viewModel.HayAvisoPrepagos, "Ya ha decidido: no se le vuelve a preguntar ni a avisar")
+    End Sub
+
+    <TestMethod()>
+    Public Sub AlInsertarSinPrepagos_NoPregunta()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.reembolso = 200D
+        viewModel.prepagosPendientes = 0D
+
+        viewModel.DecidirPrepagosAntesDeInsertar()
+
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub SiNoSePuedenLeerLosPrepagos_NoHayAvisoYNoRevienta()
+        Dim pedido = PedidoParaPrepagos()
+        A.CallTo(Function() servicio.ImporteReembolso("1", 12345)).Returns(Task.FromResult(200D))
+        A.CallTo(Function() servicio.ImportePrepagosPendientes("1", 12345)).Throws(New Exception("sin red"))
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+
+        viewModel.pedidoSeleccionado = pedido
+
+        Assert.AreEqual(200D, viewModel.reembolso)
+        Assert.IsFalse(viewModel.HayAvisoPrepagos)
+    End Sub
+
+    Private Function PedidoParaPrepagos() As PedidoAgenciaModel
+        Dim cliente = New Clientes() With {.Empresa = "1", .Nº_Cliente = "1", .Contacto = "0", .Nombre = "CLIENTE", .Dirección = "C/ Uno, 1",
+            .Población = "Algete", .Provincia = "Madrid", .CodPostal = "28110", .Teléfono = "911234567"}
+        Dim pedido = New PedidoAgenciaModel With {.Empresa = "1", .Número = 12345, .Nº_Cliente = "1", .Contacto = "0", .Clientes = ClienteAgencia(cliente)}
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia("1", 12345)).Returns(pedido)
+        A.CallTo(Function() servicioPedidos.DebeImprimirDocumento(A(Of String).Ignored)).Returns(Task.FromResult(False))
+        A.CallTo(Function() servicio.CargarListaEnviosPedido("1", 12345)).Returns(New ObservableCollection(Of EnviosAgencia))
+        Return pedido
+    End Function
+
 End Class

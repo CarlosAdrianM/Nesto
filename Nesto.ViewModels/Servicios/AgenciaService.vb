@@ -1044,6 +1044,20 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ''' <summary>NestoAPI#569: GET PedidosVenta/PrepagosPendientes (prepagos del pedido aún sin facturar).</summary>
+    Public Async Function ImportePrepagosPendientes(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImportePrepagosPendientes
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/PrepagosPendientes?empresa={empresa.Trim}&pedido={pedido}")
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se han podido leer los prepagos del pedido ({CInt(response.StatusCode)})")
+            End If
+            Return JsonConvert.DeserializeObject(Of Decimal)(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
     Public Async Function EnviarCorreoConFacturaDelPedido(empresa As String, numeroPedido As Integer, destinatario As String, asunto As String, cuerpo As String) As Task(Of (Exito As Boolean, Mensaje As String)) Implements IAgenciaService.EnviarCorreoConFacturaDelPedido
         ' Nesto#359: Canteras necesita la factura adjunta para el DUA. Buscamos la primera
         ' línea del pedido con Nº_Factura informado (en pedidos parciales puede haber líneas
