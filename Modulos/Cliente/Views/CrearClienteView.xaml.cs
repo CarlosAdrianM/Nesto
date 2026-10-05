@@ -28,7 +28,10 @@ namespace Nesto.Modulos.Cliente
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            CrearClienteViewModel vm = (CrearClienteViewModel)DataContext;
+            if (!(DataContext is CrearClienteViewModel vm))
+            {
+                return;
+            }
             vm.PaginaActual = DatosFiscales;
             // Nesto#480: al borrar la direccion verificada, el foco vuelve al campo para buscar otra
             // sin tener que pinchar. Se desuscribe antes por si la vista se recarga en la misma region.
@@ -99,7 +102,11 @@ namespace Nesto.Modulos.Cliente
             Dispatcher.BeginInvoke(DispatcherPriority.Input,
             new Action(delegate ()
             {
-                CrearClienteViewModel ccvm = (CrearClienteViewModel)DataContext;
+                // ELMAH 05/10/26 (Lidia): el foco diferido puede llegar con la vista ya cerrada o sin DataContext
+                if (!(DataContext is CrearClienteViewModel ccvm))
+                {
+                    return;
+                }
                 if (!string.IsNullOrWhiteSpace(ccvm.ClienteNif) && ccvm.NombreIsEnabled)
                 {
                     txtNombre.Focus();
@@ -209,7 +216,10 @@ namespace Nesto.Modulos.Cliente
             Dispatcher.BeginInvoke(DispatcherPriority.Input,
                 new Action(delegate ()
                 {
-                    CrearClienteViewModel ccvm = (CrearClienteViewModel)DataContext;
+                    if (!(DataContext is CrearClienteViewModel ccvm))
+                    {
+                        return; // vista ya cerrada o sin DataContext (mismo caso que DatosFiscales_Enter)
+                    }
                     if (ccvm.EsUnaModificacion && ccvm.PaginaAnterior != DatosPago)
                     {
                         ccvm.PaginaActual = DatosPago;
