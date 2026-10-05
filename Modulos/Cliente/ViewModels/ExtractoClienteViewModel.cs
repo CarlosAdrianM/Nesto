@@ -22,7 +22,7 @@ namespace Nesto.Modulos.Cliente
     /// (NestoAPI#333; la lógica y las validaciones viven en la API, aquí solo se pinta y se
     /// pide). Driver: el paso de revisión de #332 exige poder liquidar antes de remesar.
     /// </summary>
-    public class ExtractoClienteViewModel : ObservableObject, INavigationAware
+    public class ExtractoClienteViewModel : ObservableObject, IReceptorNavegacion
     {
         private readonly IExtractoClienteService _servicio;
         private readonly IServicioDialogos _dialogService;
@@ -53,21 +53,18 @@ namespace Nesto.Modulos.Cliente
         public string Titulo { get; }
 
         // Nesto#419: al navegar aquí desde Remesas (doble clic en un efecto) se recibe el cliente
-        // como parámetro y se cargan sus movimientos automáticamente. IsNavigationTarget = true
-        // reutiliza la MISMA pestaña de Extracto y le cambia el cliente, en vez de abrir otra.
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        // como parámetro y se cargan sus movimientos automáticamente. Se reutiliza la MISMA pestaña de
+        // Extracto y se le cambia el cliente, en vez de abrir otra. Nesto#490 (4C.4): llega por
+        // IReceptorNavegacion; sin INavigationAware, Prism ya reutiliza la pestaña abierta.
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
-            string cliente = navigationContext?.Parameters?.GetValue<string>("cliente");
+            string cliente = parametros?.GetValue<string>("cliente");
             if (!string.IsNullOrWhiteSpace(cliente))
             {
                 ClienteSeleccionado = cliente.Trim();
                 _ = CargarAsync();
             }
         }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext) { }
 
         private string _clienteSeleccionado;
         public string ClienteSeleccionado

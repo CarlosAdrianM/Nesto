@@ -2,7 +2,6 @@
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -18,7 +17,7 @@ namespace Nesto.Modulos.Cliente
     /// ViewModel para la vista de descarga del certificado Modelo 347.
     /// Issue #270: Nueva vista Clientes -> Modelo 347 para descargar certificado.
     /// </summary>
-    public class Modelo347ViewModel : ObservableObject, INavigationAware
+    public class Modelo347ViewModel : ObservableObject, IReceptorNavegacion
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDialogos _dialogService;
@@ -204,18 +203,14 @@ namespace Nesto.Modulos.Cliente
 
         #endregion
 
-        #region INavigationAware
+        #region Navegación (IReceptorNavegacion, Nesto#490)
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
-            Debug.WriteLine("Modelo347ViewModel: OnNavigatedTo");
+            Debug.WriteLine("Modelo347ViewModel: AlLlegar");
             ClienteSeleccionado = null;
             MensajeEstado = null;
         }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext) { }
 
         #endregion
     }

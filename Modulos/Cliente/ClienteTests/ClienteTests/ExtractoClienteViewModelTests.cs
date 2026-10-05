@@ -210,18 +210,23 @@ namespace ClienteTests
                 Movimiento(2, -200m)
             });
             var vm = CrearViewModel();
-            var parametros = new NavigationParameters { { "cliente", "15191" } };
-            // El NavigationContext de Prism descarta los parámetros si no tiene un servicio de navegación
-            // con región (así llegan en la navegación real); con null, OnNavigatedTo no recibía el cliente.
-            var navegacion = A.Fake<IRegionNavigationService>();
-            A.CallTo(() => navegacion.Region).Returns(A.Fake<IRegion>());
-            var contexto = new NavigationContext(navegacion, new Uri("ExtractoClienteView", UriKind.Relative), parametros);
+            // Nesto#490 (4C.4): la navegación llega por IReceptorNavegacion, sin tipos de Prism
+            IReceptorNavegacion receptor = vm;
 
-            vm.OnNavigatedTo(contexto);
+            receptor.AlLlegar(new ParametrosNavegacion { { "cliente", "15191" } });
             await Task.Yield(); // dejar terminar el CargarAsync disparado por la navegación
 
             Assert.AreEqual("15191", vm.ClienteSeleccionado);
             A.CallTo(() => servicio.LeerExtractoPendiente("15191")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void Navegacion_SeRecibeSinPrism_YEl347Tambien()
+        {
+            // Nesto#490 (4C.4): sin INavigationAware, Prism reutiliza la pestaña abierta (lo que hacía IsNavigationTarget = true)
+            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ExtractoClienteViewModel)));
+            Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(Modelo347ViewModel)));
+            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(Modelo347ViewModel)));
         }
 
         [TestMethod]

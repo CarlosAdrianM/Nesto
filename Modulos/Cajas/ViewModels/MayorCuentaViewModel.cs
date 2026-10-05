@@ -3,7 +3,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -18,7 +17,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
     /// ViewModel para la vista de Mayor de Clientes/Proveedores.
     /// Issue #275: Nueva vista para consultar el Mayor de una cuenta.
     /// </summary>
-    public class MayorCuentaViewModel : ObservableObject, INavigationAware
+    public class MayorCuentaViewModel : ObservableObject, IReceptorNavegacion
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDialogos _dialogService;
@@ -238,18 +237,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         #endregion
 
-        #region INavigationAware
+        #region Navegación (IReceptorNavegacion, Nesto#490)
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
-            Debug.WriteLine("MayorCuentaViewModel: OnNavigatedTo");
+            Debug.WriteLine("MayorCuentaViewModel: AlLlegar");
             NumeroCuenta = null;
             MensajeEstado = null;
         }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext) { }
 
         #endregion
     }

@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -18,7 +17,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
     /// ve el cliente, p. ej. B9BC22C32366) o por fechas, cliente, usuario y estado. La API solo deja consultarlo
     /// a Administración y Dirección.
     /// </summary>
-    public class AuditoriaEnlacesPagoViewModel : ObservableObject, INavigationAware
+    public class AuditoriaEnlacesPagoViewModel : ObservableObject, IReceptorNavegacion
     {
         private readonly IAuditoriaEnlacesPagoService _servicio;
         private readonly IServicioDialogos _dialogService;
@@ -237,7 +236,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         private bool _cargadoAlAbrir;
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
             // Al abrir, los últimos días; si ya estaba abierta, se respeta lo que se hubiera buscado.
             if (!_cargadoAlAbrir)
@@ -247,11 +246,5 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
-        /// <summary>Una sola pestaña: si ya está abierta, se reutiliza.</summary>
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-        }
     }
 }

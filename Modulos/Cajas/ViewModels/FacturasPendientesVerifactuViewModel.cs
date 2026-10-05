@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,7 +18,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
     /// Administración, Dirección e Informática. Al volver a navegar a la ventana (p. ej. desde la campana con
     /// la pestaña ya abierta) se recarga.
     /// </summary>
-    public class FacturasPendientesVerifactuViewModel : ObservableObject, INavigationAware
+    public class FacturasPendientesVerifactuViewModel : ObservableObject, IReceptorNavegacion
     {
         private readonly IFacturasVerifactuService _servicio;
         private readonly IServicioDialogos _dialogService;
@@ -242,16 +241,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
             _ = CargarAsync();
         }
 
-        /// <summary>Una sola pestaña: si ya está abierta, se reutiliza (y se recarga).</summary>
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-        }
     }
 }
