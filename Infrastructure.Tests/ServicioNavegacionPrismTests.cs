@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
@@ -132,6 +132,34 @@ namespace Nesto.Infrastructure.Tests
             A.CallTo(() => _regionManager.Regions.ContainsRegionWithName("RapportDetailRegion")).Returns(false);
 
             _servicio.QuitarVistas("RapportDetailRegion");
+        }
+
+        [TestMethod]
+        public void AbrirVistaNueva_LaAnadeConSuNombreYLaActiva()
+        {
+            IRegion region = ConfigurarRegion("MainRegion");
+            var vista = new object();
+            A.CallTo(() => region.GetView("Clientes")).Returns(null);
+
+            _servicio.AbrirVistaNueva("MainRegion", vista, "Clientes");
+
+            A.CallTo(() => region.Add(vista, "Clientes")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => region.Activate(vista)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void AbrirVistaNueva_SiYaHayUnaConEseNombre_LeAnadeUnNumero()
+        {
+            // Como hacía el menú: Clientes, Clientes2, Clientes3…
+            IRegion region = ConfigurarRegion("MainRegion");
+            var vista = new object();
+            A.CallTo(() => region.GetView("Clientes")).Returns(new object());
+            A.CallTo(() => region.GetView("Clientes2")).Returns(new object());
+            A.CallTo(() => region.GetView("Clientes3")).Returns(null);
+
+            _servicio.AbrirVistaNueva("MainRegion", vista, "Clientes");
+
+            A.CallTo(() => region.Add(vista, "Clientes3")).MustHaveHappenedOnceExactly();
         }
 
         private IRegion ConfigurarRegion(string nombre, params object[] activas)

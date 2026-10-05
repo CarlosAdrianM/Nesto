@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Prism.Regions;
 using System;
 using System.Linq;
@@ -62,6 +62,21 @@ namespace Nesto.Infrastructure.Navegacion
             {
                 region.Remove(vista);
             }
+        }
+
+        // Lo que hacía MenuBarViewModel.NavegarAVista: nombre único (Clientes, Clientes2…), Add y Activate
+        public void AbrirVistaNueva(string regionName, object vista, string nombre)
+        {
+            IRegion region = _regionManager.Regions[regionName];
+            string unico = nombre;
+            int contador = 2;
+            while (region.GetView(unico) != null)
+            {
+                unico = nombre + contador;
+                contador++;
+            }
+            region.Add(vista, unico);
+            region.Activate(vista);
         }
 
         /// <summary>Lo contrario de <see cref="AParametrosPrism"/>: para entregar la navegación sin tipos de Prism.</summary>

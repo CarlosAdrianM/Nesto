@@ -1,4 +1,4 @@
-Imports Nesto.ViewModels
+﻿Imports Nesto.ViewModels
 Imports Prism.Regions
 Imports Prism.Modularity
 Imports Prism.RibbonRegionAdapter
@@ -18,11 +18,11 @@ Public Class MenuBarView
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
         Dim container = containerProvider.GetContainer()
-        Dim regionManager = container.Resolve(Of IRegionManager)
+        Dim navegacion = container.Resolve(Of IServicioNavegacion)()
         Dim configuracion = container.Resolve(Of Configuracion)
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
 
-        Dim viewModel As New MenuBarViewModel(container, regionManager, configuracion, servicioAutenticacion)
+        Dim viewModel As New MenuBarViewModel(container, navegacion, configuracion, servicioAutenticacion)
         viewModel.RegistrarTipoVista("Clientes", GetType(Clientes))
         viewModel.RegistrarTipoVista("Alquileres", GetType(Alquileres))
         viewModel.RegistrarTipoVista("Remesas", GetType(Remesas))

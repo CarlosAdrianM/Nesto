@@ -1,4 +1,4 @@
-namespace Nesto.Infrastructure.Contracts
+﻿namespace Nesto.Infrastructure.Contracts
 {
     /// <summary>
     /// Nesto#490 (4C.4): navegación propia de Nesto, para dejar de depender del <c>IRegionManager</c>
@@ -32,6 +32,12 @@ namespace Nesto.Infrastructure.Contracts
         /// no existe, no hace nada.
         /// </summary>
         void QuitarVistas(string regionName);
+
+        /// <summary>
+        /// Abre <paramref name="vista"/> como una pestaña NUEVA de la región y la activa (aunque ya haya otra igual
+        /// abierta). Si ya hay una vista con <paramref name="nombre"/>, le añade un número (Clientes, Clientes2…).
+        /// </summary>
+        void AbrirVistaNueva(string regionName, object vista, string nombre);
     }
 
     /// <summary>

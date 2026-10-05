@@ -9,28 +9,28 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 Imports Unity
 
 Public Class MenuBarViewModel
     Inherits ObservableObject
 
     Private ReadOnly _container As IUnityContainer
-    Private ReadOnly _regionManager As IRegionManager
+    Private ReadOnly _navegacion As IServicioNavegacion
     Private ReadOnly _configuracion As IConfiguracion
     Private ReadOnly _servicioComisiones As ComisionesService
     Private ReadOnly _servicioInformes As IInformesService
     Private _listaVendedoresEquipo As List(Of VendedorDTO)
     Private ReadOnly _viewTypes As New Dictionary(Of String, Type)
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
-        Me.New(container, regionManager, configuracion, servicioAutenticacion, New InformesService(configuracion, servicioAutenticacion))
+    ' Nesto#490 (4C.4): navega y abre pestañas con IServicioNavegacion, ya no con el IRegionManager de Prism
+    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+        Me.New(container, navegacion, configuracion, servicioAutenticacion, New InformesService(configuracion, servicioAutenticacion))
     End Sub
 
     ' Constructor para tests: permite inyectar un IInformesService mockeado.
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion, servicioInformes As IInformesService)
+    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion, servicioInformes As IInformesService)
         _container = container
-        _regionManager = regionManager
+        _navegacion = navegacion
         _configuracion = configuracion
         _servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
         _servicioInformes = servicioInformes
@@ -322,7 +322,7 @@ Public Class MenuBarViewModel
 
 
     Private Sub OnVideos()
-        _regionManager.RequestNavigate("MainRegion", "VideosView")
+        _navegacion.RequestNavigate("MainRegion", "VideosView")
     End Sub
 
     ' Nesto#372: consulta del changelog completo desde Herramientas → Ayuda → Novedades.
@@ -453,30 +453,10 @@ Public Class MenuBarViewModel
             Return
         End If
 
-        Dim region As IRegion = _regionManager.Regions("MainRegion")
+        ' Una pestaña nueva cada vez (Clientes, Clientes2…): el nombre único lo pone el servicio
         Dim vista = _container.Resolve(viewType)
-        Dim nombre = ObtenerNombreVistaUnico(region, vista.ToString())
-        region.Add(vista, nombre)
-        region.Activate(vista)
+        _navegacion.AbrirVistaNueva("MainRegion", vista, vista.ToString())
     End Sub
-
-    Private Function ObtenerNombreVistaUnico(region As IRegion, nombre As String) As String
-        Dim contador As Integer = 2
-        Dim repetir As Boolean = True
-        Dim nombreAmpliado As String = nombre
-        While repetir
-            repetir = False
-            For Each view In region.Views
-                If region.GetView(nombreAmpliado) IsNot Nothing Then
-                    nombreAmpliado = nombre + contador.ToString
-                    contador = contador + 1
-                    repetir = True
-                    Exit For
-                End If
-            Next
-        End While
-        Return nombreAmpliado
-    End Function
 
 #End Region
 

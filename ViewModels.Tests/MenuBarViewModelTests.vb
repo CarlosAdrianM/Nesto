@@ -1,10 +1,9 @@
-Imports FakeItEasy
+﻿Imports FakeItEasy
 Imports Nesto.Informes
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.ViewModels
-Imports Prism.Regions
 Imports System.Windows
 Imports Unity
 
@@ -12,20 +11,20 @@ Imports Unity
 Public Class MenuBarViewModelTests
 
     Private _container As IUnityContainer
-    Private _regionManager As IRegionManager
+    Private _navegacion As IServicioNavegacion
     Private _configuracion As IConfiguracion
     Private _servicioAutenticacion As IServicioAutenticacion
 
     <TestInitialize()>
     Public Sub Initialize()
         _container = A.Fake(Of IUnityContainer)
-        _regionManager = A.Fake(Of IRegionManager)
+        _navegacion = A.Fake(Of IServicioNavegacion)
         _configuracion = A.Fake(Of IConfiguracion)
         _servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub
 
     Private Function CrearViewModel() As MenuBarViewModel
-        Return New MenuBarViewModel(_container, _regionManager, _configuracion, _servicioAutenticacion)
+        Return New MenuBarViewModel(_container, _navegacion, _configuracion, _servicioAutenticacion)
     End Function
 
 #Region "Inicializacion de Commands"
@@ -260,25 +259,21 @@ Public Class MenuBarViewModelTests
     Public Sub MenuBarViewModel_VideosCommand_NavegarAVideosView()
         Dim vm = CrearViewModel()
         vm.VideosCommand.Execute(Nothing)
-        A.CallTo(Sub() _regionManager.RequestNavigate("MainRegion", "VideosView")).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() _navegacion.RequestNavigate("MainRegion", "VideosView")).MustHaveHappenedOnceExactly()
     End Sub
 
     <TestMethod()>
     Public Sub MenuBarViewModel_NavegarAVistaRegistrada_ActivaVistaEnRegion()
-        ' Arrange
-        Dim region = A.Fake(Of IRegion)
-        Dim regions = A.Fake(Of IRegionCollection)
-        A.CallTo(Function() _regionManager.Regions).Returns(regions)
-        A.CallTo(Function() regions("MainRegion")).Returns(region)
+        ' Nesto#490 (4C.4): la pestaña nueva se abre con IServicioNavegacion (nombre único y activarla)
+        Dim vista As New Object()
+        A.CallTo(Function() _container.Resolve(GetType(Object), A(Of String).Ignored, A(Of Unity.Resolution.ResolverOverride()).Ignored)).Returns(vista)
 
         Dim vm = CrearViewModel()
         vm.RegistrarTipoVista("Clientes", GetType(Object))
 
-        ' Act
         vm.ClientesFichaCommand.Execute(Nothing)
 
-        ' Assert - verifica que se activa una vista en la region
-        A.CallTo(Sub() region.Activate(A(Of Object).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() _navegacion.AbrirVistaNueva("MainRegion", vista, vista.ToString())).MustHaveHappenedOnceExactly()
     End Sub
 
 #End Region
@@ -288,17 +283,12 @@ Public Class MenuBarViewModelTests
     <TestMethod()>
     Public Sub MenuBarViewModel_RegistrarTipoVista_PermiteNavegar()
         ' Si registramos un tipo de vista, NavegarAVista deberia intentar resolver y añadir
-        Dim region = A.Fake(Of IRegion)
-        Dim regions = A.Fake(Of IRegionCollection)
-        A.CallTo(Function() _regionManager.Regions).Returns(regions)
-        A.CallTo(Function() regions("MainRegion")).Returns(region)
-
         Dim vm = CrearViewModel()
         vm.RegistrarTipoVista("Comisiones", GetType(Object))
 
         vm.VendedoresComisionesCommand.Execute(Nothing)
 
-        A.CallTo(Sub() region.Activate(A(Of Object).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() _navegacion.AbrirVistaNueva("MainRegion", A(Of Object).Ignored, A(Of String).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
 
 #End Region
@@ -326,7 +316,7 @@ Public Class MenuBarViewModelTests
 #Region "Informes Picking / Packing (RDLC -> QuestPDF, Nesto#340)"
 
     Private Function CrearViewModelConInformes(servicioInformes As IInformesService) As MenuBarViewModel
-        Return New MenuBarViewModel(_container, _regionManager, _configuracion, _servicioAutenticacion, servicioInformes)
+        Return New MenuBarViewModel(_container, _navegacion, _configuracion, _servicioAutenticacion, servicioInformes)
     End Function
 
     <TestMethod()>
