@@ -2003,11 +2003,18 @@ Public Class AgenciasViewModel
                 Return
             End If
 
+            ' 05/10/26 (Alfredo): se imprime con la agencia DEL ENVÍO, la misma con la que se grabó
+            Dim agenciaDelEnvio As IAgencia = AgenciaEfectivaDelEnvio(envioActual).Agencia
+            If agenciaDelEnvio Is Nothing Then
+                _dialogService.ShowError("No se puede imprimir: la agencia del envío no está disponible en Nesto.")
+                Return
+            End If
+
             ' Nesto#367: las agencias que lo exigen (Canteras) necesitan las dimensiones de los
             ' bultos en el aviso de recogida. Las pide aquí, al imprimir la etiqueta, el operario que
             ' ha preparado el pedido (es quien mejor las conoce) y se guardan en el envío, de donde
             ' las leerá el correo de tramitación (que puede tramitar otra persona que no vio los bultos).
-            If agenciaEspecifica.DimensionesBultosObligatorias Then
+            If agenciaDelEnvio.DimensionesBultosObligatorias Then
                 Dim dimensiones As String = _dialogService.GetText(
                     "Dimensiones de los bultos",
                     "Indica las dimensiones de los bultos en formato AnchoxAltoxLargo (ej. 30x20x15):")
@@ -2023,8 +2030,8 @@ Public Class AgenciasViewModel
             ' ES registrar el envío en la agencia. NestoAPI lo inserta, devuelve el albarán y la etiqueta
             ' ZPL, y la agencia la manda a la Zebra. El polimorfismo decide; el usuario no ve diferencia.
             ' Las clásicas (TramitarAlCerrar) montan e imprimen la etiqueta en local como hasta ahora.
-            If agenciaEspecifica.FlujoTramitacion = TipoFlujoTramitacion.RegistrarAlImprimir Then
-                Dim agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+            If agenciaDelEnvio.FlujoTramitacion = TipoFlujoTramitacion.RegistrarAlImprimir Then
+                Dim agenciaRemota = TryCast(agenciaDelEnvio, IAgenciaConGestionRemota)
                 If agenciaRemota Is Nothing Then
                     _dialogService.ShowError("La agencia está marcada como 'registrar al imprimir' pero no implementa la gestión remota.")
                     Return
@@ -2043,7 +2050,7 @@ Public Class AgenciasViewModel
                     NotificarEntregaAgencia(envioActual)
                 End If
             Else
-                agenciaEspecifica.imprimirEtiqueta(envioActual)
+                agenciaDelEnvio.imprimirEtiqueta(envioActual)
             End If
 
             If Not _facturarAlImprimirEtiqueta Then
@@ -2077,7 +2084,7 @@ Public Class AgenciasViewModel
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
         Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso
-        PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion) AndAlso
+        PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, AgenciaEfectivaDelEnvio(envioActual).Agencia?.FlujoTramitacion) AndAlso
         (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
 
@@ -2106,16 +2113,16 @@ Public Class AgenciasViewModel
 
     Private Async Sub Borrar(ByVal param As Object)
         ' Guard defensivo por si el comando se dispara con el botón desactualizado (Nesto#405).
-        If Not PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion) Then
+        If Not PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, AgenciaEfectivaDelEnvio(envioActual).Agencia?.FlujoTramitacion) Then
             Throw New Exception($"No se puede borrar un envío en estado {envioActual.Estado}.")
         End If
 
         ' Nesto#411: si el envío ya está registrado en la agencia, hay que anularlo allí PRIMERO;
         ' solo si la agencia confirma se borra de nuestra BD (API primero, BD después).
-        Dim anulacionRemota As Boolean = RequiereAnulacionRemota(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion)
+        Dim anulacionRemota As Boolean = RequiereAnulacionRemota(envioActual.Estado, envioActual.CodigoBarras, AgenciaEfectivaDelEnvio(envioActual).Agencia?.FlujoTramitacion)
         Dim agenciaRemota As IAgenciaConGestionRemota = Nothing
         If anulacionRemota Then
-            agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+            agenciaRemota = TryCast(AgenciaEfectivaDelEnvio(envioActual).Agencia, IAgenciaConGestionRemota)
             If agenciaRemota Is Nothing Then
                 _dialogService.ShowError("El envío ya está registrado en la agencia y esta no permite anularlo desde Nesto.")
                 Return
@@ -2816,7 +2823,7 @@ Public Class AgenciasViewModel
         Dim anulacionRemota As Boolean = Not String.IsNullOrWhiteSpace(EnvioPendienteSeleccionado?.CodigoBarras)
         Dim agenciaRemota As IAgenciaConGestionRemota = Nothing
         If anulacionRemota Then
-            agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+            agenciaRemota = TryCast(AgenciaEfectiva(EnvioPendienteSeleccionado.Agencia).Agencia, IAgenciaConGestionRemota)
             If agenciaRemota Is Nothing Then
                 _dialogService.ShowError($"No se puede borrar un envío ya registrado en la agencia (albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}) porque la agencia no permite anularlo desde Nesto.")
                 Return
@@ -3289,6 +3296,30 @@ Public Class AgenciasViewModel
 
     'End Function
 
+    ''' <summary>
+    ''' Nesto#412 (y 05/10/26, Alfredo): la agencia con la que se opera un envío es la DEL ENVÍO, no la de la
+    ''' ventana. La de la ventana puede ser otra: el comparador la corrige de forma asíncrona (y mientras un
+    ''' diálogo modal bombea el dispatcher) y una etiqueta pendiente de la tienda online o de Amazon nace con
+    ''' ASM. Mezclarlas mandaba a la API a tramitar como CTT un envío de ASM («La agencia 1 no tiene gestión
+    ''' remota en el servidor»). Único punto donde se decide: grabar, imprimir y anular lo usan.
+    ''' Sin agencia en el envío (o si no tiene clase en Nesto), la de la ventana.
+    ''' </summary>
+    Friend Function AgenciaEfectivaDelEnvio(envio As EnviosAgencia) As (Transporte As AgenciasTransporte, Agencia As IAgencia)
+        Return AgenciaEfectiva(If(envio Is Nothing, 0, CInt(envio.Agencia)))
+    End Function
+
+    Friend Function AgenciaEfectiva(numeroAgencia As Integer) As (Transporte As AgenciasTransporte, Agencia As IAgencia)
+        If numeroAgencia > 0 AndAlso
+           (agenciaSeleccionada Is Nothing OrElse numeroAgencia <> agenciaSeleccionada.Numero) Then
+            Dim agenciaDelEnvio As AgenciasTransporte = listaAgencias?.FirstOrDefault(Function(a) a.Numero = numeroAgencia)
+            Dim construir As Func(Of IAgencia) = Nothing
+            If agenciaDelEnvio IsNot Nothing AndAlso factory.TryGetValue(If(agenciaDelEnvio.Nombre, "").Trim(), construir) Then
+                Return (agenciaDelEnvio, construir.Invoke())
+            End If
+        End If
+        Return (agenciaSeleccionada, agenciaEspecifica)
+    End Function
+
     Public Sub InsertarRegistro(Optional ByVal conEtiquetaRecogida As Boolean = False, Optional ByVal importeGasto As Decimal = -1D)
         Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
         Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
@@ -3306,16 +3337,9 @@ Public Class AgenciasViewModel
         ' la selección mientras un diálogo modal bombea el dispatcher). Resultado real: envío
         ' Innovatrans con código de barras y plaza de ASM -> al imprimir, el servidor intentaba
         ' "reimprimir" un albarán que DataTrans no conoce y la etiqueta no salía.
-        Dim agenciaTransporteInsercion As AgenciasTransporte = agenciaSeleccionada
-        Dim agenciaInsercion As IAgencia = agenciaEspecifica
-        If envioActual IsNot Nothing AndAlso envioActual.Agencia > 0 AndAlso
-           (agenciaTransporteInsercion Is Nothing OrElse envioActual.Agencia <> agenciaTransporteInsercion.Numero) Then
-            Dim agenciaDelEnvio As AgenciasTransporte = listaAgencias?.FirstOrDefault(Function(a) a.Numero = envioActual.Agencia)
-            If agenciaDelEnvio IsNot Nothing AndAlso factory.ContainsKey(agenciaDelEnvio.Nombre) Then
-                agenciaTransporteInsercion = agenciaDelEnvio
-                agenciaInsercion = factory(agenciaDelEnvio.Nombre).Invoke()
-            End If
-        End If
+        Dim efectiva = AgenciaEfectivaDelEnvio(envioActual)
+        Dim agenciaTransporteInsercion As AgenciasTransporte = efectiva.Transporte
+        Dim agenciaInsercion As IAgencia = efectiva.Agencia
 
         If estabaPendiente OrElse String.IsNullOrEmpty(envioActual?.Nemonico) Then
             ' NestoAPI#258 slice (b.2): el país se pasa como parámetro (antes ASM leía

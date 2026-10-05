@@ -1851,6 +1851,42 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(CByte(1), pendiente.Retorno)
     End Sub
 
+    ' 05/10/26 (Alfredo): «La agencia 1 no tiene gestión remota en el servidor». «Insertar e imprimir» de una
+    ' etiqueta PENDIENTE de ASM (agencia 1, las crean la tienda online y Amazon) con CTT elegida en la ventana:
+    ' la inserción usaba la agencia del envío (Nesto#412) pero la impresión la de la ventana, y mandaba a la API
+    ' a tramitar como CTT un envío de ASM (envío 249431, pedido 927695).
+    <TestMethod()>
+    Public Sub AlImprimirUnEnvioDeASM_ConCTTEnLaVentana_NoSeTramitaComoCTT()
+        Dim asm = Agencia(1, "ASM")
+        Dim vm = ViewModelConAgencias(asm, Agencia(13, "CTT"))
+        A.CallTo(Function() servicio.CargarAgencia(1)).Returns(asm)
+        vm.PestannaNombre = Pestannas.PEDIDOS
+        vm.cmdCargarDatos.Execute(Nothing)
+        vm.envioActual = New EnviosAgencia With {.Numero = 249431, .Agencia = 1, .Empresa = "1  ", .Pedido = 927695,
+            .Estado = 0, .CodigoBarras = "61197140249431", .Direccion = "C/ Mayor, 1", .CodPostal = "28001"}
+        ' El comparador (asíncrono) vuelve a proponer CTT después de cargar el envío (Nesto#412)
+        vm.agenciaSeleccionada = vm.listaAgencias.Single(Function(a) a.Numero = 13)
+
+        vm.cmdImprimirEtiquetaPedido.Execute(Nothing)
+
+        A.CallTo(Function() servicio.TramitarEnvioRemoto(A(Of Integer).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub LaAgenciaEfectivaDeUnEnvio_EsLaDelEnvio_AunqueEnLaVentanaHayaOtra()
+        Dim vm = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(13, "CTT"))
+        vm.PestannaNombre = Pestannas.PEDIDOS
+        vm.cmdCargarDatos.Execute(Nothing)
+        vm.agenciaSeleccionada = vm.listaAgencias.Single(Function(a) a.Numero = 13)
+
+        Dim efectiva = vm.AgenciaEfectivaDelEnvio(New EnviosAgencia With {.Agencia = 1})
+        Dim sinAgencia = vm.AgenciaEfectivaDelEnvio(New EnviosAgencia With {.Agencia = 0})
+
+        Assert.AreEqual(1, efectiva.Transporte.Numero)
+        Assert.IsInstanceOfType(efectiva.Agencia, GetType(AgenciaASM))
+        Assert.AreEqual(13, sinAgencia.Transporte.Numero, "Sin agencia en el envío, la de la ventana")
+    End Sub
+
     <TestMethod()>
     Public Sub AlImprimirUnaPendienteDeOtraAgencia_NoSeTocanServicioNiRetorno()
         ' Nesto#412: la agencia de la inserción puede no ser la de la pantalla; las listas son de la pantalla.
