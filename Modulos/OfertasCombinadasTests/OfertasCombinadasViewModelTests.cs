@@ -18,7 +18,6 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         private IOfertasCombinadasService _service;
         private IConfiguracion _configuracion;
         private IServicioDialogos _dialogService;
-        private IRegionManager _regionManager;
         private IServicioProducto _servicioProducto;
 
         [TestInitialize]
@@ -27,7 +26,6 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             _service = A.Fake<IOfertasCombinadasService>();
             _configuracion = A.Fake<IConfiguracion>();
             _dialogService = A.Fake<IServicioDialogos>();
-            _regionManager = A.Fake<IRegionManager>();
             _servicioProducto = A.Fake<IServicioProducto>();
 
             // El constructor lanza una carga inicial; devolvemos listas vacías para que no falle.
@@ -39,7 +37,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
 
         private OfertasCombinadasViewModel CrearViewModel()
         {
-            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager, _servicioProducto);
+            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _servicioProducto);
         }
 
         private static DetalleOfertaCombinadaWrapper Detalle(string producto, short cantidad, decimal precio)

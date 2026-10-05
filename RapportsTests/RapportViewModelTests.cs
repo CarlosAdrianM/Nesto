@@ -22,7 +22,7 @@ namespace RapportsTests
         {
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
-            return new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IRegionManager>(),
+            return new RapportViewModel(configuracion, A.Fake<IRapportService>(),
                 A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
@@ -40,7 +40,7 @@ namespace RapportsTests
                     var resultado = new ResultadoDialogo(respuestaUsuario ? ResultadoBoton.OK : ResultadoBoton.Cancel);
                     callback?.Invoke(resultado);
                 });
-            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IRegionManager>(),
+            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(),
                 dialogo, new WeakReferenceMessenger());
             return (vm, dialogo);
         }

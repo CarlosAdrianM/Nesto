@@ -13,15 +13,13 @@ Public Class RapportViewModel
 
     Public Property configuracion As IConfiguracion
     Private Const empresaPorDefecto As String = "1"
-    Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IRapportService
     Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly _messenger As IMessenger
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IServicioDialogos, messenger As IMessenger)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger)
         Me.configuracion = configuracion
         Me.servicio = servicio
-        Me.regionManager = regionManager
         Me.dialogService = dialogService
         _messenger = messenger
 

@@ -41,7 +41,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
 
         private OfertasCombinadasViewModel CrearViewModel()
         {
-            return new OfertasCombinadasViewModel(_service, A.Fake<IConfiguracion>(), _dialogService, A.Fake<IRegionManager>(), A.Fake<IServicioProducto>());
+            return new OfertasCombinadasViewModel(_service, A.Fake<IConfiguracion>(), _dialogService, A.Fake<IServicioProducto>());
         }
 
         private void ContestarALaPregunta(bool respuesta)
