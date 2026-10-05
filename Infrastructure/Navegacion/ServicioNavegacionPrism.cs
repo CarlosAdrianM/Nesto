@@ -64,6 +64,20 @@ namespace Nesto.Infrastructure.Navegacion
             }
         }
 
+        /// <summary>Lo contrario de <see cref="AParametrosPrism"/>: para entregar la navegación sin tipos de Prism.</summary>
+        internal static ParametrosNavegacion DesdeParametrosPrism(NavigationParameters prism)
+        {
+            var parametros = new ParametrosNavegacion();
+            if (prism != null)
+            {
+                foreach (var entrada in prism)
+                {
+                    parametros.Add(entrada.Key, entrada.Value);
+                }
+            }
+            return parametros;
+        }
+
         internal static NavigationParameters AParametrosPrism(ParametrosNavegacion parametros)
         {
             var prism = new NavigationParameters();

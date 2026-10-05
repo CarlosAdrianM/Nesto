@@ -343,6 +343,9 @@ Partial Public Class Application
     Protected Overrides Sub ConfigureDefaultRegionBehaviors(regionBehaviors As IRegionBehaviorFactory)
         MyBase.ConfigureDefaultRegionBehaviors(regionBehaviors)
         regionBehaviors.AddIfMissing(LimpiarVistaAlQuitarRegionBehavior.BehaviorKey, GetType(LimpiarVistaAlQuitarRegionBehavior))
+        ' Nesto#490 (4C.4): la navegación llega a los ViewModels por IReceptorNavegacion, sin tipos de Prism
+        regionBehaviors.AddIfMissing(Nesto.Infrastructure.Navegacion.ReceptorNavegacionRegionBehavior.BehaviorKey,
+                                     GetType(Nesto.Infrastructure.Navegacion.ReceptorNavegacionRegionBehavior))
     End Sub
 
     Protected Overrides Sub OnInitialized()
