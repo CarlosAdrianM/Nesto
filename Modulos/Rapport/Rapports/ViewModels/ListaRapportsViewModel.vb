@@ -14,7 +14,7 @@ Public Class ListaRapportsViewModel
     Inherits ViewModelBase
     Implements INavigationAware, IActiveAware
 
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
     Private ReadOnly container As IUnityContainer
@@ -25,8 +25,8 @@ Public Class ListaRapportsViewModel
 
 
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IServicioDialogos, messenger As IMessenger)
-        Me.regionManager = regionManager
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IServicioDialogos, messenger As IMessenger)
+        Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.container = container
@@ -376,17 +376,14 @@ Public Class ListaRapportsViewModel
                         Exit Property
                     End If
                     Application.Current.Dispatcher.Invoke(Sub()
-                                                              Dim parameters As New NavigationParameters From {
+                                                              Dim parameters As New ParametrosNavegacion From {
                                                                   {"rapportParameter", rapportSeleccionado}
                                                               }
                                                               ' SingleActiveRegion + IsNavigationTarget=>False acumulaba la vista de rapport
                                                               ' anterior en region.Views al cambiar de rapport seleccionado (solo
                                                               ' desactivada, no eliminada). Quitamos las previas antes de navegar.
-                                                              Dim regionDetalle = regionManager.Regions("RapportDetailRegion")
-                                                              For Each vistaAnterior In regionDetalle.Views.ToList()
-                                                                  regionDetalle.Remove(vistaAnterior)
-                                                              Next
-                                                              regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
+                                                              navegacion.QuitarVistas("RapportDetailRegion")
+                                                              navegacion.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
                                                           End Sub)
                 End SyncLock
             Catch
@@ -509,7 +506,7 @@ Public Class ListaRapportsViewModel
         Return True
     End Function
     Private Sub OnAbrirModulo(arg As Object)
-        regionManager.RequestNavigate("MainRegion", "ListaRapportsView")
+        navegacion.RequestNavigate("MainRegion", "ListaRapportsView")
     End Sub
 
 
@@ -698,10 +695,10 @@ Public Class ListaRapportsViewModel
     Private Sub OnAbrirFichaProducto(venta As VentaClienteResumenDTO)
         If Not CanAbrirFichaProducto(venta) Then Exit Sub
         Dim productoId = venta.Nombre.Split({" - "}, 2, StringSplitOptions.None)(0).Trim()
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"numeroProductoParameter", productoId}
         }
-        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
+        navegacion.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
     ' Comando para actualizar SelectedAction usando RelayCommand

@@ -109,6 +109,31 @@ namespace Nesto.Infrastructure.Tests
             A.CallTo(() => region.Remove(A<object>._)).MustNotHaveHappened();
         }
 
+        [TestMethod]
+        public void QuitarVistas_QuitaTodasLasVistasDeLaRegion()
+        {
+            // Como hacía a mano ListaRapports con RapportDetailRegion: no solo las activas, todas
+            var primera = new object();
+            var segunda = new object();
+            IRegion region = ConfigurarRegion("RapportDetailRegion");
+            var todas = A.Fake<IViewsCollection>();
+            A.CallTo(() => todas.GetEnumerator()).ReturnsLazily(() => new List<object> { primera, segunda }.GetEnumerator());
+            A.CallTo(() => region.Views).Returns(todas);
+
+            _servicio.QuitarVistas("RapportDetailRegion");
+
+            A.CallTo(() => region.Remove(primera)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => region.Remove(segunda)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void QuitarVistas_SiLaRegionNoExiste_NoHaceNada()
+        {
+            A.CallTo(() => _regionManager.Regions.ContainsRegionWithName("RapportDetailRegion")).Returns(false);
+
+            _servicio.QuitarVistas("RapportDetailRegion");
+        }
+
         private IRegion ConfigurarRegion(string nombre, params object[] activas)
         {
             var region = A.Fake<IRegion>();

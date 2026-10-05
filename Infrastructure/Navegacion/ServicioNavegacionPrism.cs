@@ -51,6 +51,19 @@ namespace Nesto.Infrastructure.Navegacion
             }
         }
 
+        public void QuitarVistas(string regionName)
+        {
+            if (!_regionManager.Regions.ContainsRegionWithName(regionName))
+            {
+                return;
+            }
+            IRegion region = _regionManager.Regions[regionName];
+            foreach (object vista in region.Views.ToList())
+            {
+                region.Remove(vista);
+            }
+        }
+
         internal static NavigationParameters AParametrosPrism(ParametrosNavegacion parametros)
         {
             var prism = new NavigationParameters();

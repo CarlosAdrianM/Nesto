@@ -20,7 +20,7 @@ namespace RapportsTests
     {
         private static ListaRapportsViewModel CrearViewModel()
         {
-            return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
+            return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
                 A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
@@ -65,7 +65,7 @@ namespace RapportsTests
 
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
-            return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
+            return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
                 A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 

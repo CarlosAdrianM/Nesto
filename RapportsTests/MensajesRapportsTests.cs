@@ -30,7 +30,7 @@ namespace RapportsTests
 
         private ListaRapportsViewModel CrearLista()
         {
-            return new ListaRapportsViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), _servicio,
+            return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), _servicio,
                 A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), _messenger);
         }
 

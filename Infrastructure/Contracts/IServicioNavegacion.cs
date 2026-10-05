@@ -25,6 +25,13 @@ namespace Nesto.Infrastructure.Contracts
 
         /// <summary>Cierra la vista activa de la región (la desactiva y la quita), si la hay.</summary>
         void CerrarVistaActiva(string regionName);
+
+        /// <summary>
+        /// Quita TODAS las vistas de la región (activas o no), p. ej. antes de navegar al detalle de otro elemento:
+        /// en una región de una sola vista activa, las anteriores se quedan desactivadas pero dentro. Si la región
+        /// no existe, no hace nada.
+        /// </summary>
+        void QuitarVistas(string regionName);
     }
 
     /// <summary>
