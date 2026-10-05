@@ -191,6 +191,13 @@ Partial Public Class Application
                 Return New AgenciasMantenimientoService(factory)
             End Function)
 
+        ' Etiquetas de hueco del almacén: las imprime la API por la ImpresoraCodBarras del usuario
+        Dim unusedEtiquetasHueco = containerRegistry.RegisterSingleton(Of IServicioEtiquetasHueco)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioEtiquetasHueco(factory)
+            End Function)
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
             Function(provider)

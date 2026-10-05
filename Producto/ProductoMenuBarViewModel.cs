@@ -16,6 +16,19 @@ namespace Nesto.Modules.Producto
 
             AbrirModuloFichaCommand = new RelayCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
             AbrirModuloReposicionCommand = new RelayCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
+            AbrirEtiquetasHuecoCommand = new RelayCommand(OnAbrirEtiquetasHueco, CanAbrirEtiquetasHueco);
+        }
+
+        /// <summary>Etiquetas de hueco del almacén (la API comprueba además que sea de Almacén o Dirección).</summary>
+        public ICommand AbrirEtiquetasHuecoCommand { get; private set; }
+        private bool CanAbrirEtiquetasHueco()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        }
+        private void OnAbrirEtiquetasHueco()
+        {
+            Navegacion.RequestNavigate("MainRegion", "EtiquetasHuecoView");
         }
 
         public ICommand AbrirModuloFichaCommand { get; private set; }

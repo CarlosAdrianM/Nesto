@@ -17,6 +17,10 @@
                                 Header="Reposición">
                 <RibbonButton Label="Diarios" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirModuloReposicionCommand}" />
             </RibbonGroup>
+            <RibbonGroup x:Name="grpAlmacen"
+                                Header="Almacén">
+                <RibbonButton Label="Etiquetas de hueco" LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirEtiquetasHuecoCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

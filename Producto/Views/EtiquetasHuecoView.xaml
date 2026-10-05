@@ -1,0 +1,85 @@
+﻿<UserControl x:Class="Nesto.Modules.Producto.Views.EtiquetasHuecoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:EtiquetasHuecoViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- Etiquetas de hueco: se piden a la API, que imprime por la impresora de etiquetas de producto del usuario -->
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.ColumnSpan="2" Text="Etiquetas de hueco" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <RadioButton Content="Un rango" IsChecked="{Binding ModoRango}" Margin="0,0,16,0" GroupName="ModoEtiquetasHueco" />
+            <RadioButton Content="Huecos sueltos" IsChecked="{Binding ModoSueltos}" GroupName="ModoEtiquetasHueco" />
+        </StackPanel>
+
+        <!-- Un rango de un pasillo -->
+        <Grid Grid.Row="2" Grid.ColumnSpan="2" Visibility="{Binding ModoRango, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="70" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="70" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="70" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Pasillo" VerticalAlignment="Center" Margin="0,0,8,4" />
+            <TextBox Grid.Column="1" Text="{Binding Pasillo, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+            <TextBlock Grid.Row="1" Text="Fila desde" VerticalAlignment="Center" Margin="0,0,8,4" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FilaDesde, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="hasta" VerticalAlignment="Center" Margin="8,0,8,4" />
+            <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding FilaHasta, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+            <TextBlock Grid.Row="2" Text="Columna desde" VerticalAlignment="Center" Margin="0,0,8,4" />
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ColumnaDesde, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="hasta" VerticalAlignment="Center" Margin="8,0,8,4" />
+            <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding ColumnaHasta, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+            <CheckBox Grid.Row="3" Grid.ColumnSpan="5" Content="Solo huecos con producto" IsChecked="{Binding SoloEnUso}" Margin="0,4,0,0" />
+        </Grid>
+
+        <!-- Huecos sueltos: uno por línea (002004001 o 002/004/001); se pueden leer con el lector -->
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Visibility="{Binding ModoSueltos, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="Un hueco por línea (002004001 o 002/004/001). Se pueden leer con el lector." Margin="0,0,0,4" />
+            <TextBox Text="{Binding HuecosSueltos, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="120"
+                     VerticalScrollBarVisibility="Auto" Width="300" HorizontalAlignment="Left" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,8">
+            <Button Content="Ver" Command="{Binding VerCommand}" Padding="16,4" Margin="0,0,8,0" />
+            <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="16,4" Margin="0,0,8,0" />
+            <Button Content="Etiqueta de prueba" Command="{Binding PruebaCommand}" Padding="16,4" Margin="0,0,8,0"
+                    ToolTip="Imprime solo la 002/004/001, para ajustar tamaño y posición en la impresora" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <DockPanel Grid.Row="4" Grid.ColumnSpan="2">
+            <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <ListBox ItemsSource="{Binding Huecos}" Width="200" HorizontalAlignment="Left" />
+        </DockPanel>
+    </Grid>
+</UserControl>
