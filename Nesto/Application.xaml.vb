@@ -198,6 +198,13 @@ Partial Public Class Application
                 Return New ServicioEtiquetasHueco(factory)
             End Function)
 
+        ' NestoAPI#553: la tienda recibe la reposición con la misma API que Ariadna (api/Almacen/Recepciones, REPO)
+        Dim unusedRecepcionReposiciones = containerRegistry.RegisterSingleton(Of IServicioRecepcionReposiciones)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioRecepcionReposiciones(factory)
+            End Function)
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
             Function(provider)

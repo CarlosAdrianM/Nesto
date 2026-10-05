@@ -14,6 +14,7 @@ namespace Nesto.Modulos.Producto
             containerRegistry.Register<object, ReposicionView>("ReposicionView");
             containerRegistry.Register<object, VideosView>("VideosView");
             containerRegistry.Register<object, EtiquetasHuecoView>("EtiquetasHuecoView");
+            containerRegistry.Register<object, RecibirReposicionView>("RecibirReposicionView");
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

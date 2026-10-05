@@ -1,0 +1,82 @@
+﻿<UserControl x:Class="Nesto.Modules.Producto.Views.RecibirReposicionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:RecibirReposicionViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="900">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- NestoAPI#553: la tienda recibe la reposición con la misma API que Ariadna. Entra lo leído. -->
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Recibir reposición" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Almacen, StringFormat=' en {0}'}" FontSize="20" />
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <!-- Las reposiciones pendientes de entrar en el almacén del usuario -->
+        <TextBlock Grid.Row="1" Text="Pendientes de recibir (doble clic para abrir):" Margin="0,0,0,4" />
+        <ListBox x:Name="lstPendientes" Grid.Row="2" ItemsSource="{Binding Pendientes}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,2">
+                        <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" />
+                        <TextBlock>
+                            <Run Text="{Binding Lineas, Mode=OneWay}" /><Run Text=" líneas · " /><Run Text="{Binding Unidades, Mode=OneWay}" /><Run Text=" uds" />
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.InputBindings>
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ElegirCommand}"
+                              CommandParameter="{Binding ElementName=lstPendientes, Path=SelectedItem}" />
+                <KeyBinding Key="Return" Command="{Binding ElegirCommand}"
+                            CommandParameter="{Binding ElementName=lstPendientes, Path=SelectedItem}" />
+            </ListBox.InputBindings>
+        </ListBox>
+
+        <!-- Lo que llega: el lector suma una unidad; los productos sin código se teclean en «Leído» -->
+        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="{Binding Seleccionada.Titulo}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+            <Button Content="Terminar" Command="{Binding TerminarCommand}" Padding="16,2" Margin="12,0,0,0"
+                    ToolTip="Entra lo leído y se informa de las diferencias a quien hizo la reposición" />
+        </StackPanel>
+        <DataGrid Grid.Row="2" Grid.Column="2" ItemsSource="{Binding Lineas}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" IsReadOnly="True" Width="*" />
+                <DataGridTextColumn Header="Enviado" Binding="{Binding Enviado}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Leído" Binding="{Binding Leido, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Header="" Binding="{Binding Estado}" IsReadOnly="True" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+    </Grid>
+</UserControl>
