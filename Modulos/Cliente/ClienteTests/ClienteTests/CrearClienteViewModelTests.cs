@@ -584,6 +584,89 @@ namespace ClienteTests
             Assert.IsNull(vm.MotivoNoSePuedeCrearCliente);
         }
 
+        // Novedad 482 (Laura, 05/10/26): «Av. Infante Dom Henrique 968, Vila do Conde, Portugal».
+        // Google da calle, número y población pero NO código postal: la dirección SÍ se ha elegido de
+        // la lista, así que no puede salir el aviso de «escrita a mano»; el CP se teclea.
+        private CrearClienteViewModel ConDireccionDeGoogleSinCodigoPostal_Preparar()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ482", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Avenida Infante Dom Henrique",
+                    Numero = "968",
+                    Poblacion = "Vila do Conde",
+                    Provincia = "Vila do Conde",
+                    PaisIso = "PT"
+                });
+            return new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleSinCodigoPostal_CuentaComoElegida_YDejaTeclearElCodigoPostal()
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+
+            Assert.IsTrue(vm.DireccionVerificadaPorGoogle, "Se eligió de la lista de Google");
+            Assert.IsTrue(vm.DireccionEsSoloLectura);
+            Assert.IsTrue(vm.CodigoPostalIsEnabled, "Google no lo da: hay que teclearlo");
+            Assert.AreEqual("VILA DO CONDE", vm.PoblacionGoogle);
+            Assert.AreEqual("PT", vm.ClientePaisDireccion);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleSinCodigoPostal_HastaTeclearloPideElCodigoPostal_NoDiceQueSeEscribioAMano()
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+
+            Assert.IsFalse(vm.SePuedeCrearCliente);
+            StringAssert.Contains(vm.MotivoNoSePuedeCrearCliente, "código postal");
+            Assert.IsFalse(vm.MotivoNoSePuedeCrearCliente.Contains("a mano"), "La dirección no se escribió a mano");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleSinCodigoPostal_TeclearElCodigoPostal_NoQuitaLaVerificacion()
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+
+            vm.ClienteCodigoPostal = "4480-160";
+
+            Assert.IsTrue(vm.DireccionVerificadaPorGoogle);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            Assert.IsNull(vm.MotivoNoSePuedeCrearCliente);
+            Assert.IsTrue(vm.CodigoPostalIsEnabled, "Se puede corregir si se ha tecleado mal");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleSinCodigoPostal_SiDespuesSeEscribeLaDireccionAMano_VuelveElAvisoDeSiempre()
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+            vm.ClienteCodigoPostal = "4480-160";
+
+            vm.LimpiarDireccionCalleNumeroCommand.Execute(null);
+            vm.ClienteDireccionCalleNumero = "Rua inventada, 3";
+
+            Assert.IsFalse(vm.DireccionVerificadaPorGoogle);
+            StringAssert.Contains(vm.MotivoNoSePuedeCrearCliente, "a mano");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleConCodigoPostal_ElCodigoPostalSigueBloqueado()
+        {
+            // Lo de siempre no cambia: con CP de Google, bloqueado y verificado
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+
+            Assert.IsFalse(vm.CodigoPostalIsEnabled);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+        }
+
         [TestMethod]
         public void SinNingunaDireccion_SePuedeCrear_PorqueNoHayNadaQueVerificar()
         {

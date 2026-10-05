@@ -65,6 +65,12 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref clienteCodigoPostal, value) && !aplicandoSugerenciaDireccion)
                 {
+                    if (CodigoPostalSinDarPorGoogle)
+                    {
+                        // Novedad 482: Google dio la dirección sin CP; teclearlo es lo que se espera
+                        NotificarSePuedeCrearCliente();
+                        return;
+                    }
                     // Editado a mano: la pareja dirección+CP ya no es la que dio Google
                     DireccionVerificadaPorGoogle = false;
                 }
@@ -122,11 +128,32 @@ namespace Nesto.Modulos.Cliente
                         // Sin verificación no hay datos de Google que preferir
                         PoblacionGoogle = null;
                         ProvinciaGoogle = null;
+                        CodigoPostalSinDarPorGoogle = false;
                     }
                 }
             }
         }
-        public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle;
+
+        // Novedad 482 (Laura, 05/10/26): para algunas calles (sobre todo de Portugal: «Av. Infante Dom
+        // Henrique 968, Vila do Conde») Google da calle, número y población pero NO el código postal.
+        // La dirección sí se ha elegido de la lista, así que cuenta como verificada; el CP se teclea
+        // (queda abierto y es obligatorio) sin que eso quite la verificación. El servidor comprueba el
+        // CP como siempre: en España tiene que existir en nuestra tabla; fuera, se da de alta al vuelo.
+        private bool codigoPostalSinDarPorGoogle;
+        public bool CodigoPostalSinDarPorGoogle
+        {
+            get { return codigoPostalSinDarPorGoogle; }
+            private set
+            {
+                if (SetProperty(ref codigoPostalSinDarPorGoogle, value))
+                {
+                    OnPropertyChanged(nameof(CodigoPostalIsEnabled));
+                    NotificarSePuedeCrearCliente();
+                }
+            }
+        }
+
+        public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle || CodigoPostalSinDarPorGoogle;
 
         // Nesto#480: la dirección de Google se SELECCIONA, no se escribe. En cuanto se elige una
         // sugerencia el campo queda de solo lectura (que no deshabilitado: se tiene que poder leer y
@@ -148,9 +175,15 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                if (EsUnaModificacion || DireccionVerificadaPorGoogle)
+                if (EsUnaModificacion)
                 {
                     return null;
+                }
+                if (DireccionVerificadaPorGoogle)
+                {
+                    return CodigoPostalSinDarPorGoogle && string.IsNullOrWhiteSpace(ClienteCodigoPostal)
+                        ? "Google no tiene el código postal de esta dirección: escríbelo en «Código postal» (en «Datos generales»)."
+                        : null;
                 }
                 bool hayDireccion = !string.IsNullOrWhiteSpace(ClienteDireccion)
                                     || !string.IsNullOrWhiteSpace(ClienteDireccionCalleNumero);
@@ -288,7 +321,17 @@ namespace Nesto.Modulos.Cliente
                     // Dirección y CP vienen juntos de Google: pareja verificada → CP bloqueado y
                     // la validación del wizard se salta el geocoding
                     DireccionVerificadaPorGoogle = true;
+                    CodigoPostalSinDarPorGoogle = false;
                     PoblacionGoogle = detalle.Poblacion?.ToUpper().Trim();
+                    ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
+                }
+                else if (!string.IsNullOrWhiteSpace(detalle.Calle) && !string.IsNullOrWhiteSpace(detalle.Poblacion))
+                {
+                    // Novedad 482: elegida de Google, pero sin CP → verificada y el CP se teclea
+                    ClienteCodigoPostal = string.Empty;
+                    DireccionVerificadaPorGoogle = true;
+                    CodigoPostalSinDarPorGoogle = true;
+                    PoblacionGoogle = detalle.Poblacion.ToUpper().Trim();
                     ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
                 }
                 if (!string.IsNullOrWhiteSpace(detalle.PaisIso))
