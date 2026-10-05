@@ -26,7 +26,7 @@ namespace PlantillaVentaTests
         private static PlantillaVentaViewModel CrearViewModel()
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();

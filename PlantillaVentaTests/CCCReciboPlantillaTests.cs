@@ -27,7 +27,7 @@ namespace PlantillaVentaTests
             IMessenger messenger = new WeakReferenceMessenger();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
-            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IRegionManager>(), configuracion,
+            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IServicioNavegacion>(), configuracion,
                 A.Fake<IPlantillaVentaService>(), messenger, A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());

@@ -24,7 +24,7 @@ namespace PlantillaVentaTests
         //public void PlantillaVenta_CargarClientes_SiEsUnClienteDeEstado5NoPasaALosProductos()
         //{
         //    IUnityContainer container = A.Fake<IUnityContainer>();
-        //    IRegionManager regionManager = A.Fake<IRegionManager>();
+        //    IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
         //    IConfiguracion configuracion = A.Fake<IConfiguracion>();
         //    IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
         //    PlantillaVentaViewModel viewModel = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio);
@@ -48,7 +48,7 @@ namespace PlantillaVentaTests
         public void PlantillaVenta_BaseImponible_RedondeaLosDecimales()
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
@@ -74,7 +74,7 @@ namespace PlantillaVentaTests
         public void PlantillaVenta_BaseImponiblePortes_RedondeaLosDecimales()
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
@@ -102,7 +102,7 @@ namespace PlantillaVentaTests
             HashSet<string> productosBonificablesIds = null)
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicioMock = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();

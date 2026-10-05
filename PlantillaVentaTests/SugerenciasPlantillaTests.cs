@@ -28,7 +28,7 @@ namespace PlantillaVentaTests
         private static PlantillaVentaViewModel CrearViewModel()
         {
             IUnityContainer container = A.Fake<IUnityContainer>();
-            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
@@ -277,7 +277,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(modoQueSugiereElServidor));
             A.CallTo(() => servicio.OfertasSugeridas(A<PedidoVentaDTO>._)).Returns(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
 
-            var vm = new PlantillaVentaViewModel(container, A.Fake<IRegionManager>(), configuracion, servicio,
+            var vm = new PlantillaVentaViewModel(container, A.Fake<IServicioNavegacion>(), configuracion, servicio,
                 messenger, A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();

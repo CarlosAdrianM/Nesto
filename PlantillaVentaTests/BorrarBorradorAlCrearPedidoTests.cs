@@ -49,7 +49,7 @@ namespace PlantillaVentaTests
             IMessenger messenger = new WeakReferenceMessenger();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
-            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IRegionManager>(), configuracion,
+            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IServicioNavegacion>(), configuracion,
                 A.Fake<IPlantillaVentaService>(), messenger, _dialogService, A.Fake<IPedidoVentaService>(),
                 _servicioBorradores, A.Fake<IServicioAutenticacion>());
         }

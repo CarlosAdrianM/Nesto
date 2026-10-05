@@ -27,7 +27,7 @@ Public Class PlantillaVentaViewModel
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly servicioPedidosVenta As IPedidoVentaService
     Private ReadOnly servicioBorradores As IBorradorPlantillaVentaService
@@ -72,10 +72,10 @@ Public Class PlantillaVentaViewModel
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IServicioDialogos, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IServicioDialogos, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.container = container
-        Me.regionManager = regionManager
+        Me.navegacion = navegacion
         Me.servicio = servicio
         Me.messenger = messenger
         Me.dialogService = dialogService
@@ -2595,7 +2595,7 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Sub OnAbrirPlantillaVenta(arg As Object)
-        regionManager.RequestNavigate("MainRegion", "PlantillaVentaView")
+        navegacion.RequestNavigate("MainRegion", "PlantillaVentaView")
         'regionManager.RegisterViewWithRegion("MainRegion", GetType(PlantillaVentaView))
         'Dim region As IRegion = regionManager.Regions("MainRegion")
         'Dim vista = container.Resolve(Of PlantillaVentaView)()
@@ -3132,10 +3132,10 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"numeroProductoParameter", productoPedidoSeleccionado.producto}
         }
-        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
+        navegacion.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
     Private _cmdCargarProductosPlantilla As RelayCommand
@@ -3516,11 +3516,7 @@ Public Class PlantillaVentaViewModel
             _borradorRestauradoEnFormasVenta = False
 
             ' Cerramos la ventana
-            Dim view = regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
-            If Not IsNothing(view) Then
-                regionManager.Regions("MainRegion").Deactivate(view)
-                regionManager.Regions("MainRegion").Remove(view)
-            End If
+            navegacion.CerrarVistaActiva("MainRegion")
 
             ' Abrimos el pedido
             PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
@@ -4009,12 +4005,12 @@ Public Class PlantillaVentaViewModel
         CargarInfoPortesConDebounce()
     End Function
     Private Sub NavegarAClienteCrear(value As ClienteJson)
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"empresaParameter", value.empresa},
             {"clienteParameter", value.cliente},
             {"contactoParameter", value.contacto}
         }
-        regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
+        navegacion.RequestNavigate("MainRegion", "CrearClienteView", parameters)
     End Sub
     Private Sub ActualizarCliente(cliente As Clientes)
         Dim clienteEncontrado As ClienteJson = listaClientes?.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
