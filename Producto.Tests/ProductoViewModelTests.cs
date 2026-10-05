@@ -16,7 +16,7 @@ namespace Producto.Tests
         public void ProductoViewModel_AlCambiarDeProducto_SiLaPestannaSeleccionadaEsKitsPeroElNuevoProductoNoEsKitSeleccionaOtraPestanna()
         {
             // Arrange
-            var regionManager = A.Fake<IRegionManager>();
+            var regionManager = A.Fake<IServicioNavegacion>();
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IProductoService>();
             var messenger = new WeakReferenceMessenger();
@@ -59,7 +59,7 @@ namespace Producto.Tests
             var video = new VideoModel { Id = 1981, Titulo = "Protocolo facial" };
             A.CallTo(() => dialogService.ShowDialogAsync("CorreccionVideoProductoView", A<ParametrosDialogo>._))
                 .Returns(Task.FromResult(new ResultadoDialogo(ResultadoBoton.OK)));
-            var sut = new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
+            var sut = new ProductoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
                 new WeakReferenceMessenger(), dialogService, A.Fake<IServicioAutenticacion>());
             sut.VideoCompletoSeleccionado = video;
 
@@ -449,7 +449,7 @@ namespace Producto.Tests
             out IConfiguracion configuracion,
             out IProductoService servicio)
         {
-            var regionManager = A.Fake<IRegionManager>();
+            var regionManager = A.Fake<IServicioNavegacion>();
             configuracion = A.Fake<IConfiguracion>();
             servicio = A.Fake<IProductoService>();
             var messenger = new WeakReferenceMessenger();

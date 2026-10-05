@@ -36,7 +36,7 @@ namespace Producto.Tests
             A.CallTo(() => fake.LeerVariantes(CHECK)).Returns(new List<VarianteModel>());
             dialogService = A.Fake<IServicioDialogos>();
             servicio = fake;
-            return new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), fake,
+            return new ProductoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), fake,
                 new WeakReferenceMessenger(), dialogService, A.Fake<IServicioAutenticacion>());
         }
 

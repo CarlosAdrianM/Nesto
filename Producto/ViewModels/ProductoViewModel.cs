@@ -25,7 +25,7 @@ namespace Nesto.Modules.Producto.ViewModels
     {
         public event EventHandler DatosCargados;
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
-        private IRegionManager _regionManager { get; }
+        private IServicioNavegacion _navegacion { get; }
         private IConfiguracion _configuracion { get; }
         private IProductoService _servicio { get; }
         private IMessenger _messenger { get; }
@@ -52,9 +52,9 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IMessenger messenger, IServicioDialogos dialogService, IServicioAutenticacion servicioAutenticacion)
+        public ProductoViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IProductoService servicio, IMessenger messenger, IServicioDialogos dialogService, IServicioAutenticacion servicioAutenticacion)
         {
-            _regionManager = regionManager;
+            _navegacion = navegacion;
             _configuracion = configuracion;
             _servicio = servicio;
             _messenger = messenger;
@@ -415,7 +415,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
         private void OnAbrirModulo()
         {
-            _regionManager.RequestNavigate("MainRegion", "ProductoView");
+            _navegacion.RequestNavigate("MainRegion", "ProductoView");
         }
 
 
@@ -424,11 +424,11 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             if (!string.IsNullOrEmpty(productoId))
             {
-                var parameters = new NavigationParameters
+                var parameters = new ParametrosNavegacion
                 {
                     { "numeroProductoParameter", productoId }
                 };
-                _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+                _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
             }
         }
 
@@ -1214,19 +1214,14 @@ namespace Nesto.Modules.Producto.ViewModels
             if (ProductoResultadoSeleccionado != null)
             {
                 _messenger.Send(new ProductoSeleccionadoMensaje(ProductoResultadoSeleccionado.Producto));
-                try
+                // Elegido el producto, se cierra la ficha de Productos si es la pestaña activa. Se reconoce por
+                // su ViewModel (el DataContext de su contenido), sin conocer el tipo de la vista (Nesto#490).
+                object vista = _navegacion.VistaActiva("MainRegion");
+                object vmActivo = (vista as FrameworkElement)?.DataContext
+                    ?? ((vista as ContentControl)?.Content as FrameworkElement)?.DataContext;
+                if (vmActivo is ProductoViewModel vm && vm.Titulo == Titulo)
                 {
-                    ProductoView view = (ProductoView)_regionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
-                    Grid grid = (Grid)view.Content;
-                    ProductoViewModel vm = (ProductoViewModel)grid.DataContext;
-                    if (vm.Titulo == Titulo)
-                    {
-                        _regionManager.Regions["MainRegion"].Remove(view);
-                    }
-                }
-                finally
-                {
-
+                    _navegacion.CerrarVistaActiva("MainRegion");
                 }
             }
         }

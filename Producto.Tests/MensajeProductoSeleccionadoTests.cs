@@ -23,7 +23,7 @@ namespace Producto.Tests
         public void SeleccionarProducto_EnviaProductoSeleccionadoConElCodigo()
         {
             IMessenger messenger = new WeakReferenceMessenger();
-            var vm = new ProductoViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IProductoService>(),
+            var vm = new ProductoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IProductoService>(),
                 messenger, A.Fake<IServicioDialogos>(), A.Fake<IServicioAutenticacion>());
             vm.ProductoResultadoSeleccionado = new ProductoModel { Producto = "17404" };
             var recibidos = new List<string>();
