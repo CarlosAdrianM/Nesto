@@ -2,7 +2,6 @@
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ReposicionViewModel : ObservableObject, INavigationAware
+    public class ReposicionViewModel : ObservableObject
     {
         
 
@@ -98,21 +97,7 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(ListaDiariosSinMovimientos));
         }
 
-
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return true; //false para poder abrir varias instancias
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-            
-        }
-
-        public void OnNavigatedTo(NavigationContext navigationContext)
-        {
-            
-        }
+        // Nesto#490 (4C.4): sin INavigationAware (no hacía nada al navegar). Prism reutiliza la pestaña abierta,
+        // como hacía su IsNavigationTarget = true.
     }
 }
