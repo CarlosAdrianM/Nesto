@@ -59,13 +59,13 @@ namespace ControlesUsuario.Tests.Dialogs
                 var servicio = ServicioQueDevuelve(() => new Grid { DataContext = vm });
 
                 VentanaDialogo ventana = servicio.PrepararVentana("MiDialogo", new ParametrosDialogo { { "message", "Hola" } }, null);
+                Assert.AreEqual(SizeToContent.WidthAndHeight, ventana.SizeToContent, "Como el DialogWindow de Prism: nace ajustada al contenido");
                 ventana.Show();
                 Bombear();
 
                 Assert.AreEqual("Hola", vm.Recibidos.GetValue<string>("message"));
                 Assert.AreEqual("Título del diálogo", ventana.Title);
                 Assert.AreSame(vm, ventana.DataContext);
-                Assert.AreEqual(SizeToContent.WidthAndHeight, ventana.SizeToContent, "Como el DialogWindow de Prism: ajustada al contenido");
                 Assert.AreEqual(WindowStartupLocation.CenterOwner, ventana.WindowStartupLocation);
                 ventana.Close();
             });
@@ -173,6 +173,67 @@ namespace ControlesUsuario.Tests.Dialogs
                 Assert.AreEqual(640d, ventana.Width);
                 Assert.AreEqual(SizeToContent.Manual, ventana.SizeToContent, "Como Prism: el estilo de la vista sustituye al de la ventana entero");
                 ventana.Close();
+            });
+        }
+
+        // Carlos 05/10/26: con Prism un texto largo no salía entero y, al hacer la ventana más grande,
+        // el texto seguía del mismo tamaño. La ventana propia nace con un ancho razonable y, después,
+        // el contenido se ajusta a lo que el usuario la redimensione.
+        private static TextBlock TextoLargo() => new()
+        {
+            Text = string.Join(" ", System.Linq.Enumerable.Repeat("Un aviso con un texto muy largo que no cabe en una línea.", 40)),
+            TextWrapping = TextWrapping.Wrap,
+            DataContext = new DialogoDePrueba()
+        };
+
+        [TestMethod]
+        public void UnTextoLargo_LaVentanaNaceConUnAnchoRazonable_YEnvuelveElTexto()
+        {
+            EjecutarEnSTA(() =>
+            {
+                var texto = TextoLargo();
+                var servicio = ServicioQueDevuelve(() => texto);
+
+                VentanaDialogo ventana = servicio.PrepararVentana("MiDialogo", null, null);
+                ventana.Show();
+                Bombear();
+
+                Assert.IsTrue(ventana.ActualWidth <= VentanaDialogo.ANCHO_MAXIMO_INICIAL + 1, $"Ancho {ventana.ActualWidth}");
+                Assert.IsTrue(texto.ActualHeight > 40, "El texto se envuelve en varias líneas");
+                Assert.AreEqual(ResizeMode.CanResize, ventana.ResizeMode);
+                ventana.Close();
+            });
+        }
+
+        [TestMethod]
+        public void AlAgrandarLaVentana_ElContenidoSeAjustaAlNuevoAncho()
+        {
+            EjecutarEnSTA(() =>
+            {
+                var texto = TextoLargo();
+                var servicio = ServicioQueDevuelve(() => texto);
+                VentanaDialogo ventana = servicio.PrepararVentana("MiDialogo", null, null);
+                ventana.Show();
+                Bombear();
+
+                ventana.Width = 900;
+                Bombear();
+
+                Assert.IsTrue(texto.ActualWidth > VentanaDialogo.ANCHO_MAXIMO_INICIAL, $"El texto ocupa {texto.ActualWidth}");
+                ventana.Close();
+            });
+        }
+
+        [TestMethod]
+        public void LosDialogosDeMensaje_NoTienenUnTamanoFijo()
+        {
+            EjecutarEnSTA(() =>
+            {
+                foreach (FrameworkElement vista in new FrameworkElement[] { new NotificationDialog(), new ConfirmationDialog() })
+                {
+                    Assert.IsTrue(double.IsNaN(vista.Width), $"{vista.GetType().Name} con ancho fijo {vista.Width}");
+                    Assert.IsTrue(double.IsNaN(vista.Height), $"{vista.GetType().Name} con alto fijo {vista.Height}");
+                }
             });
         }
 

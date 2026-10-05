@@ -129,6 +129,8 @@ namespace ControlesUsuario.Dialogs
     /// </summary>
     internal class VentanaDialogo : Window
     {
+        public const double ANCHO_MAXIMO_INICIAL = 600;
+
         private static readonly Style EstiloPorDefecto = CrearEstiloPorDefecto();
 
         public VentanaDialogo()
@@ -136,6 +138,27 @@ namespace ControlesUsuario.Dialogs
             SetBinding(TitleProperty, new Binding(nameof(IDialogoNesto.Title)));
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Style = EstiloPorDefecto;
+            ContentRendered += SoltarElTamanoInicial;
+        }
+
+        /// <summary>
+        /// Carlos 05/10/26: con Prism un texto largo no salía entero y al agrandar la ventana el texto no se
+        /// ajustaba. La ventana nace ajustada al contenido pero con un tope (<see cref="ANCHO_MAXIMO_INICIAL"/> de
+        /// ancho y casi toda la pantalla de alto, para que el texto se envuelva y, si no cabe, salga la barra de
+        /// desplazamiento); una vez pintada, se queda con ese tamaño y se suelta el tope, así que el usuario la
+        /// puede agrandar y el contenido se ajusta. Solo con el estilo por defecto: una vista con su propio estilo
+        /// de ventana manda entero, como en Prism.
+        /// </summary>
+        private void SoltarElTamanoInicial(object sender, EventArgs e)
+        {
+            ContentRendered -= SoltarElTamanoInicial;
+            if (!ReferenceEquals(Style, EstiloPorDefecto))
+            {
+                return;
+            }
+            SizeToContent = SizeToContent.Manual;
+            MaxWidth = double.PositiveInfinity;
+            MaxHeight = double.PositiveInfinity;
         }
 
         /// <summary>Resultado con el que pidió cerrarse el diálogo; null si se cerró con la X.</summary>
@@ -145,6 +168,9 @@ namespace ControlesUsuario.Dialogs
         {
             var estilo = new Style(typeof(Window));
             estilo.Setters.Add(new Setter(SizeToContentProperty, SizeToContent.WidthAndHeight));
+            estilo.Setters.Add(new Setter(ResizeModeProperty, ResizeMode.CanResize));
+            estilo.Setters.Add(new Setter(MaxWidthProperty, ANCHO_MAXIMO_INICIAL));
+            estilo.Setters.Add(new Setter(MaxHeightProperty, Math.Max(300d, SystemParameters.WorkArea.Height * 0.85)));
             estilo.Seal();
             return estilo;
         }
