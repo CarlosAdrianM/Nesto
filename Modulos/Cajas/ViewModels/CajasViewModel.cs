@@ -486,7 +486,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             var importeRestante = Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero);
             TotalCobrado = Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero);
 
-            foreach (var deuda in DeudasSeleccionadas)
+            // ELMAH 05/10/26 (Reina, cliente 26552): el reparto para en cuanto el importe llega a cero, así
+            // que los abonos (pendiente negativo) van PRIMERO: suman a lo que hay que repartir. Si iban
+            // detrás de las facturas no se aplicaban y lo de «a cuenta» no cuadraba.
+            foreach (var deuda in DeudasSeleccionadas.OrderBy(d => d.ImportePendiente < 0 ? 0 : 1))
             {
                 decimal importeApunte = 0;
                 string esPagoACuenta = importeRestante < deuda.ImportePendiente ? " a cta." : string.Empty;
@@ -543,7 +546,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             if (importeRestante != ImporteACuenta)
             {
-                throw new Exception($"Error en el algoritmo de cobros: {importeRestante:c} es distinto a {ImporteACuenta:c}.");
+                // Antes era una excepción sin controlar (se cerraba la acción y solo quedaba en ELMAH)
+                _dialogService.ShowError($"No se ha contabilizado el cobro: al repartirlo entre las deudas elegidas quedan {importeRestante:c} " +
+                    $"y a cuenta deberían quedar {ImporteACuenta:c}. Vuelve a elegir las deudas y el importe; si se repite, avisa a Administración.");
+                return;
             }
 
             // Metemos una línea por el importe pagado a cuenta

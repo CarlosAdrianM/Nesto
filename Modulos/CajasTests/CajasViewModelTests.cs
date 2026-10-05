@@ -69,6 +69,63 @@ namespace CajasTests
             Assert.IsTrue(sut.ContabilizarCobroCommand.CanExecute(null));
         }
 
+        #region ELMAH 05/10/26 (Reina): «Error en el algoritmo de cobros: 0,00 € es distinto a 0,01 €»
+
+        private static ExtractoClienteDTO Deuda(int id, string documento, decimal pendiente) => new()
+        {
+            Id = id, Empresa = "1", Cliente = "26552", Contacto = "1", Documento = documento, Efecto = "1",
+            Tipo = pendiente < 0 ? "Abono" : "Factura", Importe = pendiente, ImportePendiente = pendiente,
+            Vencimiento = new DateTime(2026, 10, 5)
+        };
+
+        [TestMethod]
+        public void CajasViewModel_ContabilizarCobro_ConUnAbonoDetrasDeLasFacturas_LoAplicaYCuadraLoACuenta()
+        {
+            // Cliente 26552: facturas de 147,50 y 175,45 y abono de -73,76 (total 249,19), cobrados 249,20.
+            // El reparto paraba al llegar a cero con la segunda factura y el abono, que iba detrás, no se
+            // aplicaba: quedaba 0,00 frente a 0,01 a cuenta y saltaba una excepción sin controlar.
+            var servicioContabilidad = A.Fake<IContabilidadService>();
+            List<PreContabilidadDTO>? enviadas = null;
+            A.CallTo(() => servicioContabilidad.Contabilizar(A<List<PreContabilidadDTO>>._))
+                .Invokes((List<PreContabilidadDTO> l) => enviadas = l).Returns(Task.FromResult(0));
+            var sut = CrearViewModel(servicioContabilidad);
+            PrepararCobroACuenta(sut);
+            sut.SeleccionarDeudasCommand.Execute(new List<object>
+            {
+                Deuda(1, "CV2600605", 147.50M), Deuda(2, "NV2616199", 175.45M), Deuda(3, "NV2616201", -73.76M)
+            });
+            sut.TotalCobrado = 249.20M;
+
+            sut.ContabilizarCobroCommand.Execute(null);
+
+            Assert.IsNotNull(enviadas, "Se contabiliza en vez de reventar");
+            Assert.AreEqual(73.76M, enviadas!.Single(l => l.Cuenta == "26552" && l.Documento == "NV2616201").Debe, "El abono se aplica");
+            Assert.AreEqual(147.50M, enviadas.Single(l => l.Cuenta == "26552" && l.Documento == "CV2600605").Haber);
+            Assert.AreEqual(175.45M, enviadas.Single(l => l.Cuenta == "26552" && l.Documento == "NV2616199").Haber, "La factura se paga entera, no «a cta.»");
+            Assert.AreEqual(0.01M, enviadas.Single(l => l.Documento == "A CUENTA").Haber);
+        }
+
+        [TestMethod]
+        public void CajasViewModel_ContabilizarCobro_SiElRepartoNoCuadra_AvisaAlUsuarioEnVezDeReventar()
+        {
+            var dialogService = A.Fake<IServicioDialogos>();
+            var servicioContabilidad = A.Fake<IContabilidadService>();
+            var sut = new CajasViewModel(servicioContabilidad, A.Fake<IConfiguracion>(), dialogService,
+                A.Fake<IClientesService>(), A.Fake<IServicioAutenticacion>());
+            PrepararCobroACuenta(sut);
+            // Una deuda que no está seleccionada en el importe (selección incoherente): el reparto no cuadra
+            sut.DeudasSeleccionadas = [Deuda(1, "CV2600605", 147.50M)];
+            sut.TotalCobrado = 10M;
+
+            sut.ContabilizarCobroCommand.Execute(null);
+
+            A.CallTo(() => dialogService.ShowError(A<string>.That.Contains("No se ha contabilizado"))).MustHaveHappened();
+            A.CallTo(() => servicioContabilidad.Contabilizar(A<List<PreContabilidadDTO>>._)).MustNotHaveHappened();
+            Assert.IsFalse(sut.EstaOcupado);
+        }
+
+        #endregion
+
         [TestMethod]
         public void CajasViewModel_EstaOcupado_DeshabilitaLosTresBotonesDeContabilizar()
         {
