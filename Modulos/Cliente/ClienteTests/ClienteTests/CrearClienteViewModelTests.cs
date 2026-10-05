@@ -656,6 +656,35 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleSinCodigoPostal_LaAyudaDelCodigoPostalDiceQueHayQueEscribirlo()
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+
+            StringAssert.Contains(vm.AyudaCodigoPostal, "Google no tiene el código postal");
+            Assert.IsFalse(vm.AyudaCodigoPostal.Contains("viene de la dirección"), "Aquí el CP no viene de Google");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DireccionDeGoogleConCodigoPostal_LaAyudaDelCodigoPostalDiceQueVieneDeLaDireccion()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+
+            StringAssert.Contains(vm.AyudaCodigoPostal, "viene de la dirección seleccionada");
+        }
+
+        [TestMethod]
+        public void SinDireccionDeGoogle_LaAyudaDelCodigoPostalNoDiceQueVieneDeGoogle()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            Assert.IsFalse(vm.AyudaCodigoPostal.Contains("viene de la dirección"));
+        }
+
+        [TestMethod]
         public async System.Threading.Tasks.Task DireccionDeGoogleConCodigoPostal_ElCodigoPostalSigueBloqueado()
         {
             // Lo de siempre no cambia: con CP de Google, bloqueado y verificado

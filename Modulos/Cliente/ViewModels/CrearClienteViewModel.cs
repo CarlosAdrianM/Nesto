@@ -121,6 +121,7 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref direccionVerificadaPorGoogle, value))
                 {
                     OnPropertyChanged(nameof(CodigoPostalIsEnabled));
+                    OnPropertyChanged(nameof(AyudaCodigoPostal));
                     OnPropertyChanged(nameof(DireccionEsSoloLectura)); // Nesto#480
                     NotificarSePuedeCrearCliente();
                     if (!value)
@@ -148,12 +149,20 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref codigoPostalSinDarPorGoogle, value))
                 {
                     OnPropertyChanged(nameof(CodigoPostalIsEnabled));
+                    OnPropertyChanged(nameof(AyudaCodigoPostal));
                     NotificarSePuedeCrearCliente();
                 }
             }
         }
 
         public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle || CodigoPostalSinDarPorGoogle;
+
+        /// <summary>La ayuda del código postal, según de dónde sale (novedad 482: no siempre lo da Google).</summary>
+        public string AyudaCodigoPostal => !DireccionVerificadaPorGoogle
+            ? "Código postal de la dirección. Se rellena solo al elegir la dirección en la lista de Google"
+            : CodigoPostalSinDarPorGoogle
+                ? "Google no tiene el código postal de esta dirección: escríbelo tú"
+                : "El código postal viene de la dirección seleccionada en el combo de Google; para cambiarlo, modifica la dirección";
 
         // Nesto#480: la dirección de Google se SELECCIONA, no se escribe. En cuanto se elige una
         // sugerencia el campo queda de solo lectura (que no deshabilitado: se tiene que poder leer y
