@@ -101,5 +101,33 @@ namespace Nesto.Modulos.Cajas.Views
         {
             _ = txtTotalCobrado.Focus();
         }
+
+        /// <summary>
+        /// Nesto#511: el menú contextual copia de la fila bajo el cursor. Se marca como manejado para que el clic derecho
+        /// no cambie la selección (las filas seleccionadas son las deudas a cobrar); el menú se abre igual, al soltar.
+        /// </summary>
+        private void dgrListaDeudas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is not CajasViewModel vm)
+            {
+                return;
+            }
+            DependencyObject elemento = e.OriginalSource as DependencyObject;
+            while (elemento != null && elemento is not DataGridRow)
+            {
+                elemento = elemento is System.Windows.Media.Visual
+                    ? System.Windows.Media.VisualTreeHelper.GetParent(elemento)
+                    : LogicalTreeHelper.GetParent(elemento);
+            }
+            if (elemento is DataGridRow fila && fila.Item is Models.ExtractoClienteDTO deuda)
+            {
+                vm.EstablecerDeudaBajoCursor(deuda);
+                e.Handled = true;
+            }
+            else
+            {
+                vm.EstablecerDeudaBajoCursor(null);
+            }
+        }
     }
 }

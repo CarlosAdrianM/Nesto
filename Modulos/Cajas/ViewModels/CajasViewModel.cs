@@ -62,6 +62,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             LoadedCommand = new RelayCommand(OnLoaded);
             SeleccionarDeudasCommand = new RelayCommand<IList>(OnSeleccionarDeudas);
             SeleccionarPendientesRecibirCommand = new RelayCommand<IList>(OnSeleccionarPendientesRecibir);
+            CopiarNumeroDocumentoCommand = new RelayCommand(OnCopiarNumeroDocumento, CanCopiarNumeroDocumento);
+            CopiarImportePendienteCommand = new RelayCommand(OnCopiarImportePendiente, CanCopiarImportePendiente);
 
             // suscribirse a los cambios de ArqueoFondo.TotalArqueo para que cuando cambie actualicemos el importe del traspaso
             ArqueoFondo.PropertyChanged += ArqueoFondo_Changed;
@@ -447,6 +449,56 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
 
         #region Comandos
+        // Nesto#511 (incidencia 510 de Aida): copiar el documento o el pendiente de la deuda bajo el cursor con el botón
+        // derecho. La lista selecciona por filas (así se marca la deuda a cobrar) y Ctrl+C copia la fila entera; la vista
+        // fija la deuda en el clic derecho (hit-test, asunto de vista) sin tocar la selección, como en Agencias.
+        private ExtractoClienteDTO _deudaBajoCursor;
+
+        public void EstablecerDeudaBajoCursor(ExtractoClienteDTO deuda)
+        {
+            _deudaBajoCursor = deuda;
+            CopiarNumeroDocumentoCommand?.NotifyCanExecuteChanged();
+            CopiarImportePendienteCommand?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>Para los tests (el portapapeles exige STA).</summary>
+        internal Action<string> CopiarAlPortapapeles { get; set; } =
+            texto => ClipboardHelper.CopyToClipboard(System.Net.WebUtility.HtmlEncode(texto), texto);
+
+        public IRelayCommand CopiarNumeroDocumentoCommand { get; private set; }
+        private bool CanCopiarNumeroDocumento() => !string.IsNullOrWhiteSpace(_deudaBajoCursor?.Documento);
+        private void OnCopiarNumeroDocumento() => Copiar(_deudaBajoCursor?.Documento?.Trim());
+
+        public IRelayCommand CopiarImportePendienteCommand { get; private set; }
+        private bool CanCopiarImportePendiente() => _deudaBajoCursor != null;
+        private void OnCopiarImportePendiente()
+        {
+            if (_deudaBajoCursor != null)
+            {
+                Copiar(TextoImportePendiente(_deudaBajoCursor.ImportePendiente));
+            }
+        }
+
+        /// <summary>«1234,50»: sin símbolo de moneda ni separador de miles, para pegarlo en un campo de importe.</summary>
+        internal static string TextoImportePendiente(decimal importe) =>
+            importe.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("es-ES"));
+
+        private void Copiar(string texto)
+        {
+            if (string.IsNullOrEmpty(texto))
+            {
+                return;
+            }
+            try
+            {
+                CopiarAlPortapapeles(texto);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message);
+            }
+        }
+
         public ICommand CambiarEmpresaTraspasoCommand { get; private set; }
         private void OnCambiarEmpresaTraspaso()
         {

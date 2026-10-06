@@ -51,7 +51,15 @@
                     ClienteCompleto="{Binding DataContext.ClienteCompletoSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWayToSource}">                    
                 </cu:SelectorCliente>
                 
-                <DataGrid x:Name="dgrListaDeudas" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ListaDeudas}" IsReadOnly="True" AutoGenerateColumns="False" MouseLeftButtonUp="drgListaDeudas_MouseLeftButtonUp">
+                <DataGrid x:Name="dgrListaDeudas" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ListaDeudas}" IsReadOnly="True" AutoGenerateColumns="False" MouseLeftButtonUp="drgListaDeudas_MouseLeftButtonUp" PreviewMouseRightButtonDown="dgrListaDeudas_PreviewMouseRightButtonDown">
+                    <!-- Nesto#511: copiar de la deuda bajo el cursor (el code-behind la fija en el clic derecho sin cambiar
+                         la selección, que es la que marca las deudas a cobrar). -->
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Copiar número de documento" Command="{Binding CopiarNumeroDocumentoCommand}"/>
+                            <MenuItem Header="Copiar importe pendiente" Command="{Binding CopiarImportePendienteCommand}"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="SelectionChanged">
                             <i:InvokeCommandAction Command="{Binding SeleccionarDeudasCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrListaDeudas}" />
