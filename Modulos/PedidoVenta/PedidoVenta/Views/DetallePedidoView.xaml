@@ -184,7 +184,7 @@
                                             Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}"
                                             Etiqueta="Vendedor Peluquería:"/>
 
-                                        <!-- Fila 2: Forma Venta y Almacén (siempre visibles, editables en serie CV con líneas editables) -->
+                                        <!-- Fila 2: Forma Venta y Almacén (siempre visibles; forma de venta editable en serie CV, almacén en cualquier serie sin picking ni albarán, Nesto#510) -->
                                         <StackPanel Grid.Row="1" Grid.Column="0"
                                             Margin="0,5,5,0">
                                             <TextBlock Text="Forma de Venta:"/>
@@ -198,7 +198,7 @@
                                             <TextBlock Text="Almacén:"/>
                                             <controles:SelectorAlmacen
                                                 AlmacenSeleccionado="{Binding AlmacenSeleccionadoParaLineas, Mode=TwoWay}"
-                                                IsEnabled="{Binding PuedeEditarSelectoresLinea}"/>
+                                                IsEnabled="{Binding PuedeEditarSelectorAlmacen}"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>

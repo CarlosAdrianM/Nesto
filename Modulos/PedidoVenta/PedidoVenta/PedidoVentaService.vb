@@ -637,6 +637,24 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    Public Async Function LeerEnTransito(empresa As String, almacen As String, productos As IEnumerable(Of String)) As Task(Of List(Of ProductoEnTransito)) Implements IPedidoVentaService.LeerEnTransito
+        Dim lista As String = String.Join(",", If(productos, Enumerable.Empty(Of String)()) _
+            .Where(Function(p) Not String.IsNullOrWhiteSpace(p)).Select(Function(p) p.Trim()).Distinct())
+        If String.IsNullOrEmpty(lista) OrElse String.IsNullOrWhiteSpace(almacen) Then
+            Return New List(Of ProductoEnTransito)
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url As String = $"Reposiciones/EnTransito?empresa={Uri.EscapeDataString(If(empresa?.Trim(), ""))}" &
+                $"&almacen={Uri.EscapeDataString(almacen.Trim())}&productos={Uri.EscapeDataString(lista)}"
+            Dim response As HttpResponseMessage = Await client.GetAsync(url)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of ProductoEnTransito))(cuerpo), New List(Of ProductoEnTransito))
+        End Using
+    End Function
+
     Public Async Function PonerFechaEntregaNota(empresa As String, nota As Integer, fechaEntrega As Date) As Task Implements IPedidoVentaService.PonerFechaEntregaNota
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim cuerpoPeticion = New With {.FechaEntrega = fechaEntrega.Date, .Usuario = configuracion.usuario}

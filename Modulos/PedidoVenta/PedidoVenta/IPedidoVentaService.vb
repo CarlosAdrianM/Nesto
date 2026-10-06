@@ -96,4 +96,7 @@ Public Interface IPedidoVentaService
     ' Sugerencia 396 de Novedades: IBAN, beneficiario, concepto, importe y el texto para copiar de un pedido
     ' prepago por transferencia. Lanza una excepción con el motivo si la API no los da (404, sin cuenta...).
     Function LeerDatosTransferencia(empresa As String, numero As Integer) As Task(Of DatosTransferenciaPedidoModel)
+    ''' <summary>Nesto#510: lo que viaja hacia ese almacén en una reposición (pendiente de recibir o en preparación),
+    ''' de esos productos. Lista vacía si no hay nada; lanza una excepción si la API falla.</summary>
+    Function LeerEnTransito(empresa As String, almacen As String, productos As IEnumerable(Of String)) As Task(Of List(Of ProductoEnTransito))
 End Interface

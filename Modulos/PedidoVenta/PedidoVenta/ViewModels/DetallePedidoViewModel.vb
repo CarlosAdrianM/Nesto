@@ -615,6 +615,7 @@ Public Class DetallePedidoViewModel
             OnPropertyChanged(NameOf(EsSerieCursos))
             OnPropertyChanged(NameOf(HayLineasEditables))
             OnPropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            OnPropertyChanged(NameOf(PuedeEditarSelectorAlmacen)) ' Nesto#510
             OnPropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
@@ -806,11 +807,98 @@ Public Class DetallePedidoViewModel
             Return _almacenSeleccionadoParaLineas
         End Get
         Set(value As String)
+            Dim anterior As String = _almacenSeleccionadoParaLineas
             If SetProperty(_almacenSeleccionadoParaLineas, value) AndAlso Not String.IsNullOrEmpty(value) AndAlso value <> VALOR_VARIOS Then
-                AplicarAlmacenALineas(value)
+                ' Nesto#510: antes de aplicarlo, avisar si hay stock viajando hacia el almacén actual de las líneas
+                CambioAlmacenEnCurso = ConfirmarYAplicarAlmacenAsync(anterior, value)
             End If
         End Set
     End Property
+
+    ''' <summary>Nesto#510: el último cambio de almacén lanzado desde el selector (para esperarlo en los tests).</summary>
+    Friend Property CambioAlmacenEnCurso As Task = Task.CompletedTask
+
+    ''' <summary>
+    ''' Nesto#510 (sugerencia 508): el almacén del pedido entero se puede cambiar en cualquier serie cuando no hay nada que
+    ''' lo impida: todas las líneas de producto pendientes, en curso o en presupuesto, sin picking, sin albarán ni factura.
+    ''' La nota de entrega, el picking en curso y la etiqueta de agencia viva los revalida el servidor al guardar (400 con el
+    ''' motivo). Sin líneas de producto solo en la serie de cursos, donde las líneas nuevas toman el almacén del selector.
+    ''' La forma de venta sigue siendo solo de cursos (<see cref="PuedeEditarSelectoresLinea"/>).
+    ''' </summary>
+    Public ReadOnly Property PuedeEditarSelectorAlmacen As Boolean
+        Get
+            Return PuedeCambiarseAlmacen(pedido?.Model?.Lineas, EsSerieCursos)
+        End Get
+    End Property
+
+    Friend Shared Function PuedeCambiarseAlmacen(lineas As IEnumerable(Of LineaPedidoVentaDTO), esSerieCursos As Boolean) As Boolean
+        If IsNothing(lineas) Then
+            Return False
+        End If
+        Dim deProducto = lineas.Where(Function(l) l.tipoLinea = 1).ToList()
+        If Not deProducto.Any() Then
+            Return esSerieCursos
+        End If
+        Return deProducto.All(Function(l) l.estado <= 1 AndAlso l.estado <> -2 AndAlso l.picking = 0 AndAlso
+                                          Not l.Albaran.HasValue AndAlso String.IsNullOrWhiteSpace(l.Factura))
+    End Function
+
+    ''' <summary>
+    ''' Nesto#510: pregunta si hay unidades de los productos del pedido viajando hacia el almacén ACTUAL de las líneas (una
+    ''' reposición pendiente de recibir o en preparación, que puede ser justo para este pedido). Si el usuario no confirma, el
+    ''' selector vuelve al almacén anterior y las líneas no se tocan. Si la consulta falla, se aplica igual: es un aviso.
+    ''' </summary>
+    Private Async Function ConfirmarYAplicarAlmacenAsync(anterior As String, nuevo As String) As Task
+        Dim lineas = pedido?.Model?.Lineas
+        If IsNothing(lineas) Then
+            Return
+        End If
+        Dim editables = lineas.Where(Function(l) Not l.estaAlbaraneada).ToList()
+        Dim almacenesActuales = editables.Where(Function(l) Not String.IsNullOrWhiteSpace(l.almacen)) _
+            .Select(Function(l) l.almacen.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+        Dim productos = editables.Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.Producto) AndAlso
+                                                    Not String.Equals(l.almacen?.Trim(), nuevo.Trim(), StringComparison.OrdinalIgnoreCase)) _
+            .Select(Function(l) l.Producto.Trim()).Distinct().ToList()
+
+        If almacenesActuales.Count = 1 AndAlso productos.Any() AndAlso
+           Not String.Equals(almacenesActuales(0), nuevo.Trim(), StringComparison.OrdinalIgnoreCase) Then
+            Dim enTransito As List(Of ProductoEnTransito) = Nothing
+            Try
+                enTransito = Await servicio.LeerEnTransito(pedido.empresa, almacenesActuales(0), productos)
+            Catch ex As Exception
+                Debug.WriteLine($"[DetallePedidoVM] Nesto#510: no se ha podido leer lo que está en tránsito: {ex.Message}")
+            End Try
+            If enTransito IsNot Nothing AndAlso enTransito.Any() Then
+                Dim confirmado As Boolean = Await dialogService.ShowConfirmationAsync("Cambiar almacén",
+                    TextoAvisoEnTransito(enTransito, almacenesActuales(0)))
+                If Not confirmado Then
+                    _almacenSeleccionadoParaLineas = anterior
+                    OnPropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
+                    Return
+                End If
+            End If
+        End If
+
+        AplicarAlmacenALineas(nuevo)
+    End Function
+
+    ''' <summary>Nesto#510: «Hay 4 unidades de 45146 en la reposición 80885 que viajan a Alcobendas, puede que para este pedido.»</summary>
+    Friend Shared Function TextoAvisoEnTransito(enTransito As IEnumerable(Of ProductoEnTransito), almacen As String) As String
+        Dim nombreAlmacen As String = If(Constantes.Sedes.ListaSedes.FirstOrDefault(
+            Function(s) String.Equals(s.Codigo, almacen?.Trim(), StringComparison.OrdinalIgnoreCase))?.Nombre, almacen?.Trim())
+        Dim texto As New StringBuilder()
+        For Each fila In enTransito
+            Dim unidades As String = If(fila.Unidades = 1, "1 unidad", $"{fila.Unidades} unidades")
+            Dim viajan As String = If(fila.Unidades = 1, "viaja", "viajan")
+            Dim reposicion As String = If(fila.Traspaso.HasValue,
+                                          $"la reposición {fila.Traspaso.Value}",
+                                          $"una reposición en preparación en {fila.Origen}")
+            texto.AppendLine($"Hay {unidades} de {fila.Producto} en {reposicion} que {viajan} a {nombreAlmacen}, puede que para este pedido.")
+        Next
+        texto.AppendLine()
+        texto.Append("¿Cambiar el almacén de todas formas?")
+        Return texto.ToString()
+    End Function
 
     ''' <summary>
     ''' Aplica el almacén seleccionado a todas las líneas editables del pedido.
@@ -2932,6 +3020,7 @@ Public Class DetallePedidoViewModel
             OnPropertyChanged(NameOf(EsSerieCursos))
             OnPropertyChanged(NameOf(HayLineasEditables))
             OnPropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            OnPropertyChanged(NameOf(PuedeEditarSelectorAlmacen)) ' Nesto#510
             OnPropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             ' Reinicializar selectores cuando cambia la serie (ej: al cambiar a CV)
             InicializarFormaVentaParaLineas()
