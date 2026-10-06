@@ -2733,7 +2733,8 @@ Public Class AgenciasViewModel
         Return sePuedeModificarReembolso
     End Function
     Private Async Sub OnModificarEnvio(arg As Object)
-        Dim mensajeMostrar = MensajeConfirmarModificarEnvio(envioActual.Cliente, envioActual.Direccion, envioActual.Reembolso, CDec(reembolsoModificar))
+        Dim mensajeMostrar = MensajeConfirmarModificarEnvio(envioActual.Cliente, envioActual.Direccion, envioActual.Reembolso, CDec(reembolsoModificar),
+                                                            envioActual.Retorno, CShort(retornoModificar.id))
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
                                                                                continuar = r.Result = ResultadoBoton.OK
@@ -2747,19 +2748,36 @@ Public Class AgenciasViewModel
     End Sub
 
     ''' <summary>
-    ''' NestoAPI#512 (decisión Carlos 23/09/26): cambiar el reembolso de un envío TRAMITADO solo lo cambia
-    ''' en Nesto. El paquete ya lo tiene la agencia y el cambio lo hacen ellos cuando se lo pedimos por
-    ''' correo o por teléfono; por eso aquí no se llama a su API. El aviso lo deja claro antes de guardar.
+    ''' NestoAPI#597 (sustituye al aviso de #512): qué pasa con la agencia lo decide el servidor al guardar
+    ''' (Innovatrans/CTT con la etiqueta viva: se reenvía; GLS sin cerrar: viaja en el cierre; ya cerrado: hay
+    ''' que pedírselo; entregado: no se deja). Antes de guardar no se puede saber, así que el aviso es neutro y
+    ''' lo que ha pasado se enseña después con el Aviso de la respuesta.
     ''' </summary>
-    Friend Shared Function MensajeConfirmarModificarEnvio(cliente As String, direccion As String, reembolsoActual As Decimal, reembolsoNuevo As Decimal) As String
+    Friend Const AVISO_PREVIO_CAMBIO_AGENCIA As String =
+        "Según la agencia, el cambio se reenviará, viajará en el cierre o habrá que pedírselo: al guardar te diremos qué ha pasado."
+
+    Friend Shared Function MensajeConfirmarModificarEnvio(cliente As String, direccion As String, reembolsoActual As Decimal, reembolsoNuevo As Decimal,
+                                                          Optional retornoActual As Short = 0, Optional retornoNuevo As Short = 0) As String
         Dim mensaje = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, cliente?.Trim, direccion)
-        If reembolsoNuevo <> reembolsoActual Then
-            mensaje &= Environment.NewLine & Environment.NewLine &
-                "⚠ El reembolso solo se cambia en Nesto: NO se avisa a la agencia ni se modifica nada en su sistema. " &
-                "Hágalo solo cuando la agencia le haya confirmado el cambio."
+        If reembolsoNuevo <> reembolsoActual OrElse retornoNuevo <> retornoActual Then
+            mensaje &= Environment.NewLine & Environment.NewLine & AVISO_PREVIO_CAMBIO_AGENCIA
         End If
         Return mensaje
     End Function
+
+    ''' <summary>
+    ''' NestoAPI#597: imprime la etiqueta nueva que devuelve ModificarDatos cuando el servidor ha reenviado el envío a la
+    ''' agencia. Por defecto, con la Zebra de la agencia del envío (AgenciaGestionadaPorApi.ImprimirEtiquetaZpl, lo mismo
+    ''' que al tramitar o modificar la dirección). Se puede cambiar en los tests.
+    ''' </summary>
+    Friend Property ImprimirEtiquetaNueva As Func(Of EnviosAgencia, ResultadoModificacionEnvioDto, Task) =
+        Function(envio, resultado)
+            Dim agencia = TryCast(AgenciaEfectivaDelEnvio(envio).Agencia, AgenciaGestionadaPorApi)
+            If agencia Is Nothing Then
+                Throw New Exception("la agencia del envío no está disponible en Nesto para imprimir")
+            End If
+            Return agencia.ImprimirEtiquetaZpl(envio, resultado.EtiquetaCodificacion, resultado.EtiquetaContenido)
+        End Function
 
     Private _cmdImprimirManifiesto As RelayCommand(Of Object)
     Public Property cmdImprimirManifiesto As RelayCommand(Of Object)
@@ -2898,13 +2916,45 @@ Public Class AgenciasViewModel
             envio.Retorno = retorno.id
             envio.Estado = CShort(estado)
             envio.FechaEntrega = fechaEntrega
+            ' NestoAPI#597: CTT anula y registra otro albarán; el envío de la pantalla se queda con el nuevo.
+            If Not String.IsNullOrWhiteSpace(resultado.Albaran) Then
+                envio.CodigoBarras = resultado.Albaran
+            End If
             OnPropertyChanged(NameOf(listaEnviosTramitados))
             mensajeError = resultado.Mensaje
+            Await MostrarLoQuePasoConLaAgencia(envio, resultado)
         Catch ex As Exception
             ' Nesto#448: detalle al usuario + ELMAH.
             Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ModificarEnvioPorApi")
             _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
         End Try
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#597: tras guardar, el Aviso del servidor (reenviado / viaja en el cierre / pídeselo a la agencia) y, si
+    ''' la agencia ha dado etiqueta nueva, a la Zebra. Los datos ya están guardados: un fallo al imprimir no es
+    ''' «no se han grabado», es «reimprímela».
+    ''' </summary>
+    Private Async Function MostrarLoQuePasoConLaAgencia(envio As EnviosAgencia, resultado As ResultadoModificacionEnvioDto) As Task
+        Dim errorImpresion As Exception = Nothing
+        If Not String.IsNullOrEmpty(resultado.EtiquetaContenido) Then
+            Try
+                Await ImprimirEtiquetaNueva(envio, resultado)
+            Catch ex As Exception
+                errorImpresion = ex
+            End Try
+        End If
+
+        If errorImpresion IsNot Nothing Then
+            Await RegistrarErrorAgenciaEnElmah(errorImpresion, "AgenciasViewModel.MostrarLoQuePasoConLaAgencia")
+            _dialogService.ShowError($"{resultado.Aviso}{Environment.NewLine}{Environment.NewLine}" &
+                $"No se ha podido imprimir la etiqueta nueva ({errorImpresion.Message}): reimprímela desde Agencias.")
+        ElseIf Not String.IsNullOrWhiteSpace(resultado.Aviso) Then
+            _dialogService.ShowNotification("Modificar Envío", resultado.Aviso)
+        End If
+        If Not String.IsNullOrWhiteSpace(resultado.Aviso) Then
+            mensajeError = $"{resultado.Mensaje} {resultado.Aviso}"
+        End If
     End Function
 
     Public Property BorrarEnvioPendienteCommand() As RelayCommand

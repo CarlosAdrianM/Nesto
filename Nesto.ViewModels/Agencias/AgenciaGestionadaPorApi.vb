@@ -150,18 +150,26 @@ Public MustInherit Class AgenciaGestionadaPorApi
         End Try
     End Function
 
-    Private Async Function ImprimirZpl(envio As EnviosAgencia, resultado As TramitarEnvioResultadoDto) As Task
-        If String.IsNullOrEmpty(resultado.EtiquetaContenido) Then
+    Private Function ImprimirZpl(envio As EnviosAgencia, resultado As TramitarEnvioResultadoDto) As Task
+        Return ImprimirEtiquetaZpl(envio, resultado.EtiquetaCodificacion, resultado.EtiquetaContenido)
+    End Function
+
+    ''' <summary>
+    ''' Manda a la Zebra del usuario la etiqueta ZPL que devuelve el servidor. Pública para que la usen también
+    ''' las respuestas que no son un TramitarEnvioResultadoDto (NestoAPI#597: ModificarDatos con reenvío a la agencia).
+    ''' </summary>
+    Public Async Function ImprimirEtiquetaZpl(envio As EnviosAgencia, etiquetaCodificacion As String, etiquetaContenido As String) As Task
+        If String.IsNullOrEmpty(etiquetaContenido) Then
             Throw New Exception($"{NombreAgencia} no devolvió la etiqueta ZPL del envío.")
         End If
 
         ' El ZPL viene en base64. Lo decodificamos con la codificación ANSI del sistema (la misma
         ' que usa RawPrinterHelper.SendStringToPrinter al reconvertir), para un round-trip fiel.
         Dim zpl As String
-        If String.Equals(resultado.EtiquetaCodificacion, "base64", StringComparison.OrdinalIgnoreCase) Then
-            zpl = Encoding.[Default].GetString(Convert.FromBase64String(resultado.EtiquetaContenido))
+        If String.Equals(etiquetaCodificacion, "base64", StringComparison.OrdinalIgnoreCase) Then
+            zpl = Encoding.[Default].GetString(Convert.FromBase64String(etiquetaContenido))
         Else
-            zpl = resultado.EtiquetaContenido
+            zpl = etiquetaContenido
         End If
 
         Dim mainViewModel As New MainViewModel

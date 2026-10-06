@@ -41,20 +41,85 @@ Public Class AgenciasViewModelModificarEnvioTests
     End Sub
 
     <TestMethod()>
-    Public Sub MensajeConfirmarModificarEnvio_CambiaElReembolso_AvisaDeQueNoSeInformaALaAgencia()
-        ' NestoAPI#512: en un envío tramitado el cambio de reembolso solo afecta a Nesto.
+    Public Sub MensajeConfirmarModificarEnvio_CambiaElReembolso_AvisoNeutroSinAfirmarQueSoloSeCambiaEnNesto()
+        ' NestoAPI#597: lo que pasa con la agencia lo decide el servidor; antes de guardar el aviso es neutro.
         Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191 ", "CALLE MAYOR 1", 100D, 0D)
 
         StringAssert.Contains(mensaje, "15191")
-        StringAssert.Contains(mensaje, "NO se avisa a la agencia")
+        StringAssert.Contains(mensaje, "Según la agencia, el cambio se reenviará, viajará en el cierre o habrá que pedírselo")
+        Assert.IsFalse(mensaje.Contains("solo se cambia en Nesto"), "ya no es verdad para todas las agencias")
+        Assert.IsFalse(mensaje.Contains("NO se avisa a la agencia"))
     End Sub
 
     <TestMethod()>
-    Public Sub MensajeConfirmarModificarEnvio_MismoReembolso_SinAviso()
-        Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191", "CALLE MAYOR 1", 100D, 100D)
+    Public Sub MensajeConfirmarModificarEnvio_CambiaElRetorno_TambienAvisa()
+        Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191", "CALLE MAYOR 1", 100D, 100D, 0, 1)
 
-        Assert.IsFalse(mensaje.Contains("NO se avisa a la agencia"))
+        StringAssert.Contains(mensaje, AgenciasViewModel.AVISO_PREVIO_CAMBIO_AGENCIA)
     End Sub
+
+    <TestMethod()>
+    Public Sub MensajeConfirmarModificarEnvio_MismoReembolsoYRetorno_SinAviso()
+        Dim mensaje = AgenciasViewModel.MensajeConfirmarModificarEnvio("15191", "CALLE MAYOR 1", 100D, 100D, 1, 1)
+
+        Assert.IsFalse(mensaje.Contains(AgenciasViewModel.AVISO_PREVIO_CAMBIO_AGENCIA))
+    End Sub
+
+    <TestMethod()>
+    Public Async Function ModificarEnvioPorApi_ReenviadoConEtiquetaNueva_LaImprimeEnseñaElAvisoYGuardaElAlbaran() As Task
+        Dim impresa As ResultadoModificacionEnvioDto = Nothing
+        viewModel.ImprimirEtiquetaNueva = Function(e, r)
+                                              impresa = r
+                                              Return Task.CompletedTask
+                                          End Function
+        Dim aviso = "Reenviado a CTT con albarán nuevo 0082800081239999 (el 0082800081234567 queda anulado): pega la etiqueta nueva en el paquete"
+        A.CallTo(Function() servicio.ModificarDatosEnvio(247975, A(Of ModificarDatosEnvioDto).Ignored)) _
+            .Returns(Task.FromResult(New ResultadoModificacionEnvioDto With {
+                .Numero = 247975, .Mensaje = "Envío 247975 modificado (Retorno, CodigoBarras).", .Aviso = aviso,
+                .ReenviadoAAgencia = True, .Albaran = "0082800081239999", .EtiquetaCodificacion = "base64", .EtiquetaContenido = "XlhBfkNJMTUw"}))
+
+        Await viewModel.ModificarEnvioPorApi(envio, 121.5, New tipoIdDescripcion(3, "Retorno obligatorio"), 1, False, envio.FechaEntrega)
+
+        Assert.IsNotNull(impresa, "con etiqueta nueva se manda a la Zebra")
+        Assert.AreEqual("XlhBfkNJMTUw", impresa.EtiquetaContenido)
+        Assert.AreEqual("0082800081239999", envio.CodigoBarras)
+        A.CallTo(Sub() dialogService.ShowNotification("Modificar Envío", aviso)).MustHaveHappenedOnceExactly()
+        StringAssert.Contains(viewModel.mensajeError, aviso)
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ModificarEnvioPorApi_SinEtiqueta_NoImprimeYEnseñaElAviso() As Task
+        Dim impresiones As Integer = 0
+        viewModel.ImprimirEtiquetaNueva = Function(e, r)
+                                              impresiones += 1
+                                              Return Task.CompletedTask
+                                          End Function
+        A.CallTo(Function() servicio.ModificarDatosEnvio(247975, A(Of ModificarDatosEnvioDto).Ignored)) _
+            .Returns(Task.FromResult(New ResultadoModificacionEnvioDto With {
+                .Numero = 247975, .Mensaje = "Envío 247975 modificado (Retorno).", .Aviso = "El cambio viajará a GLS en el cierre del día"}))
+
+        Await viewModel.ModificarEnvioPorApi(envio, 121.5, New tipoIdDescripcion(3, "Retorno obligatorio"), 1, False, envio.FechaEntrega)
+
+        Assert.AreEqual(0, impresiones)
+        A.CallTo(Sub() dialogService.ShowNotification("Modificar Envío", "El cambio viajará a GLS en el cierre del día")).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ModificarEnvioPorApi_FallaLaImpresion_AvisaDeReimprimirSinDecirQueNoSeGrabo() As Task
+        viewModel.ImprimirEtiquetaNueva = Function(e, r) Task.FromException(New Exception("impresora apagada"))
+        A.CallTo(Function() servicio.ModificarDatosEnvio(247975, A(Of ModificarDatosEnvioDto).Ignored)) _
+            .Returns(Task.FromResult(New ResultadoModificacionEnvioDto With {
+                .Numero = 247975, .Mensaje = "ok", .Aviso = "Reenviado a CTT", .Albaran = "0082800081239999", .EtiquetaContenido = "XlhB"}))
+        Dim textoError As String = Nothing
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).Invokes(Sub(t As String) textoError = t)
+
+        Await viewModel.ModificarEnvioPorApi(envio, 121.5, New tipoIdDescripcion(3, "Retorno obligatorio"), 1, False, envio.FechaEntrega)
+
+        StringAssert.Contains(textoError, "reimprímela")
+        Assert.IsFalse(textoError.Contains("no se han grabado"))
+        Assert.AreEqual(CByte(3), envio.Retorno, "el servidor ya lo guardó")
+    End Function
 
     <TestMethod()>
     Public Async Function ModificarEnvioPorApi_MandaLosDatosYReflejaElResultado() As Task
@@ -119,7 +184,8 @@ Public Class AgenciasViewModelModificarEnvioTests
         Dim peticion = GetType(ModificarDatosEnvioDto).GetProperties().Select(Function(p) p.Name).OrderBy(Function(n) n).ToArray()
         CollectionAssert.AreEqual({"Estado", "FechaEntrega", "Observaciones", "Reembolso", "Rehusar", "Retorno", "RetornoAnteriorDescripcion"}, peticion)
         Dim respuesta = GetType(ResultadoModificacionEnvioDto).GetProperties().Select(Function(p) p.Name).OrderBy(Function(n) n).ToArray()
-        CollectionAssert.AreEqual({"Asiento", "CamposModificados", "Mensaje", "Numero", "Rehusado"}, respuesta)
+        CollectionAssert.AreEqual({"Albaran", "Asiento", "Aviso", "Bultos", "CamposModificados", "EtiquetaCodificacion", "EtiquetaContenido",
+                                   "EtiquetaTipo", "Mensaje", "Numero", "ReenviadoAAgencia", "Rehusado", "Reimpresion"}, respuesta)
         Dim dto = JsonConvert.DeserializeObject(Of ResultadoModificacionEnvioDto)("{""Numero"":1,""CamposModificados"":[""Reembolso""],""Asiento"":88140,""Rehusado"":true,""Mensaje"":""ok""}")
         Assert.AreEqual(88140, dto.Asiento)
         Assert.IsTrue(dto.Rehusado)

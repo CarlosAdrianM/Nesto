@@ -21,4 +21,18 @@ Public Class ResultadoModificacionEnvioDto
     Public Property Asiento As Integer
     Public Property Rehusado As Boolean
     Public Property Mensaje As String
+    ''' <summary>
+    ''' NestoAPI#597: lo que ha pasado con la agencia (reenviado y qué etiqueta pegar, «viajará en el cierre
+    ''' del día» o «pídeselo a la agencia»). Se enseña tal cual. Nothing si no aplica.
+    ''' </summary>
+    Public Property Aviso As String
+    Public Property ReenviadoAAgencia As Boolean
+    ''' <summary>Albarán con el que queda el envío tras reenviarlo (en CTT, uno nuevo).</summary>
+    Public Property Albaran As String
+    Public Property Bultos As Integer
+    Public Property Reimpresion As Boolean
+    ''' <summary>Etiqueta nueva en ZPL, como en TramitarEnvioResultadoDto.</summary>
+    Public Property EtiquetaTipo As String
+    Public Property EtiquetaCodificacion As String
+    Public Property EtiquetaContenido As String
 End Class
