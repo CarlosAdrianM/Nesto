@@ -1,0 +1,81 @@
+﻿<UserControl x:Class="Nesto.Modules.Producto.Views.EnviarReposicionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:EnviarReposicionViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="900">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- NestoAPI#553: la tienda prepara la reposición que manda a Algete (la propone el servidor) y la termina. -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Enviar reposición a Algete" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Almacen, StringFormat=' desde {0}'}" FontSize="20" />
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center" />
+            <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="El servidor propone lo que hay que mandar a Algete (stock máximo, pendientes y stock de los dos almacenes)" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <!-- El lector: si el código está en la lista, el foco va a su cantidad -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4"
+                    Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="Leer código:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: el foco va a su cantidad">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+            <TextBlock Text="La cantidad solo se puede bajar (0 para no mandarlo). Intro o salir del campo la guarda." VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.7" />
+        </StackPanel>
+
+        <DataGrid x:Name="grdLineas" Grid.Row="2" ItemsSource="{Binding Lineas}" SelectedItem="{Binding Seleccionada}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DataGrid.RowStyle>
+                <!-- A 0: se queda en gris y se borra al terminar -->
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EstaACero}" Value="True">
+                            <Setter Property="Opacity" Value="0.45" />
+                            <Setter Property="ToolTip" Value="No se manda: se borrará al terminar" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
+                <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
+                <DataGridTextColumn x:Name="colCantidad" Header="Cantidad" Binding="{Binding Cantidad}" />
+                <DataGridTextColumn Header="Stock en la tienda" Binding="{Binding StockOrigen}" IsReadOnly="True" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
+                <Run Text="Total: " /><Run Text="{Binding Unidades, Mode=OneWay}" /><Run Text=" unidades de " /><Run Text="{Binding Productos, Mode=OneWay}" /><Run Text=" productos" />
+            </TextBlock>
+            <Button Content="Terminar y mandar a Algete" Command="{Binding TerminarCommand}" Padding="16,2" Margin="16,0,0,0"
+                    ToolTip="Se pone número de traspaso, sale de la tienda y queda pendiente de recibir en Algete" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="4" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+    </Grid>
+</UserControl>

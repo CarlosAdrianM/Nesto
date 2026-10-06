@@ -18,6 +18,17 @@ namespace Nesto.Modules.Producto
             AbrirModuloReposicionCommand = new RelayCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
             AbrirEtiquetasHuecoCommand = new RelayCommand(OnAbrirEtiquetasHueco, CanAbrirEtiquetasHueco);
             AbrirRecibirReposicionCommand = new RelayCommand(OnAbrirRecibirReposicion, CanAbrirRecibirReposicion);
+            AbrirEnviarReposicionCommand = new RelayCommand(OnAbrirEnviarReposicion, CanAbrirRecibirReposicion);
+        }
+
+        /// <summary>
+        /// NestoAPI#553: la tienda prepara y termina la reposición que manda a Algete (antes en Nesto viejo). Escribir solo
+        /// puede quien tiene como AlmacénPedidoVta el almacén de origen, o Almacén o Dirección (lo comprueba la API).
+        /// </summary>
+        public ICommand AbrirEnviarReposicionCommand { get; private set; }
+        private void OnAbrirEnviarReposicion()
+        {
+            Navegacion.RequestNavigate("MainRegion", "EnviarReposicionView");
         }
 
         /// <summary>

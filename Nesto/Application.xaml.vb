@@ -205,6 +205,13 @@ Partial Public Class Application
                 Return New ServicioRecepcionReposiciones(factory)
             End Function)
 
+        ' NestoAPI#553: la tienda prepara y termina la reposición que manda a Algete (api/Reposiciones)
+        Dim unusedEnvioReposiciones = containerRegistry.RegisterSingleton(Of IServicioEnvioReposiciones)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioEnvioReposiciones(factory)
+            End Function)
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
             Function(provider)
