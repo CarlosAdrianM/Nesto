@@ -74,6 +74,52 @@ namespace Producto.Tests
         }
 
         [TestMethod]
+        public async Task Cargar_ConUnaSolaPendiente_LaAbreSola()
+        {
+            // Incidencia 505: había que hacer doble clic y no era evidente
+            await _vm.CargarAsync();
+
+            Assert.IsNotNull(_vm.Seleccionada);
+            Assert.AreEqual("80878", _vm.Seleccionada!.Documento);
+            Assert.AreEqual(3, _vm.Lineas.Count);
+        }
+
+        [TestMethod]
+        public async Task Cargar_ConVariasPendientes_NoAbreNinguna()
+        {
+            A.CallTo(() => _servicio.LeerPendientes(A<string>._, "ALC")).Returns(new List<RecepcionPendiente>
+            {
+                new() { Tipo = "REPO", Documento = "80878", Titulo = "Reposición 80878", Lineas = 3, Unidades = 6 },
+                new() { Tipo = "REPO", Documento = "80900", Titulo = "Reposición 80900", Lineas = 1, Unidades = 1 }
+            });
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual(2, _vm.Pendientes.Count);
+            Assert.IsNull(_vm.Seleccionada);
+            Assert.AreEqual(0, _vm.Lineas.Count);
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Leer_SinReposicionAbierta_LoDiceYVaciaElCuadro()
+        {
+            A.CallTo(() => _servicio.LeerPendientes(A<string>._, "ALC")).Returns(new List<RecepcionPendiente>
+            {
+                new() { Tipo = "REPO", Documento = "80878", Titulo = "Reposición 80878", Lineas = 3, Unidades = 6 },
+                new() { Tipo = "REPO", Documento = "80900", Titulo = "Reposición 80900", Lineas = 1, Unidades = 1 }
+            });
+            await _vm.CargarAsync();
+
+            _vm.Lectura = "8411";
+            _vm.LeerLecturaCommand.Execute(null);
+
+            Assert.AreEqual("Primero abre una reposición de la lista (doble clic) y después lee los códigos.", _vm.Mensaje);
+            Assert.AreEqual(string.Empty, _vm.Lectura);
+            Assert.AreEqual(0, _vm.Lineas.Count);
+        }
+
+        [TestMethod]
         public async Task Cargar_SinAlmacenDelUsuario_LoDiceYNoPideNada()
         {
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns(" ");

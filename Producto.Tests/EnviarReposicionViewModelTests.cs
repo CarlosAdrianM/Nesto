@@ -209,6 +209,20 @@ namespace Producto.Tests
         }
 
         [TestMethod]
+        public async Task Leer_SinReposicionEnPreparacion_LoDiceYVaciaElCuadro()
+        {
+            // Incidencia 505: lo leído desaparecía sin decir nada
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+
+            _vm.Lectura = "8411";
+            _vm.LeerLecturaCommand.Execute(null);
+
+            Assert.AreEqual("Primero prepara la reposición (botón «Preparar reposición») y después lee los códigos.", _vm.Mensaje);
+            Assert.AreEqual(string.Empty, _vm.Lectura);
+        }
+
+        [TestMethod]
         public async Task Terminar_PideConfirmacionConElResumenYVuelveAPreparar()
         {
             A.CallTo(() => _servicio.Terminar(A<string>._, "ALC")).Returns(new ResultadoTerminarReposicion

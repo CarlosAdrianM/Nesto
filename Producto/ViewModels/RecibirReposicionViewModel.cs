@@ -160,6 +160,11 @@ namespace Nesto.Modules.Producto.ViewModels
                     Mensaje = $"No hay ninguna reposición pendiente de recibir en {Almacen}.";
                 }
             }).ConfigureAwait(true);
+            // Incidencia 505: si solo hay una, se abre sola (antes había que hacer doble clic y no era evidente)
+            if (Pendientes.Count == 1 && Seleccionada == null)
+            {
+                await ElegirAsync(Pendientes[0]).ConfigureAwait(true);
+            }
         }
 
         private async Task ElegirAsync(RecepcionPendiente pendiente)
@@ -204,8 +209,14 @@ namespace Nesto.Modules.Producto.ViewModels
         private void Leer(string lectura)
         {
             string codigo = lectura?.Trim();
-            if (string.IsNullOrEmpty(codigo) || Seleccionada == null)
+            if (string.IsNullOrEmpty(codigo))
             {
+                return;
+            }
+            if (Seleccionada == null)
+            {
+                // Incidencia 505: antes lo leído desaparecía sin decir nada
+                Mensaje = "Primero abre una reposición de la lista (doble clic) y después lee los códigos.";
                 return;
             }
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();

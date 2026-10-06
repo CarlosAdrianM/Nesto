@@ -226,8 +226,14 @@ namespace Nesto.Modules.Producto.ViewModels
         private void Leer(string lectura)
         {
             string codigo = lectura?.Trim();
-            if (string.IsNullOrEmpty(codigo) || !HayReposicion)
+            if (string.IsNullOrEmpty(codigo))
             {
+                return;
+            }
+            if (!HayReposicion)
+            {
+                // Incidencia 505: lo leído no puede desaparecer sin decir nada
+                Mensaje = "Primero prepara la reposición (botón «Preparar reposición») y después lee los códigos.";
                 return;
             }
             List<LineaEnviarReposicion> candidatas = Lineas.Where(l => l.TieneCodigo(codigo)).ToList();
