@@ -7,7 +7,6 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
-Imports Prism.Regions
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -79,7 +78,7 @@ Public Class AgenciasViewModelPendientesTests
 
     ''' <summary>La ventana abierta en Pendientes con el pendiente de CTT seleccionado (la pantalla en CTT).</summary>
     Private Sub AbrirPendientesConCTTSeleccionada()
-        viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), servicio, configuracion, dialogService,
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         viewModel.ComparadorAgencias = comparador
         viewModel.PestannaNombre = Pestannas.PEDIDOS
@@ -123,7 +122,7 @@ Public Class AgenciasViewModelPendientesTests
     Public Sub Pendientes_LaRespuestaTardiaDelComparadorDelPedido_NoCambiaLaAgenciaDelPendiente()
         ' La respuesta del comparador que se pidió en la pestaña Pedidos llega cuando ya se está en
         ' Pendientes con un pendiente de GLS: la agencia es la del pendiente, no la del pedido.
-        viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), servicio, configuracion, dialogService,
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         viewModel.ComparadorAgencias = comparador
         viewModel.PestannaNombre = Pestannas.PEDIDOS

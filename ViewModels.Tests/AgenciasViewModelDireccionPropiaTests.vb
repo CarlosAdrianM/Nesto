@@ -4,7 +4,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
-Imports Prism.Regions
 
 ' Carlos 29/09/26 (pedido 927075): un envío de la tienda online salió por CTT a nuestra dirección
 ' (la de la ficha genérica 31517). Registrar un envío a Río Tiétar, 11 exige confirmarlo.
@@ -17,7 +16,7 @@ Public Class AgenciasViewModelDireccionPropiaTests
     <TestInitialize()>
     Public Sub Initialize()
         dialogService = A.Fake(Of IServicioDialogos)
-        viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), A.Fake(Of IAgenciaService), A.Fake(Of IConfiguracion), dialogService,
+        viewModel = New AgenciasViewModel(A.Fake(Of IAgenciaService), A.Fake(Of IConfiguracion), dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         vecesPreguntado = 0
     End Sub

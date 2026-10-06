@@ -24,7 +24,6 @@ Imports PdfiumViewer
 Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 
 Public Class AgenciasViewModel
     Inherits ObservableObject
@@ -37,7 +36,6 @@ Public Class AgenciasViewModel
 
     Private Const LONGITUD_TELEFONO = 15
 
-    Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _servicio As IAgenciaService
     Private ReadOnly _configuracion As IConfiguracion
     Private _comparadorAgencias As IServicioComparadorAgencias
@@ -72,12 +70,11 @@ Public Class AgenciasViewModel
 
     Private ReadOnly _servicioInformes As InformesService
 
-    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioPedidos As IPedidoVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioPedidos As IPedidoVentaService, servicioAutenticacion As IServicioAutenticacion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
 
-        _regionManager = regionManager
         _servicio = servicio
         _configuracion = configuracion
         _dialogService = dialogService
@@ -155,9 +152,9 @@ Public Class AgenciasViewModel
     ' éxito hacía perder tiempo a los compañeros buscando una etiqueta que no existía. Ahora
     ' devuelve si se guardó DE VERDAD: el Insertar estampa en el envío el Numero generado por la
     ' BD (identity), así que Numero > 0 = insertado.
-    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IServicioDialogos) As Boolean
+    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, configuracion As IConfiguracion, dialogService As IServicioDialogos) As Boolean
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
+        Dim agenciasVM = New AgenciasViewModel(New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
         agenciasVM.InsertarEnvioPendienteCommand.Execute(Nothing)
         If etiqueta.Agencia = 0 Then

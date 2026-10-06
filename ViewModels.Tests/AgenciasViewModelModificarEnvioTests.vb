@@ -6,7 +6,6 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
 Imports Newtonsoft.Json
-Imports Prism.Regions
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -26,7 +25,7 @@ Public Class AgenciasViewModelModificarEnvioTests
     Public Sub Initialize()
         servicio = A.Fake(Of IAgenciaService)
         dialogService = A.Fake(Of IServicioDialogos)
-        viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), servicio, A.Fake(Of IConfiguracion), dialogService,
+        viewModel = New AgenciasViewModel(servicio, A.Fake(Of IConfiguracion), dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         viewModel.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(1, "Sin retorno"), New tipoIdDescripcion(3, "Retorno obligatorio")}

@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Ioc;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,7 +21,6 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
     public class CanalesExternosPedidosViewModel : ViewModelBase
     {
-        private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IServicioDialogos DialogService { get; }
         public IPedidoVentaService PedidoVentaService { get; }
@@ -37,9 +35,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private readonly IFacturasAmazonService _facturasAmazonService;
 
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
+        public CanalesExternosPedidosViewModel(IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
         {
-            RegionManager = regionManager;
             Configuracion = configuracion;
             DialogService = dialogService;
             PedidoVentaService = pedidoVentaService;
@@ -435,7 +432,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 // guardado fallaba (p. ej. el POST del A2 rechazado por el servidor), el usuario
                 // veía el éxito y la etiqueta no existía. Además el async void no tenía catch:
                 // una excepción del flujo (p. ej. "Agencia no contemplada") tumbaba el proceso.
-                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
+                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, Configuracion, DialogService);
 
                 EstaOcupado = false;
                 if (etiquetaCreada)

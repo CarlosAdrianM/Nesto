@@ -7,7 +7,6 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
-Imports Prism.Regions
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -54,7 +53,7 @@ Public Class AgenciasViewModelBultosAriadnaTests
             A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, numero)).Returns(pedido)
         Next
 
-        viewModel = New AgenciasViewModel(A.Fake(Of RegionManager), servicio, configuracion, dialogService,
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService,
                                           A.Fake(Of IPedidoVentaService), A.Fake(Of IServicioAutenticacion))
         ' El comparador del servidor no contesta en estas pruebas (no importa qué agencia se elija).
         Dim comparador = A.Fake(Of IServicioComparadorAgencias)

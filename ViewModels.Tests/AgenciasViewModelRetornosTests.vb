@@ -5,7 +5,6 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
-Imports Prism.Regions
 Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 
@@ -15,7 +14,6 @@ Imports System.Threading.Tasks
 ''' </summary>
 <TestClass()>
 Public Class AgenciasViewModelRetornosTests
-    Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
     Private dialogService As IServicioDialogos
@@ -28,12 +26,11 @@ Public Class AgenciasViewModelRetornosTests
     <TestInitialize()>
     Public Sub Initialize()
         configuracion = A.Fake(Of IConfiguracion)
-        regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
         dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
-        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
 
         retorno = New EnviosAgencia With {.Numero = 248001, .Pedido = 925100, .Cliente = "29268     "}
         otroRetorno = New EnviosAgencia With {.Numero = 248002, .Pedido = 925101, .Cliente = "1         "}

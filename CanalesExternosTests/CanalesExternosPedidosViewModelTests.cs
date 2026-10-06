@@ -5,7 +5,6 @@ using Nesto.Modulos.CanalesExternos;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.ViewModels;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using Unity;
 
 namespace CanalesExternosTests
@@ -22,7 +21,6 @@ namespace CanalesExternosTests
         private static CanalesExternosPedidosViewModel CrearViewModel()
         {
             return new CanalesExternosPedidosViewModel(
-                A.Fake<IRegionManager>(),
                 A.Fake<IConfiguracion>(),
                 A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoVentaService>(),

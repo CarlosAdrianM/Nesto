@@ -4,7 +4,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.ViewModels
-Imports Prism.Regions
 
 ''' <summary>
 ''' Nesto#418: en Agencias → Incidentados el usuario necesita el nº de pedido para buscarlo en otro
@@ -18,7 +17,6 @@ Imports Prism.Regions
 <TestClass()>
 Public Class AgenciasViewModelCopiarPedidoTests
 
-    Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
     Private dialogService As IServicioDialogos
@@ -27,7 +25,6 @@ Public Class AgenciasViewModelCopiarPedidoTests
 
     <TestInitialize()>
     Public Sub Initialize()
-        regionManager = A.Fake(Of IRegionManager)
         servicio = A.Fake(Of IAgenciaService)
         configuracion = A.Fake(Of IConfiguracion)
         dialogService = A.Fake(Of IServicioDialogos)
@@ -36,7 +33,7 @@ Public Class AgenciasViewModelCopiarPedidoTests
     End Sub
 
     Private Function CrearViewModel() As AgenciasViewModel
-        Return New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Return New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
     End Function
 
     <TestMethod()>
