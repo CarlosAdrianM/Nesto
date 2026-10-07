@@ -1,5 +1,4 @@
 ﻿Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Regions
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
@@ -9,7 +8,7 @@ Imports Nesto.Infrastructure.Events
 
 Public Class RapportViewModel
     Inherits ObservableObject
-    Implements INavigationAware
+    Implements IReceptorNavegacionPestanaNueva
 
     Public Property configuracion As IConfiguracion
     Private Const empresaPorDefecto As String = "1"
@@ -347,19 +346,13 @@ Public Class RapportViewModel
 #End Region
 
 
-    Public Overloads Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
-        rapport = navigationContext.Parameters("rapportParameter")
+    ' Nesto#490 (4C.4): cada navegación abre una vista de rapport nueva (antes IsNavigationTarget = False). Misma
+    ' clave que con Prism; GetValue(Of Object) devuelve Nothing si no viene, como su indexador.
+    Public Async Sub AlLlegar(parametros As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
+        rapport = parametros?.GetValue(Of Object)("rapportParameter")
         If VendedorUsuario Is Nothing Then
             VendedorUsuario = Await configuracion.leerParametro("1", "Vendedor")
         End If
-    End Sub
-
-    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
-        Return False
-    End Function
-
-    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
-
     End Sub
 
     Public Structure idByteDescripcion
