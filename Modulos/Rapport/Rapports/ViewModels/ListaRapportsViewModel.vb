@@ -788,8 +788,12 @@ Public Class ListaRapportsViewModel
         ' Suscríbete solo si no hay una suscripción activa (Nesto#490 4C.1: Messenger en vez de IEventAggregator;
         ' registrar dos veces al mismo receptor lanza, de ahí el IsRegistered).
         If Not _messenger.IsRegistered(Of RapportGuardadoMensaje)(Me) Then
-            ' Como antes: el 0 del aviso llegaba como grupoSubgrupo "0" (conversión implícita de VB).
-            _messenger.Register(Of RapportGuardadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaRapportsViewModel).ActualizarClientesProbabilidad(CStr(m.Value)))
+            ' NestoAPI#603 c2: al guardar un rapport la lista se recarga con el grupo seleccionado (antes el 0 del
+            ' aviso llegaba como grupoSubgrupo "0" por la conversión implícita de VB y se perdía el filtro).
+            _messenger.Register(Of RapportGuardadoMensaje)(Me, Sub(r, m)
+                                                                  Dim lista = DirectCast(r, ListaRapportsViewModel)
+                                                                  lista.ActualizarClientesProbabilidad(If(lista.GrupoSubgrupoSeleccionado, String.Empty))
+                                                              End Sub)
         End If
         If Not _messenger.IsRegistered(Of RapportNoGuardadoMensaje)(Me) Then
             _messenger.Register(Of RapportNoGuardadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaRapportsViewModel).QuitarRapportNoGuardado(m.Value))

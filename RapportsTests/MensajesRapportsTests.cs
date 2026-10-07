@@ -80,7 +80,22 @@ namespace RapportsTests
         }
 
         [TestMethod]
-        public void RapportGuardado_ConLaListaActiva_RecargaLosClientesProbabilidad()
+        public void RapportGuardado_ConLaListaActiva_RecargaConElGrupoSeleccionado()
+        {
+            var vm = CrearLista();
+            vm.TipoRapportSeleccionado = new idDescripcion("V", "Visita");
+            vm.GrupoSubgrupoSeleccionado = "PEL/PEL";
+            vm.IsActive = true;
+            Fake.ClearRecordedCalls(_servicio);
+
+            _messenger.Send(new RapportGuardadoMensaje(0));
+
+            // NestoAPI#603 c2: se recarga con el grupo seleccionado, no con el "0" del aviso.
+            A.CallTo(() => _servicio.CargarSugerenciasContacto(A<string>._, "Visita", "PEL/PEL")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void RapportGuardado_SinGrupoSeleccionado_RecargaSinGrupo()
         {
             var vm = CrearLista();
             vm.TipoRapportSeleccionado = new idDescripcion("V", "Visita");
@@ -89,9 +104,7 @@ namespace RapportsTests
 
             _messenger.Send(new RapportGuardadoMensaje(0));
 
-            // NestoAPI#603: la lista sale ahora de SugerenciasContacto (el servicio cae al antiguo si hay 404).
-            // Como con Prism: el 0 del aviso llega como grupoSubgrupo "0" (conversión implícita de VB).
-            A.CallTo(() => _servicio.CargarSugerenciasContacto(A<string>._, "Visita", "0")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.CargarSugerenciasContacto(A<string>._, "Visita", string.Empty)).MustHaveHappenedOnceExactly();
         }
     }
 }
