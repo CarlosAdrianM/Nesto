@@ -15,7 +15,6 @@ Imports Nesto.Modulos.PedidoVenta.Services
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 Imports System.Windows
 Imports System.Windows.Media
 Imports Unity
@@ -24,7 +23,7 @@ Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
 Public Class DetallePedidoViewModel
     Inherits ObservableObject
-    Implements INavigationAware
+    Implements IReceptorNavegacionPestanaNueva
 
     Private estaActualizarFechaActivo As Boolean = True
     Private ReadOnly navegacion As IServicioNavegacion
@@ -3509,8 +3508,10 @@ Public Class DetallePedidoViewModel
 #End Region
 
 
-    Public Overloads Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
-        Dim resumen = navigationContext.Parameters("resumenPedidoParameter")
+    ' Nesto#490 (4C.4): cada pedido elegido abre un detalle nuevo en DetallePedidoRegion (antes IsNavigationTarget
+    ' devolvía False). Misma clave que con Prism; GetValue(Of Object) devuelve Nothing si no viene, como su indexador.
+    Public Async Sub AlLlegar(parametrosNavegacion As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
+        Dim resumen = parametrosNavegacion?.GetValue(Of Object)("resumenPedidoParameter")
 
         ' Cargar parámetros de usuario
         AlmacenUsuario = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta)
@@ -3527,14 +3528,6 @@ Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(MostrarImagenes))
 
         cmdCargarPedido.Execute(resumen)
-    End Sub
-
-    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
-
-    End Function
-
-    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
-
     End Sub
 
     Public Overrides Function ToString() As String
