@@ -6,7 +6,8 @@
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
              d:DataContext="{d:DesignInstance Type=viewmodels:EnviarReposicionViewModel}"
              mc:Ignorable="d"
-             d:DesignHeight="500" d:DesignWidth="900">
+             d:DesignHeight="500" d:DesignWidth="900"
+             Background="White">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>

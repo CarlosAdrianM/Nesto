@@ -10,7 +10,8 @@
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d"
-             d:DesignHeight="700" d:DesignWidth="1000">
+             d:DesignHeight="700" d:DesignWidth="1000"
+             Background="White">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
