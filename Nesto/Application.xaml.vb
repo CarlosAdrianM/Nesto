@@ -124,6 +124,9 @@ Partial Public Class Application
             End Function)
         ' Nesto#490 (4C.4): navegación propia. Paso 1: delega en el IRegionManager de Prism (mismo comportamiento).
         Dim unusedNavegacion = containerRegistry.RegisterSingleton(Of IServicioNavegacion, Nesto.Infrastructure.Navegacion.ServicioNavegacionPrism)()
+        ' Nesto#490 (4C.4): el cargador de vistas de la navegación de Prism, salvo que nunca reutiliza las vistas de un
+        ' IReceptorNavegacionPestanaNueva (lo que antes hacía IsNavigationTarget = False). Sustituye al que registra Prism.
+        Dim unusedCargadorVistas = containerRegistry.RegisterSingleton(Of IRegionNavigationContentLoader, Nesto.Infrastructure.Navegacion.CargadorVistasNavegacion)()
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
         ' Nesto#400: credencial con caché de tokens persistida y AuthenticationRecord rehidratado:

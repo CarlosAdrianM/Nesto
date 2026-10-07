@@ -8,8 +8,9 @@ namespace Nesto.Infrastructure.Contracts
     /// reutiliza la misma pestaña) y <c>OnNavigatedFrom</c> vacío: sin INavigationAware, Prism ya reutiliza
     /// la vista existente, así que solo hace falta avisar al llegar. Lo entrega
     /// <c>Nesto.Infrastructure.Navegacion.ReceptorNavegacionRegionBehavior</c> a todas las regiones.
-    /// Los ViewModels que necesitan otra cosa (abrir siempre una pestaña nueva, hacer algo al salir) siguen
-    /// con INavigationAware hasta el paso sin Prism.
+    /// Los que abren una pestaña nueva en cada navegación (<c>IsNavigationTarget = false</c>) implementan
+    /// <see cref="IReceptorNavegacionPestanaNueva"/>. Los que necesitan hacer algo al salir siguen con
+    /// INavigationAware hasta el paso sin Prism.
     /// </summary>
     public interface IReceptorNavegacion
     {

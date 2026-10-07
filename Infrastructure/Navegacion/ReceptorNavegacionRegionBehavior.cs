@@ -50,6 +50,16 @@ namespace Nesto.Infrastructure.Navegacion
             return receptor;
         }
 
+        /// <summary>
+        /// Si la vista (o su DataContext) pide una vista nueva en cada navegación
+        /// (<see cref="IReceptorNavegacionPestanaNueva"/>): entonces no se reutiliza (ver <see cref="CargadorVistasNavegacion"/>).
+        /// </summary>
+        public static bool QuierePestanaNueva(object vista)
+        {
+            return vista is IReceptorNavegacionPestanaNueva
+                || (vista as FrameworkElement)?.DataContext is IReceptorNavegacionPestanaNueva;
+        }
+
         // «ExtractoClienteView?cliente=1» → «ExtractoClienteView» (los parámetros llegan aparte)
         private static string NombreDelDestino(string destino)
         {
