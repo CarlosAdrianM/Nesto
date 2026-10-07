@@ -637,21 +637,25 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
 
 
-            // Creamos la contrapartida al banco
+            // Creamos la contrapartida al banco: una por empresa y cada una por lo cobrado EN ESA EMPRESA
+            // (Nesto#514: llevaban todas el total cobrado y, con facturas de dos empresas, descuadraban las dos).
+            // Lo «a cuenta» va en la línea de EmpresaTraspaso, así que entra en el importe de esa empresa.
             var empresas = lineas.Select(e => e.Empresa).Distinct().ToList();
-            var deudaConMayorImporte = DeudasSeleccionadas.OrderByDescending(e => e.Importe).FirstOrDefault();
-            string tipoApunteContrapartida = NombreTipo(deudaConMayorImporte);
-            string coletillaYOtros = string.Empty;
             foreach (var empresa in empresas)
             {
-                string pagoODevolucion = TotalCobrado > 0 ? "Pago" : "Devolución";
+                decimal importeEmpresa = lineas.Where(l => l.Empresa == empresa).Sum(l => l.Haber - l.Debe);
+                var deudasEmpresa = DeudasSeleccionadas.Where(d => d.Empresa == empresa).ToList();
+                var deudaConMayorImporte = deudasEmpresa.OrderByDescending(e => e.Importe).FirstOrDefault();
+                string tipoApunteContrapartida = NombreTipo(deudaConMayorImporte);
+                string pagoODevolucion = importeEmpresa > 0 ? "Pago" : "Devolución";
                 if (deudaConMayorImporte is not null)
                 {
-                    if (deudaConMayorImporte.ImportePendiente < TotalCobrado || DeudasSeleccionadas.Count() > 1)
+                    string coletillaYOtros = string.Empty;
+                    if (deudaConMayorImporte.ImportePendiente < importeEmpresa || deudasEmpresa.Count > 1)
                     {
                         coletillaYOtros = " y otros";
                     }
-                    else if (deudaConMayorImporte.ImportePendiente > TotalCobrado)
+                    else if (deudaConMayorImporte.ImportePendiente > importeEmpresa)
                     {
                         coletillaYOtros = " a cta.";
                     }
@@ -662,8 +666,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
                         Cuenta = CuentaCobro.Cuenta,
                         Concepto = $"{pagoODevolucion} c/{deudaConMayorImporte.Cliente}/{deudaConMayorImporte.Contacto} {tipoApunteContrapartida} {deudaConMayorImporte.Documento}/{deudaConMayorImporte.Efecto}{coletillaYOtros}",
-                        Debe = TotalCobrado > 0 ? TotalCobrado : 0,
-                        Haber = TotalCobrado < 0 ? -TotalCobrado : 0,
+                        Debe = importeEmpresa > 0 ? importeEmpresa : 0,
+                        Haber = importeEmpresa < 0 ? -importeEmpresa : 0,
                         Fecha = DateOnly.FromDateTime(FechaCobro),
                         FechaVto = DateOnly.FromDateTime(deudaConMayorImporte.Vencimiento),
                         Documento = deudaConMayorImporte.Documento,
@@ -680,6 +684,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
+                    // Empresa sin deudas elegidas: solo lleva lo «a cuenta»
                     PreContabilidadDTO contrapartida = new()
                     {
                         Empresa = empresa,
@@ -687,8 +692,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
                         Cuenta = CuentaCobro.Cuenta,
                         Concepto = $"{pagoODevolucion} c/{ClienteCompletoSeleccionado.cliente}/{ClienteCompletoSeleccionado.contacto} {tipoApunteContrapartida}",
-                        Debe = TotalCobrado > 0 ? TotalCobrado : 0,
-                        Haber = TotalCobrado < 0 ? -TotalCobrado : 0,
+                        Debe = importeEmpresa > 0 ? importeEmpresa : 0,
+                        Haber = importeEmpresa < 0 ? -importeEmpresa : 0,
                         Fecha = DateOnly.FromDateTime(FechaCobro),
                         FechaVto = DateOnly.FromDateTime(FechaCobro),
                         Documento = "A CUENTA",
