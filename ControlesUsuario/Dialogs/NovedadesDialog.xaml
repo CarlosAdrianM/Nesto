@@ -4,7 +4,20 @@
              xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
              prism:ViewModelLocator.AutoWireViewModel="True"
-             Width="620" Height="660">
+             Background="White">
+    <!-- Nesto#513: antes la vista tenía Width="620" fijo y la ventana (ajustada al contenido, con tope de 600)
+         la cortaba por la derecha, igual que la barra de botones desde «Algo no funciona». Ahora la ventana nace
+         con un tamaño cómodo, se puede agrandar o encoger (hasta un mínimo) y todo el contenido sigue su ancho. -->
+    <prism:Dialog.WindowStyle>
+        <Style TargetType="Window">
+            <Setter Property="SizeToContent" Value="Manual" />
+            <Setter Property="ResizeMode" Value="CanResize" />
+            <Setter Property="Width" Value="760" />
+            <Setter Property="Height" Value="700" />
+            <Setter Property="MinWidth" Value="560" />
+            <Setter Property="MinHeight" Value="420" />
+        </Style>
+    </prism:Dialog.WindowStyle>
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisible" />
         <local:BytesAImagenConverter x:Key="BytesAImagen" />
@@ -24,6 +37,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -54,13 +68,13 @@
                         <TextBlock Text="Elige una para ir a ella:" FontSize="11" Foreground="#555555" Margin="6,2" VerticalAlignment="Center" />
                     </DockPanel>
                     <ListBox ItemsSource="{Binding ResultadosBusqueda}" SelectedItem="{Binding ResultadoSeleccionado}"
-                             MaxHeight="130" BorderThickness="0">
+                             MaxHeight="130" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Donde}" Foreground="#4A90D9" Width="170" />
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Donde}" Foreground="#4A90D9" Width="170" />
                                     <TextBlock Text="{Binding Titulo}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
+                                </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -116,7 +130,7 @@
             </Border>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl x:Name="ListaNovedades" ItemsSource="{Binding Novedades}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -132,8 +146,9 @@
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <Border CornerRadius="3" Padding="6,1,6,1" VerticalAlignment="Center">
+                                <!-- Nesto#513: DockPanel (no StackPanel horizontal) para que el título se envuelva con el ancho de la ventana -->
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Left" CornerRadius="3" Padding="6,1,6,1" VerticalAlignment="Top">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="#4A90D9" />
@@ -154,7 +169,7 @@
                                         <TextBlock Text="{Binding Categoria}" Foreground="White" FontSize="11" />
                                     </Border>
                                     <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                </StackPanel>
+                                </DockPanel>
                                 <!-- Nesto#487: en una sugerencia, quién/cuándo, lo que escribió el usuario tal cual y su captura;
                                      la descripción (ampliada, nuestra) solo si la hay. -->
                                 <TextBlock Text="{Binding SugeridaPor}" FontSize="11" Foreground="#777777" Margin="0,3,0,0"
@@ -303,10 +318,11 @@
                     Visibility="{Binding PuedeSugerir, Converter={StaticResource BoolAVisible}}" />
             <Button DockPanel.Dock="Right" Content="Cerrar" Command="{Binding CloseDialogCommand}"
                     Width="90" Height="28" IsCancel="True" />
-            <!-- Nesto#501: al cerrarla no sabían volver a abrirla -->
-            <TextBlock DockPanel.Dock="Right" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="#777777" FontSize="11"
-                       TextWrapping="Wrap" MaxWidth="260"
-                       Text="Puedes volver a abrir esta ventana con el megáfono que hay junto a la campana, arriba a la derecha." />
         </DockPanel>
+
+        <!-- Nesto#501: al cerrarla no sabían volver a abrirla. Nesto#513: en su propia línea, debajo de los botones
+             (pegado a «Algo no funciona» quedaba apretado y empujaba la barra fuera de la ventana). -->
+        <TextBlock Grid.Row="6" Margin="0,6,0,0" Foreground="#777777" FontSize="11" TextWrapping="Wrap"
+                   Text="Puedes volver a abrir esta ventana con el megáfono que hay junto a la campana, arriba a la derecha." />
     </Grid>
 </UserControl>
