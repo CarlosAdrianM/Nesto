@@ -8,7 +8,6 @@ using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +20,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class DetallePedidoCompraViewModel : ObservableObject, INavigationAware
+    public class DetallePedidoCompraViewModel : ObservableObject, IReceptorNavegacionPestanaNueva
     {
         public IPedidoCompraService Servicio { get; }
         public IServicioDialogos DialogService { get; }
@@ -381,16 +380,18 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             }
         }
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        // Nesto#490 (4C.4): cada navegación abre un detalle nuevo en DetallePedidoCompraRegion (antes
+        // IsNavigationTarget = false). Mismas claves que con Prism; GetValue<object> devuelve null si no vienen.
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
-            var pedidoLookup = navigationContext.Parameters["PedidoLookupParameter"] as PedidoCompraLookup;
+            var pedidoLookup = parametros?.GetValue<object>("PedidoLookupParameter") as PedidoCompraLookup;
             if (pedidoLookup != null)
             {
                 CargarPedidoCommand.Execute(pedidoLookup);
             }
             else
             {
-                var pedido = navigationContext.Parameters["PedidoParameter"] as PedidoCompraDTO;
+                var pedido = parametros?.GetValue<object>("PedidoParameter") as PedidoCompraDTO;
                 Pedido = new PedidoCompraWrapper(pedido, Servicio);
                 if (Pedido.Model != null)
                 {
@@ -439,16 +440,6 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 }
 
             }
-        }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return false;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-            
         }
 
     }
