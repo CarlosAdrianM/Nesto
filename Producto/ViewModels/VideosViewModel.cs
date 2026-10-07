@@ -3,7 +3,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,7 +13,7 @@ using System.Windows;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class VideosViewModel : ObservableObject, INavigationAware
+    public class VideosViewModel : ObservableObject, IReceptorNavegacionPestanaNueva
     {
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
 
@@ -443,20 +442,13 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #endregion
 
-        #region INavigationAware
+        #region Navegación
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        // Nesto#490 (4C.4): cada navegación abre una pestaña de Vídeos nueva (antes IsNavigationTarget = false) y carga
+        // la primera página.
+        public void AlLlegar(ParametrosNavegacion parametros)
         {
             _ = CargarVideosIniciales();
-        }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return false;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
         }
 
         #endregion
