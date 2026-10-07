@@ -84,6 +84,9 @@ namespace Nesto.Modules.Producto.ViewModels
             ImprimirEtiquetasProductoCommand = new RelayCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             MontarKitCommand = new RelayCommand(OnMontarKit, CanMontarKit);
             SeleccionarProductoCommand = new RelayCommand(OnSeleccionarProducto, CanSeleccionarProducto);
+            AnnadirCodigoBarrasCommand = new RelayCommand(OnAnnadirCodigoBarras, CanAnnadirCodigoBarras);
+            HacerPrincipalCodigoBarrasCommand = new RelayCommand(OnHacerPrincipalCodigoBarras, CanCambiarCodigoBarrasSeleccionado);
+            DarDeBajaCodigoBarrasCommand = new RelayCommand(OnDarDeBajaCodigoBarras, CanCambiarCodigoBarrasSeleccionado);
 
             Titulo = "Producto";
 
@@ -137,6 +140,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 GuardarExclusivoProfesionalCommand.NotifyCanExecuteChanged();
                 await CargarCategoriasWebAsync(productoId);
                 await CargarVariantesAsync(productoId);
+                await CargarCodigosBarrasAsync();
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
@@ -1134,6 +1138,227 @@ namespace Nesto.Modules.Producto.ViewModels
                     ? "Variantes guardadas. La familia se republica en la web en unos minutos"
                     : "La familia de variantes se ha deshecho: sus referencias vuelven a ser productos sueltos en la web");
                 await CargarVariantesAsync(ProductoActual.Producto);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Códigos de barras (NestoAPI#605)
+
+        // NestoAPI#605: un producto tiene varios códigos de barras (el proveedor lo cambia por lote, la caja
+        // de 100 lleva el suyo...). El principal sigue siendo Productos.CodBarras y lo mantiene la API; aquí
+        // se añaden, se cambia cuál es el principal y se dan de baja. Cada acción va directa a la API (no
+        // hay "Guardar"): la lista se recarga después de cada una.
+        public ObservableCollection<CodigoBarrasProductoModel> CodigosBarras { get; } = new();
+
+        /// <summary>Mismo criterio que el resto de datos de la ficha que se editan aquí: el grupo Compras.</summary>
+        public bool PuedeEditarCodigosBarras => EsDelGrupoCompras;
+
+        private bool _hayCodigosBarras;
+        /// <summary>False si la API publicada todavía no tiene el endpoint: entonces la pestaña no se ve.</summary>
+        public bool HayCodigosBarras
+        {
+            get => _hayCodigosBarras;
+            private set => SetProperty(ref _hayCodigosBarras, value);
+        }
+
+        private string _codigoBarrasPrincipal;
+        public string CodigoBarrasPrincipal
+        {
+            get => _codigoBarrasPrincipal;
+            private set => SetProperty(ref _codigoBarrasPrincipal, value);
+        }
+
+        private CodigoBarrasProductoModel _codigoBarrasSeleccionado;
+        public CodigoBarrasProductoModel CodigoBarrasSeleccionado
+        {
+            get => _codigoBarrasSeleccionado;
+            set
+            {
+                if (SetProperty(ref _codigoBarrasSeleccionado, value))
+                {
+                    RefrescarComandosDeCodigosBarras();
+                }
+            }
+        }
+
+        private string _nuevoCodigoBarras;
+        public string NuevoCodigoBarras
+        {
+            get => _nuevoCodigoBarras;
+            set
+            {
+                if (SetProperty(ref _nuevoCodigoBarras, value))
+                {
+                    AnnadirCodigoBarrasCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private int _nuevaCantidadCodigoBarras = 1;
+        public int NuevaCantidadCodigoBarras
+        {
+            get => _nuevaCantidadCodigoBarras;
+            set
+            {
+                if (SetProperty(ref _nuevaCantidadCodigoBarras, value))
+                {
+                    AnnadirCodigoBarrasCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _nuevoProveedorCodigoBarras;
+        public string NuevoProveedorCodigoBarras
+        {
+            get => _nuevoProveedorCodigoBarras;
+            set => SetProperty(ref _nuevoProveedorCodigoBarras, value);
+        }
+
+        internal async Task CargarCodigosBarrasAsync()
+        {
+            // En su propio try, como las variantes: que esto falle no puede impedir abrir la ficha.
+            try
+            {
+                CodigosBarras.Clear();
+                CodigoBarrasSeleccionado = null;
+                string producto = ProductoActual?.Producto?.Trim();
+                List<CodigoBarrasProductoModel> codigos = string.IsNullOrEmpty(producto)
+                    ? null
+                    : await _servicio.LeerCodigosBarras(producto);
+                // TODO NestoAPI#605: con la API nueva en producción, null (404) ya no debería llegar nunca.
+                HayCodigosBarras = codigos != null;
+                foreach (CodigoBarrasProductoModel codigo in (codigos ?? new List<CodigoBarrasProductoModel>())
+                    .Where(c => c.Activo)
+                    .OrderByDescending(c => c.Principal)
+                    .ThenBy(c => c.Cantidad)
+                    .ThenByDescending(c => c.Fecha))
+                {
+                    CodigosBarras.Add(codigo);
+                }
+                CodigoBarrasPrincipal = CodigosBarras.FirstOrDefault(c => c.Principal)?.Codigo?.Trim()
+                    ?? ProductoActual?.CodigoBarras?.Trim();
+                if (ProductoActual != null && HayCodigosBarras)
+                {
+                    ProductoActual.CodigoBarras = CodigoBarrasPrincipal;
+                }
+            }
+            catch (Exception ex)
+            {
+                HayCodigosBarras = false;
+                _dialogService.ShowError("No se han podido cargar los códigos de barras: " + ex.Message);
+            }
+            finally
+            {
+                RefrescarComandosDeCodigosBarras();
+            }
+        }
+
+        private void RefrescarComandosDeCodigosBarras()
+        {
+            AnnadirCodigoBarrasCommand.NotifyCanExecuteChanged();
+            HacerPrincipalCodigoBarrasCommand.NotifyCanExecuteChanged();
+            DarDeBajaCodigoBarrasCommand.NotifyCanExecuteChanged();
+        }
+
+        public RelayCommand AnnadirCodigoBarrasCommand { get; private set; }
+        private bool CanAnnadirCodigoBarras()
+        {
+            return PuedeEditarCodigosBarras && HayCodigosBarras && ProductoActual != null
+                && !string.IsNullOrWhiteSpace(NuevoCodigoBarras) && NuevaCantidadCodigoBarras > 0;
+        }
+        private async void OnAnnadirCodigoBarras()
+        {
+            try
+            {
+                string producto = ProductoActual.Producto.Trim();
+                string codigo = NuevoCodigoBarras.Trim();
+                RespuestaAnnadirCodigoBarras respuesta = await _servicio.AnnadirCodigoBarras(
+                    producto, codigo, NuevaCantidadCodigoBarras, NuevoProveedorCodigoBarras, permitirCompartido: false);
+
+                if (respuesta.Resultado == ResultadoAnnadirCodigoBarras.EnOtroProducto)
+                {
+                    // Caso guantes: el proveedor manda el mismo código para dos tallas. Se comparte solo si
+                    // quien edita la ficha lo confirma expresamente.
+                    if (!await _dialogService.ShowConfirmationAsync("Código de barras de otro producto", TextoCodigoEnOtroProducto(codigo, respuesta)))
+                    {
+                        return;
+                    }
+                    respuesta = await _servicio.AnnadirCodigoBarras(
+                        producto, codigo, NuevaCantidadCodigoBarras, NuevoProveedorCodigoBarras, permitirCompartido: true);
+                }
+
+                if (respuesta.Resultado == ResultadoAnnadirCodigoBarras.YaEraDelProducto)
+                {
+                    _dialogService.ShowNotification($"El código {codigo} ya era de este producto");
+                }
+                NuevoCodigoBarras = null;
+                NuevaCantidadCodigoBarras = 1;
+                NuevoProveedorCodigoBarras = null;
+                await CargarCodigosBarrasAsync();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        internal static string TextoCodigoEnOtroProducto(string codigo, RespuestaAnnadirCodigoBarras respuesta)
+        {
+            List<ProductoDelCodigoBarrasModel> productos = respuesta?.Productos ?? new List<ProductoDelCodigoBarrasModel>();
+            if (!productos.Any())
+            {
+                string mensaje = string.IsNullOrWhiteSpace(respuesta?.Mensaje)
+                    ? $"El código {codigo} ya es de otro producto."
+                    : respuesta.Mensaje.Trim();
+                return mensaje + Environment.NewLine + Environment.NewLine + "¿Añadirlo también a este?";
+            }
+            string lista = string.Join(", ", productos.Select(p => $"{p.Producto?.Trim()} {p.Nombre?.Trim()}".Trim()));
+            string de = productos.Count == 1 ? "del producto" : "de los productos";
+            return $"Ese código ya es {de} {lista}." + Environment.NewLine + Environment.NewLine + "¿Añadirlo también a este?";
+        }
+
+        public RelayCommand HacerPrincipalCodigoBarrasCommand { get; private set; }
+        public RelayCommand DarDeBajaCodigoBarrasCommand { get; private set; }
+        private bool CanCambiarCodigoBarrasSeleccionado()
+        {
+            // El principal ni se vuelve a hacer principal ni se puede dar de baja (la API lo rechaza con 400):
+            // para quitarlo, antes se hace principal otro.
+            return PuedeEditarCodigosBarras && ProductoActual != null
+                && CodigoBarrasSeleccionado != null && !CodigoBarrasSeleccionado.Principal;
+        }
+
+        private async void OnHacerPrincipalCodigoBarras()
+        {
+            try
+            {
+                CodigoBarrasProductoModel elegido = CodigoBarrasSeleccionado;
+                await _servicio.HacerPrincipalCodigoBarras(ProductoActual.Producto.Trim(), elegido.Id);
+                await CargarCodigosBarrasAsync();
+                _dialogService.ShowNotification($"El código principal del producto es ahora el {elegido.Codigo?.Trim()}");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        private async void OnDarDeBajaCodigoBarras()
+        {
+            try
+            {
+                CodigoBarrasProductoModel elegido = CodigoBarrasSeleccionado;
+                if (!await _dialogService.ShowConfirmationAsync("Dar de baja código de barras",
+                    $"¿Dar de baja el código {elegido.Codigo?.Trim()}? Al leerlo con el escáner ya no saldrá este producto."))
+                {
+                    return;
+                }
+                await _servicio.DarDeBajaCodigoBarras(ProductoActual.Producto.Trim(), elegido.Id);
+                await CargarCodigosBarrasAsync();
             }
             catch (Exception ex)
             {

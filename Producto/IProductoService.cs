@@ -46,5 +46,11 @@ namespace Nesto.Modules.Producto
         Task<List<SubgrupoProductoModel>> LeerSubgruposProducto();
         Task<List<CategoriaSecundariaModel>> LeerCategoriasSecundarias(string producto);
         Task GuardarCategoriasSecundarias(string producto, List<CategoriaSecundariaModel> categorias);
+        // NestoAPI#605: códigos de barras del producto (varios por producto; el principal sigue en la ficha).
+        // LeerCodigosBarras devuelve null si la API publicada todavía no tiene el endpoint (404).
+        Task<List<CodigoBarrasProductoModel>> LeerCodigosBarras(string producto);
+        Task<RespuestaAnnadirCodigoBarras> AnnadirCodigoBarras(string producto, string codigo, int cantidad, string proveedor, bool permitirCompartido);
+        Task HacerPrincipalCodigoBarras(string producto, int id);
+        Task DarDeBajaCodigoBarras(string producto, int id);
     }
 }

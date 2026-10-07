@@ -739,6 +739,58 @@
                             Margin="0,10,0,0" Padding="10,3" HorizontalAlignment="Left"/>
                 </StackPanel>
             </TabItem>
+
+            <!-- NestoAPI#605: varios códigos de barras por producto (como SAP, Dynamics y Odoo). El principal
+                 sigue siendo el de la ficha (Productos.CodBarras) y lo mantiene la API. La ve todo el mundo;
+                 solo Compras añade, cambia el principal o da de baja. Si la API publicada no tiene aún el
+                 endpoint, la pestaña no sale. -->
+            <TabItem Header="Códigos de barras" Visibility="{Binding HayCodigosBarras, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Margin="10" MaxWidth="800" HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="Todos los códigos con los que se reconoce este producto al leerlo con el escáner. El principal es el de la ficha (el que va a la tienda online y a las etiquetas). La cantidad es lo que representa el código: 1 la unidad, 100 si es el de la caja de 100." />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Código principal: " FontWeight="Bold"/>
+                        <TextBlock Text="{Binding CodigoBarrasPrincipal}"/>
+                    </StackPanel>
+                    <DataGrid Grid.Row="2" MinHeight="160" ItemsSource="{Binding CodigosBarras}"
+                              SelectedItem="{Binding CodigoBarrasSeleccionado}"
+                              AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" Width="2*"/>
+                            <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" Width="Auto"/>
+                            <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="*"/>
+                            <DataGridCheckBoxColumn Header="Principal" Binding="{Binding Principal, Mode=OneWay}" Width="Auto"/>
+                            <DataGridTextColumn Header="Origen" Binding="{Binding OrigenTexto}" Width="Auto"/>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d, ConverterCulture=es-ES}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding PuedeEditarCodigosBarras, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Content="Hacer principal" Command="{Binding HacerPrincipalCodigoBarrasCommand}" Padding="10,3"/>
+                        <Button Content="Dar de baja" Command="{Binding DarDeBajaCodigoBarrasCommand}" Margin="6,0,0,0" Padding="10,3"/>
+                    </StackPanel>
+                    <GroupBox Grid.Row="4" Header="Añadir código" Padding="8" Margin="0,12,0,0"
+                              Visibility="{Binding PuedeEditarCodigosBarras, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Código" VerticalAlignment="Center"/>
+                            <TextBox Width="150" Margin="6,0,0,0" Text="{Binding NuevoCodigoBarras, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Cantidad" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <xctk:IntegerUpDown Width="70" Margin="6,0,0,0" Minimum="1" Value="{Binding NuevaCantidadCodigoBarras, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Proveedor (opcional)" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBox Width="80" Margin="6,0,0,0" Text="{Binding NuevoProveedorCodigoBarras, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Content="Añadir" Command="{Binding AnnadirCodigoBarrasCommand}" Margin="6,0,0,0" Padding="10,3"/>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 

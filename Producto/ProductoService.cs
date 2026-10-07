@@ -171,6 +171,101 @@ namespace Nesto.Modules.Producto
             }
         }
 
+        // NestoAPI#605: códigos de barras del producto. 404 = la API publicada aún no tiene el
+        // endpoint: se devuelve null y la ficha oculta la lista.
+        // TODO NestoAPI#605: quitar el caso 404 cuando la API con ProductosCodigosBarras esté en producción.
+        public async Task<List<CodigoBarrasProductoModel>> LeerCodigosBarras(string producto)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync($"{RutaCodigosBarras(producto)}?empresa={EmpresaDefecto}");
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                string cuerpo = await response.Content.ReadAsStringAsync();
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se han podido cargar los códigos de barras del producto {producto} ({(int)response.StatusCode} {response.StatusCode})");
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<CodigoBarrasProductoModel>>(resultado)
+                ?? new List<CodigoBarrasProductoModel>();
+        }
+
+        // NestoAPI#605: 201 nuevo, 200 ya era suyo, 409 activo en otro producto (con la lista de cuáles).
+        public async Task<RespuestaAnnadirCodigoBarras> AnnadirCodigoBarras(string producto, string codigo, int cantidad, string proveedor, bool permitirCompartido)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            var dto = new
+            {
+                Empresa = EmpresaDefecto,
+                Codigo = codigo?.Trim(),
+                Cantidad = cantidad,
+                Proveedor = string.IsNullOrWhiteSpace(proveedor) ? null : proveedor.Trim(),
+                Principal = false,
+                Origen = "Ficha",
+                PermitirCompartido = permitirCompartido
+            };
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(dto), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync(RutaCodigosBarras(producto), content);
+            string cuerpo = response.Content == null ? null : await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                var respuesta = new RespuestaAnnadirCodigoBarras { Resultado = ResultadoAnnadirCodigoBarras.EnOtroProducto };
+                try
+                {
+                    JObject objeto = string.IsNullOrWhiteSpace(cuerpo) ? null : JToken.Parse(cuerpo) as JObject;
+                    respuesta.Mensaje = objeto?.GetValue("Message", StringComparison.OrdinalIgnoreCase)?.ToString();
+                    JToken productos = objeto?.GetValue("Productos", StringComparison.OrdinalIgnoreCase);
+                    respuesta.Productos = productos?.ToObject<List<ProductoDelCodigoBarrasModel>>() ?? new List<ProductoDelCodigoBarrasModel>();
+                }
+                catch (JsonException)
+                {
+                    respuesta.Mensaje = cuerpo;
+                }
+                return respuesta;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido añadir el código de barras ({(int)response.StatusCode} {response.StatusCode})");
+            }
+            return new RespuestaAnnadirCodigoBarras
+            {
+                Resultado = response.StatusCode == HttpStatusCode.Created
+                    ? ResultadoAnnadirCodigoBarras.Creado
+                    : ResultadoAnnadirCodigoBarras.YaEraDelProducto
+            };
+        }
+
+        public async Task HacerPrincipalCodigoBarras(string producto, int id)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.PutAsync($"{RutaCodigosBarras(producto)}/{id}/Principal", null);
+            if (!response.IsSuccessStatusCode)
+            {
+                string cuerpo = await response.Content.ReadAsStringAsync();
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido hacer principal el código de barras ({(int)response.StatusCode} {response.StatusCode})");
+            }
+        }
+
+        // El principal no se puede dar de baja: la API contesta 400 con el motivo.
+        public async Task DarDeBajaCodigoBarras(string producto, int id)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.DeleteAsync($"{RutaCodigosBarras(producto)}/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                string cuerpo = await response.Content.ReadAsStringAsync();
+                throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido dar de baja el código de barras ({(int)response.StatusCode} {response.StatusCode})");
+            }
+        }
+
+        private static string RutaCodigosBarras(string producto)
+        {
+            return $"Productos/{Uri.EscapeDataString(producto?.Trim() ?? string.Empty)}/CodigosBarras";
+        }
+
         public async Task<ICollection<ProductoClienteModel>> BuscarClientes(string producto)
         {
             ICollection<ProductoClienteModel> clientes;
