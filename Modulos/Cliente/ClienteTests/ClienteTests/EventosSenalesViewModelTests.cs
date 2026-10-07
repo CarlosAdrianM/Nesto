@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Messaging;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -278,8 +278,8 @@ namespace ClienteTests
             A.CallTo(() => eventos.LeerEventos(false)).Returns(new List<EventoModel> { Evento(4, "Masterclass", new DateTime(2026, 10, 13)) });
             A.CallTo(() => eventos.LeerSenales(null, null)).Returns(new List<SenalEventoModel>
             {
-                new() { Id = 1, Cliente = "15191", ImportePendiente = 50, Estado = SenalEventoModel.LIBERADA },
-                new() { Id = 2, Cliente = "20000", ImportePendiente = 20, Estado = SenalEventoModel.SIN_COMPRA }
+                new() { Id = 1, Cliente = "15191", Importe = 80, ImportePendiente = 50, Estado = SenalEventoModel.LIBERADA },
+                new() { Id = 2, Cliente = "20000", Importe = 50, ImportePendiente = 20, Estado = SenalEventoModel.SIN_COMPRA }
             });
             var vm = new SenalesEventosViewModel(eventos, dialogos, navegacion);
 
@@ -288,7 +288,8 @@ namespace ClienteTests
             Assert.AreEqual(2, vm.Eventos.Count, "«Todos los eventos» más el evento");
             Assert.AreEqual(0, vm.EventoSeleccionado.Id);
             Assert.AreEqual(2, vm.Senales.Count);
-            Assert.AreEqual(70, vm.TotalPendiente);
+            Assert.AreEqual(70, vm.TotalPendiente, "El total es de lo pendiente, no del importe original");
+            Assert.AreEqual(80, vm.Senales.Single(s => s.Id == 1).Importe);
         }
 
         [TestMethod]

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Nesto.Modulos.Cliente.Models
 {
@@ -38,7 +38,9 @@ namespace Nesto.Modulos.Cliente.Models
         public DateTime? FechaApunte { get; set; }
         public string Documento { get; set; }
         public string Concepto { get; set; }
+        /// <summary>Importe original del apunte a favor (positivo).</summary>
         public decimal Importe { get; set; }
+        /// <summary>Lo que le queda a favor hoy (positivo).</summary>
         public decimal ImportePendiente { get; set; }
         /// <summary>Pendiente, Liberada, SinCompra o Consumida.</summary>
         public string Estado { get; set; }
