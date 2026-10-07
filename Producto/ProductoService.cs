@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,6 +29,14 @@ namespace Nesto.Modules.Producto
             // AuthTokenHandler + reintentos en GET). Un HttpClient a pelo llega a la API sin usuario:
             // los errores caen en ELMAH anónimos y el día que el endpoint lleve [Authorize], 401.
             _clienteApiFactory = new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion);
+        }
+
+        // Para los tests: el HttpClient sale de la factoría que se le pase.
+        internal ProductoService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IClienteApiFactory clienteApiFactory)
+        {
+            _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
+            _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
         // NestoAPI#249: grupos de producto distintos (derivados de los subgrupos, que ya expone la API).
@@ -406,95 +415,73 @@ namespace Nesto.Modules.Producto
         public async Task CrearControlStock(ControlStock controlStock)
         {
             using HttpClient client = _clienteApiFactory.Crear();
-            HttpResponseMessage response;
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(controlStock), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync("ControlesStock", content);
 
-            try
+            if (response.IsSuccessStatusCode)
             {
-                string urlConsulta = "ControlesStock";
-
-                HttpContent content = new StringContent(JsonConvert.SerializeObject(controlStock), Encoding.UTF8, "application/json");
-                response = await client.PostAsync(urlConsulta, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string resultado = await response.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = $"No se ha podido modificar el control de stock\n";
-                    if (requestException != null && requestException["exceptionMessage"] != null)
-                    {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
-                    }
-                    if (requestException != null && requestException["ModelState"] != null)
-                    {
-                        var firstError = requestException["ModelState"];
-                        var nodoError = firstError.LastOrDefault();
-                        errorMostrar += nodoError.FirstOrDefault()[0];
-                    }
-                    var innerException = requestException?["InnerException"];
-                    while (innerException != null)
-                    {
-                        errorMostrar += "\n" + innerException["ExceptionMessage"];
-                        innerException = innerException["InnerException"];
-                    }
-                    throw new Exception(errorMostrar);
-                }
+                return;
             }
-            catch (Exception ex)
+            // Nesto#512: la API contesta 409 (sin cuerpo) si el control de ese producto y almacén ya existe
+            // (la ficha no lo tenía cargado): en vez de fallar, se modifica.
+            if (response.StatusCode == HttpStatusCode.Conflict)
             {
-                throw ex;
+                await GuardarControlStock(controlStock);
+                return;
             }
+            throw new Exception(ErrorControlStock(await response.Content.ReadAsStringAsync(), response.StatusCode));
         }
 
         public async Task GuardarControlStock(ControlStock controlStock)
         {
             using HttpClient client = _clienteApiFactory.Crear();
-            HttpResponseMessage response;
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(controlStock), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync("ControlesStock", content);
 
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(ErrorControlStock(await response.Content.ReadAsStringAsync(), response.StatusCode));
+            }
+        }
+
+        /// <summary>
+        /// Nesto#512: el texto del error al crear o modificar un control de stock. Web API manda el motivo en
+        /// «Message»/«ExceptionMessage» (PascalCase); antes solo se miraba «exceptionMessage» y el usuario veía
+        /// «No se ha podido modificar el control de stock» sin más. Si no hay motivo, al menos el código HTTP.
+        /// </summary>
+        internal static string ErrorControlStock(string textoError, HttpStatusCode codigo)
+        {
+            string errorMostrar = "No se ha podido modificar el control de stock";
+            JObject cuerpo = null;
             try
             {
-                string urlConsulta = "ControlesStock";
-
-                HttpContent content = new StringContent(JsonConvert.SerializeObject(controlStock), Encoding.UTF8, "application/json");
-                response = await client.PutAsync(urlConsulta, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string resultado = await response.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = $"No se ha podido modificar el control de stock\n";
-                    if (requestException["exceptionMessage"] != null)
-                    {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
-                    }
-                    if (requestException["ModelState"] != null)
-                    {
-                        var firstError = requestException["ModelState"];
-                        var nodoError = firstError.LastOrDefault();
-                        errorMostrar += nodoError.FirstOrDefault()[0];
-                    }
-                    var innerException = requestException["InnerException"];
-                    while (innerException != null)
-                    {
-                        errorMostrar += "\n" + innerException["ExceptionMessage"];
-                        innerException = innerException["InnerException"];
-                    }
-                    throw new Exception(errorMostrar);
-                }
+                cuerpo = string.IsNullOrWhiteSpace(textoError) ? null : JToken.Parse(textoError) as JObject;
             }
-            catch (Exception ex)
+            catch (JsonReaderException)
             {
-                throw ex;
+                // cuerpo que no es JSON: lo cuenta MotivoDelErrorDeTexto
             }
+
+            string motivo = MotivoDelErrorDeTexto(textoError);
+            if (cuerpo?["ModelState"] is JObject modelState)
+            {
+                string errorModelo = modelState.Properties().LastOrDefault()?.Value?.FirstOrDefault()?.ToString();
+                if (!string.IsNullOrWhiteSpace(errorModelo))
+                {
+                    motivo = string.IsNullOrWhiteSpace(motivo) ? errorModelo : motivo + Environment.NewLine + errorModelo;
+                }
+            }
+            errorMostrar += string.IsNullOrWhiteSpace(motivo)
+                ? $" ({(int)codigo} {codigo})"
+                : Environment.NewLine + motivo;
+
+            var innerException = cuerpo?["InnerException"];
+            while (innerException != null)
+            {
+                errorMostrar += Environment.NewLine + innerException["ExceptionMessage"];
+                innerException = innerException["InnerException"];
+            }
+            return errorMostrar;
         }
 
         public async Task<ControlStockProductoModel> LeerControlStock(string producto)

@@ -588,23 +588,32 @@ namespace Nesto.Modules.Producto.ViewModels
         }
         private async void OnGuardarProducto()
         {
-            List<ControlStock> modificados = ControlStock.ToListModificados;
-            foreach (ControlStock controlStock in modificados)
+            try
             {
-                if (controlStock.YaExiste)
+                List<ControlStock> modificados = ControlStock.ToListModificados;
+                foreach (ControlStock controlStock in modificados)
                 {
-                    await _servicio.GuardarControlStock(controlStock);
+                    if (controlStock.YaExiste)
+                    {
+                        await _servicio.GuardarControlStock(controlStock);
+                    }
+                    else
+                    {
+                        // Nesto#512: si al final ya existía (409), el servicio lo modifica
+                        await _servicio.CrearControlStock(controlStock);
+                    }
+                    ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
                 }
-                else
-                {
-                    await _servicio.CrearControlStock(controlStock);
-                }
-                ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
+                // Refrescar los valores iniciales para que el botón Guardar se desactive tras guardar.
+                ControlStock.Model.StockMinimoInicial = ControlStock.Model.StockMinimoActual;
+                ControlStock.Model.MultiplosInicial = ControlStock.MultiplosActual;
+                GuardarProductoCommand.NotifyCanExecuteChanged();
             }
-            // Refrescar los valores iniciales para que el botón Guardar se desactive tras guardar.
-            ControlStock.Model.StockMinimoInicial = ControlStock.Model.StockMinimoActual;
-            ControlStock.Model.MultiplosInicial = ControlStock.MultiplosActual;
-            GuardarProductoCommand.NotifyCanExecuteChanged();
+            catch (Exception ex)
+            {
+                // Nesto#512: el motivo que da la API, al usuario (antes la excepción escapaba del async void)
+                _dialogService.ShowError(ex.Message);
+            }
         }
 
         // NestoAPI#249: grupo alternativo por el que puede comisionar el producto (pestaña Comisiones).
