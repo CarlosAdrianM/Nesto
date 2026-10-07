@@ -76,6 +76,24 @@ namespace Nesto.Modulos.Cliente
                 }
             }
         }
+
+        /// <summary>
+        /// NestoAPI#596: el CP se guarda en el formato canónico (las mismas reglas que la API):
+        /// «4480 670», «4480670» y «4480-670» quedan «4480-670»; «8850» en España, «08850». Se llama
+        /// al salir del cuadro y antes de validar. Solo cambia el formato, no el código, así que no
+        /// quita la verificación de Google.
+        /// </summary>
+        public void NormalizarCodigoPostal()
+        {
+            string canonico = Nesto.Infrastructure.Shared.CodigoPostal.Normalizar(clienteCodigoPostal, ClientePaisDireccion);
+            if (canonico == null || canonico == clienteCodigoPostal)
+            {
+                return;
+            }
+            clienteCodigoPostal = canonico;
+            OnPropertyChanged(nameof(ClienteCodigoPostal));
+            NotificarSePuedeCrearCliente();
+        }
         public string ClienteContacto { get; set; }
         public bool ClienteDatosPagoValidados { get; set; }
         private string clienteDireccion;
@@ -835,6 +853,7 @@ namespace Nesto.Modulos.Cliente
                 vendedorPeluqueria = Constantes.Vendedores.VENDEDOR_POR_DEFECTO;
             }
 
+            NormalizarCodigoPostal(); // NestoAPI#596
             ClienteCrear cliente = new ClienteCrear
             {
                 Cliente = ClienteNumero,
@@ -1014,7 +1033,8 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        private async Task GoToDatosComisiones()
+        // Público para poder esperarlo en los tests (NestoAPI#596).
+        public async Task GoToDatosComisiones()
         {
             if (clienteTelefono == "undefined")
             {
@@ -1027,6 +1047,7 @@ namespace Nesto.Modulos.Cliente
                 return;
             }
 
+            NormalizarCodigoPostal(); // NestoAPI#596
             try
             {
                 RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion);

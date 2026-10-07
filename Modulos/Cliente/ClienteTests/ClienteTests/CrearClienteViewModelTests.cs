@@ -847,5 +847,57 @@ namespace ClienteTests
             vm.DiasEnServir = "00000"; // dato roto: el picking también lo trata como abierto
             Assert.AreEqual("11111", vm.DiasEnServir);
         }
+
+        // NestoAPI#596: el CP portugués se teclee como se teclee es el mismo: «4480-670»
+
+        [DataTestMethod]
+        [DataRow("4480 670")]
+        [DataRow("4480670")]
+        [DataRow("4480-670")]
+        public async System.Threading.Tasks.Task CodigoPostalPortugues_AlSalirDelCampo_QuedaEnElFormatoCanonico_SinPerderLaVerificacionDeGoogle(string tecleado)
+        {
+            var vm = ConDireccionDeGoogleSinCodigoPostal_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ482" });
+            vm.ClienteCodigoPostal = tecleado;
+
+            vm.NormalizarCodigoPostal();
+
+            Assert.AreEqual("4480-670", vm.ClienteCodigoPostal);
+            Assert.IsTrue(vm.DireccionVerificadaPorGoogle, "Cambiar solo el formato no es tocar el CP");
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+        }
+
+        [TestMethod]
+        public void CodigoPostalEspanolSinElCero_AlSalirDelCampo_SeRellena()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            vm.ClienteCodigoPostal = "8850";
+
+            vm.NormalizarCodigoPostal();
+
+            Assert.AreEqual("08850", vm.ClienteCodigoPostal);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task ValidarDatosGenerales_ConCodigoPostalConEspacio_LoMandaYLoDejaConGuion()
+        {
+            A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored, A<string>.Ignored))
+                .Returns(new RespuestaDatosGeneralesClientes
+                {
+                    DireccionFormateada = "RUA DA PRAIA, 3",
+                    CodigoPostal = "4480-670",
+                    ClientesMismoTelefono = new List<ClienteTelefonoLookup>()
+                });
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            vm.ClientePaisDireccion = "PT";
+            vm.ClienteDireccionCalleNumero = "Rua da Praia, 3";
+            vm.ClienteCodigoPostal = "4480 670";
+
+            await vm.GoToDatosComisiones();
+
+            A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, "4480-670", A<string>.Ignored, A<bool>.Ignored, "PT"))
+                .MustHaveHappenedOnceExactly();
+            Assert.AreEqual("4480-670", vm.ClienteCodigoPostal);
+        }
     }
 }

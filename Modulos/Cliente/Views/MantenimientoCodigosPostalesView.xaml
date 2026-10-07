@@ -15,6 +15,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -34,7 +35,22 @@
                            Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
             </StackPanel>
 
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Resultados}" AutoGenerateColumns="False"
+            <!-- NestoAPI#596: el mismo CP guardado en dos formatos («4430 999» y «4430-999») -->
+            <TextBlock Grid.Row="2" Text="{Binding AvisoFormato}" Foreground="DarkRed" TextWrapping="Wrap"
+                       Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HayAvisoFormato}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <DataGrid Grid.Row="3" ItemsSource="{Binding Resultados}" AutoGenerateColumns="False"
                       SelectedItem="{Binding Seleccionado}"
                       CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
                 <DataGrid.RowStyle>
@@ -45,11 +61,18 @@
                                 <Setter Property="FontWeight" Value="Bold"/>
                                 <Setter Property="Background" Value="#FFF4E5"/>
                             </DataTrigger>
+                            <!-- NestoAPI#596: sobra, es el mismo CP que otra fila con guion -->
+                            <DataTrigger Binding="{Binding DuplicadoPorFormato}" Value="True">
+                                <Setter Property="Foreground" Value="Gray"/>
+                                <Setter Property="FontStyle" Value="Italic"/>
+                                <Setter Property="ToolTip" Value="Es el mismo código postal que la fila con guion: corrige esa; esta se fusionará con ella"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </DataGrid.RowStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Código Postal" Binding="{Binding Numero}"/>
+                    <DataGridTextColumn Header="Código Postal" Binding="{Binding NumeroCanonico}"/>
+                    <DataGridTextColumn Header="Guardado como" Binding="{Binding Numero}"/>
                     <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="*"/>
                     <DataGridTextColumn Header="Provincia" Binding="{Binding Provincia}"/>
                     <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}"/>
@@ -58,7 +81,7 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
+            <Border Grid.Row="4" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
                     IsEnabled="{Binding HaySeleccion}">
                 <Grid>
                     <Grid.ColumnDefinitions>

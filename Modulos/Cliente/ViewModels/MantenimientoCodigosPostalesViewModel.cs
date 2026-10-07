@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using CP = Nesto.Infrastructure.Shared.CodigoPostal;
 
 namespace Nesto.Modulos.Cliente
 {
@@ -84,6 +85,21 @@ namespace Nesto.Modulos.Cliente
 
         public bool HaySeleccion => Seleccionado != null;
 
+        // NestoAPI#596: aviso de códigos postales repetidos por formato («4430 999» y «4430-999»)
+        private string _avisoFormato;
+        public string AvisoFormato
+        {
+            get => _avisoFormato;
+            private set
+            {
+                if (SetProperty(ref _avisoFormato, value))
+                {
+                    OnPropertyChanged(nameof(HayAvisoFormato));
+                }
+            }
+        }
+        public bool HayAvisoFormato => !string.IsNullOrEmpty(AvisoFormato);
+
         // Campos de edición (copia del seleccionado: no se toca la fila hasta guardar con éxito)
         private string _poblacionEdicion;
         public string PoblacionEdicion { get => _poblacionEdicion; set => SetProperty(ref _poblacionEdicion, value); }
@@ -131,13 +147,30 @@ namespace Nesto.Modulos.Cliente
             try
             {
                 EstaOcupado = true;
-                List<CodigoPostalModel> lista = await _servicio.Buscar(Filtro.Trim());
+                List<CodigoPostalModel> lista;
+                // NestoAPI#596: un CP portugués completo se busca en cualquier formato («4430 999»,
+                // «4430999», «4430-999»): se piden los de sus 4 primeras cifras y se quedan los que son
+                // el mismo código. Lo demás (prefijos como «2800», poblaciones) se busca tal cual.
+                if (CP.EsPortugues(Filtro, null))
+                {
+                    string canonico = CP.Normalizar(Filtro, CP.PORTUGAL);
+                    Filtro = canonico;
+                    lista = (await _servicio.Buscar(canonico.Substring(0, 4)))
+                        .Where(c => CP.MismoCodigo(c.Numero, canonico, CP.PORTUGAL))
+                        .ToList();
+                }
+                else
+                {
+                    lista = await _servicio.Buscar(Filtro.Trim());
+                }
                 Seleccionado = null;
+                MarcarDuplicadosPorFormato(lista);
                 Resultados = new ObservableCollection<CodigoPostalModel>(lista);
             }
             catch (Exception ex)
             {
                 Resultados = new ObservableCollection<CodigoPostalModel>();
+                AvisoFormato = null;
                 _dialogService.ShowError(ex.Message);
             }
             finally
@@ -152,6 +185,15 @@ namespace Nesto.Modulos.Cliente
         {
             if (Seleccionado == null)
             {
+                return;
+            }
+            // NestoAPI#596: si esta fila es un duplicado por formato de otra que ya está en el
+            // canónico, no se guarda: se corrige la buena y esta la fusiona el script de limpieza.
+            string gemelo = await BuscarGemeloCanonico(Seleccionado);
+            if (gemelo != null)
+            {
+                _dialogService.ShowError($"El código postal «{Seleccionado.Numero?.Trim()}» ya existe como «{gemelo}»: son el mismo. " +
+                    $"Corrige «{gemelo}»; «{Seleccionado.Numero?.Trim()}» sobra y se fusionará con él.");
                 return;
             }
             CodigoPostalModel aGuardar = new()
@@ -190,6 +232,39 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = false;
             }
+        }
+
+        private void MarcarDuplicadosPorFormato(List<CodigoPostalModel> lista)
+        {
+            List<string> avisos = new();
+            // Todas las filas son de la misma empresa (la búsqueda es por empresa)
+            foreach (IGrouping<string, CodigoPostalModel> grupo in lista
+                .Where(c => !string.IsNullOrWhiteSpace(c.Numero))
+                .GroupBy(c => c.NumeroCanonico)
+                .Where(g => g.Count() > 1))
+            {
+                CodigoPostalModel canonico = grupo.FirstOrDefault(c => c.EnFormatoCanonico);
+                foreach (CodigoPostalModel otro in grupo.Where(c => c != canonico))
+                {
+                    otro.DuplicadoPorFormato = canonico != null;
+                }
+                avisos.Add(string.Join(" y ", grupo.Select(c => $"«{c.Numero.Trim()}»")) + $" son el mismo código postal ({grupo.Key})");
+            }
+            AvisoFormato = avisos.Count == 0
+                ? null
+                : string.Join(". ", avisos) + ". Corrige solo el que está con guion; los otros se fusionarán con él.";
+        }
+
+        // El número canónico de otra fila de la tabla que es el mismo CP que este, escrito de otra forma.
+        private async Task<string> BuscarGemeloCanonico(CodigoPostalModel cp)
+        {
+            if (cp.EnFormatoCanonico || !CP.EsPortugues(cp.Numero, cp.Pais))
+            {
+                return null;
+            }
+            string canonico = cp.NumeroCanonico;
+            List<CodigoPostalModel> candidatos = await _servicio.Buscar(canonico.Substring(0, 4));
+            return candidatos?.Any(c => c.Numero?.Trim() == canonico) == true ? canonico : null;
         }
 
         public RelayCommand AnnadirVendedorGrupoCommand { get; }

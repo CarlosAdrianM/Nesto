@@ -183,6 +183,15 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        // NestoAPI#596: lo tecleado («4480 670») se sustituye por el canónico («4480-670») al salir del cuadro
+        private void TxtCodigoPostal_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is CrearClienteViewModel vm)
+            {
+                vm.NormalizarCodigoPostal();
+            }
+        }
+
         private void TxtTelefono_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
