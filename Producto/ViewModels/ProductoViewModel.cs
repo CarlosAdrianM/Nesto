@@ -602,7 +602,11 @@ namespace Nesto.Modules.Producto.ViewModels
                         // Nesto#512: si al final ya existía (409), el servicio lo modifica
                         await _servicio.CrearControlStock(controlStock);
                     }
-                    ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
+                    ControlStockAlmacenModel controlAlmacen = ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén);
+                    controlAlmacen.StockMaximoInicial = controlStock.StockMáximo;
+                    // Nesto#512: ya está creado; el siguiente guardado con la ficha abierta va por el PUT
+                    // (antes repetía el POST y la API contestaba 409)
+                    controlAlmacen.YaExiste = true;
                 }
                 // Refrescar los valores iniciales para que el botón Guardar se desactive tras guardar.
                 ControlStock.Model.StockMinimoInicial = ControlStock.Model.StockMinimoActual;

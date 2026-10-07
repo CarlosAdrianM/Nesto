@@ -117,5 +117,27 @@ namespace Producto.Tests
 
             A.CallTo(() => dialogos.ShowError(A<string>.That.Contains("El almacén no admite control de stock"))).MustHaveHappenedOnceExactly();
         }
+
+        [TestMethod]
+        public void GuardarProducto_CrearYVolverAGuardar_LaSegundaVezModifica()
+        {
+            // Nesto#512 (causa): el POST bueno no marcaba YaExiste y el segundo guardado repetía el POST (409).
+            var servicio = A.Fake<IProductoService>();
+            var sut = new ProductoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
+                new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IServicioAutenticacion>());
+            var modelo = new ControlStockProductoModel { ProductoId = "12345" };
+            modelo.ControlesStocksAlmacen.Add(new ControlStockAlmacenModel { Almacen = "ALG", StockMaximoInicial = 0, StockMaximoActual = 0, Multiplos = 1 });
+            sut.ControlStock = new ControlStockProductoWrapper(modelo);
+            var almacen = sut.ControlStock.ControlesStocksAlmacen.Single().Model;
+
+            almacen.StockMaximoActual = 6;
+            sut.GuardarProductoCommand.Execute(null);
+            almacen.StockMaximoActual = 8;
+            sut.GuardarProductoCommand.Execute(null);
+
+            A.CallTo(() => servicio.CrearControlStock(A<ControlStock>.That.Matches(c => c.StockMáximo == 6))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.CrearControlStock(A<ControlStock>.That.Matches(c => c.StockMáximo == 8))).MustNotHaveHappened();
+            A.CallTo(() => servicio.GuardarControlStock(A<ControlStock>.That.Matches(c => c.StockMáximo == 8 && c.YaExiste))).MustHaveHappenedOnceExactly();
+        }
     }
 }
