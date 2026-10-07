@@ -6,6 +6,9 @@
              xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
     <Ribbon x:Name="MainMenu" x:FieldModifier="protected internal">
         <RibbonTab x:Name="tabClientes"
                             Header="Clientes">
@@ -24,6 +27,14 @@
             <RibbonGroup x:Name="grpCartera"
                                 Header="Cartera">
                 <RibbonButton Label="Extracto Cliente" LargeImageSource="Images/ExtractoCliente.png" Command="{Binding AbrirExtractoClienteCommand}" />
+            </RibbonGroup>
+            <!-- NestoAPI#591: eventos con señal reembolsable -->
+            <RibbonGroup x:Name="grpEventos"
+                                Header="Eventos">
+                <RibbonButton Label="Eventos" LargeImageSource="Images/Eventos.png" Command="{Binding AbrirEventosCommand}"
+                              Visibility="{Binding PuedeMantenerEventos, Converter={StaticResource BoolAVisibilidad}}" />
+                <RibbonButton Label="Señales de eventos" LargeImageSource="Images/SenalesEventos.png" Command="{Binding AbrirSenalesEventosCommand}"
+                              Visibility="{Binding PuedeVerSenalesEventos, Converter={StaticResource BoolAVisibilidad}}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

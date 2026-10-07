@@ -32,6 +32,28 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>Nesto#478 / NestoAPI#492: el nº de documento es una factura existente; se puede abrir desde la fila.</summary>
         public bool TieneFactura { get; set; }
 
+        private SenalEventoModel _senal;
+        /// <summary>NestoAPI#591: si este apunte a favor es la señal de un evento (estado de UI, viene de api/Eventos/Senales/Cliente).</summary>
+        public SenalEventoModel Senal
+        {
+            get => _senal;
+            set
+            {
+                if (_senal != value)
+                {
+                    _senal = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Senal)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SenalTexto)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EsSenal)));
+                }
+            }
+        }
+
+        public bool EsSenal => Senal != null;
+
+        /// <summary>«Señal: Masterclass Cloasma 13/10» o vacío.</summary>
+        public string SenalTexto => Senal?.TextoExtracto;
+
         private bool _seleccionado;
         public bool Seleccionado
         {

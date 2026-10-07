@@ -49,6 +49,18 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\MantenimientoEventosView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SenalesEventosView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\ElegirEventoDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\MantenimientoCodigosPostalesView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -70,6 +82,8 @@
     <Resource Include="Images\CodigosPostales.png" />
     <Resource Include="Images\Modelo347.png" />
     <Resource Include="Images\ExtractoCliente.png" />
+    <Resource Include="Images\Eventos.png" />
+    <Resource Include="Images\SenalesEventos.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ControlesUsuario\ControlesUsuario.csproj" />

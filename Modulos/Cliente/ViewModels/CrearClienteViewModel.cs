@@ -43,6 +43,8 @@ namespace Nesto.Modulos.Cliente
             AbrirExtractoClienteCommand = new RelayCommand(OnAbrirExtractoCliente);
             AbrirNifIncorrectosCommand = new RelayCommand(OnAbrirNifIncorrectos);
             AbrirCodigosPostalesCommand = new RelayCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
+            AbrirEventosCommand = new RelayCommand(OnAbrirEventos, () => PuedeMantenerEventos); // NestoAPI#591
+            AbrirSenalesEventosCommand = new RelayCommand(OnAbrirSenalesEventos, () => PuedeVerSenalesEventos); // NestoAPI#591
             AnnadirPersonaContactoCommand = new RelayCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new RelayCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new RelayCommand(OnCrearCliente);
@@ -797,6 +799,22 @@ namespace Nesto.Modulos.Cliente
         private void OnAbrirCodigosPostales()
         {
             Navegacion.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
+        }
+
+        // NestoAPI#591: mantenimiento de eventos con señal reembolsable (Tienda online, Dirección, Informática)
+        public bool PuedeMantenerEventos => MantenimientoEventosViewModel.PuedeMantener(Configuracion);
+        public ICommand AbrirEventosCommand { get; private set; }
+        private void OnAbrirEventos()
+        {
+            Navegacion.RequestNavigate("MainRegion", "MantenimientoEventosView");
+        }
+
+        // NestoAPI#591: lista de señales de eventos (Administración; también Tienda online, Dirección e Informática)
+        public bool PuedeVerSenalesEventos => SenalesEventosViewModel.PuedeVer(Configuracion);
+        public ICommand AbrirSenalesEventosCommand { get; private set; }
+        private void OnAbrirSenalesEventos()
+        {
+            Navegacion.RequestNavigate("MainRegion", "SenalesEventosView");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }

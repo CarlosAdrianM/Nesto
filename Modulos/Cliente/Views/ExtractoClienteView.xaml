@@ -10,6 +10,10 @@
              d:DesignHeight="500" d:DesignWidth="900"
              Background="White">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
+
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
         <Grid Margin="10">
             <Grid.RowDefinitions>
@@ -29,10 +33,32 @@
                                            Cliente="{Binding Path=DataContext.ClienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <Button Content="Cargar pendientes" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="10,2"/>
                 <Button Content="Liquidar seleccionados" Command="{Binding LiquidarCommand}" Margin="10,0,0,0" Padding="10,2" FontWeight="Bold"/>
+                <!-- NestoAPI#591: marcar un cobro a favor como señal de un evento (solo Administración) -->
+                <Button Content="Es la señal del evento…" Command="{Binding MarcarSenalCommand}" Margin="20,0,0,0" Padding="10,2"
+                        ToolTip="El apunte seleccionado (un cobro a favor) es la señal de un curso o evento"
+                        Visibility="{Binding PuedeMarcarSenales, Converter={StaticResource BoolAVisibilidad}}"/>
+                <Button Content="Quitar señal" Command="{Binding QuitarSenalCommand}" Margin="10,0,0,0" Padding="10,2"
+                        Visibility="{Binding PuedeMarcarSenales, Converter={StaticResource BoolAVisibilidad}}"/>
             </StackPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Movimientos}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding MovimientoSeleccionado}"
                       CanUserAddRows="False" IsReadOnly="False" SelectionMode="Single" ColumnWidth="Auto">
+                <DataGrid.ContextMenu>
+                    <ContextMenu Visibility="{Binding PuedeMarcarSenales, Converter={StaticResource BoolAVisibilidad}}">
+                        <MenuItem Header="Es la señal del evento…" Command="{Binding MarcarSenalCommand}"/>
+                        <MenuItem Header="Quitar señal" Command="{Binding QuitarSenalCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EsSenal}" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridCheckBoxColumn Header="Liquidar" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}" />
                     <DataGridTextColumn Header="Nº Orden" Binding="{Binding Id}" IsReadOnly="True"/>
@@ -62,6 +88,7 @@
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Señal" Binding="{Binding SenalTexto}" IsReadOnly="True" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}" IsReadOnly="True">
                         <DataGridTextColumn.CellStyle>
                             <Style>
@@ -83,6 +110,8 @@
                 </DataGrid.Columns>
             </DataGrid>
 
+            <TextBlock Grid.Row="3" Text="{Binding AvisoSenales}" Foreground="DarkRed" HorizontalAlignment="Left"
+                       VerticalAlignment="Center" Margin="0,8,0,0"/>
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <TextBlock Text="Total pendiente: " FontWeight="Bold"/>
                 <TextBlock Text="{Binding TotalPendiente, StringFormat=c}" FontWeight="Bold"/>

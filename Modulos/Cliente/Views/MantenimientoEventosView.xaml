@@ -1,0 +1,87 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.MantenimientoEventosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="850"
+             Background="White">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Eventos" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Nuevo evento" Command="{Binding NuevoCommand}" Padding="15,2" FontWeight="Bold"/>
+                <Button Content="Recargar" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="15,2"/>
+                <TextBlock Text="Cursos y masterclass con señal reembolsable: la señal se descuenta de la primera compra desde el día del evento."
+                           Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Eventos}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding Seleccionado}"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Activo}" Value="False">
+                                <Setter Property="Foreground" Value="Gray"/>
+                                <Setter Property="FontStyle" Value="Italic"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}"/>
+                    <DataGridTextColumn Header="Título" Binding="{Binding Titulo}" Width="*"/>
+                    <DataGridTextColumn Header="Señal" Binding="{Binding ImporteSenal, StringFormat=c}"/>
+                    <DataGridCheckBoxColumn Header="Activo" Binding="{Binding Activo}"/>
+                    <DataGridTextColumn Header="Modificado por" Binding="{Binding Usuario}"/>
+                    <DataGridTextColumn Header="El" Binding="{Binding FechaModificacion, StringFormat=g}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
+                    IsEnabled="{Binding Editando}">
+                <StackPanel>
+                    <TextBlock Text="Nuevo evento" FontWeight="Bold" Margin="0,0,0,6">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EsNuevo}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Título:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding TituloEdicion, UpdateSourceTrigger=PropertyChanged}" Width="400" MaxLength="100"
+                                 VerticalContentAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Fecha:" VerticalAlignment="Center" Width="110"/>
+                        <DatePicker SelectedDate="{Binding FechaEdicion}" Width="140"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Importe señal:" VerticalAlignment="Center" Width="110"/>
+                        <xctk:DecimalUpDown Value="{Binding ImporteSenalEdicion}" FormatString="C2" Minimum="0" Increment="5" Width="140"/>
+                    </StackPanel>
+                    <CheckBox Content="Activo (sale al marcar señales)" IsChecked="{Binding ActivoEdicion}" Margin="110,8,0,0"/>
+                    <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="110,12,0,0" Padding="20,3"
+                            FontWeight="Bold" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

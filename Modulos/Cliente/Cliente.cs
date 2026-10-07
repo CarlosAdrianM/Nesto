@@ -21,6 +21,11 @@ namespace Nesto.Modulos.Cliente
             // Nesto#442: mantenimiento de códigos postales (país, ruta, vendedores)
             containerRegistry.Register<object, MantenimientoCodigosPostalesView>("MantenimientoCodigosPostalesView");
             containerRegistry.Register<ICodigosPostalesService, CodigosPostalesService>();
+            // NestoAPI#591: eventos con señal reembolsable (mantenimiento, lista de señales y diálogo del extracto)
+            containerRegistry.Register<object, MantenimientoEventosView>("MantenimientoEventosView");
+            containerRegistry.Register<object, SenalesEventosView>("SenalesEventosView");
+            containerRegistry.Register<IEventosService, EventosService>();
+            containerRegistry.RegisterDialog<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
             containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 

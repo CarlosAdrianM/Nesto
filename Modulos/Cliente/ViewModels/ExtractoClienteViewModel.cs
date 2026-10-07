@@ -1,5 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -28,6 +29,8 @@ namespace Nesto.Modulos.Cliente
         private readonly IServicioDialogos _dialogService;
         private readonly IMessenger _messenger;
         private readonly Action<string> _abrirFichero;
+        private readonly IEventosService _eventos;
+        private readonly IConfiguracion _configuracion;
 
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger)
@@ -39,15 +42,32 @@ namespace Nesto.Modulos.Cliente
         // sistema); los tests inyectan una captura para no lanzar procesos.
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger, Action<string> abrirFichero)
+            : this(servicio, dialogService, messenger, abrirFichero, null, null)
+        {
+        }
+
+        // NestoAPI#591: el que usa el contenedor (el más largo que puede resolver): con las señales de eventos.
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
+            IMessenger messenger, IEventosService eventos, IConfiguracion configuracion)
+            : this(servicio, dialogService, messenger, null, eventos, configuracion)
+        {
+        }
+
+        private ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
+            IMessenger messenger, Action<string> abrirFichero, IEventosService eventos, IConfiguracion configuracion)
         {
             _servicio = servicio;
             _dialogService = dialogService;
             _messenger = messenger;
             _abrirFichero = abrirFichero ?? AbrirConElVisorDelSistema;
+            _eventos = eventos;
+            _configuracion = configuracion;
             Titulo = "Extracto de Cliente";
             CargarCommand = new RelayCommand(OnCargar, CanCargar);
             LiquidarCommand = new RelayCommand(OnLiquidar, CanLiquidar);
             AbrirFacturaCommand = new RelayCommand<ExtractoClienteModel>(OnAbrirFactura, CanAbrirFactura);
+            MarcarSenalCommand = new AsyncRelayCommand(MarcarSenalAsync, CanMarcarSenal);
+            QuitarSenalCommand = new AsyncRelayCommand(QuitarSenalAsync, CanQuitarSenal);
         }
 
         public string Titulo { get; }
@@ -140,6 +160,7 @@ namespace Nesto.Modulos.Cliente
                 EstaOcupado = true;
                 List<ExtractoClienteModel> movimientos = await _servicio.LeerExtractoPendiente(ClienteSeleccionado);
                 Movimientos = new ObservableCollection<ExtractoClienteModel>(movimientos);
+                await CargarSenalesAsync();
             }
             catch (Exception ex)
             {
@@ -255,6 +276,153 @@ namespace Nesto.Modulos.Cliente
                     },
                     ClienteSigueConNegativos = Movimientos.Any(m => m.ImportePendiente < 0)
                 }));
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        // ---------------- NestoAPI#591: señales de eventos ----------------
+
+        /// <summary>Solo Administración (y Dirección/Informática) marca y desmarca señales.</summary>
+        public bool PuedeMarcarSenales => _eventos != null && _configuracion != null
+            && (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        private ExtractoClienteModel _movimientoSeleccionado;
+        public ExtractoClienteModel MovimientoSeleccionado
+        {
+            get => _movimientoSeleccionado;
+            set
+            {
+                if (SetProperty(ref _movimientoSeleccionado, value))
+                {
+                    MarcarSenalCommand.NotifyCanExecuteChanged();
+                    QuitarSenalCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _avisoSenales;
+        /// <summary>Si no se han podido leer las señales del cliente (el extracto se ve igual).</summary>
+        public string AvisoSenales
+        {
+            get => _avisoSenales;
+            private set => SetProperty(ref _avisoSenales, value);
+        }
+
+        /// <summary>Pinta en cada apunte si es la señal de un evento. Un fallo aquí no tapa el extracto.</summary>
+        public async Task CargarSenalesAsync()
+        {
+            AvisoSenales = null;
+            if (_eventos == null || string.IsNullOrWhiteSpace(ClienteSeleccionado))
+            {
+                return;
+            }
+            try
+            {
+                List<SenalEventoModel> senales = await _eventos.LeerSenalesCliente(ClienteSeleccionado.Trim()) ?? new List<SenalEventoModel>();
+                foreach (ExtractoClienteModel movimiento in Movimientos)
+                {
+                    movimiento.Senal = senales.FirstOrDefault(s => s.NumOrdenExtracto == movimiento.Id
+                        && string.Equals(s.Empresa?.Trim(), movimiento.Empresa?.Trim(), StringComparison.OrdinalIgnoreCase));
+                }
+            }
+            catch (Exception ex)
+            {
+                AvisoSenales = $"No se han podido cargar las señales de los eventos: {ex.Message}";
+            }
+            MarcarSenalCommand.NotifyCanExecuteChanged();
+            QuitarSenalCommand.NotifyCanExecuteChanged();
+        }
+
+        public AsyncRelayCommand MarcarSenalCommand { get; }
+
+        private bool CanMarcarSenal() => PuedeMarcarSenales && MovimientoSeleccionado != null
+            && MovimientoSeleccionado.ImportePendiente < 0 && !MovimientoSeleccionado.EsSenal;
+
+        /// <summary>«Es la señal del evento…»: elegir el evento (activos, los próximos primero) y marcarlo en la API.</summary>
+        public async Task MarcarSenalAsync()
+        {
+            ExtractoClienteModel movimiento = MovimientoSeleccionado;
+            if (!CanMarcarSenal())
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                List<EventoModel> eventos = await _eventos.LeerEventos(true) ?? new List<EventoModel>();
+                EstaOcupado = false;
+                if (!eventos.Any())
+                {
+                    _dialogService.ShowError("No hay ningún evento activo. Los eventos los da de alta Tienda online (Clientes → Eventos).");
+                    return;
+                }
+                ResultadoDialogo resultado = await _dialogService.ShowDialogAsync(ElegirEventoDialogViewModel.NOMBRE, new ParametrosDialogo
+                {
+                    { "eventos", eventos },
+                    { "apunte", $"{movimiento.Id} ({-movimiento.ImportePendiente:C} a favor, {movimiento.Concepto?.Trim()})" }
+                });
+                if (resultado?.Result != ResultadoBoton.OK || resultado.Parameters == null || !resultado.Parameters.ContainsKey("eventoId"))
+                {
+                    return;
+                }
+                int eventoId = resultado.Parameters.GetValue<int>("eventoId");
+                EstaOcupado = true;
+                SenalEventoModel senal = await _eventos.MarcarSenal(eventoId, new MarcarSenalEventoModel
+                {
+                    Empresa = movimiento.Empresa?.Trim(),
+                    NumOrdenExtracto = movimiento.Id,
+                    Cliente = movimiento.Cliente?.Trim(),
+                    Contacto = movimiento.Contacto?.Trim()
+                });
+                movimiento.Senal = senal;
+                MarcarSenalCommand.NotifyCanExecuteChanged();
+                QuitarSenalCommand.NotifyCanExecuteChanged();
+                _dialogService.ShowNotification("Señal marcada",
+                    $"El apunte {movimiento.Id} es la señal del evento «{senal?.Evento}» del {senal?.FechaEvento:dd/MM/yyyy}.");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public AsyncRelayCommand QuitarSenalCommand { get; }
+
+        private bool CanQuitarSenal() => PuedeMarcarSenales && MovimientoSeleccionado?.EsSenal == true;
+
+        public async Task QuitarSenalAsync()
+        {
+            ExtractoClienteModel movimiento = MovimientoSeleccionado;
+            if (!CanQuitarSenal())
+            {
+                return;
+            }
+            if (!_dialogService.ShowConfirmationAnswer("Quitar señal",
+                $"¿Quitar la señal del evento «{movimiento.Senal.Evento}» del apunte {movimiento.Id}? " +
+                "El cobro sigue a favor del cliente; solo deja de estar reservado para el evento."))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await _eventos.QuitarSenal(movimiento.Senal.Id);
+                movimiento.Senal = null;
+                MarcarSenalCommand.NotifyCanExecuteChanged();
+                QuitarSenalCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {

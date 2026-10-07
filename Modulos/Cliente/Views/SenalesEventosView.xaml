@@ -1,0 +1,91 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.SenalesEventosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="1000"
+             Background="White">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Señales de eventos" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Estado:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding Estados}" SelectedItem="{Binding EstadoSeleccionado}"
+                          DisplayMemberPath="Texto" Width="120"/>
+                <TextBlock Text="Evento:" VerticalAlignment="Center" Margin="15,0,8,0"/>
+                <ComboBox ItemsSource="{Binding Eventos}" SelectedItem="{Binding EventoSeleccionado}"
+                          DisplayMemberPath="Descripcion" MinWidth="300"/>
+                <Button Content="Recargar" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="15,2"/>
+                <TextBlock Text="Doble clic: abre el extracto del cliente. Sin compra = liberada hace 15 días o más y sin consumir."
+                           Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Senales}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding Seleccionada}"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
+                <DataGrid.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{Binding AbrirExtractoCommand}"
+                                  CommandParameter="{Binding Seleccionada}"/>
+                </DataGrid.InputBindings>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Estado}" Value="Liberada">
+                                <Setter Property="Background" Value="#E8F5E9"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Estado}" Value="SinCompra">
+                                <Setter Property="Background" Value="#FFF4E5"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Estado}" Value="Consumida">
+                                <Setter Property="Foreground" Value="Gray"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Evento" Binding="{Binding Evento}"/>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding FechaEvento, StringFormat=dd/MM/yyyy}"/>
+                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                    <DataGridTextColumn Header="Cto." Binding="{Binding Contacto}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                    <DataGridTextColumn Header="Señal" Binding="{Binding Importe, StringFormat=c}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=c}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}"/>
+                    <DataGridTextColumn Header="Apunte" Binding="{Binding NumOrdenExtracto}"/>
+                    <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}"/>
+                    <DataGridTextColumn Header="Marcada por" Binding="{Binding Usuario}"/>
+                    <DataGridTextColumn Header="El" Binding="{Binding FechaMarcado, StringFormat=g}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <TextBlock Text="Total pendiente a favor: " FontWeight="Bold"/>
+                <TextBlock Text="{Binding TotalPendiente, StringFormat=c}" FontWeight="Bold"/>
+            </StackPanel>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
