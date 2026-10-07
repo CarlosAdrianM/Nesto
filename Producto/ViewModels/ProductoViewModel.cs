@@ -6,7 +6,6 @@ using Nesto.Modulos.Producto;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,7 +20,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ProductoViewModel : ObservableObject, INavigationAware
+    public class ProductoViewModel : ObservableObject, IReceptorNavegacionPestanaNueva
     {
         public event EventHandler DatosCargados;
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
@@ -1242,14 +1241,16 @@ namespace Nesto.Modules.Producto.ViewModels
         #endregion
 
 
-        public new async void OnNavigatedTo(NavigationContext navigationContext)
+        // Nesto#490 (4C.4): cada navegación abre una ficha de productos nueva (antes IsNavigationTarget = false).
+        // Mismas claves que con Prism; GetValue<object> devuelve null si no vienen, como su indexador.
+        public async void AlLlegar(ParametrosNavegacion parametros)
         {
             AlmacenDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
 
             // Issue #343: permitir llegar con un texto de búsqueda contextual (p. ej. desde
             // el diálogo "Reportar Error" de Videos) para lanzar directamente la búsqueda por
             // nombre, igual que un Alt+C.
-            string busquedaContextual = navigationContext.Parameters["busquedaContextualParameter"] as string;
+            string busquedaContextual = parametros?.GetValue<object>("busquedaContextualParameter") as string;
             if (!string.IsNullOrWhiteSpace(busquedaContextual))
             {
                 FiltroNombre = busquedaContextual;
@@ -1260,20 +1261,10 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
 
-            object parametro = navigationContext.Parameters["numeroProductoParameter"];
+            object parametro = parametros?.GetValue<object>("numeroProductoParameter");
             ReferenciaBuscar = parametro != null
                 ? parametro.ToString()
                 : await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltNumProducto);
-        }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return false;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-
         }
 
         private void ControlStockChanged(object sender, EventArgs e)

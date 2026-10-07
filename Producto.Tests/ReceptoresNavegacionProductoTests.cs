@@ -1,5 +1,7 @@
+using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
@@ -38,6 +40,53 @@ namespace Producto.Tests
             vm.AlLlegar(new ParametrosNavegacion());
 
             A.CallTo(() => _servicio.CargarVideos(0, A<int>._)).MustHaveHappenedOnceExactly();
+        }
+
+        private ProductoViewModel NuevoProducto(IConfiguracion configuracion) => new ProductoViewModel(A.Fake<IServicioNavegacion>(),
+            configuracion, _servicio, new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IServicioAutenticacion>());
+
+        [TestMethod]
+        public void Producto_NoDependeDeLaNavegacionDePrismYAbrePestanaNueva()
+        {
+            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ProductoViewModel)));
+            Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ProductoViewModel)));
+        }
+
+        [TestMethod]
+        public void Producto_AlLlegarConNumeroDeProducto_LoBusca()
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.UltNumProducto)).Returns(Task.FromResult("99999"));
+            var vm = NuevoProducto(configuracion);
+
+            vm.AlLlegar(new ParametrosNavegacion { { "numeroProductoParameter", "17404" } });
+
+            Assert.AreEqual("17404", vm.ReferenciaBuscar);
+        }
+
+        [TestMethod]
+        public void Producto_AlLlegarSinParametros_BuscaElUltimoProductoDelUsuario()
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.UltNumProducto)).Returns(Task.FromResult("99999"));
+            var vm = NuevoProducto(configuracion);
+
+            vm.AlLlegar(new ParametrosNavegacion());
+
+            Assert.AreEqual("99999", vm.ReferenciaBuscar);
+        }
+
+        [TestMethod]
+        public void Producto_AlLlegarConBusquedaContextual_BuscaPorNombreYNoCargaProducto()
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.UltNumProducto)).Returns(Task.FromResult("99999"));
+            var vm = NuevoProducto(configuracion);
+
+            vm.AlLlegar(new ParametrosNavegacion { { "busquedaContextualParameter", "Alta Frecuencia" } });
+
+            Assert.AreEqual("Alta Frecuencia", vm.FiltroNombre);
+            Assert.IsNull(vm.ReferenciaBuscar);
         }
     }
 }
