@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.VisualBasic;
 using Nesto.Models.Nesto.Models;
@@ -16,7 +15,7 @@ using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.Cliente
 {
-    public class CrearClienteViewModel: ObservableObject, INavigationAware
+    public class CrearClienteViewModel: ObservableObject, IReceptorNavegacion
     {
         private const string DATOS_FISCALES = "DatosFiscales";
         public const string DATOS_GENERALES = "DatosGenerales";
@@ -989,20 +988,22 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Nesto#480: la vista devuelve el foco al campo de dirección al borrarla.</summary>
         public event EventHandler FocoEnDireccionSolicitado;
 
-        public async new void OnNavigatedTo(NavigationContext navigationContext)
+        // Nesto#490 (4C.4): IReceptorNavegacion reutiliza la pestaña abierta, como hacía IsNavigationTarget = true.
+        // Mismas claves que con Prism; GetValue<object> devuelve null si no vienen, como su indexador.
+        public async void AlLlegar(ParametrosNavegacion parametros)
         {
-            if (!navigationContext.Parameters.Any())
+            if (parametros == null || parametros.Count == 0)
             {
                 return;
             }
             
-            if (navigationContext.Parameters["empresaParameter"] != null &&
-                navigationContext.Parameters["clienteParameter"] != null &&
-                navigationContext.Parameters["contactoParameter"] != null)
+            if (parametros.GetValue<object>("empresaParameter") != null &&
+                parametros.GetValue<object>("clienteParameter") != null &&
+                parametros.GetValue<object>("contactoParameter") != null)
             {
-                string empresa = navigationContext.Parameters["empresaParameter"].ToString();
-                string cliente = navigationContext.Parameters["clienteParameter"].ToString();
-                string contacto = navigationContext.Parameters["contactoParameter"].ToString();
+                string empresa = parametros.GetValue<object>("empresaParameter").ToString();
+                string cliente = parametros.GetValue<object>("clienteParameter").ToString();
+                string contacto = parametros.GetValue<object>("contactoParameter").ToString();
                 EsUnaModificacion = true;
 
                 ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
@@ -1042,11 +1043,11 @@ namespace Nesto.Modulos.Cliente
                 await GoToDatosGenerales();
             }
 
-            if (navigationContext.Parameters["nifParameter"] != null &&
-                navigationContext.Parameters["nombreParameter"] != null)
+            if (parametros.GetValue<object>("nifParameter") != null &&
+                parametros.GetValue<object>("nombreParameter") != null)
             {
-                ClienteNif = navigationContext.Parameters["nifParameter"].ToString();
-                ClienteNombre = navigationContext.Parameters["nombreParameter"].ToString();
+                ClienteNif = parametros.GetValue<object>("nifParameter").ToString();
+                ClienteNombre = parametros.GetValue<object>("nombreParameter").ToString();
                 await GoToDatosGenerales();
             }
         }
@@ -1225,14 +1226,5 @@ namespace Nesto.Modulos.Cliente
             throw new NotImplementedException();
         }
 
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return true;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-            
-        }
     }
 }
