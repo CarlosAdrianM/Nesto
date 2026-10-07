@@ -314,6 +314,25 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _ritmoContacto As RitmoContactoDTO
+    ''' <summary>NestoAPI#603: panel de ritmo encima de la lista; Nothing con la API antigua.</summary>
+    Public Property RitmoContacto As RitmoContactoDTO
+        Get
+            Return _ritmoContacto
+        End Get
+        Set(value As RitmoContactoDTO)
+            If SetProperty(_ritmoContacto, value) Then
+                RaisePropertyChanged(NameOf(HayRitmoContacto))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayRitmoContacto As Boolean
+        Get
+            Return _ritmoContacto IsNot Nothing
+        End Get
+    End Property
+
     Private _listaEstadosRapport As List(Of idShortDescripcion)
     Public Property listaEstadosRapport As List(Of idShortDescripcion)
         Get
@@ -746,15 +765,24 @@ Public Class ListaRapportsViewModel
 
 
     Private Async Sub ActualizarClientesProbabilidad(grupoSubgrupo As String)
+        Await ActualizarClientesProbabilidadAsync(grupoSubgrupo)
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#603: la lista sale de GET api/Clientes/SugerenciasContacto (prioridad, cadencia, motivo y
+    ''' ritmo). Las atendidas van al final, marcadas. Con la API antigua, sin prioridad ni ritmo.
+    ''' </summary>
+    Public Async Function ActualizarClientesProbabilidadAsync(grupoSubgrupo As String) As Task
         IsLoadingClientesProbabilidad = True
         Try
+            Dim respuesta = Await servicio.CargarSugerenciasContacto(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo)
             ' Nesto#381: defensivo ante null (el ctor de ObservableCollection peta con Nothing).
-            Dim clientes = Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo)
-            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(If(clientes, New List(Of ClienteProbabilidadVenta)))
+            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(OrdenSugerenciasContacto.Ordenar(respuesta?.Sugerencias))
+            RitmoContacto = respuesta?.Ritmo
         Finally
             IsLoadingClientesProbabilidad = False
         End Try
-    End Sub
+    End Function
 
     Private Sub OnLoaded()
         ' Suscríbete solo si no hay una suscripción activa (Nesto#490 4C.1: Messenger en vez de IEventAggregator;

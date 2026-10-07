@@ -383,6 +383,47 @@ Public Class RapportService
         End Using
     End Function
 
+    ' NestoAPI#603: TODO quitar el fallback al endpoint antiguo (y CargarClientesProbabilidad) cuando
+    ' esté publicada la API con GET api/Clientes/SugerenciasContacto.
+    Public Async Function CargarSugerenciasContacto(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of SugerenciasContactoRespuesta) Implements IRapportService.CargarSugerenciasContacto
+        Const numeroClientes As Integer = 20
+        Dim respuesta As String = String.Empty
+
+        Using client = _clienteApiFactory.Crear()
+            Try
+                Dim urlConsulta As String = $"Clientes/SugerenciasContacto?vendedor={Uri.EscapeDataString(If(vendedor, String.Empty))}&tipoInteraccion={Uri.EscapeDataString(If(tipoInteraccion, String.Empty))}&numero={numeroClientes}&grupoSubgrupo={Uri.EscapeDataString(If(grupoSubgrupo, String.Empty))}"
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+
+                If response.StatusCode = System.Net.HttpStatusCode.NotFound Then
+                    respuesta = Nothing
+                ElseIf response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                End If
+            Catch ex As Exception
+                Throw New Exception($"No se ha podido recuperar la lista de clientes para contactar de {vendedor}", ex)
+            End Try
+        End Using
+
+        If respuesta Is Nothing Then
+            ' La API publicada todavía no tiene el endpoint: lista antigua, sin prioridad ni ritmo.
+            Dim antiguos = Await CargarClientesProbabilidad(vendedor, tipoInteraccion, grupoSubgrupo)
+            Return New SugerenciasContactoRespuesta With {.Vendedor = vendedor, .Sugerencias = antiguos}
+        End If
+
+        Dim resultado As SugerenciasContactoRespuesta = Nothing
+        If Not String.IsNullOrWhiteSpace(respuesta) Then
+            resultado = JsonConvert.DeserializeObject(Of SugerenciasContactoRespuesta)(respuesta)
+        End If
+        ' Como en Nesto#381: nunca Nothing ni lista Nothing.
+        If resultado Is Nothing Then
+            resultado = New SugerenciasContactoRespuesta With {.Vendedor = vendedor}
+        End If
+        If resultado.Sugerencias Is Nothing Then
+            resultado.Sugerencias = New List(Of ClienteProbabilidadVenta)
+        End If
+        Return resultado
+    End Function
+
     Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
         Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

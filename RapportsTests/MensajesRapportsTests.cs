@@ -89,8 +89,9 @@ namespace RapportsTests
 
             _messenger.Send(new RapportGuardadoMensaje(0));
 
+            // NestoAPI#603: la lista sale ahora de SugerenciasContacto (el servicio cae al antiguo si hay 404).
             // Como con Prism: el 0 del aviso llega como grupoSubgrupo "0" (conversión implícita de VB).
-            A.CallTo(() => _servicio.CargarClientesProbabilidad(A<string>._, "Visita", "0")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.CargarSugerenciasContacto(A<string>._, "Visita", "0")).MustHaveHappenedOnceExactly();
         }
     }
 }

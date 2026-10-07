@@ -12,6 +12,9 @@ Public Interface IRapportService
     Function CargarListaTipos() As List(Of idDescripcion)
     Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean)
     Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of List(Of ClienteProbabilidadVenta))
+    ' NestoAPI#603: lista por prioridad y cadencia, con el ritmo del vendedor. Si la API publicada aún no
+    ' tiene el endpoint (404), cae a CargarClientesProbabilidad y devuelve Ritmo = Nothing.
+    Function CargarSugerenciasContacto(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of SugerenciasContactoRespuesta)
     Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
     Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
     Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
