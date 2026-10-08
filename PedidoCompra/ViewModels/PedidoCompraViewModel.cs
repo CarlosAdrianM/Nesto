@@ -16,7 +16,10 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class PedidoCompraViewModel : ObservableObject, INavigationAware
+    // Nesto#490 (4C.4, 6.º tramo): sin INavigationAware. Lo implementaba vacío (IsNavigationTarget = false) y nadie navega
+    // a PedidoCompraView: es el DataContext de la cinta y de la vista que AbrirModulo añade a mano a MainRegion. El
+    // IRegionManager con ámbito (el maestro-detalle) sigue en Prism hasta su tramo.
+    public class PedidoCompraViewModel : ObservableObject
     {
         private IRegionManager RegionManager { get; }
         public IConfiguracion Configuracion { get; set; }
@@ -55,20 +58,5 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             }
         }
 
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return false;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-            
-        }
-
-        public void OnNavigatedTo(NavigationContext navigationContext)
-        {
-            
-        }
     }
 }

@@ -37,6 +37,14 @@ namespace PedidoCompraTests
         }
 
         [TestMethod]
+        public void PedidoCompra_NoDependeDeLaNavegacionDePrism()
+        {
+            // Nesto#490 (4C.4, 6.º tramo): implementaba INavigationAware vacío y nadie navega a PedidoCompraView
+            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(PedidoCompraViewModel)));
+            Assert.IsFalse(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(PedidoCompraViewModel)));
+        }
+
+        [TestMethod]
         public void DetallePedidoCompra_AlLlegarConElPedidoDeLaLista_LoCargaDeLaApi()
         {
             var cargado = new PedidoCompraDTO { Empresa = "1", Id = 4321, Lineas = new List<LineaPedidoCompraDTO>() };
