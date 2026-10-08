@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Nesto.Infrastructure.Models
@@ -23,7 +23,13 @@ namespace Nesto.Infrastructure.Models
     {
         public string Producto { get; set; }
         public string Descripcion { get; set; }
+        /// <summary>El código de barras principal (el de la ficha). Null si no tiene: <see cref="SinCodigo"/>.</summary>
         public string CodigoBarras { get; set; }
+        /// <summary>
+        /// NestoAPI#605: todos los códigos activos del producto (el principal, el primero). Vacía si no tiene o si la API es
+        /// anterior a NestoAPI#605: entonces se casa solo por el principal.
+        /// </summary>
+        public List<string> CodigosBarras { get; set; } = new List<string>();
         public bool SinCodigo { get; set; }
         public bool CodigoDuplicado { get; set; }
         /// <summary>Unidades enviadas.</summary>

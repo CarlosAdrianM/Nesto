@@ -480,5 +480,68 @@ namespace Producto.Tests
             Assert.IsNull(_vm.Filtro);
             Assert.AreEqual(3, Visibles().Count);
         }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoAlternativo_SumaEnSuProducto()
+        {
+            // NestoAPI#605: el producto puede tener varios códigos; antes solo casaba el principal y salía «no venía»
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", Descripcion = "Cera", CodigoBarras = "8411", CodigosBarras = new() { "8411", " 8499 " }, Cantidad = 2 },
+                    new() { Producto = "99001", Descripcion = "Sin principal", SinCodigo = true, CodigosBarras = new() { "8477" }, Cantidad = 1 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("8499");
+            _vm.LeerCommand.Execute("8411");
+            _vm.LeerCommand.Execute("8477");
+
+            Assert.AreEqual(2, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "99001").Leido);
+            Assert.IsFalse(_vm.Lineas.Any(l => l.NoVenia));
+        }
+
+        [TestMethod]
+        public async Task Leer_SinListaDeCodigos_CasaPorElPrincipal()
+        {
+            // Con una API anterior a NestoAPI#605 la lista no viene
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", Descripcion = "Cera", CodigoBarras = "8411", CodigosBarras = null!, Cantidad = 2 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("8411");
+
+            Assert.AreEqual(1, _vm.Lineas.Single().Leido);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoAlternativoDeDosProductos_PideTeclearlo()
+        {
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", CodigoBarras = "8411", CodigosBarras = new() { "8411", "8400" }, Cantidad = 2 },
+                    new() { Producto = "40057", CodigoBarras = "8422", CodigosBarras = new() { "8422", "8400" }, Cantidad = 1 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("8400");
+
+            Assert.IsTrue(_vm.Lineas.All(l => l.Leido == 0));
+            StringAssert.Contains(_vm.Mensaje, "varios productos");
+        }
     }
 }

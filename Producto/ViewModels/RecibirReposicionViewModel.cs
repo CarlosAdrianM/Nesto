@@ -32,7 +32,10 @@ namespace Nesto.Modules.Producto.ViewModels
     {
         public string Producto { get; set; }
         public string Descripcion { get; set; }
+        /// <summary>El código de barras principal (el de la ficha).</summary>
         public string CodigoBarras { get; set; }
+        /// <summary>NestoAPI#605: todos los códigos activos del producto. Vacía con una API anterior: solo el principal.</summary>
+        public List<string> CodigosBarras { get; set; } = new List<string>();
         public bool SinCodigo { get; set; }
         public int Enviado { get; set; }
         /// <summary>Se ha leído y no venía en la reposición.</summary>
@@ -99,9 +102,14 @@ namespace Nesto.Modules.Producto.ViewModels
             return sinTildes.ToString().Normalize(NormalizationForm.FormC).ToUpperInvariant();
         }
 
+        /// <summary>
+        /// Lo leído es de esta línea si es su referencia, su código principal o (NestoAPI#605) cualquiera de sus códigos
+        /// activos; los alternativos cuentan aunque no tenga principal, como en el servidor (CasadorEscaneos).
+        /// </summary>
         internal bool TieneCodigo(string codigo)
             => (!SinCodigo && string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase))
-               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase);
+               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
+               || (CodigosBarras ?? new List<string>()).Any(c => string.Equals(c?.Trim(), codigo, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -292,6 +300,8 @@ namespace Nesto.Modules.Producto.ViewModels
                         Producto = linea.Producto?.Trim(),
                         Descripcion = linea.Descripcion?.Trim(),
                         CodigoBarras = linea.CodigoBarras?.Trim(),
+                        CodigosBarras = (linea.CodigosBarras ?? new List<string>())
+                            .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).ToList(),
                         SinCodigo = linea.SinCodigo,
                         Enviado = linea.Cantidad
                     });
