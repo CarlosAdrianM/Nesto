@@ -250,7 +250,7 @@ namespace Nesto.Modulos.CanalesExternos
             return telefonoCliente;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string almacen, string iva, string divisa)
+        internal ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string almacen, string iva, string divisa)
         {
             using (new CultureInfoScope("en-US"))
             {
@@ -305,7 +305,14 @@ namespace Nesto.Modulos.CanalesExternos
                         vistoBueno = true,
                         Usuario = configuracion.usuario
                     };
-                    lineasNesto.Add(lineaNesto);
+                    // Novedades 548: si el cliente anuló el artículo antes del envío, Amazon manda la línea
+                    // con QuantityOrdered = 0 (y sin importe; el OrderTotal ya no la cuenta). No se pasa a
+                    // Nesto: con cantidad 0 el pedido no se podía crear. Los portes y su descuento van por
+                    // su importe, como siempre (los de un artículo anulado llegan a 0 y no se añaden).
+                    if (cantidad != 0)
+                    {
+                        lineasNesto.Add(lineaNesto);
+                    }
 
                     if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                     {
@@ -357,6 +364,15 @@ namespace Nesto.Modulos.CanalesExternos
                 }
 
                 return lineasNesto;
+            }
+        }
+
+        // Novedades 548: sin ninguna línea de producto (todas anuladas por el cliente) no hay pedido que crear.
+        internal static void ComprobarQueTieneLineas(ICollection<LineaPedidoVentaDTO> lineas, string pedidoCanalId)
+        {
+            if (lineas == null || !lineas.Any(l => l.tipoLinea == 1 && l.Cantidad != 0))
+            {
+                throw new InvalidOperationException($"El pedido de Amazon {pedidoCanalId} no tiene ninguna línea con cantidad: lo anuló el cliente.");
             }
         }
 
@@ -447,18 +463,21 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)
         {
+            ObservableCollection<LineaPedidoVentaDTO> lineas;
             try
             {
                 List<OrderItem> lineasAmazon = await AmazonApiOrdersService.CargarLineas(pedido.PedidoCanalId);
                 var lineaDivisa = lineasAmazon.Where(l => l.ItemPrice != null).FirstOrDefault();
                 var divisa = lineaDivisa is null ? Constantes.Empresas.MONEDA_CONTABILIDAD : lineaDivisa.ItemPrice.CurrencyCode;
-                var lineas = TransformarLineas(lineasAmazon, pedido.Almacen, pedido.Pedido.iva, divisa);
-                return lineas.ToList();
+                lineas = TransformarLineas(lineasAmazon, pedido.Almacen, pedido.Pedido.iva, divisa);
             }
             catch (Exception ex)
             {
                 throw new Exception("Se ha producido un error al leer las líneas de un pedido de Amazon", ex);
             }
+            // Novedades 548: fuera del try para que el aviso se vea tal cual y no como error genérico
+            ComprobarQueTieneLineas(lineas, pedido.PedidoCanalId);
+            return lineas.ToList();
         }
 
         internal class DatosEnvioConfirmarAmazon

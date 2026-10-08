@@ -468,6 +468,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 EstaOcupado = true;
                 PedidoVentaDTO pedido = pedidoExterno.Pedido;
+                // Novedades 548: sin líneas (p. ej. todas anuladas por el cliente en Amazon) no se crea
+                if (pedido.Lineas == null || !pedido.Lineas.Any())
+                {
+                    DialogService.ShowError($"El pedido {pedidoExterno.PedidoCanalId} no tiene ninguna línea: no se crea.");
+                    return;
+                }
                 // Nesto#378: usar el servicio (lleva el token JWT) en vez del método estático
                 // legacy de PedidoVentaViewModel, que llamaba a la API sin autenticar.
                 int numeroPedido = await PedidoVentaService.CrearPedido(pedido);
