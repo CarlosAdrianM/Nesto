@@ -133,7 +133,10 @@
             </Border>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Nesto#516: la vista la mueve para dejar a la vista lo destacado; si el usuario la toca, deja de hacerlo -->
+        <ScrollViewer x:Name="ScrollNovedades" Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="ScrollNovedades_InteraccionUsuario" PreviewMouseDown="ScrollNovedades_InteraccionUsuario"
+                      PreviewKeyDown="ScrollNovedades_InteraccionUsuario">
             <ItemsControl x:Name="ListaNovedades" ItemsSource="{Binding Novedades}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -249,7 +252,9 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <!-- Nesto#477: el comentario al que lleva la notificación de la campana, resaltado -->
-                                                        <Border BorderBrush="#E3E3E3" BorderThickness="0,0,0,1" Padding="0,4,0,6">
+                                                        <!-- Nesto#516: el destacado recibe el foco (teclado y lector de pantalla) -->
+                                                        <Border BorderBrush="#E3E3E3" BorderThickness="0,0,0,1" Padding="0,4,0,6"
+                                                                Focusable="{Binding Destacado}" AutomationProperties.Name="{Binding Texto}">
                                                             <Border.Style>
                                                                 <Style TargetType="Border">
                                                                     <Style.Triggers>
