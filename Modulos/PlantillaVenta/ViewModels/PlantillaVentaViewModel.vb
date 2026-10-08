@@ -17,13 +17,12 @@ Imports System.Windows
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 Imports Unity
 Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
     Inherits ObservableObject
-    Implements INavigationAware, ITabCloseConfirmation
+    Implements IReceptorNavegacionPestanaNueva, ITabCloseConfirmation
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
@@ -2670,11 +2669,6 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Sub OnAbrirPlantillaVenta(arg As Object)
         navegacion.RequestNavigate("MainRegion", "PlantillaVentaView")
-        'regionManager.RegisterViewWithRegion("MainRegion", GetType(PlantillaVentaView))
-        'Dim region As IRegion = regionManager.Regions("MainRegion")
-        'Dim vista = container.Resolve(Of PlantillaVentaView)()
-        'region.Add(vista, nombreVista(region, vista.ToString))
-        'region.Activate(vista)
     End Sub
 
     Private _cmdActualizarPrecioProducto As RelayCommand(Of Object)
@@ -4016,23 +4010,6 @@ Public Class PlantillaVentaViewModel
         Return Await configuracion.leerParametro(empresa, v)
     End Function
 
-    Private Function nombreVista(region As Region, nombre As String) As String
-        Dim contador As Integer = 2
-        Dim repetir As Boolean = True
-        Dim nombreAmpliado As String = nombre
-        While repetir
-            repetir = False
-            For Each view In region.Views
-                If Not IsNothing(region.GetView(nombreAmpliado)) Then
-                    nombreAmpliado = nombre + contador.ToString
-                    contador += 1
-                    repetir = True
-                    Exit For
-                End If
-            Next
-        End While
-        Return nombreAmpliado
-    End Function
     Private Sub SeleccionarElCliente(value As ClienteJson)
         Dim unused = SetProperty(_clienteSeleccionado, value)
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
@@ -4099,7 +4076,9 @@ Public Class PlantillaVentaViewModel
     End Sub
 
 
-    Public Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+    ' Nesto#490 (4C.4, 6.º tramo): IReceptorNavegacionPestanaNueva en vez de INavigationAware (IsNavigationTarget = False):
+    ' cada navegación sigue abriendo una plantilla nueva. AlLlegar hace lo de OnNavigatedTo, con las mismas claves.
+    Public Async Sub AlLlegar(parametrosNavegacion As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
         ' Issue #94: Cargar cache de productos bonificables (Ganavisiones)
         If _productosBonificablesIds Is Nothing Then
             ' Usar ConfigureAwait(True) para que RaisePropertyChanged se ejecute en el hilo de la UI
@@ -4121,21 +4100,13 @@ Public Class PlantillaVentaViewModel
 
         ' Nesto#397: si se navega con un pedido a modificar (botón "Modificar con plantilla" de
         ' ListaPedidosVenta), cargarlo en modo edición.
-        If navigationContext?.Parameters IsNot Nothing AndAlso navigationContext.Parameters.ContainsKey("pedidoAModificar") Then
-            Dim numeroPedido As Integer = CInt(navigationContext.Parameters("pedidoAModificar"))
-            Dim empresaPedido As String = If(navigationContext.Parameters.ContainsKey("empresaPedido"),
-                navigationContext.Parameters("empresaPedido").ToString(),
+        If parametrosNavegacion IsNot Nothing AndAlso parametrosNavegacion.ContainsKey("pedidoAModificar") Then
+            Dim numeroPedido As Integer = CInt(parametrosNavegacion.GetValue(Of Object)("pedidoAModificar"))
+            Dim empresaPedido As String = If(parametrosNavegacion.ContainsKey("empresaPedido"),
+                parametrosNavegacion.GetValue(Of Object)("empresaPedido").ToString(),
                 Constantes.Empresas.EMPRESA_DEFECTO)
             Await CargarPedidoParaModificarAsync(empresaPedido, numeroPedido)
         End If
-    End Sub
-
-    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
-        Return False
-    End Function
-
-    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
-
     End Sub
 
     Public Function ConfirmTabClose() As Boolean Implements ITabCloseConfirmation.ConfirmTabClose

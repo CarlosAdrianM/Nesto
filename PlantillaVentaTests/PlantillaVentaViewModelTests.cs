@@ -152,8 +152,8 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            // Simular OnNavigatedTo para cargar el cache
-            vm.OnNavigatedTo(null);
+            // Simular la llegada (AlLlegar) para cargar el cache
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100); // Dar tiempo a que cargue el cache
 
             var linea = new LineaPlantillaVenta
@@ -179,7 +179,7 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -205,7 +205,7 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "OTRO_PROD" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -231,7 +231,7 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -258,7 +258,7 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -285,7 +285,7 @@ namespace PlantillaVentaTests
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -320,7 +320,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => dialogServiceMock.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
             A.CallTo(() => dialogServiceMock.ShowConfirmationAsync(A<string>.Ignored, A<string>.Ignored)).Returns(Task.FromResult(true));
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             await Task.Delay(100);
 
             var linea = new LineaPlantillaVenta
@@ -344,10 +344,10 @@ namespace PlantillaVentaTests
         [TestMethod]
         public void ActualizarProductosPedido_CacheNoInicializado_NoMuestraDialogo()
         {
-            // Arrange - Sin llamar a OnNavigatedTo, el cache será null
+            // Arrange - Sin llamar a AlLlegar, el cache será null
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
-            // NO llamamos a OnNavigatedTo, así _productosBonificablesIds será null
+            // NO llamamos a AlLlegar, así _productosBonificablesIds será null
 
             var linea = new LineaPlantillaVenta
             {
