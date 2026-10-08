@@ -41,6 +41,23 @@ namespace Nesto.Infrastructure.Models
         public bool PuedeTerminar { get; set; }
         public bool SeTerminaDesdeAqui { get; set; }
         public List<LineaRecepcionReposicion> Lineas { get; set; } = new List<LineaRecepcionReposicion>();
+
+        // Nesto#515 (NestoAPI#600): los textos de la confirmación, del tipo. Null con una API anterior: se usan los de antes.
+
+        /// <summary>«¿Terminar la reposición 80905 con esto?».</summary>
+        public string TituloConfirmacion { get; set; }
+        /// <summary>Lo leído coincide con lo enviado.</summary>
+        public string AvisoCoincide { get; set; }
+        /// <summary>Lo leído no coincide (faltas, sobras o productos que no venían).</summary>
+        public string AvisoNoCoincide { get; set; }
+        /// <summary>Además, si falta algo. Null: nada que añadir.</summary>
+        public string AvisoConFaltas { get; set; }
+        /// <summary>Además, si sobra algo. Null: nada que añadir.</summary>
+        public string AvisoConSobras { get; set; }
+        /// <summary>Además, si algo de lo que sobra es lo dado por no servido (no aplica a reposiciones). Null: nada que añadir.</summary>
+        public string AvisoConRecuperadas { get; set; }
+        /// <summary>Además, si se ha leído algo que no venía. Null: nada que añadir.</summary>
+        public string AvisoConAjenos { get; set; }
     }
 
     public class LecturaRecepcionReposicion
@@ -78,6 +95,13 @@ namespace Nesto.Infrastructure.Models
         /// <summary>A quién se ha informado de las diferencias (quien creó el traspaso).</summary>
         public string AvisadoA { get; set; }
         public List<string> Avisos { get; set; } = new List<string>();
+        /// <summary>Nesto#515 (NestoAPI#600): «Lo recibido ya aparece en Ubicar». Ya va dentro de <see cref="Mensaje"/>.</summary>
+        public string AvisoUbicar { get; set; }
+        /// <summary>
+        /// Nesto#515 (NestoAPI#600): todo lo que hay que enseñar al terminar, ya montado por el servidor (diferencias, a quién
+        /// se ha avisado, Ubicar…). Null con una API anterior: se monta aquí.
+        /// </summary>
+        public string Mensaje { get; set; }
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (sin permiso, ya terminada…).</summary>

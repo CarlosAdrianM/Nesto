@@ -226,6 +226,7 @@ namespace Producto.Tests
                 {
                     Documento = "80878",
                     AvisadoA = @"NUEVAVISION\Andre",
+                    Avisos = new List<string> { "Lo leído no coincide con lo enviado: ha entrado lo leído y Andre está avisado de las diferencias." },
                     Diferencias = new List<DiferenciaRecepcionReposicion> { new() { Producto = "17404", Esperado = 2, Leido = 0 } }
                 });
 
@@ -235,6 +236,129 @@ namespace Producto.Tests
             StringAssert.Contains(_vm.Mensaje, "17404");
             Assert.AreEqual(0, _vm.Pendientes.Count);
             Assert.IsNull(_vm.Seleccionada);
+        }
+
+        // Nesto#515 (NestoAPI#600): los textos de la confirmación y del resultado son del servidor, del tipo de la recepción
+        private static RecepcionReposicion ReposicionConTextos()
+        {
+            RecepcionReposicion reposicion = Reposicion();
+            reposicion.TituloConfirmacion = "¿Terminar la reposición 80878 con esto?";
+            reposicion.AvisoCoincide = "Entra la reposición entera en el almacén y queda pendiente de ubicar.";
+            reposicion.AvisoNoCoincide = "Lo leído no coincide con lo enviado: entra lo leído (no lo enviado).";
+            reposicion.AvisoConFaltas = "AVISO FALTAS";
+            reposicion.AvisoConSobras = "AVISO SOBRAS";
+            reposicion.AvisoConAjenos = "AVISO AJENOS";
+            return reposicion;
+        }
+
+        private void LeerTodoLoEnviado()
+        {
+            _vm.LeerCommand.Execute("8411");
+            _vm.LeerCommand.Execute("8411");
+            _vm.LeerCommand.Execute("8422");
+            _vm.Lineas[2].Leido = 3;
+        }
+
+        [TestMethod]
+        public async Task Terminar_ConTextosDelServidorYTodoCoincide_ConfirmaConSuTituloYSuAviso()
+        {
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(ReposicionConTextos());
+            await AbiertaAsync();
+            LeerTodoLoEnviado();
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("¿Terminar la reposición 80878 con esto?",
+                A<string>.That.Matches(t => t.Contains("Entra la reposición entera") && !t.Contains("no coincide")
+                    && !t.Contains("Ojo") && !t.Contains("AVISO"))))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Terminar_ConTextosDelServidorYDiferencias_ConservaElDesgloseYUsaSusAvisos()
+        {
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(ReposicionConTextos());
+            await AbiertaAsync();
+            _vm.LeerCommand.Execute("8411");
+            _vm.LeerCommand.Execute("8422");
+            _vm.LeerCommand.Execute("8422");
+            _vm.LeerCommand.Execute("55555");
+            _vm.Lineas[2].Leido = 3;
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("¿Terminar la reposición 80878 con esto?",
+                A<string>.That.Matches(t => t.Contains("Faltan 1") && t.Contains("Sobran 1") && t.Contains("que no venían")
+                    && t.Contains("no coincide con lo enviado") && t.Contains("AVISO FALTAS") && t.Contains("AVISO SOBRAS")
+                    && t.Contains("AVISO AJENOS") && !t.Contains("Se informará") && !t.Contains("Entra la reposición entera"))))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Terminar_ConTextosDelServidorYSoloFaltas_NoAnadeLosAvisosDeSobrasNiAjenos()
+        {
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(ReposicionConTextos());
+            await AbiertaAsync();
+            _vm.LeerCommand.Execute("8411");
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._,
+                A<string>.That.Matches(t => t.Contains("AVISO FALTAS") && !t.Contains("AVISO SOBRAS") && !t.Contains("AVISO AJENOS"))))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Terminar_SinTextosDelServidor_ConfirmaConLosDeAntes()
+        {
+            await AbiertaAsync();
+            LeerTodoLoEnviado();
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("¿Terminar la reposición 80878?",
+                A<string>.That.Matches(t => t.Contains("Todo coincide con lo enviado."))))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Terminar_ConMensajeDelServidor_LoEnsenaTalCual()
+        {
+            await AbiertaAsync();
+            string mensaje = "Recepción terminada." + Environment.NewLine + "Lo recibido ya aparece en Ubicar.";
+            A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._, A<string>._, A<TerminarRecepcionReposicion>._))
+                .Returns(new ResultadoRecepcionReposicion
+                {
+                    Documento = "80878",
+                    AvisadoA = @"NUEVAVISION\Andre",
+                    Avisos = new List<string> { "Andre está avisado de las diferencias." },
+                    Diferencias = new List<DiferenciaRecepcionReposicion> { new() { Producto = "17404", Esperado = 2, Leido = 0 } },
+                    AvisoUbicar = "Lo recibido ya aparece en Ubicar.",
+                    Mensaje = mensaje
+                });
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(mensaje, _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Terminar_SinMensajeDelServidor_DiceUnaSolaVezAQuienSeHaAvisado()
+        {
+            await AbiertaAsync();
+            A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._, A<string>._, A<TerminarRecepcionReposicion>._))
+                .Returns(new ResultadoRecepcionReposicion
+                {
+                    Documento = "80878",
+                    AvisadoA = @"NUEVAVISION\Andre",
+                    Avisos = new List<string> { "Lo leído no coincide con lo enviado: ha entrado lo leído y Andre está avisado de las diferencias." },
+                    Diferencias = new List<DiferenciaRecepcionReposicion> { new() { Producto = "17404", Esperado = 2, Leido = 0 } }
+                });
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(1, _vm.Mensaje!.Split("Andre").Length - 1, _vm.Mensaje);
+            Assert.IsFalse(_vm.Mensaje.Contains("Se ha informado"), _vm.Mensaje);
         }
 
         [TestMethod]

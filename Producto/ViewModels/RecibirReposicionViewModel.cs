@@ -243,7 +243,10 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
-            if (!await _dialogos.ShowConfirmationAsync($"¿Terminar la reposición {Seleccionada.Documento}?", ResumenParaConfirmar()).ConfigureAwait(true))
+            string tituloConfirmacion = string.IsNullOrWhiteSpace(_recepcion.TituloConfirmacion)
+                ? $"¿Terminar la reposición {Seleccionada.Documento}?"
+                : _recepcion.TituloConfirmacion.Trim();
+            if (!await _dialogos.ShowConfirmationAsync(tituloConfirmacion, ResumenParaConfirmar()).ConfigureAwait(true))
             {
                 return;
             }
@@ -272,8 +275,11 @@ namespace Nesto.Modules.Producto.ViewModels
             int faltan = Lineas.Where(l => !l.NoVenia && l.Diferencia < 0).Sum(l => -l.Diferencia);
             int sobran = Lineas.Where(l => !l.NoVenia && l.Diferencia > 0).Sum(l => l.Diferencia);
             int noVenian = Lineas.Where(l => l.NoVenia && l.Leido > 0).Sum(l => l.Leido);
+            bool coincide = faltan == 0 && sobran == 0 && noVenian == 0;
+            // Nesto#515 (NestoAPI#600): el desglose es de aquí (lo leído); lo que va a pasar, del servidor (según el tipo)
+            bool textosDelServidor = !string.IsNullOrWhiteSpace(_recepcion?.AvisoCoincide) || !string.IsNullOrWhiteSpace(_recepcion?.AvisoNoCoincide);
             var partes = new List<string>();
-            if (faltan == 0 && sobran == 0 && noVenian == 0)
+            if (coincide)
             {
                 partes.Add("Todo coincide con lo enviado.");
             }
@@ -291,14 +297,37 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     partes.Add($"Han llegado {noVenian} ud. que no venían en la reposición.");
                 }
-                partes.Add("Se informará de las diferencias a quien hizo la reposición.");
             }
-            partes.Add("Ojo: entra lo leído, no lo enviado.");
-            return string.Join(Environment.NewLine, partes);
+            if (textosDelServidor)
+            {
+                partes.Add(coincide ? _recepcion.AvisoCoincide : _recepcion.AvisoNoCoincide);
+                partes.Add(faltan > 0 ? _recepcion.AvisoConFaltas : null);
+                partes.Add(sobran > 0 ? _recepcion.AvisoConSobras : null);
+                partes.Add(noVenian > 0 ? _recepcion.AvisoConAjenos : null);
+            }
+            else
+            {
+                // Con una API anterior a NestoAPI#600, los textos de antes
+                if (!coincide)
+                {
+                    partes.Add("Se informará de las diferencias a quien hizo la reposición.");
+                }
+                partes.Add("Ojo: entra lo leído, no lo enviado.");
+            }
+            return string.Join(Environment.NewLine, partes.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()));
         }
 
+        /// <summary>
+        /// Nesto#515 (NestoAPI#600): el servidor manda el texto entero (diferencias, a quién se ha avisado, Ubicar) y se
+        /// enseña tal cual. Con una API anterior se monta aquí; a quién se ha avisado ya viene en los avisos del servidor,
+        /// así que no se repite con <see cref="ResultadoRecepcionReposicion.AvisadoA"/>.
+        /// </summary>
         internal static string TextoResultado(string documento, ResultadoRecepcionReposicion resultado)
         {
+            if (!string.IsNullOrWhiteSpace(resultado?.Mensaje))
+            {
+                return resultado.Mensaje.Trim();
+            }
             var partes = new List<string>
             {
                 resultado?.YaEstabaTerminada == true ? $"La reposición {documento} ya estaba recibida." : $"Reposición {documento} recibida."
@@ -310,11 +339,6 @@ namespace Nesto.Modules.Producto.ViewModels
                 partes.AddRange(diferencias.Select(d => d.Ajeno
                     ? $"  {d.Producto?.Trim()} {d.Descripcion?.Trim()}: no venía, han entrado {d.Leido}."
                     : $"  {d.Producto?.Trim()} {d.Descripcion?.Trim()}: enviadas {d.Esperado}, han entrado {d.Leido}."));
-            }
-            if (!string.IsNullOrWhiteSpace(resultado?.AvisadoA))
-            {
-                string quien = resultado.AvisadoA.Contains("\\") ? resultado.AvisadoA.Substring(resultado.AvisadoA.LastIndexOf('\\') + 1) : resultado.AvisadoA;
-                partes.Add($"Se ha informado a {quien.Trim()}.");
             }
             partes.AddRange((resultado?.Avisos ?? new List<string>()).Where(a => !string.IsNullOrWhiteSpace(a)));
             return string.Join(Environment.NewLine, partes);
