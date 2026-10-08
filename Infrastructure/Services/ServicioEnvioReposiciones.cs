@@ -24,6 +24,13 @@ namespace Nesto.Infrastructure.Services
         Task<ReposicionEnPreparacion> CambiarCantidad(string empresa, string origen, int numeroOrden, int cantidad);
         /// <exception cref="EnvioReposicionException">No hay nada que mandar, falla la contabilización…</exception>
         Task<ResultadoTerminarReposicion> Terminar(string empresa, string origen);
+        /// <summary>
+        /// NestoAPI#577: si el usuario puede rellenar reposiciones a mano (POST api/Reposiciones); las demás las rellena
+        /// la API a la hora de corte del calendario. Una API anterior a #577 (404) no lo restringe: true.
+        /// </summary>
+        Task<bool> PuedeRellenarManual();
+        /// <summary>NestoAPI#577: la próxima reposición de la ruta según el calendario, o null si la ruta no tiene calendario (404).</summary>
+        Task<ProximaReposicion> LeerProximaLlegada(string empresa, string origen, string destino);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -64,6 +71,41 @@ namespace Nesto.Infrastructure.Services
         public Task<ResultadoTerminarReposicion> Terminar(string empresa, string origen)
             => Enviar<ResultadoTerminarReposicion>(HttpMethod.Post, "Reposiciones/EnPreparacion/Terminar" + Consulta(empresa, origen), null);
 
+        public async Task<bool> PuedeRellenarManual()
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/PuedeRellenarManual").ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // La API todavía no tiene #577: entonces cualquiera puede preparar la reposición a mano
+                    return true;
+                }
+                if (!response.IsSuccessStatusCode)
+                {
+                    return false;
+                }
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<bool>(json);
+            }
+        }
+
+        public async Task<ProximaReposicion> LeerProximaLlegada(string empresa, string origen, string destino)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = "Reposiciones/ProximaLlegada?origen=" + Uri.EscapeDataString(origen?.Trim() ?? string.Empty)
+                    + "&destino=" + Uri.EscapeDataString(destino?.Trim() ?? string.Empty)
+                    + "&empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty);
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                return await Leer<ProximaReposicion>(response).ConfigureAwait(false);
+            }
+        }
+
         private async Task<T> Enviar<T>(HttpMethod metodo, string url, object cuerpo) where T : class, new()
         {
             using (HttpClient client = _clienteApiFactory.Crear())
@@ -82,7 +124,7 @@ namespace Nesto.Infrastructure.Services
             string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                throw new EnvioReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
+                throw new EnvioReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode), (int)response.StatusCode);
             }
             return JsonConvert.DeserializeObject<T>(json);
         }

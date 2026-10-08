@@ -139,5 +139,88 @@ namespace Infrastructure.Tests
 
             StringAssert.Contains(ex.Message, "stock negativo");
         }
+
+        [TestMethod]
+        public async Task Crear_MandaQueLaCreaNesto()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.Created, Respuesta = REPOSICION };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            await servicio.Crear(new CrearReposicion { Empresa = "1", Origen = "ALC", Destino = "ALG", Herramienta = "Nesto" });
+
+            Assert.AreEqual("Nesto", (string)JObject.Parse(handler.Cuerpos[0])["Herramienta"]);
+        }
+
+        [TestMethod]
+        public async Task Crear_SinPermiso_DaElMotivoDelServidorYQueEsUn403()
+        {
+            const string motivo = "Solo el proceso automático y las personas autorizadas pueden rellenar reposiciones a mano.";
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.Forbidden, Respuesta = "{\"Message\":\"" + motivo + "\"}" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            EnvioReposicionException ex = await Assert.ThrowsExceptionAsync<EnvioReposicionException>(() =>
+                servicio.Crear(new CrearReposicion { Empresa = "1", Origen = "ALC", Destino = "ALG" }));
+
+            Assert.AreEqual(motivo, ex.Message);
+            Assert.IsTrue(ex.EsSinPermiso);
+        }
+
+        [TestMethod]
+        [DataRow("true", true)]
+        [DataRow("false", false)]
+        public async Task PuedeRellenarManual_DevuelveLoQueDiceElServidor(string respuesta, bool esperado)
+        {
+            var handler = new HandlerFalso { Respuesta = respuesta };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            bool puede = await servicio.PuedeRellenarManual();
+
+            Assert.AreEqual("GET /api/Reposiciones/PuedeRellenarManual", handler.Urls[0]);
+            Assert.AreEqual(esperado, puede);
+        }
+
+        [TestMethod]
+        public async Task PuedeRellenarManual_ConUnaApiAnteriorA577_NoLoRestringe()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            Assert.IsTrue(await servicio.PuedeRellenarManual());
+        }
+
+        [TestMethod]
+        public async Task PuedeRellenarManual_SiElServidorFalla_NoDejaRellenar()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.InternalServerError, Respuesta = "" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            Assert.IsFalse(await servicio.PuedeRellenarManual());
+        }
+
+        [TestMethod]
+        public async Task LeerProximaLlegada_PideLaDeLaRutaYLeeElCierre()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"CierraEl\":\"2026-10-09T10:00:00\",\"LlegaEl\":\"2026-10-09T16:00:00\"," +
+                    "\"PedidoSaleEl\":\"2026-10-12T00:00:00\",\"DiasHastaSalida\":4}"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            ProximaReposicion proxima = await servicio.LeerProximaLlegada("1  ", "ALC", "ALG");
+
+            Assert.AreEqual("GET /api/Reposiciones/ProximaLlegada?origen=ALC&destino=ALG&empresa=1", handler.Urls[0]);
+            Assert.AreEqual(new DateTime(2026, 10, 9, 10, 0, 0), proxima.CierraEl);
+            Assert.AreEqual(4, proxima.DiasHastaSalida);
+        }
+
+        [TestMethod]
+        public async Task LeerProximaLlegada_SinCalendario_DevuelveNull()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "\"No hay calendario de reposiciones activo de ALC a ALG.\"" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            Assert.IsNull(await servicio.LeerProximaLlegada("1", "ALC", "ALG"));
+        }
     }
 }

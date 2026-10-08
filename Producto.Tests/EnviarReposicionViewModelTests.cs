@@ -40,6 +40,7 @@ namespace Producto.Tests
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("alc ");
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
+            A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(true);
             _vm = new EnviarReposicionViewModel(_servicio, _dialogos, _configuracion);
         }
 
@@ -298,6 +299,153 @@ namespace Producto.Tests
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).MustNotHaveHappened();
             A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).MustNotHaveHappened();
             StringAssert.Contains(_vm.Mensaje, "a 0");
+        }
+
+        // NestoAPI#577: las reposiciones de la tienda a Algete las rellena la API a la hora de corte del calendario; a mano
+        // solo pueden las personas autorizadas (GET api/Reposiciones/PuedeRellenarManual).
+
+        private void SinPermisoYSinReposicion()
+        {
+            A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(false);
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            _vm.Ahora = () => new DateTime(2026, 10, 8, 17, 30, 0); // jueves
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoParaRellenar_NoDejaPreparar()
+        {
+            SinPermisoYSinReposicion();
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.PuedePreparar);
+            Assert.IsFalse(_vm.PrepararCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoNiReposicion_DiceCuandoSeRellenaSola()
+        {
+            SinPermisoYSinReposicion();
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, "ALC", "ALG"))
+                .Returns(new ProximaReposicion { Origen = "ALC", Destino = "ALG", CierraEl = new DateTime(2026, 10, 12, 10, 0, 0) });
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Todavía no hay reposición para Algete. Se rellena sola el lunes 12/10 a las 10:00.", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoNiReposicion_SiSeRellenaMananaLoDiceAsi()
+        {
+            SinPermisoYSinReposicion();
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, "ALC", "ALG"))
+                .Returns(new ProximaReposicion { CierraEl = new DateTime(2026, 10, 9, 10, 0, 0) });
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Todavía no hay reposición para Algete. Se rellena sola mañana a las 10:00.", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoNiReposicion_SiHoyTodaviaNoHaCerradoDiceHoy()
+        {
+            SinPermisoYSinReposicion();
+            _vm.Ahora = () => new DateTime(2026, 10, 9, 8, 15, 0);
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, "ALC", "ALG"))
+                .Returns(new ProximaReposicion { CierraEl = new DateTime(2026, 10, 9, 10, 0, 0) });
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Todavía no hay reposición para Algete. Se rellena sola hoy a las 10:00.", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoNiReposicion_SinCalendario_DiceQueSeRellenaASuHora()
+        {
+            SinPermisoYSinReposicion();
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, "ALC", "ALG")).Returns(Task.FromResult<ProximaReposicion>(null!));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Todavía no hay reposición para Algete. Se rellena sola a su hora.", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoNiReposicion_SiFallaElCalendario_DiceQueSeRellenaASuHoraSinAvisarDeError()
+        {
+            SinPermisoYSinReposicion();
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, A<string>._, A<string>._)).Throws(new HttpRequestException("caído"));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Todavía no hay reposición para Algete. Se rellena sola a su hora.", _vm.Mensaje);
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinPermisoPeroConReposicionRellena_LaEnsenaParaTerminarla()
+        {
+            A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(false);
+
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.HayReposicion);
+            Assert.IsTrue(_vm.TerminarCommand.CanExecute(null));
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Cargar_ConPermisoYSinReposicion_DejaPrepararConElTextoDeSiempre()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.PuedePreparar);
+            Assert.AreEqual("ALC no tiene ninguna reposición en preparación. Pulsa «Preparar reposición» y se propone lo que hay que mandar a Algete.", _vm.Mensaje);
+            A.CallTo(() => _servicio.LeerProximaLlegada(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Leer_SinPermisoNiReposicion_NoPideQuePrepare()
+        {
+            SinPermisoYSinReposicion();
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("8411");
+
+            Assert.IsFalse(_vm.Mensaje!.Contains("Preparar reposición"), _vm.Mensaje);
+            StringAssert.Contains(_vm.Mensaje, "Todavía no hay reposición para Algete");
+        }
+
+        [TestMethod]
+        public async Task Preparar_MandaQueLaCreaNesto()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            CrearReposicion? pedida = null;
+            A.CallTo(() => _servicio.Crear(A<CrearReposicion>._))
+                .ReturnsLazily((CrearReposicion c) => { pedida = c; return Task.FromResult(Reposicion()); });
+            await _vm.CargarAsync();
+
+            await _vm.PrepararCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("Nesto", pedida!.Herramienta);
+        }
+
+        [TestMethod]
+        public async Task Preparar_ConUn403_EnsenaElMotivoSinErrorYEscondeElBoton()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            const string motivo = "Solo el proceso automático y las personas autorizadas pueden rellenar reposiciones a mano.";
+            A.CallTo(() => _servicio.Crear(A<CrearReposicion>._)).Throws(new EnvioReposicionException(motivo, 403));
+            await _vm.CargarAsync();
+
+            await _vm.PrepararCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(motivo, _vm.Mensaje);
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogos.ShowNotification(A<string>._, motivo)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(_vm.PuedePreparar);
         }
     }
 }

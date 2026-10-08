@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -54,6 +55,8 @@ namespace Nesto.Modules.Producto.ViewModels
     /// NestoAPI#553: la tienda prepara la reposición que manda a Algete y la termina (api/Reposiciones), en lugar de
     /// hacerlo en Nesto viejo. El servidor propone lo que hay que mandar; aquí solo se baja lo que no se manda y se
     /// termina. Desde Algete no: esas reposiciones se hacen en Ariadna.
+    /// NestoAPI#577: la reposición la rellena la API sola a la hora de corte del calendario; «Preparar reposición» (rellenarla
+    /// a mano) solo lo ven las personas autorizadas (GET api/Reposiciones/PuedeRellenarManual).
     /// </summary>
     public class EnviarReposicionViewModel : ObservableObject
     {
@@ -81,9 +84,15 @@ namespace Nesto.Modules.Producto.ViewModels
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => HayReposicion && !EstaOcupado);
         }
 
+        /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
+        internal const string HERRAMIENTA = "Nesto";
+
         public string Titulo => "Enviar reposición";
 
         public string Empresa { get; set; } = Constantes.Empresas.EMPRESA_DEFECTO;
+
+        /// <summary>El reloj (los tests lo fijan): para decir «hoy» o «mañana» en la hora a la que se rellena sola.</summary>
+        internal Func<DateTime> Ahora { get; set; } = () => DateTime.Now;
 
         /// <summary>Las tiendas solo mandan reposiciones a Algete.</summary>
         public string Destino => Constantes.Almacenes.ALMACEN_ALGETE;
@@ -102,6 +111,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private bool _origenValido;
 
+        /// <summary>NestoAPI#577: si el usuario puede rellenar la reposición a mano (los demás esperan a que la rellene la API).</summary>
+        private bool _puedeRellenarManual;
+
+        /// <summary>Lo que se dice cuando no hay reposición en preparación (también si se lee un código entonces).</summary>
+        private string _textoSinReposicion;
+
         private bool _hayReposicion;
         public bool HayReposicion
         {
@@ -115,7 +130,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public bool PuedePreparar => _origenValido && !HayReposicion && !EstaOcupado;
+        public bool PuedePreparar => _origenValido && _puedeRellenarManual && !HayReposicion && !EstaOcupado;
 
         public int Unidades => Lineas.Sum(l => l.Cantidad);
         public int Productos => Lineas.Count(l => l.Cantidad > 0);
@@ -167,14 +182,47 @@ namespace Nesto.Modules.Producto.ViewModels
                     return;
                 }
                 _origenValido = true;
+                _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
                 if (!HayReposicion)
                 {
-                    Mensaje = $"{Almacen} no tiene ninguna reposición en preparación. Pulsa «Preparar reposición» y se propone lo que hay que mandar a Algete.";
+                    _textoSinReposicion = _puedeRellenarManual
+                        ? $"{Almacen} no tiene ninguna reposición en preparación. Pulsa «Preparar reposición» y se propone lo que hay que mandar a Algete."
+                        : TextoSeRellenaSola(await LeerCierreProximaReposicion().ConfigureAwait(true), Ahora());
+                    Mensaje = _textoSinReposicion;
                 }
             }, avisarEnDialogo: false).ConfigureAwait(true);
             RefrescarEstado();
+        }
+
+        /// <summary>Cuándo rellena la API la próxima reposición a Algete (null si la ruta no tiene calendario o no se sabe).</summary>
+        private async Task<DateTime?> LeerCierreProximaReposicion()
+        {
+            try
+            {
+                ProximaReposicion proxima = await _servicio.LeerProximaLlegada(Empresa, Almacen, Destino).ConfigureAwait(true);
+                return proxima?.CierraEl;
+            }
+            catch (Exception)
+            {
+                // Es solo para decir la hora: si no se sabe, se dice «a su hora»
+                return null;
+            }
+        }
+
+        internal static string TextoSeRellenaSola(DateTime? cierraEl, DateTime ahora)
+        {
+            const string inicio = "Todavía no hay reposición para Algete.";
+            if (cierraEl == null)
+            {
+                return $"{inicio} Se rellena sola a su hora.";
+            }
+            DateTime cierre = cierraEl.Value;
+            string dia = cierre.Date == ahora.Date ? "hoy"
+                : cierre.Date == ahora.Date.AddDays(1) ? "mañana"
+                : "el " + cierre.ToString("dddd d/M", CultureInfo.GetCultureInfo("es-ES"));
+            return $"{inicio} Se rellena sola {dia} a las {cierre:HH:mm}.";
         }
 
         private async Task PrepararAsync()
@@ -182,12 +230,23 @@ namespace Nesto.Modules.Producto.ViewModels
             Mensaje = null;
             await Ocupado(async () =>
             {
-                ReposicionEnPreparacion creada = await _servicio.Crear(new CrearReposicion
+                ReposicionEnPreparacion creada;
+                try
                 {
-                    Empresa = Empresa,
-                    Origen = Almacen,
-                    Destino = Destino
-                }).ConfigureAwait(true);
+                    creada = await _servicio.Crear(new CrearReposicion
+                    {
+                        Empresa = Empresa,
+                        Origen = Almacen,
+                        Destino = Destino,
+                        Herramienta = HERRAMIENTA
+                    }).ConfigureAwait(true);
+                }
+                catch (EnvioReposicionException ex) when (ex.EsSinPermiso)
+                {
+                    // Le han quitado el permiso (o la pantalla se cargó antes): el botón deja de verse
+                    _puedeRellenarManual = false;
+                    throw;
+                }
                 Ensenar(creada);
                 if (!HayReposicion)
                 {
@@ -233,7 +292,9 @@ namespace Nesto.Modules.Producto.ViewModels
             if (!HayReposicion)
             {
                 // Incidencia 505: lo leído no puede desaparecer sin decir nada
-                Mensaje = "Primero prepara la reposición (botón «Preparar reposición») y después lee los códigos.";
+                Mensaje = _puedeRellenarManual
+                    ? "Primero prepara la reposición (botón «Preparar reposición») y después lee los códigos."
+                    : _textoSinReposicion ?? TextoSeRellenaSola(null, Ahora());
                 return;
             }
             List<LineaEnviarReposicion> candidatas = Lineas.Where(l => l.TieneCodigo(codigo)).ToList();
@@ -393,6 +454,15 @@ namespace Nesto.Modules.Producto.ViewModels
             try
             {
                 await accion().ConfigureAwait(true);
+            }
+            catch (EnvioReposicionException ex) when (ex.EsSinPermiso)
+            {
+                // NestoAPI#577: no es un error, es que ese usuario no puede hacerlo; se dice tal cual lo dice el servidor
+                Mensaje = ex.Message;
+                if (avisarEnDialogo)
+                {
+                    _dialogos.ShowNotification(Titulo, ex.Message);
+                }
             }
             catch (EnvioReposicionException ex)
             {

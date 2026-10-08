@@ -46,6 +46,23 @@ namespace Nesto.Infrastructure.Models
         public string Destino { get; set; }
         public DateTime? Fecha { get; set; }
         public List<LineaCrearReposicion> Lineas { get; set; }
+        /// <summary>NestoAPI#577: quién la crea ('Nesto' | 'Ariadna' | 'Automatico'). Nesto manda siempre «Nesto».</summary>
+        public string Herramienta { get; set; }
+    }
+
+    /// <summary>
+    /// GET api/Reposiciones/ProximaLlegada (NestoAPI#577): la próxima reposición de una ruta según el calendario.
+    /// Espejo de ProximaReposicionDTO de NestoAPI.
+    /// </summary>
+    public class ProximaReposicion
+    {
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        /// <summary>Día y hora de cierre: a esa hora la API rellena sola la reposición.</summary>
+        public DateTime CierraEl { get; set; }
+        public DateTime LlegaEl { get; set; }
+        public DateTime PedidoSaleEl { get; set; }
+        public int DiasHastaSalida { get; set; }
     }
 
     public class LineaTraspasoTerminado
@@ -71,5 +88,16 @@ namespace Nesto.Infrastructure.Models
     public class EnvioReposicionException : Exception
     {
         public EnvioReposicionException(string motivo) : base(motivo) { }
+
+        public EnvioReposicionException(string motivo, int codigo) : base(motivo)
+        {
+            Codigo = codigo;
+        }
+
+        /// <summary>El código HTTP con el que ha contestado la API (null si no se sabe).</summary>
+        public int? Codigo { get; }
+
+        /// <summary>NestoAPI#577: 403, el usuario no puede hacer eso (p. ej. rellenar la reposición a mano).</summary>
+        public bool EsSinPermiso => Codigo == 403;
     }
 }
