@@ -1,4 +1,4 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -364,7 +364,7 @@ namespace ControlesUsuario.Tests
         // ---- La vista: los chips son botones enfocables; «Adjuntar…» solo con permiso ----
 
         [TestMethod]
-        public void Vista_PintaUnBotonEnfocablePorChipYElDeAdjuntar()
+        public void Vista_PintaUnBotonEnfocablePorChip_SinAdjuntarNiBorrar()
         {
             EjecutarEnSTA(() =>
             {
@@ -381,8 +381,9 @@ namespace ControlesUsuario.Tests
                 var chips = botones.Where(b => b.DataContext is AdjuntoNovedadItem && b.Command == ((AdjuntoNovedadItem)b.DataContext).AbrirCommand).ToList();
                 Assert.AreEqual(2, chips.Count);
                 Assert.IsTrue(chips.All(b => b.Focusable && b.Visibility == System.Windows.Visibility.Visible));
-                Assert.IsTrue(botones.Any(b => b.Visibility == System.Windows.Visibility.Visible && Equals(b.Content, "Adjuntar…")));
-                Assert.AreEqual(2, botones.Count(b => b.Visibility == System.Windows.Visibility.Visible && Equals(b.Content, "✕") && b.DataContext is AdjuntoNovedadItem));
+                // Carlos (08/10/26): los adjuntos se suben por script, no desde Nesto: ni «Adjuntar…» ni ✕ en la vista.
+                Assert.IsFalse(botones.Any(b => b.DataContext is NovedadItem && b.Command == ((NovedadItem)b.DataContext).AdjuntarCommand));
+                Assert.IsFalse(botones.Any(b => Equals(b.Content, "✕") && b.DataContext is AdjuntoNovedadItem));
             });
         }
 

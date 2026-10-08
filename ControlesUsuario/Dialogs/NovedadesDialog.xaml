@@ -1,4 +1,4 @@
-<UserControl x:Class="ControlesUsuario.Dialogs.NovedadesDialog"
+﻿<UserControl x:Class="ControlesUsuario.Dialogs.NovedadesDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
@@ -203,7 +203,7 @@
                                            Visibility="{Binding ImagenNovedadNoDisponible, Converter={StaticResource BoolAVisible}}" />
 
                                 <!-- Nesto#519 (NestoAPI#616): adjuntos. Cada chip es un botón (clic o Intro = descargar y abrir con el
-                                     visor del sistema); Dirección / Informática ven además «Adjuntar…» y la ✕ para borrar.
+                                     visor del sistema); Se adjuntan por script (Scripts/AdjuntarANovedad.ps1 en NestoAPI), no desde Nesto (Carlos, 08/10/26).
                                      Con una API sin adjuntos no se ve nada. -->
                                 <StackPanel Margin="0,4,0,0" Visibility="{Binding MostrarAdjuntos, Converter={StaticResource BoolAVisible}}">
                                     <WrapPanel>
@@ -228,18 +228,11 @@
                                                                                Visibility="{Binding Descargando, Converter={StaticResource BoolAVisible}}" />
                                                                 </StackPanel>
                                                             </Button>
-                                                            <Button Content="✕" Command="{Binding BorrarCommand}" Background="Transparent" BorderThickness="0"
-                                                                    Padding="4,0" Foreground="#777777" Cursor="Hand"
-                                                                    ToolTip="Borrar este adjunto" AutomationProperties.Name="{Binding Nombre, StringFormat=Borrar {0}}"
-                                                                    Visibility="{Binding PuedeBorrar, Converter={StaticResource BoolAVisible}}" />
                                                         </StackPanel>
                                                     </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <Button Content="{Binding TextoBotonAdjuntar}" Command="{Binding AdjuntarCommand}" Padding="8,1" Margin="0,2,0,2"
-                                                VerticalAlignment="Center" ToolTip="Adjunta PDF o imágenes (hasta 10 MB cada uno) a esta novedad"
-                                                Visibility="{Binding PuedeAdjuntar, Converter={StaticResource BoolAVisible}}" />
                                     </WrapPanel>
                                     <TextBlock Text="{Binding MensajeAdjuntos}" FontSize="11" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,2,0,0"
                                                Visibility="{Binding HayMensajeAdjuntos, Converter={StaticResource BoolAVisible}}" />
