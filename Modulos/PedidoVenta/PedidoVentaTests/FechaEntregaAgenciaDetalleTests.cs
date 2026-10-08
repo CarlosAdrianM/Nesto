@@ -69,6 +69,24 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
+        public void ConAviso_SeEnsena_YAlAbrirOtroSinAvisoDesaparece()
+        {
+            FechaEntregaAgenciaDTO conAviso = Fecha(null);
+            conAviso.Aviso = "Con «Todo junto» el pedido no sale hasta que esté todo.";
+            var (vm, servicioFecha, _) = Vm(conAviso);
+
+            vm.pedido = new PedidoVentaWrapper(Pedido(928020));
+
+            Assert.IsTrue(vm.FechaEntregaAgencia.HayAviso);
+            Assert.AreEqual("Con «Todo junto» el pedido no sale hasta que esté todo.", vm.FechaEntregaAgencia.Aviso);
+
+            A.CallTo(() => servicioFecha.CalcularPedido(A<string>._, A<int>._)).Returns(Task.FromResult(Fecha(new DateTime(2026, 10, 15))));
+            vm.pedido = new PedidoVentaWrapper(Pedido(928021));
+
+            Assert.IsFalse(vm.FechaEntregaAgencia.HayAviso);
+        }
+
+        [TestMethod]
         public void HoyYManana()
         {
             var (vmHoy, _, _) = Vm(Fecha(Hoy));

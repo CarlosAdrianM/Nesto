@@ -366,6 +366,10 @@
                                            Foreground="DarkOrange" ToolTip="La fecha que se dio al crear el pedido"
                                            Visibility="{Binding FechaEntregaAgencia.HayPrometida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             </WrapPanel>
+                            <!-- NestoAPI#606: el aviso de la API (p. ej. «Todo junto» con algo que falta): visible pero discreto. -->
+                            <TextBlock Text="{Binding FechaEntregaAgencia.Aviso}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontStyle="Italic" Foreground="DarkOrange"
+                                       Visibility="{Binding FechaEntregaAgencia.HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">

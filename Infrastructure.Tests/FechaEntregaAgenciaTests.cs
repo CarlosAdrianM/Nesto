@@ -177,6 +177,42 @@ namespace Infrastructure.Tests
             CollectionAssert.Contains(cambios, nameof(FechaEntregaAgenciaVista.HayTexto));
         }
 
+        [TestMethod]
+        public void Vista_ConAviso_LoEnsena()
+        {
+            var vista = new FechaEntregaAgenciaVista();
+            FechaEntregaAgenciaDTO fecha = Fecha(null, FechaEntregaAgenciaDTO.APLICA_COMPLETA);
+            fecha.Aviso = " Con «Todo junto» el pedido no sale hasta que esté todo; falta el 17404. ";
+
+            vista.Aplicar(fecha, Hoy);
+
+            Assert.IsTrue(vista.HayAviso);
+            Assert.AreEqual("Con «Todo junto» el pedido no sale hasta que esté todo; falta el 17404.", vista.Aviso);
+        }
+
+        [TestMethod]
+        public void Vista_SinAviso_NoEnsenaNada()
+        {
+            var vista = new FechaEntregaAgenciaVista();
+            FechaEntregaAgenciaDTO conAviso = Fecha(Hoy);
+            conAviso.Aviso = "Algo";
+            vista.Aplicar(conAviso, Hoy);
+            var cambios = new List<string>();
+            vista.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            FechaEntregaAgenciaDTO enBlanco = Fecha(Hoy);
+            enBlanco.Aviso = "   ";
+            vista.Aplicar(enBlanco, Hoy);
+
+            Assert.IsFalse(vista.HayAviso);
+            Assert.IsNull(vista.Aviso);
+            CollectionAssert.Contains(cambios, nameof(FechaEntregaAgenciaVista.HayAviso));
+
+            vista.Aplicar(conAviso, Hoy);
+            vista.Limpiar();
+            Assert.IsFalse(vista.HayAviso, "sin respuesta, tampoco aviso");
+        }
+
         #endregion
 
         #region Servicio
@@ -228,6 +264,23 @@ namespace Infrastructure.Tests
             Assert.AreEqual(2, fecha.Entregas.Count);
             Assert.AreEqual("Lo que hay sale mañana.", fecha.Motivo);
             Assert.AreEqual(new DateTime(2026, 10, 15), fecha.FechaPrometida);
+        }
+
+        [TestMethod]
+        public async Task Aviso_SeLeeDeLaRespuesta_YSinLaPropiedadQuedaNull()
+        {
+            string conAviso = RESPUESTA.Replace("}", ",\"Aviso\":\"Con «Todo junto» el pedido no sale hasta que esté todo.\"}");
+            var servicioConAviso = new ServicioFechaEntregaAgencia(new FactoriaFalsa(new HandlerFalso { Respuesta = conAviso }));
+            var servicioAntiguo = new ServicioFechaEntregaAgencia(new FactoriaFalsa(new HandlerFalso { Respuesta = RESPUESTA }));
+
+            FechaEntregaAgenciaDTO nueva = await servicioConAviso.CalcularPlantilla(new PedidoVentaDTO());
+            FechaEntregaAgenciaDTO antigua = await servicioAntiguo.CalcularPlantilla(new PedidoVentaDTO());
+
+            Assert.AreEqual("Con «Todo junto» el pedido no sale hasta que esté todo.", nueva.Aviso);
+            Assert.IsNull(antigua.Aviso);
+            var vista = new FechaEntregaAgenciaVista();
+            vista.Aplicar(antigua, Hoy);
+            Assert.IsFalse(vista.HayAviso);
         }
 
         [TestMethod]

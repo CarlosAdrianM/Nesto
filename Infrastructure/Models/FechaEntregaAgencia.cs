@@ -29,6 +29,11 @@ namespace Nesto.Infrastructure.Models
         public string Motivo { get; set; }
         /// <summary>La que se dio al crear el pedido. Null en la plantilla y en los pedidos que no la tienen.</summary>
         public DateTime? FechaPrometida { get; set; }
+        /// <summary>
+        /// Algo que conviene saber, redactado por la API (p. ej. «Con «Todo junto» el pedido no sale hasta que esté
+        /// todo; …»). Null si no hay nada que avisar o la API es anterior a la propiedad.
+        /// </summary>
+        public string Aviso { get; set; }
     }
 
     /// <summary>
@@ -103,6 +108,7 @@ namespace Nesto.Infrastructure.Models
         private string _texto;
         private string _motivo;
         private string _textoPrometida;
+        private string _aviso;
 
         public string Texto
         {
@@ -139,12 +145,28 @@ namespace Nesto.Infrastructure.Models
 
         public bool HayPrometida => !string.IsNullOrWhiteSpace(TextoPrometida);
 
+        /// <summary>El aviso de la API (no es un error: algo a tener en cuenta). Null si no viene.</summary>
+        public string Aviso
+        {
+            get => _aviso;
+            private set
+            {
+                if (SetProperty(ref _aviso, value))
+                {
+                    OnPropertyChanged(nameof(HayAviso));
+                }
+            }
+        }
+
+        public bool HayAviso => !string.IsNullOrWhiteSpace(Aviso);
+
         /// <summary>Null (sin respuesta) lo deja todo vacío: no se enseña nada.</summary>
         public void Aplicar(FechaEntregaAgenciaDTO fecha, DateTime hoy)
         {
             Texto = TextosFechaEntregaAgencia.Texto(fecha, hoy);
             Motivo = string.IsNullOrWhiteSpace(fecha?.Motivo) ? null : fecha.Motivo;
             TextoPrometida = TextosFechaEntregaAgencia.TextoPrometida(fecha, hoy);
+            Aviso = string.IsNullOrWhiteSpace(fecha?.Aviso) ? null : fecha.Aviso.Trim();
         }
 
         public void Limpiar() => Aplicar(null, DateTime.Today);

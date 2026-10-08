@@ -74,6 +74,23 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public async Task ConAviso_SeEnsena_YSinElNo()
+        {
+            FechaEntregaAgenciaDTO conAviso = Fecha(null);
+            conAviso.Aplica = FechaEntregaAgenciaDTO.APLICA_COMPLETA;
+            conAviso.Aviso = "Con «Todo junto» el pedido no sale hasta que esté todo; falta el 38093.";
+            var (vm, _, _) = CrearViewModel(conAviso);
+            var (vmSinAviso, _, _) = CrearViewModel(Fecha(new DateTime(2026, 10, 15)));
+
+            await vm.RefrescarFechaEntregaAgencia();
+            await vmSinAviso.RefrescarFechaEntregaAgencia();
+
+            Assert.IsTrue(vm.FechaEntregaAgencia.HayAviso);
+            Assert.AreEqual("Con «Todo junto» el pedido no sale hasta que esté todo; falta el 38093.", vm.FechaEntregaAgencia.Aviso);
+            Assert.IsFalse(vmSinAviso.FechaEntregaAgencia.HayAviso, "Una API sin la propiedad no enseña aviso");
+        }
+
+        [TestMethod]
         public async Task HoyYManana()
         {
             var (vmHoy, _, _) = CrearViewModel(Fecha(Hoy));
