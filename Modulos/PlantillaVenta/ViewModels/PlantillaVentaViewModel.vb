@@ -83,6 +83,7 @@ Public Class PlantillaVentaViewModel
         Me.servicioBorradores = servicioBorradores
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
+        ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(_clienteApiFactory) ' NestoAPI#606
 
         Titulo = "Plantilla Ventas"
 
@@ -887,6 +888,7 @@ Public Class PlantillaVentaViewModel
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) AndAlso Not _restaurandoModoGuardado Then
                 OnValidarServirJunto()
             End If
+            PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606
         End Set
     End Property
 
@@ -926,6 +928,7 @@ Public Class PlantillaVentaViewModel
             Estado.MantenerJunto = ModosFacturacion.EsAlCompletar(value)
             OnPropertyChanged(NameOf(ModoFacturacion))
             OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
+            PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606
         End Set
     End Property
 
@@ -1214,6 +1217,7 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Private Sub PedirSugerenciasConDebounce()
         _peticionesSugerencias.Programar() ' NestoAPI#517: un único temporizador que se reprograma
+        PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606: lo que cambia las sugerencias cambia también la fecha
     End Sub
 
     ''' <summary>
@@ -1232,6 +1236,74 @@ Public Class PlantillaVentaViewModel
         Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
         Return If(pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse Not pedido.Lineas.Any(), Nothing, pedido)
     End Function
+
+#Region "NestoAPI#606: qué día se entrega el pedido a la agencia"
+
+    ' Lo calcula la API (POST api/PedidosVenta/FechaEntregaAgencia) con el mismo pedido que ModoServicioSugerido.
+    ' Su propio reloj y su huella (el pedido entero: líneas, modo de servicio y de facturación, ruta, fecha): un
+    ' cambio de modo no tiene por qué pedir otra vez las sugerencias, pero sí la fecha.
+    Private ReadOnly _peticionesFechaEntregaAgencia As New ProgramadorPeticionesConHuella(RETARDO_SUGERENCIAS_MS,
+        Sub() Application.Current?.Dispatcher?.InvokeAsync(
+            Async Function() As Task
+                Await RefrescarFechaEntregaAgencia()
+            End Function))
+    Private _programacionesFechaEntregaAgencia As Integer
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioFechaEntregaAgencia As Nesto.Infrastructure.Services.IServicioFechaEntregaAgencia
+
+    ''' <summary>El «hoy» con el que se dice «hoy»/«mañana» (fijo en los tests).</summary>
+    Friend Property Hoy As Func(Of Date) = Function() Date.Today
+
+    ''' <summary>«Se entrega a la agencia el jueves 15/10», con el motivo de la API para el tooltip.</summary>
+    Public ReadOnly Property FechaEntregaAgencia As New Nesto.Infrastructure.Models.FechaEntregaAgenciaVista()
+
+    ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
+    Friend ReadOnly Property PeticionesFechaEntregaAgenciaEnviadas As Integer
+        Get
+            Return _peticionesFechaEntregaAgencia.PeticionesEnviadas
+        End Get
+    End Property
+
+    ''' <summary>Cuántas veces se ha (re)programado el reloj (para los tests: cada cambio reprograma, no llama).</summary>
+    Friend ReadOnly Property ProgramacionesFechaEntregaAgencia As Integer
+        Get
+            Return _programacionesFechaEntregaAgencia
+        End Get
+    End Property
+
+    Private Sub PedirFechaEntregaAgenciaConDebounce()
+        _programacionesFechaEntregaAgencia += 1
+        _peticionesFechaEntregaAgencia.Programar()
+    End Sub
+
+    ''' <summary>Friend para poder pedirla a mano en los tests sin esperar al reloj. Los fallos no se propagan.</summary>
+    Friend Function RefrescarFechaEntregaAgencia() As Task
+        Return _peticionesFechaEntregaAgencia.EjecutarAsync(Of PedidoVentaDTO)(
+            AddressOf PedidoParaFechaEntregaAgencia, AddressOf HuellaPedidoSugerencias,
+            Sub() FechaEntregaAgencia.Limpiar(), AddressOf PedirFechaEntregaAgenciaAlServidor)
+    End Function
+
+    ''' <summary>El pedido con líneas (si no, no hay nada que entregar), con el número si se está modificando uno: así la
+    ''' API no cuenta sus líneas grabadas como pendientes de otros.</summary>
+    Private Function PedidoParaFechaEntregaAgencia() As PedidoVentaDTO
+        Dim pedido As PedidoVentaDTO = PedidoParaSugerencias()
+        If pedido IsNot Nothing Then
+            pedido.numero = If(NumeroPedidoEnEdicion, 0)
+        End If
+        Return pedido
+    End Function
+
+    Private Async Function PedirFechaEntregaAgenciaAlServidor(pedido As PedidoVentaDTO) As Task
+        Dim servicioFecha = ServicioFechaEntregaAgencia
+        If servicioFecha Is Nothing Then
+            Return
+        End If
+        Dim fecha = Await servicioFecha.CalcularPlantilla(pedido).ConfigureAwait(True)
+        FechaEntregaAgencia.Aplicar(fecha, Hoy.Invoke())
+    End Function
+
+#End Region
 
     Private Async Function PedirSugerenciasAlServidor(pedido As PedidoVentaDTO) As Task
         Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
@@ -1646,6 +1718,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(ModoFacturacion)) ' Nesto#493
             OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
             PedirModoFacturacionConDebounce()
+            PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606: cambian la ruta y los días de servir del contacto
 
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
@@ -1969,6 +2042,7 @@ Public Class PlantillaVentaViewModel
             If Estado.FechaEntrega <> value Then
                 Estado.FechaEntrega = value
                 OnPropertyChanged()
+                PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606: una entrega futura cambia el día
             End If
         End Set
     End Property
