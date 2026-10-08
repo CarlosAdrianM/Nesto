@@ -202,6 +202,49 @@
                                 <TextBlock Text="(no se pudo cargar la captura)" FontSize="11" Foreground="#999999"
                                            Visibility="{Binding ImagenNovedadNoDisponible, Converter={StaticResource BoolAVisible}}" />
 
+                                <!-- Nesto#519 (NestoAPI#616): adjuntos. Cada chip es un botón (clic o Intro = descargar y abrir con el
+                                     visor del sistema); Dirección / Informática ven además «Adjuntar…» y la ✕ para borrar.
+                                     Con una API sin adjuntos no se ve nada. -->
+                                <StackPanel Margin="0,4,0,0" Visibility="{Binding MostrarAdjuntos, Converter={StaticResource BoolAVisible}}">
+                                    <WrapPanel>
+                                        <ItemsControl ItemsSource="{Binding Adjuntos}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#F3F3F3" BorderBrush="#CCCCCC" BorderThickness="1" CornerRadius="10"
+                                                            Margin="0,2,6,2" Padding="2,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Command="{Binding AbrirCommand}" Background="Transparent" BorderThickness="0"
+                                                                    Padding="6,1" Cursor="Hand" ToolTip="{Binding TextoAyuda}"
+                                                                    AutomationProperties.Name="{Binding TextoAyuda}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Icono}" FontFamily="Segoe UI Emoji" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{Binding Texto}" Margin="4,0,0,0" Foreground="#333333" VerticalAlignment="Center" />
+                                                                    <TextBlock Text=" · descargando…" Foreground="#777777" FontStyle="Italic" VerticalAlignment="Center"
+                                                                               Visibility="{Binding Descargando, Converter={StaticResource BoolAVisible}}" />
+                                                                </StackPanel>
+                                                            </Button>
+                                                            <Button Content="✕" Command="{Binding BorrarCommand}" Background="Transparent" BorderThickness="0"
+                                                                    Padding="4,0" Foreground="#777777" Cursor="Hand"
+                                                                    ToolTip="Borrar este adjunto" AutomationProperties.Name="{Binding Nombre, StringFormat=Borrar {0}}"
+                                                                    Visibility="{Binding PuedeBorrar, Converter={StaticResource BoolAVisible}}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="{Binding TextoBotonAdjuntar}" Command="{Binding AdjuntarCommand}" Padding="8,1" Margin="0,2,0,2"
+                                                VerticalAlignment="Center" ToolTip="Adjunta PDF o imágenes (hasta 10 MB cada uno) a esta novedad"
+                                                Visibility="{Binding PuedeAdjuntar, Converter={StaticResource BoolAVisible}}" />
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding MensajeAdjuntos}" FontSize="11" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,2,0,0"
+                                               Visibility="{Binding HayMensajeAdjuntos, Converter={StaticResource BoolAVisible}}" />
+                                </StackPanel>
+
                                 <!-- NestoAPI#520: feedback. Solo si la API trae los contadores (si no, la ventana como siempre). -->
                                 <StackPanel Visibility="{Binding TieneFeedback, Converter={StaticResource BoolAVisible}}" Margin="0,6,0,0">
                                     <StackPanel Orientation="Horizontal">

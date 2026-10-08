@@ -44,8 +44,40 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public string Contexto { get; set; }
 
+        /// <summary>
+        /// Nesto#519 (NestoAPI#616): los ficheros adjuntos (PDF e imágenes). null = la API todavía no los
+        /// conoce (no trae la propiedad): no se enseñan ni los chips ni el botón de adjuntar.
+        /// </summary>
+        public List<AdjuntoNovedad> Adjuntos { get; set; }
+
         /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
         public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
+    }
+
+    /// <summary>Nesto#519 (NestoAPI#616): un fichero adjunto a una novedad o sugerencia.</summary>
+    public class AdjuntoNovedad
+    {
+        public int Id { get; set; }
+        /// <summary>Nombre original del fichero (p. ej. «Normas cupones.pdf»).</summary>
+        public string Nombre { get; set; }
+        /// <summary>Content-Type (application/pdf, image/png, image/jpeg, image/gif, image/webp).</summary>
+        public string Tipo { get; set; }
+        /// <summary>Tamaño en bytes.</summary>
+        public long Tamano { get; set; }
+    }
+
+    /// <summary>
+    /// Nesto#519 (NestoAPI#616): los adjuntos de las novedades. La lista viene en el DTO de cada novedad;
+    /// aquí, descargar, subir y borrar. Todos lanzan con el mensaje de la API.
+    /// </summary>
+    public interface IServicioAdjuntosNovedades
+    {
+        /// <summary>GET api/Novedades/Adjuntos/{id}: el contenido del fichero.</summary>
+        Task<byte[]> Descargar(int adjuntoId);
+        /// <summary>POST api/Novedades/{id}/Adjuntos (multipart, campo «fichero» por cada uno): los adjuntos creados.</summary>
+        Task<List<AdjuntoNovedad>> Subir(int novedadId, IEnumerable<string> rutasFicheros);
+        /// <summary>DELETE api/Novedades/Adjuntos/{id}.</summary>
+        Task Borrar(int adjuntoId);
     }
 
     /// <summary>NestoAPI#520: comentario de un usuario en una novedad (la imagen se pide aparte).</summary>

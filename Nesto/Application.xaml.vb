@@ -164,6 +164,12 @@ Partial Public Class Application
                 Dim factory = provider.Resolve(Of IClienteApiFactory)()
                 Return New NovedadesService(factory)
             End Function)
+        ' Nesto#519 (NestoAPI#616): adjuntos de las novedades (PDF e imágenes)
+        Dim unusedAdjuntosNovedades = containerRegistry.RegisterSingleton(Of IServicioAdjuntosNovedades)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioAdjuntosNovedades(factory)
+            End Function)
         ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
         Dim unusedAbridorNovedades = containerRegistry.Register(Of IAbridorNovedades, AbridorNovedades)()
         ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno

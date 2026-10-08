@@ -2,9 +2,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
@@ -114,10 +116,21 @@ namespace ControlesUsuario.Dialogs
         private readonly Func<string, bool> _preguntar;
 
         public NovedadItem(NovedadUsuario novedad, INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar,
-            ListaMencionables mencionables = null)
+            ListaMencionables mencionables = null, ContextoAdjuntosNovedades adjuntos = null)
         {
             _novedad = novedad ?? throw new ArgumentNullException(nameof(novedad));
             _servicio = servicio;
+            _adjuntos = adjuntos;
+            // Nesto#519: sin servicio de adjuntos o con una API que no los conoce (Adjuntos null), ni chips ni botón.
+            if (adjuntos?.Servicio != null && novedad.Adjuntos != null)
+            {
+                foreach (AdjuntoNovedad adjunto in novedad.Adjuntos.Where(a => a != null))
+                {
+                    Adjuntos.Add(CrearAdjunto(adjunto));
+                }
+            }
+            Adjuntos.CollectionChanged += (s, e) => NotificarAdjuntos();
+            AdjuntarCommand = new AsyncRelayCommand(Adjuntar, () => PuedeAdjuntar && !SubiendoAdjuntos);
             _portapapeles = portapapeles;
             _preguntar = preguntar ?? (_ => false);
             _votosPositivos = novedad.VotosPositivos ?? 0;
@@ -135,6 +148,106 @@ namespace ControlesUsuario.Dialogs
             QuitarImagenCommand = new RelayCommand(() => ImagenAdjunta = null, () => ImagenAdjunta != null);
             BorrarComentarioCommand = new AsyncRelayCommand<ComentarioItem>(BorrarComentario);
         }
+
+        #region Nesto#519 (NestoAPI#616): adjuntos (PDF e imágenes)
+
+        private readonly ContextoAdjuntosNovedades _adjuntos;
+
+        /// <summary>Los chips, debajo del texto.</summary>
+        public ObservableCollection<AdjuntoNovedadItem> Adjuntos { get; } = new ObservableCollection<AdjuntoNovedadItem>();
+        public bool HayAdjuntos => Adjuntos.Count > 0;
+
+        /// <summary>Dirección / Informática, con una API que ya conoce los adjuntos.</summary>
+        public bool PuedeAdjuntar => _adjuntos?.Servicio != null && _adjuntos.PuedeGestionar && _novedad.Adjuntos != null;
+
+        /// <summary>La fila de los adjuntos (chips, «Adjuntar…» o su aviso) se ve si hay algo que enseñar.</summary>
+        public bool MostrarAdjuntos => HayAdjuntos || PuedeAdjuntar || HayMensajeAdjuntos;
+
+        private bool _subiendoAdjuntos;
+        public bool SubiendoAdjuntos
+        {
+            get => _subiendoAdjuntos;
+            private set
+            {
+                if (SetProperty(ref _subiendoAdjuntos, value))
+                {
+                    AdjuntarCommand.NotifyCanExecuteChanged();
+                    OnPropertyChanged(nameof(TextoBotonAdjuntar));
+                }
+            }
+        }
+
+        public string TextoBotonAdjuntar => SubiendoAdjuntos ? "Subiendo…" : "Adjuntar…";
+
+        private string _mensajeAdjuntos;
+        /// <summary>Aviso discreto si no se pudo abrir, subir o borrar un adjunto.</summary>
+        public string MensajeAdjuntos
+        {
+            get => _mensajeAdjuntos;
+            private set
+            {
+                if (SetProperty(ref _mensajeAdjuntos, value))
+                {
+                    OnPropertyChanged(nameof(HayMensajeAdjuntos));
+                    OnPropertyChanged(nameof(MostrarAdjuntos));
+                }
+            }
+        }
+        public bool HayMensajeAdjuntos => !string.IsNullOrWhiteSpace(MensajeAdjuntos);
+
+        public IAsyncRelayCommand AdjuntarCommand { get; }
+
+        private AdjuntoNovedadItem CrearAdjunto(AdjuntoNovedad adjunto)
+            => new AdjuntoNovedadItem(adjunto, _adjuntos, a => Adjuntos.Remove(a), m => MensajeAdjuntos = m);
+
+        private void NotificarAdjuntos()
+        {
+            OnPropertyChanged(nameof(HayAdjuntos));
+            OnPropertyChanged(nameof(MostrarAdjuntos));
+        }
+
+        /// <summary>Elige ficheros (PDF e imágenes), los sube y añade sus chips.</summary>
+        internal async Task Adjuntar()
+        {
+            if (!PuedeAdjuntar || SubiendoAdjuntos)
+            {
+                return;
+            }
+            IList<string> rutas;
+            try
+            {
+                rutas = _adjuntos.ElegirFicheros() ?? new List<string>();
+            }
+            catch (Exception ex)
+            {
+                MensajeAdjuntos = ex.Message;
+                return;
+            }
+            if (rutas.Count == 0)
+            {
+                return;
+            }
+            SubiendoAdjuntos = true;
+            MensajeAdjuntos = null;
+            try
+            {
+                List<AdjuntoNovedad> creados = await _adjuntos.Servicio.Subir(Id, rutas) ?? new List<AdjuntoNovedad>();
+                foreach (AdjuntoNovedad creado in creados.Where(c => c != null && !Adjuntos.Any(a => a.Id == c.Id)))
+                {
+                    Adjuntos.Add(CrearAdjunto(creado));
+                }
+            }
+            catch (Exception ex)
+            {
+                MensajeAdjuntos = ex.Message;
+            }
+            finally
+            {
+                SubiendoAdjuntos = false;
+            }
+        }
+
+        #endregion
 
         // ---- Datos de la novedad (los que ya pintaba la ventana) ----
         public int Id => _novedad.Id;
