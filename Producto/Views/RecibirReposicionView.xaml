@@ -4,6 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              d:DataContext="{d:DesignInstance Type=viewmodels:RecibirReposicionViewModel}"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="900"
@@ -59,7 +61,14 @@
             <TextBlock Text="{Binding Seleccionada.Titulo}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad">
+                     ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad. Si escribes el nombre, elige el producto en la lista: también suma una unidad">
+                <!-- Sugerencia 545: el buscador de productos de las líneas del pedido. Lo que entra seguido por el lector
+                     llega al Intro antes de que el buscador pregunte (espera a que se deje de escribir) -->
+                <i:Interaction.Behaviors>
+                    <behaviors:AutocompleteBehavior Empresa="{Binding Empresa}" SiempreActivo="True" TipoBusqueda="Producto"
+                                                    MinChars="3" DebounceMs="400" MaxResults="10"
+                                                    ItemSeleccionado="Lector_ProductoElegido" />
+                </i:Interaction.Behaviors>
                 <TextBox.InputBindings>
                     <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />
                 </TextBox.InputBindings>

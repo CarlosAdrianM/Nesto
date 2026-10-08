@@ -543,5 +543,77 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.Lineas.All(l => l.Leido == 0));
             StringAssert.Contains(_vm.Mensaje, "varios productos");
         }
+
+        [TestMethod]
+        public async Task LeerProductoElegido_SumaUnaUnidadASuReferencia_YVaciaElLector()
+        {
+            // Sugerencia 545: se escribe el nombre en el «Lector», se elige el producto y cuenta como una lectura
+            await AbiertaAsync();
+            _vm.Lectura = "17404";
+
+            _vm.LeerProductoElegido(" 99001 ", "Sin código");
+            _vm.LeerProductoElegido("99001", "Sin código");
+
+            Assert.AreEqual(2, _vm.Lineas.Single(l => l.Producto == "99001").Leido);
+            Assert.AreEqual(string.Empty, _vm.Lectura);
+            Assert.IsNull(_vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task LeerProductoElegido_ConIntro_NoSumaDosVeces()
+        {
+            // El Intro que elige la sugerencia llega después al LeerLecturaCommand con el cuadro ya vacío
+            await AbiertaAsync();
+            _vm.Lectura = "40057";
+
+            _vm.LeerProductoElegido("40057", "Banda");
+            _vm.LeerLecturaCommand.Execute(null);
+
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "40057").Leido);
+        }
+
+        [TestMethod]
+        public async Task LeerProductoElegido_QueNoVenia_SeApuntaAparteConSuNombre()
+        {
+            await AbiertaAsync();
+
+            _vm.LeerProductoElegido("55555", "Crema de manos");
+            _vm.LeerProductoElegido("55555", "Crema de manos");
+
+            LineaRecibirReposicion ajena = _vm.Lineas.Single(l => l.NoVenia);
+            Assert.AreEqual("55555", ajena.Producto);
+            Assert.AreEqual(2, ajena.Leido);
+            StringAssert.Contains(ajena.Descripcion, "Crema de manos");
+            StringAssert.Contains(_vm.Mensaje, "no venía");
+        }
+
+        [TestMethod]
+        public async Task LeerProductoElegido_VaPorLaReferenciaAunqueSeaElCodigoDeOtro()
+        {
+            // La referencia elegida manda: no se confunde con un código de barras igual de otro producto
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", CodigoBarras = "8411", Cantidad = 1 },
+                    new() { Producto = "40057", CodigoBarras = "17404", Cantidad = 1 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.LeerProductoElegido("17404", "Cera");
+
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+            Assert.AreEqual(0, _vm.Lineas.Single(l => l.Producto == "40057").Leido);
+        }
+
+        [TestMethod]
+        public void LeerProductoElegido_SinReposicionAbierta_LoDice()
+        {
+            _vm.LeerProductoElegido("17404", "Cera");
+
+            StringAssert.Contains(_vm.Mensaje, "Primero abre una reposición");
+        }
     }
 }

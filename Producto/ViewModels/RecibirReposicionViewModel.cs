@@ -334,12 +334,41 @@ namespace Nesto.Modules.Producto.ViewModels
                 Mensaje = $"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.";
                 return;
             }
-            LineaRecibirReposicion linea = candidatas.FirstOrDefault()
-                ?? Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, codigo, StringComparison.OrdinalIgnoreCase));
+            SumarUnaUnidad(candidatas.FirstOrDefault(), codigo, null);
+        }
+
+        /// <summary>
+        /// Sugerencia 545: el producto elegido en las sugerencias del cuadro «Lector» (se escribe el nombre y se elige)
+        /// cuenta como una lectura de su referencia. Va por la referencia exacta, no por los códigos de barras.
+        /// </summary>
+        public void LeerProductoElegido(string producto, string nombre)
+        {
+            string referencia = producto?.Trim();
+            Lectura = string.Empty;
+            if (string.IsNullOrEmpty(referencia))
+            {
+                return;
+            }
+            if (Seleccionada == null)
+            {
+                Mensaje = "Primero abre una reposición de la lista (doble clic) y después lee los códigos.";
+                return;
+            }
+            SumarUnaUnidad(Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)),
+                referencia, nombre);
+        }
+
+        /// <summary>Suma una unidad a la línea; sin línea, a la de lo que no venía con ese código (o a una nueva).</summary>
+        private void SumarUnaUnidad(LineaRecibirReposicion linea, string codigo, string nombre)
+        {
+            linea ??= Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, codigo, StringComparison.OrdinalIgnoreCase));
             if (linea == null)
             {
                 // Entra lo leído, también lo que no venía (04/10): se apunta aparte y el servidor lo informa
-                linea = new LineaRecibirReposicion { Producto = codigo, Descripcion = "(no venía en la reposición)", NoVenia = true };
+                string descripcion = string.IsNullOrWhiteSpace(nombre)
+                    ? "(no venía en la reposición)"
+                    : $"{nombre.Trim()} (no venía en la reposición)";
+                linea = new LineaRecibirReposicion { Producto = codigo, Descripcion = descripcion, NoVenia = true };
                 Lineas.Add(linea);
             }
             linea.Leido++;

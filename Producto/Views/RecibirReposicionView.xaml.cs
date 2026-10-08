@@ -1,3 +1,4 @@
+﻿using ControlesUsuario.Behaviors;
 using Nesto.Modules.Producto.ViewModels;
 using System.Windows.Controls;
 
@@ -17,6 +18,18 @@ namespace Nesto.Modules.Producto.Views
                     await vm.CargarAsync();
                 }
             };
+        }
+
+        /// <summary>
+        /// Sugerencia 545: el producto elegido en el buscador del «Lector» cuenta como una lectura. Con Intro, el Intro
+        /// llega después al LeerLecturaCommand con el cuadro ya vacío, así que no suma dos veces.
+        /// </summary>
+        private void Lector_ProductoElegido(object sender, AutocompleteSeleccionEventArgs e)
+        {
+            if (DataContext is RecibirReposicionViewModel vm && e?.Item != null)
+            {
+                vm.LeerProductoElegido(e.Item.Id, e.Item.Texto);
+            }
         }
     }
 }
