@@ -1641,9 +1641,32 @@ Public Class ClientesViewModel
             Dim unused = SetProperty(_reclamarDeudaCommand, value)
         End Set
     End Property
+    ' NestoAPI#609: antes de crear el enlace se propone la corrección del concepto (lo ve el cliente y acaba en
+    ' su extracto). Si la API no la tiene o falla, se sigue con lo escrito sin avisar.
+    Private _revisorConceptoPago As ControlesUsuario.Services.IRevisorConceptoPago
+    Friend Property RevisorConceptoPago As ControlesUsuario.Services.IRevisorConceptoPago
+        Get
+            If _revisorConceptoPago Is Nothing AndAlso _clienteApiFactory IsNot Nothing AndAlso dialogService IsNot Nothing Then
+                _revisorConceptoPago = New ControlesUsuario.Services.RevisorConceptoPago(
+                    New ControlesUsuario.Services.ServicioRevisionConcepto(_clienteApiFactory), dialogService)
+            End If
+            Return _revisorConceptoPago
+        End Get
+        Set(value As ControlesUsuario.Services.IRevisorConceptoPago)
+            _revisorConceptoPago = value
+        End Set
+    End Property
+
     Private Async Sub OnReclamarDeuda()
         Dim errorReclamacion As Exception = Nothing
         Try
+            ' NestoAPI#609: el concepto elegido (corregido o el mío) queda en el cuadro y es el que se manda.
+            If RevisorConceptoPago IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(AsuntoReclamarDeuda) AndAlso
+                    AsuntoReclamarDeuda.Trim() <> ASUNTO_PAGO_POR_DEFECTO Then
+                AsuntoReclamarDeuda = Await RevisorConceptoPago.ElegirConcepto(AsuntoReclamarDeuda,
+                    clienteActivo?.empresa?.Trim(), clienteActivo?.cliente?.Trim())
+            End If
+
             Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then

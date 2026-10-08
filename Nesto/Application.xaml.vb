@@ -301,6 +301,8 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of NovedadesDialog, NovedadesDialogViewModel)
         ' Caso real 20/08/26: ventana de parámetros de usuario (sustituye al MessageBox del menú)
         containerRegistry.RegisterDialog(Of ParametrosUsuarioDialog, ParametrosUsuarioDialogViewModel)
+        ' NestoAPI#609: «¿Quisiste decir…?» con la corrección del concepto antes de crear un enlace de pago
+        containerRegistry.RegisterDialog(Of RevisionConceptoDialog, RevisionConceptoDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window
