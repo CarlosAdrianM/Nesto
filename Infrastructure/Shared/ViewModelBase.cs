@@ -1,4 +1,4 @@
-using Prism.Regions;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Infrastructure.Shared
 {
@@ -13,23 +13,17 @@ namespace Nesto.Infrastructure.Shared
     /// llama <c>OnPropertyChanged</c>; para no tener que editar sus 79 usos —y, sobre todo, para no
     /// meter un cambio de 14 pantallas en un solo push— se deja como envoltorio (en <see cref="ViewModelBasico"/>).
     ///
-    /// Sigue implementando <c>INavigationAware</c> de Prism.Regions: eso no se puede quitar hasta la
-    /// fase 4E (regiones). Convivir a medias es aceptable durante la transición, es el principio 2
-    /// del roadmap.
+    /// Nesto#490 (4C.4, 6.º tramo): ya no implementa <c>Prism.Regions.INavigationAware</c> (con
+    /// <c>IsNavigationTarget = false</c> y <c>OnNavigatedFrom</c> vacío) sino <see cref="IReceptorNavegacionPestanaNueva"/>:
+    /// cada navegación a una de sus vistas sigue abriendo una pestaña nueva (lo hace cumplir
+    /// <c>CargadorVistasNavegacion</c>) y <see cref="AlLlegar"/> sustituye a <c>OnNavigatedTo</c>. Quien quiera
+    /// reutilizar su pestaña hereda de <see cref="ViewModelBasico"/> e implementa <see cref="IReceptorNavegacion"/>.
     /// </summary>
-    public class ViewModelBase : ViewModelBasico, INavigationAware
+    public class ViewModelBase : ViewModelBasico, IReceptorNavegacionPestanaNueva
     {
-        public void OnNavigatedFrom(NavigationContext navigationContext)
+        /// <summary>Se ha navegado a la vista (siempre una nueva). Por defecto no hace nada.</summary>
+        public virtual void AlLlegar(ParametrosNavegacion parametros)
         {
-        }
-
-        public virtual void OnNavigatedTo(NavigationContext navigationContext)
-        {
-        }
-
-        public virtual bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return false;
         }
     }
 

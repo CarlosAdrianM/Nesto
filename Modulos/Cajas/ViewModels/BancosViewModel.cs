@@ -12,7 +12,6 @@ using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Regions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1812,7 +1811,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         #endregion
 
 
-        public override async void OnNavigatedTo(NavigationContext navigationContext)
+        // Nesto#490 (4C.4, 6.º tramo): lo que hacía OnNavigatedTo. Pestaña nueva en cada navegación, como antes.
+        public override async void AlLlegar(ParametrosNavegacion parametros)
         {
             string parametroBanco = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco);
             string fechasDesdeJson = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde);

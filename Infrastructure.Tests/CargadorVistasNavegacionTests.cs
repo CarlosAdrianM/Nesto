@@ -2,6 +2,7 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
+using Nesto.Infrastructure.Shared;
 using Prism.Ioc;
 using Prism.Regions;
 using System;
@@ -84,6 +85,65 @@ namespace Nesto.Infrastructure.Tests
                 Assert.IsNotNull(cargada);
                 Assert.AreNotSame(abierta, cargada);
                 Assert.AreEqual(2, region.Views.Count());
+            });
+        }
+
+        // Nesto#490 (4C.4, 6.º tramo): las subclases de ViewModelBase siguen abriendo una pestaña nueva en cada
+        // navegación (antes INavigationAware con IsNavigationTarget = false), y las de ViewModelBasico que reciben la
+        // navegación reutilizan la abierta (la lista de rapports).
+        private sealed class ViewModelHeredaDeLaBase : ViewModelBase { }
+
+        private sealed class ViewModelBasicoReutiliza : ViewModelBasico, IReceptorNavegacion
+        {
+            public void AlLlegar(ParametrosNavegacion parametros) { }
+        }
+
+        [TestMethod]
+        public void ViewModelBase_NoDependeDeLaNavegacionDePrismYPidePestanaNueva()
+        {
+            Assert.IsFalse(typeof(INavigationAware).IsAssignableFrom(typeof(ViewModelBase)));
+            Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ViewModelBase)));
+            Assert.IsFalse(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(ViewModelBasico)));
+        }
+
+        [TestMethod]
+        public void LoadContent_ConUnaSubclaseDeViewModelBase_AbreOtraVista()
+        {
+            EnSta(() =>
+            {
+                var (region, abierta, cargada) = Navegar(new ViewModelHeredaDeLaBase());
+
+                Assert.IsNotNull(cargada);
+                Assert.AreNotSame(abierta, cargada);
+                Assert.AreEqual(2, region.Views.Count());
+            });
+        }
+
+        [TestMethod]
+        public void LoadContent_ConUnViewModelBasicoQueRecibeLaNavegacion_ReutilizaLaVista()
+        {
+            EnSta(() =>
+            {
+                var (region, abierta, cargada) = Navegar(new ViewModelBasicoReutiliza());
+
+                Assert.AreSame(abierta, cargada);
+                Assert.AreEqual(1, region.Views.Count());
+            });
+        }
+
+        [TestMethod]
+        public void Entregar_AUnaSubclaseDeViewModelBase_LlamaASuAlLlegarConLosParametros()
+        {
+            EnSta(() =>
+            {
+                var viewModel = A.Fake<ViewModelBase>();
+                var vista = new VistaPrueba { DataContext = viewModel };
+                var parametros = new ParametrosNavegacion { { "clave", 1 } };
+
+                IReceptorNavegacion receptor = ReceptorNavegacion.Entregar(new[] { vista }, new[] { vista }, nameof(VistaPrueba), parametros);
+
+                Assert.AreSame(viewModel, receptor);
+                A.CallTo(() => viewModel.AlLlegar(parametros)).MustHaveHappenedOnceExactly();
             });
         }
 
