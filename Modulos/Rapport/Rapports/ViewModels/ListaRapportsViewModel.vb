@@ -181,7 +181,11 @@ Public Class ListaRapportsViewModel
             Return _grupoSubgrupoSeleccionado
         End Get
         Set(value As String)
-            If SetProperty(_grupoSubgrupoSeleccionado, value) Then
+            ' Al abrir Rapports, el selector de subgrupos pone «(Todos los subgrupos)» (cadena vacía) donde había
+            ' Nothing: es el mismo filtro y no se vuelve a pedir la lista (antes salían dos llamadas seguidas a
+            ' api/Clientes/SugerenciasContacto, 07/10/26).
+            Dim antes As String = If(_grupoSubgrupoSeleccionado, String.Empty)
+            If SetProperty(_grupoSubgrupoSeleccionado, value) AndAlso If(value, String.Empty) <> antes Then
                 ActualizarClientesProbabilidad(value)
             End If
         End Set
@@ -765,6 +769,11 @@ Public Class ListaRapportsViewModel
 
 
     Private Async Sub ActualizarClientesProbabilidad(grupoSubgrupo As String)
+        ' Sin tipo todavía (el grupo ha llegado antes de que OnNavigatedTo lo lea) no se pide nada: se pide al poner el
+        ' tipo. Antes salía una llamada con el tipo vacío.
+        If IsNothing(TipoRapportSeleccionado.id) Then
+            Exit Sub
+        End If
         Await ActualizarClientesProbabilidadAsync(grupoSubgrupo)
     End Sub
 
