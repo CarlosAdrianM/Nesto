@@ -13,7 +13,7 @@ namespace RapportsTests
 {
     /// <summary>
     /// Al abrir Rapports se pedía dos veces seguidas GET api/Clientes/SugerenciasContacto (07/10/26: dos registros a
-    /// 50 ms): una al poner el tipo en OnNavigatedTo y otra cuando el selector de subgrupos, al cargar, pone
+    /// 50 ms): una al poner el tipo en AlLlegar (antes OnNavigatedTo) y otra cuando el selector de subgrupos, al cargar, pone
     /// «(Todos los subgrupos)» (cadena vacía) donde había Nothing. Sin grupo y «todos» es lo mismo: una sola llamada.
     /// Cambiar de tipo o de grupo sigue recargando.
     /// </summary>
@@ -41,7 +41,7 @@ namespace RapportsTests
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
                 A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             // Lo que hace SelectorSubgrupoProducto al terminar de cargar: elige «(Todos los subgrupos)»
             vm.GrupoSubgrupoSeleccionado = string.Empty;
             return vm;
@@ -65,7 +65,7 @@ namespace RapportsTests
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
                 A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
 
-            vm.OnNavigatedTo(null);
+            vm.AlLlegar(new ParametrosNavegacion());
             vm.GrupoSubgrupoSeleccionado = string.Empty;
             leerTipo.SetResult("T");
 

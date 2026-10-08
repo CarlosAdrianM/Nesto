@@ -7,12 +7,11 @@ Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Prism.Regions
 Imports Unity
 
 Public Class ListaRapportsViewModel
-    Inherits ViewModelBase
-    Implements INavigationAware, IActiveAware
+    Inherits ViewModelBasico
+    Implements IReceptorNavegacion, IActiveAware
 
     Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
@@ -833,7 +832,9 @@ Public Class ListaRapportsViewModel
     End Sub
 
 
-    Public Overrides Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+    ' Nesto#490 (4C.4): la lista reutiliza su pestaña (antes IsNavigationTarget = True), así que hereda de ViewModelBasico
+    ' y no de ViewModelBase (que abre una pestaña nueva cada vez). Sin INavigationAware, Prism ya reutiliza la vista abierta.
+    Public Async Sub AlLlegar(parametrosNavegacion As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.Vendedor)
         End If
@@ -846,14 +847,6 @@ Public Class ListaRapportsViewModel
 
         Dim permitirCopiar = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirCopiarSeguimientos)
         PuedeCopiarSeguimientos = permitirCopiar = "1"
-    End Sub
-
-    Public Overrides Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
-        Return True
-    End Function
-
-    Public Overloads Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
-
     End Sub
 
 #End Region

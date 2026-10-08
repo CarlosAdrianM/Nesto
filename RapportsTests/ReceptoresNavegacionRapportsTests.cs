@@ -23,6 +23,16 @@ namespace RapportsTests
         }
 
         [TestMethod]
+        public void ListaRapports_NoDependeDeLaNavegacionDePrismYReutilizaSuPestana()
+        {
+            // Nesto#490 (4C.4, 6.º tramo): antes IsNavigationTarget = True. Hereda de ViewModelBasico, no de ViewModelBase
+            // (que abre pestaña nueva), e implementa IReceptorNavegacion: Prism reutiliza la pestaña abierta.
+            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ListaRapportsViewModel)));
+            Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(ListaRapportsViewModel)));
+            Assert.IsFalse(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ListaRapportsViewModel)));
+        }
+
+        [TestMethod]
         public void Rapport_AlLlegar_CargaElRapportYElVendedorDelUsuario()
         {
             var configuracion = A.Fake<IConfiguracion>();
