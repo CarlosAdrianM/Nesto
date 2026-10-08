@@ -100,12 +100,15 @@
 
         <!-- Nesto#487: cabecera de la página de sugerencias: avisos y cuadro para sugerir (mismo pegado de captura que los comentarios). -->
         <StackPanel Grid.Row="3" Visibility="{Binding EnSugerencias, Converter={StaticResource BoolAVisible}}">
-            <TextBlock Text="Ideas de los usuarios que aún no están hechas (y avisos de cosas que no funcionan). Vota las que te interesen y coméntalas; las más votadas salen arriba."
+            <TextBlock Text="{Binding TextoCabeceraSugerencias}"
                        TextWrapping="Wrap" Foreground="#555555" Margin="0,0,0,4" />
             <TextBlock Text="Cargando sugerencias…" Foreground="#777777" Margin="0,0,0,4"
                        Visibility="{Binding CargandoSugerencias, Converter={StaticResource BoolAVisible}}" />
             <TextBlock Text="{Binding MensajeSugerencias}" Foreground="#2E6DA4" TextWrapping="Wrap" Margin="0,0,0,4"
                        Visibility="{Binding HayMensajeSugerencias, Converter={StaticResource BoolAVisible}}" />
+            <!-- Novedades (08/10/26): lista del modo (sugerencias o avisos) vacía -->
+            <TextBlock Text="{Binding MensajeListaVacia}" Foreground="#777777" FontStyle="Italic" TextWrapping="Wrap" Margin="0,0,0,4"
+                       Visibility="{Binding HayMensajeListaVacia, Converter={StaticResource BoolAVisible}}" />
             <Border Visibility="{Binding FormularioSugerenciaAbierto, Converter={StaticResource BoolAVisible}}"
                     Background="#F7F7F7" CornerRadius="3" Padding="8" Margin="0,0,0,6">
                 <StackPanel>

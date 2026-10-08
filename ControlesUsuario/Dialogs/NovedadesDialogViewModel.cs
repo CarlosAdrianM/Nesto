@@ -25,6 +25,9 @@ namespace ControlesUsuario.Dialogs
         /// <summary>Índice de página de las sugerencias: por delante de la versión más nueva (índice 0).</summary>
         internal const int INDICE_SUGERENCIAS = -1;
         internal const string TITULO_SUGERENCIAS = "Sugerencias pendientes";
+        internal const string TITULO_INCIDENCIAS = "Avisos de cosas que no funcionan";
+        internal const string MENSAJE_SIN_SUGERENCIAS = "Todavía no hay sugerencias pendientes. ¿Echas algo en falta? Cuéntanoslo con «Sugerir una mejora».";
+        internal const string MENSAJE_SIN_INCIDENCIAS = "No hay avisos pendientes de cosas que no funcionan. Si algo no va bien, cuéntanoslo con «Algo no funciona».";
 
         // NestoAPI#520: feedback de los usuarios (votos y comentarios). Sin servicio (tests antiguos) o si la
         // API no trae los contadores, la ventana se ve exactamente como antes.
@@ -257,8 +260,7 @@ namespace ControlesUsuario.Dialogs
             }
             _indice = INDICE_SUGERENCIAS;
             EnSugerencias = true;
-            VersionActual = TITULO_SUGERENCIAS;
-            Novedades = _sugerencias?.ToList() ?? new List<NovedadItem>();
+            MostrarListaSugerencias();
             NotificarNavegacion();
             if (_sugerencias == null && !CargandoSugerencias)
             {
@@ -274,10 +276,6 @@ namespace ControlesUsuario.Dialogs
             {
                 List<NovedadUsuario> lista = await _servicio.LeerSugerencias() ?? new List<NovedadUsuario>();
                 _sugerencias = lista.Where(n => n != null).Select(CrearItem).ToList();
-                if (_sugerencias.Count == 0)
-                {
-                    MensajeSugerencias = "Todavía no hay sugerencias. ¿Echas algo en falta? Cuéntanoslo con «Sugerir una mejora»; si algo no va bien, con «Algo no funciona».";
-                }
             }
             catch (Exception ex)
             {
@@ -289,13 +287,64 @@ namespace ControlesUsuario.Dialogs
             }
             if (EnSugerencias && _sugerencias != null)
             {
-                Novedades = _sugerencias.ToList();
+                MostrarListaSugerencias();
             }
             // Las capturas, después de pintar la lista (no la retrasan).
             foreach (NovedadItem sugerencia in _sugerencias ?? new List<NovedadItem>())
             {
                 await sugerencia.CargarImagenNovedad();
             }
+        }
+
+        private bool _listaDeIncidencias;
+        /// <summary>
+        /// Novedades (08/10/26): la página separa las dos listas. Entrando por «Sugerir una mejora» (o con la
+        /// flecha) solo se ven las sugerencias; por «Algo no funciona», solo los avisos de fallos. Sigue al modo
+        /// del cuadro y, al saltar desde el buscador o la campana, a lo que se abre.
+        /// </summary>
+        public bool ListaDeIncidencias
+        {
+            get => _listaDeIncidencias;
+            private set
+            {
+                if (SetProperty(ref _listaDeIncidencias, value))
+                {
+                    OnPropertyChanged(nameof(TextoCabeceraSugerencias));
+                    if (EnSugerencias)
+                    {
+                        MostrarListaSugerencias();
+                    }
+                }
+            }
+        }
+
+        public string TextoCabeceraSugerencias => ListaDeIncidencias
+            ? "Avisos de los usuarios de cosas que no funcionan y aún no están arregladas. Vota las que te pasen a ti también y coméntalas; las más votadas salen arriba."
+            : "Ideas de los usuarios que aún no están hechas. Vota las que te interesen y coméntalas; las más votadas salen arriba.";
+
+        private string _mensajeListaVacia;
+        /// <summary>Lista del modo vacía (ya cargada): qué decir según sea de sugerencias o de avisos.</summary>
+        public string MensajeListaVacia
+        {
+            get => _mensajeListaVacia;
+            private set
+            {
+                if (SetProperty(ref _mensajeListaVacia, value))
+                {
+                    OnPropertyChanged(nameof(HayMensajeListaVacia));
+                }
+            }
+        }
+        public bool HayMensajeListaVacia => !string.IsNullOrWhiteSpace(MensajeListaVacia);
+
+        /// <summary>Pinta las sugerencias o los avisos (según <see cref="ListaDeIncidencias"/>) con su título y su aviso de lista vacía.</summary>
+        private void MostrarListaSugerencias()
+        {
+            VersionActual = ListaDeIncidencias ? TITULO_INCIDENCIAS : TITULO_SUGERENCIAS;
+            Novedades = _sugerencias?.Where(s => s.EsIncidencia == ListaDeIncidencias).ToList() ?? new List<NovedadItem>();
+            MensajeListaVacia = _sugerencias != null && Novedades.Count == 0
+                ? (ListaDeIncidencias ? MENSAJE_SIN_INCIDENCIAS : MENSAJE_SIN_SUGERENCIAS)
+                : null;
         }
 
         private bool _formularioSugerenciaAbierto;
@@ -316,6 +365,7 @@ namespace ControlesUsuario.Dialogs
                     OnPropertyChanged(nameof(TextoAyudaFormulario));
                     OnPropertyChanged(nameof(TextoBotonEnviarFormulario));
                 }
+                ListaDeIncidencias = value;
             }
         }
 
@@ -450,6 +500,7 @@ namespace ControlesUsuario.Dialogs
                 TextoSugerencia = null;
                 ImagenSugerencia = null;
                 FormularioSugerenciaAbierto = false;
+                ListaDeIncidencias = incidencia;
                 if (!EnSugerencias || _sugerencias == null)
                 {
                     // Si la lista aún no estaba cargada, al cargarla ya viene la nueva.
@@ -470,7 +521,7 @@ namespace ControlesUsuario.Dialogs
                 {
                     item.ImagenNovedad = imagen;
                 }
-                Novedades = _sugerencias.ToList();
+                MostrarListaSugerencias();
                 Destacar(item);
                 MensajeSugerencias = incidencia
                     ? "¡Gracias por avisar! Lo revisaremos y te diremos en qué versión queda arreglado."
@@ -597,6 +648,7 @@ namespace ControlesUsuario.Dialogs
 
             if (encontrada.EsSugerencia)
             {
+                ListaDeIncidencias = encontrada.EsIncidencia;
                 await IrASugerencias();
                 NovedadItem sugerencia = _sugerencias?.FirstOrDefault(s => s.Id == encontrada.Id);
                 if (sugerencia == null)
@@ -608,7 +660,7 @@ namespace ControlesUsuario.Dialogs
                         _sugerencias = new List<NovedadItem>();
                     }
                     _sugerencias.Add(sugerencia);
-                    Novedades = _sugerencias.ToList();
+                    MostrarListaSugerencias();
                     await sugerencia.CargarImagenNovedad();
                 }
                 Destacar(sugerencia);
@@ -692,6 +744,7 @@ namespace ControlesUsuario.Dialogs
                 MensajeSugerencias = MENSAJE_NOVEDAD_NO_ENCONTRADA;
                 return null;
             }
+            ListaDeIncidencias = sugerencia.EsIncidencia;
             Destacar(sugerencia);
             return sugerencia;
         }
