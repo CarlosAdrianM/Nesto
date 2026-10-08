@@ -356,6 +356,16 @@
                             <TextBlock Text="{Binding AvisoPortesTodoAhora}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontStyle="Italic" Foreground="#555555"
                                        Visibility="{Binding EsModoFacturacionTodoAhora, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- NestoAPI#606: qué día se entrega a la agencia (calculado ahora por la API) y, si no coincide, el
+                                 que se prometió al crear el pedido. -->
+                            <WrapPanel Margin="3,2,3,4"
+                                       Visibility="{Binding FechaEntregaAgencia.HayTexto, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding FechaEntregaAgencia.Texto}" TextWrapping="Wrap" FontWeight="SemiBold"
+                                           ToolTip="{Binding FechaEntregaAgencia.Motivo}"/>
+                                <TextBlock Text="{Binding FechaEntregaAgencia.TextoPrometida}" TextWrapping="Wrap" Margin="12,0,0,0"
+                                           Foreground="DarkOrange" ToolTip="La fecha que se dio al crear el pedido"
+                                           Visibility="{Binding FechaEntregaAgencia.HayPrometida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </WrapPanel>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">

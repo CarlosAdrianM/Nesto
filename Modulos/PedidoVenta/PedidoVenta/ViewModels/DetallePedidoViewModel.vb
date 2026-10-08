@@ -89,6 +89,8 @@ Public Class DetallePedidoViewModel
         Me.dialogService = dialogService
         Me.container = container
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
+        ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
         Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
@@ -587,6 +589,7 @@ Public Class DetallePedidoViewModel
                 _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
                 ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo
                 ReiniciarModosFacturacionPermitidos() ' Nesto#493
+                Dim unusedFecha = CargarFechaEntregaAgenciaAsync() ' NestoAPI#606: sin esperar, la carga sigue
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -2522,6 +2525,7 @@ Public Class DetallePedidoViewModel
 
         Dim rechazoConPicking As ModoConPickingException = Nothing
         Dim modoDeseado As Byte = pedido.ModoServicio
+        Dim guardado As Boolean = False ' NestoAPI#606
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
             Dim crearModificarEx As Exception = Nothing
@@ -2614,6 +2618,7 @@ Public Class DetallePedidoViewModel
 
             ' Issue #135: Gestionar etiqueta de recogida
             Await GestionarEtiquetaRecogida()
+            guardado = True
         Catch ex As ModoConPickingException
             rechazoConPicking = ex ' Nesto#489: en VB no se puede esperar un diálogo dentro del Catch
         Catch ex As ModoServicioNoPermitidoException
@@ -2640,7 +2645,53 @@ Public Class DetallePedidoViewModel
         If rechazoConPicking IsNot Nothing Then
             Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
         End If
+
+        ' NestoAPI#606: guardar puede cambiar el día (líneas, modo...). Ya sin bloquear la pantalla.
+        If guardado Then
+            Await CargarFechaEntregaAgenciaAsync()
+        End If
     End Function
+
+#Region "NestoAPI#606: qué día se entrega el pedido a la agencia"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioFechaEntregaAgencia As Nesto.Infrastructure.Services.IServicioFechaEntregaAgencia
+
+    ''' <summary>El «hoy» con el que se dice «hoy»/«mañana» (fijo en los tests).</summary>
+    Friend Property Hoy As Func(Of Date) = Function() Date.Today
+
+    ''' <summary>La calculada ahora («Se entrega a la agencia el jueves 15/10», con el motivo en el tooltip) y, si no
+    ''' coincide, la que se prometió al crear el pedido («Prometida: …»).</summary>
+    Public ReadOnly Property FechaEntregaAgencia As New Nesto.Infrastructure.Models.FechaEntregaAgenciaVista()
+
+    Private _versionFechaEntregaAgencia As Integer
+
+    ''' <summary>
+    ''' GET api/PedidosVenta/{empresa}/{numero}/FechaEntregaAgencia. Al abrir el pedido y al guardarlo. Un pedido sin grabar
+    ''' no tiene fecha que pedir; si la API falla o es anterior al endpoint no se enseña nada. Si mientras tanto se abre
+    ''' otro pedido, la respuesta del anterior se descarta.
+    ''' </summary>
+    Friend Async Function CargarFechaEntregaAgenciaAsync() As Task
+        _versionFechaEntregaAgencia += 1
+        Dim version As Integer = _versionFechaEntregaAgencia
+        Dim servicioFecha = ServicioFechaEntregaAgencia
+        If pedido Is Nothing OrElse pedido.numero <= 0 OrElse servicioFecha Is Nothing Then
+            FechaEntregaAgencia.Limpiar()
+            Return
+        End If
+        Dim fecha As Nesto.Infrastructure.Models.FechaEntregaAgenciaDTO = Nothing
+        Try
+            fecha = Await servicioFecha.CalcularPedido(pedido.empresa, pedido.numero).ConfigureAwait(True)
+        Catch ex As Exception
+            fecha = Nothing ' es una ayuda: sin respuesta no se enseña nada
+        End Try
+        If version <> _versionFechaEntregaAgencia Then
+            Return
+        End If
+        FechaEntregaAgencia.Aplicar(fecha, Hoy.Invoke())
+    End Function
+
+#End Region
 
     ''' <summary>
     ''' Nesto#489 / NestoAPI#533: la API no deja cambiar el modo porque el pedido ya tiene picking. El pedido no se
