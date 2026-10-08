@@ -55,7 +55,7 @@
         </ListBox>
 
         <!-- Lo que llega: el lector suma una unidad; los productos sin código se teclean en «Leído» -->
-        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,4">
+        <WrapPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="{Binding Seleccionada.Titulo}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
@@ -66,8 +66,16 @@
             </TextBox>
             <Button Content="Terminar" Command="{Binding TerminarCommand}" Padding="16,2" Margin="12,0,0,0"
                     ToolTip="Entra lo leído y se informa de las diferencias a quien hizo la reposición" />
-        </StackPanel>
-        <DataGrid Grid.Row="2" Grid.Column="2" ItemsSource="{Binding Lineas}" AutoGenerateColumns="False"
+            <!-- Sugerencia 545: encontrar en la lista lo que no entra por el lector y teclear su cantidad en «Leído» -->
+            <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="24,2,6,2" />
+            <TextBox Width="200" Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Filtra la lista por referencia o descripción (sin distinguir mayúsculas ni tildes). Vacío, la lista entera">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Escape" Command="{Binding LimpiarFiltroCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+        </WrapPanel>
+        <DataGrid Grid.Row="2" Grid.Column="2" ItemsSource="{Binding LineasVisibles}" AutoGenerateColumns="False"
                   CanUserAddRows="False" CanUserDeleteRows="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />

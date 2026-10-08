@@ -402,5 +402,83 @@ namespace Producto.Tests
             Assert.AreEqual("Sobran 1", linea.Estado);
             Assert.AreEqual(TipoEstadoLineaRecibir.NoVenia, new LineaRecibirReposicion { NoVenia = true, Leido = 1 }.TipoEstado);
         }
+
+        private List<string> Visibles() => _vm.LineasVisibles.Cast<LineaRecibirReposicion>().Select(l => l.Producto).ToList();
+
+        [TestMethod]
+        public async Task Filtro_PorDescripcion_SinDistinguirMayusculasNiTildes()
+        {
+            // Sugerencia 545: encontrar lo que no entra por el lector
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", Descripcion = "Cera Depilatoria Tibia", Cantidad = 2 },
+                    new() { Producto = "40057", Descripcion = "Banda de papel", Cantidad = 1 },
+                    new() { Producto = "99001", Descripcion = "Loción post-depilación", Cantidad = 3 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.Filtro = "DEPILACION";
+            CollectionAssert.AreEqual(new[] { "99001" }, Visibles());
+
+            _vm.Filtro = "depil";
+            CollectionAssert.AreEqual(new[] { "17404", "99001" }, Visibles());
+
+            _vm.Filtro = "locion";
+            CollectionAssert.AreEqual(new[] { "99001" }, Visibles());
+        }
+
+        [TestMethod]
+        public async Task Filtro_PorReferencia()
+        {
+            await AbiertaAsync();
+
+            _vm.Filtro = " 4005 ";
+
+            CollectionAssert.AreEqual(new[] { "40057" }, Visibles());
+        }
+
+        [TestMethod]
+        public async Task Filtro_NoPierdeLoLeido_YVaciarloDejaLaListaEntera()
+        {
+            await AbiertaAsync();
+            _vm.LeerCommand.Execute("8411");
+            _vm.Filtro = "sin código";
+            CollectionAssert.AreEqual(new[] { "99001" }, Visibles());
+            _vm.LineasVisibles.Cast<LineaRecibirReposicion>().Single().Leido = 3;
+
+            _vm.Filtro = "";
+
+            CollectionAssert.AreEqual(new[] { "17404", "40057", "99001" }, Visibles());
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+            Assert.AreEqual(3, _vm.Lineas.Single(l => l.Producto == "99001").Leido);
+        }
+
+        [TestMethod]
+        public async Task Filtro_ElLectorSigueLeyendoEnTodasLasLineas()
+        {
+            await AbiertaAsync();
+            _vm.Filtro = "Banda";
+
+            _vm.LeerCommand.Execute("8411");
+
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+            Assert.AreEqual(3, _vm.Lineas.Count);
+        }
+
+        [TestMethod]
+        public async Task LimpiarFiltro_VuelveALaListaEntera()
+        {
+            await AbiertaAsync();
+            _vm.Filtro = "Banda";
+
+            _vm.LimpiarFiltroCommand.Execute(null);
+
+            Assert.IsNull(_vm.Filtro);
+            Assert.AreEqual(3, Visibles().Count);
+        }
     }
 }

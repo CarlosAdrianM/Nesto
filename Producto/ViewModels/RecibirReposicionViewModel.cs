@@ -7,9 +7,13 @@ using Nesto.Infrastructure.Shared;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Data;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
@@ -66,6 +70,35 @@ namespace Nesto.Modules.Producto.ViewModels
             : Diferencia < 0 ? TipoEstadoLineaRecibir.Faltan
             : TipoEstadoLineaRecibir.Sobran;
 
+        /// <summary>
+        /// Sugerencia 545: la línea casa con lo buscado si su referencia o su descripción lo contienen, sin distinguir
+        /// mayúsculas ni tildes. Con el cuadro vacío casan todas.
+        /// </summary>
+        internal bool CasaConFiltro(string filtro)
+        {
+            string buscado = Normalizar(filtro);
+            return buscado.Length == 0
+                || Normalizar(Producto).Contains(buscado)
+                || Normalizar(Descripcion).Contains(buscado);
+        }
+
+        private static string Normalizar(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return string.Empty;
+            }
+            var sinTildes = new StringBuilder();
+            foreach (char c in texto.Trim().Normalize(NormalizationForm.FormD))
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                {
+                    sinTildes.Append(c);
+                }
+            }
+            return sinTildes.ToString().Normalize(NormalizationForm.FormC).ToUpperInvariant();
+        }
+
         internal bool TieneCodigo(string codigo)
             => (!SinCodigo && string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase))
                || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase);
@@ -99,6 +132,11 @@ namespace Nesto.Modules.Producto.ViewModels
                 Lectura = string.Empty;
             });
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => PuedeTerminar && !EstaOcupado);
+            LimpiarFiltroCommand = new RelayCommand(() => Filtro = null);
+            // Sugerencia 545: la grid enseña las líneas filtradas; lo leído está en las líneas, así que filtrar no lo pierde
+            var vista = new ListCollectionView(Lineas);
+            vista.Filter = l => ((LineaRecibirReposicion)l).CasaConFiltro(Filtro);
+            LineasVisibles = vista;
         }
 
         public string Titulo => "Recibir reposición";
@@ -111,6 +149,44 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public ObservableCollection<RecepcionPendiente> Pendientes { get; } = new ObservableCollection<RecepcionPendiente>();
         public ObservableCollection<LineaRecibirReposicion> Lineas { get; } = new ObservableCollection<LineaRecibirReposicion>();
+
+        /// <summary>Sugerencia 545: <see cref="Lineas"/> con el filtro del cuadro «Buscar». Es lo que enseña la grid.</summary>
+        public ICollectionView LineasVisibles { get; }
+
+        private string _filtro;
+        /// <summary>
+        /// Sugerencia 545: buscar en la lista por referencia o descripción, para encontrar lo que no entra por el lector y
+        /// teclear la cantidad en «Leído». Vacío, la lista entera. El lector sigue leyendo en todas las líneas.
+        /// </summary>
+        public string Filtro
+        {
+            get => _filtro;
+            set
+            {
+                if (SetProperty(ref _filtro, value))
+                {
+                    RefrescarFiltro();
+                }
+            }
+        }
+
+        private void RefrescarFiltro()
+        {
+            // Si se estaba tecleando en «Leído», lo tecleado ya está en la línea (PropertyChanged): se cierra la edición,
+            // porque la vista no se deja refrescar a mitad
+            if (LineasVisibles is IEditableCollectionView editable)
+            {
+                if (editable.IsEditingItem)
+                {
+                    editable.CommitEdit();
+                }
+                if (editable.IsAddingNew)
+                {
+                    editable.CancelNew();
+                }
+            }
+            LineasVisibles.Refresh();
+        }
 
         private RecepcionPendiente _seleccionada;
         public RecepcionPendiente Seleccionada { get => _seleccionada; private set => SetProperty(ref _seleccionada, value); }
@@ -155,6 +231,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public string Lectura { get => _lectura; set => SetProperty(ref _lectura, value); }
 
         public IRelayCommand LeerLecturaCommand { get; }
+        /// <summary>Sugerencia 545: Esc en el cuadro «Buscar» vuelve a la lista entera.</summary>
+        public IRelayCommand LimpiarFiltroCommand { get; }
         public IAsyncRelayCommand TerminarCommand { get; }
 
         public async Task CargarAsync()
@@ -205,6 +283,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 _recepcion = recepcion;
                 _idRecepcion = Guid.NewGuid();
                 Seleccionada = pendiente;
+                Filtro = null;
                 Lineas.Clear();
                 foreach (LineaRecepcionReposicion linea in recepcion.Lineas ?? new List<LineaRecepcionReposicion>())
                 {
