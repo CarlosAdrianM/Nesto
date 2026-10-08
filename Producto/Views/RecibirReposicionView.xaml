@@ -74,7 +74,34 @@
                 <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" IsReadOnly="True" Width="*" />
                 <DataGridTextColumn Header="Enviado" Binding="{Binding Enviado}" IsReadOnly="True" />
                 <DataGridTextColumn Header="Leído" Binding="{Binding Leido, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridTextColumn Header="" Binding="{Binding Estado}" IsReadOnly="True" />
+                <!-- Sugerencia 543: «Bien» en verde, faltas y sobras en ámbar, lo que no venía en rojo. Fondos
+                     semitransparentes y el texto con su color de siempre: se leen en claro y en oscuro -->
+                <DataGridTextColumn Header="" Binding="{Binding Estado}" IsReadOnly="True" MinWidth="80">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TipoEstado}" Value="Bien">
+                                    <Setter Property="Background" Value="#5534A853" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding TipoEstado}" Value="Faltan">
+                                    <Setter Property="Background" Value="#66F4B400" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding TipoEstado}" Value="Sobran">
+                                    <Setter Property="Background" Value="#66F4B400" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding TipoEstado}" Value="NoVenia">
+                                    <Setter Property="Background" Value="#55EA4335" />
+                                </DataTrigger>
+                                <!-- Seleccionada se queda con su color de estado: el texto, el de siempre (no el blanco de la selección) -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
 

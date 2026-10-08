@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
@@ -382,6 +382,25 @@ namespace Producto.Tests
 
             Assert.IsFalse(_vm.TerminarCommand.CanExecute(null));
             StringAssert.Contains(_vm.Mensaje, "no puedes terminarla");
+        }
+
+        [TestMethod]
+        public void TipoEstado_DiceSiEstaBienOFaltaOSobra_ParaColorearlo()
+        {
+            // Sugerencia 543: la vista colorea por el tipo, no comparando el texto
+            var linea = new LineaRecibirReposicion { Producto = "17404", Enviado = 2 };
+            var cambios = new List<string?>();
+            linea.PropertyChanged += (_, e) => cambios.Add(e.PropertyName);
+
+            Assert.AreEqual(TipoEstadoLineaRecibir.Faltan, linea.TipoEstado);
+            linea.Leido = 2;
+            Assert.AreEqual(TipoEstadoLineaRecibir.Bien, linea.TipoEstado);
+            Assert.AreEqual("Bien", linea.Estado);
+            CollectionAssert.Contains(cambios, nameof(LineaRecibirReposicion.TipoEstado));
+            linea.Leido = 3;
+            Assert.AreEqual(TipoEstadoLineaRecibir.Sobran, linea.TipoEstado);
+            Assert.AreEqual("Sobran 1", linea.Estado);
+            Assert.AreEqual(TipoEstadoLineaRecibir.NoVenia, new LineaRecibirReposicion { NoVenia = true, Leido = 1 }.TipoEstado);
         }
     }
 }

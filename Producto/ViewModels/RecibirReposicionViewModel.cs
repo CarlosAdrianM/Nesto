@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
@@ -13,6 +13,16 @@ using System.Threading.Tasks;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
+    /// <summary>Cómo va una línea al recibirla: lo leído frente a lo enviado.</summary>
+    public enum TipoEstadoLineaRecibir
+    {
+        Bien,
+        Faltan,
+        Sobran,
+        /// <summary>Se ha leído y no venía en la reposición.</summary>
+        NoVenia
+    }
+
     /// <summary>Una línea de la reposición: lo enviado y lo que se ha leído al recibirla.</summary>
     public class LineaRecibirReposicion : ObservableObject
     {
@@ -35,16 +45,26 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     OnPropertyChanged(nameof(Diferencia));
                     OnPropertyChanged(nameof(Estado));
+                    OnPropertyChanged(nameof(TipoEstado));
                 }
             }
         }
 
         public int Diferencia => Leido - Enviado;
 
-        public string Estado => NoVenia ? "No venía"
-            : Diferencia == 0 ? "Bien"
-            : Diferencia < 0 ? $"Faltan {-Diferencia}"
-            : $"Sobran {Diferencia}";
+        public string Estado => TipoEstado switch
+        {
+            TipoEstadoLineaRecibir.NoVenia => "No venía",
+            TipoEstadoLineaRecibir.Bien => "Bien",
+            TipoEstadoLineaRecibir.Faltan => $"Faltan {-Diferencia}",
+            _ => $"Sobran {Diferencia}"
+        };
+
+        /// <summary>Sugerencia 543: la vista colorea la columna de estado por esto, no por el texto.</summary>
+        public TipoEstadoLineaRecibir TipoEstado => NoVenia ? TipoEstadoLineaRecibir.NoVenia
+            : Diferencia == 0 ? TipoEstadoLineaRecibir.Bien
+            : Diferencia < 0 ? TipoEstadoLineaRecibir.Faltan
+            : TipoEstadoLineaRecibir.Sobran;
 
         internal bool TieneCodigo(string codigo)
             => (!SinCodigo && string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase))
