@@ -12,234 +12,187 @@ using System.Xml.Serialization;
 
 namespace Nesto.Modulos.CanalesExternos.ApisExternas
 {
+    /// <summary>
+    /// Cliente del webservice de una tienda Prestashop. Nesto#520: el mismo núcleo para todas las tiendas; la
+    /// URL, la clave y cómo se presenta (autenticación básica o <c>ws_key</c> en la URL) los pone la
+    /// <see cref="TiendaPrestashop"/>.
+    /// </summary>
     public class PrestashopService
     {
+        private static readonly XName XLINK_HREF = XName.Get("href", "http://www.w3.org/1999/xlink");
+
+        private readonly Func<string, string> leerAjuste;
+
+        public PrestashopService(TiendaPrestashop tienda) : this(tienda, clave => ConfigurationManager.AppSettings[clave])
+        {
+        }
+
+        internal PrestashopService(TiendaPrestashop tienda, Func<string, string> leerAjuste)
+        {
+            Tienda = tienda ?? throw new ArgumentNullException(nameof(tienda));
+            this.leerAjuste = leerAjuste;
+        }
+
+        public TiendaPrestashop Tienda { get; }
+
+        private string LeerClave()
+        {
+            string clave = leerAjuste(Tienda.ClaveConfiguracion);
+            if (string.IsNullOrWhiteSpace(clave))
+            {
+                throw new InvalidOperationException($"Falta la clave {Tienda.ClaveConfiguracion} del webservice de la tienda {Tienda.Nombre} en clavesSecretas.config.");
+            }
+            return clave;
+        }
+
+        /// <summary>
+        /// La URL tal y como se pide a la tienda: con <c>ws_key</c> si la tienda lleva la clave en la URL (también
+        /// en los enlaces xlink:href que devuelve la propia tienda, que vienen sin clave), o igual si va por
+        /// autenticación básica. OJO: con la clave dentro, esta URL no se escribe en mensajes ni en ELMAH.
+        /// </summary>
+        internal string ConstruirUrl(string url)
+        {
+            if (Tienda.Autenticacion != AutenticacionPrestashop.ClaveEnUrl)
+            {
+                return url;
+            }
+            string separador = url.Contains('?') ? "&" : "?";
+            return $"{url}{separador}ws_key={Uri.EscapeDataString(LeerClave())}";
+        }
+
+        /// <summary>Handler con la clave como usuario de la autenticación básica, o sin credenciales si va en la URL.</summary>
+        internal HttpClientHandler CrearHandler()
+        {
+            return Tienda.Autenticacion == AutenticacionPrestashop.Basica
+                ? new HttpClientHandler { Credentials = new NetworkCredential { UserName = LeerClave() } }
+                : new HttpClientHandler();
+        }
+
+        private HttpClient CrearCliente()
+        {
+            return new HttpClient(CrearHandler(), disposeHandler: true);
+        }
+
+        private async Task<string> LeerTextoAsync(HttpClient client, string url)
+        {
+            using (HttpResponseMessage response = await client.GetAsync(ConstruirUrl(url)))
+            {
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Sin la URL completa: con la clave en la URL acabaría en ELMAH
+                    throw new HttpRequestException($"La tienda {Tienda.Nombre} ha respondido {(int)response.StatusCode} ({response.ReasonPhrase}) al leer {RecursoSinClave(url)}.");
+                }
+                string resultado = await response.Content.ReadAsStringAsync();
+                return resultado.TrimStart('\n');
+            }
+        }
+
+        // Solo el recurso (orders/44, addresses/7...), para los mensajes de error
+        internal static string RecursoSinClave(string url)
+        {
+            string recurso = url ?? string.Empty;
+            int posicionApi = recurso.IndexOf("/api/", StringComparison.OrdinalIgnoreCase);
+            if (posicionApi >= 0)
+            {
+                recurso = recurso[(posicionApi + 5)..];
+            }
+            int posicionQuery = recurso.IndexOf('?');
+            return posicionQuery >= 0 ? recurso[..posicionQuery] : recurso;
+        }
+
+        private async Task<XElement> LeerElementoAsync(HttpClient client, string url, string elemento)
+        {
+            string resultado = await LeerTextoAsync(client, url);
+            return XDocument.Parse(resultado).Element("prestashop").Element(elemento);
+        }
+
         public async Task<List<string>> CargarListaPedidosAsync()
         {
             // estado 2 = Pago Aceptamos
             // estado 3 = Preparación en curso
             // estado 10 = En espera de pago por transferencia
-            string urlPrestashop = "http://www.productosdeesteticaypeluqueriaprofesional.com/api/orders?filter[current_state]=[2|3|10|58]";
-
+            string urlPrestashop = $"{Tienda.UrlApi}/orders?filter[current_state]=[2|3|10|58]";
 
             List<string> listaPrestashop = new List<string>();
-            string userName;
-            try
+            using (HttpClient client = CrearCliente())
             {
-                userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-            } catch
-            {
-                return listaPrestashop;
-            }
-            
-
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential {UserName = userName} })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlPrestashop))
-            using (HttpContent content = response.Content)
-            {
-                try
+                var xml = XDocument.Parse(await LeerTextoAsync(client, urlPrestashop));
+                foreach (var node in xml.Descendants("order"))
                 {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    //resultado = string.Format(resultado);
-                    var xml = XDocument.Parse(resultado);
-
-                    foreach (var node in xml.Descendants("order"))
-                    {
-                        listaPrestashop.Add(node.LastAttribute.Value); 
-                    }
-
-                } catch (Exception ex)
-                {
-                    throw ex;
+                    listaPrestashop.Add(node.LastAttribute.Value);
                 }
-                
-                return listaPrestashop;
             }
+            return listaPrestashop;
         }
 
-        internal async Task<PedidoPrestashop> CargarPedidoPorReferenciaAsync(string urlPedido)
+        internal async Task<PedidoPrestashop> CargarPedidoPorReferenciaAsync(string referenciaPedido)
         {
-            string urlPrestashop = urlPedido;
-            string userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-
-            XElement xmlPedido;
-
-            // Cargamos el pedido
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlPrestashop))
-            using (HttpContent content = response.Content)
+            string urlPedidoId;
+            using (HttpClient client = CrearCliente())
             {
-                try
-                {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    xmlPedido = XDocument.Parse(resultado).Element("prestashop").Element("orders");
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
+                XElement xmlPedidos = await LeerElementoAsync(client, $"{Tienda.UrlApi}/orders?filter[reference]={referenciaPedido}", "orders");
+                XElement xmlOrder = xmlPedidos.Element("order");
+                urlPedidoId = (string)xmlOrder.Attribute(XLINK_HREF);
             }
-
-            XElement xmlOrder = xmlPedido.Element("order");
-            string urlPedidoId = (string)xmlOrder.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
 
             return await CargarPedidoAsync(urlPedidoId);
         }
 
         internal async Task<PedidoPrestashop> CargarPedidoAsync(string urlPedido)
         {
-            string urlPrestashop = urlPedido;
-            string userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-
-            XElement xmlPedido;
-            XElement xmlDireccion;
-            XElement xmlCliente;
-            XElement xmlPais;
-            XElement xmlProvincia = null;
-
             PedidoPrestashop pedidoPrestashop = new PedidoPrestashop();
 
-
-            // Cargamos el pedido
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlPrestashop))
-            using (HttpContent content = response.Content)
+            using (HttpClient client = CrearCliente())
             {
-                try
-                {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    xmlPedido = XDocument.Parse(resultado).Element("prestashop").Element("order");
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-            }
+                // El pedido
+                XElement xmlPedido = await LeerElementoAsync(client, urlPedido, "order");
 
-            // Cargamos la direccion
-            XElement direccionXML = xmlPedido.Element("id_address_delivery");
-            string urlDireccion = (string)direccionXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlDireccion))
-            using (HttpContent content = response.Content)
-            {
-                try
-                {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    xmlDireccion = XDocument.Parse(resultado).Element("prestashop").Element("address");
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-            }
+                // La dirección de entrega
+                string urlDireccion = (string)xmlPedido.Element("id_address_delivery").Attribute(XLINK_HREF);
+                XElement xmlDireccion = await LeerElementoAsync(client, urlDireccion, "address");
 
-            // Cargamos la provicina
-            XElement provinciaXML = xmlDireccion.Element("id_state");
-            string urlProvincia = (string)provinciaXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
-            if (urlProvincia != null)
-            {
-                using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-                using (HttpClient client = new HttpClient(handler))
-                using (HttpResponseMessage response = await client.GetAsync(urlProvincia))
-                using (HttpContent content = response.Content)
+                // La provincia (puede no tener)
+                XElement xmlProvincia = null;
+                string urlProvincia = (string)xmlDireccion.Element("id_state").Attribute(XLINK_HREF);
+                if (urlProvincia != null)
                 {
-                    try
+                    string resultado = await LeerTextoAsync(client, urlProvincia);
+                    if (!string.IsNullOrEmpty(resultado))
                     {
-                        string resultado = await content.ReadAsStringAsync();
-                        resultado = resultado.TrimStart('\n');
-                        if (!string.IsNullOrEmpty(resultado))
-                        {
-                            xmlProvincia = XDocument.Parse(resultado).Element("prestashop").Element("state");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ex;
+                        xmlProvincia = XDocument.Parse(resultado).Element("prestashop").Element("state");
                     }
                 }
-            }
 
-            // Cargamos el pais
-            XElement paisXML = xmlDireccion.Element("id_country");
-            string urlPais = (string)paisXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlPais))
-            using (HttpContent content = response.Content)
-            {
-                try
-                {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    xmlPais = XDocument.Parse(resultado).Element("prestashop").Element("country");
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-            }
+                // El país
+                string urlPais = (string)xmlDireccion.Element("id_country").Attribute(XLINK_HREF);
+                XElement xmlPais = await LeerElementoAsync(client, urlPais, "country");
 
-            // Cargamos el cliente
-            XElement clienteXML = xmlPedido.Element("id_customer");
-            string urlCliente = (string)clienteXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
-            using (HttpClient client = new HttpClient(handler))
-            using (HttpResponseMessage response = await client.GetAsync(urlCliente))
-            using (HttpContent content = response.Content)
-            {
-                try
-                {
-                    string resultado = await content.ReadAsStringAsync();
-                    resultado = resultado.TrimStart('\n');
-                    xmlCliente = XDocument.Parse(resultado).Element("prestashop").Element("customer");
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-            }
+                // El cliente
+                string urlCliente = (string)xmlPedido.Element("id_customer").Attribute(XLINK_HREF);
+                XElement xmlCliente = await LeerElementoAsync(client, urlCliente, "customer");
 
-            pedidoPrestashop.Pedido = xmlPedido;
-            pedidoPrestashop.Direccion = xmlDireccion;
-            pedidoPrestashop.Cliente = xmlCliente;
-            pedidoPrestashop.Pais = xmlPais;
-            pedidoPrestashop.Provincia = xmlProvincia;
+                pedidoPrestashop.Pedido = xmlPedido;
+                pedidoPrestashop.Direccion = xmlDireccion;
+                pedidoPrestashop.Cliente = xmlCliente;
+                pedidoPrestashop.Pais = xmlPais;
+                pedidoPrestashop.Provincia = xmlProvincia;
+            }
             // Nesto#340: el PedidoNestoId lo resuelve el llamante por la API
             // (api/PedidosVenta/PorReferenciaCanal); este servicio queda como cliente puro
             // de la API de Prestashop, sin EF.
 
             return pedidoPrestashop;
         }
-        internal async static Task<string> ObtenerPedidoPorReferenciaAsync(string referenciaPedido)
-        {
-            string baseUrl = "http://www.productosdeesteticaypeluqueriaprofesional.com/api";
-            string apiKey;
-            try
-            {
-                apiKey = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-            }
-            catch
-            {
-                return null;
-            }
 
-            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = apiKey } })
-            using (HttpClient client = new HttpClient(handler))
+        internal async Task<string> ObtenerPedidoPorReferenciaAsync(string referenciaPedido)
+        {
+            using (HttpClient client = CrearCliente())
             {
                 // Construir la URL de búsqueda del pedido por referencia
-                var searchUrl = $"{baseUrl}/orders?display=full&filter[reference]={referenciaPedido}";
+                var searchUrl = $"{Tienda.UrlApi}/orders?display=full&filter[reference]={referenciaPedido}";
 
                 // Realizar la solicitud GET para buscar el pedido por referencia
-                var searchResponse = await client.GetAsync(searchUrl);
+                var searchResponse = await client.GetAsync(ConstruirUrl(searchUrl));
 
                 if (searchResponse.IsSuccessStatusCode)
                 {
@@ -250,24 +203,13 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
             return null; // Si no se encontró el pedido o ocurrió un error, retornar null
         }
-        internal async static Task<bool> CambiarEstadoPedidoAsync(string referenciaPedido, int nuevoEstado, bool mandarCorreo)
-        {
-            string baseUrl = "https://www.productosdeesteticaypeluqueriaprofesional.com/api";
-            string apiKey;
-            try
-            {
-                apiKey = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-            }
-            catch
-            {
-                return false;
-            }
 
+        internal async Task<bool> CambiarEstadoPedidoAsync(string referenciaPedido, int nuevoEstado, bool mandarCorreo)
+        {
             var pedidoXml = await ObtenerPedidoPorReferenciaAsync(referenciaPedido);
 
             if (!string.IsNullOrEmpty(pedidoXml))
             {
-                
                 // Parsear el XML del pedido
                 var xmlPedido = XElement.Parse(pedidoXml);
 
@@ -278,8 +220,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                     return false;
                 }
 
-                using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = apiKey } })
-                using (HttpClient client = new HttpClient(handler))
+                using (HttpClient client = CrearCliente())
                 {
                     // Obtener el ID del pedido
                     var idPedidoElement = xmlPedido.Descendants("id").FirstOrDefault();
@@ -293,13 +234,13 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                             )
                         );
                         // Actualizar el estado del pedido haciendo un POST a <order_histories>
-                        var updateOrderUrl = $"{baseUrl}/order_histories";
+                        var updateOrderUrl = $"{Tienda.UrlApi}/order_histories";
                         if (mandarCorreo)
                         {
                             updateOrderUrl += "?sendemail=1";
                         }
                         var updateOrderContent = new StringContent(orderHistoryXml.ToString(), Encoding.UTF8, "application/xml");
-                        var updateOrderResponse = await client.PostAsync(updateOrderUrl, updateOrderContent);
+                        var updateOrderResponse = await client.PostAsync(ConstruirUrl(updateOrderUrl), updateOrderContent);
 
                         if (updateOrderResponse.IsSuccessStatusCode)
                         {
@@ -311,19 +252,9 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
             return false;
         }
-        internal async static Task<bool> ConfirmarPedidoAsync(string referenciaPedido, string agenciaId, string numeroSeguimiento, bool mandarCorreo)
-        {
-            string baseUrl = "https://www.productosdeesteticaypeluqueriaprofesional.com/api";
-            string apiKey;
-            try
-            {
-                apiKey = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
-            }
-            catch
-            {
-                return false;
-            }
 
+        internal async Task<bool> ConfirmarPedidoAsync(string referenciaPedido, string agenciaId, string numeroSeguimiento, bool mandarCorreo)
+        {
             var pedidoXml = await ObtenerPedidoPorReferenciaAsync(referenciaPedido);
 
             if (!string.IsNullOrEmpty(pedidoXml))
@@ -332,8 +263,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 // Parsear el XML del pedido
                 var xmlPedido = XElement.Parse(pedidoXml);
 
-                using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = apiKey } })
-                using (HttpClient client = new HttpClient(handler))
+                using (HttpClient client = CrearCliente())
                 {
                     // Obtener el ID del pedido
                     var idPedidoElement = xmlPedido.Descendants("id").FirstOrDefault();
@@ -345,8 +275,8 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                         // PATCH y no llegó a funcionar nunca. Con Prestashop 8 el índice del API ya
                         // expone patch/put por recurso (requiere concederlos a la clave en
                         // Parámetros avanzados → Webservice).
-                        var carriersUrl = $"{baseUrl}/order_carriers?filter[id_order]={idPedido}&display=full";
-                        var carriersResponse = await client.GetAsync(carriersUrl);
+                        var carriersUrl = $"{Tienda.UrlApi}/order_carriers?filter[id_order]={idPedido}&display=full";
+                        var carriersResponse = await client.GetAsync(ConstruirUrl(carriersUrl));
                         if (!carriersResponse.IsSuccessStatusCode)
                         {
                             return false;
@@ -375,7 +305,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
                         // sendemail=1: Prestashop avisa al cliente del cambio de transportista con
                         // el número de seguimiento (correo "en tránsito")
-                        var updateOrderUrl = $"{baseUrl}/order_carriers/{idOrderCarrier}";
+                        var updateOrderUrl = $"{Tienda.UrlApi}/order_carriers/{idOrderCarrier}";
                         if (mandarCorreo)
                         {
                             updateOrderUrl += "?sendemail=1";
@@ -384,11 +314,11 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
                         // PATCH (parcial, lo natural en Prestashop 8); si la clave solo tiene PUT
                         // concedido, se reintenta con PUT y el recurso completo que acabamos de leer
-                        var updateOrderResponse = await client.PatchAsync(updateOrderUrl, updateOrderContent);
+                        var updateOrderResponse = await client.PatchAsync(ConstruirUrl(updateOrderUrl), updateOrderContent);
                         if (!updateOrderResponse.IsSuccessStatusCode)
                         {
                             updateOrderContent = new StringContent(orderCarrierXml.ToString(), Encoding.UTF8, "application/xml");
-                            updateOrderResponse = await client.PutAsync(updateOrderUrl, updateOrderContent);
+                            updateOrderResponse = await client.PutAsync(ConstruirUrl(updateOrderUrl), updateOrderContent);
                         }
 
                         if (updateOrderResponse.IsSuccessStatusCode)
@@ -401,8 +331,6 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
             return false;
         }
-
-
     }
 
     public class PedidoPrestashop

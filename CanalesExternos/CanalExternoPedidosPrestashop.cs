@@ -1,0 +1,681 @@
+﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
+using Nesto.Models;
+using Nesto.Modulos.CanalesExternos.ApisExternas;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+namespace Nesto.Modulos.CanalesExternos
+{
+    /// <summary>
+    /// Nesto#520: núcleo de los pedidos de una tienda Prestashop (antes era solo la de Nueva Visión). Todo el
+    /// tratamiento (cliente por NIF, cobros, líneas, regalos, portes, cupones, seguimiento) es común; lo que
+    /// cambia de una tienda a otra (URL, clave, autenticación, serie) lo pone la <see cref="TiendaPrestashop"/>.
+    /// </summary>
+    public class CanalExternoPedidosPrestashop : ICanalExternoPedidos
+    {
+        private readonly IConfiguracion configuracion;
+        private const string EMPRESA_DEFECTO = "1";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO_COMISION = "Pago contra reembolso con comisión";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO_INGLES = "Cash on delivery";
+        private const string FORMA_PAGO_PAYPAL = "PayPal";
+        private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
+        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay";
+        // Bizum sin prepago (07/09/26): desde Prestashop 4.2.7 los pedidos se confirman por
+        // controllers/front/ipn.php, que guarda la etiqueta corta bizumName ("Bizum"). El flujo
+        // viejo (okpayment.php) guardaba bizumDisplayName ("Bizum - Pago online"). Las dos
+        // etiquetas conviven: la larga en los 1.372 pedidos anteriores al 20/08/2026.
+        private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
+        private const string FORMA_PAGO_BIZUM_IPN = "Bizum";
+        private const string FORMA_PAGO_APLAZAME = "Aplazame";
+        private const string FORMA_PAGO_MIRAVIA = "Miravia";
+
+        private string formaVenta = "WEB";
+        private readonly Interfaces.IClientesPorTelefonoService clientesLookup;
+
+        private readonly PrestashopService servicio;
+
+        public CanalExternoPedidosPrestashop(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesLookup, TiendaPrestashop tienda)
+        {
+            this.configuracion = configuracion;
+            this.clientesLookup = clientesLookup;
+            Tienda = tienda ?? throw new ArgumentNullException(nameof(tienda));
+            servicio = new PrestashopService(tienda);
+        }
+
+        public TiendaPrestashop Tienda { get; }
+
+        public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
+        {
+            var listaNesto = new ObservableCollection<PedidoCanalExterno>();
+
+            var listaPrestashop = await servicio.CargarListaPedidosAsync();
+
+            foreach (var urlPedido in listaPrestashop)
+            {
+                PedidoPrestashop pedidoPrestashop = await servicio.CargarPedidoAsync(urlPedido);
+                // Nesto#340: la búsqueda por NIF y el nº de pedido Nesto van por la API (sin EF),
+                // patrón de CanalExternoPedidosAmazon/Miravia
+                pedidoPrestashop.PedidoNestoId = await BuscarPedidoNestoIdAsync(pedidoPrestashop).ConfigureAwait(false);
+                Interfaces.ClientePorTelefono cliente = await BuscarClienteAsync(pedidoPrestashop.Direccion.Element("dni")?.Value).ConfigureAwait(false);
+                PedidoCanalExterno pedidoExterno = TransformarPedido(pedidoPrestashop, cliente);
+                pedidoExterno.Observaciones = "Phone:";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
+                pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
+                listaNesto.Add(pedidoExterno);
+            }
+
+            return listaNesto;
+        }
+
+        // Cómo se cobra cada forma de pago de la tienda online, en una sola tabla: la forma y los
+        // plazos del pedido y la cuenta contable del prepago (null = no se prepaga; el
+        // contrareembolso se cobra al entregar). Antes esto vivía en dos sitios (un if/else para la
+        // forma de pago y un diccionario para la cuenta), así que una etiqueta nueva de Prestashop
+        // había que darla de alta dos veces: si solo se daba en uno, el pedido entraba sin prepago
+        // y sin que saltase nada.
+        internal sealed class CobroTiendaOnline
+        {
+            public string FormaPago { get; set; }
+            public string PlazosPago { get; set; }
+            public string CuentaPrepago { get; set; }
+        }
+
+        private static readonly Dictionary<string, CobroTiendaOnline> CobrosTiendaOnline = new()
+        {
+            { FORMA_PAGO_CONTRAREEMBOLSO,           new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_CONTRAREEMBOLSO_COMISION,  new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_CONTRAREEMBOLSO_INGLES,    new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_PAYPAL,                    new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200020" } },
+            { FORMA_PAGO_REDSYS,                    new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_BIZUM,                     new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_BIZUM_IPN,                 new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_AMAZON_PAY,                new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_APLAZAME,                  new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_MIRAVIA,                   new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+        };
+
+        // Forma de pago desconocida: transferencia previa y sin prepago, como se ha hecho siempre.
+        private static readonly CobroTiendaOnline COBRO_DESCONOCIDO =
+            new() { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = null };
+
+        internal static CobroTiendaOnline ResolverCobro(string formaPagoPrestashop)
+        {
+            return formaPagoPrestashop != null && CobrosTiendaOnline.TryGetValue(formaPagoPrestashop.Trim(), out CobroTiendaOnline cobro)
+                ? cobro
+                : COBRO_DESCONOCIDO;
+        }
+
+        internal PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada, Interfaces.ClientePorTelefono cliente)
+        {
+            PedidoCanalExterno pedidoExterno = new();
+            PedidoVentaDTO pedidoSalida = new()
+            {
+                empresa = EMPRESA_DEFECTO,
+                origen = EMPRESA_DEFECTO
+            };
+            pedidoSalida.cliente = cliente.Cliente;
+            pedidoSalida.contacto = cliente.ContactoDefecto;
+            pedidoSalida.contactoCobro = cliente.ContactoCobro;
+            pedidoSalida.vendedor = cliente.Vendedor;
+            pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
+
+            pedidoSalida.iva = cliente.Iva;
+            pedidoSalida.comentarios = pedidoEntrada.Pedido.Element("reference").Value + " \r\n";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper() + "\r\n";
+            pedidoSalida.comentarios += pedidoEntrada.Cliente.Element("email")?.Value.ToString() + "\r\n";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper() + "\r\n";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("address2")?.Value != "" ? pedidoEntrada.Direccion.Element("address2")?.Value.ToString().ToUpper() + "\r\n" : "";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("postcode")?.Value.ToString().ToUpper() + " ";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("city")?.Value.ToString().ToUpper() + "\r\n";
+
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone")?.Value != "" ? "Tel.: " + pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper() + "\r\n" : "";
+            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone_mobile")?.Value != "" ? "Móvil: " + pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper() + "\r\n" : "";
+            if (pedidoEntrada.PedidoNestoId != 0)
+            {
+                pedidoSalida.comentarios += "N/ Pedido: " + pedidoEntrada.PedidoNestoId + "\r\n";
+            }
+            decimal totalPagado = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid")?.Value) / 1000000, 4);
+            pedidoSalida.comentarios += "TOTAL PEDIDO: " + totalPagado.ToString("c");
+
+            pedidoSalida.fecha = Convert.ToDateTime(pedidoEntrada.Pedido.Element("date_add")?.Value);
+
+            string formaPago = pedidoEntrada.Pedido.Element("payment")?.Value;
+            decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
+
+            // Aquí iban los totales
+
+            CobroTiendaOnline cobro = ResolverCobro(formaPago);
+            pedidoSalida.formaPago = cobro.FormaPago;
+            pedidoSalida.plazosPago = cobro.PlazosPago;
+
+            if (formaPago == FORMA_PAGO_MIRAVIA)
+            {
+                formaVenta = "BLT";
+            }
+
+            pedidoSalida.ruta = "00";
+            pedidoSalida.serie = Tienda.Serie;
+            pedidoSalida.periodoFacturacion = "NRM";
+            pedidoSalida.servirJunto = true;
+            pedidoSalida.modoServicio = ModosServicio.TODO_JUNTO; // NestoAPI#482: un pedido de marketplace sale de una vez; sin modo la API lo pondría en el 3
+
+            pedidoSalida.Usuario = configuracion.usuario;
+
+
+            // aquí iban las líneas
+
+
+            pedidoExterno.Pedido = pedidoSalida;
+            pedidoExterno.PedidoCanalId = pedidoEntrada.Pedido.Element("reference").Value;
+            pedidoExterno.PedidoNestoId = pedidoEntrada.PedidoNestoId;
+            pedidoExterno.Nombre = pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
+            pedidoExterno.Nombre += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper();
+            pedidoExterno.Direccion = pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper();
+            pedidoExterno.Direccion += pedidoEntrada.Direccion.Element("address2")?.Value != "" ? " " + pedidoEntrada.Direccion.Element("address2")?.Value.ToString().ToUpper() : "";
+            pedidoExterno.CodigoPostal = pedidoEntrada.Direccion.Element("postcode")?.Value.ToString().ToUpper();
+            pedidoExterno.Poblacion = pedidoEntrada.Direccion.Element("city")?.Value.ToString().ToUpper();
+            pedidoExterno.TelefonoFijo = pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper();
+            pedidoExterno.TelefonoMovil = pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper();
+            pedidoExterno.CorreoElectronico = pedidoEntrada.Cliente.Element("email")?.Value.ToString();
+            pedidoExterno.PaisISO = pedidoEntrada.Pais.Element("iso_code")?.Value.ToString();
+            if (pedidoEntrada.Provincia != null)
+            {
+                pedidoExterno.Provincia = pedidoEntrada.Provincia.Element("name")?.Value.ToString().ToUpper();
+            }
+            else
+            {
+                pedidoExterno.Provincia = string.Empty;
+            }
+            pedidoExterno.Almacen = Constantes.Almacenes.ALMACEN_CENTRAL;
+
+            if (cobro.CuentaPrepago != null)
+            {
+                PrepagoDTO prepago = new()
+                {
+                    Importe = totalPagado != 0 ? totalPagado : pedidoSalida.Total,
+                    CuentaContable = cobro.CuentaPrepago,
+                    ConceptoAdicional = $"{Tienda.ConceptoPrepago} {formaPago}"
+                };
+
+                if (prepago.ConceptoAdicional.Length > 50)
+                {
+                    prepago.ConceptoAdicional = prepago.ConceptoAdicional[..50];
+                }
+
+                pedidoExterno.Pedido.Prepagos.Add(prepago);
+            }
+
+            return pedidoExterno;
+        }
+        // Nesto#340: el nº de pedido Nesto (la referencia del canal al principio de Comentarios)
+        // va por GET api/PedidosVenta/PorReferenciaCanal; antes lo resolvía PrestashopService con
+        // EF. API caída → 0, igual que cuando no hay coincidencias.
+        private async Task<int> BuscarPedidoNestoIdAsync(PedidoPrestashop pedidoPrestashop)
+        {
+            try
+            {
+                string referencia = pedidoPrestashop.Pedido.Element("reference")?.Value;
+                return await clientesLookup.BuscarPedidoPorReferenciaCanalAsync(referencia).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
+        // Nesto#340: la búsqueda por NIF va por GET api/Clientes/PorNif (el servidor aplica el
+        // exacto-y-si-no-Contains sobre principales activos, como el EF viejo). Si la API falla,
+        // el pedido sale con el cliente genérico de la tienda online, igual que sin coincidencias.
+        private async Task<Interfaces.ClientePorTelefono> BuscarClienteAsync(string dniCliente)
+        {
+            Interfaces.ClientePorTelefono CLIENTE_TIENDA_ONLINE = new()
+            {
+                Cliente = "31517",
+                Contacto = "0",
+                ContactoDefecto = "0",
+                ContactoCobro = "0",
+                Vendedor = "NV",
+                Iva = "G21"
+            };
+
+            dniCliente = LimpiarDni(dniCliente);
+            if (dniCliente == null || dniCliente.Trim() == "")
+            {
+                return CLIENTE_TIENDA_ONLINE;
+            }
+
+            try
+            {
+                var encontrados = await clientesLookup.BuscarClientesPorNifAsync(dniCliente).ConfigureAwait(false);
+                if (encontrados.Count > 0)
+                {
+                    return encontrados[0];
+                }
+            }
+            catch (Exception)
+            {
+                // API caída: mejor el cliente genérico que tumbar la carga de pedidos
+            }
+
+            return CLIENTE_TIENDA_ONLINE;
+        }
+
+        public string LimpiarDni(string dniCliente)
+        {
+            if (dniCliente == null)
+            {
+                return "";
+            }
+            dniCliente = dniCliente.Trim();
+            dniCliente = Regex.Replace(dniCliente, @"[^0-9A-Za-z]", "", RegexOptions.None);
+            dniCliente = dniCliente.TrimStart('0');
+            return dniCliente;
+        }
+
+        public async Task<PedidoCanalExterno> GetPedido(string Id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
+        {
+            return await servicio.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 3, true); //Preparación en curso
+        }
+
+        public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
+        {
+            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido);
+            string resultado;
+            if (await servicio.ConfirmarPedidoAsync(pedido.PedidoCanalId, datosEnvio.AgenciaId, datosEnvio.NumeroSeguimiento, true))
+            {
+                resultado = $"Se ha añadido el número de seguimiento {datosEnvio.NumeroSeguimiento} al pedido {pedido.PedidoCanalId}";
+                if (await servicio.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 4, false))
+                {
+                    resultado += " y se ha pasado a estado Enviado.";
+                }
+                else
+                {
+                    resultado += " pero NO se ha podido pasar a estado Enviado.";
+                }
+            }
+            else
+            {
+                // 22/09/26: antes era un texto en el diálogo que no llegaba a ELMAH.
+                throw new InvalidOperationException($"La tienda no ha aceptado el seguimiento {datosEnvio.NumeroSeguimiento} (transportista {datosEnvio.AgenciaId}) para el pedido {pedido.PedidoCanalId}.");
+            }
+            return resultado;
+        }
+
+        // 22/09/26 (CTT): la agencia está AUTOCONTENIDA en el servidor. NestoAPI declara por agencia el
+        // transportista de Prestashop y el tracking ya hecho (RegistroSeguimientoAgencias, NestoAPI#417) y
+        // los manda en cada envío. Aquí NO se reconoce ninguna agencia por el enlace: si faltan los datos
+        // se dice qué agencia y qué envío son, para darla de alta en el servidor, y el error va a ELMAH.
+        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido)
+        {
+            var envio = pedido?.UltimoEnvio;
+            if (envio == null)
+            {
+                throw new InvalidOperationException("El pedido no tiene ningún envío tramitado que confirmar en la tienda.");
+            }
+            if (string.IsNullOrWhiteSpace(envio.TransportistaPrestashop))
+            {
+                throw new InvalidOperationException(
+                    $"La agencia «{envio.AgenciaNombre}» del envío {envio.Numero} no declara transportista de Prestashop en NestoAPI " +
+                    "(RegistroSeguimientoAgencias.TransportistaPrestashop). Hay que darla de alta en el servidor: Nesto no conoce agencias.");
+            }
+            string tracking = !string.IsNullOrWhiteSpace(envio.TrackingPrestashop) ? envio.TrackingPrestashop : envio.NumeroSeguimiento;
+            if (string.IsNullOrWhiteSpace(tracking))
+            {
+                throw new InvalidOperationException($"El envío {envio.Numero} ({envio.AgenciaNombre}) no tiene seguimiento que mandar a la tienda.");
+            }
+            return new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = tracking };
+        }
+
+        public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)
+        {
+            PedidoPrestashop pedidoEntrada = await servicio.CargarPedidoPorReferenciaAsync(pedido.PedidoCanalId);
+            return await AnadirLineasAsync(pedido, pedidoEntrada);
+        }
+
+        /// <summary>Las líneas del pedido de la tienda (productos, portes, embalaje y cupones), ya leído.</summary>
+        internal async Task<ICollection<LineaPedidoVentaDTO>> AnadirLineasAsync(PedidoCanalExterno pedido, PedidoPrestashop pedidoEntrada)
+        {
+            PedidoVentaDTO pedidoSalida = pedido.Pedido;
+            // añadir líneas
+            var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
+            var avisosIva = new List<string>();
+            foreach (var linea in listaLineasXML)
+            {
+                decimal porcentajeIva;
+                decimal importeSinIva = Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) / 1000000;
+                decimal importeConIva = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000;
+
+                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0)
+                {
+                    porcentajeIva = Math.Round((importeConIva / importeSinIva) - 1, 2);
+                }
+                else
+                {
+                    porcentajeIva = 0;
+                }
+
+                string productoRef = linea.Element("product_reference").Value;
+                byte tipoLineaProducto = EsCuentaContable(productoRef) ? (byte)2 : (byte)1;
+                // NestoAPI#583: en las líneas de producto manda la ficha (los cursos son EX y llegan al 0 %).
+                string tipoIva;
+                if (tipoLineaProducto == 1)
+                {
+                    string ivaFicha = await clientesLookup.LeerIvaProductoAsync(pedidoSalida.empresa, productoRef);
+                    DecisionIva decision = DecidirIvaLinea(productoRef, ivaFicha, porcentajeIva, importeSinIva);
+                    tipoIva = decision.TipoIva;
+                    if (decision.Aviso != null)
+                    {
+                        avisosIva.Add(decision.Aviso);
+                    }
+                }
+                else
+                {
+                    tipoIva = TipoIvaPorPrecio(porcentajeIva, importeSinIva, importeConIva);
+                }
+
+                LineaPedidoVentaDTO lineaNesto = new()
+                {
+                    Pedido = pedidoSalida,
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = short.Parse(linea.Element("product_quantity").Value),
+                    delegacion = "ALG",
+                    formaVenta = formaVenta,
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = tipoIva,
+                    PrecioUnitario = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
+                    Producto = productoRef,
+                    texto = linea.Element("product_name").Value.ToUpper(),
+                    tipoLinea = tipoLineaProducto,
+                    vistoBueno = true,
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (1 + porcentajeIva), 4);
+                    //lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
+                    lineaNesto.PorcentajeIva = porcentajeIva;
+                }
+
+                pedidoSalida.Lineas.Add(lineaNesto);
+            }
+
+            if (avisosIva.Any())
+            {
+                string textoAvisos = string.Join(Environment.NewLine, avisosIva);
+                pedidoSalida.comentarios = string.IsNullOrWhiteSpace(pedidoSalida.comentarios)
+                    ? textoAvisos
+                    : pedidoSalida.comentarios + Environment.NewLine + textoAvisos;
+            }
+
+            // Añadir portes
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl").Value) != 0)
+            {
+                decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
+                LineaPedidoVentaDTO lineaPortes = new()
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = 1,
+                    delegacion = "ALG",
+                    formaVenta = formaVenta,
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalPortes,
+                    Producto = "62400003",
+                    texto = "GASTOS DE TRANSPORTE",
+                    tipoLinea = 2, // cuenta contable
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaPortes.PrecioUnitario /= (decimal)1.21;
+                    lineaPortes.PorcentajeIva = .21M;
+                }
+
+                pedidoSalida.Lineas.Add(lineaPortes);
+            }
+
+            // Añadir embalaje
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl").Value) != 0)
+            {
+                decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
+                LineaPedidoVentaDTO lineaEmbalaje = new()
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = 1,
+                    delegacion = "ALG",
+                    formaVenta = formaVenta,
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalEmbalaje,
+                    Producto = "62700020",
+                    texto = "EMBALAJE DE REGALO",
+                    tipoLinea = 2, // cuenta contable
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaEmbalaje.PrecioUnitario /= (decimal)1.21;
+                    lineaEmbalaje.PorcentajeIva = .21M;
+                }
+
+                pedidoSalida.Lineas.Add(lineaEmbalaje);
+            }
+
+            // Añadir cupones de descuento
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
+            {
+                decimal totalDescuentosSinIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_excl")?.Value) / 1000000, 4);
+                decimal totalDescuentosConIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
+                decimal totalProductosSinIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products")?.Value) / 1000000, 4);
+                AplicarDescuentoCupon(pedidoSalida.Lineas, totalDescuentosSinIva, totalProductosSinIva, totalDescuentosConIva, formaVenta, pedidoSalida.iva, configuracion.usuario);
+            }
+
+            return pedidoSalida.Lineas;
+
+        }
+
+        /// <summary>Lo de siempre: el tipo de IVA deducido del precio con y sin IVA de la tienda.</summary>
+        internal static string TipoIvaPorPrecio(decimal porcentajeIva, decimal importeSinIva, decimal importeConIva)
+        {
+            if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "G21";
+            }
+            if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "R10";
+            }
+            if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+            {
+                return "SR";
+            }
+            throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
+        }
+
+        internal sealed class DecisionIva
+        {
+            public string TipoIva { get; set; }
+            /// <summary>Texto para los comentarios del pedido si la tienda no cuadra con la ficha; null si cuadra.</summary>
+            public string Aviso { get; set; }
+        }
+
+        // Porcentaje de los tipos de IVA de producto con un cliente nacional normal (ParametrosIVA de G21).
+        private static readonly Dictionary<string, decimal> PORCENTAJE_IVA_PRODUCTO = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["G21"] = .21M, ["R10"] = .10M, ["SR"] = .04M, ["EX"] = 0
+        };
+
+        /// <summary>
+        /// NestoAPI#583: el tipo de IVA de una línea de producto lo manda su ficha en Nesto (los cursos son EX y
+        /// llegan de la tienda al 0 %, que antes se convertía en G21). El precio de la tienda solo sirve para
+        /// avisar si no cuadra con la ficha, o para deducirlo si no hay ficha (como antes).
+        /// </summary>
+        internal static DecisionIva DecidirIvaLinea(string producto, string ivaFicha, decimal porcentajeIvaTienda, decimal importeSinIva)
+        {
+            if (string.IsNullOrWhiteSpace(ivaFicha))
+            {
+                decimal importeConIva = importeSinIva * (1 + porcentajeIvaTienda);
+                return new DecisionIva { TipoIva = TipoIvaPorPrecio(porcentajeIvaTienda, importeSinIva, importeConIva) };
+            }
+
+            string tipoFicha = ivaFicha.Trim();
+            string aviso = null;
+            // Una línea a 0 € (regalo) no dice nada del IVA: no se compara.
+            if (importeSinIva != 0 && PORCENTAJE_IVA_PRODUCTO.TryGetValue(tipoFicha, out decimal porcentajeFicha) && porcentajeFicha != porcentajeIvaTienda)
+            {
+                aviso = $"ATENCIÓN IVA: el producto {producto?.Trim()} viene de la tienda al {porcentajeIvaTienda:P0} y su ficha es {tipoFicha}; se ha puesto {tipoFicha}. Revisa el precio.";
+            }
+            return new DecisionIva { TipoIva = tipoFicha, Aviso = aviso };
+        }
+
+        // Cuentas contables que Prestashop envía como producto en order_rows
+        private static readonly HashSet<string> CUENTAS_CONTABLES_PRESTASHOP = new() { "62400003", "62700020" };
+
+        internal static bool EsCuentaContable(string productoRef)
+        {
+            return !string.IsNullOrEmpty(productoRef) && CUENTAS_CONTABLES_PRESTASHOP.Contains(productoRef);
+        }
+
+        private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30, 100 };
+
+        internal static decimal DetectarPorcentajeConocido(decimal totalDescuentosSinIva, decimal totalProductosSinIva)
+        {
+            if (totalProductosSinIva == 0)
+            {
+                return 0;
+            }
+
+            foreach (int porcentaje in PORCENTAJES_CONOCIDOS)
+            {
+                decimal descuentoEsperado = Math.Round(totalProductosSinIva * porcentaje / 100, 2, MidpointRounding.AwayFromZero);
+                if (descuentoEsperado == totalDescuentosSinIva)
+                {
+                    return porcentaje;
+                }
+            }
+
+            return 0;
+        }
+
+        internal static void AplicarDescuentoCupon(
+            ICollection<LineaPedidoVentaDTO> lineas,
+            decimal totalDescuentosSinIva,
+            decimal totalProductosSinIva,
+            decimal totalDescuentosConIva,
+            string formaVenta,
+            string iva,
+            string usuario)
+        {
+            // Issue #328: Calcular total descontable desde las líneas (tipoLinea == 1),
+            // excluyendo cuentas contables como la comisión contrarreembolso que
+            // Prestashop incluye en total_products pero no deben recibir descuento
+            decimal totalDescontable = lineas
+                .Where(l => l.tipoLinea == 1)
+                .Sum(l => Math.Round(l.PrecioUnitario * l.Cantidad, 2, MidpointRounding.AwayFromZero));
+
+            decimal porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalDescontable);
+
+            // Fallback: intentar con el total de Prestashop (por si coincide)
+            if (porcentajeDetectado == 0 && totalDescontable != totalProductosSinIva)
+            {
+                porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalProductosSinIva);
+            }
+
+            if (porcentajeDetectado > 0)
+            {
+                foreach (var lineaProducto in lineas.Where(l => l.tipoLinea == 1))
+                {
+                    lineaProducto.DescuentoLinea = porcentajeDetectado / 100;
+                }
+            }
+            else if (AplicarRegaloLineaCompleta(lineas, totalDescuentosSinIva))
+            {
+                // Issue #350: el cupón coincide con el importe exacto de una línea → ese producto va
+                // gratis (100% en esa línea), en vez de añadir una línea TiCKET que distorsiona stats.
+            }
+            else
+            {
+                // Descuento fijo: mantener como línea TICKET
+                LineaPedidoVentaDTO lineaCupon = new()
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = -1,
+                    delegacion = "ALG",
+                    formaVenta = formaVenta,
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalDescuentosConIva,
+                    Producto = "TiCKET",
+                    texto = "CUPÓN DE DESCUENTO",
+                    tipoLinea = 1, // producto
+                    Usuario = usuario
+                };
+
+                if (iva != null)
+                {
+                    lineaCupon.PrecioUnitario /= (decimal)1.21;
+                    lineaCupon.PorcentajeIva = .21M;
+                }
+
+                lineas.Add(lineaCupon);
+            }
+        }
+
+        /// <summary>
+        /// Issue #350: si el importe del cupón (sin IVA) coincide exactamente con el importe de una
+        /// ÚNICA línea de producto, ese producto es un regalo → 100% de descuento en esa línea.
+        /// Si coinciden varias líneas el caso es ambiguo (no sabemos cuál es el regalo) y se deja
+        /// como cupón/TiCKET. Devuelve true si aplicó el descuento.
+        /// </summary>
+        internal static bool AplicarRegaloLineaCompleta(ICollection<LineaPedidoVentaDTO> lineas, decimal totalDescuentosSinIva)
+        {
+            if (totalDescuentosSinIva <= 0)
+            {
+                return false;
+            }
+
+            var lineasQueCoinciden = lineas
+                .Where(l => l.tipoLinea == 1 &&
+                            Math.Round(l.PrecioUnitario * l.Cantidad, 2, MidpointRounding.AwayFromZero) == totalDescuentosSinIva)
+                .ToList();
+
+            if (lineasQueCoinciden.Count != 1)
+            {
+                return false;
+            }
+
+            lineasQueCoinciden[0].DescuentoLinea = 1m;
+            return true;
+        }
+
+        internal class DatosEnvioConfirmarPrestashop
+        {
+            public string AgenciaId { get; set; }
+            public string NumeroSeguimiento { get; set; }
+        }
+    }
+}
