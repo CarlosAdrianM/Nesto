@@ -5,7 +5,6 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json.Linq;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -222,12 +221,12 @@ namespace ControlesUsuario.Tests
 
         #region Diálogo «¿Quisiste decir…?»
 
-        private static RevisionConceptoDialogViewModel Dialogo(out List<IDialogResult> resultados)
+        private static RevisionConceptoDialogViewModel Dialogo(out List<ResultadoDialogo> resultados)
         {
             var vm = new RevisionConceptoDialogViewModel();
-            var lista = new List<IDialogResult>();
+            var lista = new List<ResultadoDialogo>();
             vm.RequestClose += lista.Add;
-            vm.OnDialogOpened(new DialogParameters
+            vm.OnDialogOpened(new ParametrosDialogo
             {
                 { RevisionConceptoDialogViewModel.PARAMETRO_ORIGINAL, ESCRITO },
                 { RevisionConceptoDialogViewModel.PARAMETRO_REVISION, ConCambios() }
@@ -251,22 +250,22 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public void Dialogo_UsarLaCorreccion_CierraConOkYElPropuesto()
         {
-            RevisionConceptoDialogViewModel vm = Dialogo(out List<IDialogResult> resultados);
+            RevisionConceptoDialogViewModel vm = Dialogo(out List<ResultadoDialogo> resultados);
 
             vm.UsarCorreccionCommand.Execute(null);
 
-            Assert.AreEqual(ButtonResult.OK, resultados.Single().Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultados.Single().Result);
             Assert.AreEqual(PROPUESTO, resultados.Single().Parameters.GetValue<string>(RevisionConceptoDialogViewModel.PARAMETRO_CONCEPTO));
         }
 
         [TestMethod]
         public void Dialogo_DejarElMio_CierraConCancel()
         {
-            RevisionConceptoDialogViewModel vm = Dialogo(out List<IDialogResult> resultados);
+            RevisionConceptoDialogViewModel vm = Dialogo(out List<ResultadoDialogo> resultados);
 
             vm.DejarElMioCommand.Execute(null);
 
-            Assert.AreEqual(ButtonResult.Cancel, resultados.Single().Result);
+            Assert.AreEqual(ResultadoBoton.Cancel, resultados.Single().Result);
         }
 
         [TestMethod]

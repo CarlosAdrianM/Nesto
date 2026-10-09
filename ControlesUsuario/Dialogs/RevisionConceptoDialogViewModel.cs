@@ -1,7 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Models;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +10,10 @@ namespace ControlesUsuario.Dialogs
     /// <summary>
     /// NestoAPI#609: «¿Quisiste decir…?» antes de crear un enlace de pago. Enseña el concepto escrito y el
     /// propuesto con los cambios resaltados; «Usar la corrección» devuelve OK con el propuesto en
-    /// <see cref="PARAMETRO_CONCEPTO"/>, «Dejar el mío» (o cerrar) devuelve Cancel. IDialogAware de Prism como
-    /// los demás diálogos hasta que se pasen todos a IDialogoNesto (Nesto#490).
+    /// <see cref="PARAMETRO_CONCEPTO"/>, «Dejar el mío» (o cerrar) devuelve Cancel. Nesto#490: es
+    /// <see cref="IDialogoNesto"/> (por <see cref="DialogoNestoBase"/>), sin tipos de Prism.
     /// </summary>
-    public class RevisionConceptoDialogViewModel : ObservableObject, IDialogAware
+    public class RevisionConceptoDialogViewModel : DialogoNestoBase
     {
         public const string NOMBRE = "RevisionConceptoDialog";
         public const string PARAMETRO_ORIGINAL = "original";
@@ -24,10 +23,9 @@ namespace ControlesUsuario.Dialogs
         public RevisionConceptoDialogViewModel()
         {
             UsarCorreccionCommand = new RelayCommand(UsarCorreccion);
-            DejarElMioCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel)));
+            DejarElMioCommand = new RelayCommand(() => RaiseRequestClose(ResultadoBoton.Cancel));
+            Title = "¿Quisiste decir…?";
         }
-
-        public string Title => "¿Quisiste decir…?";
 
         private string _original;
         /// <summary>El concepto tal como lo escribió el usuario.</summary>
@@ -47,16 +45,10 @@ namespace ControlesUsuario.Dialogs
         public RelayCommand UsarCorreccionCommand { get; }
         public RelayCommand DejarElMioCommand { get; }
 
-        public event Action<IDialogResult> RequestClose;
-
         private void UsarCorreccion()
-            => RequestClose?.Invoke(new DialogResult(ButtonResult.OK, new DialogParameters { { PARAMETRO_CONCEPTO, Propuesto } }));
+            => RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { PARAMETRO_CONCEPTO, Propuesto } }));
 
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             RevisionConcepto revision = parameters.ContainsKey(PARAMETRO_REVISION)
                 ? parameters.GetValue<RevisionConcepto>(PARAMETRO_REVISION)

@@ -119,6 +119,42 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         [TestMethod]
+        public void ComoIDialogAware_SelectorProductoDuplicado_DevuelveElProductoElegido()
+        {
+            var vm = new SelectorProductoDuplicadoDialogViewModel();
+            IDialogAware prism = vm;
+            IDialogResult recibido = null;
+            prism.RequestClose += r => recibido = r;
+
+            prism.OnDialogOpened(new DialogParameters
+            {
+                { "candidatos", new System.Collections.Generic.List<global::ControlesUsuario.Models.ProductoCodigoBarrasDuplicado> { new() { Producto = "17404" }, new() { Producto = "17405" } } }
+            });
+            vm.Seleccionado = vm.Candidatos[1];
+            vm.AceptarCommand.Execute(null);
+
+            Assert.AreEqual("Código de barras duplicado", prism.Title);
+            Assert.AreEqual(ButtonResult.OK, recibido.Result);
+            Assert.AreEqual("17405", recibido.Parameters.GetValue<string>("producto"));
+        }
+
+        [TestMethod]
+        public void ComoIDialogAware_RevisionConcepto_DejarElMioCierraConCancel()
+        {
+            var vm = new RevisionConceptoDialogViewModel();
+            IDialogAware prism = vm;
+            IDialogResult recibido = null;
+            prism.RequestClose += r => recibido = r;
+
+            prism.OnDialogOpened(new DialogParameters { { RevisionConceptoDialogViewModel.PARAMETRO_ORIGINAL, "Curso micronileng" } });
+            vm.DejarElMioCommand.Execute(null);
+
+            Assert.AreEqual("¿Quisiste decir…?", prism.Title);
+            Assert.AreEqual("Curso micronileng", vm.Original);
+            Assert.AreEqual(ButtonResult.Cancel, recibido.Result);
+        }
+
+        [TestMethod]
         public void ComoIDialogoNesto_ElResultadoLlegaConLosTiposPropios()
         {
             var vm = new InputTextDialogViewModel { Text = null };

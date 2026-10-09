@@ -1,7 +1,7 @@
 using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,9 +13,9 @@ namespace ControlesUsuario.Tests.Dialogs
     [TestClass]
     public class SelectorProductoDuplicadoDialogViewModelTests
     {
-        private static DialogParameters CrearParametros(params ProductoCodigoBarrasDuplicado[] candidatos)
+        private static ParametrosDialogo CrearParametros(params ProductoCodigoBarrasDuplicado[] candidatos)
         {
-            return new DialogParameters
+            return new ParametrosDialogo
             {
                 { "candidatos", candidatos.ToList() }
             };
@@ -79,13 +79,13 @@ namespace ControlesUsuario.Tests.Dialogs
                 Candidato("45115", "Producto B")));
             sut.Seleccionado = sut.Candidatos.Single(c => c.Producto == "45115");
 
-            IDialogResult resultadoCapturado = null;
+            ResultadoDialogo resultadoCapturado = null;
             sut.RequestClose += r => resultadoCapturado = r;
 
             sut.AceptarCommand.Execute(null);
 
             Assert.IsNotNull(resultadoCapturado);
-            Assert.AreEqual(ButtonResult.OK, resultadoCapturado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultadoCapturado.Result);
             Assert.AreEqual("45115", resultadoCapturado.Parameters.GetValue<string>("producto"));
         }
 
@@ -95,13 +95,13 @@ namespace ControlesUsuario.Tests.Dialogs
             var sut = new SelectorProductoDuplicadoDialogViewModel();
             sut.OnDialogOpened(CrearParametros(Candidato("45114", "A")));
 
-            IDialogResult resultadoCapturado = null;
+            ResultadoDialogo resultadoCapturado = null;
             sut.RequestClose += r => resultadoCapturado = r;
 
             sut.CancelarCommand.Execute(null);
 
             Assert.IsNotNull(resultadoCapturado);
-            Assert.AreEqual(ButtonResult.Cancel, resultadoCapturado.Result);
+            Assert.AreEqual(ResultadoBoton.Cancel, resultadoCapturado.Result);
         }
     }
 }

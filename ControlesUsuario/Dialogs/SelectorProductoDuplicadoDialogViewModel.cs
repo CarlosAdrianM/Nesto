@@ -1,8 +1,6 @@
 ﻿using ControlesUsuario.Models;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
-using System;
+using Nesto.Infrastructure.Contracts;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -13,16 +11,9 @@ namespace ControlesUsuario.Dialogs
     /// (la API devuelve 409 con la lista de candidatos). El usuario elige uno y se devuelve
     /// su Número, que resuelve de forma única. Nesto#368.
     /// </summary>
-    public class SelectorProductoDuplicadoDialogViewModel : ObservableObject, IDialogAware
+    public class SelectorProductoDuplicadoDialogViewModel : DialogoNestoBase
     {
-        private string _title = "Código de barras duplicado";
         private ProductoCodigoBarrasDuplicado _seleccionado;
-
-        public string Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
-        }
 
         public ObservableCollection<ProductoCodigoBarrasDuplicado> Candidatos { get; } =
             new ObservableCollection<ProductoCodigoBarrasDuplicado>();
@@ -39,13 +30,12 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         public RelayCommand AceptarCommand { get; }
         public RelayCommand CancelarCommand { get; }
 
         public SelectorProductoDuplicadoDialogViewModel()
         {
+            Title = "Código de barras duplicado";
             AceptarCommand = new RelayCommand(Aceptar, () => Seleccionado != null);
             CancelarCommand = new RelayCommand(Cancelar);
         }
@@ -57,23 +47,19 @@ namespace ControlesUsuario.Dialogs
                 return;
             }
 
-            DialogParameters parameters = new DialogParameters
+            ParametrosDialogo parameters = new ParametrosDialogo
             {
                 { "producto", Seleccionado.Producto }
             };
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+            RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, parameters));
         }
 
         private void Cancelar()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RaiseRequestClose(ResultadoBoton.Cancel);
         }
 
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("title"))
             {
