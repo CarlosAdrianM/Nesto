@@ -19,6 +19,11 @@ Public Interface IPlantillaVentaService
     ''' Devuelve Nothing si la API falla o es anterior al endpoint: entonces no hay aviso y todo sigue como siempre.
     ''' </summary>
     Function CargarSaldoAFavor(cliente As String) As Task(Of SaldoAFavorCliente)
+    ''' <summary>
+    ''' NestoAPI#581: la línea de plantilla de un producto que el cliente no ha comprado nunca (la misma búsqueda que
+    ''' «buscar en todos los productos», quedándose con el que tiene ese número). Nothing si no está o la API falla.
+    ''' </summary>
+    Function BuscarLineaProducto(empresa As String, producto As String) As Task(Of LineaPlantillaVenta)
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)

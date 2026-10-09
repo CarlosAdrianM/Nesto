@@ -55,7 +55,12 @@
         <TextBox Grid.Column="1" Grid.Row="5" Text="{Binding ProductoActual.Grupo}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding ProductoActual.Subgrupo}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="7" Text="{Binding ProductoActual.Estado}"></TextBox>
-        <TextBlock Grid.Column="1" Grid.Row="8" TextAlignment="Center" Text="Producto en rotura de stock del proveedor" Background="Red" FontWeight="Black" Foreground="White" Visibility="{Binding ProductoActual.RoturaStockProveedor, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Hidden}"></TextBlock>
+        <StackPanel Grid.Column="1" Grid.Row="8">
+            <TextBlock TextAlignment="Center" Text="Producto en rotura de stock del proveedor" Background="Red" FontWeight="Black" Foreground="White" Visibility="{Binding ProductoActual.RoturaStockProveedor, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Hidden}"></TextBlock>
+            <!-- NestoAPI#581: la sustitución temporal, a la vista de todos (la mantiene Compras en su pestaña) -->
+            <TextBlock Text="{Binding TextoSustitucionActiva}" TextWrapping="Wrap" FontWeight="Bold" Margin="0,3"
+                       Visibility="{Binding HaySustitucionActiva, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
+        </StackPanel>
         <Button Grid.Column="0" Grid.Row="12" Command="{Binding AbrirProductoWebCommand}" Margin="0,5">Web</Button>
 
         <ItemsControl ItemsSource="{Binding ProductoActual.Stocks}" Grid.Column="1" Grid.Row="9">
@@ -788,6 +793,66 @@
                             <TextBox Width="80" Margin="6,0,0,0" Text="{Binding NuevoProveedorCodigoBarras, UpdateSourceTrigger=PropertyChanged}"/>
                             <Button Content="Añadir" Command="{Binding AnnadirCodigoBarrasCommand}" Margin="6,0,0,0" Padding="10,3"/>
                         </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- NestoAPI#581: sustitución temporal de referencias. La da de alta Compras; quien mete el pedido (plantilla,
+                 detalle y NestoApp) recibe el aviso al meter el producto, con la opción de cambiarlo. -->
+            <TabItem Header="Sustitución" Visibility="{Binding PuedeEditarSustituciones, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Margin="10" MaxWidth="900" HorizontalAlignment="Left">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="Si hay que servir otro producto en lugar de este durante un tiempo (p. ej. el proveedor tarda), quien lo meta en un pedido verá «Compras pide servir la X en lugar de esta» y podrá cambiarlo con un clic. «Mientras no haya stock» deja de avisar sola en cuanto hay disponible suficiente para lo que se pide; con fecha, deja de avisar al día siguiente. Si se marcan las dos, lo que ocurra antes. Solo puede haber una: dar de alta otra anula la anterior." />
+                    <DataGrid Grid.Row="1" MinHeight="120" ItemsSource="{Binding Sustituciones}"
+                              AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Sustituto" Binding="{Binding ProductoSustituto}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding NombreSustituto}" Width="2*"/>
+                            <DataGridTextColumn Header="Hasta cuándo" Binding="{Binding TextoHastaCuando}" Width="2*"/>
+                            <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="2*"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="*"/>
+                            <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="*"/>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding FechaCreacion, StringFormat=d, ConverterCulture=es-ES}" Width="Auto"/>
+                            <DataGridTextColumn Header="Anulada" Binding="{Binding FechaAnulacion, StringFormat=d, ConverterCulture=es-ES}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Button Grid.Row="2" Content="Anular la sustitución" Command="{Binding AnularSustitucionCommand}"
+                            Margin="0,8,0,0" Padding="10,3" HorizontalAlignment="Left"/>
+                    <GroupBox Grid.Row="3" Header="Nueva sustitución" Padding="8" Margin="0,12,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Servir en su lugar" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Width="120" HorizontalAlignment="Left" Margin="0,0,0,4"
+                                     Text="{Binding NuevoSustituto, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Motivo" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" MaxLength="250" Margin="0,0,0,4"
+                                     Text="{Binding NuevoMotivoSustitucion, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Hasta cuándo" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,4">
+                                <CheckBox Content="Mientras no haya stock" VerticalAlignment="Center"
+                                          IsChecked="{Binding NuevaSustitucionMientrasNoHayaStock}"/>
+                                <TextBlock Text="Hasta el (opcional)" VerticalAlignment="Center" Margin="16,0,6,0"/>
+                                <DatePicker SelectedDate="{Binding NuevaSustitucionFechaHasta}" Width="130"/>
+                            </StackPanel>
+                            <Button Grid.Row="3" Grid.Column="1" Content="Guardar" Command="{Binding GuardarSustitucionCommand}"
+                                    Margin="0,6,0,0" Padding="10,3" HorizontalAlignment="Left"/>
+                        </Grid>
                     </GroupBox>
                 </Grid>
             </TabItem>

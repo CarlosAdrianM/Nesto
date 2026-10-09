@@ -1,5 +1,7 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Models;
+using Nesto.Infrastructure.Services;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modulos.Producto;
@@ -59,6 +61,7 @@ namespace Nesto.Modules.Producto.ViewModels
             _messenger = messenger;
             _dialogService = dialogService;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
+            ServicioSustituciones = new ServicioSustitucionesProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#581
 
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
@@ -87,6 +90,8 @@ namespace Nesto.Modules.Producto.ViewModels
             AnnadirCodigoBarrasCommand = new RelayCommand(OnAnnadirCodigoBarras, CanAnnadirCodigoBarras);
             HacerPrincipalCodigoBarrasCommand = new RelayCommand(OnHacerPrincipalCodigoBarras, CanCambiarCodigoBarrasSeleccionado);
             DarDeBajaCodigoBarrasCommand = new RelayCommand(OnDarDeBajaCodigoBarras, CanCambiarCodigoBarrasSeleccionado);
+            GuardarSustitucionCommand = new RelayCommand(OnGuardarSustitucion, CanGuardarSustitucion);
+            AnularSustitucionCommand = new RelayCommand(OnAnularSustitucion, CanAnularSustitucion);
 
             Titulo = "Producto";
 
@@ -141,6 +146,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 await CargarCategoriasWebAsync(productoId);
                 await CargarVariantesAsync(productoId);
                 await CargarCodigosBarrasAsync();
+                await CargarSustitucionesAsync();
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
@@ -1359,6 +1365,205 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 await _servicio.DarDeBajaCodigoBarras(ProductoActual.Producto.Trim(), elegido.Id);
                 await CargarCodigosBarrasAsync();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Sustitución temporal (NestoAPI#581)
+
+        // NestoAPI#581: «mientras tanto, servid la 45685 en lugar de la 25539». Compras la da de alta aquí y quien mete
+        // el pedido (plantilla, detalle, NestoApp) lo ve al meter el producto, con la opción de cambiarlo. Una sola
+        // activa por producto: dar de alta otra anula la anterior. Cuándo deja de avisar lo decide la API.
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioSustitucionesProducto ServicioSustituciones { get; set; }
+
+        /// <summary>Todas las del producto (la activa primero), con su estado.</summary>
+        public ObservableCollection<SustitucionProductoDTO> Sustituciones { get; } = new();
+
+        /// <summary>Mismo criterio que el resto de datos de la ficha que se editan aquí: el grupo Compras.</summary>
+        public bool PuedeEditarSustituciones => EsDelGrupoCompras;
+
+        private SustitucionProductoDTO _sustitucionActiva;
+        /// <summary>La no anulada (vigente, sin efecto porque hay stock, o caducada). Null si no hay.</summary>
+        public SustitucionProductoDTO SustitucionActiva
+        {
+            get => _sustitucionActiva;
+            private set
+            {
+                if (SetProperty(ref _sustitucionActiva, value))
+                {
+                    OnPropertyChanged(nameof(HaySustitucionActiva));
+                    OnPropertyChanged(nameof(TextoSustitucionActiva));
+                    AnularSustitucionCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        public bool HaySustitucionActiva => SustitucionActiva != null;
+
+        /// <summary>Lo que se ve en la ficha a todo el mundo: el aviso y, si ahora no avisa, por qué.</summary>
+        public string TextoSustitucionActiva
+        {
+            get
+            {
+                if (SustitucionActiva == null)
+                {
+                    return null;
+                }
+                string aviso = SustitucionActiva.Aviso?.Trim();
+                return SustitucionActiva.Vigente || string.IsNullOrWhiteSpace(SustitucionActiva.Estado)
+                    ? aviso
+                    : $"{aviso} (ahora no avisa: {SustitucionActiva.Estado.Trim().ToLowerInvariant()})";
+            }
+        }
+
+        private string _nuevoSustituto;
+        public string NuevoSustituto
+        {
+            get => _nuevoSustituto;
+            set
+            {
+                if (SetProperty(ref _nuevoSustituto, value))
+                {
+                    GuardarSustitucionCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _nuevoMotivoSustitucion;
+        public string NuevoMotivoSustitucion
+        {
+            get => _nuevoMotivoSustitucion;
+            set => SetProperty(ref _nuevoMotivoSustitucion, value);
+        }
+
+        private bool _nuevaSustitucionMientrasNoHayaStock = true;
+        /// <summary>Por defecto, sí: se apaga sola en cuanto llega la mercancía del original.</summary>
+        public bool NuevaSustitucionMientrasNoHayaStock
+        {
+            get => _nuevaSustitucionMientrasNoHayaStock;
+            set
+            {
+                if (SetProperty(ref _nuevaSustitucionMientrasNoHayaStock, value))
+                {
+                    GuardarSustitucionCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private DateTime? _nuevaSustitucionFechaHasta;
+        public DateTime? NuevaSustitucionFechaHasta
+        {
+            get => _nuevaSustitucionFechaHasta;
+            set
+            {
+                if (SetProperty(ref _nuevaSustitucionFechaHasta, value))
+                {
+                    GuardarSustitucionCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        internal async Task CargarSustitucionesAsync()
+        {
+            // En su propio try, como los códigos de barras: que esto falle no puede impedir abrir la ficha.
+            try
+            {
+                Sustituciones.Clear();
+                SustitucionActiva = null;
+                string producto = ProductoActual?.Producto?.Trim();
+                if (string.IsNullOrEmpty(producto) || ServicioSustituciones == null)
+                {
+                    return;
+                }
+                // Null: la API publicada aún no tiene el endpoint. Se queda vacía y no se ve nada.
+                List<SustitucionProductoDTO> lista = await ServicioSustituciones.Listar(Constantes.Empresas.EMPRESA_DEFECTO, producto);
+                foreach (SustitucionProductoDTO sustitucion in lista ?? new List<SustitucionProductoDTO>())
+                {
+                    Sustituciones.Add(sustitucion);
+                }
+                SustitucionActiva = Sustituciones.FirstOrDefault(s => s.EstaActiva);
+            }
+            catch (Exception)
+            {
+                // Es información de apoyo en la ficha: sin ella, la ficha se abre igual
+            }
+            finally
+            {
+                GuardarSustitucionCommand.NotifyCanExecuteChanged();
+                AnularSustitucionCommand.NotifyCanExecuteChanged();
+            }
+        }
+
+        public RelayCommand GuardarSustitucionCommand { get; private set; }
+        private bool CanGuardarSustitucion()
+        {
+            return PuedeEditarSustituciones && ProductoActual != null && !string.IsNullOrWhiteSpace(NuevoSustituto)
+                && (NuevaSustitucionMientrasNoHayaStock || NuevaSustitucionFechaHasta.HasValue);
+        }
+        internal async Task GuardarSustitucionAsync()
+        {
+            string producto = ProductoActual.Producto.Trim();
+            string sustituto = NuevoSustituto.Trim();
+            if (SustitucionActiva != null && !await _dialogService.ShowConfirmationAsync("Sustitución del producto",
+                $"Ahora se sustituye por la {SustitucionActiva.ProductoSustituto?.Trim()}. ¿Cambiarla por la {sustituto}?"))
+            {
+                return;
+            }
+            _ = await ServicioSustituciones.Crear(producto, new NuevaSustitucionProductoDTO
+            {
+                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                ProductoSustituto = sustituto,
+                Motivo = string.IsNullOrWhiteSpace(NuevoMotivoSustitucion) ? null : NuevoMotivoSustitucion.Trim(),
+                MientrasNoHayaStock = NuevaSustitucionMientrasNoHayaStock,
+                FechaHasta = NuevaSustitucionFechaHasta?.Date
+            });
+            NuevoSustituto = null;
+            NuevoMotivoSustitucion = null;
+            NuevaSustitucionMientrasNoHayaStock = true;
+            NuevaSustitucionFechaHasta = null;
+            await CargarSustitucionesAsync();
+            _dialogService.ShowNotification($"Desde ahora, al meter la {producto} en un pedido se avisará de que hay que servir la {sustituto}");
+        }
+        private async void OnGuardarSustitucion()
+        {
+            try
+            {
+                await GuardarSustitucionAsync();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        public RelayCommand AnularSustitucionCommand { get; private set; }
+        private bool CanAnularSustitucion()
+        {
+            return PuedeEditarSustituciones && ProductoActual != null && SustitucionActiva != null;
+        }
+        internal async Task AnularSustitucionAsync()
+        {
+            SustitucionProductoDTO activa = SustitucionActiva;
+            if (activa == null || !await _dialogService.ShowConfirmationAsync("Anular sustitución",
+                $"¿Dejar de avisar de que hay que servir la {activa.ProductoSustituto?.Trim()} en lugar de la {activa.Producto?.Trim()}?"))
+            {
+                return;
+            }
+            await ServicioSustituciones.Anular(Constantes.Empresas.EMPRESA_DEFECTO, ProductoActual.Producto.Trim(), activa.Id);
+            await CargarSustitucionesAsync();
+        }
+        private async void OnAnularSustitucion()
+        {
+            try
+            {
+                await AnularSustitucionAsync();
             }
             catch (Exception ex)
             {

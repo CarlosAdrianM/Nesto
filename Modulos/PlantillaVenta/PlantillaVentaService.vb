@@ -223,6 +223,27 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function BuscarLineaProducto(empresa As String, producto As String) As Task(Of LineaPlantillaVenta) Implements IPlantillaVentaService.BuscarLineaProducto
+        Dim numero As String = producto?.Trim()
+        If String.IsNullOrEmpty(numero) OrElse numero.Length < 3 Then
+            Return Nothing ' la búsqueda de la API exige 3 caracteres
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim url As String = "PlantillaVentas/BuscarProducto?empresa=" & Uri.EscapeDataString(empresa?.Trim()) & "&filtroProducto=" & Uri.EscapeDataString(numero)
+                Dim response = Await client.GetAsync(url).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Dim lineas = JsonConvert.DeserializeObject(Of List(Of LineaPlantillaVenta))(cadenaJson)
+                Return lineas?.FirstOrDefault(Function(l) String.Equals(l.producto?.Trim(), numero, StringComparison.OrdinalIgnoreCase))
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
     Public Async Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer)) Implements IPlantillaVentaService.CargarListaPendientes
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

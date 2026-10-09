@@ -83,6 +83,8 @@ Public Class PlantillaVentaViewModel
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(_clienteApiFactory) ' NestoAPI#606
+        ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
+            New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(_clienteApiFactory)) ' NestoAPI#581
 
         Titulo = "Plantilla Ventas"
 
@@ -2773,7 +2775,83 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(totalPedido))
         OnPropertyChanged(NameOf(totalPedidoConPortes))
         ActualizarEtiquetaPortes()
+
+        If arg.cantidad + arg.cantidadOferta > 0 Then
+            ComprobarSustitucion(arg) ' NestoAPI#581
+        End If
     End Sub
+
+    ''' <summary>NestoAPI#581: pregunta a la API si Compras pide servir otro producto en lugar de este (sustituible en los tests).</summary>
+    Friend Property ComprobadorSustitucion As Nesto.Infrastructure.Services.ComprobadorSustitucionProducto
+
+    Private Async Sub ComprobarSustitucion(linea As LineaPlantillaVenta)
+        Try
+            Await ComprobarSustitucionAsync(linea)
+        Catch ex As Exception
+            ' Es una ayuda al meter el pedido: si algo falla, no se avisa y el pedido sigue como siempre
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#581: al meter un producto que Compras pide sustituir («servid la 45685 en lugar de la 25539»), aviso
+    ''' no bloqueante con la opción de cambiarlo con un clic. Si dice que no, no se le vuelve a preguntar por ese
+    ''' producto con este cliente.
+    ''' </summary>
+    Friend Async Function ComprobarSustitucionAsync(linea As LineaPlantillaVenta) As Task
+        If IsNothing(linea) OrElse IsNothing(ComprobadorSustitucion) OrElse IsNothing(clienteSeleccionado) OrElse String.IsNullOrWhiteSpace(linea.producto) Then
+            Return
+        End If
+        Dim producto As String = linea.producto.Trim()
+        If Not _sustitucionesEnCurso.Add(producto) Then
+            Return ' ya se está preguntando por este producto (dos ediciones seguidas): un solo diálogo
+        End If
+        Try
+            Dim sustitucion = Await ComprobadorSustitucion.SustitucionAOfrecer(clienteSeleccionado.empresa, producto, linea.cantidad + linea.cantidadOferta)
+            If IsNothing(sustitucion) OrElse linea.cantidad + linea.cantidadOferta <= 0 Then
+                Return ' no hay que avisar, o mientras se preguntaba la han quitado
+            End If
+            If Not dialogService.ShowConfirmationAnswer(Nesto.Infrastructure.Services.ComprobadorSustitucionProducto.TITULO,
+                                                        Nesto.Infrastructure.Services.ComprobadorSustitucionProducto.Pregunta(sustitucion)) Then
+                ComprobadorSustitucion.Rechazar(producto)
+                Return
+            End If
+            Await SustituirProductoAsync(linea, sustitucion.ProductoSustituto)
+        Finally
+            _sustitucionesEnCurso.Remove(producto)
+        End Try
+    End Function
+    Private ReadOnly _sustitucionesEnCurso As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+
+    ''' <summary>
+    ''' NestoAPI#581: pasa las unidades (y las de oferta) de la línea al sustituto, que se busca en la plantilla del
+    ''' cliente y, si no lo ha comprado nunca, en todos los productos. La línea original se queda a cero.
+    ''' </summary>
+    Friend Async Function SustituirProductoAsync(linea As LineaPlantillaVenta, sustituto As String) As Task
+        Dim numero As String = sustituto?.Trim()
+        If String.IsNullOrEmpty(numero) Then
+            Return
+        End If
+        Dim nueva As LineaPlantillaVenta = ListaFiltrableProductos.ListaOriginal.OfType(Of LineaPlantillaVenta)().
+            FirstOrDefault(Function(l) String.Equals(l.producto?.Trim(), numero, StringComparison.OrdinalIgnoreCase))
+        If IsNothing(nueva) Then
+            nueva = Await servicio.BuscarLineaProducto(clienteSeleccionado.empresa, numero)
+            If Not IsNothing(nueva) AndAlso (clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR) Then
+                nueva.aplicarDescuento = True
+                nueva.aplicarDescuentoFicha = True
+            End If
+        End If
+        If IsNothing(nueva) Then
+            dialogService.ShowError($"No se ha encontrado el producto {numero}. Búscalo a mano y pásale las unidades.")
+            Return
+        End If
+
+        nueva.cantidad += linea.cantidad
+        nueva.cantidadOferta += linea.cantidadOferta
+        linea.cantidad = 0
+        linea.cantidadOferta = 0
+        cmdActualizarProductosPedido.Execute(linea)
+        cmdActualizarProductosPedido.Execute(nueva)
+    End Function
 
     Private _soloConStockCommand As RelayCommand
     Public Property SoloConStockCommand As RelayCommand
@@ -4012,6 +4090,7 @@ Public Class PlantillaVentaViewModel
 
     Private Sub SeleccionarElCliente(value As ClienteJson)
         Dim unused = SetProperty(_clienteSeleccionado, value)
+        ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: con otro cliente se vuelve a avisar de todo
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa

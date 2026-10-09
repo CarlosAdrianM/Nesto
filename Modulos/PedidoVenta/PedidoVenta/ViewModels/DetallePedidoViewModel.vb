@@ -91,6 +91,8 @@ Public Class DetallePedidoViewModel
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
+        ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
+            New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))) ' NestoAPI#581
         Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
@@ -585,6 +587,7 @@ Public Class DetallePedidoViewModel
                 RemoveHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
             End If
             Dim unused = SetProperty(_pedido, value)
+            ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: en otro pedido se vuelve a avisar de todo
             If Not IsNothing(_pedido) Then
                 _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
                 ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo
@@ -1536,13 +1539,16 @@ Public Class DetallePedidoViewModel
         End If
     End Sub
 
-    Private Async Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
+    Private Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
+        Return CargarDatosProductoEnLinea(lineaActual, numeroProducto, cantidad, True) 'la línea se fija aquí aunque cambie la linea actual durante el asíncrono
+    End Function
+
+    Friend Async Function CargarDatosProductoEnLinea(lineaCambio As LineaPedidoVentaWrapper, numeroProducto As String, cantidad As Short, comprobarSustitucion As Boolean) As Task
         ' Issue #258: Ignorar si el número de producto está vacío
-        If String.IsNullOrWhiteSpace(numeroProducto) Then
+        If String.IsNullOrWhiteSpace(numeroProducto) OrElse IsNothing(lineaCambio) Then
             Return
         End If
 
-        Dim lineaCambio As LineaPedidoVentaWrapper = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
         Dim producto As Producto
         Try
             producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
@@ -1578,6 +1584,41 @@ Public Class DetallePedidoViewModel
         If pedido.EsPresupuesto Then
             lineaCambio.estado = -3
         End If
+        If Not IsNothing(producto) AndAlso comprobarSustitucion Then
+            Await ComprobarSustitucionAsync(lineaCambio, cantidad) ' NestoAPI#581
+        End If
+    End Function
+
+    ''' <summary>NestoAPI#581: pregunta a la API si Compras pide servir otro producto en lugar de este (sustituible en los tests).</summary>
+    Friend Property ComprobadorSustitucion As Nesto.Infrastructure.Services.ComprobadorSustitucionProducto
+
+    ''' <summary>
+    ''' NestoAPI#581: al meter en una línea un producto que Compras pide sustituir («servid la 45685 en lugar de la
+    ''' 25539»), aviso no bloqueante con la opción de cambiarlo en la misma línea con un clic. Si dice que no, en este
+    ''' pedido no se le vuelve a preguntar por ese producto. Si la consulta falla, no se avisa.
+    ''' </summary>
+    Friend Async Function ComprobarSustitucionAsync(linea As LineaPedidoVentaWrapper, cantidad As Integer) As Task
+        If IsNothing(linea) OrElse IsNothing(ComprobadorSustitucion) OrElse IsNothing(pedido) OrElse String.IsNullOrWhiteSpace(linea.Producto) Then
+            Return
+        End If
+        Dim productoOriginal As String = linea.Producto.Trim()
+        Dim sustitucion As Nesto.Infrastructure.Models.SustitucionProductoDTO
+        Try
+            sustitucion = Await ComprobadorSustitucion.SustitucionAOfrecer(pedido.empresa, productoOriginal, cantidad)
+        Catch ex As Exception
+            Return
+        End Try
+        If IsNothing(sustitucion) OrElse Not String.Equals(linea.Producto?.Trim(), productoOriginal, StringComparison.OrdinalIgnoreCase) Then
+            Return ' no hay que avisar, o mientras se preguntaba han cambiado el producto de la línea
+        End If
+        If Not dialogService.ShowConfirmationAnswer(Nesto.Infrastructure.Services.ComprobadorSustitucionProducto.TITULO,
+                                                    Nesto.Infrastructure.Services.ComprobadorSustitucionProducto.Pregunta(sustitucion)) Then
+            ComprobadorSustitucion.Rechazar(productoOriginal)
+            Return
+        End If
+        Dim sustituto As String = sustitucion.ProductoSustituto.Trim()
+        linea.Producto = sustituto
+        Await CargarDatosProductoEnLinea(linea, sustituto, linea.Cantidad, False)
     End Function
 
     Private _copiarAlPortapapelesCommand As RelayCommand
