@@ -5,6 +5,8 @@ using Nesto.Infrastructure.Navegacion;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Windows.Controls;
 
 namespace Nesto.Infrastructure.Tests
 {
@@ -160,6 +162,96 @@ namespace Nesto.Infrastructure.Tests
             _servicio.AbrirVistaNueva("MainRegion", vista, "Clientes");
 
             A.CallTo(() => region.Add(vista, "Clientes3")).MustHaveHappenedOnceExactly();
+        }
+
+        // Nesto#490 (4C.4, 7.º tramo): los maestro-detalle (PedidoVenta, PedidoCompra)
+        private sealed class ConAmbito : IConAmbitoNavegacion
+        {
+            public IServicioNavegacion NavegacionAmbito { get; set; }
+        }
+
+        private sealed class VistaConAmbito : Border, IConAmbitoNavegacion
+        {
+            public IServicioNavegacion NavegacionAmbito { get; set; }
+        }
+
+        private static void EnSta(Action accion)
+        {
+            Exception error = null;
+            var hilo = new Thread(() =>
+            {
+                try { accion(); } catch (Exception ex) { error = ex; }
+            });
+            hilo.SetApartmentState(ApartmentState.STA);
+            hilo.Start();
+            hilo.Join();
+            if (error != null)
+            {
+                throw new AssertFailedException(error.ToString(), error);
+            }
+        }
+
+        [TestMethod]
+        public void AbrirVistaConAmbito_LaAnadeConUnAmbitoNuevoYLaActiva_YDevuelveLaNavegacionDeEseAmbito()
+        {
+            // Lo que hacía OnAbrirModulo de PedidoVenta/PedidoCompra: region.Add(vista, null, true) y Activate
+            IRegion region = ConfigurarRegion("MainRegion");
+            var ambito = A.Fake<IRegionManager>();
+            var vista = new object();
+            A.CallTo(() => region.Add(vista, null, true)).Returns(ambito);
+
+            IServicioNavegacion navegacionAmbito = _servicio.AbrirVistaConAmbito("MainRegion", vista);
+
+            A.CallTo(() => region.Add(vista, null, true)).MustHaveHappenedOnceExactly()
+                .Then(A.CallTo(() => region.Activate(vista)).MustHaveHappenedOnceExactly());
+            navegacionAmbito.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView");
+            A.CallTo(() => ambito.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _regionManager.RequestNavigate(A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AbrirVistaConAmbito_EntregaElAmbitoALaVistaYASuDataContextAntesDeActivarla()
+        {
+            EnSta(() =>
+            {
+                IRegion region = ConfigurarRegion("MainRegion");
+                var contexto = new ConAmbito();
+                var vista = new VistaConAmbito { DataContext = contexto };
+                A.CallTo(() => region.Add(vista, null, true)).Returns(A.Fake<IRegionManager>());
+                IServicioNavegacion alActivarVista = null, alActivarContexto = null;
+                A.CallTo(() => region.Activate(vista)).Invokes(() =>
+                {
+                    alActivarVista = vista.NavegacionAmbito;
+                    alActivarContexto = contexto.NavegacionAmbito;
+                });
+
+                IServicioNavegacion navegacionAmbito = _servicio.AbrirVistaConAmbito("MainRegion", vista);
+
+                Assert.IsNotNull(navegacionAmbito);
+                Assert.AreSame(navegacionAmbito, alActivarVista);
+                Assert.AreSame(navegacionAmbito, alActivarContexto);
+                Assert.AreNotSame(_servicio, navegacionAmbito);
+            });
+        }
+
+        [TestMethod]
+        public void AbrirVistaNueva_EntregaALaVistaYASuDataContextLaNavegacionDelAmbitoDeLaRegion()
+        {
+            // La lista que la vista maestra pone en su región de lista navega al detalle de esa misma pestaña
+            EnSta(() =>
+            {
+                IRegion region = ConfigurarRegion("ListaPedidosCompraRegion");
+                A.CallTo(() => region.GetView(A<string>._)).Returns(null);
+                var contexto = new ConAmbito();
+                var vista = new VistaConAmbito { DataContext = contexto };
+                IServicioNavegacion alActivar = null;
+                A.CallTo(() => region.Activate(vista)).Invokes(() => alActivar = contexto.NavegacionAmbito);
+
+                _servicio.AbrirVistaNueva("ListaPedidosCompraRegion", vista, "ListaPedidosCompraRegion");
+
+                Assert.AreSame(_servicio, alActivar);
+                Assert.AreSame(_servicio, vista.NavegacionAmbito);
+            });
         }
 
         private IRegion ConfigurarRegion(string nombre, params object[] activas)

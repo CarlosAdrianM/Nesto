@@ -10,10 +10,10 @@
     /// 3. Cambiar la implementación por una sin Prism. Por eso aquí NO aparece ningún tipo de Prism:
     ///    los parámetros son <see cref="ParametrosNavegacion"/>.
     ///
-    /// Cubre navegar a una vista por nombre y, desde el paso 3, saber cuál es la vista activa de una
-    /// región y cerrarla. Lo que añade vistas a mano (pestañas nuevas, los maestro-detalle de
-    /// PedidoVenta y PedidoCompra con RegionManager con ámbito) y lo que recibe la navegación
-    /// (INavigationAware) sigue en Prism.
+    /// Cubre navegar a una vista por nombre, saber cuál es la vista activa de una región y cerrarla, abrir
+    /// pestañas nuevas y, desde el 7.º tramo, los maestro-detalle con su propio ámbito de regiones
+    /// (<see cref="AbrirVistaConAmbito"/> e <see cref="IConAmbitoNavegacion"/>). Lo que recibe la navegación
+    /// va por <see cref="IReceptorNavegacion"/>.
     /// </summary>
     public interface IServicioNavegacion
     {
@@ -37,7 +37,17 @@
         /// Abre <paramref name="vista"/> como una pestaña NUEVA de la región y la activa (aunque ya haya otra igual
         /// abierta). Si ya hay una vista con <paramref name="nombre"/>, le añade un número (Clientes, Clientes2…).
         /// </summary>
+        /// <remarks>Si la vista o su DataContext es un <see cref="IConAmbitoNavegacion"/>, recibe esta misma navegación
+        /// (la del ámbito al que pertenece la región) antes de activarse.</remarks>
         void AbrirVistaNueva(string regionName, object vista, string nombre);
+
+        /// <summary>
+        /// Maestro-detalle: abre <paramref name="vista"/> como una pestaña NUEVA de la región, con su PROPIO ámbito de
+        /// regiones (las que declara la vista no chocan con las de otra pestaña igual), y la activa. Devuelve la
+        /// navegación de ese ámbito; antes de activar la vista se la entrega a ella y a su DataContext si son
+        /// <see cref="IConAmbitoNavegacion"/>.
+        /// </summary>
+        IServicioNavegacion AbrirVistaConAmbito(string regionName, object vista);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@
 using Prism.Regions;
 using System;
 using System.Linq;
+using System.Windows;
 
 namespace Nesto.Infrastructure.Navegacion
 {
@@ -76,7 +77,34 @@ namespace Nesto.Infrastructure.Navegacion
                 contador++;
             }
             region.Add(vista, unico);
+            EntregarAmbito(vista, this);
             region.Activate(vista);
+        }
+
+        // Lo que hacían a mano PedidoVentaViewModel y PedidoCompraViewModel (OnAbrirModulo): Add con
+        // createRegionManagerScope = true, pasar el IRegionManager con ámbito a la vista y Activate.
+        public IServicioNavegacion AbrirVistaConAmbito(string regionName, object vista)
+        {
+            IRegion region = _regionManager.Regions[regionName];
+            IRegionManager ambito = region.Add(vista, null, true);
+            var navegacionAmbito = new ServicioNavegacionPrism(ambito);
+            EntregarAmbito(vista, navegacionAmbito);
+            region.Activate(vista);
+            return navegacionAmbito;
+        }
+
+        // Nesto#490 (7.º tramo): a la vista y a su DataContext, a cada uno si lo pide
+        private static void EntregarAmbito(object vista, IServicioNavegacion navegacion)
+        {
+            if (vista is IConAmbitoNavegacion conAmbito)
+            {
+                conAmbito.NavegacionAmbito = navegacion;
+            }
+            if (vista is FrameworkElement elemento && elemento.DataContext is IConAmbitoNavegacion contextoConAmbito
+                && !ReferenceEquals(contextoConAmbito, vista))
+            {
+                contextoConAmbito.NavegacionAmbito = navegacion;
+            }
         }
 
         /// <summary>Lo contrario de <see cref="AParametrosPrism"/>: para entregar la navegación sin tipos de Prism.</summary>
