@@ -160,6 +160,16 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="1">
+                                <!-- Nesto#521: jefes de ventas (su equipo) y Dirección (todos) eligen de qué vendedor ver la lista -->
+                                <DockPanel Margin="0,0,0,4" MaxWidth="340"
+                                           Visibility="{Binding HayVariosVendedoresSugerencias, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock DockPanel.Dock="Left" Text="Vendedor:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox ItemsSource="{Binding ListaVendedoresSugerencias}"
+                                              DisplayMemberPath="Descripcion"
+                                              SelectedValuePath="Vendedor"
+                                              SelectedValue="{Binding VendedorSugerencias, Mode=TwoWay}"
+                                              ToolTip="Clientes para contactar de este vendedor, tal como los ve él. Los rapports que crees siguen siendo tuyos."/>
+                                </DockPanel>
                                 <controles:SelectorSubgrupoProducto GrupoSubgrupoSeleccionado="{Binding GrupoSubgrupoSeleccionado}"></controles:SelectorSubgrupoProducto>
                             </StackPanel>
                             

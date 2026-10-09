@@ -15,6 +15,9 @@ Public Interface IRapportService
     ' NestoAPI#603: lista por prioridad y cadencia, con el ritmo del vendedor. Si la API publicada aún no
     ' tiene el endpoint (404), cae a CargarClientesProbabilidad y devuelve Ritmo = Nothing.
     Function CargarSugerenciasContacto(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of SugerenciasContactoRespuesta)
+    ' Nesto#521: GET api/Vendedores/VisiblesEnSugerencias. Los vendedores cuyas sugerencias puede ver el usuario (el suyo,
+    ' su equipo si es jefe de ventas, todos si es Dirección). Lista vacía si falla o la API publicada no lo tiene.
+    Function CargarVendedoresSugerencias() As Task(Of List(Of VendedorSugerencias))
     Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
     Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
     Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)

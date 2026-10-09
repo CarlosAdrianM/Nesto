@@ -424,6 +424,26 @@ Public Class RapportService
         Return resultado
     End Function
 
+    ''' <summary>
+    ''' Nesto#521: los vendedores del desplegable de «clientes para contactar». Nunca Nothing: si falla (o la API publicada
+    ''' aún no tiene el endpoint) devuelve una lista vacía y la pantalla sigue como siempre, sin desplegable.
+    ''' </summary>
+    Public Async Function CargarVendedoresSugerencias() As Task(Of List(Of VendedorSugerencias)) Implements IRapportService.CargarVendedoresSugerencias
+        Try
+            Using client = _clienteApiFactory.Crear()
+                Dim response As HttpResponseMessage = Await client.GetAsync($"Vendedores/VisiblesEnSugerencias?empresa={Constantes.Empresas.EMPRESA_DEFECTO}")
+                If Not response.IsSuccessStatusCode Then
+                    Return New List(Of VendedorSugerencias)
+                End If
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                Dim vendedores = If(String.IsNullOrWhiteSpace(respuesta), Nothing, JsonConvert.DeserializeObject(Of List(Of VendedorSugerencias))(respuesta))
+                Return If(vendedores, New List(Of VendedorSugerencias)).Where(Function(v) v IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(v.Vendedor)).ToList()
+            End Using
+        Catch ex As Exception
+            Return New List(Of VendedorSugerencias)
+        End Try
+    End Function
+
     Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
         Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

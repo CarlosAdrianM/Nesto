@@ -336,6 +336,48 @@ Public Class ListaRapportsViewModel
         End Get
     End Property
 
+    Private _listaVendedoresSugerencias As New ObservableCollection(Of VendedorSugerencias)
+    ''' <summary>Nesto#521: los vendedores cuyas sugerencias puede ver el usuario (el suyo, su equipo o todos).</summary>
+    Public Property ListaVendedoresSugerencias As ObservableCollection(Of VendedorSugerencias)
+        Get
+            Return _listaVendedoresSugerencias
+        End Get
+        Set(value As ObservableCollection(Of VendedorSugerencias))
+            If SetProperty(_listaVendedoresSugerencias, value) Then
+                RaisePropertyChanged(NameOf(HayVariosVendedoresSugerencias))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Nesto#521: el desplegable solo sale si hay de quién elegir (jefes de ventas y Dirección).</summary>
+    Public ReadOnly Property HayVariosVendedoresSugerencias As Boolean
+        Get
+            Return _listaVendedoresSugerencias IsNot Nothing AndAlso _listaVendedoresSugerencias.Count > 1
+        End Get
+    End Property
+
+    Private _vendedorSugerencias As String
+    ''' <summary>
+    ''' Nesto#521: de qué vendedor se ven los «clientes para contactar». Por defecto, el del usuario. Al cambiarlo se recargan
+    ''' la lista, el objetivo del día, las prioridades y la frase de ese vendedor. NO cambia el vendedor de los rapports
+    ''' que se crean (siguen con <see cref="vendedor"/>).
+    ''' </summary>
+    Public Property VendedorSugerencias As String
+        Get
+            Return If(String.IsNullOrWhiteSpace(_vendedorSugerencias), vendedor, _vendedorSugerencias)
+        End Get
+        Set(value As String)
+            ' El ComboBox puede empujar Nothing al cambiar la lista: no es una elección del usuario.
+            If String.IsNullOrWhiteSpace(value) Then
+                Return
+            End If
+            Dim antes As String = VendedorSugerencias
+            If SetProperty(_vendedorSugerencias, value.Trim()) AndAlso Not String.Equals(antes?.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase) Then
+                ActualizarClientesProbabilidad(If(GrupoSubgrupoSeleccionado, String.Empty))
+            End If
+        End Set
+    End Property
+
     Private _listaEstadosRapport As List(Of idShortDescripcion)
     Public Property listaEstadosRapport As List(Of idShortDescripcion)
         Get
@@ -781,16 +823,47 @@ Public Class ListaRapportsViewModel
     ''' ritmo). Las atendidas van al final, marcadas. Con la API antigua, sin prioridad ni ritmo.
     ''' </summary>
     Public Async Function ActualizarClientesProbabilidadAsync(grupoSubgrupo As String) As Task
+        ' Nesto#521: al cambiar de vendedor (o de tipo o de grupo) con una carga en marcha, solo se pinta la última: la
+        ' respuesta de la anterior podría llegar después y dejar en pantalla la lista de otro vendedor.
+        _cargaSugerencias += 1
+        Dim estaCarga As Integer = _cargaSugerencias
         IsLoadingClientesProbabilidad = True
         Try
-            Dim respuesta = Await servicio.CargarSugerenciasContacto(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo)
+            Dim respuesta = Await servicio.CargarSugerenciasContacto(VendedorSugerencias, TipoRapportSeleccionado.descripcion, grupoSubgrupo)
+            If estaCarga <> _cargaSugerencias Then
+                Return
+            End If
             ' Nesto#381: defensivo ante null (el ctor de ObservableCollection peta con Nothing).
             ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(OrdenSugerenciasContacto.Ordenar(respuesta?.Sugerencias))
             RitmoContacto = respuesta?.Ritmo
         Finally
-            IsLoadingClientesProbabilidad = False
+            If estaCarga = _cargaSugerencias Then
+                IsLoadingClientesProbabilidad = False
+            End If
         End Try
     End Function
+
+    Private _cargaSugerencias As Integer
+
+    ''' <summary>
+    ''' Nesto#521: los vendedores del desplegable. Se piden una vez (la pestaña se reutiliza) y en paralelo a la primera
+    ''' lista, que ya sale con el vendedor del usuario; cargar el desplegable no vuelve a pedir la lista.
+    ''' </summary>
+    Public Async Function CargarVendedoresSugerenciasAsync() As Task
+        If _vendedoresSugerenciasCargados Then
+            Return
+        End If
+        _vendedoresSugerenciasCargados = True
+        Dim vendedores As List(Of VendedorSugerencias) = Nothing
+        Try
+            vendedores = Await servicio.CargarVendedoresSugerencias()
+        Catch
+            vendedores = Nothing
+        End Try
+        ListaVendedoresSugerencias = New ObservableCollection(Of VendedorSugerencias)(If(vendedores, New List(Of VendedorSugerencias)))
+    End Function
+
+    Private _vendedoresSugerenciasCargados As Boolean
 
     Private Sub OnLoaded()
         ' Suscríbete solo si no hay una suscripción activa (Nesto#490 4C.1: Messenger en vez de IEventAggregator;
@@ -838,6 +911,8 @@ Public Class ListaRapportsViewModel
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.Vendedor)
         End If
+        ' Nesto#521: el desplegable de vendedor se pide a la vez que la lista (que sale con el vendedor del usuario).
+        Dim cargaVendedores As Task = CargarVendedoresSugerenciasAsync()
         If IsNothing(TipoRapportSeleccionado) OrElse IsNothing(TipoRapportSeleccionado.id) Then
             Dim tipo = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente)
             TipoRapportCambiaCommand.Execute(tipo)
@@ -847,6 +922,7 @@ Public Class ListaRapportsViewModel
 
         Dim permitirCopiar = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirCopiarSeguimientos)
         PuedeCopiarSeguimientos = permitirCopiar = "1"
+        Await cargaVendedores
     End Sub
 
 #End Region
