@@ -228,6 +228,13 @@ Partial Public Class Application
                 Return New ServicioCalendarioReposiciones(factory)
             End Function)
 
+        ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
+        Dim unusedChequesRegalo = containerRegistry.RegisterSingleton(Of IServicioChequesRegalo)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioChequesRegalo(factory)
+            End Function)
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
             Function(provider)
