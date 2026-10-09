@@ -899,6 +899,21 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+                <!-- NestoAPI#593 (c5): el cliente tiene un cheque regalo disponible y el pedido no lo lleva. El botón añade la
+                     línea (−importe) y la manda el guardado normal; si no llega al mínimo, al guardar se enseña el mensaje de
+                     la API. Sin cheque (404, campaña apagada o la API falla) no se ve nada. Colores del sistema. -->
+                <Border Margin="5,2" Padding="8,4" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left"
+                        Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                        Visibility="{Binding MostrarAvisoChequeRegalo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{Binding ChequeRegalo.TextoAnadir}" Command="{Binding AnadirChequeRegaloCommand}"
+                                Margin="8,0,0,0" Padding="8,1" VerticalAlignment="Center"
+                                ToolTip="Añade la línea del cheque al pedido; se aplica al guardar. Para quitarlo, borra la línea."/>
+                        <TextBlock Text="{Binding ChequeRegalo.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="700"/>
+                    </DockPanel>
+                </Border>
                 <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
                      La línea de reembolso aparece ya en el DataGrid de líneas (la añade el backend
                      al guardar vía GestorPortes.GestionarLineasPortes). -->

@@ -93,6 +93,8 @@ Public Class DetallePedidoViewModel
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))) ' NestoAPI#581
+        ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#593
+        AnadirChequeRegaloCommand = New RelayCommand(AddressOf AnadirChequeRegalo, Function() MostrarAvisoChequeRegalo) ' NestoAPI#593
         Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
@@ -593,6 +595,7 @@ Public Class DetallePedidoViewModel
                 ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo
                 ReiniciarModosFacturacionPermitidos() ' Nesto#493
                 Dim unusedFecha = CargarFechaEntregaAgenciaAsync() ' NestoAPI#606: sin esperar, la carga sigue
+                Dim unusedCheque = CargarChequeRegaloAsync() ' NestoAPI#593 (c5): sin esperar, la carga sigue
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -2690,8 +2693,112 @@ Public Class DetallePedidoViewModel
         ' NestoAPI#606: guardar puede cambiar el día (líneas, modo...). Ya sin bloquear la pantalla.
         If guardado Then
             Await CargarFechaEntregaAgenciaAsync()
+            Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
         End If
     End Function
+
+#Region "NestoAPI#593 (c5): cheque regalo"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioChequesRegalo As Nesto.Infrastructure.Services.IServicioChequesRegalo
+
+    ''' <summary>El cheque regalo del cliente del pedido (nada si no tiene, si la campaña está apagada o si la API falla).</summary>
+    Public ReadOnly Property ChequeRegalo As New Nesto.Infrastructure.Models.ChequeRegaloVista()
+
+    Private _versionChequeRegalo As Integer
+
+    Public Property AnadirChequeRegaloCommand As RelayCommand
+
+    ''' <summary>
+    ''' GET api/ChequesRegalo/Cliente al abrir el pedido (o al ponerle cliente a uno nuevo) y después de guardarlo. Si
+    ''' mientras tanto se abre otro pedido, la respuesta del anterior se descarta. Nunca lanza: es una ayuda.
+    ''' </summary>
+    Friend Async Function CargarChequeRegaloAsync() As Task
+        _versionChequeRegalo += 1
+        Dim version As Integer = _versionChequeRegalo
+        Dim servicioCheques = ServicioChequesRegalo
+        Dim empresa As String = pedido?.empresa
+        Dim cliente As String = pedido?.cliente
+        If servicioCheques Is Nothing OrElse String.IsNullOrWhiteSpace(cliente) Then
+            ChequeRegalo.Limpiar()
+            NotificarChequeRegalo()
+            Return
+        End If
+        Dim cheque As Nesto.Infrastructure.Models.ChequeRegaloClienteDTO = Nothing
+        Try
+            cheque = Await servicioCheques.LeerDelCliente(empresa, cliente)
+        Catch ex As Exception
+            cheque = Nothing
+        End Try
+        If version <> _versionChequeRegalo Then
+            Return
+        End If
+        ChequeRegalo.Aplicar(cheque)
+        NotificarChequeRegalo()
+    End Function
+
+    ''' <summary>El pedido ya lleva una línea del producto del cheque (puesta con el botón o tecleada a mano).</summary>
+    Public ReadOnly Property PedidoLlevaChequeRegalo As Boolean
+        Get
+            Dim cheque = ChequeRegalo.Cheque
+            Return cheque IsNot Nothing AndAlso pedido?.Lineas IsNot Nothing AndAlso
+                pedido.Lineas.Any(Function(l) Nesto.Infrastructure.Models.ReglasChequeRegalo.EsLineaDelCheque(cheque, l.Producto))
+        End Get
+    End Property
+
+    ''' <summary>Cheque disponible y el pedido sin su línea: aviso con «Añadir el cheque regalo».</summary>
+    Public ReadOnly Property MostrarAvisoChequeRegalo As Boolean
+        Get
+            Return ChequeRegalo.SePuedeUsar AndAlso Not PedidoLlevaChequeRegalo
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Añade la línea del cheque (producto del GET) y deja que el guardado normal la mande. Va ya como la dejará el
+    ''' servidor (cantidad −1, precio = importe, sin descuentos) para que el total que se ve cuadre; el servidor la
+    ''' normaliza igual venga como venga. Si no llega al mínimo, al guardar se enseña su mensaje.
+    ''' </summary>
+    Friend Sub AnadirChequeRegalo()
+        Dim cheque = ChequeRegalo.Cheque
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse cheque Is Nothing OrElse Not MostrarAvisoChequeRegalo Then
+            Return
+        End If
+        Dim modelo As LineaPedidoVentaWrapper = pedido.Lineas.FirstOrDefault(
+            Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1 AndAlso Not String.IsNullOrWhiteSpace(l.Producto) AndAlso l.estado <= 1)
+        Dim almacenLinea As String = If(modelo?.Almacen, AlmacenUsuario)
+        Dim formaVentaLinea As String = If(modelo?.formaVenta, FormaVentaUsuario)
+        Dim nueva As New LineaPedidoVentaDTO With {
+            .estado = If(pedido.EsPresupuesto, -3S, 1S),
+            .tipoLinea = 1,
+            .Producto = cheque.Producto.Trim(),
+            .texto = Nesto.Infrastructure.Models.ReglasChequeRegalo.TextoLinea(cheque),
+            .Cantidad = -1,
+            .PrecioUnitario = cheque.Importe,
+            .DescuentoLinea = 0,
+            .DescuentoProducto = 0,
+            .AplicarDescuento = False,
+            .fechaEntrega = If(modelo IsNot Nothing, modelo.fechaEntrega, fechaEntrega),
+            .almacen = almacenLinea,
+            .formaVenta = formaVentaLinea,
+            .iva = modelo?.iva,
+            .PorcentajeIva = If(modelo IsNot Nothing, modelo.Model.PorcentajeIva, 0D),
+            .PorcentajeRecargoEquivalencia = If(modelo IsNot Nothing, modelo.Model.PorcentajeRecargoEquivalencia, 0D),
+            .Usuario = configuracion?.usuario,
+            .EsFicticio = True
+        }
+        pedido.Lineas.Add(New LineaPedidoVentaWrapper(nueva))
+        NotificarChequeRegalo()
+        OnActualizarTotales()
+    End Sub
+
+    Private Sub NotificarChequeRegalo()
+        OnPropertyChanged(NameOf(ChequeRegalo))
+        OnPropertyChanged(NameOf(PedidoLlevaChequeRegalo))
+        OnPropertyChanged(NameOf(MostrarAvisoChequeRegalo))
+        AnadirChequeRegaloCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+#End Region
 
 #Region "NestoAPI#606: qué día se entrega el pedido a la agencia"
 
@@ -3124,6 +3231,12 @@ Public Class DetallePedidoViewModel
         If e.PropertyName = NameOf(pedido.BaseImponible) OrElse
            e.PropertyName = String.Empty Then
             ActualizarEtiquetaPortes()
+            NotificarChequeRegalo() ' NestoAPI#593 (c5): si se quita (o se teclea) la línea del cheque, vuelve (o se va) el aviso
+        End If
+
+        ' NestoAPI#593 (c5): pedido nuevo al que se le pone cliente (o se le cambia)
+        If e.PropertyName = NameOf(pedido.cliente) Then
+            Dim unusedCheque = CargarChequeRegaloAsync()
         End If
 
         ' Nesto#484: cambian las líneas (cantidades, productos, altas y bajas) o su almacén: los modos permitidos
