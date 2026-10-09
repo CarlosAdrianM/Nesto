@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
