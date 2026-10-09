@@ -63,15 +63,27 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IServicioEnvioReposiciones _servicio;
         private readonly IServicioDialogos _dialogos;
         private readonly IConfiguracion _configuracion;
+        private readonly ISonidosLector _sonidos;
+        private readonly Action<string> _abrirFichero;
 
         /// <summary>Mientras se ponen las cantidades que manda el servidor (o se deshace un cambio) no se le vuelven a mandar.</summary>
         private bool _aplicandoServidor;
 
-        public EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion)
+        public EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
+            ISonidosLector sonidos)
+            : this(servicio, dialogos, configuracion, sonidos, null)
+        {
+        }
+
+        /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
+        internal EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
+            ISonidosLector sonidos, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
+            _sonidos = sonidos;
+            _abrirFichero = abrirFichero ?? AbridorFicheros.AbrirConElVisorDelSistema;
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             PrepararCommand = new AsyncRelayCommand(PrepararAsync, () => PuedePreparar);
             CambiarCantidadCommand = new AsyncRelayCommand<LineaEnviarReposicion>(CambiarCantidadAsync, AsyncRelayCommandOptions.AllowConcurrentExecutions);
@@ -82,6 +94,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Lectura = string.Empty;
             });
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => HayReposicion && !EstaOcupado);
+            ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => HayReposicion && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -108,6 +121,9 @@ namespace Nesto.Modules.Producto.ViewModels
 
         /// <summary>La vista pone el foco en la cantidad de esa línea (la ha leído el lector).</summary>
         public event Action<LineaEnviarReposicion> PedirFocoEnCantidad;
+
+        /// <summary>La vista vuelve a poner el foco en el cuadro del lector (lo leído no ha entrado).</summary>
+        public event Action PedirFocoEnLector;
 
         private bool _origenValido;
 
@@ -162,6 +178,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public IRelayCommand<string> LeerCommand { get; }
         public IRelayCommand LeerLecturaCommand { get; }
         public IAsyncRelayCommand TerminarCommand { get; }
+        /// <summary>Sugerencia 564: la reposición en papel, para prepararla a mano.</summary>
+        public IAsyncRelayCommand ImprimirCommand { get; }
 
         public async Task CargarAsync()
         {
@@ -292,25 +310,57 @@ namespace Nesto.Modules.Producto.ViewModels
             if (!HayReposicion)
             {
                 // Incidencia 505: lo leído no puede desaparecer sin decir nada
-                Mensaje = _puedeRellenarManual
+                LecturaFallida(_puedeRellenarManual
                     ? "Primero prepara la reposición (botón «Preparar reposición») y después lee los códigos."
-                    : _textoSinReposicion ?? TextoSeRellenaSola(null, Ahora());
+                    : _textoSinReposicion ?? TextoSeRellenaSola(null, Ahora()));
                 return;
             }
             List<LineaEnviarReposicion> candidatas = Lineas.Where(l => l.TieneCodigo(codigo)).ToList();
             if (candidatas.Count == 0)
             {
-                Mensaje = $"El código {codigo} no está en esta reposición.";
+                LecturaFallida($"El código {codigo} no está en esta reposición.");
                 return;
             }
             if (candidatas.Count > 1)
             {
-                Mensaje = $"El código {codigo} lo comparten varios productos: elige en la lista el que es.";
+                LecturaFallida($"El código {codigo} lo comparten varios productos: elige en la lista el que es.");
                 return;
             }
             Mensaje = null;
+            _sonidos?.Correcto();
             Seleccionada = candidatas[0];
             PedirFocoEnCantidad?.Invoke(candidatas[0]);
+        }
+
+        /// <summary>Lo leído no entra: se dice, suena el error y el cursor se queda en el lector para la siguiente lectura.</summary>
+        private void LecturaFallida(string mensaje)
+        {
+            Mensaje = mensaje;
+            _sonidos?.Error();
+            PedirFocoEnLector?.Invoke();
+        }
+
+        /// <summary>
+        /// Sugerencia 564 (Paloma): la reposición en preparación en un PDF (lo genera la API, como los demás informes) para
+        /// prepararla a mano mientras la tienda no tiene Ariadna. Lo que se imprime es lo que tiene el servidor.
+        /// </summary>
+        internal async Task ImprimirAsync()
+        {
+            if (!HayReposicion)
+            {
+                return;
+            }
+            Mensaje = null;
+            await Ocupado(async () =>
+            {
+                byte[] pdf = await _servicio.DescargarListadoPdf(Empresa, Almacen).ConfigureAwait(true);
+                string error = AbridorFicheros.GuardarYAbrir(pdf, $"Reposicion_{Almacen}", _abrirFichero);
+                if (error != null)
+                {
+                    Mensaje = error;
+                    _dialogos.ShowError(error);
+                }
+            }).ConfigureAwait(true);
         }
 
         private async Task TerminarAsync()
@@ -445,6 +495,7 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(PuedePreparar));
             PrepararCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();
+            ImprimirCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>

@@ -28,6 +28,10 @@
             <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                     Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"
                     ToolTip="El servidor propone lo que hay que mandar a Algete (stock máximo, pendientes y stock de los dos almacenes)" />
+            <!-- Sugerencia 564: la lista en papel para prepararla a mano -->
+            <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="Abre un PDF con la reposición para prepararla a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
             <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
                        Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
@@ -46,6 +50,7 @@
         </StackPanel>
 
         <DataGrid x:Name="grdLineas" Grid.Row="2" ItemsSource="{Binding Lineas}" SelectedItem="{Binding Seleccionada}"
+                  PreviewKeyDown="GrdLineas_PreviewKeyDown"
                   AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                   Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}">
             <DataGrid.RowStyle>

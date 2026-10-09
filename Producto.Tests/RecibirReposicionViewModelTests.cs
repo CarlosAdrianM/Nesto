@@ -3,6 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.ViewModels;
 
 namespace Producto.Tests
@@ -18,6 +19,9 @@ namespace Producto.Tests
         private IServicioDialogos _dialogos = null!;
         private IConfiguracion _configuracion = null!;
         private RecibirReposicionViewModel _vm = null!;
+        private ISonidosLector _sonidos = null!;
+        private readonly List<string> _abiertos = new();
+        private int _focosEnLector;
         private TerminarRecepcionReposicion? _terminada;
 
         private static RecepcionReposicion Reposicion(bool puedeTerminar = true) => new()
@@ -54,7 +58,11 @@ namespace Producto.Tests
                     return Task.FromResult(new ResultadoRecepcionReposicion { Documento = "80878" });
                 });
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
-            _vm = new RecibirReposicionViewModel(_servicio, _dialogos, _configuracion);
+            _sonidos = A.Fake<ISonidosLector>();
+            _abiertos.Clear();
+            _focosEnLector = 0;
+            _vm = new RecibirReposicionViewModel(_servicio, _dialogos, _configuracion, _sonidos, ruta => _abiertos.Add(ruta));
+            _vm.PedirFocoEnLector += () => _focosEnLector++;
         }
 
         private async Task AbiertaAsync()
@@ -614,6 +622,115 @@ namespace Producto.Tests
             _vm.LeerProductoElegido("17404", "Cera");
 
             StringAssert.Contains(_vm.Mensaje, "Primero abre una reposición");
+        }
+
+        // ---- Sonido al leer y cursor en el lector ----
+
+        [TestMethod]
+        public async Task Leer_QueEntraBien_SuenaElDeConfirmacionYVuelveAlLector()
+        {
+            await AbiertaAsync();
+            _focosEnLector = 0;
+
+            _vm.LeerCommand.Execute("8411");
+
+            A.CallTo(() => _sonidos.Correcto()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Error()).MustNotHaveHappened();
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoQueNoVenia_SuenaElError()
+        {
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("55555");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Correcto()).MustNotHaveHappened();
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeVariosProductos_SuenaElErrorYNoSuma()
+        {
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", CodigoBarras = "8411", Cantidad = 1 },
+                    new() { Producto = "17405", CodigoBarras = "8411", Cantidad = 1 }
+                }
+            });
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("8411");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(_vm.Lineas.All(l => l.Leido == 0));
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        [TestMethod]
+        public async Task Leer_CuandoYaEstabaTodoLoEnviado_SumaPeroSuenaElError()
+        {
+            await AbiertaAsync();
+            _vm.LeerCommand.Execute("8422");
+            Fake.ClearRecordedCalls(_sonidos);
+
+            _vm.LeerCommand.Execute("8422");
+
+            Assert.AreEqual(2, _vm.Lineas[1].Leido, "Entra lo leído");
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Correcto()).MustNotHaveHappened();
+            StringAssert.Contains(_vm.Mensaje, "sobran 1");
+        }
+
+        [TestMethod]
+        public void Leer_SinReposicionAbierta_SuenaElError()
+        {
+            _vm.LeerCommand.Execute("8411");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        // ---- Sugerencia 564: imprimir lo que llega ----
+
+        [TestMethod]
+        public void Imprimir_SinReposicionAbierta_NoSePuede()
+        {
+            Assert.IsFalse(_vm.ImprimirCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Imprimir_DescargaElPdfDeLaAbiertaYLoAbre()
+        {
+            A.CallTo(() => _servicio.DescargarListadoPdf(A<string>._, A<string>._, A<string>._)).Returns(new byte[] { 37, 80, 68, 70 });
+            await AbiertaAsync();
+            Assert.IsTrue(_vm.ImprimirCommand.CanExecute(null));
+
+            await _vm.ImprimirCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.DescargarListadoPdf("1", "ALC", "80878")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _abiertos.Count);
+            StringAssert.EndsWith(_abiertos[0], ".pdf");
+            CollectionAssert.AreEqual(new byte[] { 37, 80, 68, 70 }, File.ReadAllBytes(_abiertos[0]));
+            File.Delete(_abiertos[0]);
+        }
+
+        [TestMethod]
+        public async Task Imprimir_SiLaApiNoLoDa_DiceElMotivoYNoAbreNada()
+        {
+            A.CallTo(() => _servicio.DescargarListadoPdf(A<string>._, A<string>._, A<string>._))
+                .ThrowsAsync(new RecepcionReposicionException("La reposición 80878 no está pendiente de recibir en ALC."));
+            await AbiertaAsync();
+
+            await _vm.ImprimirCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("La reposición 80878 no está pendiente de recibir en ALC.", _vm.Mensaje);
+            Assert.AreEqual(0, _abiertos.Count);
         }
     }
 }

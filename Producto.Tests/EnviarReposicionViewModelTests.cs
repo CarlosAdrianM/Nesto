@@ -3,6 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.ViewModels;
 
 namespace Producto.Tests
@@ -18,6 +19,9 @@ namespace Producto.Tests
         private IServicioDialogos _dialogos = null!;
         private IConfiguracion _configuracion = null!;
         private EnviarReposicionViewModel _vm = null!;
+        private ISonidosLector _sonidos = null!;
+        private readonly List<string> _abiertos = new();
+        private int _focosEnLector;
 
         private static ReposicionEnPreparacion Reposicion(int cantidadCera = 3) => new()
         {
@@ -41,7 +45,11 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
             A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(true);
-            _vm = new EnviarReposicionViewModel(_servicio, _dialogos, _configuracion);
+            _sonidos = A.Fake<ISonidosLector>();
+            _abiertos.Clear();
+            _focosEnLector = 0;
+            _vm = new EnviarReposicionViewModel(_servicio, _dialogos, _configuracion, _sonidos, ruta => _abiertos.Add(ruta));
+            _vm.PedirFocoEnLector += () => _focosEnLector++;
         }
 
         private async Task CambiarCantidadAsync(int fila, int cantidad)
@@ -446,6 +454,103 @@ namespace Producto.Tests
             A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
             A.CallTo(() => _dialogos.ShowNotification(A<string>._, motivo)).MustHaveHappenedOnceExactly();
             Assert.IsFalse(_vm.PuedePreparar);
+        }
+
+        // ---- Sonido al leer y cursor en el lector ----
+
+        [TestMethod]
+        public async Task Leer_QueEstaEnLaReposicion_SuenaElDeConfirmacionYVaASuCantidad()
+        {
+            await _vm.CargarAsync();
+            LineaEnviarReposicion? enfocada = null;
+            _vm.PedirFocoEnCantidad += l => enfocada = l;
+
+            _vm.LeerCommand.Execute("8422");
+
+            A.CallTo(() => _sonidos.Correcto()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Error()).MustNotHaveHappened();
+            Assert.AreEqual("40057", enfocada?.Producto);
+            Assert.AreEqual(0, _focosEnLector);
+        }
+
+        [TestMethod]
+        public async Task Leer_QueNoEstaEnLaReposicion_SuenaElErrorYSeQuedaEnElLector()
+        {
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("99999");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Correcto()).MustNotHaveHappened();
+            Assert.AreEqual(1, _focosEnLector);
+            StringAssert.Contains(_vm.Mensaje, "no está en esta reposición");
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeVariosProductos_SuenaElError()
+        {
+            ReposicionEnPreparacion reposicion = Reposicion();
+            reposicion.Lineas[1].CodigoBarras = "8411";
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(reposicion);
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("8411");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _focosEnLector);
+            Assert.IsNull(_vm.Seleccionada);
+        }
+
+        [TestMethod]
+        public async Task Leer_SinReposicion_SuenaElError()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("8411");
+
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        // ---- Sugerencia 564: imprimir la reposición para prepararla a mano ----
+
+        [TestMethod]
+        public async Task Imprimir_SinReposicionEnPreparacion_NoSePuede()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.ImprimirCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Imprimir_DescargaElPdfDeLaDeLaTiendaYLoAbre()
+        {
+            A.CallTo(() => _servicio.DescargarListadoPdf(A<string>._, A<string>._)).Returns(new byte[] { 37, 80, 68, 70 });
+            await _vm.CargarAsync();
+            Assert.IsTrue(_vm.ImprimirCommand.CanExecute(null));
+
+            await _vm.ImprimirCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.DescargarListadoPdf("1", "ALC")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _abiertos.Count);
+            StringAssert.Contains(_abiertos[0], "Reposicion_ALC");
+            CollectionAssert.AreEqual(new byte[] { 37, 80, 68, 70 }, File.ReadAllBytes(_abiertos[0]));
+            File.Delete(_abiertos[0]);
+        }
+
+        [TestMethod]
+        public async Task Imprimir_SiLaApiNoLoDa_DiceElMotivoYNoAbreNada()
+        {
+            A.CallTo(() => _servicio.DescargarListadoPdf(A<string>._, A<string>._))
+                .ThrowsAsync(new EnvioReposicionException("ALC no tiene ninguna reposición en preparación.", 404));
+            await _vm.CargarAsync();
+
+            await _vm.ImprimirCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("ALC no tiene ninguna reposición en preparación.", _vm.Mensaje);
+            Assert.AreEqual(0, _abiertos.Count);
         }
     }
 }

@@ -22,6 +22,12 @@ namespace Nesto.Infrastructure.Services
         Task<RecepcionReposicion> LeerRecepcion(string empresa, string almacen, string traspaso);
         /// <exception cref="RecepcionReposicionException">La API no la ha terminado (sin permiso, ya terminada…).</exception>
         Task<ResultadoRecepcionReposicion> Terminar(string empresa, string almacen, string traspaso, TerminarRecepcionReposicion terminar);
+        /// <summary>
+        /// Sugerencia 564: el PDF de lo que llega con la reposición, para comprobarlo a mano
+        /// (GET api/Reposiciones/Recepcion/{traspaso}/Pdf).
+        /// </summary>
+        /// <exception cref="RecepcionReposicionException">Ya no está pendiente (404) o la API no lo ha generado.</exception>
+        Task<byte[]> DescargarListadoPdf(string empresa, string almacen, string traspaso);
     }
 
     public class ServicioRecepcionReposiciones : IServicioRecepcionReposiciones
@@ -60,6 +66,21 @@ namespace Nesto.Infrastructure.Services
                     throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
                 }
                 return JsonConvert.DeserializeObject<ResultadoRecepcionReposicion>(json) ?? new ResultadoRecepcionReposicion();
+            }
+        }
+
+        public async Task<byte[]> DescargarListadoPdf(string empresa, string almacen, string traspaso)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = $"Reposiciones/Recepcion/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/Pdf" + Consulta(empresa, almacen);
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
+                }
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
 

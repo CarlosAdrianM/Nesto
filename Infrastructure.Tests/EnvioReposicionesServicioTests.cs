@@ -222,5 +222,53 @@ namespace Infrastructure.Tests
 
             Assert.IsNull(await servicio.LeerProximaLlegada("1", "ALC", "ALG"));
         }
+
+        // ---- Sugerencia 564: la reposición en PDF ----
+
+        [TestMethod]
+        public async Task DescargarListadoPdf_PideElDeLaEnPreparacionDelOrigen()
+        {
+            var handler = new HandlerFalso { Respuesta = "%PDF" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            byte[] pdf = await servicio.DescargarListadoPdf("1", "ALC");
+
+            Assert.AreEqual("GET /api/Reposiciones/EnPreparacion/Pdf?origen=ALC&empresa=1", handler.Urls[0]);
+            Assert.AreEqual("%PDF", Encoding.ASCII.GetString(pdf));
+        }
+
+        [TestMethod]
+        public async Task DescargarListadoPdf_SinNingunaEnPreparacion_LanzaConElMotivoDeLaApi()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "{\"Message\":\"ALC no tiene ninguna reposición en preparación.\"}" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            EnvioReposicionException ex = await Assert.ThrowsExceptionAsync<EnvioReposicionException>(() => servicio.DescargarListadoPdf("1", "ALC"));
+
+            Assert.AreEqual("ALC no tiene ninguna reposición en preparación.", ex.Message);
+        }
+
+        [TestMethod]
+        public async Task DescargarListadoPdfRecepcion_PideElDelTraspasoEnElAlmacen()
+        {
+            var handler = new HandlerFalso { Respuesta = "%PDF" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            byte[] pdf = await servicio.DescargarListadoPdf("1", "ALC", " 80893 ");
+
+            Assert.AreEqual("GET /api/Reposiciones/Recepcion/80893/Pdf?almacen=ALC&empresa=1", handler.Urls[0]);
+            Assert.AreEqual("%PDF", Encoding.ASCII.GetString(pdf));
+        }
+
+        [TestMethod]
+        public async Task DescargarListadoPdfRecepcion_QueYaNoEstaPendiente_Lanza()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "{\"Message\":\"La reposición 80893 no está pendiente de recibir en ALC.\"}" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            RecepcionReposicionException ex = await Assert.ThrowsExceptionAsync<RecepcionReposicionException>(() => servicio.DescargarListadoPdf("1", "ALC", "80893"));
+
+            Assert.AreEqual("La reposición 80893 no está pendiente de recibir en ALC.", ex.Message);
+        }
     }
 }

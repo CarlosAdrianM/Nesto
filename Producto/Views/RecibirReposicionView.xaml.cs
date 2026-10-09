@@ -1,6 +1,7 @@
 ﻿using ControlesUsuario.Behaviors;
 using Nesto.Modules.Producto.ViewModels;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace Nesto.Modules.Producto.Views
 {
@@ -11,6 +12,7 @@ namespace Nesto.Modules.Producto.Views
         {
             InitializeComponent();
             DataContext = viewModel;
+            viewModel.PedirFocoEnLector += EnfocarLector;
             Loaded += async (_, _) =>
             {
                 if (DataContext is RecibirReposicionViewModel vm && vm.Pendientes.Count == 0)
@@ -18,6 +20,18 @@ namespace Nesto.Modules.Producto.Views
                     await vm.CargarAsync();
                 }
             };
+        }
+
+        /// <summary>Tras cada lectura el cursor vuelve al lector (también después de elegir en el buscador).</summary>
+        private void EnfocarLector()
+        {
+            _ = Dispatcher.InvokeAsync(() =>
+            {
+                if (txtLectura?.IsVisible == true)
+                {
+                    _ = txtLectura.Focus();
+                }
+            }, DispatcherPriority.Background);
         }
 
         /// <summary>

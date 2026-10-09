@@ -122,15 +122,27 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IServicioRecepcionReposiciones _servicio;
         private readonly IServicioDialogos _dialogos;
         private readonly IConfiguracion _configuracion;
+        private readonly ISonidosLector _sonidos;
+        private readonly Action<string> _abrirFichero;
 
         /// <summary>Uno por reposición abierta: si la respuesta se pierde y se reintenta, no se recibe dos veces.</summary>
         private Guid _idRecepcion;
 
-        public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion)
+        public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
+            ISonidosLector sonidos)
+            : this(servicio, dialogos, configuracion, sonidos, null)
+        {
+        }
+
+        /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
+        internal RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
+            ISonidosLector sonidos, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
+            _sonidos = sonidos;
+            _abrirFichero = abrirFichero ?? AbridorFicheros.AbrirConElVisorDelSistema;
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             ElegirCommand = new AsyncRelayCommand<RecepcionPendiente>(ElegirAsync);
             LeerCommand = new RelayCommand<string>(Leer);
@@ -141,6 +153,7 @@ namespace Nesto.Modules.Producto.ViewModels
             });
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => PuedeTerminar && !EstaOcupado);
             LimpiarFiltroCommand = new RelayCommand(() => Filtro = null);
+            ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => Seleccionada != null && !EstaOcupado);
             // Sugerencia 545: la grid enseña las líneas filtradas; lo leído está en las líneas, así que filtrar no lo pierde
             var vista = new ListCollectionView(Lineas);
             vista.Filter = l => ((LineaRecibirReposicion)l).CasaConFiltro(Filtro);
@@ -197,7 +210,20 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         private RecepcionPendiente _seleccionada;
-        public RecepcionPendiente Seleccionada { get => _seleccionada; private set => SetProperty(ref _seleccionada, value); }
+        public RecepcionPendiente Seleccionada
+        {
+            get => _seleccionada;
+            private set
+            {
+                if (SetProperty(ref _seleccionada, value))
+                {
+                    ImprimirCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>La vista vuelve a poner el foco en el cuadro del lector tras cada lectura.</summary>
+        public event Action PedirFocoEnLector;
 
         private RecepcionReposicion _recepcion;
 
@@ -226,6 +252,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _estaOcupado, value))
                 {
                     TerminarCommand.NotifyCanExecuteChanged();
+                    ImprimirCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -242,6 +269,8 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>Sugerencia 545: Esc en el cuadro «Buscar» vuelve a la lista entera.</summary>
         public IRelayCommand LimpiarFiltroCommand { get; }
         public IAsyncRelayCommand TerminarCommand { get; }
+        /// <summary>Sugerencia 564: lo que llega en papel, para comprobarlo a mano.</summary>
+        public IAsyncRelayCommand ImprimirCommand { get; }
 
         public async Task CargarAsync()
         {
@@ -325,13 +354,13 @@ namespace Nesto.Modules.Producto.ViewModels
             if (Seleccionada == null)
             {
                 // Incidencia 505: antes lo leído desaparecía sin decir nada
-                Mensaje = "Primero abre una reposición de la lista (doble clic) y después lee los códigos.";
+                LecturaFallida("Primero abre una reposición de la lista (doble clic) y después lee los códigos.");
                 return;
             }
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();
             if (candidatas.Count > 1)
             {
-                Mensaje = $"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.";
+                LecturaFallida($"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.");
                 return;
             }
             SumarUnaUnidad(candidatas.FirstOrDefault(), codigo, null);
@@ -351,7 +380,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             if (Seleccionada == null)
             {
-                Mensaje = "Primero abre una reposición de la lista (doble clic) y después lee los códigos.";
+                LecturaFallida("Primero abre una reposición de la lista (doble clic) y después lee los códigos.");
                 return;
             }
             SumarUnaUnidad(Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)),
@@ -371,8 +400,53 @@ namespace Nesto.Modules.Producto.ViewModels
                 linea = new LineaRecibirReposicion { Producto = codigo, Descripcion = descripcion, NoVenia = true };
                 Lineas.Add(linea);
             }
+            bool yaEstabaCompleta = !linea.NoVenia && linea.Leido >= linea.Enviado;
             linea.Leido++;
-            Mensaje = linea.NoVenia ? $"El código {codigo} no venía en esta reposición: se apunta aparte." : null;
+            if (linea.NoVenia)
+            {
+                LecturaFallida($"El código {codigo} no venía en esta reposición: se apunta aparte.");
+            }
+            else if (yaEstabaCompleta)
+            {
+                // Se suma igual (entra lo leído), pero suena: de ese producto ya estaba todo lo enviado
+                LecturaFallida($"De {linea.Producto} ya estaba leído todo lo enviado ({linea.Enviado}): ahora sobran {linea.Diferencia}.");
+            }
+            else
+            {
+                Mensaje = null;
+                _sonidos?.Correcto();
+                PedirFocoEnLector?.Invoke();
+            }
+        }
+
+        /// <summary>Lo leído no entra como se esperaba: se dice, suena el error y el cursor vuelve al lector.</summary>
+        private void LecturaFallida(string mensaje)
+        {
+            Mensaje = mensaje;
+            _sonidos?.Error();
+            PedirFocoEnLector?.Invoke();
+        }
+
+        /// <summary>
+        /// Sugerencia 564 (Paloma): lo que llega con la reposición abierta en un PDF (lo genera la API) para comprobarlo a
+        /// mano mientras la tienda no tiene Ariadna.
+        /// </summary>
+        internal async Task ImprimirAsync()
+        {
+            if (Seleccionada == null)
+            {
+                return;
+            }
+            string documento = Seleccionada.Documento;
+            await Ocupado(async () =>
+            {
+                byte[] pdf = await _servicio.DescargarListadoPdf(Empresa, Almacen, documento).ConfigureAwait(true);
+                string error = AbridorFicheros.GuardarYAbrir(pdf, $"Reposicion_{documento?.Trim()}", _abrirFichero);
+                if (error != null)
+                {
+                    Mensaje = error;
+                }
+            }).ConfigureAwait(true);
         }
 
         private async Task TerminarAsync()

@@ -31,6 +31,11 @@ namespace Nesto.Infrastructure.Services
         Task<bool> PuedeRellenarManual();
         /// <summary>NestoAPI#577: la próxima reposición de la ruta según el calendario, o null si la ruta no tiene calendario (404).</summary>
         Task<ProximaReposicion> LeerProximaLlegada(string empresa, string origen, string destino);
+        /// <summary>
+        /// Sugerencia 564: el PDF de la reposición en preparación para prepararla a mano (GET api/Reposiciones/EnPreparacion/Pdf).
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">No hay ninguna en preparación (404) o la API no lo ha generado.</exception>
+        Task<byte[]> DescargarListadoPdf(string empresa, string origen);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -103,6 +108,20 @@ namespace Nesto.Infrastructure.Services
                     return null;
                 }
                 return await Leer<ProximaReposicion>(response).ConfigureAwait(false);
+            }
+        }
+
+        public async Task<byte[]> DescargarListadoPdf(string empresa, string origen)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/EnPreparacion/Pdf" + Consulta(empresa, origen)).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new EnvioReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode), (int)response.StatusCode);
+                }
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
 

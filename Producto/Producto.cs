@@ -17,6 +17,8 @@ namespace Nesto.Modulos.Producto
             containerRegistry.Register<object, RecibirReposicionView>("RecibirReposicionView");
             containerRegistry.Register<object, EnviarReposicionView>("EnviarReposicionView");
             containerRegistry.Register<object, CalendarioReposicionesView>("CalendarioReposicionesView");
+            // Lo que suena al leer en Enviar y Recibir reposición
+            containerRegistry.RegisterSingleton<Nesto.Modules.Producto.ISonidosLector, Nesto.Modules.Producto.SonidosLectorSistema>();
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

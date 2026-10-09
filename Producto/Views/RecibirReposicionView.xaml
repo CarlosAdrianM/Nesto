@@ -60,7 +60,7 @@
         <WrapPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,4">
             <TextBlock Text="{Binding Seleccionada.Titulo}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
-            <TextBox Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
+            <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad. Si escribes el nombre, elige el producto en la lista: también suma una unidad">
                 <!-- Sugerencia 545: el buscador de productos de las líneas del pedido. Lo que entra seguido por el lector
                      llega al Intro antes de que el buscador pregunte (espera a que se deje de escribir) -->
@@ -75,6 +75,9 @@
             </TextBox>
             <Button Content="Terminar" Command="{Binding TerminarCommand}" Padding="16,2" Margin="12,0,0,0"
                     ToolTip="Entra lo leído y se informa de las diferencias a quien hizo la reposición" />
+            <!-- Sugerencia 564: lo que llega en papel, para comprobarlo a mano -->
+            <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0"
+                    ToolTip="Abre un PDF con lo que llega para comprobarlo a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
             <!-- Sugerencia 545: encontrar en la lista lo que no entra por el lector y teclear su cantidad en «Leído» -->
             <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="24,2,6,2" />
             <TextBox Width="200" Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}"
