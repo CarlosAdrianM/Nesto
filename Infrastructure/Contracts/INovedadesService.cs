@@ -50,8 +50,30 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public List<AdjuntoNovedad> Adjuntos { get; set; }
 
+        /// <summary>
+        /// Sugerencia 551: a quién afecta (Vendedores, Almacén, Tiendas, Administración). null o vacía = a todos
+        /// (también si la API todavía no lo conoce).
+        /// </summary>
+        public List<string> Perfiles { get; set; }
+
         /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
         public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
+    }
+
+    /// <summary>
+    /// Sugerencia 551 (GET api/Novedades/MisPerfiles): con qué perfiles filtra la API las novedades de quien
+    /// pregunta. Los deduce la API de los grupos de dominio (Almacén, Tiendas, Administración/Compras/TiendaOnline,
+    /// Comerciales = Vendedores); Dirección e Informática las ven todas.
+    /// </summary>
+    public class PerfilesUsuarioNovedades
+    {
+        public List<string> Perfiles { get; set; } = new List<string>();
+        /// <summary>No se le filtra nada (Dirección, Informática o sin perfil conocido).</summary>
+        public bool VeTodas { get; set; }
+        /// <summary>Dirección o Informática: puede cambiar a quién afecta cada novedad.</summary>
+        public bool PuedeEditar { get; set; }
+        /// <summary>Los perfiles que se pueden poner a una novedad.</summary>
+        public List<string> Disponibles { get; set; }
     }
 
     /// <summary>Nesto#519 (NestoAPI#616): un fichero adjunto a una novedad o sugerencia.</summary>
@@ -115,6 +137,21 @@ namespace Nesto.Infrastructure.Contracts
         /// (las novedades no deben bloquear el arranque de Nesto).
         /// </summary>
         Task<List<NovedadUsuario>> ObtenerNovedades(string desdeVersion = null);
+
+        /// <summary>
+        /// Sugerencia 551: todas las publicadas, también las que no son de los perfiles del usuario
+        /// (GET api/Novedades?todas=true). Como <see cref="ObtenerNovedades"/>, nunca lanza.
+        /// </summary>
+        Task<List<NovedadUsuario>> ObtenerTodasLasNovedades();
+
+        /// <summary>Sugerencia 551: los perfiles con los que la API filtra las novedades. Lanza si la API falla.</summary>
+        Task<PerfilesUsuarioNovedades> LeerMisPerfiles();
+
+        /// <summary>
+        /// Sugerencia 551 (Dirección / Informática): a quién afecta la novedad. Vacía = a todos. Lanza con el
+        /// mensaje de la API.
+        /// </summary>
+        Task CambiarPerfiles(int novedadId, IEnumerable<string> perfiles);
 
         // NestoAPI#520: feedback. A diferencia de ObtenerNovedades, estos SÍ lanzan (con el mensaje de la
         // API) para que la ventana se lo cuente al usuario en vez de callarlo.

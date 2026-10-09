@@ -80,6 +80,14 @@
                     </ListBox>
                 </DockPanel>
             </Border>
+            <!-- Sugerencia 551 (Alberto Sancho): cada uno ve las novedades de su puesto; el resto, con el conmutador.
+                 Solo a quien se le filtra algo (Dirección e Informática las ven todas). -->
+            <DockPanel Margin="0,0,0,6" Visibility="{Binding MostrarConmutadorPerfiles, Converter={StaticResource BoolAVisible}}">
+                <CheckBox DockPanel.Dock="Right" Content="Ver todas las novedades" IsChecked="{Binding VerTodas}" VerticalAlignment="Center"
+                          Margin="8,0,0,0" ToolTip="Enseña también las novedades que no son de tu puesto" />
+                <TextBlock Text="{Binding TextoPerfiles}" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                           FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
         </StackPanel>
 
         <!-- Navegación entre versiones: solo se muestra una versión a la vez (la más nueva al abrir);
@@ -236,6 +244,38 @@
                                     </WrapPanel>
                                     <TextBlock Text="{Binding MensajeAdjuntos}" FontSize="11" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,2,0,0"
                                                Visibility="{Binding HayMensajeAdjuntos, Converter={StaticResource BoolAVisible}}" />
+                                </StackPanel>
+
+                                <!-- Sugerencia 551: a quién afecta («Para: Almacén y Tiendas»). Dirección e Informática lo cambian aquí. -->
+                                <StackPanel DataContext="{Binding Perfiles}" Margin="0,4,0,0"
+                                            Visibility="{Binding Mostrar, Converter={StaticResource BoolAVisible}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Texto}" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                                                   Visibility="{Binding HayTexto, Converter={StaticResource BoolAVisible}}" />
+                                        <Button Content="{Binding TextoBotonEditar}" Command="{Binding EditarCommand}" FontSize="11" Padding="6,0" Margin="8,0,0,0"
+                                                ToolTip="Elige a quién le sale esta novedad sin marcar «Ver todas las novedades»"
+                                                Visibility="{Binding PuedeEditar, Converter={StaticResource BoolAVisible}}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                                Visibility="{Binding Editando, Converter={StaticResource BoolAVisible}}">
+                                        <ItemsControl ItemsSource="{Binding Opciones}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Nombre}" IsChecked="{Binding Marcado}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="Guardar" Command="{Binding GuardarCommand}" FontSize="11" Padding="8,0"
+                                                ToolTip="Sin ninguno marcado (o con todos), la novedad es para todos" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Mensaje}" FontSize="11" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,2,0,0"
+                                               Visibility="{Binding HayMensaje, Converter={StaticResource BoolAVisible}}" />
                                 </StackPanel>
 
                                 <!-- NestoAPI#520: feedback. Solo si la API trae los contadores (si no, la ventana como siempre). -->

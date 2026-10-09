@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,16 +24,32 @@ namespace Nesto.Infrastructure.Shared
             _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
-        public async Task<List<NovedadUsuario>> ObtenerNovedades(string desdeVersion = null)
+        public Task<List<NovedadUsuario>> ObtenerNovedades(string desdeVersion = null)
+            => LeerNovedades(string.IsNullOrEmpty(desdeVersion)
+                ? "Novedades"
+                : $"Novedades?desdeVersion={Uri.EscapeDataString(desdeVersion)}");
+
+        // Sugerencia 551: sin ?todas=true la API solo manda las de los perfiles del usuario.
+        public Task<List<NovedadUsuario>> ObtenerTodasLasNovedades() => LeerNovedades("Novedades?todas=true");
+
+        public async Task<PerfilesUsuarioNovedades> LeerMisPerfiles()
+        {
+            string json = await Enviar(HttpMethod.Get, "Novedades/MisPerfiles", null, "saber tus perfiles de novedades").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<PerfilesUsuarioNovedades>(json ?? "null");
+        }
+
+        public async Task CambiarPerfiles(int novedadId, IEnumerable<string> perfiles)
+        {
+            var cuerpo = new { Perfiles = (perfiles ?? new string[0]).ToList() };
+            await Enviar(HttpMethod.Put, $"Novedades/{novedadId}/Perfiles", cuerpo, "guardar a quién afecta la novedad").ConfigureAwait(false);
+        }
+
+        private async Task<List<NovedadUsuario>> LeerNovedades(string url)
         {
             try
             {
                 using (var client = _clienteApiFactory.Crear())
                 {
-                    string url = string.IsNullOrEmpty(desdeVersion)
-                        ? "Novedades"
-                        : $"Novedades?desdeVersion={Uri.EscapeDataString(desdeVersion)}";
-
                     var response = await client.GetAsync(url);
                     if (!response.IsSuccessStatusCode)
                     {

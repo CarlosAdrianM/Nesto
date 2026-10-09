@@ -37,6 +37,8 @@ namespace ControlesUsuario.Dialogs
         private readonly ListaMencionables _mencionables;
         /// <summary>Nesto#519: adjuntos de las novedades (null en los tests antiguos: sin chips ni botón).</summary>
         private readonly ContextoAdjuntosNovedades _adjuntos;
+        /// <summary>Sugerencia 551: a quién afecta cada novedad y los perfiles del usuario.</summary>
+        private readonly ContextoPerfilesNovedades _perfiles;
 
         /// <summary>Nesto#491: el desplegable de @menciones del cuadro «Sugerir nueva característica».</summary>
         public AutocompletadoMenciones MencionesSugerencia { get; }
@@ -66,6 +68,8 @@ namespace ControlesUsuario.Dialogs
             // Nesto#491: una sola petición de mencionables por ventana, compartida por todos los cuadros.
             _mencionables = new ListaMencionables(servicio);
             MencionesSugerencia = new AutocompletadoMenciones(_mencionables);
+            // Sugerencia 551: los perfiles del usuario llegan de la API al abrir (CargarMisPerfiles).
+            _perfiles = new ContextoPerfilesNovedades(servicio);
 
             AbrirSugerenciaCommand = new AsyncRelayCommand(AbrirOCerrarSugerencia, () => PuedeSugerir);
             AbrirIncidenciaCommand = new AsyncRelayCommand(AbrirOCerrarIncidencia, () => PuedeSugerir);
@@ -167,6 +171,9 @@ namespace ControlesUsuario.Dialogs
                     : (int?)null;
                 _ = IrANovedadComentario(parameters.GetValue<int>(PARAMETRO_NOVEDAD_ID), comentarioId);
             }
+
+            // Sugerencia 551: para decirle de qué perfiles son las que ve y ofrecerle «Ver todas».
+            _ = CargarMisPerfiles();
         }
 
         /// <summary>Nesto#477: parámetros del diálogo para abrirlo en una novedad y en uno de sus comentarios.</summary>
@@ -188,13 +195,15 @@ namespace ControlesUsuario.Dialogs
             return Math.Max(0, _porVersion.FindIndex(g => g.Key == version.Trim()));
         }
 
-        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos);
+        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos, _perfiles);
 
         // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
         // parsea; si no, por texto, para no romper con versiones con formato raro).
         private void Reagrupar()
         {
+            // Sugerencia 551: sin «Ver todas», solo las de sus perfiles (y las que son para todos).
             _porVersion = _items
+                .Where(EsVisible)
                 .GroupBy(n => (n.Version ?? string.Empty).Trim())
                 .OrderByDescending(g => ParsearVersion(g.Key))
                 .ThenByDescending(g => g.Key, StringComparer.Ordinal)
@@ -237,6 +246,109 @@ namespace ControlesUsuario.Dialogs
 
         private static Version ParsearVersion(string version)
             => Version.TryParse(version, out Version v) ? v : new Version(0, 0);
+
+        #region Sugerencia 551: novedades por perfil
+
+        /// <summary>
+        /// Sugerencia 551: la API ya manda solo las de los perfiles del usuario; con «Ver todas» se piden también las
+        /// demás (una vez) y se enseñan todas. Al quitarlo, se vuelven a esconder sin preguntar a la API.
+        /// </summary>
+        private bool _verTodas;
+        public bool VerTodas
+        {
+            get => _verTodas;
+            set
+            {
+                if (value != _verTodas)
+                {
+                    _ = CambiarVerTodas(value);
+                }
+            }
+        }
+
+        // Ya se han pedido a la API las de todos los perfiles (GET api/Novedades?todas=true).
+        private bool _todasCargadas;
+
+        /// <summary>El conmutador solo tiene sentido si al usuario se le filtra algo (no a Dirección ni a Informática).</summary>
+        public bool MostrarConmutadorPerfiles => _perfiles.TieneFiltro;
+
+        /// <summary>«Te enseñamos las novedades de Almacén y Tiendas y las que son para todos.»</summary>
+        public string TextoPerfiles => _perfiles.TieneFiltro
+            ? $"Te enseñamos las novedades de {ContextoPerfilesNovedades.Unir(_perfiles.MisPerfiles.Perfiles)} y las que son para todos."
+            : null;
+
+        private bool EsVisible(NovedadItem item) => _verTodas || _perfiles.EsParaMi(item.Perfiles.Actuales);
+
+        /// <summary>Pide a la API los perfiles del usuario. Si falla (o es una API antigua), todo sigue como antes.</summary>
+        internal async Task CargarMisPerfiles()
+        {
+            if (_servicio == null)
+            {
+                return;
+            }
+            try
+            {
+                _perfiles.MisPerfiles = await _servicio.LeerMisPerfiles();
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            OnPropertyChanged(nameof(MostrarConmutadorPerfiles));
+            OnPropertyChanged(nameof(TextoPerfiles));
+            foreach (NovedadItem item in _items.Concat(_sugerencias ?? new List<NovedadItem>()))
+            {
+                item.Perfiles.Refrescar();
+            }
+            RefrescarVista();
+        }
+
+        internal async Task CambiarVerTodas(bool verTodas)
+        {
+            _verTodas = verTodas;
+            OnPropertyChanged(nameof(VerTodas));
+            try
+            {
+                if (verTodas && !_todasCargadas)
+                {
+                    await CargarTodasSinFiltro();
+                }
+            }
+            catch (Exception)
+            {
+                // Nunca debe tirar la ventana: se enseña lo que hay
+            }
+            RefrescarVista();
+        }
+
+        /// <summary>Añade a las cargadas las de todos los perfiles (nunca lanza: si falla, se sigue con lo que hay).</summary>
+        private async Task CargarTodasSinFiltro()
+        {
+            if (_servicio == null)
+            {
+                return;
+            }
+            List<NovedadUsuario> todas = await _servicio.ObtenerTodasLasNovedades() ?? new List<NovedadUsuario>();
+            var cargadas = new HashSet<int>(_items.Select(i => i.Id));
+            _items.AddRange(todas.Where(n => n != null && !n.EsSugerencia && cargadas.Add(n.Id)).Select(CrearItem));
+            _todasCargadas = todas.Count > 0;
+        }
+
+        /// <summary>Vuelve a agrupar y se queda en la versión que se estaba viendo (si sigue teniendo novedades).</summary>
+        private void RefrescarVista()
+        {
+            if (EnSugerencias)
+            {
+                Reagrupar();
+                NotificarNavegacion();
+                return;
+            }
+            string version = _indice >= 0 && _indice < _porVersion.Count ? _porVersion[_indice].Key : null;
+            Reagrupar();
+            MostrarVersion(version == null ? 0 : Math.Max(0, _porVersion.FindIndex(g => g.Key == version)));
+        }
+
+        #endregion
 
         #region Nesto#487: sugerencias de los usuarios (NestoAPI#526)
 
@@ -685,6 +797,11 @@ namespace ControlesUsuario.Dialogs
                 // Si falla, se sigue con la novedad del propio buscador.
                 await CargarTodasLasNovedades();
             }
+            if (!_items.Any(i => i.Id == encontrada.Id))
+            {
+                // Sugerencia 551: puede ser de otro perfil
+                await CargarTodasSinFiltro();
+            }
             NovedadItem item = _items.FirstOrDefault(i => i.Id == encontrada.Id);
             if (item == null)
             {
@@ -709,6 +826,12 @@ namespace ControlesUsuario.Dialogs
 
         private void MostrarConVersion(NovedadItem item)
         {
+            if (!EsVisible(item))
+            {
+                // Sugerencia 551: se salta a una novedad de otro perfil: se enseñan todas para que se vea
+                _verTodas = true;
+                OnPropertyChanged(nameof(VerTodas));
+            }
             Reagrupar();
             string version = (item.Version ?? string.Empty).Trim();
             MostrarVersion(_porVersion.FindIndex(g => g.Key == version));
@@ -742,6 +865,12 @@ namespace ControlesUsuario.Dialogs
             if (item == null)
             {
                 await CargarTodasLasNovedades();
+                item = _items.FirstOrDefault(i => i.Id == novedadId);
+            }
+            if (item == null)
+            {
+                // Sugerencia 551: una novedad de otro perfil (p. ej. te contestan en una que comentaste con «Ver todas»)
+                await CargarTodasSinFiltro();
                 item = _items.FirstOrDefault(i => i.Id == novedadId);
             }
             if (item != null)
