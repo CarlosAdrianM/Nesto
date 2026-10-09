@@ -1,4 +1,4 @@
-Imports System
+﻿Imports System
 Imports System.Collections.Generic
 Imports System.ComponentModel.DataAnnotations
 Imports System.Linq
@@ -12,7 +12,6 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.ViewModels
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Prism.Regions
 
 ''' <summary>
 ''' Nesto#416: unir pedidos desde la lista.
@@ -58,7 +57,7 @@ Public Class ListaPedidosUnirTests
     End Function
 
     Private Function CrearViewModel() As ListaPedidosVentaViewModel
-        Dim vm = New ListaPedidosVentaViewModel(_configuracion, _servicio, New WeakReferenceMessenger(), _dialogService, A.Fake(Of IRegionManager)())
+        Dim vm = New ListaPedidosVentaViewModel(_configuracion, _servicio, New WeakReferenceMessenger(), _dialogService, A.Fake(Of IServicioNavegacion)())
         vm.ListaPedidos.ElementoSeleccionado = New ResumenPedido With {.empresa = "1", .numero = 200}
         Return vm
     End Function

@@ -8,16 +8,19 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 
+' Nesto#490 (4C.4, 7.º tramo): sin IRegionManager. Navega al detalle con la navegación del ámbito de su pestaña, que
+' recibe por IConAmbitoNavegacion al entrar en ListaPedidosRegion (antes, el scopedRegionManager que le pasaba la vista),
+' y abre la plantilla con IServicioNavegacion.
 Public Class ListaPedidosVentaViewModel
     Inherits ObservableObject
+    Implements IConAmbitoNavegacion
 
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly dialogService As IServicioDialogos
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
 
     Private vendedor As String
     Private ReadOnly verTodosLosVendedores As Boolean = False
@@ -25,11 +28,11 @@ Public Class ListaPedidosVentaViewModel
     Public Event PedidoCreadoConfirmado(numeroPedido As Integer)
     Public Event PedidoCreacionCancelada()
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, regionManager As IRegionManager)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, navegacion As IServicioNavegacion)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
-        Me.regionManager = regionManager
+        Me.navegacion = navegacion
 
         cmdCargarListaPedidos = New RelayCommand(AddressOf OnCargarListaPedidos)
         CrearPedidoCommand = New RelayCommand(AddressOf OnCrearPedido)
@@ -247,13 +250,13 @@ Public Class ListaPedidosVentaViewModel
         End Try
     End Function
 
-    Private _scopedRegionManager As IRegionManager
-    Public Property scopedRegionManager As IRegionManager
+    Private _navegacionAmbito As IServicioNavegacion
+    Public Property NavegacionAmbito As IServicioNavegacion Implements IConAmbitoNavegacion.NavegacionAmbito
         Get
-            Return _scopedRegionManager
+            Return _navegacionAmbito
         End Get
-        Set(value As IRegionManager)
-            Dim unused = SetProperty(_scopedRegionManager, value)
+        Set(value As IServicioNavegacion)
+            Dim unused = SetProperty(_navegacionAmbito, value)
         End Set
     End Property
 
@@ -330,11 +333,11 @@ Public Class ListaPedidosVentaViewModel
         If resumen Is Nothing OrElse resumen.numero = 0 OrElse resumen.esNuevo Then
             Return
         End If
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"pedidoAModificar", resumen.numero},
             {"empresaPedido", resumen.empresa}
         }
-        regionManager.RequestNavigate("MainRegion", "PlantillaVentaView", parameters)
+        navegacion.RequestNavigate("MainRegion", "PlantillaVentaView", parameters)
     End Sub
 
     Private _cancelarCreacionCommand As RelayCommand
@@ -445,18 +448,15 @@ Public Class ListaPedidosVentaViewModel
         ' UnobservedTaskException (rethrow del finalizer). La navegación al detalle ya se hizo
         ' arriba; los pendientes son solo un enriquecimiento, así que se ignora con traza.
         Try
-        Dim parameters As New NavigationParameters From {
+        Dim parameters As New ParametrosNavegacion From {
             {"resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)}
         }
         ' SingleActiveRegion + IsNavigationTarget=>False acumulaba la vista detalle anterior en
         ' region.Views al navegar a otro pedido (solo desactivada, no eliminada). Cada pedido
         ' abierto dejaba su DataGrid + bindings + handlers vivos. Quitamos las vistas previas
         ' antes de la navegación nueva.
-        Dim regionDetalle = scopedRegionManager.Regions("DetallePedidoRegion")
-        For Each vistaAnterior In regionDetalle.Views.ToList()
-            regionDetalle.Remove(vistaAnterior)
-        Next
-        scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
+        NavegacionAmbito.QuitarVistas("DetallePedidoRegion")
+        NavegacionAmbito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
         If Not IsNothing(ListaPedidos.ElementoSeleccionado) Then
             Dim resumenSeleccionado = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
             empresaSeleccionada = resumenSeleccionado.empresa

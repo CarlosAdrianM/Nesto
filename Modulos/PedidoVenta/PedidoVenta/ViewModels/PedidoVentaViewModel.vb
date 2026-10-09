@@ -1,7 +1,6 @@
 ﻿Imports System.Net.Http
 Imports System.Text
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Regions
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports Prism.Ioc
@@ -11,16 +10,19 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 
+' Nesto#490 (4C.4, 7.º tramo): sin IRegionManager. Cada apertura (el módulo o CargarPedido) es una pestaña nueva con su
+' propio ámbito de regiones (IServicioNavegacion.AbrirVistaConAmbito), que recibe la vista por IConAmbitoNavegacion. Fuera
+' el scopedRegionManager que guardaba aquí y nadie leía.
 Public Class PedidoVentaViewModel
     Inherits ObservableObject
 
-    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
-        Me.regionManager = regionManager
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
+        Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.container = container
         Me.servicio = servicio
@@ -43,15 +45,6 @@ Public Class PedidoVentaViewModel
             SetProperty(_titulo, value)
         End Set
     End Property
-    Private _scopedRegionManager As IRegionManager
-    Public Property scopedRegionManager As IRegionManager
-        Get
-            Return _scopedRegionManager
-        End Get
-        Set(value As IRegionManager)
-            SetProperty(_scopedRegionManager, value)
-        End Set
-    End Property
 
 #Region "Comandos"
     Private _cmdAbrirModulo As RelayCommand(Of Object)
@@ -69,10 +62,7 @@ Public Class PedidoVentaViewModel
     Private Sub OnAbrirModulo(arg As Object)
         Dim view = Me.container.Resolve(Of PedidoVentaView)
         If Not IsNothing(view) Then
-            Dim region = regionManager.Regions("MainRegion")
-            scopedRegionManager = region.Add(view, Nothing, True)
-            view.scopedRegionManager = scopedRegionManager
-            region.Activate(view)
+            Dim unused = navegacion.AbrirVistaConAmbito("MainRegion", view)
         End If
     End Sub
 
@@ -80,14 +70,12 @@ Public Class PedidoVentaViewModel
 
     Public Shared Sub CargarPedido(empresa As String, pedido As Integer, container As IUnityContainer)
         Dim view = container.Resolve(Of PedidoVentaView)
-        Dim regionManager = container.Resolve(Of IRegionManager)
+        Dim navegacion = container.Resolve(Of IServicioNavegacion)
         If Not IsNothing(view) Then
-            Dim region = regionManager.Regions("MainRegion")
-            regionManager = region.Add(view, Nothing, True)
-            view.scopedRegionManager = regionManager
+            ' El pedido inicial lo lee la vista al cargarse (Loaded), que llega después de activarla: da igual ponerlo antes
             view.DataContext.empresaInicial = empresa
             view.DataContext.pedidoInicial = pedido
-            region.Activate(view)
+            Dim unused = navegacion.AbrirVistaConAmbito("MainRegion", view)
         End If
     End Sub
 

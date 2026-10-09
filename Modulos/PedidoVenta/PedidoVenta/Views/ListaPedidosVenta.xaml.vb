@@ -1,6 +1,4 @@
-﻿Imports Prism.Regions
-
-Public Class ListaPedidosVenta
+﻿Public Class ListaPedidosVenta
 
     Public Sub New(viewModel As ListaPedidosVentaViewModel)
         InitializeComponent()
@@ -20,10 +18,6 @@ Public Class ListaPedidosVenta
             Binding.UpdateSource()
             txtFiltro.SelectAll()
         End If
-    End Sub
-
-    Public Sub cambiarRegionManager(newRegionManager As IRegionManager)
-        Me.DataContext.scopedRegionManager = newRegionManager
     End Sub
 
     Private Sub ListaPedidosVenta_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded

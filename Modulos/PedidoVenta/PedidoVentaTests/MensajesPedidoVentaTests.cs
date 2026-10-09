@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Messaging;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -6,7 +6,6 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Services;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Regions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity;
@@ -41,7 +40,7 @@ namespace PedidoVentaTests
         private ListaPedidosVentaViewModel CrearLista()
         {
             return new ListaPedidosVentaViewModel(A.Fake<IConfiguracion>(), _servicio, _messenger,
-                A.Fake<IServicioDialogos>(), A.Fake<IRegionManager>());
+                A.Fake<IServicioDialogos>(), A.Fake<IServicioNavegacion>());
         }
 
         [TestMethod]

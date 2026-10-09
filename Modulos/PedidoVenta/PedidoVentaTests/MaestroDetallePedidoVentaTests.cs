@@ -1,13 +1,15 @@
-using CommunityToolkit.Mvvm.Messaging;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Navegacion;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Ioc;
 using Prism.Regions;
 using Prism.Regions.Behaviors;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using Unity;
@@ -20,7 +22,9 @@ namespace PedidoVentaTests
     /// Nesto#490 (4C.4, 7.º tramo): el maestro-detalle de PedidoVenta. Cada apertura del módulo (o CargarPedido, desde
     /// cualquier pantalla) es una pestaña nueva con su propio ámbito de regiones; la lista va en ListaPedidosRegion de ese
     /// ámbito y, al elegir un pedido, se vacía DetallePedidoRegion y se navega a un detalle nuevo. «Modificar con
-    /// plantilla» abre la plantilla en MainRegion. Escritas contra el IRegionManager de Prism ANTES de migrar.
+    /// plantilla» abre la plantilla en MainRegion. Escritas contra el IRegionManager de Prism ANTES de migrar (06a5ea04).
+    /// Al pasar a IServicioNavegacion e IConAmbitoNavegacion las comprobaciones son las mismas, sobre los mismos fakes de
+    /// Prism: solo cambia que a los ViewModels y a la vista se les da un ServicioNavegacionPrism sobre ellos.
     /// </summary>
     [TestClass]
     public class MaestroDetallePedidoVentaTests
@@ -63,7 +67,7 @@ namespace PedidoVentaTests
         private static ListaPedidosVentaViewModel CrearLista(IRegionManager regionManager)
         {
             return new ListaPedidosVentaViewModel(A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioDialogos>(), regionManager);
+                A.Fake<IServicioDialogos>(), new ServicioNavegacionPrism(regionManager));
         }
 
         [TestMethod]
@@ -76,7 +80,7 @@ namespace PedidoVentaTests
             A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", A<NavigationParameters>._))
                 .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
             var vm = CrearLista(A.Fake<IRegionManager>());
-            vm.scopedRegionManager = ambito;
+            vm.NavegacionAmbito = new ServicioNavegacionPrism(ambito);
             var resumen = new ResumenPedido { empresa = "1", numero = 12345, cliente = "15191" };
 
             vm.ListaPedidos.ElementoSeleccionado = resumen;
@@ -127,7 +131,7 @@ namespace PedidoVentaTests
                 IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
                 var ambito = A.Fake<IRegionManager>();
                 var contenedor = A.Fake<IUnityContainer>();
-                var vm = new PedidoVentaViewModel(regionManager, A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
+                var vm = new PedidoVentaViewModel(new ServicioNavegacionPrism(regionManager), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
                 A.CallTo(() => contenedor.Resolve(typeof(PedidoVentaView), A<string>._, A<ResolverOverride[]>._)).Returns(vista);
                 A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
@@ -136,7 +140,7 @@ namespace PedidoVentaTests
 
                 A.CallTo(() => principal.Add(vista, null, true)).MustHaveHappenedOnceExactly()
                     .Then(A.CallTo(() => principal.Activate(vista)).MustHaveHappenedOnceExactly());
-                Assert.AreSame(ambito, vista.scopedRegionManager);
+                ComprobarQueNavegaEnElAmbito(vista.NavegacionAmbito, ambito);
             });
         }
 
@@ -149,17 +153,17 @@ namespace PedidoVentaTests
                 IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
                 var ambito = A.Fake<IRegionManager>();
                 var contenedor = A.Fake<IUnityContainer>();
-                var vm = new PedidoVentaViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
+                var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
                 A.CallTo(() => contenedor.Resolve(typeof(PedidoVentaView), A<string>._, A<ResolverOverride[]>._)).Returns(vista);
-                A.CallTo(() => contenedor.Resolve(typeof(IRegionManager), A<string>._, A<ResolverOverride[]>._)).Returns(regionManager);
+                A.CallTo(() => contenedor.Resolve(typeof(IServicioNavegacion), A<string>._, A<ResolverOverride[]>._)).Returns(new ServicioNavegacionPrism(regionManager));
                 A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
 
                 PedidoVentaViewModel.CargarPedido("3", 98765, contenedor);
 
                 A.CallTo(() => principal.Add(vista, null, true)).MustHaveHappenedOnceExactly()
                     .Then(A.CallTo(() => principal.Activate(vista)).MustHaveHappenedOnceExactly());
-                Assert.AreSame(ambito, vista.scopedRegionManager);
+                ComprobarQueNavegaEnElAmbito(vista.NavegacionAmbito, ambito);
                 Assert.AreEqual("3", vm.empresaInicial);
                 Assert.AreEqual(98765, vm.pedidoInicial);
             });
@@ -180,20 +184,20 @@ namespace PedidoVentaTests
                 var listaVm = CrearLista(A.Fake<IRegionManager>());
                 var lista = new ListaPedidosVenta(listaVm);
                 A.CallTo(() => contenedor.Resolve(typeof(ListaPedidosVenta), A<string>._, A<ResolverOverride[]>._)).Returns(lista);
-                var vm = new PedidoVentaViewModel(A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor)
+                var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor)
                 {
                     empresaInicial = "3",
                     pedidoInicial = 98765
                 };
                 var vista = new PedidoVentaView(contenedor, vm);
-                vista.scopedRegionManager = ambito;
+                vista.NavegacionAmbito = new ServicioNavegacionPrism(ambito);
 
                 vista.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, vista));
                 vista.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, vista));
 
                 A.CallTo(() => regionLista.Add(lista, "ListaPedidosVenta")).MustHaveHappenedOnceExactly();
                 A.CallTo(() => regionLista.Activate(lista)).MustHaveHappenedOnceExactly();
-                Assert.AreSame(ambito, listaVm.scopedRegionManager);
+                Assert.IsNotNull(listaVm.NavegacionAmbito);
                 var elegido = (ResumenPedido)listaVm.ListaPedidos.ElementoSeleccionado;
                 Assert.AreEqual("3", elegido.empresa);
                 Assert.AreEqual(98765, elegido.numero);
@@ -201,6 +205,30 @@ namespace PedidoVentaTests
                 Assert.IsNotNull(recibidos);
                 Assert.AreSame(elegido, recibidos["resumenPedidoParameter"]);
             });
+        }
+
+        // La navegación que recibe la vista es la de SU ámbito: lo que navega va al IRegionManager con ámbito
+        private static void ComprobarQueNavegaEnElAmbito(IServicioNavegacion navegacion, IRegionManager ambito)
+        {
+            Assert.IsNotNull(navegacion);
+            navegacion.RequestNavigate("DetallePedidoRegion", "DetallePedidoView");
+            A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void MaestroDetalle_NoUsaElRegionManagerDePrism()
+        {
+            // Nesto#490 (4C.4, 7.º tramo): ni el ViewModel del módulo, ni la lista, ni las dos vistas tienen ya nada de Prism.Regions
+            foreach (var tipo in new[] { typeof(PedidoVentaViewModel), typeof(ListaPedidosVentaViewModel), typeof(PedidoVentaView), typeof(ListaPedidosVenta) })
+            {
+                var conPrism = tipo.GetProperties().Select(p => p.PropertyType)
+                    .Concat(tipo.GetConstructors().SelectMany(c => c.GetParameters()).Select(p => p.ParameterType))
+                    .Concat(tipo.GetMethods().Where(m => m.DeclaringType == tipo).SelectMany(m => m.GetParameters()).Select(p => p.ParameterType))
+                    .Where(t => t.Namespace == "Prism.Regions");
+                Assert.IsFalse(conPrism.Any(), $"{tipo.Name} usa {string.Join(", ", conPrism.Select(t => t.Name))}");
+            }
+            Assert.IsTrue(typeof(IConAmbitoNavegacion).IsAssignableFrom(typeof(PedidoVentaView)));
+            Assert.IsTrue(typeof(IConAmbitoNavegacion).IsAssignableFrom(typeof(ListaPedidosVentaViewModel)));
         }
     }
 }
