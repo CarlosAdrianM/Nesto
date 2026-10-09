@@ -1006,11 +1006,32 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"No se pudo actualizar el seguimiento ({CInt(response.StatusCode)}): {cuerpo}")
+                Throw New Exception(MensajeErrorSeguimiento(CInt(response.StatusCode), cuerpo))
             End If
 
             Return JsonConvert.DeserializeObject(Of SeguimientoActualizadoDto)(cuerpo)
         End Using
+    End Function
+
+    ''' <summary>NestoAPI#602: código con el que la API dice que la agencia ha cortado las consultas por cupo (429).</summary>
+    Friend Const CODIGO_CUPO_AGENCIA_AGOTADO As String = "CUPO_AGENCIA_AGOTADO"
+
+    ''' <summary>
+    ''' NestoAPI#602: el texto del error de «Actualizar estado». Si la agencia ha cortado por cupo, la API ya manda un mensaje
+    ''' para el usuario («CTT limita las consultas…; vuelve a intentarlo en N minutos») y se enseña tal cual; si no, como
+    ''' siempre, con el código HTTP y el cuerpo.
+    ''' </summary>
+    Friend Shared Function MensajeErrorSeguimiento(codigoHttp As Integer, cuerpo As String) As String
+        Try
+            Dim respuesta = Newtonsoft.Json.Linq.JObject.Parse(If(cuerpo, String.Empty))
+            Dim mensaje As String = CStr(respuesta("Message"))
+            If CStr(respuesta("Codigo")) = CODIGO_CUPO_AGENCIA_AGOTADO AndAlso Not String.IsNullOrWhiteSpace(mensaje) Then
+                Return mensaje
+            End If
+        Catch ex As Newtonsoft.Json.JsonException
+            ' No es JSON: se enseña en bruto
+        End Try
+        Return $"No se pudo actualizar el seguimiento ({codigoHttp}): {cuerpo}"
     End Function
 
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
