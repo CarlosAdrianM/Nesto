@@ -1,5 +1,4 @@
 ﻿using Nesto.Modulos.PedidoCompra.ViewModels;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,12 +25,6 @@ namespace Nesto.Modulos.PedidoCompra.Views
         {
             InitializeComponent();
             DataContext = viewModel;
-        }
-
-        public void CambiarRegionManager(IRegionManager newRegionManager)
-        {
-            ListaPedidosCompraViewModel vm = (ListaPedidosCompraViewModel)this.DataContext;
-            vm.ScopedRegionManager = newRegionManager;
         }
 
         private void txtFiltro_GotFocus(object sender, RoutedEventArgs e)

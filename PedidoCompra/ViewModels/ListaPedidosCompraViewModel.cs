@@ -6,7 +6,6 @@ using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,7 +15,9 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class ListaPedidosCompraViewModel : ObservableObject
+    // Nesto#490 (4C.4, 7.º tramo): navega al detalle con la navegación del ámbito de su pestaña, que recibe por
+    // IConAmbitoNavegacion al entrar en ListaPedidosCompraRegion (antes, el IRegionManager con ámbito que le pasaba la vista).
+    public class ListaPedidosCompraViewModel : ObservableObject, IConAmbitoNavegacion
     {
         public IPedidoCompraService Servicio { get; }
         public IServicioDialogos DialogService { get; }
@@ -139,11 +140,11 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             }
         }
 
-        private IRegionManager _scopedRegionManager;
-        public IRegionManager ScopedRegionManager
+        private IServicioNavegacion _navegacionAmbito;
+        public IServicioNavegacion NavegacionAmbito
         {
-            get => _scopedRegionManager;
-            set => SetProperty(ref _scopedRegionManager, value);
+            get => _navegacionAmbito;
+            set => SetProperty(ref _navegacionAmbito, value);
         }
 
         //private PedidoCompraLookup _pedidoLookupSeleccionado;
@@ -206,17 +207,17 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
         private void CargarPedidoSeleccionado()
         {
-            NavigationParameters parameters;
+            ParametrosNavegacion parameters;
             if (ListaPedidos.ElementoSeleccionado != null && (ListaPedidos.ElementoSeleccionado as PedidoCompraLookup).Pedido == 0)
             {
-                parameters = new NavigationParameters
+                parameters = new ParametrosNavegacion
                 {
                     { "PedidoParameter", ListaPedidosSinCrear.Single(p => p.Proveedor == (ListaPedidos.ElementoSeleccionado as PedidoCompraLookup).Proveedor) }
                 };
             }
             else
             {
-                parameters = new NavigationParameters
+                parameters = new ParametrosNavegacion
                 {
                     { "PedidoLookupParameter", ListaPedidos.ElementoSeleccionado }
                 };
@@ -225,12 +226,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             // en region.Views al navegar a un pedido distinto (solo desactivada, no eliminada).
             // Cada pedido abierto dejaba su DataGrid + bindings + handlers vivos. Quitamos
             // explícitamente las vistas previas antes de pedir la navegación nueva.
-            var regionDetalle = ScopedRegionManager.Regions["DetallePedidoCompraRegion"];
-            foreach (var vistaAnterior in regionDetalle.Views.ToList())
-            {
-                regionDetalle.Remove(vistaAnterior);
-            }
-            ScopedRegionManager.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView", parameters);
+            NavegacionAmbito.QuitarVistas("DetallePedidoCompraRegion");
+            NavegacionAmbito.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView", parameters);
         }
     }
 }

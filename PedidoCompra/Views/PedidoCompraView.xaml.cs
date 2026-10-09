@@ -1,5 +1,5 @@
-﻿using Prism.Ioc;
-using Prism.Regions;
+﻿using Nesto.Infrastructure.Contracts;
+using Prism.Ioc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +21,11 @@ namespace Nesto.Modulos.PedidoCompra.Views
     /// <summary>
     /// Lógica de interacción para PedidoCompraView.xaml
     /// </summary>
-    public partial class PedidoCompraView : UserControl
+    // Nesto#490 (4C.4, 7.º tramo): la navegación de su ámbito (sus regiones de lista y detalle) le llega por
+    // IConAmbitoNavegacion al abrirla con AbrirVistaConAmbito, en vez del IRegionManager con ámbito de Prism.
+    public partial class PedidoCompraView : UserControl, IConAmbitoNavegacion
     {
-        public IRegionManager ScopedRegionManager { get; set; }
+        public IServicioNavegacion NavegacionAmbito { get; set; }
         public IContainerProvider ContainerProvider { get; }
 
         private bool Cargado = false;
@@ -36,13 +38,11 @@ namespace Nesto.Modulos.PedidoCompra.Views
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!Cargado)
+            if (!Cargado && NavegacionAmbito != null)
             {
+                // La lista recibe esta misma navegación (IConAmbitoNavegacion) al entrar en la región: navega al detalle de esta pestaña
                 ListaPedidosCompraView view = ContainerProvider.Resolve<ListaPedidosCompraView>();
-                view.CambiarRegionManager(ScopedRegionManager);
-                IRegion region = ScopedRegionManager.Regions["ListaPedidosCompraRegion"];
-                region.Add(view, "ListaPedidosCompraRegion");
-                region.Activate(view);
+                NavegacionAmbito.AbrirVistaNueva("ListaPedidosCompraRegion", view, "ListaPedidosCompraRegion");
                 Cargado = true;
             }
         }
