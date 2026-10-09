@@ -14,10 +14,17 @@ namespace Nesto.Infrastructure.Services
     public class ServicioBultosAriadna : IServicioBultosAriadna
     {
         private readonly IClienteApiFactory _clienteApiFactory;
+        private readonly Func<HttpClient> _crearClienteDescargas;
 
-        public ServicioBultosAriadna(IClienteApiFactory clienteApiFactory)
+        public ServicioBultosAriadna(IClienteApiFactory clienteApiFactory) : this(clienteApiFactory, null)
+        {
+        }
+
+        /// <param name="crearClienteDescargas">Para los tests: el cliente con el que se baja la imagen del enlace temporal.</param>
+        internal ServicioBultosAriadna(IClienteApiFactory clienteApiFactory, Func<HttpClient> crearClienteDescargas)
         {
             _clienteApiFactory = clienteApiFactory;
+            _crearClienteDescargas = crearClienteDescargas ?? (() => new HttpClient());
         }
 
         public async Task<List<BultoAriadna>> LeerBultosDelPedido(string empresa, int pedido)
@@ -51,9 +58,60 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
+        public async Task<byte[]> DescargarFoto(int idBulto)
+        {
+            string enlace = await EnlaceFoto(idBulto).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(enlace))
+            {
+                return null;
+            }
+            // El enlace temporal (SAS de Azure) ya lleva su permiso: se baja con un cliente sin el token de la API,
+            // que el almacén de fotos rechazaría.
+            using (HttpClient client = _crearClienteDescargas())
+            {
+                HttpResponseMessage response = await client.GetAsync(enlace).ConfigureAwait(false);
+                _ = response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            }
+        }
+
         private sealed class EnlaceFotoBulto
         {
             public string Url { get; set; }
+        }
+    }
+
+    /// <summary>
+    /// Nesto#522: el enlace completo de la foto de un bulto para el cliente o la agencia (no pide usuario).
+    /// </summary>
+    public static class EnlacePublicoFotoBulto
+    {
+        /// <summary>
+        /// El servidor de la API que usa Nesto («http://api.nuevavision.es/api/») sin su «api/» final más la ruta pública
+        /// que manda la API («api/Almacen/Fotos/{token}»). Null si falta alguna de las dos o el servidor no es una
+        /// dirección válida. Una ruta que ya sea una dirección completa se devuelve tal cual.
+        /// </summary>
+        public static string Componer(string servidorApi, string rutaPublica)
+        {
+            if (string.IsNullOrWhiteSpace(rutaPublica))
+            {
+                return null;
+            }
+            string ruta = rutaPublica.Trim();
+            if (Uri.TryCreate(ruta, UriKind.Absolute, out Uri absoluta) && (absoluta.Scheme == Uri.UriSchemeHttp || absoluta.Scheme == Uri.UriSchemeHttps))
+            {
+                return absoluta.AbsoluteUri;
+            }
+            if (string.IsNullOrWhiteSpace(servidorApi) || !Uri.TryCreate(servidorApi.Trim(), UriKind.Absolute, out Uri servidor))
+            {
+                return null;
+            }
+            string raiz = servidor.GetLeftPart(UriPartial.Path).TrimEnd('/');
+            if (raiz.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+            {
+                raiz = raiz.Substring(0, raiz.Length - "/api".Length);
+            }
+            return $"{raiz}/{ruta.TrimStart('/')}";
         }
     }
 

@@ -14,5 +14,11 @@ namespace Nesto.Infrastructure.Services
 
         /// <summary>Un enlace temporal para ver la foto del bulto, o null si no tiene.</summary>
         Task<string> EnlaceFoto(int idBulto);
+
+        /// <summary>
+        /// Nesto#522: la imagen de la foto del bulto (JPG). Pide cada vez un enlace temporal nuevo, así que nunca se
+        /// usa uno caducado. Null si el bulto no tiene foto; lanza si la API o la descarga fallan.
+        /// </summary>
+        Task<byte[]> DescargarFoto(int idBulto);
     }
 }

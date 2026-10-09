@@ -18,5 +18,10 @@ namespace Nesto.Infrastructure.Models
         public int? NumeroEnvio { get; set; }
         public string Usuario { get; set; }
         public DateTime? FechaFoto { get; set; }
+        /// <summary>
+        /// Nesto#522: la ruta pública de la foto dentro de la API, sin el servidor (api/Almacen/Fotos/{token}), para
+        /// mandársela al cliente o a la agencia: no pide usuario. Null si no hay foto (o la API es anterior).
+        /// </summary>
+        public string RutaFotoPublica { get; set; }
     }
 }

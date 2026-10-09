@@ -91,6 +91,8 @@ Public Class DetallePedidoViewModel
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
+        BultosPedido = New ControlesUsuario.BultosPedido.BultosPedidoViewModel(New Nesto.Infrastructure.Services.ServicioBultosAriadna(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), configuracion.servidorAPI) ' Nesto#522
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))) ' NestoAPI#581
         ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#593
@@ -543,6 +545,9 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+    ''' <summary>Nesto#522: los bultos del packing de Ariadna con su foto (ver, descargar, copiar el enlace para el cliente).</summary>
+    Public ReadOnly Property BultosPedido As ControlesUsuario.BultosPedido.BultosPedidoViewModel
+
     Private _listaEnlacesSeguimiento As List(Of EnvioAgenciaDTO)
     Public Property ListaEnlacesSeguimiento As List(Of EnvioAgenciaDTO)
         Get
@@ -596,6 +601,7 @@ Public Class DetallePedidoViewModel
                 ReiniciarModosFacturacionPermitidos() ' Nesto#493
                 Dim unusedFecha = CargarFechaEntregaAgenciaAsync() ' NestoAPI#606: sin esperar, la carga sigue
                 Dim unusedCheque = CargarChequeRegaloAsync() ' NestoAPI#593 (c5): sin esperar, la carga sigue
+                Dim unusedBultos = BultosPedido?.Cargar(_pedido.empresa, _pedido.numero) ' Nesto#522: sin esperar, no lanza
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245

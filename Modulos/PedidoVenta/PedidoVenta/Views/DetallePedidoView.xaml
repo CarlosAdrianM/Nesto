@@ -434,6 +434,7 @@
                                     </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
+                            <controles:BultosPedidoView DataContext="{Binding BultosPedido}"/> <!-- Nesto#522: fotos del packing de cada bulto -->
                         </StackPanel>
                     </Grid>
                 </TabItem>
