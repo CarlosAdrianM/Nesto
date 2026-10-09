@@ -53,15 +53,21 @@ namespace ControlesUsuario.Dialogs
             {
                 return null;
             }
+            return new ResultadoDialogo((ResultadoBoton)(int)resultado.Result, DesdeParametrosPrism(resultado.Parameters));
+        }
+
+        /// <summary>Los parámetros de Prism como <see cref="ParametrosDialogo"/>; nunca null (null → vacíos).</summary>
+        internal static ParametrosDialogo DesdeParametrosPrism(IDialogParameters parametrosPrism)
+        {
             var parametros = new ParametrosDialogo();
-            if (resultado.Parameters != null)
+            if (parametrosPrism != null)
             {
-                foreach (string clave in resultado.Parameters.Keys)
+                foreach (string clave in parametrosPrism.Keys)
                 {
-                    parametros.Add(clave, resultado.Parameters.GetValue<object>(clave));
+                    parametros.Add(clave, parametrosPrism.GetValue<object>(clave));
                 }
             }
-            return new ResultadoDialogo((ResultadoBoton)(int)resultado.Result, parametros);
+            return parametros;
         }
     }
 }

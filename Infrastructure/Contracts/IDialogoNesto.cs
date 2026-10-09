@@ -9,6 +9,8 @@ namespace Nesto.Infrastructure.Contracts
     /// <c>IDialogParameters</c> → <see cref="ParametrosDialogo"/>, <c>IDialogResult</c> →
     /// <see cref="ResultadoDialogo"/>.
     ///
+    /// Los ViewModels lo implementan heredando de <c>ControlesUsuario.Dialogs.DialogoNestoBase</c>, que
+    /// además los presenta como <c>IDialogAware</c> a la ventana de Prism mientras convivan las dos.
     /// La ventana propia (<c>ControlesUsuario.Dialogs.ServicioDialogosNesto</c>) acepta este tipo y,
     /// mientras dure la migración, también los <c>IDialogAware</c> de Prism.
     /// </summary>

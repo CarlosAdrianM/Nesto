@@ -1,31 +1,24 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System;
 
 namespace ControlesUsuario.Dialogs
 {
     /// <summary>
     /// NestoAPI#582: pide una fecha, con la opción «Todavía no se sabe» (cierra sin fecha). La fecha vuelve en el
-    /// parámetro "date" (DateTime) del resultado. Sigue siendo IDialogAware de Prism como los demás diálogos
-    /// genéricos hasta que se pasen todos a IDialogoNesto (Nesto#490).
+    /// parámetro "date" (DateTime) del resultado. Nesto#490: es <see cref="IDialogoNesto"/> (por
+    /// <see cref="DialogoNestoBase"/>), sin tipos de Prism.
     /// </summary>
-    public class InputDateDialogViewModel : ObservableObject, IDialogAware
+    public class InputDateDialogViewModel : DialogoNestoBase
     {
-        private string _title = "Fecha";
         private string _message;
         private DateTime? _fecha;
 
         public InputDateDialogViewModel()
         {
+            Title = "Fecha";
             AcceptCommand = new RelayCommand(Aceptar, () => Fecha.HasValue);
-            NoSeSabeCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel)));
-        }
-
-        public string Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
+            NoSeSabeCommand = new RelayCommand(() => RaiseRequestClose(ResultadoBoton.Cancel));
         }
 
         public string Message
@@ -46,8 +39,6 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         public RelayCommand AcceptCommand { get; }
 
         /// <summary>«Todavía no se sabe»: se cierra sin fecha.</summary>
@@ -55,14 +46,10 @@ namespace ControlesUsuario.Dialogs
 
         private void Aceptar()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, new DialogParameters { { "date", Fecha.Value.Date } }));
+            RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "date", Fecha.Value.Date } }));
         }
 
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("title"))
             {

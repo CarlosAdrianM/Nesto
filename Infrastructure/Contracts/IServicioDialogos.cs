@@ -20,8 +20,9 @@ namespace Nesto.Infrastructure.Contracts
     ///    <see cref="ResultadoDialogo"/>. Hecho en piloto: <c>ControlesUsuario.Dialogs.ServicioDialogosNesto</c>
     ///    (ventana propia), que se activa por usuario con el parámetro VentanaDialogosPropia. Los
     ///    diálogos genéricos se componen una sola vez en <c>ServicioDialogosBase</c>. Los ViewModels
-    ///    de los diálogos pasarán de IDialogAware a <see cref="IDialogoNesto"/> cuando la ventana
-    ///    propia sea la de todos (la de Prism no sabe abrirlos).
+    ///    de los diálogos pasan de IDialogAware a <see cref="IDialogoNesto"/> heredando de
+    ///    <c>ControlesUsuario.Dialogs.DialogoNestoBase</c>, que los sigue presentando como IDialogAware a la
+    ///    ventana de Prism mientras convivan las dos.
     ///
     /// Los diálogos genéricos (NotificationDialog, ConfirmationDialog, InputAmountDialog,
     /// InputTextDialog) se registran en Application.RegisterTypes; los de cada módulo, en su

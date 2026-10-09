@@ -1,22 +1,12 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
-using System;
-using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
+using Nesto.Infrastructure.Contracts;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class InputAmountDialogViewModel : ObservableObject, IDialogAware
+    public class InputAmountDialogViewModel : DialogoNestoBase
     {
-        private string _title = "Introducir Importe";
         private string _message;
         private string _amount;
-
-        public string Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
-        }
 
         public string Message
         {
@@ -30,13 +20,12 @@ namespace ControlesUsuario.Dialogs
             set => SetProperty(ref _amount, value);
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         public RelayCommand AcceptCommand { get; }
         public RelayCommand CancelCommand { get; }
 
         public InputAmountDialogViewModel()
         {
+            Title = "Introducir Importe";
             AcceptCommand = new RelayCommand(Accept);
             CancelCommand = new RelayCommand(Cancel);
         }
@@ -46,11 +35,11 @@ namespace ControlesUsuario.Dialogs
             decimal amount;
             if (decimal.TryParse(Amount, out amount))
             {
-                var parameters = new DialogParameters
+                var parameters = new ParametrosDialogo
                 {
                     { "amount", amount }
                 };
-                RequestClose?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+                RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, parameters));
             }
             else
             {
@@ -60,13 +49,10 @@ namespace ControlesUsuario.Dialogs
 
         private void Cancel()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RaiseRequestClose(ResultadoBoton.Cancel);
         }
 
-        public bool CanCloseDialog() => true;
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("title"))
                 Title = parameters.GetValue<string>("title");

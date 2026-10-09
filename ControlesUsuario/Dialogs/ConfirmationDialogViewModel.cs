@@ -1,11 +1,9 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
-using System;
+using CommunityToolkit.Mvvm.Input;
+using Nesto.Infrastructure.Contracts;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class ConfirmationDialogViewModel : ObservableObject, IDialogAware
+    public class ConfirmationDialogViewModel : DialogoNestoBase
     {
         private RelayCommand<string> _closeDialogCommand;
         public RelayCommand<string> CloseDialogCommand =>
@@ -18,43 +16,24 @@ namespace ControlesUsuario.Dialogs
             set { SetProperty(ref _message, value); }
         }
 
-        private string _title = "Confirmar";
-        public string Title
+        public ConfirmationDialogViewModel()
         {
-            get { return _title; }
-            set { SetProperty(ref _title, value); }
+            Title = "Confirmar";
         }
-
-        public event Action<IDialogResult> RequestClose;
 
         protected virtual void CloseDialog(string parameter)
         {
-            ButtonResult result = ButtonResult.None;
+            ResultadoBoton result = ResultadoBoton.None;
 
             if (parameter?.ToLower() == "true")
-                result = ButtonResult.OK;
+                result = ResultadoBoton.OK;
             else if (parameter?.ToLower() == "false")
-                result = ButtonResult.Cancel;
+                result = ResultadoBoton.Cancel;
 
-            RaiseRequestClose(new DialogResult(result));
+            RaiseRequestClose(result);
         }
 
-        public virtual void RaiseRequestClose(IDialogResult dialogResult)
-        {
-            RequestClose?.Invoke(dialogResult);
-        }
-
-        public virtual bool CanCloseDialog()
-        {
-            return true;
-        }
-
-        public virtual void OnDialogClosed()
-        {
-
-        }
-
-        public virtual void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             Message = parameters.GetValue<string>("message");
             Title = parameters.GetValue<string>("title");

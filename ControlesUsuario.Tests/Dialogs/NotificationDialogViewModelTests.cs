@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ControlesUsuario.Dialogs;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 
 namespace ControlesUsuario.Tests.Dialogs
 {
@@ -34,7 +34,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             // Arrange
             var viewModel = new NotificationDialogViewModel();
-            var parameters = new DialogParameters
+            var parameters = new ParametrosDialogo
             {
                 { "message", "Este es un mensaje de prueba" }
             };
@@ -57,7 +57,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             // Arrange
             var viewModel = new NotificationDialogViewModel();
-            var parameters = new DialogParameters
+            var parameters = new ParametrosDialogo
             {
                 { "message", "Mensaje de prueba" },
                 { "title", "Título personalizado" }
@@ -80,7 +80,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             // Arrange
             var viewModel = new NotificationDialogViewModel();
-            var parameters = new DialogParameters
+            var parameters = new ParametrosDialogo
             {
                 { "title", "Solo título" }
             };
@@ -102,7 +102,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             // Arrange
             var viewModel = new NotificationDialogViewModel();
-            var parameters = new DialogParameters();
+            var parameters = new ParametrosDialogo();
 
             // Act
             viewModel.OnDialogOpened(parameters);

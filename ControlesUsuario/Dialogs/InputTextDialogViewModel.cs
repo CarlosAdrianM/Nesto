@@ -1,21 +1,12 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
-using System;
+using CommunityToolkit.Mvvm.Input;
+using Nesto.Infrastructure.Contracts;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class InputTextDialogViewModel : ObservableObject, IDialogAware
+    public class InputTextDialogViewModel : DialogoNestoBase
     {
-        private string _title = "Introducir texto";
         private string _message;
         private string _text;
-
-        public string Title
-        {
-            get => _title;
-            set => SetProperty(ref _title, value);
-        }
 
         public string Message
         {
@@ -29,35 +20,31 @@ namespace ControlesUsuario.Dialogs
             set => SetProperty(ref _text, value);
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         public RelayCommand AcceptCommand { get; }
         public RelayCommand CancelCommand { get; }
 
         public InputTextDialogViewModel()
         {
+            Title = "Introducir texto";
             AcceptCommand = new RelayCommand(Accept);
             CancelCommand = new RelayCommand(Cancel);
         }
 
         private void Accept()
         {
-            var parameters = new DialogParameters
+            var parameters = new ParametrosDialogo
             {
                 { "text", Text ?? string.Empty }
             };
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+            RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, parameters));
         }
 
         private void Cancel()
         {
-            RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RaiseRequestClose(ResultadoBoton.Cancel);
         }
 
-        public bool CanCloseDialog() => true;
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("title"))
                 Title = parameters.GetValue<string>("title");

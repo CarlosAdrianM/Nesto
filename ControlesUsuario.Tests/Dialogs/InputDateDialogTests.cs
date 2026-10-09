@@ -18,7 +18,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             var vm = new InputDateDialogViewModel();
 
-            vm.OnDialogOpened(new DialogParameters { { "title", "Fecha de entrega" }, { "message", "¿Cuándo?" }, { "defaultDate", new DateTime(2026, 10, 2) } });
+            vm.OnDialogOpened(new ParametrosDialogo { { "title", "Fecha de entrega" }, { "message", "¿Cuándo?" }, { "defaultDate", new DateTime(2026, 10, 2) } });
 
             Assert.AreEqual("Fecha de entrega", vm.Title);
             Assert.AreEqual("¿Cuándo?", vm.Message);
@@ -29,12 +29,12 @@ namespace ControlesUsuario.Tests.Dialogs
         public void ViewModel_Aceptar_DevuelveLaFecha()
         {
             var vm = new InputDateDialogViewModel { Fecha = new DateTime(2026, 10, 6) };
-            IDialogResult resultado = null;
+            ResultadoDialogo resultado = null;
             vm.RequestClose += r => resultado = r;
 
             vm.AcceptCommand.Execute(null);
 
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
             Assert.AreEqual(new DateTime(2026, 10, 6), resultado.Parameters.GetValue<DateTime>("date"));
         }
 
@@ -50,12 +50,12 @@ namespace ControlesUsuario.Tests.Dialogs
         public void ViewModel_TodaviaNoSeSabe_CierraSinFecha()
         {
             var vm = new InputDateDialogViewModel { Fecha = new DateTime(2026, 10, 6) };
-            IDialogResult resultado = null;
+            ResultadoDialogo resultado = null;
             vm.RequestClose += r => resultado = r;
 
             vm.NoSeSabeCommand.Execute(null);
 
-            Assert.AreEqual(ButtonResult.Cancel, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.Cancel, resultado.Result);
         }
 
         [TestMethod]
