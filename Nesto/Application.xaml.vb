@@ -221,6 +221,13 @@ Partial Public Class Application
                 Return New ServicioEnvioReposiciones(factory)
             End Function)
 
+        ' NestoAPI#577: el calendario de reposiciones (api/Reposiciones/Calendario), que antes se cambiaba con scripts
+        Dim unusedCalendarioReposiciones = containerRegistry.RegisterSingleton(Of IServicioCalendarioReposiciones)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New ServicioCalendarioReposiciones(factory)
+            End Function)
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
             Function(provider)

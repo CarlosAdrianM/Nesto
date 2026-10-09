@@ -37,5 +37,15 @@ namespace Producto.Tests
 
             A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ReposicionView")).MustHaveHappenedOnceExactly();
         }
+
+        [TestMethod]
+        public void AbrirCalendarioReposicionesCommand_AbreElCalendarioParaCualquiera()
+        {
+            Assert.IsTrue(_menu.AbrirCalendarioReposicionesCommand.CanExecute(null), "Lo ve cualquiera; la API decide si puede cambiarlo");
+
+            _menu.AbrirCalendarioReposicionesCommand.Execute(null);
+
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "CalendarioReposicionesView")).MustHaveHappenedOnceExactly();
+        }
     }
 }

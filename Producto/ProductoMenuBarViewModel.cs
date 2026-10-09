@@ -19,6 +19,17 @@ namespace Nesto.Modules.Producto
             AbrirEtiquetasHuecoCommand = new RelayCommand(OnAbrirEtiquetasHueco, CanAbrirEtiquetasHueco);
             AbrirRecibirReposicionCommand = new RelayCommand(OnAbrirRecibirReposicion, CanAbrirRecibirReposicion);
             AbrirEnviarReposicionCommand = new RelayCommand(OnAbrirEnviarReposicion, CanAbrirRecibirReposicion);
+            AbrirCalendarioReposicionesCommand = new RelayCommand(OnAbrirCalendarioReposiciones);
+        }
+
+        /// <summary>
+        /// NestoAPI#577: el calendario de reposiciones (días, hora de cierre y de llegada de cada ruta). Lo ve cualquiera;
+        /// cambiarlo solo pueden quienes rellenan reposiciones a mano (lo decide la API y la ventana queda en solo lectura).
+        /// </summary>
+        public ICommand AbrirCalendarioReposicionesCommand { get; private set; }
+        private void OnAbrirCalendarioReposiciones()
+        {
+            Navegacion.RequestNavigate("MainRegion", "CalendarioReposicionesView");
         }
 
         /// <summary>
