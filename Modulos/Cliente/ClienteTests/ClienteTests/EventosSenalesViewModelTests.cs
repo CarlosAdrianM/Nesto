@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -255,10 +254,10 @@ namespace ClienteTests
         public void ElegirEvento_PreseleccionaElPrimeroYDevuelveSuId()
         {
             var vm = new ElegirEventoDialogViewModel();
-            IDialogResult resultado = null;
+            ResultadoDialogo resultado = null;
             vm.RequestClose += r => resultado = r;
 
-            vm.OnDialogOpened(new DialogParameters
+            vm.OnDialogOpened(new ParametrosDialogo
             {
                 { "eventos", new List<EventoModel> { Evento(4, "A", new DateTime(2026, 10, 13)), Evento(5, "B", new DateTime(2026, 10, 20)) } },
                 { "apunte", "101" }
@@ -266,7 +265,7 @@ namespace ClienteTests
             vm.Seleccionado = vm.Eventos[1];
             vm.AceptarCommand.Execute(null);
 
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
             Assert.AreEqual(5, resultado.Parameters.GetValue<int>("eventoId"));
         }
 

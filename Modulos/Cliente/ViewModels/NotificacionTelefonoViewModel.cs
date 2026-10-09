@@ -1,24 +1,20 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
-using System;
+using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Nesto.Modulos.Cliente.ViewModels
 {
-    public class NotificacionTelefonoViewModel : ObservableObject, IDialogAware
+    public class NotificacionTelefonoViewModel : DialogoNestoBase
     {
         public NotificacionTelefonoViewModel()
         {
-
+            Title = "Clientes con el mismo teléfono:";
         }
 
         private RelayCommand<string> _closeDialogCommand;
         public RelayCommand<string> CloseDialogCommand =>
             _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand<string>(CloseDialog));
-
-        public string Title => "Clientes con el mismo teléfono:";
 
         private List<ClienteTelefonoLookup> _clientesMismoTelefono;
         public List<ClienteTelefonoLookup> ClientesMismoTelefono
@@ -27,36 +23,19 @@ namespace Nesto.Modulos.Cliente.ViewModels
             set { SetProperty(ref _clientesMismoTelefono, value); }
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         protected virtual void CloseDialog(string parameter)
         {
-            ButtonResult result = ButtonResult.None;
+            ResultadoBoton result = ResultadoBoton.None;
 
             if (parameter?.ToLower() == "true")
-                result = ButtonResult.OK;
+                result = ResultadoBoton.OK;
             else if (parameter?.ToLower() == "false")
-                result = ButtonResult.Cancel;
+                result = ResultadoBoton.Cancel;
 
-            RaiseRequestClose(new DialogResult(result));
+            RaiseRequestClose(result);
         }
 
-        public virtual void RaiseRequestClose(IDialogResult dialogResult)
-        {
-            RequestClose?.Invoke(dialogResult);
-        }
-
-        public bool CanCloseDialog()
-        {
-            return true;
-        }
-
-        public void OnDialogClosed()
-        {
-            
-        }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             ClientesMismoTelefono = parameters.GetValue<List<ClienteTelefonoLookup>>("clientesMismoTelefono");
         }

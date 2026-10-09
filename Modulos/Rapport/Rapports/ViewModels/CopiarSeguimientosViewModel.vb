@@ -1,24 +1,15 @@
 ﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Input
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class CopiarSeguimientosViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
     Private ReadOnly _servicio As IRapportService
     Private ReadOnly _configuracion As IConfiguracion
 
 #Region "Propiedades"
-
-    Private _titulo As String = "Copiar seguimientos a otro cliente"
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return _titulo
-        End Get
-    End Property
 
     Private _empresa As String
     Public Property Empresa As String
@@ -186,15 +177,14 @@ Public Class CopiarSeguimientosViewModel
         _servicio = servicio
         _configuracion = configuracion
         _empresa = Constantes.Empresas.EMPRESA_DEFECTO
+        Title = "Copiar seguimientos a otro cliente"
     End Sub
 
 #End Region
 
-#Region "IDialogAware"
+#Region "IDialogoNesto"
 
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Sub OnDialogOpened(parameters As ParametrosDialogo)
         If parameters IsNot Nothing Then
             If parameters.ContainsKey("empresa") Then
                 Empresa = parameters.GetValue(Of String)("empresa")
@@ -208,10 +198,7 @@ Public Class CopiarSeguimientosViewModel
         End If
     End Sub
 
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-    End Sub
-
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
+    Public Overrides Function CanCloseDialog() As Boolean
         Return Not EstaProcesando
     End Function
 
@@ -256,7 +243,7 @@ Public Class CopiarSeguimientosViewModel
     End Function
 
     Private Sub OnCerrar()
-        RaiseEvent RequestClose(New DialogResult(ButtonResult.OK))
+        RaiseRequestClose(ResultadoBoton.OK)
     End Sub
 
 #End Region

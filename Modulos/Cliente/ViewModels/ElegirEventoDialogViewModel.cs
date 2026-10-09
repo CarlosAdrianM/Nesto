@@ -1,7 +1,7 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,7 +12,7 @@ namespace Nesto.Modulos.Cliente
     /// NestoAPI#591: diálogo para elegir de qué evento es la señal un apunte del extracto. Recibe «eventos»
     /// (List&lt;EventoModel&gt;, ya ordenados: los próximos primero) y «apunte» (texto) y devuelve «eventoId».
     /// </summary>
-    public class ElegirEventoDialogViewModel : ObservableObject, IDialogAware
+    public class ElegirEventoDialogViewModel : DialogoNestoBase
     {
         public const string NOMBRE = "ElegirEventoDialog";
 
@@ -21,10 +21,9 @@ namespace Nesto.Modulos.Cliente
         public ElegirEventoDialogViewModel()
         {
             AceptarCommand = new RelayCommand(Aceptar, () => Seleccionado != null);
-            CancelarCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.Cancel)));
+            CancelarCommand = new RelayCommand(() => RaiseRequestClose(ResultadoBoton.Cancel));
+            Title = "Es la señal del evento…";
         }
-
-        public string Title => "Es la señal del evento…";
 
         private string _apunte;
         public string Apunte { get => _apunte; private set => SetProperty(ref _apunte, value); }
@@ -43,8 +42,6 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public event Action<IDialogResult> RequestClose;
-
         public RelayCommand AceptarCommand { get; }
         public RelayCommand CancelarCommand { get; }
 
@@ -54,14 +51,10 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
-            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, new DialogParameters { { "eventoId", Seleccionado.Id } }));
+            RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "eventoId", Seleccionado.Id } }));
         }
 
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             Apunte = parameters.ContainsKey("apunte") ? parameters.GetValue<string>("apunte") : null;
             Eventos.Clear();
