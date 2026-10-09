@@ -51,6 +51,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 () => ContainerLocator.Container?.Resolve<IServicioRegistroErrores>());
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService, avisoConfirmacionAmazon));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService));
+            // Nesto#520: la tienda de Eva Visnú (evavisnu.com), igual que la de Nueva Visión salvo la serie (EV)
+            Factory.Add("PrestashopEV", new CanalExternoPedidosPrestashopEvaVisnu(configuracion, clientesPorTelefonoService));
             
             CrearComandos();
 

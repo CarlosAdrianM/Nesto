@@ -69,5 +69,15 @@ namespace CanalesExternosTests
 
             Assert.AreEqual("Miravia", System.Linq.Enumerable.First(vm.Factory).Key);
         }
+
+        [TestMethod]
+        public void Factory_TieneLaTiendaDeEvaVisnu()
+        {
+            // Nesto#520: el usuario la elige en el mismo desplegable que la de Nueva Visión
+            var vm = CrearViewModel();
+
+            Assert.IsInstanceOfType(vm.Factory["PrestashopEV"], typeof(CanalExternoPedidosPrestashopEvaVisnu));
+            Assert.IsInstanceOfType(vm.Factory["PrestashopNV"], typeof(CanalExternoPedidosPrestashopNuevaVision));
+        }
     }
 }

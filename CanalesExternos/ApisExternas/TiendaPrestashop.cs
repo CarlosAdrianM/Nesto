@@ -5,7 +5,7 @@
     {
         /// <summary>La clave como usuario de la autenticación básica (Nueva Visión, lo de siempre).</summary>
         Basica,
-        /// <summary>La clave en la URL (<c>?ws_key=…</c>), para tiendas que no aceptan la autenticación básica.</summary>
+        /// <summary>La clave en la URL (<c>?ws_key=…</c>). Eva Visnú: con autenticación básica devuelve 401.</summary>
         ClaveEnUrl
     }
 
@@ -33,6 +33,13 @@
         /// <summary>Principio del concepto del prepago («Tienda Online PayPal»…).</summary>
         public string ConceptoPrepago { get; init; }
 
+        /// <summary>
+        /// Si al confirmar el envío se cambia el transportista del pedido en la tienda por el que declara
+        /// NestoAPI para la agencia (RegistroSeguimientoAgencias.TransportistaPrestashop). Esos identificadores
+        /// son los de la tienda de Nueva Visión; en las demás se deja el transportista que ya tiene el pedido
+        /// y solo se añade el número de seguimiento.
+        /// </summary>
+        public bool UsaTransportistaDeNestoAPI { get; init; }
 
         public static readonly TiendaPrestashop NuevaVision = new()
         {
@@ -41,8 +48,19 @@
             ClaveConfiguracion = "PrestashopWebserviceKeyNV",
             Autenticacion = AutenticacionPrestashop.Basica,
             Serie = "NV",
-            ConceptoPrepago = "Tienda Online"
+            ConceptoPrepago = "Tienda Online",
+            UsaTransportistaDeNestoAPI = true
         };
 
+        public static readonly TiendaPrestashop EvaVisnu = new()
+        {
+            Nombre = "Eva Visnú",
+            UrlApi = "https://www.evavisnu.com/api",
+            ClaveConfiguracion = "PrestashopWebserviceKeyEV",
+            Autenticacion = AutenticacionPrestashop.ClaveEnUrl,
+            Serie = "EV",
+            ConceptoPrepago = "Tienda Online Eva Visnú",
+            UsaTransportistaDeNestoAPI = false
+        };
     }
 }

@@ -253,6 +253,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             return false;
         }
 
+        /// <param name="agenciaId">Transportista de la tienda; null para dejar el que ya tiene el pedido.</param>
         internal async Task<bool> ConfirmarPedidoAsync(string referenciaPedido, string agenciaId, string numeroSeguimiento, bool mandarCorreo)
         {
             var pedidoXml = await ObtenerPedidoPorReferenciaAsync(referenciaPedido);
@@ -294,7 +295,11 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                             return false;
                         }
 
-                        orderCarrier.SetElementValue("id_carrier", agenciaId);
+                        // Nesto#520: sin agencia (tiendas que no son la de Nueva Visión) se deja el transportista del pedido
+                        if (agenciaId != null)
+                        {
+                            orderCarrier.SetElementValue("id_carrier", agenciaId);
+                        }
                         orderCarrier.SetElementValue("tracking_number", numeroSeguimiento);
                         // Los atributos xlink:href del GET no se aceptan al escribir
                         foreach (var elemento in orderCarrier.DescendantsAndSelf())

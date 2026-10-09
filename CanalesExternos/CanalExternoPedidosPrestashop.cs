@@ -34,6 +34,14 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_BIZUM_IPN = "Bizum";
         private const string FORMA_PAGO_APLAZAME = "Aplazame";
         private const string FORMA_PAGO_MIRAVIA = "Miravia";
+        // Nesto#520: la tienda de Eva Visnú cobra con el módulo de Stripe y por transferencia. Lo que
+        // se hacía a mano con sus pedidos (sep-oct/26): Stripe → tarjeta prepagada en la 57200013;
+        // la transferencia, prepago aparte cuando llega (como la de Nueva Visión, sin prepago al entrar).
+        private const string FORMA_PAGO_STRIPE_TARJETA = "Card via Stripe";
+        private const string FORMA_PAGO_STRIPE_KLARNA = "Klarna via Stripe";
+        private const string FORMA_PAGO_STRIPE_LINK = "Link via Stripe";
+        private const string FORMA_PAGO_TRANSFERENCIA = "Pagos por transferencia bancaria";
+        private const string FORMA_PAGO_TRANSFERENCIA_INGLES = "Bank wire";
 
         private string formaVenta = "WEB";
         private readonly Interfaces.IClientesPorTelefonoService clientesLookup;
@@ -99,6 +107,11 @@ namespace Nesto.Modulos.CanalesExternos
             { FORMA_PAGO_AMAZON_PAY,                new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_APLAZAME,                  new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_MIRAVIA,                   new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_STRIPE_TARJETA,            new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_STRIPE_KLARNA,             new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_STRIPE_LINK,               new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_TRANSFERENCIA,             new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = null } },
+            { FORMA_PAGO_TRANSFERENCIA_INGLES,      new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = null } },
         };
 
         // Forma de pago desconocida: transferencia previa y sin prepago, como se ha hecho siempre.
@@ -292,7 +305,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
-            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido);
+            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido, Tienda.UsaTransportistaDeNestoAPI);
             string resultado;
             if (await servicio.ConfirmarPedidoAsync(pedido.PedidoCanalId, datosEnvio.AgenciaId, datosEnvio.NumeroSeguimiento, true))
             {
@@ -309,7 +322,8 @@ namespace Nesto.Modulos.CanalesExternos
             else
             {
                 // 22/09/26: antes era un texto en el diálogo que no llegaba a ELMAH.
-                throw new InvalidOperationException($"La tienda no ha aceptado el seguimiento {datosEnvio.NumeroSeguimiento} (transportista {datosEnvio.AgenciaId}) para el pedido {pedido.PedidoCanalId}.");
+                string transportista = datosEnvio.AgenciaId ?? "el que ya tenía el pedido";
+                throw new InvalidOperationException($"La tienda {Tienda.Nombre} no ha aceptado el seguimiento {datosEnvio.NumeroSeguimiento} (transportista {transportista}) para el pedido {pedido.PedidoCanalId}.");
             }
             return resultado;
         }
@@ -318,14 +332,17 @@ namespace Nesto.Modulos.CanalesExternos
         // transportista de Prestashop y el tracking ya hecho (RegistroSeguimientoAgencias, NestoAPI#417) y
         // los manda en cada envío. Aquí NO se reconoce ninguna agencia por el enlace: si faltan los datos
         // se dice qué agencia y qué envío son, para darla de alta en el servidor, y el error va a ELMAH.
-        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido)
+        // Nesto#520: esos transportistas son los de la tienda de Nueva Visión. En otra tienda
+        // (exigirTransportista = false) no se pide ni se manda: AgenciaId = null y la tienda conserva el
+        // transportista que ya tenía el pedido; solo se añade el seguimiento.
+        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido, bool exigirTransportista = true)
         {
             var envio = pedido?.UltimoEnvio;
             if (envio == null)
             {
                 throw new InvalidOperationException("El pedido no tiene ningún envío tramitado que confirmar en la tienda.");
             }
-            if (string.IsNullOrWhiteSpace(envio.TransportistaPrestashop))
+            if (exigirTransportista && string.IsNullOrWhiteSpace(envio.TransportistaPrestashop))
             {
                 throw new InvalidOperationException(
                     $"La agencia «{envio.AgenciaNombre}» del envío {envio.Numero} no declara transportista de Prestashop en NestoAPI " +
@@ -336,7 +353,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 throw new InvalidOperationException($"El envío {envio.Numero} ({envio.AgenciaNombre}) no tiene seguimiento que mandar a la tienda.");
             }
-            return new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = tracking };
+            return new DatosEnvioConfirmarPrestashop { AgenciaId = exigirTransportista ? envio.TransportistaPrestashop : null, NumeroSeguimiento = tracking };
         }
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)
