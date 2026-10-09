@@ -498,6 +498,9 @@ Public Class LineaPlantillaVenta
     ' Issue #159: marca la línea "virtual" de comisión contra reembolso (análoga a esLineaPortes).
     Public Property esLineaReembolso As Boolean = False
 
+    ' NestoAPI#593 (c5): la línea «virtual» del cheque regalo en el resumen del pedido (la de verdad la pone el servidor).
+    Public Property esLineaChequeRegalo As Boolean = False
+
     Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
         Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse

@@ -85,6 +85,7 @@ Public Class PlantillaVentaViewModel
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(_clienteApiFactory) ' NestoAPI#606
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(_clienteApiFactory)) ' NestoAPI#581
+        ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(_clienteApiFactory) ' NestoAPI#593
 
         Titulo = "Plantilla Ventas"
 
@@ -272,7 +273,8 @@ Public Class PlantillaVentaViewModel
             If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
                 baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
-            Return baseImponible
+            ' NestoAPI#593 (c5): el cheque regalo resta su importe (para portes no cuenta: baseImponibleParaPortes no lo mira)
+            Return baseImponible - ImporteChequeRegaloAplicado
         End Get
     End Property
 
@@ -2322,6 +2324,16 @@ Public Class PlantillaVentaViewModel
         Get
             Dim lista = listaProductosPedido
             If lista Is Nothing Then Return Nothing
+            ' NestoAPI#593 (c5): la línea del cheque regalo, como la de portes (la de verdad la manda PrepararPedido)
+            If ImporteChequeRegaloAplicado > 0 Then
+                lista.Add(New LineaPlantillaVenta With {
+                    .esLineaChequeRegalo = True,
+                    .producto = ChequeRegalo.Cheque?.Producto?.Trim(),
+                    .texto = Nesto.Infrastructure.Models.ReglasChequeRegalo.TextoLinea(ChequeRegalo.Cheque),
+                    .cantidad = -1,
+                    .precio = ImporteChequeRegaloAplicado
+                })
+            End If
             If Not PortesGratis AndAlso hayProductosEnElPedido AndAlso ImportePortesMostrar > 0 Then
                 lista.Add(New LineaPlantillaVenta With {
                     .esLineaPortes = True,
@@ -3916,6 +3928,8 @@ Public Class PlantillaVentaViewModel
             pedido.ccc = Nothing
         End If
 
+        AnadirLineaChequeRegalo(pedido) ' NestoAPI#593 (c5)
+
         ' Añadir Usuario y delegacion a cada línea
         For Each linea In pedido.Lineas
             linea.Usuario = configuracion.usuario
@@ -4088,9 +4102,213 @@ Public Class PlantillaVentaViewModel
         Return Await configuracion.leerParametro(empresa, v)
     End Function
 
+#Region "NestoAPI#593 (c5): cheque regalo"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioChequesRegalo As Nesto.Infrastructure.Services.IServicioChequesRegalo
+
+    ''' <summary>El cheque regalo del cliente seleccionado (nada si no tiene, si la campaña está apagada o si la API falla).</summary>
+    Public ReadOnly Property ChequeRegalo As New Nesto.Infrastructure.Models.ChequeRegaloVista()
+
+    Private _versionChequeRegalo As Integer
+    Private _clienteChequeRegalo As String
+
+    Private Async Sub CargarChequeRegalo()
+        Try
+            Await CargarChequeRegaloAsync()
+        Catch ex As Exception
+            ' Es una ayuda: si algo falla, no se enseña nada y el pedido sigue como siempre
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' GET api/ChequesRegalo/Cliente al elegir el cliente, una vez por cliente. Con otro cliente se quita el cheque que
+    ''' hubiera marcado. Si mientras tanto se elige otro cliente, la respuesta del anterior se descarta.
+    ''' </summary>
+    Friend Async Function CargarChequeRegaloAsync() As Task
+        Dim cliente As ClienteJson = clienteSeleccionado
+        Dim clave As String = If(cliente Is Nothing, Nothing, $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}")
+        If clave = _clienteChequeRegalo Then
+            Return ' el mismo cliente (otro contacto, se vuelve a seleccionar...): no se pregunta otra vez
+        End If
+        _clienteChequeRegalo = clave
+        _versionChequeRegalo += 1
+        Dim version As Integer = _versionChequeRegalo
+        _usarChequeRegalo = False
+        ChequeRegalo.Limpiar()
+        NotificarChequeRegalo()
+
+        Dim servicioCheques = ServicioChequesRegalo
+        If cliente Is Nothing OrElse servicioCheques Is Nothing OrElse String.IsNullOrWhiteSpace(cliente.cliente) Then
+            Return
+        End If
+        Dim cheque As Nesto.Infrastructure.Models.ChequeRegaloClienteDTO = Nothing
+        Try
+            cheque = Await servicioCheques.LeerDelCliente(cliente.empresa, cliente.cliente)
+        Catch ex As Exception
+            cheque = Nothing
+        End Try
+        If version <> _versionChequeRegalo Then
+            Return
+        End If
+        ChequeRegalo.Aplicar(cheque)
+        ' Nesto#397: modificando con la plantilla el pedido que ya lleva el cheque, la casilla sale marcada para que el
+        ' PUT no lo suelte (la plantilla no carga las líneas ficticias del pedido).
+        _usarChequeRegalo = ChequeEstaEnElPedidoEnEdicion
+        NotificarChequeRegalo()
+    End Function
+
+    ''' <summary>El cheque ya está en el pedido que se está modificando con la plantilla (Nesto#397).</summary>
+    Friend ReadOnly Property ChequeEstaEnElPedidoEnEdicion As Boolean
+        Get
+            Dim cheque = ChequeRegalo.Cheque
+            Return cheque IsNot Nothing AndAlso NumeroPedidoEnEdicion.HasValue AndAlso cheque.PedidoCanje.HasValue AndAlso
+                cheque.PedidoCanje.Value = NumeroPedidoEnEdicion.Value AndAlso
+                String.Equals(cheque.Estado, Nesto.Infrastructure.Models.ChequeRegaloClienteDTO.ESTADO_EN_PEDIDO, StringComparison.OrdinalIgnoreCase)
+        End Get
+    End Property
+
+    ''' <summary>Se enseña la casilla «Usar el cheque regalo de 50 €».</summary>
+    Public ReadOnly Property PuedeUsarChequeRegalo As Boolean
+        Get
+            Return ChequeRegalo.SePuedeUsar OrElse ChequeEstaEnElPedidoEnEdicion
+        End Get
+    End Property
+
+    ''' <summary>Tiene cheque pero ya está en otro pedido, canjeado, caducado...: solo el texto, sin casilla.</summary>
+    Public ReadOnly Property MostrarInfoChequeRegalo As Boolean
+        Get
+            Return ChequeRegalo.HayCheque AndAlso Not PuedeUsarChequeRegalo
+        End Get
+    End Property
+
+    Private _usarChequeRegalo As Boolean
+    ''' <summary>
+    ''' Casilla «Usar el cheque regalo»: el pedido lleva la línea del cheque (la normaliza el servidor) y el total de la
+    ''' plantilla resta su importe. Desmarcarla la quita.
+    ''' </summary>
+    Public Property UsarChequeRegalo As Boolean
+        Get
+            Return _usarChequeRegalo
+        End Get
+        Set(value As Boolean)
+            If value AndAlso Not PuedeUsarChequeRegalo Then
+                value = False
+            End If
+            If SetProperty(_usarChequeRegalo, value) Then
+                NotificarTotalesChequeRegalo()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Lo que resta el cheque de la base imponible (0 si no se usa).</summary>
+    Public ReadOnly Property ImporteChequeRegaloAplicado As Decimal
+        Get
+            Return If(UsarChequeRegalo AndAlso PuedeUsarChequeRegalo, ChequeRegalo.Importe, 0D)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Base computable para el mínimo, calculada aquí (aproximada: el grupo y el nombre son los de la plantilla); al
+    ''' crear el pedido manda el servidor y, si no llega, su mensaje dice cuánto falta.
+    ''' </summary>
+    Public ReadOnly Property BaseComputableChequeRegalo As Decimal
+        Get
+            Dim cheque = ChequeRegalo.Cheque
+            Dim lineas = listaProductosPedido
+            If cheque Is Nothing OrElse lineas Is Nothing Then
+                Return 0D
+            End If
+            Return lineas.Where(Function(l) Nesto.Infrastructure.Models.ReglasChequeRegalo.CuentaParaElMinimo(cheque, l.producto, l.texto, l.grupo)).
+                Sum(Function(l) l.baseImponible + l.baseImponibleOferta)
+        End Get
+    End Property
+
+    ''' <summary>«Faltan … para superar los 250 €» mientras se pueda usar el cheque y no se llegue al mínimo.</summary>
+    Public ReadOnly Property TextoFaltaChequeRegalo As String
+        Get
+            If Not PuedeUsarChequeRegalo Then
+                Return Nothing
+            End If
+            Return Nesto.Infrastructure.Models.ReglasChequeRegalo.TextoFalta(ChequeRegalo.Cheque, BaseComputableChequeRegalo)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayTextoFaltaChequeRegalo As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(TextoFaltaChequeRegalo)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Al crear (o modificar) el pedido: la línea del cheque con el producto del GET. El servidor la deja como debe
+    ''' (cantidad −1, precio = importe, sin descuentos, IVA del producto y texto de la campaña) venga como venga; se manda
+    ''' ya así para que el pedido que viaja cuadre con lo que se ve. Si ya hay una línea de ese producto (tecleada a
+    ''' mano), no se añade otra.
+    ''' </summary>
+    Friend Sub AnadirLineaChequeRegalo(pedido As PedidoVentaDTO)
+        Dim cheque = ChequeRegalo.Cheque
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse cheque Is Nothing OrElse ImporteChequeRegaloAplicado <= 0 Then
+            Return
+        End If
+        If pedido.Lineas.Any(Function(l) Nesto.Infrastructure.Models.ReglasChequeRegalo.EsLineaDelCheque(cheque, l.Producto)) Then
+            Return
+        End If
+        Dim primera As LineaPedidoVentaDTO = pedido.Lineas.FirstOrDefault(Function(l) l.tipoLinea = 1)
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {
+            .Pedido = pedido,
+            .estado = If(Estado.EsPresupuesto, -3S, 1S),
+            .tipoLinea = 1,
+            .Producto = cheque.Producto.Trim(),
+            .texto = Nesto.Infrastructure.Models.ReglasChequeRegalo.TextoLinea(cheque),
+            .Cantidad = -1,
+            .fechaEntrega = If(primera IsNot Nothing, primera.fechaEntrega, Estado.FechaEntrega),
+            .PrecioUnitario = cheque.Importe,
+            .DescuentoLinea = 0,
+            .DescuentoProducto = 0,
+            .AplicarDescuento = False,
+            .vistoBueno = 0,
+            .almacen = If(primera IsNot Nothing, primera.almacen, Estado.AlmacenCodigo),
+            .iva = primera?.iva,
+            .formaVenta = If(primera IsNot Nothing, primera.formaVenta, formaVentaPedido),
+            .oferta = Nothing
+        })
+    End Sub
+
+    Private Sub NotificarChequeRegalo()
+        OnPropertyChanged(NameOf(ChequeRegalo))
+        OnPropertyChanged(NameOf(PuedeUsarChequeRegalo))
+        OnPropertyChanged(NameOf(MostrarInfoChequeRegalo))
+        OnPropertyChanged(NameOf(UsarChequeRegalo))
+        NotificarTotalesChequeRegalo()
+    End Sub
+
+    Private Sub NotificarTotalesChequeRegalo()
+        OnPropertyChanged(NameOf(ImporteChequeRegaloAplicado))
+        OnPropertyChanged(NameOf(baseImponiblePedido))
+        OnPropertyChanged(NameOf(totalPedido))
+        OnPropertyChanged(NameOf(TotalPedidoPlazosPago))
+        OnPropertyChanged(NameOf(baseImponiblePedidoConPortes))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
+    End Sub
+
+    ''' <summary>Lo que falta para el mínimo se recalcula cada vez que cambia la base del pedido, se cambie donde se cambie.</summary>
+    Protected Overloads Overrides Sub OnPropertyChanged(e As PropertyChangedEventArgs)
+        MyBase.OnPropertyChanged(e)
+        If e IsNot Nothing AndAlso (e.PropertyName = NameOf(baseImponiblePedido) OrElse e.PropertyName = NameOf(listaProductosPedido)) Then
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(BaseComputableChequeRegalo)))
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TextoFaltaChequeRegalo)))
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(HayTextoFaltaChequeRegalo)))
+        End If
+    End Sub
+
+#End Region
+
     Private Sub SeleccionarElCliente(value As ClienteJson)
         Dim unused = SetProperty(_clienteSeleccionado, value)
         ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: con otro cliente se vuelve a avisar de todo
+        CargarChequeRegalo() ' NestoAPI#593 (c5): sin esperar; una vez por cliente
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa

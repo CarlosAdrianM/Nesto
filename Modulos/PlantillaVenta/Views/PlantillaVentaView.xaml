@@ -15,6 +15,25 @@
     <UserControl.Resources>
         <converters:PercentageConverter x:Key="porcentajeConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- NestoAPI#593 (c5): el cheque regalo del cliente. Sale en Productos (junto a los totales) y en Finalizar; sin
+             cheque (404, campaña apagada o la API falla) no se ve nada. Colores del sistema (modo claro y oscuro). -->
+        <DataTemplate x:Key="PlantillaChequeRegalo">
+            <Border Margin="3,4" Padding="8,6" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Stretch"
+                    Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                    BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                    TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                    Visibility="{Binding ChequeRegalo.HayCheque, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding ChequeRegalo.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    <CheckBox Content="{Binding ChequeRegalo.TextoUsar}" IsChecked="{Binding UsarChequeRegalo, Mode=TwoWay}" Margin="0,4,0,0"
+                              Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                              ToolTip="Añade al pedido la línea del cheque (resta su importe de la base). Para quitarlo, desmarca la casilla."
+                              Visibility="{Binding PuedeUsarChequeRegalo, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <TextBlock Text="{Binding TextoFaltaChequeRegalo}" TextWrapping="Wrap" FontStyle="Italic" Margin="0,2,0,0"
+                               Visibility="{Binding HayTextoFaltaChequeRegalo, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <xctk:BusyIndicator Name="IndicadorOcupado" IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
@@ -365,6 +384,8 @@
                             </StackPanel>
                         </Grid>
 
+                        <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding}" ContentTemplate="{StaticResource PlantillaChequeRegalo}" Focusable="False"/>
+
                         <DockPanel Grid.Row="2" Grid.Column="1" >
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaUltimasVentas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                                 <DataGrid.Columns>
@@ -491,6 +512,13 @@
                                                 <Setter Property="Background" Value="#F0F0F0"/>
                                                 <Setter Property="TextElement.FontStyle" Value="Italic"/>
                                                 <Setter Property="TextElement.Foreground" Value="Gray"/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                            <!-- NestoAPI#593 (c5): la línea del cheque regalo (se quita con la casilla) -->
+                                            <DataTrigger Binding="{Binding esLineaChequeRegalo}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
+                                                <Setter Property="TextElement.FontStyle" Value="Italic"/>
+                                                <Setter Property="TextElement.Foreground" Value="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"/>
                                                 <Setter Property="IsEnabled" Value="False"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -867,6 +895,7 @@
                         </Grid>
 
                         <StackPanel Grid.Row="4">
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PlantillaChequeRegalo}" Focusable="False" HorizontalAlignment="Left" MaxWidth="600"/>
                             <CheckBox IsChecked="{Binding AnadirPortes}" Visibility="{Binding VisibilidadAnadirPortes, Converter={StaticResource BooleanToVisibilityConverter}}">Añadir portes al pedido</CheckBox>
                             <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
                                  La línea aparece en el DataGrid de productos junto con los portes. -->
