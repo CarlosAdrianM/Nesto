@@ -69,7 +69,7 @@ namespace ControlesUsuario.Dialogs
             _mencionables = new ListaMencionables(servicio);
             MencionesSugerencia = new AutocompletadoMenciones(_mencionables);
             // Sugerencia 551: los perfiles del usuario llegan de la API al abrir (CargarMisPerfiles).
-            _perfiles = new ContextoPerfilesNovedades(servicio);
+            _perfiles = new ContextoPerfilesNovedades();
 
             AbrirSugerenciaCommand = new AsyncRelayCommand(AbrirOCerrarSugerencia, () => PuedeSugerir);
             AbrirIncidenciaCommand = new AsyncRelayCommand(AbrirOCerrarIncidencia, () => PuedeSugerir);
@@ -195,7 +195,7 @@ namespace ControlesUsuario.Dialogs
             return Math.Max(0, _porVersion.FindIndex(g => g.Key == version.Trim()));
         }
 
-        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos, _perfiles);
+        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos);
 
         // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
         // parsea; si no, por texto, para no romper con versiones con formato raro).
@@ -296,10 +296,6 @@ namespace ControlesUsuario.Dialogs
             }
             OnPropertyChanged(nameof(MostrarConmutadorPerfiles));
             OnPropertyChanged(nameof(TextoPerfiles));
-            foreach (NovedadItem item in _items.Concat(_sugerencias ?? new List<NovedadItem>()))
-            {
-                item.Perfiles.Refrescar();
-            }
             RefrescarVista();
         }
 
