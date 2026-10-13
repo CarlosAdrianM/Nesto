@@ -45,4 +45,33 @@ Public Class AgenciaServiceMensajeSeguimientoTests
         Assert.AreEqual("NestoAPI rechazó la tramitación (429): " & cuerpo, AgenciaService.MensajeErrorTramitacion(429, cuerpo))
     End Sub
 
+    ' Sugerencia 507 (13/10/26): anular y modificar un envío de CTT con la agencia caída, igual que tramitar.
+
+    Private Const MENSAJE_NO_RESPONDE As String = "CTT no responde ahora mismo (error de su servidor). Vuelve a intentarlo en unos minutos o, si es urgente, sácalo por GLS."
+    Private Const CUERPO_NO_RESPONDE As String = "{""Message"":""" & MENSAJE_NO_RESPONDE & """,""Codigo"":""AGENCIA_NO_RESPONDE"",""Detalle"":""CTT (Anular) respondió HTTP 500: CONNECTIVITY""}"
+
+    <TestMethod()>
+    Public Sub Anulacion_AgenciaNoResponde_EnsenaSoloElMensajeDeLaApi()
+        Assert.AreEqual(MENSAJE_NO_RESPONDE, AgenciaService.MensajeErrorAnulacion(502, CUERPO_NO_RESPONDE))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Anulacion_AgenciaRechaza_SeEnsenaComoSiempre()
+        Dim cuerpo = """Innovatrans no ha podido anular el envío (albarán 6522393001): Excedido el tiempo de borrado"""
+        Assert.AreEqual("NestoAPI rechazó la anulación (502): " & cuerpo, AgenciaService.MensajeErrorAnulacion(502, cuerpo))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Modificacion_AgenciaNoResponde_EnsenaSoloElMensajeDeLaApi()
+        Assert.AreEqual(MENSAJE_NO_RESPONDE, AgenciaService.MensajeErrorModificacion(502, CUERPO_NO_RESPONDE, "la modificación"))
+        Assert.AreEqual(MENSAJE_NO_RESPONDE, AgenciaService.MensajeErrorModificacion(502, CUERPO_NO_RESPONDE, "la modificación del envío"))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Modificacion_OtroError_SeEnsenaComoSiempre()
+        Dim cuerpo = """CTT no ha aceptado el cambio del envío 249483: ya recogido"""
+        Assert.AreEqual("NestoAPI rechazó la modificación del envío (502): " & cuerpo,
+                        AgenciaService.MensajeErrorModificacion(502, cuerpo, "la modificación del envío"))
+    End Sub
+
 End Class

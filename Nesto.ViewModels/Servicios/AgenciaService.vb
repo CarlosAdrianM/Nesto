@@ -884,7 +884,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"NestoAPI rechazó la anulación ({CInt(response.StatusCode)}): {cuerpo}")
+                Throw New Exception(MensajeErrorAnulacion(CInt(response.StatusCode), cuerpo))
             End If
         End Using
     End Function
@@ -963,7 +963,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"NestoAPI rechazó la modificación del envío ({CInt(response.StatusCode)}): {cuerpo}")
+                Throw New Exception(MensajeErrorModificacion(CInt(response.StatusCode), cuerpo, "la modificación del envío"))
             End If
 
             Return JsonConvert.DeserializeObject(Of ResultadoModificacionEnvioDto)(cuerpo)
@@ -986,7 +986,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"NestoAPI rechazó la modificación ({CInt(response.StatusCode)}): {cuerpo}")
+                Throw New Exception(MensajeErrorModificacion(CInt(response.StatusCode), cuerpo, "la modificación"))
             End If
 
             Return JsonConvert.DeserializeObject(Of TramitarEnvioResultadoDto)(cuerpo)
@@ -1036,8 +1036,29 @@ Public Class AgenciaService
     ''' como siempre, con el código HTTP y el cuerpo.
     ''' </summary>
     Friend Shared Function MensajeErrorTramitacion(codigoHttp As Integer, cuerpo As String) As String
+        Return MensajeErrorOperacionAgencia(codigoHttp, cuerpo, "la tramitación")
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 507 (13/10/26): como <see cref="MensajeErrorTramitacion"/>, al anular en la agencia un envío ya
+    ''' registrado. Si la agencia no responde, el mensaje de la API; si no, como siempre.
+    ''' </summary>
+    Friend Shared Function MensajeErrorAnulacion(codigoHttp As Integer, cuerpo As String) As String
+        Return MensajeErrorOperacionAgencia(codigoHttp, cuerpo, "la anulación")
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 507 (13/10/26): como <see cref="MensajeErrorTramitacion"/>, al modificar en la agencia un envío ya
+    ''' registrado (/Modificar, la dirección; /ModificarDatos, retorno/reembolso/servicio).
+    ''' </summary>
+    Friend Shared Function MensajeErrorModificacion(codigoHttp As Integer, cuerpo As String, operacion As String) As String
+        Return MensajeErrorOperacionAgencia(codigoHttp, cuerpo, operacion)
+    End Function
+
+    ''' <summary>«NestoAPI rechazó {operacion} ({código}): {cuerpo}», salvo que la agencia no responda (el mensaje de la API).</summary>
+    Private Shared Function MensajeErrorOperacionAgencia(codigoHttp As Integer, cuerpo As String, operacion As String) As String
         Return If(MensajeDeLaApiConCodigo(cuerpo, CODIGO_AGENCIA_NO_RESPONDE),
-                  $"NestoAPI rechazó la tramitación ({codigoHttp}): {cuerpo}")
+                  $"NestoAPI rechazó {operacion} ({codigoHttp}): {cuerpo}")
     End Function
 
     ''' <summary>
