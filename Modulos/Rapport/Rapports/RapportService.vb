@@ -533,4 +533,72 @@ Public Class RapportService
             Throw New ApplicationException("Error al cargar detalle de ventas por producto: " & ex.Message, ex)
         End Try
     End Function
+
+    ''' <summary>
+    ''' NestoAPI#593: GET api/ChequesRegalo/Resumen (la campaña en curso, filtrada por lo que puede ver el usuario). Nothing si
+    ''' no hay campaña (404), si la API publicada aún no lo tiene o si falla: la pestaña de cheques no sale.
+    ''' </summary>
+    Public Async Function CargarResumenChequesRegalo() As Task(Of ResumenChequesRegalo) Implements IRapportService.CargarResumenChequesRegalo
+        Try
+            Using client = _clienteApiFactory.Crear()
+                Dim response As HttpResponseMessage = Await client.GetAsync($"ChequesRegalo/Resumen?empresa={Constantes.Empresas.EMPRESA_DEFECTO}")
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                Return If(String.IsNullOrWhiteSpace(respuesta), Nothing, JsonConvert.DeserializeObject(Of ResumenChequesRegalo)(respuesta))
+            End Using
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>NestoAPI#593: GET api/ChequesRegalo/Pendientes?vendedor= (los cheques sin usar de ese vendedor). Nunca Nothing.</summary>
+    Public Async Function CargarChequesRegaloPendientes(vendedor As String) As Task(Of List(Of ChequeRegaloPendiente)) Implements IRapportService.CargarChequesRegaloPendientes
+        Using client = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage
+            Try
+                response = Await client.GetAsync($"ChequesRegalo/Pendientes?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&vendedor={Uri.EscapeDataString(If(vendedor, String.Empty).Trim())}")
+            Catch ex As Exception
+                Throw New Exception($"No se han podido cargar los cheques regalo pendientes de {vendedor}", ex)
+            End Try
+            If response.StatusCode = System.Net.HttpStatusCode.NotFound Then
+                Return New List(Of ChequeRegaloPendiente)
+            End If
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = respuesta
+                Try
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of JObject)(respuesta)
+                    mensaje = HttpErrorHelper.ParsearErrorHttp(detallesError)
+                Catch
+                End Try
+                Throw New Exception($"No se han podido cargar los cheques regalo pendientes de {vendedor}: {mensaje}")
+            End If
+            Dim lista = If(String.IsNullOrWhiteSpace(respuesta), Nothing, JsonConvert.DeserializeObject(Of List(Of ChequeRegaloPendiente))(respuesta))
+            Return If(lista, New List(Of ChequeRegaloPendiente))
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#593: el PDF de la factura que generó el cheque (GET api/Facturas, como el extracto de cliente).</summary>
+    Public Async Function DescargarFacturaPdf(empresa As String, numeroFactura As String) As Task(Of Byte()) Implements IRapportService.DescargarFacturaPdf
+        Using client = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync(
+                $"Facturas?empresa={Uri.EscapeDataString(If(empresa, String.Empty).Trim())}&numeroFactura={Uri.EscapeDataString(If(numeroFactura, String.Empty).Trim())}")
+            If Not response.IsSuccessStatusCode Then
+                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                Dim mensaje As String = cuerpo
+                Try
+                    mensaje = HttpErrorHelper.ParsearErrorHttp(JsonConvert.DeserializeObject(Of JObject)(cuerpo))
+                Catch
+                End Try
+                Throw New Exception($"No se ha podido obtener la factura {numeroFactura?.Trim()}: {mensaje}")
+            End If
+            Dim pdf As Byte() = Await response.Content.ReadAsByteArrayAsync()
+            If pdf Is Nothing OrElse pdf.Length = 0 Then
+                Throw New Exception($"El servidor no ha devuelto el PDF de la factura {numeroFactura?.Trim()}.")
+            End If
+            Return pdf
+        End Using
+    End Function
 End Class

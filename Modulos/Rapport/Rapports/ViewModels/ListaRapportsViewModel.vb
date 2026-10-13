@@ -45,6 +45,10 @@ Public Class ListaRapportsViewModel
 
         CopiarSeguimientosCommand = New RelayCommand(AddressOf OnCopiarSeguimientos, AddressOf CanCopiarSeguimientos)
 
+        AbrirFacturaChequeCommand = New RelayCommand(Of ChequeRegaloPendiente)(AddressOf OnAbrirFacturaCheque, Function(c) c IsNot Nothing AndAlso c.TieneFactura)
+        LlamarChequeCommand = New RelayCommand(Of ChequeRegaloPendiente)(AddressOf OnLlamarCheque, Function(c) c IsNot Nothing)
+        WhatsAppChequeCommand = New RelayCommand(Of ChequeRegaloPendiente)(AddressOf OnWhatsAppCheque, Function(c) c IsNot Nothing)
+
         listaTiposRapports = servicio.CargarListaTipos()
         listaEstadosRapport = servicio.CargarListaEstados()
 
@@ -374,9 +378,199 @@ Public Class ListaRapportsViewModel
             Dim antes As String = VendedorSugerencias
             If SetProperty(_vendedorSugerencias, value.Trim()) AndAlso Not String.Equals(antes?.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase) Then
                 ActualizarClientesProbabilidad(If(GrupoSubgrupoSeleccionado, String.Empty))
+                ' NestoAPI#593: los cheques pendientes también son del vendedor elegido (si ya se han mirado).
+                If _chequesPendientesCargados Then
+                    ActualizarChequesPendientes()
+                End If
             End If
         End Set
     End Property
+
+#Region "Cheques regalo (NestoAPI#593)"
+    Private _resumenChequesRegalo As ResumenChequesRegalo
+    ''' <summary>
+    ''' NestoAPI#593: generados, usados, pendientes y caducados por vendedor (los que puede ver el usuario: el suyo, su equipo
+    ''' o todos). Nothing si no hay campaña en curso: entonces la pestaña «Cheques regalo» no sale.
+    ''' </summary>
+    Public Property ResumenChequesRegalo As ResumenChequesRegalo
+        Get
+            Return _resumenChequesRegalo
+        End Get
+        Set(value As ResumenChequesRegalo)
+            If SetProperty(_resumenChequesRegalo, value) Then
+                RaisePropertyChanged(NameOf(HayCampanaChequesRegalo))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayCampanaChequesRegalo As Boolean
+        Get
+            Return _resumenChequesRegalo IsNot Nothing AndAlso _resumenChequesRegalo.Campana IsNot Nothing
+        End Get
+    End Property
+
+    Private _resumenChequesVendedorSeleccionado As ResumenChequesVendedor
+    ''' <summary>Al elegir una fila del resumen, la lista de pendientes (y la de clientes para contactar) pasa a ese vendedor.</summary>
+    Public Property ResumenChequesVendedorSeleccionado As ResumenChequesVendedor
+        Get
+            Return _resumenChequesVendedorSeleccionado
+        End Get
+        Set(value As ResumenChequesVendedor)
+            If SetProperty(_resumenChequesVendedorSeleccionado, value) AndAlso value IsNot Nothing AndAlso Not value.EsTotal AndAlso
+                    Not String.IsNullOrWhiteSpace(value.Vendedor) Then
+                VendedorSugerencias = value.Vendedor
+            End If
+        End Set
+    End Property
+
+    Private _listaChequesPendientes As New ObservableCollection(Of ChequeRegaloPendiente)
+    Public Property ListaChequesPendientes As ObservableCollection(Of ChequeRegaloPendiente)
+        Get
+            Return _listaChequesPendientes
+        End Get
+        Set(value As ObservableCollection(Of ChequeRegaloPendiente))
+            If SetProperty(_listaChequesPendientes, value) Then
+                RaisePropertyChanged(NameOf(TextoChequesPendientes))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property TextoChequesPendientes As String
+        Get
+            Dim n As Integer = If(_listaChequesPendientes?.Count, 0)
+            Dim deQuien As String = If(String.IsNullOrWhiteSpace(VendedorSugerencias), String.Empty, $" de {VendedorSugerencias.Trim()}")
+            Return If(n = 0, $"Ningún cheque sin usar{deQuien}", If(n = 1, $"1 cheque sin usar{deQuien}", $"{n} cheques sin usar{deQuien}"))
+        End Get
+    End Property
+
+    Private _isLoadingChequesRegalo As Boolean
+    Public Property IsLoadingChequesRegalo As Boolean
+        Get
+            Return _isLoadingChequesRegalo
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_isLoadingChequesRegalo, value)
+        End Set
+    End Property
+
+    Private _mostrandoChequesRegalo As Boolean
+    ''' <summary>La pestaña «Cheques regalo» está elegida: la primera vez se cargan los pendientes del vendedor.</summary>
+    Public Property MostrandoChequesRegalo As Boolean
+        Get
+            Return _mostrandoChequesRegalo
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_mostrandoChequesRegalo, value) AndAlso value AndAlso Not _chequesPendientesCargados Then
+                ActualizarChequesPendientes()
+            End If
+        End Set
+    End Property
+
+    Private _chequesPendientesCargados As Boolean
+    Private _cargaChequesPendientes As Integer
+
+    ''' <summary>Abre un fichero con el programa del sistema (el PDF de la factura) o un enlace (WhatsApp). Sustituible en pruebas.</summary>
+    Public Property AbrirConElSistema As Action(Of String) = Sub(ruta) Process.Start(New ProcessStartInfo(ruta) With {.UseShellExecute = True})
+
+    Public Property AbrirFacturaChequeCommand As RelayCommand(Of ChequeRegaloPendiente)
+    Public Property LlamarChequeCommand As RelayCommand(Of ChequeRegaloPendiente)
+    Public Property WhatsAppChequeCommand As RelayCommand(Of ChequeRegaloPendiente)
+
+    Public Async Function CargarResumenChequesRegaloAsync() As Task
+        Try
+            ResumenChequesRegalo = Await servicio.CargarResumenChequesRegalo()
+        Catch
+            ResumenChequesRegalo = Nothing
+        End Try
+    End Function
+
+    Private Async Sub ActualizarChequesPendientes()
+        Try
+            Await CargarChequesPendientesAsync()
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Los cheques sin usar del vendedor elegido en el desplegable (como los clientes para contactar), los que caducan antes
+    ''' primero. Si se cambia de vendedor con una carga en marcha, solo se pinta la última.
+    ''' </summary>
+    Public Async Function CargarChequesPendientesAsync() As Task
+        _cargaChequesPendientes += 1
+        Dim estaCarga As Integer = _cargaChequesPendientes
+        _chequesPendientesCargados = True
+        IsLoadingChequesRegalo = True
+        Try
+            Dim lista = Await servicio.CargarChequesRegaloPendientes(VendedorSugerencias)
+            If estaCarga <> _cargaChequesPendientes Then
+                Return
+            End If
+            ListaChequesPendientes = New ObservableCollection(Of ChequeRegaloPendiente)(If(lista, New List(Of ChequeRegaloPendiente)))
+        Finally
+            If estaCarga = _cargaChequesPendientes Then
+                IsLoadingChequesRegalo = False
+            End If
+        End Try
+    End Function
+
+    Private Async Sub OnAbrirFacturaCheque(cheque As ChequeRegaloPendiente)
+        Await AbrirFacturaChequeAsync(cheque)
+    End Sub
+
+    Public Async Function AbrirFacturaChequeAsync(cheque As ChequeRegaloPendiente) As Task
+        If cheque Is Nothing OrElse Not cheque.TieneFactura Then
+            Return
+        End If
+        Try
+            IsLoadingChequesRegalo = True
+            Dim pdf As Byte() = Await servicio.DescargarFacturaPdf(cheque.EmpresaFactura, cheque.FacturaOrigen)
+            Dim limpio As String = New String(cheque.FacturaOrigen.Trim().Select(Function(c) If(IO.Path.GetInvalidFileNameChars().Contains(c), "_"c, c)).ToArray())
+            Dim ruta As String = IO.Path.Combine(IO.Path.GetTempPath(), $"Factura_{limpio}.pdf")
+            IO.File.WriteAllBytes(ruta, pdf)
+            AbrirConElSistema.Invoke(ruta)
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+        Finally
+            IsLoadingChequesRegalo = False
+        End Try
+    End Function
+
+    Private Async Sub OnLlamarCheque(cheque As ChequeRegaloPendiente)
+        Await LlamarChequeAsync(cheque)
+    End Sub
+
+    ''' <summary>Como al pinchar en «clientes para contactar»: abre un rapport nuevo de tipo Teléfono de ese cliente.</summary>
+    Public Async Function LlamarChequeAsync(cheque As ChequeRegaloPendiente) As Task
+        If cheque Is Nothing Then
+            Return
+        End If
+        Await CrearRapportAsync(cheque.Cliente?.Trim(), cheque.Contacto?.Trim(), TIPO_RAPPORT_TELEFONO)
+    End Function
+
+    Private Async Sub OnWhatsAppCheque(cheque As ChequeRegaloPendiente)
+        Await WhatsAppChequeAsync(cheque)
+    End Sub
+
+    ''' <summary>Abre el chat de WhatsApp con el móvil de la ficha (si tiene) y un rapport nuevo de tipo WhatsApp.</summary>
+    Public Async Function WhatsAppChequeAsync(cheque As ChequeRegaloPendiente) As Task
+        If cheque Is Nothing Then
+            Return
+        End If
+        Dim enlace As String = TelefonoHelper.EnlaceWhatsApp(cheque.Movil)
+        If enlace IsNot Nothing Then
+            Try
+                AbrirConElSistema.Invoke(enlace)
+            Catch ex As Exception
+                _dialogService.ShowError($"No se ha podido abrir WhatsApp: {ex.Message}")
+            End Try
+        End If
+        Await CrearRapportAsync(cheque.Cliente?.Trim(), cheque.Contacto?.Trim(), TIPO_RAPPORT_WHATSAPP)
+    End Function
+
+    Public Const TIPO_RAPPORT_TELEFONO As String = "T"
+    Public Const TIPO_RAPPORT_WHATSAPP As String = "W"
+#End Region
 
     Private _listaEstadosRapport As List(Of idShortDescripcion)
     Public Property listaEstadosRapport As List(Of idShortDescripcion)
@@ -666,10 +860,18 @@ Public Class ListaRapportsViewModel
         Return True
     End Function
     Private Async Sub OnCrearRapport(cliente As ClienteProbabilidadVenta)
+        Await CrearRapportAsync(cliente?.cliente, cliente?.contacto, TipoRapportSeleccionado.id)
+    End Sub
+
+    ''' <summary>
+    ''' Un rapport nuevo (sin guardar) del cliente, con el vendedor del usuario y el tipo indicado; antes carga sus rapports.
+    ''' Sin cliente, un rapport en blanco. NestoAPI#593: lo usan también los botones de llamar/WhatsApp de los cheques.
+    ''' </summary>
+    Public Async Function CrearRapportAsync(cliente As String, contacto As String, tipo As String) As Task
 
         If Not IsNothing(cliente) Then
-            clienteSeleccionado = cliente.cliente
-            contactoSeleccionado = cliente.contacto
+            clienteSeleccionado = cliente
+            contactoSeleccionado = contacto
             Try
                 ' Nesto#488: esperar la carga DE VERDAD y en el hilo de la UI. Con Task.Run(Execute) el Async Sub
                 ' seguía en el pool: la lista cargada podía llegar después y pisar el rapport nuevo.
@@ -684,15 +886,15 @@ Public Class ListaRapportsViewModel
             .Empresa = _empresaPorDefecto,
             .Estado = SeguimientoClienteDTO.EstadoSeguimientoDTO.Vigente,
             .Fecha = IIf(fechaSeleccionada >= Today, Now, fechaSeleccionada),
-            .Tipo = TipoRapportSeleccionado.id,
+            .Tipo = tipo,
             .TipoCentro = SeguimientoClienteDTO.TiposCentro.NoSeSabe,
             .Vendedor = vendedor,
             .Usuario = configuracion.usuario
         }
 
         If Not IsNothing(cliente) Then
-            rapportNuevo.Cliente = cliente.cliente
-            rapportNuevo.Contacto = cliente.contacto
+            rapportNuevo.Cliente = cliente
+            rapportNuevo.Contacto = contacto
         End If
 
         'no entiendo por qué es necesaria esta línea
@@ -704,7 +906,7 @@ Public Class ListaRapportsViewModel
             listaRapports = New ObservableCollection(Of SeguimientoClienteDTO)
         End If
         listaRapports.Add(rapportNuevo)
-    End Sub
+    End Function
 
     Public Property GenerarResumenCommand As RelayCommand
     Private Function CanGenerarResumen() As Boolean
@@ -913,6 +1115,8 @@ Public Class ListaRapportsViewModel
         End If
         ' Nesto#521: el desplegable de vendedor se pide a la vez que la lista (que sale con el vendedor del usuario).
         Dim cargaVendedores As Task = CargarVendedoresSugerenciasAsync()
+        ' NestoAPI#593: el resumen de los cheques regalo (si hay campaña sale la pestaña), también en paralelo.
+        Dim cargaCheques As Task = CargarResumenChequesRegaloAsync()
         If IsNothing(TipoRapportSeleccionado) OrElse IsNothing(TipoRapportSeleccionado.id) Then
             Dim tipo = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente)
             TipoRapportCambiaCommand.Execute(tipo)
@@ -923,6 +1127,10 @@ Public Class ListaRapportsViewModel
         Dim permitirCopiar = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirCopiarSeguimientos)
         PuedeCopiarSeguimientos = permitirCopiar = "1"
         Await cargaVendedores
+        Await cargaCheques
+        If _chequesPendientesCargados Then
+            ActualizarChequesPendientes()
+        End If
     End Sub
 
 #End Region

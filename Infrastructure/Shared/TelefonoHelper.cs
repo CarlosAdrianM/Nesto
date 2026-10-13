@@ -49,6 +49,43 @@ namespace Nesto.Infrastructure.Shared
             return resultado;
         }
 
+        /// <summary>
+        /// NestoAPI#593: el primer móvil español de la cadena de la ficha (9 cifras que empiezan por 6 o 7, con o sin
+        /// prefijo 34/+34/0034), solo con las cifras. Null si no hay ninguno (un fijo no vale para WhatsApp).
+        /// </summary>
+        public static string PrimerMovil(string telefonos)
+        {
+            foreach (string telefono in TrocearTelefonos(telefonos))
+            {
+                var cifras = new System.Text.StringBuilder();
+                foreach (char caracter in telefono)
+                {
+                    if (char.IsDigit(caracter))
+                    {
+                        _ = cifras.Append(caracter);
+                    }
+                }
+                string numero = cifras.ToString();
+                if (numero.Length == 13 && numero.StartsWith("0034"))
+                {
+                    numero = numero.Substring(4);
+                }
+                else if (numero.Length == 11 && numero.StartsWith("34"))
+                {
+                    numero = numero.Substring(2);
+                }
+                if (numero.Length == 9 && (numero[0] == '6' || numero[0] == '7'))
+                {
+                    return numero;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>NestoAPI#593: el enlace que abre un chat de WhatsApp con ese móvil (de <see cref="PrimerMovil"/>). Null sin móvil.</summary>
+        public static string EnlaceWhatsApp(string movil)
+            => string.IsNullOrWhiteSpace(movil) ? null : "https://wa.me/34" + movil.Trim();
+
         private static bool TodosSonTelefonosCompletos(IEnumerable<string> trozos)
         {
             foreach (string trozo in trozos)

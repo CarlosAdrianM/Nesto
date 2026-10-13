@@ -94,5 +94,38 @@ namespace Infrastructure.Tests
             Assert.AreEqual(0, TelefonoHelper.TrocearTelefonos("   ").Count);
             Assert.AreEqual(0, TelefonoHelper.TrocearTelefonos(" / ").Count);
         }
+
+        // NestoAPI#593: WhatsApp desde la lista de cheques regalo pendientes
+
+        [TestMethod]
+        public void PrimerMovil_FijoYMovil_DevuelveElMovil()
+        {
+            Assert.AreEqual("686730444", TelefonoHelper.PrimerMovil("914770142/686730444"));
+            Assert.AreEqual("611499469", TelefonoHelper.PrimerMovil("611 49 94 69"));
+            Assert.AreEqual("712345678", TelefonoHelper.PrimerMovil("712345678"));
+        }
+
+        [TestMethod]
+        public void PrimerMovil_ConPrefijoDeEspana_LoQuita()
+        {
+            Assert.AreEqual("606920059", TelefonoHelper.PrimerMovil("+34 606 920 059"));
+            Assert.AreEqual("606920059", TelefonoHelper.PrimerMovil("0034606920059"));
+        }
+
+        [TestMethod]
+        public void PrimerMovil_SoloFijosExtranjerosONada_Null()
+        {
+            Assert.IsNull(TelefonoHelper.PrimerMovil("914770142"));
+            Assert.IsNull(TelefonoHelper.PrimerMovil("+390385090415"));
+            Assert.IsNull(TelefonoHelper.PrimerMovil(null));
+            Assert.IsNull(TelefonoHelper.PrimerMovil("  "));
+        }
+
+        [TestMethod]
+        public void EnlaceWhatsApp_ConMovil_EnlaceConPrefijo34_SinMovil_Null()
+        {
+            Assert.AreEqual("https://wa.me/34686730444", TelefonoHelper.EnlaceWhatsApp("686730444"));
+            Assert.IsNull(TelefonoHelper.EnlaceWhatsApp(null));
+        }
     }
 }

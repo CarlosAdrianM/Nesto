@@ -173,98 +173,187 @@
                                 <controles:SelectorSubgrupoProducto GrupoSubgrupoSeleccionado="{Binding GrupoSubgrupoSeleccionado}"></controles:SelectorSubgrupoProducto>
                             </StackPanel>
                             
-                            <!-- NestoAPI#603: panel de ritmo (solo con la API nueva) -->
-                            <Border Grid.Row="2" Background="White" BorderBrush="LightGray" BorderThickness="0,0,0,1"
-                                    Padding="2,4" Margin="0,4,0,2" MaxWidth="340" HorizontalAlignment="Stretch"
-                                    Visibility="{Binding HayRitmoContacto, Converter={StaticResource BoolToVis}}">
-                                <StackPanel>
-                                    <DockPanel LastChildFill="False">
-                                        <TextBlock DockPanel.Dock="Left" Text="{Binding RitmoContacto.TextoContactos}" FontWeight="SemiBold"/>
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding RitmoContacto.TextoObjetivoHoy}" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource PrioridadMaximaBrush}"/>
-                                    </DockPanel>
-                                    <ProgressBar Height="6" Margin="0,3" Minimum="0" Maximum="100" Value="{Binding RitmoContacto.PorcentajeMes, Mode=OneWay}"/>
-                                    <StackPanel Orientation="Horizontal" ToolTip="Clientes pendientes de contactar por prioridad">
-                                        <TextBlock Text="Pendientes: " Foreground="Gray"/>
-                                        <TextBlock Text="Máxima " Foreground="{StaticResource PrioridadMaximaBrush}"/>
-                                        <TextBlock Text="{Binding RitmoContacto.PendientesMaxima}" FontWeight="SemiBold"/>
-                                        <TextBlock Text=" · Alta " Foreground="{StaticResource PrioridadAltaBrush}"/>
-                                        <TextBlock Text="{Binding RitmoContacto.PendientesAlta}" FontWeight="SemiBold"/>
-                                        <TextBlock Text=" · Media " Foreground="{StaticResource PrioridadMediaBrush}"/>
-                                        <TextBlock Text="{Binding RitmoContacto.PendientesMedia}" FontWeight="SemiBold"/>
-                                        <TextBlock Text=" · Baja " Foreground="{StaticResource PrioridadBajaBrush}"/>
-                                        <TextBlock Text="{Binding RitmoContacto.PendientesBaja}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding RitmoContacto.Frase}" ToolTip="{Binding RitmoContacto.Frase}"
-                                               TextTrimming="CharacterEllipsis" FontStyle="Italic" Foreground="DimGray" Margin="0,2,0,0"
-                                               Visibility="{Binding RitmoContacto.TieneFrase, Converter={StaticResource BoolToVis}}"/>
-                                </StackPanel>
-                            </Border>
+                            <!-- NestoAPI#593: «Clientes para contactar» y, si hay campaña, «Cheques regalo» (mismo desplegable de vendedor) -->
+                            <TabControl Grid.Row="2" Grid.RowSpan="2" Margin="0,4,0,0" BorderThickness="0,1,0,0">
+                                <TabItem Header="Clientes para contactar">
+                                    <DockPanel>
+                                        <!-- NestoAPI#603: panel de ritmo (solo con la API nueva) -->
+                                        <Border DockPanel.Dock="Top" Background="White" BorderBrush="LightGray" BorderThickness="0,0,0,1"
+                                                Padding="2,4" Margin="0,4,0,2" MaxWidth="340" HorizontalAlignment="Stretch"
+                                                Visibility="{Binding HayRitmoContacto, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel>
+                                                <DockPanel LastChildFill="False">
+                                                    <TextBlock DockPanel.Dock="Left" Text="{Binding RitmoContacto.TextoContactos}" FontWeight="SemiBold"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding RitmoContacto.TextoObjetivoHoy}" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource PrioridadMaximaBrush}"/>
+                                                </DockPanel>
+                                                <ProgressBar Height="6" Margin="0,3" Minimum="0" Maximum="100" Value="{Binding RitmoContacto.PorcentajeMes, Mode=OneWay}"/>
+                                                <StackPanel Orientation="Horizontal" ToolTip="Clientes pendientes de contactar por prioridad">
+                                                    <TextBlock Text="Pendientes: " Foreground="Gray"/>
+                                                    <TextBlock Text="Máxima " Foreground="{StaticResource PrioridadMaximaBrush}"/>
+                                                    <TextBlock Text="{Binding RitmoContacto.PendientesMaxima}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" · Alta " Foreground="{StaticResource PrioridadAltaBrush}"/>
+                                                    <TextBlock Text="{Binding RitmoContacto.PendientesAlta}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" · Media " Foreground="{StaticResource PrioridadMediaBrush}"/>
+                                                    <TextBlock Text="{Binding RitmoContacto.PendientesMedia}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text=" · Baja " Foreground="{StaticResource PrioridadBajaBrush}"/>
+                                                    <TextBlock Text="{Binding RitmoContacto.PendientesBaja}" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding RitmoContacto.Frase}" ToolTip="{Binding RitmoContacto.Frase}"
+                                                           TextTrimming="CharacterEllipsis" FontStyle="Italic" Foreground="DimGray" Margin="0,2,0,0"
+                                                           Visibility="{Binding RitmoContacto.TieneFrase, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                        </Border>
 
-                            <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para contactar..." Grid.Row="3">
-                                <ListView ItemsSource="{Binding ListaClientesProbabilidad}"
-                                      SelectedItem="{Binding ClienteProbabilidadSeleccionado}"
-                                      MaxHeight="320"
-                                      MinWidth="300">
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="5" ToolTip="{Binding DiasDesdeUltimoPedidoInteraccionTexto}">
-                                                <Grid.Style>
-                                                    <Style TargetType="Grid">
+                                        <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para contactar...">
+                                            <ListView ItemsSource="{Binding ListaClientesProbabilidad}"
+                                                  SelectedItem="{Binding ClienteProbabilidadSeleccionado}"
+                                                  MaxHeight="320"
+                                                  MinWidth="300">
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="5" ToolTip="{Binding DiasDesdeUltimoPedidoInteraccionTexto}">
+                                                            <Grid.Style>
+                                                                <Style TargetType="Grid">
+                                                                    <Style.Triggers>
+                                                                        <!-- Las atendidas siguen en la lista, atenuadas y al final -->
+                                                                        <DataTrigger Binding="{Binding Atendida}" Value="True">
+                                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Grid.Style>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="250"/>
+                                                                <ColumnDefinition Width="70"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <DockPanel Grid.Row="0" Grid.Column="0" LastChildFill="True">
+                                                                <TextBlock DockPanel.Dock="Left" Text="&#x2714;" Foreground="Green" FontWeight="Bold" Margin="0,0,4,0"
+                                                                           ToolTip="Ya atendida hoy"
+                                                                           Visibility="{Binding Atendida, Converter={StaticResource BoolToVis}}"/>
+                                                                <Border DockPanel.Dock="Left" CornerRadius="3" Padding="4,0" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                                        Background="{Binding Prioridad, Converter={StaticResource PrioridadToBrushConverter}}"
+                                                                        Visibility="{Binding TienePrioridad, Converter={StaticResource BoolToVis}}">
+                                                                    <TextBlock Text="{Binding Prioridad}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                                                </Border>
+                                                                <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                            </DockPanel>
+                                                            <TextBlock Grid.Row="1" Grid.Column="0" TextTrimming="CharacterEllipsis">
+                                                                <Run Text="{Binding poblacion, Mode=OneWay}"/>
+                                                                <Run Text=" · " Foreground="Gray"/>
+                                                                <Run Text="{Binding telefono, Mode=OneWay}"/>
+                                                            </TextBlock>
+                                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding Motivo}" TextWrapping="Wrap" MaxHeight="32"
+                                                                       TextTrimming="CharacterEllipsis" FontSize="11" Foreground="DimGray"
+                                                                       Visibility="{Binding TieneMotivo, Converter={StaticResource BoolToVis}}"/>
+                                                            <Border Grid.RowSpan="3" Grid.Column="1"
+                                                                CornerRadius="10"
+                                                                Padding="10"
+                                                                Margin="5,0,0,0"
+                                                                VerticalAlignment="Center"
+                                                                Background="{Binding Probabilidad, Converter={StaticResource ProbabilidadToColorConverter}}">
+                                                                <TextBlock Text="{Binding Probabilidad, StringFormat={}{0:P0}}"
+                                                                       VerticalAlignment="Center"
+                                                                       HorizontalAlignment="Center"
+                                                                       FontSize="16"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="White"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </xctk:BusyIndicator>
+                                    </DockPanel>
+                                </TabItem>
+                                <TabItem Header="Cheques regalo"
+                                         Visibility="{Binding HayCampanaChequesRegalo, Converter={StaticResource BoolToVis}}"
+                                         IsSelected="{Binding MostrandoChequesRegalo, Mode=TwoWay}">
+                                    <xctk:BusyIndicator IsBusy="{Binding IsLoadingChequesRegalo}" BusyContent="Cargando cheques regalo...">
+                                        <StackPanel Width="460">
+                                            <TextBlock Text="{Binding ResumenChequesRegalo.Campana.Texto}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,4"/>
+                                            <DataGrid ItemsSource="{Binding ResumenChequesRegalo.FilasConTotal}"
+                                                      SelectedItem="{Binding ResumenChequesVendedorSeleccionado, Mode=TwoWay}"
+                                                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column"
+                                                      SelectionMode="Single" MaxHeight="170" VerticalScrollBarVisibility="Auto"
+                                                      ToolTip="Pincha en un vendedor para ver sus cheques sin usar">
+                                                <DataGrid.RowStyle>
+                                                    <Style TargetType="DataGridRow">
                                                         <Style.Triggers>
-                                                            <!-- Las atendidas siguen en la lista, atenuadas y al final -->
-                                                            <DataTrigger Binding="{Binding Atendida}" Value="True">
-                                                                <Setter Property="Opacity" Value="0.5"/>
+                                                            <DataTrigger Binding="{Binding EsTotal}" Value="True">
+                                                                <Setter Property="FontWeight" Value="Bold"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </Grid.Style>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="250"/>
-                                                    <ColumnDefinition Width="70"/>
-                                                </Grid.ColumnDefinitions>
-                                                <DockPanel Grid.Row="0" Grid.Column="0" LastChildFill="True">
-                                                    <TextBlock DockPanel.Dock="Left" Text="&#x2714;" Foreground="Green" FontWeight="Bold" Margin="0,0,4,0"
-                                                               ToolTip="Ya atendida hoy"
-                                                               Visibility="{Binding Atendida, Converter={StaticResource BoolToVis}}"/>
-                                                    <Border DockPanel.Dock="Left" CornerRadius="3" Padding="4,0" Margin="0,0,4,0" VerticalAlignment="Center"
-                                                            Background="{Binding Prioridad, Converter={StaticResource PrioridadToBrushConverter}}"
-                                                            Visibility="{Binding TienePrioridad, Converter={StaticResource BoolToVis}}">
-                                                        <TextBlock Text="{Binding Prioridad}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                </DockPanel>
-                                                <TextBlock Grid.Row="1" Grid.Column="0" TextTrimming="CharacterEllipsis">
-                                                    <Run Text="{Binding poblacion, Mode=OneWay}"/>
-                                                    <Run Text=" · " Foreground="Gray"/>
-                                                    <Run Text="{Binding telefono, Mode=OneWay}"/>
-                                                </TextBlock>
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding Motivo}" TextWrapping="Wrap" MaxHeight="32"
-                                                           TextTrimming="CharacterEllipsis" FontSize="11" Foreground="DimGray"
-                                                           Visibility="{Binding TieneMotivo, Converter={StaticResource BoolToVis}}"/>
-                                                <Border Grid.RowSpan="3" Grid.Column="1"
-                                                    CornerRadius="10"
-                                                    Padding="10"
-                                                    Margin="5,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    Background="{Binding Probabilidad, Converter={StaticResource ProbabilidadToColorConverter}}">
-                                                    <TextBlock Text="{Binding Probabilidad, StringFormat={}{0:P0}}"
-                                                           VerticalAlignment="Center"
-                                                           HorizontalAlignment="Center"
-                                                           FontSize="16"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="White"/>
-                                                </Border>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                            </xctk:BusyIndicator>
+                                                </DataGrid.RowStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Nombre}" Width="*"/>
+                                                    <DataGridTextColumn Header="Generados" Binding="{Binding Generados}" Width="Auto"/>
+                                                    <DataGridTextColumn Header="Usados" Binding="{Binding Usados}" Width="Auto">
+                                                        <DataGridTextColumn.HeaderStyle>
+                                                            <Style TargetType="DataGridColumnHeader">
+                                                                <Setter Property="ToolTip" Value="En un pedido o ya servidos"/>
+                                                            </Style>
+                                                        </DataGridTextColumn.HeaderStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Header="En pedido" Binding="{Binding EnPedido}" Width="Auto"/>
+                                                    <DataGridTextColumn Header="Pendientes" Binding="{Binding Pendientes}" Width="Auto" FontWeight="Bold"/>
+                                                    <DataGridTextColumn Header="Caducados" Binding="{Binding Caducados}" Width="Auto"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                            <TextBlock Text="{Binding TextoChequesPendientes}" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                                            <ListView ItemsSource="{Binding ListaChequesPendientes}" MaxHeight="330"
+                                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="2,4" Width="420">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel Grid.Column="0">
+                                                                <TextBlock Text="{Binding TextoCliente}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Text="{Binding TextoDireccion}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                                                                <controles:ListaTelefonos Etiqueta="Tel.: " Telefonos="{Binding Telefono}" Margin="0,2,0,0"/>
+                                                                <TextBlock FontSize="11" TextTrimming="CharacterEllipsis"
+                                                                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}">
+                                                                    <Run Text="{Binding TextoFactura, Mode=OneWay}"/>
+                                                                    <Run Text=" · "/>
+                                                                    <Run Text="{Binding TextoUltimoContacto, Mode=OneWay}"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding TextoDiasRestantes}" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                                                           Foreground="{StaticResource PrioridadMaximaBrush}" Margin="0,0,0,3"/>
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                                    <Button Content="Factura" Padding="6,1" Margin="0,0,3,0"
+                                                                            ToolTip="Abrir el PDF de la factura que generó el cheque"
+                                                                            Command="{Binding DataContext.AbrirFacturaChequeCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                            CommandParameter="{Binding}"/>
+                                                                    <Button Content="Llamar" Padding="6,1" Margin="0,0,3,0"
+                                                                            ToolTip="Abre un rapport de teléfono de este cliente"
+                                                                            Command="{Binding DataContext.LlamarChequeCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                            CommandParameter="{Binding}"/>
+                                                                    <Button Content="WhatsApp" Padding="6,1"
+                                                                            ToolTip="Abre WhatsApp con su móvil (si tiene) y un rapport de WhatsApp de este cliente"
+                                                                            Command="{Binding DataContext.WhatsAppChequeCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                            CommandParameter="{Binding}"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </StackPanel>
+                                    </xctk:BusyIndicator>
+                                </TabItem>
+                            </TabControl>
                         </Grid>
                     </Border>
                 </Popup>
