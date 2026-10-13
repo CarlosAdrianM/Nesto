@@ -35,10 +35,11 @@
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
             // Nesto#340 (retirada de flags 20/08 y 21/08/26): MotorPdfExtractoContable, MotorPdfPedidoCompra,
             // MotorPdfPicking y MotorPdfEtiquetasTienda se retiraron — llevaban semanas al 100% en QuestPDF (defecto
-            // incluido) y el camino RDLC era código muerto. Queda solo el de etiquetas, en validación.
-            // Motor de las etiquetas de precio de la tienda: "RDLC" (por defecto, render local)
-            // o "QuestPDF" (descarga de NestoAPI). Es papel FÍSICO de etiquetas precortadas:
-            // validar contra el papel real antes de extender usuario a usuario (Nesto#340).
+            // incluido) y el camino RDLC era código muerto.
+            // Nesto#490 / Nesto#340 (13/10/26): motor del PDF del mandato SEPA (el último RDLC, en NestoAPI).
+            // "QuestPDF" → api/Clientes/MandatoPDF?...&motor=QuestPDF; cualquier otro valor o sin fila → RDLC.
+            // El mandato va al CLIENTE: se activa usuario a usuario (fila "(defecto)" = RDLC).
+            public const string MotorPdfMandatoSepa = "MotorPdfMandatoSepa";
             // Nesto#340 (Agencias A4.3/A4.4, 23/09/26): PagarReembolsosPorApi y ModificarEnvioPorApi se
             // retiraron: validados en vivo, el camino de Entity Framework se borró y ya siempre va por la API.
             public const string PathNorma19 = "PathNorma19";

@@ -1605,24 +1605,10 @@ Public Class ClientesViewModel
     Private Async Sub OnImprimirMandato(ByVal param As Object)
         estaOcupado = True
         Try
-            'Dim np As IntPtr
-            'SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
-            'Dim path As String = Marshal.PtrToStringUni(np)
-            'Marshal.FreeCoTaskMem(np)
-
-            'Dim mandato As Byte() = Await CargarMandato(empresaActual.Trim, clienteActual.Trim, contactoActual.Trim, cuentaActiva.Número.Trim).ConfigureAwait(True)
-            'Dim ms As New MemoryStream(mandato)
-            ''write to file
-            'Dim file As New FileStream(path + "\Mandato_" + empresaActual.Trim + "_" + clienteActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf", FileMode.Create, FileAccess.Write)
-            'ms.WriteTo(file)
-            'file.Close()
-            'ms.Close()
-
-            '' Abrimos la carpeta de descargas
-            'Process.Start(New ProcessStartInfo(path) With {
-            '    .UseShellExecute = True
-            '})
-            Dim urlPdf As String = $"{configuracion.servidorAPI}Clientes/MandatoPDF?empresa={empresaActual.Trim}&cliente={clienteActual.Trim}&contacto={contactoActual.Trim}&ccc={cuentaActiva.Número.Trim}"
+            ' Nesto#490 / Nesto#340: el mandato lo pinta NestoAPI; con MotorPdfMandatoSepa = QuestPDF pide el
+            ' generador nuevo (&motor=QuestPDF) y si no, el RDLC de siempre. Va al cliente → piloto por usuario.
+            Dim motorPdf As String = Await LeerMotorPdfMandato()
+            Dim urlPdf As String = ConstruirUrlMandatoPdf(configuracion.servidorAPI, empresaActual, clienteActual, contactoActual, cuentaActiva.Número, motorPdf)
             Dim unused = Process.Start(New ProcessStartInfo(urlPdf) With {
                 .UseShellExecute = True
             })
@@ -1640,6 +1626,24 @@ Public Class ClientesViewModel
     End Sub
 
 
+
+    ''' <summary>Nesto#490: URL del PDF del mandato SEPA. Solo con motor "QuestPDF" se añade &amp;motor=QuestPDF.</summary>
+    Public Shared Function ConstruirUrlMandatoPdf(servidorAPI As String, empresa As String, cliente As String, contacto As String, ccc As String, motorPdf As String) As String
+        Dim url As String = $"{servidorAPI}Clientes/MandatoPDF?empresa={empresa?.Trim}&cliente={cliente?.Trim}&contacto={contacto?.Trim}&ccc={ccc?.Trim}"
+        If String.Equals(motorPdf?.Trim, "QuestPDF", StringComparison.OrdinalIgnoreCase) Then
+            url &= "&motor=QuestPDF"
+        End If
+        Return url
+    End Function
+
+    ''' <summary>Nesto#490: lee MotorPdfMandatoSepa del usuario. Nunca falla: ante cualquier error, RDLC.</summary>
+    Public Async Function LeerMotorPdfMandato() As Task(Of String)
+        Try
+            Return Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.MotorPdfMandatoSepa)
+        Catch
+            Return "RDLC"
+        End Try
+    End Function
 
     Private _reclamarDeudaCommand As RelayCommand
     Public Property ReclamarDeudaCommand As RelayCommand
