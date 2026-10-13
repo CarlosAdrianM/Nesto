@@ -264,7 +264,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 return estado?.Motivo;
             }
             string quien = SinDominio(estado.UsuarioRecogida);
-            return $"El repartidor ya se la ha llevado a las {estado.FechaRecogida.Value:HH:mm}" +
+            return $"El repartidor ya se la ha llevado a las {estado.FechaRecogida.Value:H:mm}" +
                 (string.IsNullOrEmpty(quien) ? string.Empty : $" (lo marcó {quien})") + ": lo que quede va en la siguiente.";
         }
 

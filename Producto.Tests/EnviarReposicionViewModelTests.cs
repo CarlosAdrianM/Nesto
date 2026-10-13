@@ -824,7 +824,7 @@ namespace Producto.Tests
         [DataTestMethod]
         [DataRow(EstadoReposicionPuntual.SIN_VIAJE, "Hoy no hay viaje de Alcobendas a Algete.")]
         [DataRow(EstadoReposicionPuntual.SIN_VIAJE, "Hoy no hay viaje de Alcobendas a Algete: es festivo.")]
-        [DataRow(EstadoReposicionPuntual.SIN_RELLENAR, "Todavía no se ha rellenado la de hoy (se rellena sola a las 09:00).")]
+        [DataRow(EstadoReposicionPuntual.SIN_RELLENAR, "Todavía no se ha rellenado la de hoy (se rellena sola a las 9:00).")]
         [DataRow(EstadoReposicionPuntual.SIN_ENVIAR, "Primero envía la de hoy.")]
         public async Task Puntual_CuandoHoyNoSePuede_ElBotonSeVeDesactivadoYDiceElMotivo(string situacion, string motivo)
         {
