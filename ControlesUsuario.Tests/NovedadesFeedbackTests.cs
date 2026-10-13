@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,7 +40,7 @@ namespace ControlesUsuario.Tests
         private NovedadesDialogViewModel AbrirVm(params NovedadUsuario[] novedades)
         {
             var vm = new NovedadesDialogViewModel(servicio, portapapeles, p => { preguntas.Add(p); return respuesta; });
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", novedades.ToList());
             vm.OnDialogOpened(parametros);
             return vm;
@@ -61,7 +60,7 @@ namespace ControlesUsuario.Tests
         public void SinServicio_NoHayFeedbackAunqueVenganContadores()
         {
             var vm = new NovedadesDialogViewModel();
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario> { ConFeedback(3) });
             vm.OnDialogOpened(parametros);
 

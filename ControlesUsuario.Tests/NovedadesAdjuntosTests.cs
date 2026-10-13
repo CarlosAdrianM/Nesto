@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,7 +53,7 @@ namespace ControlesUsuario.Tests
         private NovedadItem Item(NovedadUsuario n, bool puedeGestionar = false)
         {
             var vm = new NovedadesDialogViewModel(servicio, A.Fake<IPortapapelesImagenes>(), _ => false, Contexto(puedeGestionar));
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario> { n });
             vm.OnDialogOpened(parametros);
             return vm.Novedades.Single();
@@ -136,7 +135,7 @@ namespace ControlesUsuario.Tests
         public void SinContextoDeAdjuntos_SinChips()
         {
             var vm = new NovedadesDialogViewModel(servicio, A.Fake<IPortapapelesImagenes>(), _ => false);
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario> { Novedad(Pdf()) });
             vm.OnDialogOpened(parametros);
 
@@ -369,7 +368,7 @@ namespace ControlesUsuario.Tests
             EjecutarEnSTA(() =>
             {
                 var vm = new NovedadesDialogViewModel(servicio, A.Fake<IPortapapelesImagenes>(), _ => false, Contexto(true));
-                var parametros = new DialogParameters();
+                var parametros = new ParametrosDialogo();
                 parametros.Add("novedades", new List<NovedadUsuario> { Novedad(Pdf(1), new AdjuntoNovedad { Id = 2, Nombre = "b.png", Tipo = "image/png", Tamano = 10 }) });
                 vm.OnDialogOpened(parametros);
                 var vista = new NovedadesDialog { DataContext = vm };
@@ -430,7 +429,7 @@ namespace ControlesUsuario.Tests
                 new NovedadUsuario { Id = 50, Titulo = "Idea", Adjuntos = new List<AdjuntoNovedad> { Pdf(3) } }
             }));
             var vm = new NovedadesDialogViewModel(servicio, A.Fake<IPortapapelesImagenes>(), _ => false, Contexto(false));
-            vm.OnDialogOpened(new DialogParameters());
+            vm.OnDialogOpened(new ParametrosDialogo());
 
             await vm.IrASugerencias();
 

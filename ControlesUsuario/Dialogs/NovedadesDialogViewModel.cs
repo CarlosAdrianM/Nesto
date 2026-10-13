@@ -1,7 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +19,7 @@ namespace ControlesUsuario.Dialogs
     /// pendientes» (las pide la propia ventana al llegar a ella), con el botón para sugerir una
     /// característica nueva; y un buscador que salta a la versión (o a Sugerencias) de lo encontrado.
     /// </summary>
-    public class NovedadesDialogViewModel : ObservableObject, IDialogAware
+    public class NovedadesDialogViewModel : DialogoNestoBase
     {
         /// <summary>Índice de página de las sugerencias: por delante de la versión más nueva (índice 0).</summary>
         internal const int INDICE_SUGERENCIAS = -1;
@@ -70,6 +69,7 @@ namespace ControlesUsuario.Dialogs
             MencionesSugerencia = new AutocompletadoMenciones(_mencionables);
             // Sugerencia 551: los perfiles del usuario llegan de la API al abrir (CargarMisPerfiles).
             _perfiles = new ContextoPerfilesNovedades();
+            Title = "Novedades de Nesto";
 
             AbrirSugerenciaCommand = new AsyncRelayCommand(AbrirOCerrarSugerencia, () => PuedeSugerir);
             AbrirIncidenciaCommand = new AsyncRelayCommand(AbrirOCerrarIncidencia, () => PuedeSugerir);
@@ -85,7 +85,7 @@ namespace ControlesUsuario.Dialogs
 
         private RelayCommand _closeDialogCommand;
         public RelayCommand CloseDialogCommand =>
-            _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
+            _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand(() => RaiseRequestClose(ResultadoBoton.OK)));
 
         // Todas las novedades cargadas (envueltas UNA vez: al navegar se conserva su estado) y agrupadas
         // por versión, de la más NUEVA (índice 0) a la más antigua.
@@ -94,13 +94,6 @@ namespace ControlesUsuario.Dialogs
         private int _indice;
         // Nesto#487: null = aún sin pedir a la API (o falló: se reintenta al volver).
         private List<NovedadItem> _sugerencias;
-
-        private string _title = "Novedades de Nesto";
-        public string Title
-        {
-            get { return _title; }
-            set { SetProperty(ref _title, value); }
-        }
 
         private List<NovedadItem> _novedades = new List<NovedadItem>();
         public List<NovedadItem> Novedades
@@ -140,13 +133,7 @@ namespace ControlesUsuario.Dialogs
                 },
                 () => _indice > 0 || (_indice == 0 && PuedeSugerir)));
 
-        public event Action<IDialogResult> RequestClose;
-
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("title"))
             {

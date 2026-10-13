@@ -1,7 +1,6 @@
 using ControlesUsuario.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -20,7 +19,7 @@ namespace ControlesUsuario.Tests
         private static NovedadesDialogViewModel CrearVm(params NovedadUsuario[] novedades)
         {
             var vm = new NovedadesDialogViewModel();
-            var p = new DialogParameters();
+            var p = new ParametrosDialogo();
             p.Add("novedades", novedades.ToList());
             vm.OnDialogOpened(p);
             return vm;
@@ -75,7 +74,7 @@ namespace ControlesUsuario.Tests
         {
             // Nesto#501: el aviso de versión nueva de la campana abre Novedades en su versión
             var vm = new NovedadesDialogViewModel();
-            var p = new DialogParameters
+            var p = new ParametrosDialogo
             {
                 { "novedades", new List<NovedadUsuario> { N("1.10.7.0", "a"), N("1.10.8.0", "b") } },
                 { NovedadesDialogViewModel.PARAMETRO_VERSION, "1.10.7.0" }
@@ -91,7 +90,7 @@ namespace ControlesUsuario.Tests
         public void ConVersionSinNovedades_AbreEnLaMasNueva()
         {
             var vm = new NovedadesDialogViewModel();
-            var p = new DialogParameters
+            var p = new ParametrosDialogo
             {
                 { "novedades", new List<NovedadUsuario> { N("1.10.7.0", "a"), N("1.10.8.0", "b") } },
                 { NovedadesDialogViewModel.PARAMETRO_VERSION, "1.10.9.0" }

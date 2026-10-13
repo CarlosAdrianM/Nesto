@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -50,7 +49,7 @@ namespace ControlesUsuario.Tests
                     new ComentarioNovedad { Id = 101, Texto = "La respuesta", NombreVisible = "Carlos" }
                 }));
                 var vm = new NovedadesDialogViewModel(servicio, null, _ => false);
-                var parametros = new DialogParameters();
+                var parametros = new ParametrosDialogo();
                 parametros.Add("novedades", new List<NovedadUsuario>
                 {
                     new NovedadUsuario { Id = 2, Version = "1.10.30.0", Titulo = "x", Categoria = "Nuevo", VotosPositivos = 0, VotosNegativos = 0, NumeroComentarios = 2 }

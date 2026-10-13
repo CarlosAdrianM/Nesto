@@ -2,7 +2,7 @@
 using ControlesUsuario.Services;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -16,16 +16,15 @@ namespace ControlesUsuario.Dialogs
     /// siempre (solo lectura) y, debajo, los parámetros que el SERVIDOR declare editables para
     /// este usuario, con su combo de valores permitidos. Guardar valida server-side.
     /// </summary>
-    public class ParametrosUsuarioDialogViewModel : ObservableObject, IDialogAware
+    public class ParametrosUsuarioDialogViewModel : DialogoNestoBase
     {
         private readonly IServicioParametrosEditables _servicio;
 
         public ParametrosUsuarioDialogViewModel(IServicioParametrosEditables servicio)
         {
             _servicio = servicio;
+            Title = "Parámetros de usuario";
         }
-
-        public string Title => "Parámetros de usuario";
 
         private string _informacion;
         public string Informacion
@@ -56,15 +55,9 @@ namespace ControlesUsuario.Dialogs
 
         private RelayCommand _closeDialogCommand;
         public RelayCommand CloseDialogCommand => _closeDialogCommand ??
-            (_closeDialogCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
+            (_closeDialogCommand = new RelayCommand(() => RaiseRequestClose(ResultadoBoton.OK)));
 
-        public event Action<IDialogResult> RequestClose;
-
-        public bool CanCloseDialog() => true;
-
-        public void OnDialogClosed() { }
-
-        public async void OnDialogOpened(IDialogParameters parameters)
+        public override async void OnDialogOpened(ParametrosDialogo parameters)
         {
             if (parameters.ContainsKey("informacion"))
             {

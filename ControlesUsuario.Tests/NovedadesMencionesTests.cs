@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -281,7 +280,7 @@ namespace ControlesUsuario.Tests
         public async Task Ventana_UnaSolaPeticionParaTodosLosCuadros()
         {
             var vm = new NovedadesDialogViewModel(servicio, null, _ => false);
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario>
             {
                 new NovedadUsuario { Id = 1, Version = "1.10.31.0", Titulo = "a", VotosPositivos = 0 },
@@ -303,7 +302,7 @@ namespace ControlesUsuario.Tests
         public async Task Ventana_ElegirEnElComentario_DejaElTextoListoParaEnviar()
         {
             var vm = new NovedadesDialogViewModel(servicio, null, _ => false);
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario> { new NovedadUsuario { Id = 1, Version = "1.10.31.0", Titulo = "a", VotosPositivos = 0 } });
             vm.OnDialogOpened(parametros);
             NovedadItem novedad = vm.Novedades[0];

@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,7 +46,7 @@ namespace ControlesUsuario.Tests
         private NovedadesDialogViewModel AbrirVm()
         {
             var vm = new NovedadesDialogViewModel(servicio, portapapeles, _ => false);
-            var parametros = new DialogParameters();
+            var parametros = new ParametrosDialogo();
             parametros.Add("novedades", new List<NovedadUsuario> { N(1, "1.10.38.0") });
             vm.OnDialogOpened(parametros);
             return vm;
