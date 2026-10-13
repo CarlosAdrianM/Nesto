@@ -795,5 +795,124 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.HayReposicion);
             Assert.IsFalse(_vm.EnModoPuntual);
         }
+
+        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
+
+        private void RepartidorDeHoy(string? hora, bool yaHaPasado = false)
+        {
+            A.CallTo(() => _servicio.LeerLimitePuntual("1", "ALC")).Returns(new LimiteReposicionPuntual
+            {
+                Origen = "ALC",
+                Destino = "ALG",
+                HoraRecogida = hora == null ? null : TimeSpan.Parse(hora),
+                YaHaPasado = yaHaPasado,
+                Mensaje = yaHaPasado ? $"Ya ha pasado el repartidor de hoy ({hora}): la reposición puntual ya no sale hoy." : null
+            });
+        }
+
+        [TestMethod]
+        public async Task Puntual_PasadoElRepartidor_ElBotonSeVeDesactivadoYDiceElMotivo()
+        {
+            RepartidorDeHoy("11:30", yaHaPasado: true);
+
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsFalse(_vm.EnModoPuntual, "No se empieza");
+            Assert.IsTrue(_vm.MostrarBotonPuntual, "El botón se ve…");
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual, "…desactivado");
+            Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
+            Assert.AreEqual("Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.", _vm.AvisoPuntual);
+            Assert.AreEqual(_vm.AvisoPuntual, _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Puntual_AntesDelRepartidor_DiceHastaCuandoYSeEmpieza()
+        {
+            RepartidorDeHoy("11:30");
+            _vm.Ahora = () => new DateTime(2026, 10, 13, 10, 0, 0);
+
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsTrue(_vm.EnModoPuntual);
+            Assert.AreEqual("Hasta las 11:30, cuando pasa el repartidor.", _vm.AvisoPuntual);
+        }
+
+        [TestMethod]
+        public async Task Puntual_SiPasaElRepartidorConLaPantallaAbierta_NoSeManda()
+        {
+            RepartidorDeHoy("11:30");
+            DateTime ahora = new DateTime(2026, 10, 13, 11, 0, 0);
+            _vm.Ahora = () => ahora;
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+
+            ahora = new DateTime(2026, 10, 13, 11, 31, 0);
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
+            Assert.AreEqual("Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.", _vm.Mensaje);
+            Assert.IsTrue(_vm.EnModoPuntual, "Se queda con lo puesto: puede cancelar");
+        }
+
+        [TestMethod]
+        public async Task Puntual_SiLaApiNoSabeElLimite_SinLimite()
+        {
+            A.CallTo(() => _servicio.LeerLimitePuntual(A<string>._, A<string>._)).ThrowsAsync(new EnvioReposicionException("no", 500));
+
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsTrue(_vm.EnModoPuntual);
+            Assert.IsNull(_vm.AvisoPuntual);
+        }
+
+        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): lo de sus pedidos no se manda
+
+        [TestMethod]
+        public async Task Puntual_LoQueNecesitanSusPedidos_AvisaYNoDejaMandar()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            ProductoReposicionPuntual guantes = Guantes(stock: 5);
+            guantes.Comprometido = 4;
+            guantes.Disponible = 1;
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { guantes });
+            await _vm.LeerPuntualAsync("41980");
+            await _vm.LeerPuntualAsync("41980");
+
+            LineaPuntualReposicion linea = _vm.LineasPuntual.Single();
+            Assert.AreEqual(1, linea.Disponible);
+            Assert.AreEqual(4, linea.Comprometido);
+            Assert.IsTrue(linea.FaltaStock);
+            Assert.AreEqual("De 41980 puedes mandar 1 (hay 5 en la tienda y 4 son para sus pedidos) y pones 2: baja la cantidad.", _vm.Mensaje);
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
+            StringAssert.Contains(_vm.Mensaje, "41980 (pones 2, puedes mandar 1: el resto es para sus pedidos)");
+        }
+
+        [TestMethod]
+        public async Task Puntual_TodoLoQueHayEsParaSusPedidos_NoEntra()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            ProductoReposicionPuntual guantes = Guantes(stock: 3);
+            guantes.Comprometido = 3;
+            guantes.Disponible = 0;
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { guantes });
+
+            await _vm.LeerPuntualAsync("41980");
+
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            Assert.AreEqual("41980 (Guantes M): las 3 que hay en ALC las necesitan sus pedidos pendientes: no se puede mandar.", _vm.Mensaje);
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void LineaPuntual_SinDisponibleDeLaApi_UsaElStock()
+        {
+            var linea = new LineaPuntualReposicion { Producto = "41980", StockOrigen = 2, Cantidad = 2 };
+
+            Assert.AreEqual(2, linea.Disponible);
+            Assert.IsFalse(linea.FaltaStock);
+        }
     }
 }

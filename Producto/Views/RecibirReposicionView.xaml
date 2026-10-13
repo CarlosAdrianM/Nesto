@@ -42,6 +42,9 @@
                 <DataTemplate>
                     <StackPanel Margin="0,2">
                         <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" />
+                        <!-- Sugerencia 581: la que la tienda manda aparte con solo unos productos (sin colores fijos) -->
+                        <TextBlock Text="Puntual: la tienda la ha mandado aparte de la del calendario" FontStyle="Italic"
+                                   Visibility="{Binding EsPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <TextBlock>
                             <Run Text="{Binding Lineas, Mode=OneWay}" /><Run Text=" líneas · " /><Run Text="{Binding Unidades, Mode=OneWay}" /><Run Text=" uds" />
                         </TextBlock>

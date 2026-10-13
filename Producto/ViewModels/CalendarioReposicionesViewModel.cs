@@ -40,6 +40,7 @@ namespace Nesto.Modules.Producto.ViewModels
             HoraCierre = CalendarioReposicionesViewModel.TextoHora(fila.HoraCierre);
             HoraLlegada = CalendarioReposicionesViewModel.TextoHora(fila.HoraLlegadaHabitual);
             Antelacion = fila.LaborablesAntelacionCierre;
+            HoraRecogida = fila.HoraRecogida.HasValue ? CalendarioReposicionesViewModel.TextoHora(fila.HoraRecogida.Value) : string.Empty;
             Activo = fila.Activo;
             Usuario = fila.Usuario?.Trim();
             FechaModificacion = fila.FechaModificacion;
@@ -66,6 +67,13 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private byte _antelacion;
         public byte Antelacion { get => _antelacion; set => Cambiar(ref _antelacion, value, nameof(Antelacion)); }
+
+        private string _horaRecogida;
+        /// <summary>
+        /// Sugerencia 581 (Carlos, 13/10/26): «11:30», a qué hora pasa el repartidor a recogerla en el origen. Hasta entonces la
+        /// tienda puede hacer una reposición puntual a Algete. En blanco: sin límite.
+        /// </summary>
+        public string HoraRecogida { get => _horaRecogida; set => Cambiar(ref _horaRecogida, value, nameof(HoraRecogida)); }
 
         private bool _activo;
         public bool Activo { get => _activo; set => Cambiar(ref _activo, value, nameof(Activo)); }
@@ -96,6 +104,17 @@ namespace Nesto.Modules.Producto.ViewModels
                 error = $"La hora de llegada «{HoraLlegada}» de {Ruta} ({CalendarioReposicionesViewModel.NombreDia(DiaSemana)}) no es una hora: escríbela como 13:30.";
                 return null;
             }
+            TimeSpan? recogida = null;
+            if (!string.IsNullOrWhiteSpace(HoraRecogida))
+            {
+                if (!CalendarioReposicionesViewModel.LeerHora(HoraRecogida, out TimeSpan hora))
+                {
+                    error = $"La hora de recogida «{HoraRecogida}» de {Ruta} ({CalendarioReposicionesViewModel.NombreDia(DiaSemana)}) no es una hora: " +
+                        "escríbela como 11:30 (o déjala en blanco: sin límite).";
+                    return null;
+                }
+                recogida = hora;
+            }
             return new FilaCalendarioReposicion
             {
                 Id = Id,
@@ -106,6 +125,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 HoraCierre = cierre,
                 HoraLlegadaHabitual = llegada,
                 LaborablesAntelacionCierre = Antelacion,
+                HoraRecogida = recogida,
                 Activo = Activo
             };
         }
@@ -264,6 +284,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 HoraCierre = modelo != null && LeerHora(modelo.HoraCierre, out TimeSpan cierre) ? cierre : new TimeSpan(10, 0, 0),
                 HoraLlegadaHabitual = modelo != null && LeerHora(modelo.HoraLlegada, out TimeSpan llegada) ? llegada : new TimeSpan(13, 30, 0),
                 LaborablesAntelacionCierre = modelo?.Antelacion ?? 0,
+                HoraRecogida = modelo != null && LeerHora(modelo.HoraRecogida, out TimeSpan recogida) ? recogida : (TimeSpan?)null,
                 Activo = true
             });
             Filas.Add(nueva);

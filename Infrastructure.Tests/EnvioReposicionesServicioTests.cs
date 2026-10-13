@@ -115,6 +115,41 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerLimitePuntual_LeeLaHoraDelRepartidor_YConUnaApiAnteriorNull()
+        {
+            // Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"HoraRecogida\":\"11:30:00\",\"YaHaPasado\":true,\"Mensaje\":\"Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.\"}"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            LimiteReposicionPuntual limite = await servicio.LeerLimitePuntual("1", "ALC");
+
+            Assert.AreEqual("GET /api/Reposiciones/Puntual/Limite?origen=ALC&empresa=1", handler.Urls[0]);
+            Assert.AreEqual(new TimeSpan(11, 30, 0), limite.HoraRecogida);
+            Assert.IsTrue(limite.YaHaPasado);
+            StringAssert.Contains(limite.Mensaje, "Ya ha pasado el repartidor");
+            var anterior = new ServicioEnvioReposiciones(new FactoriaFalsa(new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" }));
+            Assert.IsNull(await anterior.LeerLimitePuntual("1", "ALC"));
+        }
+
+        [TestMethod]
+        public async Task BuscarProductoPuntual_ConLoComprometidoYLoDisponible()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "[{\"Producto\":\"41980\",\"StockOrigen\":5,\"Comprometido\":4,\"Disponible\":1}]"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            ProductoReposicionPuntual producto = (await servicio.BuscarProductoPuntual("1", "ALC", "41980"))[0];
+
+            Assert.AreEqual(4, producto.Comprometido);
+            Assert.AreEqual(1, producto.Disponible);
+        }
+
+        [TestMethod]
         public async Task LeerEnPreparacion_SiNoHayNinguna_DevuelveNull()
         {
             var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" };

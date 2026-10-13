@@ -97,6 +97,28 @@ namespace Nesto.Infrastructure.Models
         public int UnidadesPorLectura { get; set; } = 1;
         /// <summary>Stock en la tienda.</summary>
         public int StockOrigen { get; set; }
+        /// <summary>
+        /// Sugerencia 581 (Carlos, 13/10/26): lo que necesitan los pedidos pendientes de la tienda (y lo ya salido sin
+        /// contabilizar): eso no se manda.
+        /// </summary>
+        public int Comprometido { get; set; }
+        /// <summary>Sugerencia 581: lo que se puede mandar (stock − comprometido). Null con una API anterior: el stock.</summary>
+        public int? Disponible { get; set; }
+    }
+
+    /// <summary>
+    /// Sugerencia 581 (Carlos, 13/10/26): GET api/Reposiciones/Puntual/Limite: hasta qué hora se puede hacer hoy la
+    /// reposición puntual (la del repartidor) y si ya ha pasado. Espejo de LimiteReposicionPuntualDTO de NestoAPI.
+    /// </summary>
+    public class LimiteReposicionPuntual
+    {
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        /// <summary>A qué hora pasa hoy el repartidor por la tienda. Null: sin límite.</summary>
+        public TimeSpan? HoraRecogida { get; set; }
+        public bool YaHaPasado { get; set; }
+        /// <summary>«Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.» Null si se puede.</summary>
+        public string Mensaje { get; set; }
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>

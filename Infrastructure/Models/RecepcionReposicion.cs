@@ -14,6 +14,11 @@ namespace Nesto.Infrastructure.Models
         public string Documento { get; set; }
         /// <summary>«Reposición 80878».</summary>
         public string Titulo { get; set; }
+        /// <summary>
+        /// Sugerencia 581: la ha mandado la tienda aparte, con solo unos productos (no es la del calendario). El título ya lo
+        /// dice («Reposición puntual 80951 desde Alcobendas»). False con una API anterior.
+        /// </summary>
+        public bool EsPuntual { get; set; }
         public DateTime? Fecha { get; set; }
         public int Lineas { get; set; }
         public int Unidades { get; set; }
@@ -42,6 +47,11 @@ namespace Nesto.Infrastructure.Models
         public string Tipo { get; set; }
         public string Documento { get; set; }
         public string Titulo { get; set; }
+        /// <summary>
+        /// Sugerencia 581: la ha mandado la tienda aparte, con solo unos productos (no es la del calendario). El título ya lo
+        /// dice («Reposición puntual 80951 desde Alcobendas»). False con una API anterior.
+        /// </summary>
+        public bool EsPuntual { get; set; }
         public string Almacen { get; set; }
         /// <summary>Quien pregunta la puede terminar (su AlmacénPedidoVta es el de destino).</summary>
         public bool PuedeTerminar { get; set; }

@@ -22,6 +22,11 @@ namespace Nesto.Infrastructure.Models
         public TimeSpan HoraLlegadaHabitual { get; set; }
         /// <summary>Cuántos laborables del origen antes del día de llegada se cierra (0 = el mismo día).</summary>
         public byte LaborablesAntelacionCierre { get; set; }
+        /// <summary>
+        /// Sugerencia 581 (Carlos, 13/10/26): a qué hora pasa el repartidor a recogerla en el origen ese día. Hasta entonces la
+        /// tienda puede hacer una reposición puntual a Algete. Null: sin límite. Se manda siempre (también null, para quitarla).
+        /// </summary>
+        public TimeSpan? HoraRecogida { get; set; }
         public bool Activo { get; set; } = true;
         /// <summary>Solo lectura: quién la cambió por última vez.</summary>
         public string Usuario { get; set; }

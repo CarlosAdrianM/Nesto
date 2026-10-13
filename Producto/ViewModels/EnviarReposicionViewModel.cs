@@ -64,6 +64,16 @@ namespace Nesto.Modules.Producto.ViewModels
         public int UnidadesPorLectura { get; set; } = 1;
         /// <summary>Stock en la tienda.</summary>
         public int StockOrigen { get; set; }
+        /// <summary>Sugerencia 581 (Carlos, 13/10/26): lo que necesitan los pedidos pendientes de la tienda: no se manda.</summary>
+        public int Comprometido { get; set; }
+
+        private int? _disponible;
+        /// <summary>Lo que se puede mandar (stock − comprometido, lo calcula la API). Sin dato (API anterior): el stock.</summary>
+        public int Disponible
+        {
+            get => _disponible ?? StockOrigen;
+            set => _disponible = value;
+        }
 
         private int _cantidad;
         public int Cantidad
@@ -78,8 +88,17 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        /// <summary>Se piden más de las que hay en la tienda: el servidor no la dejaría mandar.</summary>
-        public bool FaltaStock => Cantidad > StockOrigen;
+        /// <summary>
+        /// Se piden más de las que se pueden mandar (las que hay en la tienda menos las que necesitan sus pedidos): el servidor
+        /// no la dejaría mandar.
+        /// </summary>
+        public bool FaltaStock => Cantidad > Disponible;
+
+        /// <summary>«41980 (pones 3, hay 2)» o, si parte es para sus pedidos, «41980 (pones 3, puedes mandar 1: el resto es para sus pedidos)».</summary>
+        internal string TextoFalta()
+            => Comprometido > 0
+                ? $"{Producto} (pones {Cantidad}, puedes mandar {Math.Max(0, Disponible)}: el resto es para sus pedidos)"
+                : $"{Producto} (pones {Cantidad}, hay {Math.Max(0, StockOrigen)})";
 
         internal bool TieneCodigo(string codigo)
             => string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
@@ -210,7 +229,79 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public bool PuedeEmpezarPuntual => _origenValido && !HayReposicion && !EnModoPuntual && !EstaOcupado;
+        public bool PuedeEmpezarPuntual => MostrarBotonPuntual && !PuntualYaNoSale;
+
+        /// <summary>El botón se ve aunque haya pasado el repartidor (desactivado y diciendo por qué).</summary>
+        public bool MostrarBotonPuntual => _origenValido && !HayReposicion && !EnModoPuntual && !EstaOcupado;
+
+        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
+
+        /// <summary>A qué hora pasa hoy el repartidor por la tienda (GET api/Reposiciones/Puntual/Limite). Null: sin límite.</summary>
+        private TimeSpan? _horaRecogidaHoy;
+
+        /// <summary>La API ya ha dicho que ha pasado (aunque el reloj de este equipo vaya atrasado).</summary>
+        private bool _repartidorYaHaPasado;
+
+        /// <summary>
+        /// Ya ha pasado el repartidor de hoy: la puntual ya no sale hoy (la API la rechazaría con 409). Se mira también con el
+        /// reloj, por si la pantalla lleva abierta desde antes de la hora.
+        /// </summary>
+        public bool PuntualYaNoSale => _repartidorYaHaPasado || (_horaRecogidaHoy.HasValue && Ahora().TimeOfDay >= _horaRecogidaHoy.Value);
+
+        internal static string TextoRepartidorYaHaPasado(TimeSpan hora)
+            => $"Ya ha pasado el repartidor de hoy ({hora:hh\\:mm}): la reposición puntual ya no sale hoy.";
+
+        /// <summary>Junto al botón: hasta qué hora se puede o por qué ya no. Null sin límite.</summary>
+        public string AvisoPuntual
+        {
+            get
+            {
+                if (!_horaRecogidaHoy.HasValue)
+                {
+                    return _repartidorYaHaPasado ? _mensajeRepartidor : null;
+                }
+                return PuntualYaNoSale
+                    ? _mensajeRepartidor ?? TextoRepartidorYaHaPasado(_horaRecogidaHoy.Value)
+                    : $"Hasta las {_horaRecogidaHoy.Value:hh\\:mm}, cuando pasa el repartidor.";
+            }
+        }
+
+        /// <summary>El mensaje de la API cuando ya ha pasado (el mismo que el 409).</summary>
+        private string _mensajeRepartidor;
+
+        private async Task LeerLimitePuntual()
+        {
+            try
+            {
+                LimiteReposicionPuntual limite = await _servicio.LeerLimitePuntual(Empresa, Almacen).ConfigureAwait(true);
+                _horaRecogidaHoy = limite?.HoraRecogida;
+                _repartidorYaHaPasado = limite?.YaHaPasado == true;
+                _mensajeRepartidor = string.IsNullOrWhiteSpace(limite?.Mensaje) ? null : limite.Mensaje.Trim();
+            }
+            catch (Exception)
+            {
+                // Solo es para avisar antes: si no se sabe, la API lo dirá al mandarla
+                _horaRecogidaHoy = null;
+                _repartidorYaHaPasado = false;
+                _mensajeRepartidor = null;
+            }
+            OnPropertyChanged(nameof(AvisoPuntual));
+            OnPropertyChanged(nameof(PuntualYaNoSale));
+        }
+
+        /// <summary>Si ya ha pasado el repartidor lo dice (y desactiva el botón) y devuelve true.</summary>
+        private bool AvisarSiRepartidorYaHaPasado()
+        {
+            if (!PuntualYaNoSale)
+            {
+                return false;
+            }
+            Mensaje = AvisoPuntual;
+            _sonidos?.Error();
+            OnPropertyChanged(nameof(AvisoPuntual));
+            RefrescarEstado();
+            return true;
+        }
 
         /// <summary>El cuadro del lector se ve con la reposición del calendario y en la puntual.</summary>
         public bool MostrarLector => HayReposicion || EnModoPuntual;
@@ -234,7 +325,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void EmpezarPuntual()
         {
-            if (!PuedeEmpezarPuntual)
+            if (AvisarSiRepartidorYaHaPasado() || !PuedeEmpezarPuntual)
             {
                 return;
             }
@@ -341,6 +432,13 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida($"{producto.Producto?.Trim()} ({producto.Nombre?.Trim()}) no tiene stock en {Almacen}: no se puede mandar.");
                 return;
             }
+            if ((producto.Disponible ?? producto.StockOrigen) <= 0)
+            {
+                // Sugerencia 581 (Carlos, 13/10/26): lo que necesitan los pedidos de la tienda no se manda
+                LecturaFallida($"{producto.Producto?.Trim()} ({producto.Nombre?.Trim()}): las {producto.StockOrigen} que hay en {Almacen} " +
+                    "las necesitan sus pedidos pendientes: no se puede mandar.");
+                return;
+            }
             var nueva = new LineaPuntualReposicion
             {
                 Producto = producto.Producto?.Trim(),
@@ -348,6 +446,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 CodigoBarras = producto.CodigoBarras?.Trim(),
                 UnidadesPorLectura = porLectura,
                 StockOrigen = producto.StockOrigen,
+                Comprometido = producto.Comprometido,
+                Disponible = producto.Disponible ?? producto.StockOrigen,
                 Cantidad = porLectura
             };
             nueva.PropertyChanged += LineaPuntualCambiada;
@@ -364,9 +464,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void Leida(LineaPuntualReposicion linea)
         {
-            Mensaje = linea.FaltaStock
-                ? $"De {linea.Producto} hay {linea.StockOrigen} en la tienda y pones {linea.Cantidad}: baja la cantidad."
-                : TEXTO_PUNTUAL;
+            Mensaje = !linea.FaltaStock
+                ? TEXTO_PUNTUAL
+                : linea.Comprometido > 0
+                    ? $"De {linea.Producto} puedes mandar {Math.Max(0, linea.Disponible)} (hay {linea.StockOrigen} en la tienda y {linea.Comprometido} son para sus pedidos) " +
+                      $"y pones {linea.Cantidad}: baja la cantidad."
+                    : $"De {linea.Producto} hay {linea.StockOrigen} en la tienda y pones {linea.Cantidad}: baja la cantidad.";
             if (linea.FaltaStock)
             {
                 _sonidos?.Error();
@@ -405,8 +508,11 @@ namespace Nesto.Modules.Producto.ViewModels
             List<LineaPuntualReposicion> sinStock = conCantidad.Where(l => l.FaltaStock).ToList();
             if (sinStock.Any())
             {
-                Mensaje = "No hay stock suficiente en la tienda: " +
-                    string.Join(", ", sinStock.Select(l => $"{l.Producto} (pones {l.Cantidad}, hay {Math.Max(0, l.StockOrigen)})")) + ".";
+                Mensaje = "No hay stock suficiente en la tienda: " + string.Join(", ", sinStock.Select(l => l.TextoFalta())) + ".";
+                return;
+            }
+            if (AvisarSiRepartidorYaHaPasado())
+            {
                 return;
             }
             if (!await _dialogos.ShowConfirmationAsync("Mandar a Algete", TextoConfirmacionPuntual()).ConfigureAwait(true))
@@ -497,6 +603,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 _origenValido = true;
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
+                await LeerLimitePuntual().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
                 if (HayReposicion && EnModoPuntual)
@@ -801,6 +908,8 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             OnPropertyChanged(nameof(PuedePreparar));
             OnPropertyChanged(nameof(PuedeEmpezarPuntual));
+            OnPropertyChanged(nameof(MostrarBotonPuntual));
+            OnPropertyChanged(nameof(PuntualYaNoSale));
             OnPropertyChanged(nameof(MostrarLector));
             PrepararCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();

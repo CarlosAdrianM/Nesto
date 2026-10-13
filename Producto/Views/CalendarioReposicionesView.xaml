@@ -78,6 +78,14 @@
                                         SelectedValueBinding="{Binding Antelacion, UpdateSourceTrigger=PropertyChanged}" />
                 <DataGridTextColumn Header="Hora de cierre" Width="100" Binding="{Binding HoraCierre, UpdateSourceTrigger=PropertyChanged}" />
                 <DataGridTextColumn Header="Hora de llegada" Width="110" Binding="{Binding HoraLlegada, UpdateSourceTrigger=PropertyChanged}" />
+                <!-- Sugerencia 581 (Carlos, 13/10/26): hasta esa hora la tienda puede hacer una reposición puntual; en blanco, sin límite -->
+                <DataGridTextColumn Header="Recogida" Width="90" Binding="{Binding HoraRecogida, UpdateSourceTrigger=PropertyChanged}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="ToolTip" Value="A qué hora pasa el repartidor a recogerla. Hasta entonces la tienda puede hacer una reposición puntual a Algete. En blanco: sin límite." />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridCheckBoxColumn Header="Activa" Binding="{Binding Activo, UpdateSourceTrigger=PropertyChanged}" />
                 <DataGridTextColumn Header="Último cambio" Binding="{Binding Usuario, Mode=OneWay}" IsReadOnly="True" />
                 <DataGridTextColumn Header="Fecha" Binding="{Binding FechaModificacion, Mode=OneWay, StringFormat='dd/MM/yyyy HH:mm'}" IsReadOnly="True" Width="*" />
