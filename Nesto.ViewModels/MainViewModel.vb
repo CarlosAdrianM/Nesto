@@ -34,12 +34,44 @@ Public Class RelayCommandLegado
         _execute = execute
         _canExecute = canExecute
     End Sub
+    ' Incidente 13/10/26 (Laura Magán): un CanExecute que lanza se reevalúa en CADA RequerySuggested
+    ' (mover el ratón, el foco, el propio diálogo de error...), así que cada error cerrado abría otro:
+    ' 174 errores en ELMAH y Nesto sin poder cerrarse. Si el predicado lanza, el comando queda
+    ' desactivado y el error se registra UNA sola vez por comando (no en cada reevaluación).
+    Private _errorCanExecuteRegistrado As Boolean
+
+    ''' <summary>
+    ''' Cómo se registra un error de CanExecute. Por defecto, IServicioRegistroErrores (POST api/Errores)
+    ''' resuelto del contenedor de Prism; los tests lo sustituyen.
+    ''' </summary>
+    Public Shared Property RegistrarErrorCanExecute As Action(Of Exception, String) = AddressOf RegistrarErrorEnServidor
+
     '<DebuggerStepThrough()> _
     Public Function CanExecute(ByVal parameter As Object) As Boolean Implements ICommand.CanExecute
-
-        Return If(_canExecute Is Nothing, True, _canExecute(parameter))
-
+        If _canExecute Is Nothing Then
+            Return True
+        End If
+        Try
+            Return _canExecute(parameter)
+        Catch ex As Exception
+            If Not _errorCanExecuteRegistrado Then
+                _errorCanExecuteRegistrado = True
+                Try
+                    RegistrarErrorCanExecute?.Invoke(ex, "RelayCommandLegado.CanExecute (" + _canExecute.Method.DeclaringType?.Name + "." + _canExecute.Method.Name + ")")
+                Catch
+                    ' El registro de errores nunca debe empeorar lo que ya ha fallado.
+                End Try
+            End If
+            Return False
+        End Try
     End Function
+
+    Private Shared Sub RegistrarErrorEnServidor(ex As Exception, contexto As String)
+        Debug.WriteLine(contexto + ": " + ex.ToString())
+        Dim servicioErrores = TryCast(ContainerLocator.Container?.Resolve(GetType(Nesto.Infrastructure.Contracts.IServicioRegistroErrores)), Nesto.Infrastructure.Contracts.IServicioRegistroErrores)
+        Dim unused = servicioErrores?.RegistrarErrorAsync(ex, contexto)
+    End Sub
+
     Public Custom Event CanExecuteChanged As EventHandler Implements ICommand.CanExecuteChanged
 
         AddHandler(ByVal value As EventHandler)
