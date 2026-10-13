@@ -107,18 +107,44 @@ namespace Nesto.Infrastructure.Models
     }
 
     /// <summary>
-    /// Sugerencia 581 (Carlos, 13/10/26): GET api/Reposiciones/Puntual/Limite: hasta qué hora se puede hacer hoy la
-    /// reposición puntual (la del repartidor) y si ya ha pasado. Espejo de LimiteReposicionPuntualDTO de NestoAPI.
+    /// Sugerencia 581 (Carlos, 13/10/26): GET api/Reposiciones/Puntual/Estado: si hoy se puede hacer la reposición puntual y,
+    /// si no, por qué; y si el repartidor ya se ha llevado la de hoy. Espejo de EstadoReposicionPuntualDTO de NestoAPI.
     /// </summary>
-    public class LimiteReposicionPuntual
+    public class EstadoReposicionPuntual
     {
+        public const string SIN_VIAJE = "SinViaje";
+        public const string SIN_RELLENAR = "SinRellenar";
+        public const string SIN_ENVIAR = "SinEnviar";
+        public const string RECOGIDA = "Recogida";
+        public const string ABIERTA = "Abierta";
+
         public string Origen { get; set; }
         public string Destino { get; set; }
-        /// <summary>A qué hora pasa hoy el repartidor por la tienda. Null: sin límite.</summary>
-        public TimeSpan? HoraRecogida { get; set; }
-        public bool YaHaPasado { get; set; }
-        /// <summary>«Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.» Null si se puede.</summary>
-        public string Mensaje { get; set; }
+        /// <summary>SinViaje, SinRellenar, SinEnviar, Recogida o Abierta.</summary>
+        public string Situacion { get; set; }
+        public bool SePuede { get; set; }
+        /// <summary>
+        /// Por qué no se puede, tal cual («Hoy no hay viaje de Alcobendas a Algete.», «Todavía no se ha rellenado la de hoy (se
+        /// rellena sola a las 9:00).», «Primero envía la de hoy.», «El repartidor ya se ha llevado…»). Null si se puede.
+        /// </summary>
+        public string Motivo { get; set; }
+        /// <summary>Cuándo se rellena (o se rellenó) sola la de hoy. Null sin viaje hoy.</summary>
+        public DateTime? CierreHoy { get; set; }
+        /// <summary>Cuándo se marcó que el repartidor se la ha llevado. Null si no.</summary>
+        public DateTime? FechaRecogida { get; set; }
+        /// <summary>Quién lo marcó («NUEVAVISION\Paloma»).</summary>
+        public string UsuarioRecogida { get; set; }
+        /// <summary>Se puede pulsar «El repartidor ya se la ha llevado» (la de hoy enviada y sin marcar).</summary>
+        public bool PuedeMarcarRecogida { get; set; }
+    }
+
+    /// <summary>Sugerencia 581: POST api/Reposiciones/Recogida, el repartidor ya se ha llevado la de hoy.</summary>
+    public class MarcarRecogidaReposicion
+    {
+        public string Empresa { get; set; }
+        public string Origen { get; set; }
+        /// <summary>Null: Algete.</summary>
+        public string Destino { get; set; }
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>

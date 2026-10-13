@@ -115,23 +115,53 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
-        public async Task LeerLimitePuntual_LeeLaHoraDelRepartidor_YConUnaApiAnteriorNull()
+        public async Task LeerEstadoPuntual_LeeSituacionMotivoYRecogida_YConUnaApiAnteriorNull()
         {
-            // Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
+            // Sugerencia 581 (Carlos, 13/10/26): días con viaje, rellena, enviada y hasta la recogida
             var handler = new HandlerFalso
             {
-                Respuesta = "{\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"HoraRecogida\":\"11:30:00\",\"YaHaPasado\":true,\"Mensaje\":\"Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.\"}"
+                Respuesta = "{\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"Situacion\":\"Recogida\",\"SePuede\":false," +
+                    "\"Motivo\":\"El repartidor ya se ha llevado la reposición de hoy (a las 12:10): lo que quede va en la siguiente.\"," +
+                    "\"CierreHoy\":\"2026-10-13T09:00:00\",\"FechaRecogida\":\"2026-10-13T12:10:31\",\"UsuarioRecogida\":\"NUEVAVISION\\\\Paloma\",\"PuedeMarcarRecogida\":false}"
             };
             var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
 
-            LimiteReposicionPuntual limite = await servicio.LeerLimitePuntual("1", "ALC");
+            EstadoReposicionPuntual estado = await servicio.LeerEstadoPuntual("1", "ALC");
 
-            Assert.AreEqual("GET /api/Reposiciones/Puntual/Limite?origen=ALC&empresa=1", handler.Urls[0]);
-            Assert.AreEqual(new TimeSpan(11, 30, 0), limite.HoraRecogida);
-            Assert.IsTrue(limite.YaHaPasado);
-            StringAssert.Contains(limite.Mensaje, "Ya ha pasado el repartidor");
+            Assert.AreEqual("GET /api/Reposiciones/Puntual/Estado?origen=ALC&empresa=1", handler.Urls[0]);
+            Assert.AreEqual(EstadoReposicionPuntual.RECOGIDA, estado.Situacion);
+            Assert.IsFalse(estado.SePuede);
+            Assert.AreEqual(new DateTime(2026, 10, 13, 12, 10, 31), estado.FechaRecogida);
+            Assert.AreEqual("NUEVAVISION\\Paloma", estado.UsuarioRecogida);
+            Assert.AreEqual(new DateTime(2026, 10, 13, 9, 0, 0), estado.CierreHoy);
+            StringAssert.Contains(estado.Motivo, "(a las 12:10)");
             var anterior = new ServicioEnvioReposiciones(new FactoriaFalsa(new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" }));
-            Assert.IsNull(await anterior.LeerLimitePuntual("1", "ALC"));
+            Assert.IsNull(await anterior.LeerEstadoPuntual("1", "ALC"));
+        }
+
+        [TestMethod]
+        public async Task MarcarRecogida_PostConLaRuta_YDevuelveElEstadoNuevo_O409ConElMotivo()
+        {
+            var handler = new HandlerFalso { Respuesta = "{\"Situacion\":\"Recogida\",\"FechaRecogida\":\"2026-10-13T12:10:00\",\"UsuarioRecogida\":\"Paloma\"}" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            EstadoReposicionPuntual estado = await servicio.MarcarRecogida(new MarcarRecogidaReposicion { Empresa = "1", Origen = "ALC", Destino = "ALG" });
+
+            Assert.AreEqual("POST /api/Reposiciones/Recogida", handler.Urls[0]);
+            JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
+            Assert.AreEqual("ALC", (string)cuerpo["Origen"]);
+            Assert.AreEqual("ALG", (string)cuerpo["Destino"]);
+            Assert.AreEqual(EstadoReposicionPuntual.RECOGIDA, estado.Situacion);
+            Assert.AreEqual(new DateTime(2026, 10, 13, 12, 10, 0), estado.FechaRecogida);
+
+            var rechazo = new ServicioEnvioReposiciones(new FactoriaFalsa(new HandlerFalso
+            {
+                Codigo = HttpStatusCode.Conflict, Respuesta = "{\"Message\":\"Primero envía la de hoy.\"}"
+            }));
+            EnvioReposicionException error = await Assert.ThrowsExceptionAsync<EnvioReposicionException>(
+                () => rechazo.MarcarRecogida(new MarcarRecogidaReposicion { Origen = "ALC" }));
+            Assert.AreEqual("Primero envía la de hoy.", error.Message);
+            Assert.AreEqual(409, error.Codigo);
         }
 
         [TestMethod]

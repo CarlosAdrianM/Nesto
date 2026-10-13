@@ -120,45 +120,6 @@ namespace Producto.Tests
             Assert.AreEqual((byte)2, fila.DiaSemana);
         }
 
-        // Sugerencia 581 (Carlos, 13/10/26): la hora del repartidor, hasta la que la tienda puede hacer una puntual
-        [TestMethod]
-        public async Task HoraRecogida_SeLeeSeEditaYSeQuitaDejandolaEnBlanco()
-        {
-            A.CallTo(() => _servicio.LeerCalendario(A<string>._)).ReturnsLazily(() =>
-            {
-                List<FilaCalendarioReposicion> calendario = Calendario();
-                calendario[0].HoraRecogida = new TimeSpan(11, 30, 0);
-                return Task.FromResult(calendario);
-            });
-            await _vm.CargarAsync();
-
-            Assert.AreEqual("11:30", Fila(1).HoraRecogida);
-            Assert.AreEqual(string.Empty, Fila(2).HoraRecogida, "Sin hora: sin límite");
-            Assert.IsFalse(_vm.HayCambios);
-
-            Fila(1).HoraRecogida = " ";
-            Fila(2).HoraRecogida = "1115";
-            await _vm.GuardarCommand.ExecuteAsync(null);
-
-            GuardarCalendarioReposiciones peticion = _guardadas.Single();
-            Assert.IsNull(peticion.Filas.Single(f => f.Id == 1).HoraRecogida, "En blanco se manda null: se quita");
-            Assert.AreEqual(new TimeSpan(11, 15, 0), peticion.Filas.Single(f => f.Id == 2).HoraRecogida);
-            StringAssert.Contains(Newtonsoft.Json.JsonConvert.SerializeObject(peticion), "\"HoraRecogida\":null",
-                "Se manda siempre, también null (si no, la API no la quitaría)");
-        }
-
-        [TestMethod]
-        public async Task HoraRecogida_QueNoEsUnaHora_NoSeGuardaYLoDice()
-        {
-            await _vm.CargarAsync();
-            Fila(1).HoraRecogida = "mediodía";
-
-            await _vm.GuardarCommand.ExecuteAsync(null);
-
-            Assert.AreEqual(0, _guardadas.Count);
-            StringAssert.Contains(_vm.Mensaje, "La hora de recogida «mediodía» de REI → ALG (lunes) no es una hora");
-        }
-
         [TestMethod]
         public async Task Guardar_ErrorDeLaApi_SeEnsenaTalCualYSeConservaLoEditado()
         {

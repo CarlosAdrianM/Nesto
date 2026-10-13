@@ -45,6 +45,8 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
             A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(true);
+            // Sugerencia 581: por defecto hoy hay viaje, la de hoy está rellena y enviada y el repartidor no ha pasado
+            HoyEs(EstadoReposicionPuntual.ABIERTA, puedeMarcarRecogida: true);
             _sonidos = A.Fake<ISonidosLector>();
             _abiertos.Clear();
             _focosEnLector = 0;
@@ -796,24 +798,37 @@ namespace Producto.Tests
             Assert.IsFalse(_vm.EnModoPuntual);
         }
 
-        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
+        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): cuándo se puede y la recogida
 
-        private void RepartidorDeHoy(string? hora, bool yaHaPasado = false)
+        private static EstadoReposicionPuntual Estado(string situacion, string? motivo = null, bool puedeMarcarRecogida = false,
+            DateTime? fechaRecogida = null, string? usuarioRecogida = null) => new()
         {
-            A.CallTo(() => _servicio.LeerLimitePuntual("1", "ALC")).Returns(new LimiteReposicionPuntual
-            {
-                Origen = "ALC",
-                Destino = "ALG",
-                HoraRecogida = hora == null ? null : TimeSpan.Parse(hora),
-                YaHaPasado = yaHaPasado,
-                Mensaje = yaHaPasado ? $"Ya ha pasado el repartidor de hoy ({hora}): la reposición puntual ya no sale hoy." : null
-            });
+            Origen = "ALC",
+            Destino = "ALG",
+            Situacion = situacion,
+            SePuede = situacion == EstadoReposicionPuntual.ABIERTA,
+            Motivo = motivo,
+            PuedeMarcarRecogida = puedeMarcarRecogida,
+            FechaRecogida = fechaRecogida,
+            UsuarioRecogida = usuarioRecogida
+        };
+
+        private void HoyEs(string situacion, string? motivo = null, bool puedeMarcarRecogida = false, DateTime? fechaRecogida = null, string? usuarioRecogida = null)
+        {
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._))
+                .Returns(Estado(situacion, motivo, puedeMarcarRecogida, fechaRecogida, usuarioRecogida));
         }
 
-        [TestMethod]
-        public async Task Puntual_PasadoElRepartidor_ElBotonSeVeDesactivadoYDiceElMotivo()
+        private const string RECOGIDA_1210 = "El repartidor ya se la ha llevado a las 12:10 (lo marcó Paloma): lo que quede va en la siguiente.";
+
+        [DataTestMethod]
+        [DataRow(EstadoReposicionPuntual.SIN_VIAJE, "Hoy no hay viaje de Alcobendas a Algete.")]
+        [DataRow(EstadoReposicionPuntual.SIN_VIAJE, "Hoy no hay viaje de Alcobendas a Algete: es festivo.")]
+        [DataRow(EstadoReposicionPuntual.SIN_RELLENAR, "Todavía no se ha rellenado la de hoy (se rellena sola a las 09:00).")]
+        [DataRow(EstadoReposicionPuntual.SIN_ENVIAR, "Primero envía la de hoy.")]
+        public async Task Puntual_CuandoHoyNoSePuede_ElBotonSeVeDesactivadoYDiceElMotivo(string situacion, string motivo)
         {
-            RepartidorDeHoy("11:30", yaHaPasado: true);
+            HoyEs(situacion, motivo);
 
             await EmpezarPuntualSinReposicionAsync();
 
@@ -821,49 +836,168 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.MostrarBotonPuntual, "El botón se ve…");
             Assert.IsFalse(_vm.PuedeEmpezarPuntual, "…desactivado");
             Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
-            Assert.AreEqual("Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.", _vm.AvisoPuntual);
-            Assert.AreEqual(_vm.AvisoPuntual, _vm.Mensaje);
+            Assert.AreEqual(motivo, _vm.AvisoPuntual, "Al lado del botón");
+            Assert.AreEqual(motivo, _vm.ToolTipPuntual, "Y en el tooltip");
+            Assert.AreEqual(motivo, _vm.Mensaje);
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
         }
 
         [TestMethod]
-        public async Task Puntual_AntesDelRepartidor_DiceHastaCuandoYSeEmpieza()
+        public async Task Puntual_ConLaDeHoyEnPreparacion_ElBotonDicePrimeroEnviaLaDeHoy()
         {
-            RepartidorDeHoy("11:30");
-            _vm.Ahora = () => new DateTime(2026, 10, 13, 10, 0, 0);
+            await _vm.CargarAsync();
 
+            Assert.IsTrue(_vm.HayReposicion);
+            Assert.IsTrue(_vm.MostrarBotonPuntual);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+            Assert.AreEqual("Primero envía la de hoy.", _vm.AvisoPuntual);
+            Assert.IsFalse(_vm.MostrarBotonRecogida, "La recogida, cuando esté enviada");
+        }
+
+        [TestMethod]
+        public async Task Puntual_YaRecogida_DiceAQueHoraYQuienLoMarco()
+        {
+            HoyEs(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado la reposición de hoy (a las 12:10): lo que quede va en la siguiente.",
+                fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma");
+
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsFalse(_vm.EnModoPuntual);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+            Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual);
+            Assert.AreEqual(RECOGIDA_1210, _vm.ToolTipPuntual);
+            Assert.AreEqual(RECOGIDA_1210, _vm.Mensaje);
+            Assert.IsFalse(_vm.MostrarBotonRecogida, "Ya está marcada");
+        }
+
+        [TestMethod]
+        public async Task Puntual_CuandoSePuede_SinAvisoYConElTooltipNormal()
+        {
             await EmpezarPuntualSinReposicionAsync();
 
             Assert.IsTrue(_vm.EnModoPuntual);
-            Assert.AreEqual("Hasta las 11:30, cuando pasa el repartidor.", _vm.AvisoPuntual);
+            Assert.IsNull(_vm.AvisoPuntual);
         }
 
         [TestMethod]
-        public async Task Puntual_SiPasaElRepartidorConLaPantallaAbierta_NoSeManda()
+        public async Task Puntual_SiMarcanLaRecogidaConLaPantallaAbierta_NoSeManda()
         {
-            RepartidorDeHoy("11:30");
-            DateTime ahora = new DateTime(2026, 10, 13, 11, 0, 0);
-            _vm.Ahora = () => ahora;
             await EmpezarPuntualSinReposicionAsync();
             A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
             await _vm.LeerPuntualAsync("41980");
+            HoyEs(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado…",
+                fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma");
 
-            ahora = new DateTime(2026, 10, 13, 11, 31, 0);
             await _vm.EnviarPuntualCommand.ExecuteAsync(null);
 
             A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
-            Assert.AreEqual("Ya ha pasado el repartidor de hoy (11:30): la reposición puntual ya no sale hoy.", _vm.Mensaje);
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("Mandar a Algete", A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual(RECOGIDA_1210, _vm.Mensaje);
             Assert.IsTrue(_vm.EnModoPuntual, "Se queda con lo puesto: puede cancelar");
         }
 
         [TestMethod]
-        public async Task Puntual_SiLaApiNoSabeElLimite_SinLimite()
+        public async Task Puntual_SiLaApiNoSabeElEstado_SinRestricciones()
         {
-            A.CallTo(() => _servicio.LeerLimitePuntual(A<string>._, A<string>._)).ThrowsAsync(new EnvioReposicionException("no", 500));
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).ThrowsAsync(new EnvioReposicionException("no", 500));
 
             await EmpezarPuntualSinReposicionAsync();
 
             Assert.IsTrue(_vm.EnModoPuntual);
             Assert.IsNull(_vm.AvisoPuntual);
+        }
+
+        [TestMethod]
+        public async Task Recogida_ConLaDeHoyEnviada_PideConfirmacion_ApuntaYYaNoDejaHacerPuntual()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+            Assert.IsTrue(_vm.MostrarBotonRecogida);
+            Assert.IsTrue(_vm.MarcarRecogidaCommand.CanExecute(null));
+            MarcarRecogidaReposicion? marcada = null;
+            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._))
+                .Invokes((MarcarRecogidaReposicion p) => marcada = p)
+                .Returns(Estado(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado…",
+                    fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma"));
+
+            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("El repartidor ya se la ha llevado", EnviarReposicionViewModel.TEXTO_CONFIRMAR_RECOGIDA))
+                .MustHaveHappenedOnceExactly();
+            Assert.AreEqual("ALC", marcada!.Origen);
+            Assert.AreEqual("ALG", marcada.Destino);
+            Assert.AreEqual("1", marcada.Empresa);
+            Assert.AreEqual(RECOGIDA_1210, _vm.Mensaje);
+            Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual);
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+        }
+
+        [TestMethod]
+        public async Task Recogida_SinConfirmar_NoSeApunta()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(false);
+            await _vm.CargarAsync();
+
+            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._)).MustNotHaveHappened();
+            Assert.IsTrue(_vm.MostrarBotonRecogida);
+        }
+
+        [TestMethod]
+        public async Task Recogida_SiLaApiNoLaAcepta_DiceElMotivoYEnsenaLoQueHayAhora()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._))
+                .ThrowsAsync(new EnvioReposicionException("El repartidor ya se ha llevado la reposición de hoy (a las 12:10): lo que quede va en la siguiente.", 409));
+            HoyEs(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado…",
+                fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma");
+
+            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
+
+            StringAssert.StartsWith(_vm.Mensaje, "El repartidor ya se ha llevado la reposición de hoy (a las 12:10)");
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual, "Relee el estado: lo marcó otra persona");
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
+        }
+
+        [TestMethod]
+        public async Task Recogida_SinElScriptEnLaApi_NoSeVeElBoton()
+        {
+            HoyEs(EstadoReposicionPuntual.ABIERTA, puedeMarcarRecogida: false);
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.IsTrue(_vm.PuedeEmpezarPuntual, "La puntual sigue como hasta ahora");
+        }
+
+        [TestMethod]
+        public async Task Terminar_LaDeHoy_ReleeElEstado_YYaSeVeElBotonDeLaRecogida()
+        {
+            await _vm.CargarAsync();
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).Returns(new ResultadoTerminarReposicion { NumTraspaso = 80947 });
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.LeerEstadoPuntual("1", "ALC")).MustHaveHappenedTwiceExactly();
+            Assert.IsFalse(_vm.HayReposicion);
+            Assert.IsTrue(_vm.MostrarBotonRecogida);
+            Assert.IsTrue(_vm.PuedeEmpezarPuntual);
+        }
+
+        [DataTestMethod]
+        [DataRow("NUEVAVISION\\Paloma", "Paloma")]
+        [DataRow("Andre", "Andre")]
+        [DataRow(null, null)]
+        public void SinDominio_QuitaElDominio(string? usuario, string? esperado)
+        {
+            Assert.AreEqual(esperado, EnviarReposicionViewModel.SinDominio(usuario));
         }
 
         // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): lo de sus pedidos no se manda

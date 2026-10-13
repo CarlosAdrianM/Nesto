@@ -49,10 +49,16 @@ namespace Nesto.Infrastructure.Services
         /// <exception cref="EnvioReposicionException">La del calendario sin enviar, falta stock, sin permiso…</exception>
         Task<ResultadoTerminarReposicion> CrearPuntual(CrearReposicion peticion);
         /// <summary>
-        /// Sugerencia 581 (Carlos, 13/10/26): hasta qué hora se puede hacer hoy la puntual (GET api/Reposiciones/Puntual/Limite).
-        /// Null si la API todavía no lo sabe (anterior a esto): sin límite.
+        /// Sugerencia 581 (Carlos, 13/10/26): si hoy se puede hacer la puntual y si el repartidor ya se ha llevado la de hoy
+        /// (GET api/Reposiciones/Puntual/Estado). Null si la API todavía no lo sabe (anterior a esto): sin restricciones.
         /// </summary>
-        Task<LimiteReposicionPuntual> LeerLimitePuntual(string empresa, string origen);
+        Task<EstadoReposicionPuntual> LeerEstadoPuntual(string empresa, string origen);
+        /// <summary>
+        /// Sugerencia 581 (Carlos, 13/10/26): «El repartidor ya se la ha llevado» (POST api/Reposiciones/Recogida). Devuelve el
+        /// estado nuevo (con quién y cuándo).
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">Hoy no hay viaje, la de hoy sin enviar, ya marcada, sin permiso…</exception>
+        Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -155,19 +161,22 @@ namespace Nesto.Infrastructure.Services
         public Task<ResultadoTerminarReposicion> CrearPuntual(CrearReposicion peticion)
             => Enviar<ResultadoTerminarReposicion>(HttpMethod.Post, "Reposiciones/Puntual", peticion);
 
-        public async Task<LimiteReposicionPuntual> LeerLimitePuntual(string empresa, string origen)
+        public async Task<EstadoReposicionPuntual> LeerEstadoPuntual(string empresa, string origen)
         {
             using (HttpClient client = _clienteApiFactory.Crear())
             {
-                HttpResponseMessage response = await client.GetAsync("Reposiciones/Puntual/Limite" + Consulta(empresa, origen)).ConfigureAwait(false);
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/Puntual/Estado" + Consulta(empresa, origen)).ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    // La API todavía no tiene el límite: sin límite (la API dirá lo que sea al mandarla)
+                    // La API todavía no lo sabe: sin restricciones (la API dirá lo que sea al mandarla)
                     return null;
                 }
-                return await Leer<LimiteReposicionPuntual>(response).ConfigureAwait(false);
+                return await Leer<EstadoReposicionPuntual>(response).ConfigureAwait(false);
             }
         }
+
+        public Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion)
+            => Enviar<EstadoReposicionPuntual>(HttpMethod.Post, "Reposiciones/Recogida", peticion);
 
         private async Task<T> Enviar<T>(HttpMethod metodo, string url, object cuerpo) where T : class, new()
         {

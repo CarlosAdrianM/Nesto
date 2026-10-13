@@ -153,6 +153,7 @@ namespace Nesto.Modules.Producto.ViewModels
             CancelarPuntualCommand = new AsyncRelayCommand(CancelarPuntualAsync, () => EnModoPuntual && !EstaOcupado);
             EnviarPuntualCommand = new AsyncRelayCommand(EnviarPuntualAsync, () => EnModoPuntual && UnidadesPuntual > 0 && !EstaOcupado);
             QuitarLineaPuntualCommand = new RelayCommand<LineaPuntualReposicion>(QuitarLineaPuntual, l => l != null && EnModoPuntual && !EstaOcupado);
+            MarcarRecogidaCommand = new AsyncRelayCommand(MarcarRecogidaAsync, () => MostrarBotonRecogida && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -229,78 +230,136 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public bool PuedeEmpezarPuntual => MostrarBotonPuntual && !PuntualYaNoSale;
-
-        /// <summary>El botón se ve aunque haya pasado el repartidor (desactivado y diciendo por qué).</summary>
-        public bool MostrarBotonPuntual => _origenValido && !HayReposicion && !EnModoPuntual && !EstaOcupado;
-
-        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): hasta la recogida
-
-        /// <summary>A qué hora pasa hoy el repartidor por la tienda (GET api/Reposiciones/Puntual/Limite). Null: sin límite.</summary>
-        private TimeSpan? _horaRecogidaHoy;
-
-        /// <summary>La API ya ha dicho que ha pasado (aunque el reloj de este equipo vaya atrasado).</summary>
-        private bool _repartidorYaHaPasado;
-
         /// <summary>
-        /// Ya ha pasado el repartidor de hoy: la puntual ya no sale hoy (la API la rechazaría con 409). Se mira también con el
-        /// reloj, por si la pantalla lleva abierta desde antes de la hora.
+        /// Sugerencia 581 (Carlos, 13/10/26): solo con la de hoy enviada (nada en preparación) y si la API dice que hoy se puede
+        /// (día con viaje, la de hoy ya rellena y el repartidor sin pasar).
         /// </summary>
-        public bool PuntualYaNoSale => _repartidorYaHaPasado || (_horaRecogidaHoy.HasValue && Ahora().TimeOfDay >= _horaRecogidaHoy.Value);
+        public bool PuedeEmpezarPuntual => MostrarBotonPuntual && !HayReposicion && !PuntualBloqueada;
 
-        internal static string TextoRepartidorYaHaPasado(TimeSpan hora)
-            => $"Ya ha pasado el repartidor de hoy ({hora:hh\\:mm}): la reposición puntual ya no sale hoy.";
+        /// <summary>El botón se ve siempre en la tienda; si no se puede, desactivado y diciendo por qué (al lado y en el tooltip).</summary>
+        public bool MostrarBotonPuntual => _origenValido && !EnModoPuntual && !EstaOcupado;
 
-        /// <summary>Junto al botón: hasta qué hora se puede o por qué ya no. Null sin límite.</summary>
+        // ---------------------------------------------------------------- Sugerencia 581 (Carlos, 13/10/26): cuándo se puede y la recogida
+
+        /// <summary>Lo que dice la API de hoy (GET api/Reposiciones/Puntual/Estado). Null: no se sabe (API anterior): sin restricciones.</summary>
+        private EstadoReposicionPuntual _estadoPuntual;
+
+        /// <summary>La API dice que hoy no se puede (sin viaje, sin rellenar, sin enviar o ya recogida).</summary>
+        public bool PuntualBloqueada => _estadoPuntual != null && !_estadoPuntual.SePuede;
+
+        internal const string TEXTO_PRIMERO_ENVIA = "Primero envía la de hoy.";
+
+        /// <summary>«NUEVAVISION\Paloma» → «Paloma».</summary>
+        internal static string SinDominio(string usuario)
+        {
+            string limpio = usuario?.Trim();
+            return string.IsNullOrEmpty(limpio) || !limpio.Contains("\\") ? limpio : limpio.Substring(limpio.LastIndexOf('\\') + 1);
+        }
+
+        /// <summary>«El repartidor ya se la ha llevado a las 12:10 (lo marcó Paloma): lo que quede va en la siguiente.»</summary>
+        internal static string TextoRecogida(EstadoReposicionPuntual estado)
+        {
+            if (estado?.FechaRecogida == null)
+            {
+                return estado?.Motivo;
+            }
+            string quien = SinDominio(estado.UsuarioRecogida);
+            return $"El repartidor ya se la ha llevado a las {estado.FechaRecogida.Value:HH:mm}" +
+                (string.IsNullOrEmpty(quien) ? string.Empty : $" (lo marcó {quien})") + ": lo que quede va en la siguiente.";
+        }
+
+        /// <summary>Junto al botón y en su tooltip: por qué no se puede hacer la puntual. Null si se puede.</summary>
         public string AvisoPuntual
         {
             get
             {
-                if (!_horaRecogidaHoy.HasValue)
+                if (!_origenValido || EnModoPuntual)
                 {
-                    return _repartidorYaHaPasado ? _mensajeRepartidor : null;
+                    return null;
                 }
-                return PuntualYaNoSale
-                    ? _mensajeRepartidor ?? TextoRepartidorYaHaPasado(_horaRecogidaHoy.Value)
-                    : $"Hasta las {_horaRecogidaHoy.Value:hh\\:mm}, cuando pasa el repartidor.";
+                if (_estadoPuntual?.Situacion == EstadoReposicionPuntual.RECOGIDA)
+                {
+                    return TextoRecogida(_estadoPuntual);
+                }
+                if (HayReposicion)
+                {
+                    return TEXTO_PRIMERO_ENVIA;
+                }
+                return PuntualBloqueada ? _estadoPuntual.Motivo?.Trim() : null;
             }
         }
 
-        /// <summary>El mensaje de la API cuando ya ha pasado (el mismo que el 409).</summary>
-        private string _mensajeRepartidor;
+        internal const string TOOLTIP_PUNTUAL = "Mandar a Algete solo unos productos concretos, aparte de la reposición del calendario " +
+            "(por ejemplo, si te lo piden después de enviar la de hoy), hasta que el repartidor se la lleve. Alt+P";
 
-        private async Task LeerLimitePuntual()
+        /// <summary>El tooltip del botón: el motivo si está desactivado.</summary>
+        public string ToolTipPuntual => AvisoPuntual ?? TOOLTIP_PUNTUAL;
+
+        /// <summary>«El repartidor ya se la ha llevado»: con la de hoy enviada y sin marcar (y la API con el script lanzado).</summary>
+        public bool MostrarBotonRecogida => _origenValido && !EnModoPuntual && !HayReposicion && _estadoPuntual?.PuedeMarcarRecogida == true;
+
+        public IAsyncRelayCommand MarcarRecogidaCommand { get; }
+
+        internal const string TEXTO_CONFIRMAR_RECOGIDA = "¿El repartidor ya se ha llevado la reposición de hoy? " +
+            "Desde ahora ya no se podrá hacer otra reposición puntual hoy: lo que quede irá en la siguiente.";
+
+        private async Task LeerEstadoPuntual()
         {
             try
             {
-                LimiteReposicionPuntual limite = await _servicio.LeerLimitePuntual(Empresa, Almacen).ConfigureAwait(true);
-                _horaRecogidaHoy = limite?.HoraRecogida;
-                _repartidorYaHaPasado = limite?.YaHaPasado == true;
-                _mensajeRepartidor = string.IsNullOrWhiteSpace(limite?.Mensaje) ? null : limite.Mensaje.Trim();
+                _estadoPuntual = await _servicio.LeerEstadoPuntual(Empresa, Almacen).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 // Solo es para avisar antes: si no se sabe, la API lo dirá al mandarla
-                _horaRecogidaHoy = null;
-                _repartidorYaHaPasado = false;
-                _mensajeRepartidor = null;
+                _estadoPuntual = null;
             }
-            OnPropertyChanged(nameof(AvisoPuntual));
-            OnPropertyChanged(nameof(PuntualYaNoSale));
+            RefrescarEstado();
         }
 
-        /// <summary>Si ya ha pasado el repartidor lo dice (y desactiva el botón) y devuelve true.</summary>
-        private bool AvisarSiRepartidorYaHaPasado()
+        /// <summary>Si hoy no se puede hacer la puntual lo dice (y desactiva el botón) y devuelve true.</summary>
+        private bool AvisarSiPuntualBloqueada()
         {
-            if (!PuntualYaNoSale)
+            if (!PuntualBloqueada)
             {
                 return false;
             }
-            Mensaje = AvisoPuntual;
+            Mensaje = _estadoPuntual.Situacion == EstadoReposicionPuntual.RECOGIDA ? TextoRecogida(_estadoPuntual) : _estadoPuntual.Motivo;
             _sonidos?.Error();
-            OnPropertyChanged(nameof(AvisoPuntual));
             RefrescarEstado();
             return true;
+        }
+
+        private async Task MarcarRecogidaAsync()
+        {
+            if (!MostrarBotonRecogida)
+            {
+                return;
+            }
+            if (!await _dialogos.ShowConfirmationAsync("El repartidor ya se la ha llevado", TEXTO_CONFIRMAR_RECOGIDA).ConfigureAwait(true))
+            {
+                return;
+            }
+            bool hecho = false;
+            await Ocupado(async () =>
+            {
+                _estadoPuntual = await _servicio.MarcarRecogida(new MarcarRecogidaReposicion
+                {
+                    Empresa = Empresa,
+                    Origen = Almacen,
+                    Destino = Destino
+                }).ConfigureAwait(true);
+                hecho = true;
+                Mensaje = TextoRecogida(_estadoPuntual);
+            }).ConfigureAwait(true);
+            if (!hecho)
+            {
+                // Ya estaba marcada, hay otra en preparación…: lo que diga ahora la API, sin perder el motivo
+                string error = Mensaje;
+                await LeerEstadoPuntual().ConfigureAwait(true);
+                Mensaje = error;
+            }
+            RefrescarEstado();
         }
 
         /// <summary>El cuadro del lector se ve con la reposición del calendario y en la puntual.</summary>
@@ -325,7 +384,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void EmpezarPuntual()
         {
-            if (AvisarSiRepartidorYaHaPasado() || !PuedeEmpezarPuntual)
+            if (AvisarSiPuntualBloqueada() || !PuedeEmpezarPuntual)
             {
                 return;
             }
@@ -511,7 +570,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 Mensaje = "No hay stock suficiente en la tienda: " + string.Join(", ", sinStock.Select(l => l.TextoFalta())) + ".";
                 return;
             }
-            if (AvisarSiRepartidorYaHaPasado())
+            // Sugerencia 581: justo antes de mandarla, por si mientras tanto han marcado que el repartidor se la ha llevado
+            await LeerEstadoPuntual().ConfigureAwait(true);
+            if (AvisarSiPuntualBloqueada())
             {
                 return;
             }
@@ -533,6 +594,13 @@ namespace Nesto.Modules.Producto.ViewModels
                 Mensaje = texto;
                 _dialogos.ShowNotification("Reposición puntual enviada", texto);
             }).ConfigureAwait(true);
+            if (EnModoPuntual)
+            {
+                // No se ha mandado (409…): que el botón diga lo que diga ahora la API, sin perder el motivo
+                string error = Mensaje;
+                await LeerEstadoPuntual().ConfigureAwait(true);
+                Mensaje = error;
+            }
         }
 
         private void LineaPuntualCambiada(object sender, PropertyChangedEventArgs e)
@@ -603,7 +671,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 _origenValido = true;
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
-                await LeerLimitePuntual().ConfigureAwait(true);
+                await LeerEstadoPuntual().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
                 if (HayReposicion && EnModoPuntual)
@@ -799,6 +867,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 Ensenar(null);
                 Mensaje = texto;
                 _dialogos.ShowNotification("Reposición terminada", texto);
+                // Sugerencia 581: enviada la de hoy, ya se puede hacer la puntual y marcar la recogida
+                await LeerEstadoPuntual().ConfigureAwait(true);
             }).ConfigureAwait(true);
         }
 
@@ -909,7 +979,10 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(PuedePreparar));
             OnPropertyChanged(nameof(PuedeEmpezarPuntual));
             OnPropertyChanged(nameof(MostrarBotonPuntual));
-            OnPropertyChanged(nameof(PuntualYaNoSale));
+            OnPropertyChanged(nameof(PuntualBloqueada));
+            OnPropertyChanged(nameof(AvisoPuntual));
+            OnPropertyChanged(nameof(ToolTipPuntual));
+            OnPropertyChanged(nameof(MostrarBotonRecogida));
             OnPropertyChanged(nameof(MostrarLector));
             PrepararCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();
@@ -918,6 +991,7 @@ namespace Nesto.Modules.Producto.ViewModels
             CancelarPuntualCommand?.NotifyCanExecuteChanged();
             EnviarPuntualCommand?.NotifyCanExecuteChanged();
             QuitarLineaPuntualCommand?.NotifyCanExecuteChanged();
+            MarcarRecogidaCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>
