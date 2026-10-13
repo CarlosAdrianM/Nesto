@@ -51,6 +51,32 @@ namespace Nesto.Modules.Producto.Views
             EnfocarLector();
         }
 
+        /// <summary>
+        /// Sugerencia 581, reposición puntual: Intro en la cantidad la guarda y vuelve al lector; Supr (sin estar escribiendo)
+        /// quita la línea seleccionada.
+        /// </summary>
+        private void GrdPuntual_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e == null || grdPuntual == null || DataContext is not EnviarReposicionViewModel vm)
+            {
+                return;
+            }
+            if (e.Key == Key.Enter && grdPuntual.CurrentColumn == colCantidadPuntual)
+            {
+                _ = grdPuntual.CommitEdit(DataGridEditingUnit.Row, true);
+                e.Handled = true;
+                EnfocarLector();
+                return;
+            }
+            bool editando = e.OriginalSource is TextBox;
+            if (e.Key == Key.Delete && !editando && grdPuntual.SelectedItem is LineaPuntualReposicion linea
+                && vm.QuitarLineaPuntualCommand.CanExecute(linea))
+            {
+                vm.QuitarLineaPuntualCommand.Execute(linea);
+                e.Handled = true;
+            }
+        }
+
         private void EnfocarCantidad(LineaEnviarReposicion linea)
         {
             if (linea == null)

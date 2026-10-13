@@ -11,6 +11,10 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
+    <UserControl.InputBindings>
+        <!-- Sugerencia 581: Esc sale de la reposición puntual (pregunta si hay algo puesto) -->
+        <KeyBinding Key="Escape" Command="{Binding CancelarPuntualCommand}" />
+    </UserControl.InputBindings>
     <!-- NestoAPI#553: la tienda prepara la reposición que manda a Algete (la propone el servidor) y la termina. -->
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -32,13 +36,19 @@
             <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                     Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}"
                     ToolTip="Abre un PDF con la reposición para prepararla a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
+            <!-- Sugerencia 581: una reposición aparte con solo lo que piden mandar (la del calendario no cambia) -->
+            <Button Content="Reposición _puntual…" Command="{Binding EmpezarPuntualCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding PuedeEmpezarPuntual, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="Mandar a Algete solo unos productos concretos, aparte de la reposición del calendario (por ejemplo, si te lo piden después de la hora de cierre). Alt+P" />
+            <TextBlock Text="Reposición puntual a Algete" FontSize="20" FontWeight="SemiBold" Margin="16,0,0,0" VerticalAlignment="Center"
+                       Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
             <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
                        Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
 
         <!-- El lector: si el código está en la lista, el foco va a su cantidad -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4"
-                    Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{Binding MostrarLector, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Leer código:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: el foco va a su cantidad">
@@ -46,7 +56,55 @@
                     <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />
                 </TextBox.InputBindings>
             </TextBox>
-            <TextBlock Text="La cantidad solo se puede bajar (0 para no mandarlo). Intro o salir del campo la guarda." VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.7" />
+            <TextBlock Text="La cantidad solo se puede bajar (0 para no mandarlo). Intro o salir del campo la guarda." VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.7"
+                       Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <TextBlock Text="Cada lectura suma (la cantidad también se cambia en la rejilla); Supr quita la línea; Esc sale sin mandar." VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.7"
+                       Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <!-- Sugerencia 581: las líneas de la reposición puntual (solo en la pantalla hasta mandarla) -->
+        <DataGrid x:Name="grdPuntual" Grid.Row="2" ItemsSource="{Binding LineasPuntual}" SelectedItem="{Binding SeleccionadaPuntual}"
+                  PreviewKeyDown="GrdPuntual_PreviewKeyDown"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DataGrid.RowStyle>
+                <!-- Más de lo que hay en la tienda: en negrita y con el aviso (sin colores fijos: modo claro y oscuro) -->
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding FaltaStock}" Value="True">
+                            <Setter Property="FontWeight" Value="Bold" />
+                            <Setter Property="ToolTip" Value="No hay tanto en la tienda: baja la cantidad" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
+                <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
+                <DataGridTextColumn x:Name="colCantidadPuntual" Header="Cantidad" Binding="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Header="Stock en la tienda" Binding="{Binding StockOrigen}" IsReadOnly="True" />
+                <DataGridTemplateColumn Header="">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Quitar" Padding="8,0" Focusable="False"
+                                    Command="{Binding DataContext.QuitarLineaPuntualCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}" ToolTip="Quitar esta línea (Supr)" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"
+                    Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
+                <Run Text="Total: " /><Run Text="{Binding UnidadesPuntual, Mode=OneWay}" /><Run Text=" unidades de " /><Run Text="{Binding ProductosPuntual, Mode=OneWay}" /><Run Text=" productos" />
+            </TextBlock>
+            <Button Content="_Mandar a Algete" Command="{Binding EnviarPuntualCommand}" Padding="16,2" Margin="16,0,0,0"
+                    ToolTip="Se crea y se termina de una vez: sale de la tienda y queda pendiente de recibir en Algete, aparte de la del calendario. Alt+M" />
+            <Button Content="_Cancelar" Command="{Binding CancelarPuntualCommand}" Padding="16,2" Margin="12,0,0,0"
+                    ToolTip="Salir sin mandar nada (Esc)" />
         </StackPanel>
 
         <DataGrid x:Name="grdLineas" Grid.Row="2" ItemsSource="{Binding Lineas}" SelectedItem="{Binding Seleccionada}"

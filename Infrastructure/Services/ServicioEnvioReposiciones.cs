@@ -2,6 +2,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -36,6 +37,17 @@ namespace Nesto.Infrastructure.Services
         /// </summary>
         /// <exception cref="EnvioReposicionException">No hay ninguna en preparación (404) o la API no lo ha generado.</exception>
         Task<byte[]> DescargarListadoPdf(string empresa, string origen);
+        /// <summary>
+        /// Sugerencia 581: lo leído en la reposición puntual (GET api/Reposiciones/Puntual/Producto): el producto de esa
+        /// referencia o los de ese código de barras, con el stock de la tienda. Vacía si no hay ninguno.
+        /// </summary>
+        Task<List<ProductoReposicionPuntual>> BuscarProductoPuntual(string empresa, string origen, string codigo);
+        /// <summary>
+        /// Sugerencia 581: manda a Algete una reposición puntual con solo esas líneas (POST api/Reposiciones/Puntual). Se crea
+        /// y se termina de una vez: devuelve el traspaso, ya pendiente de recibir en Algete.
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">La del calendario sin enviar, falta stock, sin permiso…</exception>
+        Task<ResultadoTerminarReposicion> CrearPuntual(CrearReposicion peticion);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -124,6 +136,19 @@ namespace Nesto.Infrastructure.Services
                 return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
+
+        public async Task<List<ProductoReposicionPuntual>> BuscarProductoPuntual(string empresa, string origen, string codigo)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/Puntual/Producto" + Consulta(empresa, origen)
+                    + "&codigo=" + Uri.EscapeDataString(codigo?.Trim() ?? string.Empty)).ConfigureAwait(false);
+                return await Leer<List<ProductoReposicionPuntual>>(response).ConfigureAwait(false) ?? new List<ProductoReposicionPuntual>();
+            }
+        }
+
+        public Task<ResultadoTerminarReposicion> CrearPuntual(CrearReposicion peticion)
+            => Enviar<ResultadoTerminarReposicion>(HttpMethod.Post, "Reposiciones/Puntual", peticion);
 
         private async Task<T> Enviar<T>(HttpMethod metodo, string url, object cuerpo) where T : class, new()
         {

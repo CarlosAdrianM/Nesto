@@ -61,6 +61,60 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task BuscarProductoPuntual_PideElCodigoConElStockDeLaTienda()
+        {
+            // Sugerencia 581
+            var handler = new HandlerFalso
+            {
+                Respuesta = "[{\"Producto\":\"41980\",\"Nombre\":\"Guantes M\",\"CodigoBarras\":\"8437\",\"UnidadesPorLectura\":6,\"StockOrigen\":9}]"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            List<ProductoReposicionPuntual> productos = await servicio.BuscarProductoPuntual("1  ", "ALC", " 8437 0 ");
+
+            Assert.AreEqual("GET /api/Reposiciones/Puntual/Producto?origen=ALC&empresa=1&codigo=8437%200", handler.Urls[0]);
+            Assert.AreEqual(6, productos[0].UnidadesPorLectura);
+            Assert.AreEqual(9, productos[0].StockOrigen);
+        }
+
+        [TestMethod]
+        public async Task CrearPuntual_MandaSoloLasLineasYDevuelveElTraspaso()
+        {
+            var handler = new HandlerFalso
+            {
+                Codigo = HttpStatusCode.Created,
+                Respuesta = "{\"NumTraspaso\":80951,\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"Lineas\":[{\"Producto\":\"41980\",\"Cantidad\":2}]}"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            ResultadoTerminarReposicion resultado = await servicio.CrearPuntual(new CrearReposicion
+            {
+                Empresa = "1", Origen = "ALC", Destino = "ALG",
+                Lineas = new List<LineaCrearReposicion> { new LineaCrearReposicion { Producto = "41980", Cantidad = 2 } }
+            });
+
+            Assert.AreEqual("POST /api/Reposiciones/Puntual", handler.Urls[0]);
+            JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
+            Assert.AreEqual("41980", (string)cuerpo["Lineas"][0]["Producto"]);
+            Assert.AreEqual(2, (int)cuerpo["Lineas"][0]["Cantidad"]);
+            Assert.AreEqual(80951, resultado.NumTraspaso);
+            Assert.AreEqual(2, resultado.Unidades);
+        }
+
+        [TestMethod]
+        public async Task CrearPuntual_ConLaDelCalendarioSinEnviar_DaElMotivoDelServidor()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.Conflict, Respuesta = "{\"Message\":\"ALC tiene una reposición a ALG en preparación\"}" };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            EnvioReposicionException error = await Assert.ThrowsExceptionAsync<EnvioReposicionException>(
+                () => servicio.CrearPuntual(new CrearReposicion { Origen = "ALC" }));
+
+            StringAssert.Contains(error.Message, "en preparación");
+            Assert.AreEqual(409, error.Codigo);
+        }
+
+        [TestMethod]
         public async Task LeerEnPreparacion_SiNoHayNinguna_DevuelveNull()
         {
             var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" };

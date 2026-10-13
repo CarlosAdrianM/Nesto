@@ -552,5 +552,248 @@ namespace Producto.Tests
             Assert.AreEqual("ALC no tiene ninguna reposición en preparación.", _vm.Mensaje);
             Assert.AreEqual(0, _abiertos.Count);
         }
+
+        // ---------------------------------------------------------------- Sugerencia 581: reposición puntual
+
+        private static ProductoReposicionPuntual Guantes(int stock = 9, int porLectura = 1) => new()
+        {
+            Producto = "41980", Nombre = "Guantes M", CodigoBarras = "8437", UnidadesPorLectura = porLectura, StockOrigen = stock
+        };
+
+        private async Task EmpezarPuntualSinReposicionAsync(bool puedeRellenarManual = false)
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(puedeRellenarManual);
+            await _vm.CargarAsync();
+            _vm.EmpezarPuntualCommand.Execute(null);
+        }
+
+        [TestMethod]
+        public async Task Puntual_SeVeAunqueNoPuedaRellenarAMano_SiNoHayLaDelCalendarioEnPreparacion()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(false);
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.PuedePreparar, "Rellenar la del calendario sigue siendo solo para los autorizados");
+            Assert.IsTrue(_vm.PuedeEmpezarPuntual);
+            Assert.IsTrue(_vm.EmpezarPuntualCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Puntual_ConLaDelCalendarioEnPreparacion_NoSePuedeEmpezar()
+        {
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.HayReposicion);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual, "Primero se manda la del calendario");
+            Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Puntual_DesdeAlgete_NoSePuedeEmpezar()
+        {
+            A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+        }
+
+        [TestMethod]
+        public async Task Puntual_AlEmpezar_EnsenaElLectorYDiceQueVaAparte()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsTrue(_vm.EnModoPuntual);
+            Assert.IsTrue(_vm.MostrarLector);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+            Assert.AreEqual(EnviarReposicionViewModel.TEXTO_PUNTUAL, _vm.Mensaje);
+            Assert.IsFalse(_vm.EnviarPuntualCommand.CanExecute(null), "Sin nada puesto no se puede mandar");
+            Assert.IsTrue(_focosEnLector > 0);
+        }
+
+        [TestMethod]
+        public async Task Puntual_LeerUnCodigo_LoBuscaYLoAnadeConSuStock_YOtraLecturaSuma()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual("1", "ALC", "8437")).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+
+            _vm.Lectura = " 8437 ";
+            _vm.LeerLecturaCommand.Execute(null);
+            await _vm.LecturaPuntualEnCurso;
+            await _vm.LeerPuntualAsync("8437");
+            await _vm.LeerPuntualAsync("41980");
+
+            Assert.AreEqual(string.Empty, _vm.Lectura);
+            LineaPuntualReposicion linea = _vm.LineasPuntual.Single();
+            Assert.AreEqual("41980", linea.Producto);
+            Assert.AreEqual(9, linea.StockOrigen);
+            Assert.AreEqual(3, linea.Cantidad, "Cada lectura (código o referencia) suma una");
+            Assert.AreEqual(3, _vm.UnidadesPuntual);
+            Assert.AreSame(linea, _vm.SeleccionadaPuntual);
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Correcto()).MustHaveHappened(3, Times.Exactly);
+            Assert.IsTrue(_vm.EnviarPuntualCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Puntual_ElCodigoDeUnaCaja_SumaSusUnidades()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual("1", "ALC", "8437")).Returns(new List<ProductoReposicionPuntual> { Guantes(stock: 20, porLectura: 6) });
+
+            await _vm.LeerPuntualAsync("8437");
+            await _vm.LeerPuntualAsync("8437");
+
+            Assert.AreEqual(12, _vm.LineasPuntual.Single().Cantidad);
+        }
+
+        [TestMethod]
+        public async Task Puntual_CodigoQueNoExiste_LoDiceSuenaElErrorYNoAnadeNada()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual>());
+
+            await _vm.LeerPuntualAsync("999");
+
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            StringAssert.Contains(_vm.Mensaje, "999");
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Puntual_CodigoCompartido_PideLaReferencia()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._))
+                .Returns(new List<ProductoReposicionPuntual> { Guantes(), new() { Producto = "41981", Nombre = "Guantes L", StockOrigen = 3 } });
+
+            await _vm.LeerPuntualAsync("8437");
+
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            StringAssert.Contains(_vm.Mensaje, "41980, 41981");
+            StringAssert.Contains(_vm.Mensaje, "referencia");
+        }
+
+        [TestMethod]
+        public async Task Puntual_SinStockEnLaTienda_NoEntra()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes(stock: 0) });
+
+            await _vm.LeerPuntualAsync("41980");
+
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            StringAssert.Contains(_vm.Mensaje, "no tiene stock en ALC");
+        }
+
+        [TestMethod]
+        public async Task Puntual_MasDeLoQueHayEnLaTienda_AvisaYNoDejaMandar()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes(stock: 1) });
+            await _vm.LeerPuntualAsync("41980");
+            await _vm.LeerPuntualAsync("41980");
+
+            Assert.IsTrue(_vm.LineasPuntual.Single().FaltaStock);
+            StringAssert.Contains(_vm.Mensaje, "hay 1 en la tienda");
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).MustNotHaveHappened();
+            StringAssert.Contains(_vm.Mensaje, "41980 (pones 2, hay 1)");
+        }
+
+        [TestMethod]
+        public async Task Puntual_Mandar_PideConfirmacionYMandaSoloLoPuesto_YVuelveALaPantallaNormal()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, "41980")).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, "17404"))
+                .Returns(new List<ProductoReposicionPuntual> { new() { Producto = "17404", Nombre = "Cera", StockOrigen = 5 } });
+            await _vm.LeerPuntualAsync("41980");
+            await _vm.LeerPuntualAsync("17404");
+            _vm.LineasPuntual[0].Cantidad = 2;
+            _vm.LineasPuntual[1].Cantidad = 0;
+            CrearReposicion? mandada = null;
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._))
+                .Invokes((CrearReposicion p) => mandada = p)
+                .Returns(new ResultadoTerminarReposicion { NumTraspaso = 80951, Lineas = new List<LineaTraspasoTerminado> { new() { Producto = "41980", Cantidad = 2 } } });
+
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("Mandar a Algete",
+                "Se mandan 2 unidades de 1 productos a Algete en una reposición aparte de la del calendario. ¿Mandar?")).MustHaveHappenedOnceExactly();
+            Assert.IsNotNull(mandada);
+            Assert.AreEqual("ALC", mandada!.Origen);
+            Assert.AreEqual("ALG", mandada.Destino);
+            Assert.AreEqual("41980", mandada.Lineas.Single().Producto, "La línea a 0 no se manda");
+            Assert.AreEqual(2, mandada.Lineas.Single().Cantidad);
+            Assert.IsFalse(_vm.EnModoPuntual);
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            StringAssert.Contains(_vm.Mensaje, "traspaso 80951");
+            A.CallTo(() => _dialogos.ShowNotification("Reposición puntual enviada", A<string>._)).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(_vm.PuedeEmpezarPuntual, "Se puede hacer otra si vuelven a pedir algo");
+        }
+
+        [TestMethod]
+        public async Task Puntual_SiElServidorNoLaAcepta_EnsenaSuTextoYSeQuedaConLasLineas()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._))
+                .ThrowsAsync(new EnvioReposicionException("ALC tiene una reposición a ALG en preparación (3 líneas) sin enviar: termínala antes de hacer una puntual.", 409));
+
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            StringAssert.Contains(_vm.Mensaje, "termínala antes");
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(_vm.EnModoPuntual);
+            Assert.AreEqual(1, _vm.LineasPuntual.Count);
+        }
+
+        [TestMethod]
+        public async Task Puntual_Cancelar_ConLineasPreguntaYSaleSinMandar()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+
+            await _vm.CancelarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("Reposición puntual", A<string>._)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(_vm.EnModoPuntual);
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Puntual_QuitarLinea_LaSacaYRecalculaElTotal()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+
+            _vm.QuitarLineaPuntualCommand.Execute(_vm.LineasPuntual[0]);
+
+            Assert.AreEqual(0, _vm.LineasPuntual.Count);
+            Assert.AreEqual(0, _vm.UnidadesPuntual);
+            Assert.IsFalse(_vm.EnviarPuntualCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Puntual_SiAlActualizarAparecelaDelCalendario_SaleDeLaPuntual()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
+
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.HayReposicion);
+            Assert.IsFalse(_vm.EnModoPuntual);
+        }
     }
 }

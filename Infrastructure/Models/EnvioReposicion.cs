@@ -84,6 +84,21 @@ namespace Nesto.Infrastructure.Models
         public int Unidades => (Lineas ?? new List<LineaTraspasoTerminado>()).Sum(l => l.Cantidad);
     }
 
+    /// <summary>
+    /// Sugerencia 581: GET api/Reposiciones/Puntual/Producto, lo leído (o tecleado) en la reposición puntual. Espejo de
+    /// ProductoReposicionPuntualDTO de NestoAPI.
+    /// </summary>
+    public class ProductoReposicionPuntual
+    {
+        public string Producto { get; set; }
+        public string Nombre { get; set; }
+        public string CodigoBarras { get; set; }
+        /// <summary>Las unidades que vale una lectura de ese código (la caja de 6 vale 6); 1 por la referencia.</summary>
+        public int UnidadesPorLectura { get; set; } = 1;
+        /// <summary>Stock en la tienda.</summary>
+        public int StockOrigen { get; set; }
+    }
+
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>
     public class EnvioReposicionException : Exception
     {

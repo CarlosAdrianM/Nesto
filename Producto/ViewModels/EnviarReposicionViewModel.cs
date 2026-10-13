@@ -52,6 +52,41 @@ namespace Nesto.Modules.Producto.ViewModels
     }
 
     /// <summary>
+    /// Sugerencia 581: una línea de la reposición puntual. Solo existe en la pantalla hasta que se manda (el servidor la crea
+    /// y la termina de una vez).
+    /// </summary>
+    public class LineaPuntualReposicion : ObservableObject
+    {
+        public string Producto { get; set; }
+        public string Nombre { get; set; }
+        public string CodigoBarras { get; set; }
+        /// <summary>Las unidades que suma cada lectura del código con el que se añadió (la caja de 6, 6).</summary>
+        public int UnidadesPorLectura { get; set; } = 1;
+        /// <summary>Stock en la tienda.</summary>
+        public int StockOrigen { get; set; }
+
+        private int _cantidad;
+        public int Cantidad
+        {
+            get => _cantidad;
+            set
+            {
+                if (SetProperty(ref _cantidad, Math.Max(0, value)))
+                {
+                    OnPropertyChanged(nameof(FaltaStock));
+                }
+            }
+        }
+
+        /// <summary>Se piden más de las que hay en la tienda: el servidor no la dejaría mandar.</summary>
+        public bool FaltaStock => Cantidad > StockOrigen;
+
+        internal bool TieneCodigo(string codigo)
+            => string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// NestoAPI#553: la tienda prepara la reposición que manda a Algete y la termina (api/Reposiciones), en lugar de
     /// hacerlo en Nesto viejo. El servidor propone lo que hay que mandar; aquí solo se baja lo que no se manda y se
     /// termina. Desde Algete no: esas reposiciones se hacen en Ariadna.
@@ -95,6 +130,10 @@ namespace Nesto.Modules.Producto.ViewModels
             });
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => HayReposicion && !EstaOcupado);
             ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => HayReposicion && !EstaOcupado);
+            EmpezarPuntualCommand = new RelayCommand(EmpezarPuntual, () => PuedeEmpezarPuntual);
+            CancelarPuntualCommand = new AsyncRelayCommand(CancelarPuntualAsync, () => EnModoPuntual && !EstaOcupado);
+            EnviarPuntualCommand = new AsyncRelayCommand(EnviarPuntualAsync, () => EnModoPuntual && UnidadesPuntual > 0 && !EstaOcupado);
+            QuitarLineaPuntualCommand = new RelayCommand<LineaPuntualReposicion>(QuitarLineaPuntual, l => l != null && EnModoPuntual && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -146,7 +185,264 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public bool PuedePreparar => _origenValido && _puedeRellenarManual && !HayReposicion && !EstaOcupado;
+        public bool PuedePreparar => _origenValido && _puedeRellenarManual && !HayReposicion && !EnModoPuntual && !EstaOcupado;
+
+        // ---------------------------------------------------------------- Sugerencia 581: reposición puntual
+
+        /// <summary>
+        /// Sugerencia 581 (Paloma): después de la hora de cierre alguien pide que se mande un producto concreto a Algete. La
+        /// tienda hace una reposición APARTE con solo eso (la del calendario no se toca): se lee cada producto, se pone la
+        /// cantidad y se manda de una vez (la API la crea y la termina: queda pendiente de recibir en Algete como cualquier otra).
+        /// Mientras la del calendario esté en preparación sin enviar, no: se manda esa primero (la API también lo impide).
+        /// </summary>
+        public ObservableCollection<LineaPuntualReposicion> LineasPuntual { get; } = new ObservableCollection<LineaPuntualReposicion>();
+
+        private bool _enModoPuntual;
+        public bool EnModoPuntual
+        {
+            get => _enModoPuntual;
+            private set
+            {
+                if (SetProperty(ref _enModoPuntual, value))
+                {
+                    RefrescarEstado();
+                }
+            }
+        }
+
+        public bool PuedeEmpezarPuntual => _origenValido && !HayReposicion && !EnModoPuntual && !EstaOcupado;
+
+        /// <summary>El cuadro del lector se ve con la reposición del calendario y en la puntual.</summary>
+        public bool MostrarLector => HayReposicion || EnModoPuntual;
+
+        public int UnidadesPuntual => LineasPuntual.Sum(l => l.Cantidad);
+        public int ProductosPuntual => LineasPuntual.Count(l => l.Cantidad > 0);
+
+        private LineaPuntualReposicion _seleccionadaPuntual;
+        public LineaPuntualReposicion SeleccionadaPuntual { get => _seleccionadaPuntual; set => SetProperty(ref _seleccionadaPuntual, value); }
+
+        public IRelayCommand EmpezarPuntualCommand { get; }
+        public IAsyncRelayCommand CancelarPuntualCommand { get; }
+        public IAsyncRelayCommand EnviarPuntualCommand { get; }
+        public IRelayCommand<LineaPuntualReposicion> QuitarLineaPuntualCommand { get; }
+
+        /// <summary>La lectura de la puntual en curso (los tests la esperan).</summary>
+        internal Task LecturaPuntualEnCurso { get; private set; } = Task.CompletedTask;
+
+        internal const string TEXTO_PUNTUAL = "Reposición puntual a Algete: lee (o escribe) cada producto y pon la cantidad. " +
+            "Va aparte de la del calendario, que no cambia. Se manda al pulsar «Mandar a Algete».";
+
+        private void EmpezarPuntual()
+        {
+            if (!PuedeEmpezarPuntual)
+            {
+                return;
+            }
+            LimpiarPuntual();
+            EnModoPuntual = true;
+            Mensaje = TEXTO_PUNTUAL;
+            PedirFocoEnLector?.Invoke();
+        }
+
+        private async Task CancelarPuntualAsync()
+        {
+            if (!EnModoPuntual)
+            {
+                return;
+            }
+            if (UnidadesPuntual > 0 && !await _dialogos.ShowConfirmationAsync("Reposición puntual",
+                $"Se descartan {ProductosPuntual} productos sin mandar. ¿Salir?").ConfigureAwait(true))
+            {
+                return;
+            }
+            SalirDePuntual();
+            Mensaje = _textoSinReposicion;
+        }
+
+        private void SalirDePuntual()
+        {
+            LimpiarPuntual();
+            EnModoPuntual = false;
+        }
+
+        private void LimpiarPuntual()
+        {
+            foreach (LineaPuntualReposicion linea in LineasPuntual)
+            {
+                linea.PropertyChanged -= LineaPuntualCambiada;
+            }
+            LineasPuntual.Clear();
+            SeleccionadaPuntual = null;
+            RefrescarTotalesPuntual();
+        }
+
+        private void QuitarLineaPuntual(LineaPuntualReposicion linea)
+        {
+            if (linea == null || !LineasPuntual.Contains(linea))
+            {
+                return;
+            }
+            linea.PropertyChanged -= LineaPuntualCambiada;
+            _ = LineasPuntual.Remove(linea);
+            RefrescarTotalesPuntual();
+            PedirFocoEnLector?.Invoke();
+        }
+
+        /// <summary>
+        /// Lo leído en la puntual: si ya está en la lista, suma lo que vale una lectura; si no, se busca en el servidor (la
+        /// referencia o cualquiera de sus códigos de barras) y se añade con su stock en la tienda. Sin stock no entra.
+        /// </summary>
+        internal async Task LeerPuntualAsync(string lectura)
+        {
+            string codigo = lectura?.Trim();
+            if (string.IsNullOrEmpty(codigo) || !EnModoPuntual)
+            {
+                return;
+            }
+            List<LineaPuntualReposicion> yaEstan = LineasPuntual.Where(l => l.TieneCodigo(codigo)).ToList();
+            if (yaEstan.Count == 1)
+            {
+                Sumar(yaEstan[0], yaEstan[0].UnidadesPorLectura);
+                return;
+            }
+            List<ProductoReposicionPuntual> encontrados = null;
+            await Ocupado(async () =>
+            {
+                encontrados = await _servicio.BuscarProductoPuntual(Empresa, Almacen, codigo).ConfigureAwait(true);
+            }, avisarEnDialogo: false).ConfigureAwait(true);
+            if (encontrados == null)
+            {
+                // No ha contestado: Ocupado ya ha puesto el motivo
+                _sonidos?.Error();
+                PedirFocoEnLector?.Invoke();
+                return;
+            }
+            if (encontrados.Count == 0)
+            {
+                LecturaFallida($"No hay ningún producto con el código o la referencia {codigo}.");
+                return;
+            }
+            if (encontrados.Count > 1)
+            {
+                LecturaFallida($"El código {codigo} lo comparten varios productos ({string.Join(", ", encontrados.Select(p => p.Producto?.Trim()))}): " +
+                    "escribe la referencia del que es.");
+                return;
+            }
+            ProductoReposicionPuntual producto = encontrados[0];
+            int porLectura = Math.Max(1, producto.UnidadesPorLectura);
+            LineaPuntualReposicion existente = LineasPuntual.FirstOrDefault(l => string.Equals(l.Producto, producto.Producto?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (existente != null)
+            {
+                Sumar(existente, porLectura);
+                return;
+            }
+            if (producto.StockOrigen <= 0)
+            {
+                LecturaFallida($"{producto.Producto?.Trim()} ({producto.Nombre?.Trim()}) no tiene stock en {Almacen}: no se puede mandar.");
+                return;
+            }
+            var nueva = new LineaPuntualReposicion
+            {
+                Producto = producto.Producto?.Trim(),
+                Nombre = producto.Nombre?.Trim(),
+                CodigoBarras = producto.CodigoBarras?.Trim(),
+                UnidadesPorLectura = porLectura,
+                StockOrigen = producto.StockOrigen,
+                Cantidad = porLectura
+            };
+            nueva.PropertyChanged += LineaPuntualCambiada;
+            LineasPuntual.Add(nueva);
+            RefrescarTotalesPuntual();
+            Leida(nueva);
+        }
+
+        private void Sumar(LineaPuntualReposicion linea, int unidades)
+        {
+            linea.Cantidad += unidades;
+            Leida(linea);
+        }
+
+        private void Leida(LineaPuntualReposicion linea)
+        {
+            Mensaje = linea.FaltaStock
+                ? $"De {linea.Producto} hay {linea.StockOrigen} en la tienda y pones {linea.Cantidad}: baja la cantidad."
+                : TEXTO_PUNTUAL;
+            if (linea.FaltaStock)
+            {
+                _sonidos?.Error();
+            }
+            else
+            {
+                _sonidos?.Correcto();
+            }
+            SeleccionadaPuntual = linea;
+            // El cursor se queda en el lector: con el lector de códigos cada lectura suma (la cantidad se cambia en la rejilla)
+            PedirFocoEnLector?.Invoke();
+        }
+
+        internal string TextoConfirmacionPuntual()
+            => $"Se mandan {UnidadesPuntual} unidades de {ProductosPuntual} productos a Algete en una reposición aparte de la del calendario. ¿Mandar?";
+
+        internal static string TextoResultadoPuntual(ResultadoTerminarReposicion resultado)
+        {
+            int productos = resultado?.Lineas?.Count ?? 0;
+            return $"Reposición puntual enviada: traspaso {resultado?.NumTraspaso}, {resultado?.Unidades ?? 0} unidades de {productos} productos camino de Algete. " +
+                "Ponlas en la caja que se lleva el repartidor.";
+        }
+
+        private async Task EnviarPuntualAsync()
+        {
+            if (!EnModoPuntual)
+            {
+                return;
+            }
+            List<LineaPuntualReposicion> conCantidad = LineasPuntual.Where(l => l.Cantidad > 0).ToList();
+            if (!conCantidad.Any())
+            {
+                Mensaje = "Pon al menos un producto con cantidad.";
+                return;
+            }
+            List<LineaPuntualReposicion> sinStock = conCantidad.Where(l => l.FaltaStock).ToList();
+            if (sinStock.Any())
+            {
+                Mensaje = "No hay stock suficiente en la tienda: " +
+                    string.Join(", ", sinStock.Select(l => $"{l.Producto} (pones {l.Cantidad}, hay {Math.Max(0, l.StockOrigen)})")) + ".";
+                return;
+            }
+            if (!await _dialogos.ShowConfirmationAsync("Mandar a Algete", TextoConfirmacionPuntual()).ConfigureAwait(true))
+            {
+                return;
+            }
+            await Ocupado(async () =>
+            {
+                ResultadoTerminarReposicion resultado = await _servicio.CrearPuntual(new CrearReposicion
+                {
+                    Empresa = Empresa,
+                    Origen = Almacen,
+                    Destino = Destino,
+                    Lineas = conCantidad.Select(l => new LineaCrearReposicion { Producto = l.Producto, Cantidad = l.Cantidad }).ToList()
+                }).ConfigureAwait(true);
+                string texto = TextoResultadoPuntual(resultado);
+                SalirDePuntual();
+                Mensaje = texto;
+                _dialogos.ShowNotification("Reposición puntual enviada", texto);
+            }).ConfigureAwait(true);
+        }
+
+        private void LineaPuntualCambiada(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(LineaPuntualReposicion.Cantidad))
+            {
+                RefrescarTotalesPuntual();
+            }
+        }
+
+        private void RefrescarTotalesPuntual()
+        {
+            OnPropertyChanged(nameof(UnidadesPuntual));
+            OnPropertyChanged(nameof(ProductosPuntual));
+            EnviarPuntualCommand?.NotifyCanExecuteChanged();
+        }
 
         public int Unidades => Lineas.Sum(l => l.Cantidad);
         public int Productos => Lineas.Count(l => l.Cantidad > 0);
@@ -203,12 +499,17 @@ namespace Nesto.Modules.Producto.ViewModels
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
+                if (HayReposicion && EnModoPuntual)
+                {
+                    // Sugerencia 581: ha llegado la del calendario: primero se manda esa (la API no deja hacer la puntual)
+                    SalirDePuntual();
+                }
                 if (!HayReposicion)
                 {
                     _textoSinReposicion = _puedeRellenarManual
                         ? $"{Almacen} no tiene ninguna reposición en preparación. Pulsa «Preparar reposición» y se propone lo que hay que mandar a Algete."
                         : TextoSeRellenaSola(await LeerCierreProximaReposicion().ConfigureAwait(true), Ahora());
-                    Mensaje = _textoSinReposicion;
+                    Mensaje = EnModoPuntual ? TEXTO_PUNTUAL : _textoSinReposicion;
                 }
             }, avisarEnDialogo: false).ConfigureAwait(true);
             RefrescarEstado();
@@ -305,6 +606,12 @@ namespace Nesto.Modules.Producto.ViewModels
             string codigo = lectura?.Trim();
             if (string.IsNullOrEmpty(codigo))
             {
+                return;
+            }
+            if (EnModoPuntual)
+            {
+                // Sugerencia 581: en la puntual se busca en el servidor (no está en ninguna lista)
+                LecturaPuntualEnCurso = LeerPuntualAsync(codigo);
                 return;
             }
             if (!HayReposicion)
@@ -493,9 +800,15 @@ namespace Nesto.Modules.Producto.ViewModels
         private void RefrescarEstado()
         {
             OnPropertyChanged(nameof(PuedePreparar));
+            OnPropertyChanged(nameof(PuedeEmpezarPuntual));
+            OnPropertyChanged(nameof(MostrarLector));
             PrepararCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();
             ImprimirCommand?.NotifyCanExecuteChanged();
+            EmpezarPuntualCommand?.NotifyCanExecuteChanged();
+            CancelarPuntualCommand?.NotifyCanExecuteChanged();
+            EnviarPuntualCommand?.NotifyCanExecuteChanged();
+            QuitarLineaPuntualCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>
