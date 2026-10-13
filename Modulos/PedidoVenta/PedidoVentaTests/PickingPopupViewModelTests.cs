@@ -4,6 +4,9 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Messaging;
+using Nesto.Informes;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PedidoVentaTests
@@ -225,6 +228,96 @@ namespace PedidoVentaTests
 
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
             A.CallTo(() => _dialogService.ShowNotification(A<string>.Ignored, A<string>.That.Contains("cierra el lunes"))).MustHaveHappenedOnceExactly();
+        }
+
+        // ===== NestoAPI#606 (kits, 13/10/26): la fecha de entrega a la agencia cuenta lo que sale desmontando un kit, y eso
+        // solo pasa si almacén saca el informe de kits antes del picking. Si hay kits que desmontar y no se ha sacado, se pregunta.
+
+        private (PickingPopupViewModel Vm, IInformesService Informes, List<string> Abiertos) PickingConKits(params KitsQueSePuedenMontarModel[] kits)
+        {
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var informes = A.Fake<IInformesService>();
+            A.CallTo(() => informes.LeerKitsQueSePuedenMontar("1", A<string>.Ignored, "ALG", A<string>.Ignored))
+                .Returns(Task.FromResult(kits.ToList()));
+            A.CallTo(() => informes.DescargarKitsQueSePuedenMontarPdf(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 1 }));
+            var vm = CrearViewModel(informes);
+            var abiertos = new List<string>();
+            vm.abrirPdf = (pdf, nombre) => abiertos.Add(nombre);
+            vm.esPickingPedido = false;
+            vm.esPickingRutas = true;
+            return (vm, informes, abiertos);
+        }
+
+        private static KitsQueSePuedenMontarModel Desmontar(string kit, string nombre) =>
+            new KitsQueSePuedenMontarModel { Tipo = "D", Kit = kit + "          ", Nombre = nombre, CantidadAMontar = 6 };
+
+        [TestMethod]
+        public async Task SacarPicking_ConKitsQueDesmontarYSinInforme_PreguntaYSiDiceQueSi_AbreElInformeYNoSacaElPicking()
+        {
+            var (vm, informes, abiertos) = PickingConKits(Desmontar("43191", "VEGAN GUANTES (LIMA + PALO DE NARANJO)"));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer("Kits que desmontar",
+                A<string>.That.Contains("Hay 1 kit que desmontar antes de este picking"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored,
+                A<string>.That.Contains("43191 VEGAN GUANTES (LIMA + PALO DE NARANJO)"))).MustHaveHappenedOnceExactly();
+            CollectionAssert.AreEqual(new[] { "InformeKitsQueSePuedenMontar.pdf" }, abiertos);
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustNotHaveHappened();
+            Assert.IsTrue(vm.informeKitsSacado);
+            Assert.IsFalse(vm.estaSacandoPicking);
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_ConKitsQueDesmontar_SiDiceQueNo_SacaElPickingIgualmente()
+        {
+            var (vm, _, abiertos) = PickingConKits(Desmontar("43191", "VEGAN GUANTES"), Desmontar("45494", "PACK EXOSOMAS"));
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(false);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.That.Contains("Hay 2 kits que desmontar"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(0, abiertos.Count);
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_ConElInformeDeKitsYaSacadoEnLaVentana_NoPregunta()
+        {
+            var (vm, _, _) = PickingConKits(Desmontar("43191", "VEGAN GUANTES"));
+            vm.cmdInformeKits.Execute(null);
+            Assert.IsTrue(vm.informeKitsSacado);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_SoloKitsQueMontar_NoPregunta()
+        {
+            var (vm, _, _) = PickingConKits(new KitsQueSePuedenMontarModel { Tipo = "m", Kit = "30001", Nombre = "Pack regalo", CantidadAMontar = 5 });
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_SiFallaLaLecturaDeKits_SacaElPickingSinPreguntar()
+        {
+            var (vm, informes, _) = PickingConKits();
+            A.CallTo(() => informes.LeerKitsQueSePuedenMontar(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
+                .ThrowsAsync(new System.Exception("API caída"));
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
         }
     }
 }

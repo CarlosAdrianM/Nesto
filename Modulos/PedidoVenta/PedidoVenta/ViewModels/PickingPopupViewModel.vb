@@ -153,23 +153,89 @@ Public Class PickingPopupViewModel
     Private Async Sub OnInformeKits()
         Try
             estaSacandoPicking = True
-            ' Nesto#340: el render se hace en el backend (QuestPDF); aquí solo descargamos el PDF.
-            Dim pdf As Byte() = Await _servicioInformes.DescargarKitsQueSePuedenMontarPdf(
-                empresa:="1",
-                fecha:=DateTime.Today.AddDays(4).ToString("dd/MM/yy"),
-                almacen:="ALG",
-                filtroRutas:=FILTRO_RUTAS_DEFECTO)
-            Dim fileName As String = Path.GetTempPath + "InformeKitsQueSePuedenMontar.pdf"
-            File.WriteAllBytes(fileName, pdf)
-            Process.Start(New ProcessStartInfo(fileName) With {
-                .UseShellExecute = True
-            })
+            Await AbrirInformeKitsAsync()
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         Finally
             estaSacandoPicking = False
         End Try
     End Sub
+
+    ' Los mismos parámetros para el informe y para el aviso de antes del picking (NestoAPI#606, kits).
+    Private Shared Function FechaInformeKits() As String
+        Return DateTime.Today.AddDays(4).ToString("dd/MM/yy")
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#606 (kits, 13/10/26): la fecha de entrega a la agencia cuenta lo que sale desmontando un kit en Algete el
+    ''' mismo día, y eso solo es verdad si almacén saca este informe antes del picking. Se recuerda si ya se ha sacado en
+    ''' esta ventana para no volver a preguntar.
+    ''' </summary>
+    Public Property informeKitsSacado As Boolean
+
+    Private Async Function AbrirInformeKitsAsync() As Task
+        ' Nesto#340: el render se hace en el backend (QuestPDF); aquí solo descargamos el PDF.
+        Dim pdf As Byte() = Await _servicioInformes.DescargarKitsQueSePuedenMontarPdf(
+            empresa:="1",
+            fecha:=FechaInformeKits(),
+            almacen:="ALG",
+            filtroRutas:=FILTRO_RUTAS_DEFECTO)
+        informeKitsSacado = True
+        abrirPdf.Invoke(pdf, "InformeKitsQueSePuedenMontar.pdf")
+    End Function
+
+    ' Para los tests: sin abrir el visor de PDF.
+    Friend Property abrirPdf As Action(Of Byte(), String) = Sub(pdf, nombre)
+                                                                 Dim fileName As String = Path.GetTempPath + nombre
+                                                                 File.WriteAllBytes(fileName, pdf)
+                                                                 Process.Start(New ProcessStartInfo(fileName) With {
+                                                                     .UseShellExecute = True
+                                                                 })
+                                                             End Sub
+
+    ''' <summary>
+    ''' NestoAPI#606 (kits): los kits que el informe dice que hay que DESMONTAR (Tipo «D»), con los mismos datos que el informe.
+    ''' Si no se puede leer, no se pregunta nada (no debe impedir sacar el picking).
+    ''' </summary>
+    Friend Async Function KitsQueDesmontarAsync() As Task(Of List(Of String))
+        Try
+            Dim kits = Await _servicioInformes.LeerKitsQueSePuedenMontar("1", FechaInformeKits(), "ALG", FILTRO_RUTAS_DEFECTO)
+            If kits Is Nothing Then
+                Return New List(Of String)
+            End If
+            Return kits.Where(Function(k) String.Equals(k.Tipo?.Trim(), "D", StringComparison.OrdinalIgnoreCase)) _
+                .Select(Function(k) (k.Kit?.Trim() + " " + If(k.Nombre?.Trim(), String.Empty)).Trim()) _
+                .Distinct() _
+                .ToList()
+        Catch ex As Exception
+            Return New List(Of String)
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#606 (kits): antes de sacar el picking, si hay kits que desmontar y no se ha sacado el informe en esta ventana,
+    ''' se pregunta. Sí → se abre el informe y el picking NO se saca (se desmonta y se vuelve a pulsar); No → sale igualmente.
+    ''' Devuelve True si hay que seguir con el picking.
+    ''' </summary>
+    Friend Async Function ComprobarKitsQueDesmontarAsync() As Task(Of Boolean)
+        If informeKitsSacado Then
+            Return True
+        End If
+        Dim kits As List(Of String) = Await KitsQueDesmontarAsync()
+        If Not kits.Any() Then
+            Return True
+        End If
+        Dim cuantos As String = If(kits.Count = 1, "Hay 1 kit que desmontar", $"Hay {kits.Count} kits que desmontar")
+        Dim pregunta As String = $"{cuantos} antes de este picking:" + vbCrLf + String.Join(vbCrLf, kits.Select(Function(k) "  • " + k)) +
+            vbCrLf + vbCrLf + "¿Sacar el informe de kits?" + vbCrLf +
+            "Sí: se abre el informe y el picking NO se saca todavía (desmonta los kits y vuelve a sacarlo)." + vbCrLf +
+            "No: se saca el picking igualmente."
+        If Not dialogService.ShowConfirmationAnswer("Kits que desmontar", pregunta) Then
+            Return True
+        End If
+        Await AbrirInformeKitsAsync()
+        Return False
+    End Function
 
 
 
@@ -285,6 +351,9 @@ Public Class PickingPopupViewModel
     Friend Async Function SacarPickingAsync(pedidoPicking As PedidoVentaDTO) As Task
         Try
             estaSacandoPicking = True
+            If Not Await ComprobarKitsQueDesmontarAsync() Then
+                Return
+            End If
             If esPickingPedido Then
                 Dim empresaPicking As String
                 If Not IsNothing(pedidoPicking) Then
