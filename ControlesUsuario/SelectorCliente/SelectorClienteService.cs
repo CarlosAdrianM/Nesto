@@ -12,7 +12,14 @@ namespace ControlesUsuario.Services
 {
     public class SelectorClienteService : ISelectorClienteService
     {
-        public async Task<ObservableCollection<ClienteDTO>> BuscarClientes(string empresa, string vendedor, string filtro)
+        public Task<ObservableCollection<ClienteDTO>> BuscarClientes(string empresa, string vendedor, string filtro)
+            => BuscarClientes(empresa, vendedor, filtro, false);
+
+        // Sugerencia 582: la API pone delante el contacto en estado 9 si el vendedor es telefónico
+        public Task<ObservableCollection<ClienteDTO>> BuscarClientesContactoTelefonicoPrimero(string empresa, string vendedor, string filtro)
+            => BuscarClientes(empresa, vendedor, filtro, true);
+
+        private async Task<ObservableCollection<ClienteDTO>> BuscarClientes(string empresa, string vendedor, string filtro, bool contactoTelefonicoPrimero)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -40,6 +47,10 @@ namespace ControlesUsuario.Services
                     {
                         urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=" + vendedor + "&filtro=" + filtro;
                     }
+                    if (contactoTelefonicoPrimero)
+                    {
+                        urlConsulta += "&contactoTelefonicoPrimero=true";
+                    }
 
 
 
@@ -63,7 +74,14 @@ namespace ControlesUsuario.Services
 
         }
 
-        public async Task<ClienteDTO> CargarCliente(string empresa, string cliente, string contacto)
+        public Task<ClienteDTO> CargarCliente(string empresa, string cliente, string contacto)
+            => CargarCliente(empresa, cliente, contacto, null);
+
+        // Sugerencia 582: sin contacto; si el vendedor es telefónico, la API devuelve el contacto en estado 9
+        public Task<ClienteDTO> CargarClienteContactoTelefonico(string empresa, string cliente, string vendedor)
+            => CargarCliente(empresa, cliente, null, vendedor);
+
+        private async Task<ClienteDTO> CargarCliente(string empresa, string cliente, string contacto, string vendedorTelefonico)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -83,6 +101,10 @@ namespace ControlesUsuario.Services
                 try
                 {
                     string urlConsulta = "Clientes?empresa=" + empresa + "&cliente=" + cliente + "&contacto=" + contacto; //contacto en blanco para que coja clientePrincipal
+                    if (!string.IsNullOrWhiteSpace(vendedorTelefonico))
+                    {
+                        urlConsulta += "&vendedorTelefonico=" + vendedorTelefonico;
+                    }
 
                     response = await client.GetAsync(urlConsulta);
 

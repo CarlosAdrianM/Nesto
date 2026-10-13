@@ -162,6 +162,12 @@ namespace ControlesUsuario.ViewModels
 
         // Badge discreto solo cuando el panel está colapsado (desplegado ya se ven los contactos).
         public bool MostrarBadgeContactos => NumeroContactos > 0 && !visibilidadSelectorEntrega && visibilidadDatosCliente;
+
+        // Sugerencia 582 (María José): solo en Rapports. Si el usuario es vendedor telefónico, al
+        // teclear el cliente sale el contacto en estado 9 y no el principal, y en la lista de la
+        // búsqueda ese contacto va el primero de su cliente. Quién es telefónico lo decide la API
+        // con el vendedor del usuario; para el resto todo sigue igual.
+        public bool PriorizarContactoTelefonico { get; set; }
         #endregion
 
 
@@ -211,7 +217,9 @@ namespace ControlesUsuario.ViewModels
             try
             {
                 mostrarCargando(true);
-                var listaDevuelta = await Servicio.BuscarClientes(empresa, vendedor, filtro);
+                var listaDevuelta = PriorizarContactoTelefonico
+                    ? await Servicio.BuscarClientesContactoTelefonicoPrimero(empresa, vendedor, filtro)
+                    : await Servicio.BuscarClientes(empresa, vendedor, filtro);
                 if (listaDevuelta != null)
                 {
                     listaClientes.ListaFijada = new ObservableCollection<IFiltrableItem>(listaDevuelta);
@@ -252,7 +260,9 @@ namespace ControlesUsuario.ViewModels
                 //    contactoSeleccionado = null;
                 //}
 
-                ClienteDTO clienteLeido = await Servicio.CargarCliente(empresa, cliente, contactoSeleccionado);
+                ClienteDTO clienteLeido = PriorizarContactoTelefonico && string.IsNullOrWhiteSpace(contactoSeleccionado)
+                    ? await Servicio.CargarClienteContactoTelefonico(empresa, cliente, vendedor)
+                    : await Servicio.CargarCliente(empresa, cliente, contactoSeleccionado);
 
                 if (clienteLeido != null)
                 {

@@ -394,6 +394,29 @@ namespace ControlesUsuario
         }
 
         /// <summary>
+        /// Sugerencia 582: con True (hoy solo en Rapports), al vendedor telefónico le sale el contacto
+        /// del cliente en estado 9 en vez del principal. Por defecto False: el resto de pantallas igual.
+        /// </summary>
+        public bool PriorizarContactoTelefonico
+        {
+            get { return (bool)GetValue(PriorizarContactoTelefonicoProperty); }
+            set { SetValue(PriorizarContactoTelefonicoProperty, value); }
+        }
+
+        public static readonly DependencyProperty PriorizarContactoTelefonicoProperty =
+            DependencyProperty.Register(nameof(PriorizarContactoTelefonico), typeof(bool),
+              typeof(SelectorCliente),
+              new FrameworkPropertyMetadata(false, new PropertyChangedCallback(OnPriorizarContactoTelefonicoChanged)));
+
+        private static void OnPriorizarContactoTelefonicoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is SelectorCliente selector && selector.DataContext is SelectorClienteViewModel vmSelector)
+            {
+                vmSelector.PriorizarContactoTelefonico = (bool)e.NewValue;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the ETIQUETA para las llamadas a la API
         /// </summary>
         public string Etiqueta
