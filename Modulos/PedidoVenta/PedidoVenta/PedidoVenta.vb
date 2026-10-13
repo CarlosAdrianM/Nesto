@@ -12,6 +12,8 @@ Public Class PedidoVenta
         Dim unused3 = containerRegistry.Register(Of Object, PedidoVentaView)("PedidoVentaView")
         Dim unused2 = containerRegistry.Register(Of Object, DetallePedidoView)("DetallePedidoView")
         containerRegistry.RegisterDialog(Of PickingPopupView, PickingPopupViewModel)
+        ' Sugerencia 575: pedidos que podrían ir por nuestra ruta, antes de sacar el picking
+        containerRegistry.RegisterDialog(Of SugerenciasRutaPickingPopup, SugerenciasRutaPickingPopupViewModel)(SugerenciasRutaPickingPopupViewModel.NOMBRE)
         containerRegistry.RegisterDialog(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
         containerRegistry.RegisterDialog(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
         containerRegistry.RegisterDialog(Of CopiarFacturaView, CopiarFacturaViewModel)

@@ -15,6 +15,11 @@ Public Interface IPedidoVentaService
     Function sacarPickingPedido(empresa As String, numero As Integer, Optional ignorarCierreCliente As Boolean = False) As Task
     Function sacarPickingPedido(cliente As String) As Task
     Function sacarPickingPedido() As Task
+    ''' <summary>Sugerencia 575: pedidos que van por OnTime y seguramente saldrán por nuestra ruta (AT/16), con el alcance del
+    ''' picking (un pedido, un cliente o, sin nada, el de rutas). Solo para almacén, antes de sacar el picking.</summary>
+    Function LeerSugerenciasRutaPicking(empresa As String, numeroPedido As Integer, cliente As String) As Task(Of List(Of SugerenciaRutaPicking))
+    ''' <summary>Sugerencia 575: pasa a nuestra ruta los pedidos marcados (solo si siguen con la ruta que se vio).</summary>
+    Function CambiarRutaPedidos(cambios As IEnumerable(Of SugerenciaRutaPicking)) As Task(Of List(Of ResultadoCambioRutaPicking))
     Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))
     Function EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String)
     Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer))

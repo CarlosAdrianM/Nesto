@@ -442,6 +442,50 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Sugerencia 575 (Alfredo): GET api/Picking/SugerenciasRuta con el mismo alcance que el picking que se va a sacar.
+    ''' </summary>
+    Public Async Function LeerSugerenciasRutaPicking(empresa As String, numeroPedido As Integer, cliente As String) As Task(Of List(Of SugerenciaRutaPicking)) Implements IPedidoVentaService.LeerSugerenciasRutaPicking
+        Dim url As String = "Picking/SugerenciasRuta"
+        If numeroPedido > 0 Then
+            url += $"?empresa={Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))}&numeroPedido={numeroPedido}"
+        ElseIf Not String.IsNullOrWhiteSpace(cliente) Then
+            url += $"?cliente={Uri.EscapeDataString(cliente.Trim())}"
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync(url)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of SugerenciaRutaPicking))(cuerpo), New List(Of SugerenciaRutaPicking))
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 575: POST api/Picking/CambiarRuta con los pedidos marcados. El usuario lo pone la API (el del JWT).
+    ''' </summary>
+    Public Async Function CambiarRutaPedidos(cambios As IEnumerable(Of SugerenciaRutaPicking)) As Task(Of List(Of ResultadoCambioRutaPicking)) Implements IPedidoVentaService.CambiarRutaPedidos
+        Dim peticion = New With {
+            .Cambios = If(cambios, Enumerable.Empty(Of SugerenciaRutaPicking)()).Select(Function(c) New With {
+                .Empresa = c.Empresa,
+                .Pedido = c.Pedido,
+                .RutaAnterior = c.RutaActual,
+                .RutaNueva = c.RutaNueva
+            }).ToList(),
+            .Usuario = configuracion.usuario
+        }
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync("Picking/CambiarRuta", content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of ResultadoCambioRutaPicking))(cuerpo), New List(Of ResultadoCambioRutaPicking))
+        End Using
+    End Function
+
     Public Async Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO)) Implements IPedidoVentaService.CargarEnlacesSeguimiento
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

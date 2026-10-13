@@ -237,6 +237,100 @@ Public Class PickingPopupViewModel
         Return False
     End Function
 
+    ''' <summary>
+    ''' Sugerencia 575 (Alfredo, 13/10/26): pedidos de este picking ya enseñados en el aviso de ruta propia en esta ventana
+    ''' ("empresa/pedido"), para no volver a preguntar por ellos en el siguiente picking (p. ej. si no salieron por stock).
+    ''' </summary>
+    Friend ReadOnly Property pedidosRutaYaRevisados As New HashSet(Of String)
+
+    Private Shared Function ClaveRevision(s As SugerenciaRutaPicking) As String
+        Return $"{s.Empresa?.Trim()}/{s.Pedido}"
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 575: los pedidos de ESTE picking (el pedido, el cliente o las rutas) que van por OnTime y que seguramente
+    ''' saldrán por nuestra ruta. Si no se puede leer, no se pregunta nada (no debe impedir sacar el picking).
+    ''' </summary>
+    Friend Async Function SugerenciasRutaAsync() As Task(Of List(Of SugerenciaRutaPicking))
+        Try
+            Dim sugerencias As List(Of SugerenciaRutaPicking)
+            If esPickingPedido Then
+                Dim empresaPicking As String = If(pedidoPicking?.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
+                sugerencias = Await servicio.LeerSugerenciasRutaPicking(empresaPicking, numeroPedidoPicking, Nothing)
+            ElseIf esPickingCliente Then
+                If String.IsNullOrWhiteSpace(numeroClientePicking) Then
+                    Return New List(Of SugerenciaRutaPicking)
+                End If
+                sugerencias = Await servicio.LeerSugerenciasRutaPicking(Nothing, 0, numeroClientePicking)
+            ElseIf esPickingRutas Then
+                sugerencias = Await servicio.LeerSugerenciasRutaPicking(Nothing, 0, Nothing)
+            Else
+                Return New List(Of SugerenciaRutaPicking)
+            End If
+            Return If(sugerencias, New List(Of SugerenciaRutaPicking)) _
+                .Where(Function(s) Not pedidosRutaYaRevisados.Contains(ClaveRevision(s))) _
+                .ToList()
+        Catch ex As Exception
+            Return New List(Of SugerenciaRutaPicking)
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 575 (Alfredo, almacén; decisión de Carlos 13/10/26): antes de sacar el picking, si hay pedidos que van por
+    ''' OnTime y seguramente saldrán por nuestra ruta (AT/16), se enseñan con la ruta propuesta y el motivo. Almacén decide:
+    ''' - «Cambiar la ruta de los marcados y sacar el picking»: se cambia (vía API, con su usuario) y sigue el picking. Si
+    '''   alguno no se ha podido cambiar, se dice cuál y se pregunta si sacar el picking igualmente.
+    ''' - «Sacar el picking sin cambiar nada»: sale como está.
+    ''' - «Cancelar»: el picking NO se saca.
+    ''' Solo aquí, al sacar el picking: a quien mete el pedido no se le avisa de nada. Devuelve True si hay que seguir.
+    ''' </summary>
+    Friend Async Function ComprobarSugerenciasRutaAsync() As Task(Of Boolean)
+        Dim sugerencias As List(Of SugerenciaRutaPicking) = Await SugerenciasRutaAsync()
+        If Not sugerencias.Any() Then
+            Return True
+        End If
+
+        Dim resultado As ResultadoDialogo = Await dialogService.ShowDialogAsync(SugerenciasRutaPickingPopupViewModel.NOMBRE,
+            New ParametrosDialogo From {{"sugerencias", sugerencias}})
+        If resultado Is Nothing OrElse (resultado.Result <> ResultadoBoton.OK AndAlso resultado.Result <> ResultadoBoton.No) Then
+            Return False
+        End If
+        For Each s In sugerencias
+            pedidosRutaYaRevisados.Add(ClaveRevision(s))
+        Next
+        If resultado.Result <> ResultadoBoton.OK Then
+            Return True
+        End If
+
+        Dim cambios As List(Of SugerenciaRutaPicking) = If(resultado.Parameters.GetValue(Of List(Of SugerenciaRutaPicking))("cambios"),
+                                                          sugerencias.Where(Function(s) s.Marcado).ToList())
+        If Not cambios.Any() Then
+            Return True
+        End If
+
+        Dim fallos As New List(Of String)
+        Dim errorGeneral As String = Nothing
+        Try
+            Dim resultados As List(Of ResultadoCambioRutaPicking) = Await servicio.CambiarRutaPedidos(cambios)
+            For Each cambio In cambios
+                Dim r = resultados?.FirstOrDefault(Function(x) x.Pedido = cambio.Pedido AndAlso x.Empresa?.Trim() = cambio.Empresa?.Trim())
+                If r Is Nothing OrElse Not r.Cambiado Then
+                    fallos.Add($"  • {cambio.Pedido}: {If(r?.Error, "no se ha cambiado")}")
+                End If
+            Next
+        Catch ex As Exception
+            errorGeneral = ex.Message
+        End Try
+
+        If errorGeneral Is Nothing AndAlso Not fallos.Any() Then
+            Return True
+        End If
+        Dim detalle As String = If(errorGeneral, String.Join(vbCrLf, fallos))
+        Return dialogService.ShowConfirmationAnswer("Cambio de ruta",
+            "No se ha podido cambiar la ruta de todos los pedidos marcados:" + vbCrLf + detalle + vbCrLf + vbCrLf +
+            "¿Sacar el picking igualmente? (los que no se han cambiado salen por la ruta que tenían)")
+    End Function
+
 
 
 
@@ -352,6 +446,9 @@ Public Class PickingPopupViewModel
         Try
             estaSacandoPicking = True
             If Not Await ComprobarKitsQueDesmontarAsync() Then
+                Return
+            End If
+            If Not Await ComprobarSugerenciasRutaAsync() Then
                 Return
             End If
             If esPickingPedido Then
