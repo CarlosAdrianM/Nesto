@@ -863,7 +863,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"NestoAPI rechazó la tramitación ({CInt(response.StatusCode)}): {cuerpo}")
+                Throw New Exception(MensajeErrorTramitacion(CInt(response.StatusCode), cuerpo))
             End If
 
             Return JsonConvert.DeserializeObject(Of TramitarEnvioResultadoDto)(cuerpo)
@@ -1022,16 +1022,39 @@ Public Class AgenciaService
     ''' siempre, con el código HTTP y el cuerpo.
     ''' </summary>
     Friend Shared Function MensajeErrorSeguimiento(codigoHttp As Integer, cuerpo As String) As String
+        Return If(MensajeDeLaApiConCodigo(cuerpo, CODIGO_CUPO_AGENCIA_AGOTADO),
+                  $"No se pudo actualizar el seguimiento ({codigoHttp}): {cuerpo}")
+    End Function
+
+    ''' <summary>Sugerencia 507: código con el que la API dice que la agencia no responde (HTTP 5xx, timeout, sin conexión).</summary>
+    Friend Const CODIGO_AGENCIA_NO_RESPONDE As String = "AGENCIA_NO_RESPONDE"
+
+    ''' <summary>
+    ''' Sugerencia 507 (Alfredo, 06/10/26): el texto del error al tramitar o reimprimir la etiqueta de una agencia de
+    ''' plataforma (CTT, Innovatrans). Si la agencia no responde, la API ya manda un mensaje para el usuario («CTT no
+    ''' responde ahora mismo… sácalo por GLS») y se enseña tal cual, en vez de «HTTP 500» y el JSON de la agencia; si no,
+    ''' como siempre, con el código HTTP y el cuerpo.
+    ''' </summary>
+    Friend Shared Function MensajeErrorTramitacion(codigoHttp As Integer, cuerpo As String) As String
+        Return If(MensajeDeLaApiConCodigo(cuerpo, CODIGO_AGENCIA_NO_RESPONDE),
+                  $"NestoAPI rechazó la tramitación ({codigoHttp}): {cuerpo}")
+    End Function
+
+    ''' <summary>
+    ''' El «Message» de un error de la API cuando trae en «Codigo» el código indicado (avisos ya pensados para el usuario);
+    ''' Nothing si no es JSON, no trae ese código o no trae mensaje.
+    ''' </summary>
+    Private Shared Function MensajeDeLaApiConCodigo(cuerpo As String, codigo As String) As String
         Try
             Dim respuesta = Newtonsoft.Json.Linq.JObject.Parse(If(cuerpo, String.Empty))
             Dim mensaje As String = CStr(respuesta("Message"))
-            If CStr(respuesta("Codigo")) = CODIGO_CUPO_AGENCIA_AGOTADO AndAlso Not String.IsNullOrWhiteSpace(mensaje) Then
+            If CStr(respuesta("Codigo")) = codigo AndAlso Not String.IsNullOrWhiteSpace(mensaje) Then
                 Return mensaje
             End If
         Catch ex As Newtonsoft.Json.JsonException
             ' No es JSON: se enseña en bruto
         End Try
-        Return $"No se pudo actualizar el seguimiento ({codigoHttp}): {cuerpo}"
+        Return Nothing
     End Function
 
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso

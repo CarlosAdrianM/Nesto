@@ -24,4 +24,25 @@ Public Class AgenciaServiceMensajeSeguimientoTests
         Assert.AreEqual("No se pudo actualizar el seguimiento (502): Bad Gateway", AgenciaService.MensajeErrorSeguimiento(502, "Bad Gateway"))
     End Sub
 
+    ' Sugerencia 507 (Alfredo, 06/10/26): con CTT caído, al tramitar/imprimir la etiqueta solo se veía «HTTP 500».
+
+    <TestMethod()>
+    Public Sub Tramitacion_AgenciaNoResponde_EnsenaSoloElMensajeDeLaApi()
+        Dim cuerpo = "{""Message"":""CTT no responde ahora mismo (error de su servidor). Vuelve a intentarlo en unos minutos o, si es urgente, sácalo por GLS."",""Codigo"":""AGENCIA_NO_RESPONDE"",""Detalle"":""CTT (Insertar) respondió HTTP 500: CONNECTIVITY""}"
+        Assert.AreEqual("CTT no responde ahora mismo (error de su servidor). Vuelve a intentarlo en unos minutos o, si es urgente, sácalo por GLS.",
+                        AgenciaService.MensajeErrorTramitacion(502, cuerpo))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Tramitacion_OtroError_SeEnsenaComoSiempre()
+        Dim cuerpo = """CTT aceptó el envío pero la respuesta no trae shipping_code"""
+        Assert.AreEqual("NestoAPI rechazó la tramitación (502): " & cuerpo, AgenciaService.MensajeErrorTramitacion(502, cuerpo))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Tramitacion_CupoAgotado_NoEsDeTramitarYSeEnsenaComoSiempre()
+        Dim cuerpo = "{""Message"":""CTT limita las consultas"",""Codigo"":""CUPO_AGENCIA_AGOTADO""}"
+        Assert.AreEqual("NestoAPI rechazó la tramitación (429): " & cuerpo, AgenciaService.MensajeErrorTramitacion(429, cuerpo))
+    End Sub
+
 End Class
