@@ -10,12 +10,9 @@ Imports Nesto.Models
 Imports Nesto.Models.LineaPedidoVentaDTO
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 
 Public Class PickingPopupViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
     Private Const FILTRO_RUTAS_DEFECTO As String = "(ruta='AT ' or ruta='OT ' or ruta='16 ' or ruta='FW ' or ruta='00 ')"
 
@@ -42,21 +39,10 @@ Public Class PickingPopupViewModel
         cmdInformePicking = New RelayCommand(AddressOf OnInformePicking)
         cmdInformePacking = New RelayCommand(AddressOf OnInformePacking)
         cmdSacarPicking = New RelayCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        Title = "Picking"
     End Sub
 
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return "Picking"
-        End Get
-    End Property
-
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-
-    End Sub
-
-    Public Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Sub OnDialogOpened(parameters As ParametrosDialogo)
         pedidoPicking = parameters.GetValue(Of PedidoVentaDTO)("pedidoPicking")
         If Not IsNothing(pedidoPicking) Then
             numeroPedidoPicking = pedidoPicking.numero
@@ -66,9 +52,6 @@ Public Class PickingPopupViewModel
         End If
     End Sub
 
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
-        Return True
-    End Function
 
 
 

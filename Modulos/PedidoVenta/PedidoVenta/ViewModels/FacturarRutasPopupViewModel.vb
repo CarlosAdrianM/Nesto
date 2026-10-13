@@ -6,16 +6,13 @@ Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
 Imports Unity
 
 ''' <summary>
 ''' ViewModel para el popup de facturación de rutas
 ''' </summary>
 Public Class FacturarRutasPopupViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly dialogService As IServicioDialogos
@@ -42,26 +39,16 @@ Public Class FacturarRutasPopupViewModel
         ' Inicializar colección vacía
         TiposRutaDisponibles = New ObservableCollection(Of TipoRutaInfoDTO)()
 
+        Title = "Facturar Rutas"
+
         System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel constructor completado ===")
     End Sub
 
 #End Region
 
-#Region "IDialogAware Implementation"
+#Region "IDialogoNesto"
 
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return "Facturar Rutas"
-        End Get
-    End Property
-
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-        ' Limpieza si es necesaria
-    End Sub
-
-    Public Async Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Async Sub OnDialogOpened(parameters As ParametrosDialogo)
         System.Diagnostics.Debug.WriteLine("=== OnDialogOpened EJECUTADO ===")
         System.Diagnostics.Debug.WriteLine($"Parameters is Nothing: {parameters Is Nothing}")
 
@@ -71,7 +58,7 @@ Public Class FacturarRutasPopupViewModel
         System.Diagnostics.Debug.WriteLine("=== OnDialogOpened COMPLETADO ===")
     End Sub
 
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
+    Public Overrides Function CanCloseDialog() As Boolean
         Return Not EstaProcesando
     End Function
 
@@ -534,8 +521,7 @@ Public Class FacturarRutasPopupViewModel
     End Sub
 
     Private Sub Cancelar()
-        ' Cerrar el diálogo usando Prism DialogService
-        RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel))
+        RaiseRequestClose(ResultadoBoton.Cancel)
     End Sub
 
     ''' <summary>

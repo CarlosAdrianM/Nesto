@@ -1,28 +1,19 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 Imports CommunityToolkit.Mvvm.Input
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports ControlesUsuario.Models
 
 Public Class CopiarFacturaViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
     Private ReadOnly _servicio As IPedidoVentaService
     Private ReadOnly _configuracion As IConfiguracion
 
 #Region "Propiedades"
-
-    Private _titulo As String = "Copiar Factura / Crear Rectificativa"
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return _titulo
-        End Get
-    End Property
 
     Private _empresa As String
     Public Property Empresa As String
@@ -385,15 +376,14 @@ Public Class CopiarFacturaViewModel
         _servicio = servicio
         _configuracion = configuracion
         _empresa = Constantes.Empresas.EMPRESA_DEFECTO
+        Title = "Copiar Factura / Crear Rectificativa"
     End Sub
 
 #End Region
 
-#Region "IDialogAware"
+#Region "IDialogoNesto"
 
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Sub OnDialogOpened(parameters As ParametrosDialogo)
         If parameters IsNot Nothing Then
             If parameters.ContainsKey("empresa") Then
                 Empresa = parameters.GetValue(Of String)("empresa")
@@ -407,11 +397,7 @@ Public Class CopiarFacturaViewModel
         End If
     End Sub
 
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-        ' Cleanup si necesario
-    End Sub
-
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
+    Public Overrides Function CanCloseDialog() As Boolean
         Return Not EstaProcesando
     End Function
 
@@ -475,7 +461,7 @@ Public Class CopiarFacturaViewModel
     End Function
 
     Private Sub OnCancelar()
-        RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel))
+        RaiseRequestClose(ResultadoBoton.Cancel)
     End Sub
 
     Private Function CanAbrirPedido() As Boolean
@@ -484,10 +470,10 @@ Public Class CopiarFacturaViewModel
 
     Private Sub OnAbrirPedido()
         ' Cerrar y devolver el numero de pedido para que el llamador lo abra
-        Dim parametros As New DialogParameters From {
+        Dim parametros As New ParametrosDialogo From {
             {"numeroPedido", Resultado.NumeroPedido}
         }
-        RaiseEvent RequestClose(New DialogResult(ButtonResult.OK, parametros))
+        RaiseRequestClose(New ResultadoDialogo(ResultadoBoton.OK, parametros))
     End Sub
 
 #End Region

@@ -1,7 +1,7 @@
 ﻿Imports Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
 
 ''' <summary>
 ''' NestoAPI#352 (decisión Carlos 20/08/26): una línea de inmovilizado comisiona por el grupo
@@ -11,14 +11,11 @@ Imports Prism.Services.Dialogs
 ''' Aceptar solo se habilita con un grupo elegido; Cancelar aborta el guardado del pedido.
 ''' </summary>
 Public Class SelectorGrupoComisionDialogViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return "Grupo de comisión del inmovilizado"
-        End Get
-    End Property
+    Public Sub New()
+        Title = "Grupo de comisión del inmovilizado"
+    End Sub
 
     Private _mensaje As String
     Public Property Mensaje As String
@@ -58,10 +55,10 @@ Public Class SelectorGrupoComisionDialogViewModel
             If _aceptarCommand Is Nothing Then
                 _aceptarCommand = New RelayCommand(
                     Sub()
-                        Dim resultado As New DialogResult(ButtonResult.OK, New DialogParameters From {
+                        Dim resultado As New ResultadoDialogo(ResultadoBoton.OK, New ParametrosDialogo From {
                             {"grupo", GrupoSeleccionado}
                         })
-                        RaiseEvent RequestClose(resultado)
+                        RaiseRequestClose(resultado)
                     End Sub,
                     Function() Not String.IsNullOrWhiteSpace(GrupoSeleccionado))
             End If
@@ -74,22 +71,13 @@ Public Class SelectorGrupoComisionDialogViewModel
         Get
             If _cancelarCommand Is Nothing Then
                 _cancelarCommand = New RelayCommand(
-                    Sub() RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel)))
+                    Sub() RaiseRequestClose(ResultadoBoton.Cancel))
             End If
             Return _cancelarCommand
         End Get
     End Property
 
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
-        Return True
-    End Function
-
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-    End Sub
-
-    Public Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Sub OnDialogOpened(parameters As ParametrosDialogo)
         If parameters.ContainsKey("mensaje") Then
             Mensaje = parameters.GetValue(Of String)("mensaje")
         End If

@@ -1,15 +1,14 @@
 ﻿Imports System.Collections.ObjectModel
 Imports CommunityToolkit.Mvvm.Input
-Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
 Imports Unity
 
 ''' <summary>
 ''' ViewModel para mostrar los errores de facturación de rutas
 ''' </summary>
 Public Class ErroresFacturacionRutasPopupViewModel
-    Inherits ObservableObject
-    Implements IDialogAware
+    Inherits DialogoNestoBase
 
     Private ReadOnly container As IUnityContainer
 
@@ -19,6 +18,7 @@ Public Class ErroresFacturacionRutasPopupViewModel
         Me.container = container
         _errores = New ObservableCollection(Of PedidoConErrorDTO)()
         _cmdAbrirPedido = New RelayCommand(Of PedidoConErrorDTO)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
+        Title = "Errores en Facturación de Rutas"
     End Sub
 
 #End Region
@@ -128,25 +128,9 @@ Public Class ErroresFacturacionRutasPopupViewModel
 
 #End Region
 
-#Region "IDialogAware Implementation"
+#Region "IDialogoNesto"
 
-    Public ReadOnly Property Title As String Implements IDialogAware.Title
-        Get
-            Return "Errores en Facturación de Rutas"
-        End Get
-    End Property
-
-    Public Event RequestClose As Action(Of IDialogResult) Implements IDialogAware.RequestClose
-
-    Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
-        Return True
-    End Function
-
-    Public Sub OnDialogClosed() Implements IDialogAware.OnDialogClosed
-        ' Limpieza si es necesaria
-    End Sub
-
-    Public Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+    Public Overrides Sub OnDialogOpened(parameters As ParametrosDialogo)
         ' Obtener los errores desde los parámetros del diálogo
         System.Diagnostics.Debug.WriteLine($"OnDialogOpened - parameters is Nothing: {parameters Is Nothing}")
 
@@ -164,8 +148,7 @@ Public Class ErroresFacturacionRutasPopupViewModel
     ''' Cierra la ventana de errores
     ''' </summary>
     Public Sub Cerrar()
-        ' Cerrar el diálogo usando Prism DialogService
-        RaiseEvent RequestClose(New DialogResult(ButtonResult.OK))
+        RaiseRequestClose(ResultadoBoton.OK)
     End Sub
 
 #End Region

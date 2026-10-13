@@ -3,7 +3,6 @@ Imports System.Windows.Controls
 Imports System.Windows.Input
 Imports System.Windows.Media
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
-Imports Prism.Services.Dialogs
 
 Public Class ErroresFacturacionRutasPopup
 
