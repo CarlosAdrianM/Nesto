@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 Imports FakeItEasy
 Imports Nesto.Infrastructure.Contracts
@@ -26,6 +26,17 @@ Public Class ClientesViewModelTests
         _servicio = A.Fake(Of IClienteComercialService)()
         _servicioRapports = A.Fake(Of IRapportService)()
         _servicioAutenticacion = A.Fake(Of IServicioAutenticacion)()
+        _registradorOriginal = RelayCommandLegado.RegistrarErrorCanExecute
+        ErroresDeCanExecute = New List(Of Exception)
+        RelayCommandLegado.RegistrarErrorCanExecute = Sub(ex, contexto) ErroresDeCanExecute.Add(ex)
+    End Sub
+
+    Private _registradorOriginal As Action(Of Exception, String)
+    Private ErroresDeCanExecute As List(Of Exception)
+
+    <TestCleanup()>
+    Public Sub Cleanup()
+        RelayCommandLegado.RegistrarErrorCanExecute = _registradorOriginal
     End Sub
 
     Private Function CrearViewModel() As ClientesViewModel
@@ -231,5 +242,42 @@ Public Class ClientesViewModelTests
         Dim vm = CrearViewModel()
 
         vm.CargarPedidoCommand.Execute("NewItemPlaceholder")
+    End Sub
+
+    ' Incidente 13/10/26 (Laura Magán): con la cuenta del cliente anterior todavía activa y el
+    ' contacto a Nothing, rutaMandato hacía contactoActual.Trim y CanVerMandato lanzaba NRE en cada
+    ' RequerySuggested (174 errores en ELMAH en 7 minutos, Nesto imposible de cerrar).
+    ' Se comprueba también que RelayCommandLegado no ha tenido que tragarse ninguna excepción: el
+    ' predicado no debe lanzar (la guarda del comando es solo la red de seguridad).
+    <TestMethod()>
+    Public Sub CanVerMandato_ConCuentaActivaYContactoNothing_DevuelveFalseSinLanzar()
+        Dim vm = CrearViewModel()
+        vm.cuentaActiva = New CCCModel With {.Número = "1", .Estado = 5}
+        vm.contactoActual = Nothing
+
+        Assert.IsFalse(vm.cmdVerMandato.CanExecute(Nothing))
+        Assert.AreEqual(0, ErroresDeCanExecute.Count)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CanGuardar_ConCuentaConMandatoObligatorioYSinRuta_NoLanzaYNoDejaGuardar()
+        Dim vm = CrearViewModel()
+        Dim cuenta As New CCCModel With {.Número = "1", .Estado = 5}
+        cuenta.Entidad = "2100" ' marca EsModificado
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel) From {cuenta}
+        vm.cuentaActiva = cuenta
+
+        Assert.IsFalse(vm.cmdGuardar.CanExecute(Nothing))
+        Assert.AreEqual(0, ErroresDeCanExecute.Count)
+    End Sub
+
+    <TestMethod()>
+    Public Sub VerMandato_SinRutaDeMandato_AvisaYNoLanza()
+        Dim vm = CrearViewModel()
+        vm.cuentaActiva = New CCCModel With {.Número = "1"}
+
+        vm.cmdVerMandato.Execute(Nothing)
+
+        Assert.AreEqual("Esta cuenta no tiene mandato que enseñar.", vm.mensajeError)
     End Sub
 End Class

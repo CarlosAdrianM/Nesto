@@ -1246,6 +1246,10 @@ Public Class ClientesViewModel
     Private Sub VerMandato(ByVal param As Object)
         Try
             Dim fileName As String = rutaMandato()
+            If String.IsNullOrEmpty(fileName) Then
+                mensajeError = "Esta cuenta no tiene mandato que enseñar."
+                Return
+            End If
             Dim process As New System.Diagnostics.Process
             process.StartInfo.FileName = fileName
             process.StartInfo.UseShellExecute = True
@@ -1328,6 +1332,11 @@ Public Class ClientesViewModel
 
         If elegirFichero.ShowDialog() Then
             Try
+                ' Incidente 13/10/26: sin cuenta, contacto o ruta de mandatos no hay dónde copiarlo.
+                If String.IsNullOrEmpty(rutaMandato()) Then
+                    mensajeError = "Elige primero el cliente, el contacto y la cuenta a la que asignar el mandato."
+                    Return
+                End If
                 selectedPath = elegirFichero.FileName
                 FileIO.FileSystem.CopyFile(
                 selectedPath,
@@ -2295,7 +2304,17 @@ Public Class ClientesViewModel
 #End Region
 
 #Region "Funciones"
+    ' Incidente 13/10/26 (Laura Magán): con la cuenta del cliente anterior aún activa y el contacto a
+    ' Nothing (el combo de contactos lo vacía al cambiar de cliente si la lista llega vacía), el .Trim
+    ' lanzaba NRE dentro de CanVerMandato/CanGuardar en cada RequerySuggested: 174 errores en 7 minutos
+    ' y Nesto imposible de cerrar. Si falta cualquier parte, no hay ruta de mandato (Nothing): los
+    ' llamantes lo tratan como «no hay fichero».
     Private Function rutaMandato() As String
+        If IsNothing(cuentaActiva) OrElse String.IsNullOrWhiteSpace(ruta) OrElse
+            String.IsNullOrWhiteSpace(empresaActual) OrElse String.IsNullOrWhiteSpace(clienteActual) OrElse
+            String.IsNullOrWhiteSpace(contactoActual) OrElse String.IsNullOrWhiteSpace(cuentaActiva.Número) Then
+            Return Nothing
+        End If
         Return ruta + empresaActual.Trim + "_" + clienteActual.Trim + "_" + contactoActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf"
     End Function
     Private Async Sub inicializarListaClientesVendedor(filtro As String)
