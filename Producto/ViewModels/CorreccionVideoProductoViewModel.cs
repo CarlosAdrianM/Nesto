@@ -1,7 +1,7 @@
-﻿using Nesto.Modules.Producto.Models;
+﻿using ControlesUsuario.Dialogs;
+using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,11 +11,10 @@ using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class CorreccionVideoProductoViewModel : ObservableObject, IDialogAware
+    public class CorreccionVideoProductoViewModel : DialogoNestoBase
     {
         private readonly IProductoService _productoService;
         private readonly IServicioNavegacion _navegacion;
-        private Action<IDialogResult> _requestClose;
 
         public CorreccionVideoProductoViewModel(IProductoService productoService, IServicioNavegacion navegacion)
         {
@@ -25,13 +24,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
             GuardarCommand = new RelayCommand(OnGuardar, CanGuardar);
             AbrirProductosConBusquedaCommand = new RelayCommand<string>(OnAbrirProductosConBusqueda, CanAbrirProductosConBusqueda);
-        }
-
-        // Implementación correcta del evento RequestClose
-        event Action<IDialogResult> IDialogAware.RequestClose
-        {
-            add => _requestClose += value;
-            remove => _requestClose -= value;
+            Title = "Correcciones de productos del vídeo";
         }
 
         // Propiedades del video
@@ -90,9 +83,6 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        // Propiedades de IDialogAware
-        public string Title => "Correcciones de productos del vídeo";
-
         private void CargarProductosEditables()
         {
             ProductosEditables.Clear();
@@ -146,7 +136,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (!productosConCambios.Any())
                 {
                     // Sin cambios, cerrar diálogo
-                    _requestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+                    RaiseRequestClose(ResultadoBoton.Cancel);
                     return;
                 }
 
@@ -177,15 +167,15 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
 
                 // Cerrar con éxito
-                var result = new DialogResult(ButtonResult.OK);
+                var result = new ResultadoDialogo(ResultadoBoton.OK);
                 result.Parameters.Add("productosModificados", productosConCambios.Count);
-                _requestClose?.Invoke(result);
+                RaiseRequestClose(result);
             }
             catch (Exception)
             {
                 // Aquí podrías mostrar un mensaje de error
                 // Por ahora solo cerramos con Cancel
-                _requestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+                RaiseRequestClose(ResultadoBoton.Cancel);
             }
         }
 
@@ -212,7 +202,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 { "busquedaContextualParameter", nombre }
             };
 
-            _requestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            RaiseRequestClose(ResultadoBoton.Cancel);
             _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
@@ -229,18 +219,8 @@ namespace Nesto.Modules.Producto.ViewModels
             return !string.IsNullOrEmpty(Video?.UrlVideo);
         }
 
-        // Métodos de IDialogAware
-        public bool CanCloseDialog()
-        {
-            return true;
-        }
-
-        public void OnDialogClosed()
-        {
-            // Limpieza si es necesaria
-        }
-
-        public void OnDialogOpened(IDialogParameters parameters)
+        // Métodos de IDialogoNesto
+        public override void OnDialogOpened(ParametrosDialogo parameters)
         {
             // Tu código usa "producto" como parámetro
             if (parameters.ContainsKey("producto"))
@@ -250,9 +230,9 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         // Método público para cerrar el diálogo (para el code-behind)
-        public void CerrarDialogo(ButtonResult resultado)
+        public void CerrarDialogo(ResultadoBoton resultado)
         {
-            _requestClose?.Invoke(new DialogResult(resultado));
+            RaiseRequestClose(resultado);
         }
     }
 

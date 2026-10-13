@@ -1,11 +1,11 @@
 ﻿using ControlesUsuario;
+using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -15,11 +15,10 @@ using static ControlesUsuario.Models.SelectorProveedorModel;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ActualizarControlesStockPopupViewModel : ObservableObject, IDialogAware
+    public class ActualizarControlesStockPopupViewModel : DialogoNestoBase
     {
         private readonly IProductoService _productoService;
         private readonly IConfiguracion _configuracion;
-        private Action<IDialogResult> _requestClose;
         private SelectorProveedor _selectorProveedor;
         private CancellationTokenSource _cancellationTokenSource;
 
@@ -31,23 +30,14 @@ namespace Nesto.Modules.Producto.ViewModels
 
             BuscarProductosCommand = new RelayCommand(async () => await OnBuscarProductosAsync(), CanBuscarProductos);
             ActualizarCommand = new RelayCommand(async () => await OnActualizarAsync(), CanActualizar);
+            Title = "Actualizar Controles de Stock por Proveedor";
         }
 
-        #region IDialogAware
+        #region IDialogoNesto
 
-        event Action<IDialogResult> IDialogAware.RequestClose
-        {
-            add => _requestClose += value;
-            remove => _requestClose -= value;
-        }
+        public override bool CanCloseDialog() => !EstaActualizando;
 
-        public string Title => "Actualizar Controles de Stock por Proveedor";
-
-        public bool CanCloseDialog() => !EstaActualizando;
-
-        public void OnDialogClosed() { }
-
-        public async void OnDialogOpened(IDialogParameters parameters)
+        public override async void OnDialogOpened(ParametrosDialogo parameters)
         {
             try
             {
@@ -61,11 +51,11 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public void CerrarDialogo(ButtonResult resultado)
+        public void CerrarDialogo(ResultadoBoton resultado)
         {
             // Cancelar operación en curso si existe
             _cancellationTokenSource?.Cancel();
-            _requestClose?.Invoke(new DialogResult(resultado));
+            RaiseRequestClose(resultado);
         }
 
         #endregion

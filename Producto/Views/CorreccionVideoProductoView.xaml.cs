@@ -3,7 +3,7 @@
 using ControlesUsuario.Behaviors;
 using Microsoft.Xaml.Behaviors;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -56,7 +56,7 @@ namespace Nesto.Modulos.Producto.Views
         {
             if (DataContext is CorreccionVideoProductoViewModel vm)
             {
-                vm.CerrarDialogo(ButtonResult.Cancel);
+                vm.CerrarDialogo(ResultadoBoton.Cancel);
             }
         }
 
