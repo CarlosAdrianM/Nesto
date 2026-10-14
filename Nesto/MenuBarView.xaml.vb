@@ -1,7 +1,5 @@
 ﻿Imports Nesto.ViewModels
-Imports Prism.Regions
 Imports Prism.Modularity
-Imports Prism.RibbonRegionAdapter
 Imports Prism.Ioc
 Imports Prism.Unity
 Imports Unity
@@ -37,10 +35,7 @@ Public Class MenuBarView
 
         Dim view = Me
         If Not IsNothing(view) Then
-            Dim regionAdapter = containerProvider.Resolve(Of RibbonRegionAdapter)()
-            Dim mainWindow = containerProvider.Resolve(Of IMainWindow)()
-            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "NewMainMenu")
-            region.Add(view, "MenuBar")
+            containerProvider.Resolve(Of IServicioCinta)().AnadirMenu(view)
         End If
     End Sub
 End Class

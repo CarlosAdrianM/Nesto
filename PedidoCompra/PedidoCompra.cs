@@ -2,7 +2,6 @@
 using Nesto.Modulos.PedidoCompra.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 
 namespace Nesto.Modulos.PedidoCompra
 {
@@ -13,11 +12,7 @@ namespace Nesto.Modulos.PedidoCompra
             var view = containerProvider.Resolve<PedidoCompraMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "PedidoCompra");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
 

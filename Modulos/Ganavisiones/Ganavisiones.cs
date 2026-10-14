@@ -4,7 +4,6 @@ using Nesto.Modulos.Ganavisiones.Services;
 using Nesto.Modulos.Ganavisiones.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 
 namespace Nesto.Modulos.Ganavisiones
 {
@@ -15,11 +14,7 @@ namespace Nesto.Modulos.Ganavisiones
             var view = containerProvider.Resolve<GanavisionesMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "Ganavisiones");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
 

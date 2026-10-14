@@ -4,7 +4,6 @@ using Nesto.Modulos.OfertasCombinadas.Services;
 using Nesto.Modulos.OfertasCombinadas.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 
 namespace Nesto.Modulos.OfertasCombinadas
 {
@@ -15,11 +14,7 @@ namespace Nesto.Modulos.OfertasCombinadas
             var view = containerProvider.Resolve<OfertasCombinadasMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "OfertasCombinadas");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
 

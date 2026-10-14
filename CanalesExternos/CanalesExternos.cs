@@ -1,5 +1,4 @@
 ﻿using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Modulos.CanalesExternos.Views;
 using Nesto.Modulos.CanalesExternos.Interfaces;
@@ -15,11 +14,7 @@ namespace Nesto.Modulos.CanalesExternos
             var view = containerProvider.Resolve<CanalesExternosMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "CanalesExternos");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
 

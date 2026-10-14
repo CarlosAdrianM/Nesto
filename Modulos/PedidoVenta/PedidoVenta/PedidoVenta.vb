@@ -3,7 +3,6 @@ Imports ControlesUsuario.Services
 Imports Nesto.Infrastructure.Contracts
 Imports Prism.Ioc
 Imports Prism.Modularity
-Imports Prism.RibbonRegionAdapter
 
 Public Class PedidoVenta
     Implements IModule, IPedidoVenta
@@ -33,11 +32,7 @@ Public Class PedidoVenta
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
         Dim view = containerProvider.Resolve(Of PedidoVentaMenuBar)
         If Not IsNothing(view) Then
-            Dim regionAdapter = containerProvider.Resolve(Of RibbonRegionAdapter)()
-            Dim mainWindow = containerProvider.Resolve(Of IMainWindow)
-            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "PedidoVenta")
-
-            Dim unused = region.Add(view, "MenuBar")
+            containerProvider.Resolve(Of IServicioCinta)().AnadirMenu(view)
         End If
 
     End Sub

@@ -36,7 +36,6 @@ Imports Prism.Ioc
 Imports Prism.Modularity
 Imports Prism.Mvvm
 Imports Prism.Regions
-Imports Prism.RibbonRegionAdapter
 Imports Unity
 
 Partial Public Class Application
@@ -104,8 +103,11 @@ Partial Public Class Application
     End Sub
 
     Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
-        Dim unused30 = containerRegistry.RegisterSingleton(GetType(RibbonRegionAdapter), GetType(RibbonRegionAdapter))
         Dim unused29 = containerRegistry.RegisterSingleton(GetType(IMainWindow), GetType(MainWindow))
+        ' Nesto#490 (4C.4): cada módulo pone su menú en la cinta principal con IServicioCinta, sin el RibbonRegionAdapter
+        ' de Prism (la misma fusión de pestañas, portada a Infrastructure). La cinta es la de MainWindow (el shell).
+        Dim unusedCinta = containerRegistry.RegisterSingleton(Of IServicioCinta)(
+            Function(provider) New Nesto.Infrastructure.Cinta.ServicioCinta(provider.Resolve(Of IMainWindow)().mainRibbon))
         Dim unused28 = containerRegistry.RegisterSingleton(GetType(IMenuBar), GetType(MenuBarView))
         Dim unused27 = containerRegistry.RegisterSingleton(GetType(IConfiguracion), GetType(Configuracion))
         ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
@@ -363,11 +365,6 @@ Partial Public Class Application
 
         ' Ofertas Combinadas - 27/02/26 (Issue #299)
         Dim unusedOfertasCombinadas = moduleCatalog.AddModule(GetType(IOfertasCombinadas))
-    End Sub
-
-    Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As RegionAdapterMappings)
-        MyBase.ConfigureRegionAdapterMappings(regionAdapterMappings)
-        regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Container.Resolve(Of RibbonRegionAdapter)())
     End Sub
 
     ' Memory leak: al quitar una vista de cualquier región, limpiamos su DataContext para

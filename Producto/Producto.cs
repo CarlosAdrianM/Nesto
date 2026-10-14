@@ -1,5 +1,4 @@
 ﻿using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modules.Producto.Views;
@@ -26,11 +25,7 @@ namespace Nesto.Modulos.Producto
             var view = containerProvider.Resolve<ProductoMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "Producto");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
     }

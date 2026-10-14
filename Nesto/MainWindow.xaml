@@ -23,8 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <Ribbon Grid.Column="0" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public"
-                prism:RegionManager.RegionName="MainMenuRegion">
+        <Ribbon Grid.Column="0" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public">
             <!-- Nesto#477: campana de notificaciones, arriba a la derecha de la cinta (visible con cualquier pestaña) -->
             <Ribbon.HelpPaneContent>
                 <cun:CampanaNotificaciones x:Name="Campana" x:FieldModifier="Private"/>

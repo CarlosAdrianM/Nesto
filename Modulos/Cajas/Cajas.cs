@@ -2,7 +2,6 @@
 using Nesto.Modulos.Cajas.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.RibbonRegionAdapter;
 
 namespace Nesto.Modulos.Cajas
 {
@@ -19,11 +18,7 @@ namespace Nesto.Modulos.Cajas
             var view = containerProvider.Resolve<CajasMenuBar>();
             if (view != null)
             {
-                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
-                var mainWindow = containerProvider.Resolve<IMainWindow>();
-                var region = regionAdapter.Initialize(mainWindow.mainRibbon, "Cajas");
-
-                region.Add(view, "MenuBar");
+                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
             }
         }
 

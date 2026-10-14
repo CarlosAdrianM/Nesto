@@ -1,7 +1,6 @@
 ﻿Imports ControlesUsuario.Dialogs
 Imports Prism.Modularity
 Imports Nesto.Contratos
-Imports Prism.RibbonRegionAdapter
 Imports Prism.Ioc
 Imports Nesto.Infrastructure.Contracts
 
@@ -17,11 +16,7 @@ Public Class Rapports
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
         Dim view = containerProvider.Resolve(Of RapportsMenuBar)
         If Not IsNothing(view) Then
-            Dim regionAdapter = containerProvider.Resolve(Of RibbonRegionAdapter)()
-            Dim mainWindow = containerProvider.Resolve(Of IMainWindow)
-            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "ListaRapports")
-
-            region.Add(view, "MenuBar")
+            containerProvider.Resolve(Of IServicioCinta)().AnadirMenu(view)
         End If
     End Sub
 End Class
