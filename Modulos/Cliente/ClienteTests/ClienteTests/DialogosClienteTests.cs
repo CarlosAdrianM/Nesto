@@ -3,15 +3,13 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
 using Nesto.Modulos.Cliente.ViewModels;
-using Prism.Services.Dialogs;
 using System.Collections.Generic;
 
 namespace ClienteTests
 {
     /// <summary>
-    /// Nesto#490 (4C.2, paso 3, punto 2): los diálogos de Cliente ya son IDialogoNesto (DialogoNestoBase) y
-    /// tienen que abrirse igual con la ventana de Prism (usuarios sin el piloto VentanaDialogosPropia), que
-    /// los ve como IDialogAware.
+    /// Nesto#490 (4C.2, paso 3, punto 2): los diálogos de Cliente son IDialogoNesto (DialogoNestoBase).
+    /// (Hasta el 14/10/26 se probaban también con la ventana de Prism.)
     /// </summary>
     [TestClass]
     public class DialogosClienteTests
@@ -29,31 +27,31 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public void NotificacionTelefono_ConLaVentanaDePrism_RecibeLosClientesYSeCierraConAceptar()
+        public void NotificacionTelefono_RecibeLosClientesYSeCierraConAceptar()
         {
             var clientes = new List<ClienteTelefonoLookup> { new() { Cliente = "15191" } };
             var vm = new NotificacionTelefonoViewModel();
-            IDialogAware prism = vm;
-            IDialogResult resultado = null;
-            prism.RequestClose += r => resultado = r;
+            IDialogoNesto dialogo = vm;
+            ResultadoDialogo resultado = null;
+            dialogo.RequestClose += r => resultado = r;
 
-            prism.OnDialogOpened(new DialogParameters { { "clientesMismoTelefono", clientes } });
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "clientesMismoTelefono", clientes } });
             vm.CloseDialogCommand.Execute("true");
 
             Assert.AreSame(clientes, vm.ClientesMismoTelefono);
-            Assert.AreEqual("Clientes con el mismo teléfono:", prism.Title);
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual("Clientes con el mismo teléfono:", dialogo.Title);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
         }
 
         [TestMethod]
-        public void ElegirEvento_ConLaVentanaDePrism_DevuelveElIdDelEventoElegido()
+        public void ElegirEvento_DevuelveElIdDelEventoElegido()
         {
             var vm = new ElegirEventoDialogViewModel();
-            IDialogAware prism = vm;
-            IDialogResult resultado = null;
-            prism.RequestClose += r => resultado = r;
+            IDialogoNesto dialogo = vm;
+            ResultadoDialogo resultado = null;
+            dialogo.RequestClose += r => resultado = r;
 
-            prism.OnDialogOpened(new DialogParameters
+            dialogo.OnDialogOpened(new ParametrosDialogo
             {
                 { "eventos", new List<EventoModel> { new() { Id = 4 }, new() { Id = 5 } } },
                 { "apunte", "101" }
@@ -62,7 +60,7 @@ namespace ClienteTests
             vm.AceptarCommand.Execute(null);
 
             Assert.AreEqual("101", vm.Apunte);
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
             Assert.AreEqual(5, resultado.Parameters.GetValue<int>("eventoId"));
         }
 

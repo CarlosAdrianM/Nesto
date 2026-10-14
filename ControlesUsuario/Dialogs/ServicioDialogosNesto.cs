@@ -20,10 +20,10 @@ namespace ControlesUsuario.Dialogs
     ///   <c>OnDialogClosed</c> y el callback (con <see cref="ResultadoBoton.None"/> si se cerró sin
     ///   resultado).
     ///
-    /// La vista y su ViewModel los da <c>resolverVista</c>: en la aplicación, <see cref="RegistroDialogos.CrearDialogo"/>
-    /// con lo registrado con <see cref="RegistroDialogos.RegistrarDialogo"/> (antes, RegisterDialog de Prism y el
-    /// AutoWire de su ViewModelLocator). Mientras dure la migración, el ViewModel puede ser
-    /// <see cref="IDialogoNesto"/> o el <see cref="IDialogAware"/> de Prism de siempre.
+    /// Es la de todos desde el 14/10/26 (antes, piloto por usuario con el parámetro VentanaDialogosPropia).
+    /// La vista y su ViewModel (un <see cref="IDialogoNesto"/>) los da <c>resolverVista</c>: en la aplicación,
+    /// <see cref="RegistroDialogos.CrearDialogo"/> con lo registrado con <see cref="RegistroDialogos.RegistrarDialogo"/>
+    /// (antes, RegisterDialog de Prism y el AutoWire de su ViewModelLocator).
     /// </summary>
     public class ServicioDialogosNesto : ServicioDialogosBase
     {
@@ -56,12 +56,10 @@ namespace ControlesUsuario.Dialogs
                 throw new InvalidOperationException($"El diálogo «{name}» no está registrado o no es un FrameworkElement");
             }
 
-            IDialogoNesto dialogo = contenido.DataContext switch
+            if (!(contenido.DataContext is IDialogoNesto dialogo))
             {
-                IDialogoNesto propio => propio,
-                IDialogAware prism => new DialogoPrismComoNesto(prism),
-                _ => throw new InvalidOperationException($"El ViewModel del diálogo «{name}» debe implementar IDialogoNesto")
-            };
+                throw new InvalidOperationException($"El ViewModel del diálogo «{name}» debe implementar IDialogoNesto");
+            }
 
             ConfigurarEventos(ventana, dialogo, callback);
 
@@ -105,7 +103,6 @@ namespace ControlesUsuario.Dialogs
                 ventana.Closed -= alCerrar;
                 ventana.Closing -= alCerrando;
                 dialogo.RequestClose -= alPedirCierre;
-                (dialogo as DialogoPrismComoNesto)?.Desconectar();
 
                 dialogo.OnDialogClosed();
                 callback?.Invoke(ventana.Resultado ?? new ResultadoDialogo(ResultadoBoton.None));
@@ -177,37 +174,5 @@ namespace ControlesUsuario.Dialogs
             estilo.Seal();
             return estilo;
         }
-    }
-
-    /// <summary>
-    /// Mientras dure la migración: un ViewModel de diálogo que sigue siendo <see cref="IDialogAware"/>
-    /// de Prism, visto como <see cref="IDialogoNesto"/>. Traduce parámetros y resultado.
-    /// </summary>
-    internal class DialogoPrismComoNesto : IDialogoNesto
-    {
-        private readonly IDialogAware _prism;
-
-        public DialogoPrismComoNesto(IDialogAware prism)
-        {
-            _prism = prism;
-            _prism.RequestClose += AlPedirCierrePrism;
-        }
-
-        public string Title => _prism.Title;
-
-        public event Action<ResultadoDialogo> RequestClose;
-
-        public bool CanCloseDialog() => _prism.CanCloseDialog();
-
-        public void OnDialogClosed() => _prism.OnDialogClosed();
-
-        public void OnDialogOpened(ParametrosDialogo parameters)
-            => _prism.OnDialogOpened(ServicioDialogosPrism.AParametrosPrism(parameters));
-
-        /// <summary>Deja de escuchar al ViewModel de Prism (al cerrar la ventana).</summary>
-        public void Desconectar() => _prism.RequestClose -= AlPedirCierrePrism;
-
-        private void AlPedirCierrePrism(IDialogResult resultado)
-            => RequestClose?.Invoke(ServicioDialogosPrism.DesdeResultadoPrism(resultado) ?? new ResultadoDialogo(ResultadoBoton.None));
     }
 }

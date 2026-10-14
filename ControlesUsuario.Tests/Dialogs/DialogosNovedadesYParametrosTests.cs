@@ -4,8 +4,6 @@ using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
-using Prism.Unity;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -16,10 +14,9 @@ using System.Windows.Threading;
 namespace ControlesUsuario.Tests.Dialogs
 {
     /// <summary>
-    /// Nesto#490 (4C.2, paso 3, punto 2): «Parámetros de usuario» y «Novedades de Nesto» ya son IDialogoNesto
-    /// (DialogoNestoBase) y tienen que abrirse igual con las dos ventanas: la de Prism (usuarios sin el piloto
-    /// VentanaDialogosPropia), que los ve como IDialogAware, y la propia. Novedades trae su propio estilo de
-    /// ventana (prism:Dialog.WindowStyle, 760×700 y redimensionable), que tiene que seguir mandando en las dos.
+    /// Nesto#490 (4C.2, paso 3, punto 2): «Parámetros de usuario» y «Novedades de Nesto» son IDialogoNesto
+    /// (DialogoNestoBase). Novedades trae su propio estilo de ventana (760×700 y redimensionable), que tiene
+    /// que seguir mandando en la ventana propia. (Hasta el 14/10/26 se probaban también con la de Prism.)
     /// </summary>
     [TestClass]
     public class DialogosNovedadesYParametrosTests
@@ -35,20 +32,20 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         [TestMethod]
-        public void ParametrosUsuario_ConLaVentanaDePrism_RecibeLaInformacionYSeCierraConAceptar()
+        public void ParametrosUsuario_RecibeLaInformacionYSeCierraConAceptar()
         {
             var vm = new ParametrosUsuarioDialogViewModel(ServicioConUnEditable());
-            IDialogAware prism = vm;
-            IDialogResult resultado = null;
-            prism.RequestClose += r => resultado = r;
+            IDialogoNesto dialogo = vm;
+            ResultadoDialogo resultado = null;
+            dialogo.RequestClose += r => resultado = r;
 
-            prism.OnDialogOpened(new DialogParameters { { "informacion", "Usuario: carlos" } });
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "informacion", "Usuario: carlos" } });
             vm.CloseDialogCommand.Execute(null);
 
-            Assert.AreEqual("Parámetros de usuario", prism.Title);
+            Assert.AreEqual("Parámetros de usuario", dialogo.Title);
             Assert.AreEqual("Usuario: carlos", vm.Informacion);
             Assert.AreEqual(1, vm.Editables.Count);
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
         }
 
         [TestMethod]
@@ -74,28 +71,28 @@ namespace ControlesUsuario.Tests.Dialogs
             A.CallTo(() => servicio.LeerEditables()).ThrowsAsync(new Exception("sin conexión"));
             var vm = new ParametrosUsuarioDialogViewModel(servicio);
 
-            ((IDialogAware)vm).OnDialogOpened(null);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo());
 
             Assert.AreEqual("No se pudieron cargar los parámetros editables: sin conexión", vm.Mensaje);
         }
 
         [TestMethod]
-        public void Novedades_ConLaVentanaDePrism_TituloPorDefectoYElDelLlamante()
+        public void Novedades_TituloPorDefectoYElDelLlamante()
         {
             var vm = new NovedadesDialogViewModel();
-            IDialogAware prism = vm;
-            IDialogResult resultado = null;
-            prism.RequestClose += r => resultado = r;
+            IDialogoNesto dialogo = vm;
+            ResultadoDialogo resultado = null;
+            dialogo.RequestClose += r => resultado = r;
 
-            prism.OnDialogOpened(new DialogParameters { { "novedades", new List<NovedadUsuario> { new() { Version = "1.10.40.0", Titulo = "a", Categoria = "Nuevo" } } } });
-            Assert.AreEqual("Novedades de Nesto", prism.Title);
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "novedades", new List<NovedadUsuario> { new() { Version = "1.10.40.0", Titulo = "a", Categoria = "Nuevo" } } } });
+            Assert.AreEqual("Novedades de Nesto", dialogo.Title);
             Assert.AreEqual(1, vm.Novedades.Count);
 
-            prism.OnDialogOpened(new DialogParameters { { "title", "Qué hay de nuevo" } });
-            Assert.AreEqual("Qué hay de nuevo", prism.Title);
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "title", "Qué hay de nuevo" } });
+            Assert.AreEqual("Qué hay de nuevo", dialogo.Title);
 
             vm.CloseDialogCommand.Execute(null);
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
         }
 
         [TestMethod]
@@ -124,42 +121,6 @@ namespace ControlesUsuario.Tests.Dialogs
                 vm.CloseDialogCommand.Execute(null);
 
                 Assert.AreEqual(ResultadoBoton.OK, recibido.Result);
-                Assert.IsFalse(ventana.IsVisible);
-            });
-        }
-
-        [TestMethod]
-        public void Novedades_VentanaDePrism_AbreLaVistaRealConSuEstiloDeVentana()
-        {
-            EjecutarEnSTA(() =>
-            {
-                // La vista real (con su AutoWire); se da hecha para poder encontrar luego su ventana.
-                var vista = new NovedadesDialog();
-                var contenedor = new UnityContainerExtension();
-                _ = contenedor.Register(typeof(IDialogWindow), typeof(DialogWindow));
-                _ = contenedor.RegisterInstance(typeof(object), vista, "NovedadesDialog");
-                var prism = new DialogService(contenedor);
-                IDialogResult recibido = null;
-
-                prism.Show("NovedadesDialog", new DialogParameters
-                {
-                    { "title", "Qué hay de nuevo" },
-                    { "novedades", new List<NovedadUsuario> { new() { Version = "1.10.40.0", Titulo = "a", Categoria = "Nuevo" } } }
-                }, r => recibido = r);
-                Bombear();
-
-                Window ventana = Window.GetWindow(vista);
-                Assert.IsInstanceOfType(ventana, typeof(DialogWindow), "La abre la ventana de Prism");
-                var vm = (NovedadesDialogViewModel)((FrameworkElement)ventana.Content).DataContext;
-                Assert.AreEqual("Qué hay de nuevo", ventana.Title);
-                Assert.AreEqual(760d, ventana.Width, "Manda el estilo de ventana de la vista");
-                Assert.AreEqual(1, vm.Novedades.Count);
-
-                vm.CloseDialogCommand.Execute(null);
-                Bombear();
-
-                Assert.IsNotNull(recibido, "La ventana de Prism tiene que cerrarse con el resultado del ViewModel");
-                Assert.AreEqual(ButtonResult.OK, recibido.Result);
                 Assert.IsFalse(ventana.IsVisible);
             });
         }

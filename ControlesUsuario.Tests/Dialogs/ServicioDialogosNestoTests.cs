@@ -13,8 +13,7 @@ namespace ControlesUsuario.Tests.Dialogs
     /// <summary>
     /// Nesto#490 (4C.2, paso 3): la ventana de diálogos propia tiene que comportarse como la de
     /// Prism 8.1.97 (DialogService/DialogWindow), que es lo que los usuarios conocen: mismos
-    /// eventos, mismo orden, misma ventana. Y durante la migración tiene que abrir también los
-    /// ViewModels que siguen siendo IDialogAware de Prism.
+    /// eventos, mismo orden, misma ventana.
     /// </summary>
     [TestClass]
     public class ServicioDialogosNestoTests
@@ -31,19 +30,6 @@ namespace ControlesUsuario.Tests.Dialogs
             public void OnDialogClosed() => VecesCerrado++;
             public void OnDialogOpened(ParametrosDialogo parameters) => Recibidos = parameters;
             public void Cerrar(ResultadoDialogo resultado) => RequestClose?.Invoke(resultado);
-        }
-
-        private class DialogoPrismDePrueba : IDialogAware
-        {
-            public string Title => "Diálogo de Prism";
-            public event Action<IDialogResult> RequestClose;
-            public IDialogParameters Recibidos { get; private set; }
-            public bool Cerrado { get; private set; }
-
-            public bool CanCloseDialog() => true;
-            public void OnDialogClosed() => Cerrado = true;
-            public void OnDialogOpened(IDialogParameters parameters) => Recibidos = parameters;
-            public void Cerrar(IDialogResult resultado) => RequestClose?.Invoke(resultado);
         }
 
         private static ServicioDialogosNesto ServicioQueDevuelve(Func<FrameworkElement> vista)
@@ -254,30 +240,6 @@ namespace ControlesUsuario.Tests.Dialogs
                     Assert.IsTrue(double.IsNaN(vista.Width), $"{vista.GetType().Name} con ancho fijo {vista.Width}");
                     Assert.IsTrue(double.IsNaN(vista.Height), $"{vista.GetType().Name} con alto fijo {vista.Height}");
                 }
-            });
-        }
-
-        [TestMethod]
-        public void UnViewModelDePrism_SeAbreYCierraIgual()
-        {
-            EjecutarEnSTA(() =>
-            {
-                var vm = new DialogoPrismDePrueba();
-                var servicio = ServicioQueDevuelve(() => new Grid { DataContext = vm });
-                ResultadoDialogo recibido = null;
-
-                VentanaDialogo ventana = servicio.PrepararVentana("MiDialogo", new ParametrosDialogo { { "title", "Ojo" } }, r => recibido = r);
-                ventana.Show();
-                Bombear();
-
-                Assert.AreEqual("Ojo", vm.Recibidos.GetValue<string>("title"));
-                Assert.AreEqual("Diálogo de Prism", ventana.Title);
-
-                vm.Cerrar(new DialogResult(ButtonResult.Yes, new DialogParameters { { "text", "escrito" } }));
-
-                Assert.AreEqual(ResultadoBoton.Yes, recibido.Result);
-                Assert.AreEqual("escrito", recibido.Parameters.GetValue<string>("text"));
-                Assert.IsTrue(vm.Cerrado);
             });
         }
 

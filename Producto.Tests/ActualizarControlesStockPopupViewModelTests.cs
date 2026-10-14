@@ -5,7 +5,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Services.Dialogs;
 using static ControlesUsuario.Models.SelectorProveedorModel;
 
 namespace Producto.Tests
@@ -71,7 +70,7 @@ namespace Producto.Tests
 
         #endregion
 
-        #region IDialogAware Tests
+        #region IDialogoNesto Tests
 
         [TestMethod]
         public void Title_DevuelveTituloCorrecto()

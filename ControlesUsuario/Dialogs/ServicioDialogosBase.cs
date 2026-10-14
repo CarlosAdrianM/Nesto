@@ -12,8 +12,8 @@ namespace ControlesUsuario.Dialogs
     /// de NotificationDialog, ConfirmationDialog, InputAmountDialog o InputTextDialog con unos
     /// parámetros fijos; esa traducción vive aquí UNA vez (antes estaba en las extensiones del
     /// IDialogService de Prism). Cada implementación solo dice CÓMO se abre un diálogo:
-    /// <see cref="ServicioDialogosPrism"/> con el IDialogService de Prism y
-    /// <see cref="ServicioDialogosNesto"/> con una ventana propia.
+    /// <see cref="ServicioDialogosNesto"/>, con la ventana propia (hasta el 14/10/26 convivió con
+    /// ServicioDialogosPrism, que lo abría con el IDialogService de Prism).
     /// </summary>
     public abstract class ServicioDialogosBase : IServicioDialogos
     {

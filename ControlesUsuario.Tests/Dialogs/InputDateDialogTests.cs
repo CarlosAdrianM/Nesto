@@ -1,8 +1,6 @@
 using ControlesUsuario.Dialogs;
-using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 
 namespace ControlesUsuario.Tests.Dialogs
@@ -61,32 +59,24 @@ namespace ControlesUsuario.Tests.Dialogs
         [TestMethod]
         public void GetDate_AbreInputDateDialogYDevuelveLaFechaElegida()
         {
-            IDialogService prism = A.Fake<IDialogService>();
-            string nombre = null;
-            IDialogParameters enviados = null;
-            A.CallTo(() => prism.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string n, IDialogParameters p, Action<IDialogResult> cb) =>
-                {
-                    nombre = n;
-                    enviados = p;
-                    cb(new DialogResult(ButtonResult.OK, new DialogParameters { { "date", new DateTime(2026, 10, 6) } }));
-                });
+            var servicio = new ServicioDialogosDePrueba
+            {
+                Respuesta = new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "date", new DateTime(2026, 10, 6) } })
+            };
 
-            DateTime? fecha = new ServicioDialogosPrism(prism).GetDate("Fecha de entrega", "¿Cuándo?", new DateTime(2026, 10, 2));
+            DateTime? fecha = servicio.GetDate("Fecha de entrega", "¿Cuándo?", new DateTime(2026, 10, 2));
 
-            Assert.AreEqual("InputDateDialog", nombre);
-            Assert.AreEqual(new DateTime(2026, 10, 2), enviados.GetValue<DateTime>("defaultDate"));
+            Assert.AreEqual("InputDateDialog", servicio.Nombre);
+            Assert.AreEqual(new DateTime(2026, 10, 2), servicio.Parametros.GetValue<DateTime>("defaultDate"));
             Assert.AreEqual(new DateTime(2026, 10, 6), fecha);
         }
 
         [TestMethod]
         public void GetDate_TodaviaNoSeSabe_DevuelveNull()
         {
-            IDialogService prism = A.Fake<IDialogService>();
-            A.CallTo(() => prism.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
-                .Invokes((string n, IDialogParameters p, Action<IDialogResult> cb) => cb(new DialogResult(ButtonResult.Cancel)));
+            var servicio = new ServicioDialogosDePrueba { Respuesta = new ResultadoDialogo(ResultadoBoton.Cancel) };
 
-            Assert.IsNull(new ServicioDialogosPrism(prism).GetDate("t", "m", DateTime.Today));
+            Assert.IsNull(servicio.GetDate("t", "m", DateTime.Today));
         }
     }
 }

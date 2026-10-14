@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -284,19 +283,19 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void Popup_ConLaVentanaDePrism_RecibeLasSugerenciasYDevuelveLosCambios()
+        public void Popup_RecibeLasSugerenciasYDevuelveLosCambios()
         {
             var vm = new SugerenciasRutaPickingPopupViewModel();
-            IDialogAware prism = vm;
-            IDialogResult resultado = null;
-            prism.RequestClose += r => resultado = r;
+            IDialogoNesto dialogo = vm;
+            ResultadoDialogo resultado = null;
+            dialogo.RequestClose += r => resultado = r;
 
-            prism.OnDialogOpened(new DialogParameters { { "sugerencias", new List<SugerenciaRutaPicking> { Sugerencia(928241) } } });
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "sugerencias", new List<SugerenciaRutaPicking> { Sugerencia(928241) } } });
             vm.Sugerencias[0].Marcado = true;
             vm.CambiarYSacarCommand.Execute(null);
 
-            Assert.AreEqual("Pedidos que podrían ir por nuestra ruta", prism.Title);
-            Assert.AreEqual(ButtonResult.OK, resultado.Result);
+            Assert.AreEqual("Pedidos que podrían ir por nuestra ruta", dialogo.Title);
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
             Assert.AreEqual(928241, resultado.Parameters.GetValue<List<SugerenciaRutaPicking>>("cambios").Single().Pedido);
         }
 

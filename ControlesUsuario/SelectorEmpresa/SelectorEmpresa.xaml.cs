@@ -2,7 +2,6 @@
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using Prism.Ioc;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;

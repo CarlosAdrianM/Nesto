@@ -2,7 +2,6 @@ using FakeItEasy;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
 
 namespace Producto.Tests
@@ -141,20 +140,20 @@ namespace Producto.Tests
         {
             // Issue #343: al lanzar la búsqueda contextual cerramos el diálogo modal
             // para que la navegación a ProductoView no quede bajo un popup.
-            IDialogResult resultadoCierre = null;
-            ((IDialogAware)_sut).RequestClose += r => resultadoCierre = r;
+            ResultadoDialogo resultadoCierre = null;
+            ((IDialogoNesto)_sut).RequestClose += r => resultadoCierre = r;
 
             _sut.AbrirProductosConBusquedaCommand.Execute("Alta Frecuencia");
 
             Assert.IsNotNull(resultadoCierre, "El diálogo debería haberse cerrado");
-            Assert.AreEqual(ButtonResult.Cancel, resultadoCierre.Result);
+            Assert.AreEqual(ResultadoBoton.Cancel, resultadoCierre.Result);
         }
 
         [TestMethod]
         public void AbrirProductosConBusqueda_ConNombreVacio_NoCierraElDialogo()
         {
-            IDialogResult resultadoCierre = null;
-            ((IDialogAware)_sut).RequestClose += r => resultadoCierre = r;
+            ResultadoDialogo resultadoCierre = null;
+            ((IDialogoNesto)_sut).RequestClose += r => resultadoCierre = r;
 
             _sut.AbrirProductosConBusquedaCommand.Execute("");
 
