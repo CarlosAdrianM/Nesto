@@ -1040,6 +1040,82 @@ namespace Producto.Tests
             A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
         }
 
+        // ---------------------------------------------------------------- Revisión 13/10/26: operaciones a la vez y respuestas tardías
+
+        [TestMethod]
+        public async Task Puntual_DosLecturasALaVez_SigueOcupadaHastaQueAcabaLaUltima()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            var primera = new TaskCompletionSource<List<ProductoReposicionPuntual>>();
+            var segunda = new TaskCompletionSource<List<ProductoReposicionPuntual>>();
+            A.CallTo(() => _servicio.BuscarProductoPuntual("1", "ALC", "8437")).Returns(primera.Task);
+            A.CallTo(() => _servicio.BuscarProductoPuntual("1", "ALC", "8422")).Returns(segunda.Task);
+
+            Task lectura1 = _vm.LeerPuntualAsync("8437");
+            Task lectura2 = _vm.LeerPuntualAsync("8422");
+            primera.SetResult(new List<ProductoReposicionPuntual> { Guantes() });
+            await lectura1;
+
+            Assert.IsTrue(_vm.EstaOcupado, "La segunda lectura sigue buscando");
+            Assert.IsFalse(_vm.EnviarPuntualCommand.CanExecute(null), "No se puede mandar con una lectura a medias");
+            Assert.IsFalse(_vm.CancelarPuntualCommand.CanExecute(null));
+
+            segunda.SetResult(new List<ProductoReposicionPuntual>
+            {
+                new() { Producto = "40057", Nombre = "Banda", CodigoBarras = "8422", UnidadesPorLectura = 1, StockOrigen = 4 }
+            });
+            await lectura2;
+
+            Assert.IsFalse(_vm.EstaOcupado);
+            CollectionAssert.AreEqual(new[] { "41980", "40057" }, _vm.LineasPuntual.Select(l => l.Producto).ToList());
+            Assert.IsTrue(_vm.EnviarPuntualCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Puntual_UnaBusquedaQueContestaDespuesDeSalir_NoAnadeNada()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            var tardia = new TaskCompletionSource<List<ProductoReposicionPuntual>>();
+            A.CallTo(() => _servicio.BuscarProductoPuntual("1", "ALC", "8437")).Returns(tardia.Task);
+
+            Task lectura = _vm.LeerPuntualAsync("8437");
+            await _vm.CancelarPuntualCommand.ExecuteAsync(null);
+            string mensajeAlSalir = _vm.Mensaje;
+            tardia.SetResult(new List<ProductoReposicionPuntual> { Guantes() });
+            await lectura;
+
+            Assert.IsFalse(_vm.EnModoPuntual);
+            Assert.AreEqual(0, _vm.LineasPuntual.Count, "Era de la puntual que ya no está");
+            Assert.AreEqual(mensajeAlSalir, _vm.Mensaje);
+            A.CallTo(() => _sonidos.Correcto()).MustNotHaveHappened();
+            Assert.IsFalse(_vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public async Task Cargar_DosVecesSeguidas_ElEstadoViejoQueContestaTardeNoPisaElNuevo()
+        {
+            // Al volver a la pestaña se carga otra vez: la primera lectura del estado contesta después que la segunda
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            var vieja = new TaskCompletionSource<EstadoReposicionPuntual>();
+            var nueva = new TaskCompletionSource<EstadoReposicionPuntual>();
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).ReturnsNextFromSequence(vieja.Task, nueva.Task);
+
+            Task primera = _vm.CargarAsync();
+            Task segunda = _vm.CargarAsync();
+            nueva.SetResult(Estado(EstadoReposicionPuntual.RECOGIDA, fechaRecogida: DateTime.Today.AddHours(12).AddMinutes(10), usuarioRecogida: "Paloma"));
+            await segunda;
+
+            Assert.IsTrue(_vm.EstaOcupado, "La primera carga sigue en marcha");
+
+            vieja.SetResult(Estado(EstadoReposicionPuntual.ABIERTA, puedeMarcarRecogida: true));
+            await primera;
+
+            Assert.IsFalse(_vm.EstaOcupado);
+            Assert.IsTrue(_vm.PuntualBloqueada, "Manda el estado más nuevo: el repartidor ya ha pasado");
+            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
+        }
+
         [TestMethod]
         public void LineaPuntual_SinDisponibleDeLaApi_UsaElStock()
         {

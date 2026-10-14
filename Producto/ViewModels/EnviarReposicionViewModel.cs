@@ -303,17 +303,28 @@ namespace Nesto.Modules.Producto.ViewModels
         internal const string TEXTO_CONFIRMAR_RECOGIDA = "¿El repartidor ya se ha llevado la reposición de hoy? " +
             "Desde ahora ya no se podrá hacer otra reposición puntual hoy: lo que quede irá en la siguiente.";
 
+        // Revisión 13/10/26: la versión de la última lectura del estado de la puntual. Si se piden dos seguidas (al volver a
+        // la pestaña se carga otra vez) y contesta tarde la primera, su respuesta ya es vieja y no pisa la nueva.
+        private int _versionEstadoPuntual;
+
         private async Task LeerEstadoPuntual()
         {
+            int version = ++_versionEstadoPuntual;
+            EstadoReposicionPuntual estado;
             try
             {
-                _estadoPuntual = await _servicio.LeerEstadoPuntual(Empresa, Almacen).ConfigureAwait(true);
+                estado = await _servicio.LeerEstadoPuntual(Empresa, Almacen).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 // Solo es para avisar antes: si no se sabe, la API lo dirá al mandarla
-                _estadoPuntual = null;
+                estado = null;
             }
+            if (version != _versionEstadoPuntual)
+            {
+                return;
+            }
+            _estadoPuntual = estado;
             RefrescarEstado();
         }
 
@@ -343,12 +354,15 @@ namespace Nesto.Modules.Producto.ViewModels
             bool hecho = false;
             await Ocupado(async () =>
             {
-                _estadoPuntual = await _servicio.MarcarRecogida(new MarcarRecogidaReposicion
+                EstadoReposicionPuntual estado = await _servicio.MarcarRecogida(new MarcarRecogidaReposicion
                 {
                     Empresa = Empresa,
                     Origen = Almacen,
                     Destino = Destino
                 }).ConfigureAwait(true);
+                // Lo que contesta la API al marcarla manda: una lectura del estado pedida antes ya es vieja
+                _versionEstadoPuntual++;
+                _estadoPuntual = estado;
                 hecho = true;
                 Mensaje = TextoRecogida(_estadoPuntual);
             }).ConfigureAwait(true);
@@ -375,6 +389,10 @@ namespace Nesto.Modules.Producto.ViewModels
         public IAsyncRelayCommand CancelarPuntualCommand { get; }
         public IAsyncRelayCommand EnviarPuntualCommand { get; }
         public IRelayCommand<LineaPuntualReposicion> QuitarLineaPuntualCommand { get; }
+
+        // Revisión 13/10/26: cada puntual que se empieza (o se cancela, o se manda) es una versión nueva. Una búsqueda que
+        // contesta tarde, de una puntual que ya no está, no añade nada a la de ahora.
+        private int _versionPuntual;
 
         /// <summary>La lectura de la puntual en curso (los tests la esperan).</summary>
         internal Task LecturaPuntualEnCurso { get; private set; } = Task.CompletedTask;
@@ -422,6 +440,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 linea.PropertyChanged -= LineaPuntualCambiada;
             }
             LineasPuntual.Clear();
+            _versionPuntual++;
             SeleccionadaPuntual = null;
             RefrescarTotalesPuntual();
         }
@@ -456,10 +475,16 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             List<ProductoReposicionPuntual> encontrados = null;
+            int version = _versionPuntual;
             await Ocupado(async () =>
             {
                 encontrados = await _servicio.BuscarProductoPuntual(Empresa, Almacen, codigo).ConfigureAwait(true);
             }, avisarEnDialogo: false).ConfigureAwait(true);
+            if (version != _versionPuntual || !EnModoPuntual)
+            {
+                // Revisión 13/10/26: mientras buscaba se ha salido de esa puntual (o se ha empezado otra): no es de esta
+                return;
+            }
             if (encontrados == null)
             {
                 // No ha contestado: Ocupado ya ha puesto el motivo
@@ -623,6 +648,10 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private string _mensaje;
         public string Mensaje { get => _mensaje; set => SetProperty(ref _mensaje, value); }
+
+        // Revisión 13/10/26: cuántas operaciones hay en marcha. Con dos a la vez (dos lecturas seguidas del lector en la
+        // puntual) la primera que acaba no deja la pantalla como libre mientras la otra sigue.
+        private int _operacionesEnCurso;
 
         private bool _estaOcupado;
         public bool EstaOcupado
@@ -997,6 +1026,7 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>
         private async Task Ocupado(Func<Task> accion, bool avisarEnDialogo = true)
         {
+            _operacionesEnCurso++;
             EstaOcupado = true;
             try
             {
@@ -1029,7 +1059,8 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             finally
             {
-                EstaOcupado = false;
+                _operacionesEnCurso--;
+                EstaOcupado = _operacionesEnCurso > 0;
             }
         }
     }
