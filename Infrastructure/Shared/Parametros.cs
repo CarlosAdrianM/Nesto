@@ -53,6 +53,10 @@
             public const string PermitirCrearPedidoConErroresValidacion = "PermitirCrearPedidoConErroresValidacion";
             public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
+            // Nesto#490 (4C.4, tramo 3): "1" = las regiones (MainRegion, maestro-detalle de pedidos, detalle de rapports) van
+            // por la región propia de Nesto (ServicioNavegacionNesto) en vez de por Prism. Piloto: cualquier otro valor, o sin
+            // fila, = Prism. Se lee al arrancar.
+            public const string RegionesPropias = "RegionesPropias";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             // Nesto#388: "1" = el panel de contactos/direcciones del SelectorCliente aparece
             // desplegado al seleccionar un cliente; cualquier otro valor (o ausencia) = colapsado.

@@ -14,8 +14,10 @@ namespace Nesto.Infrastructure.Navegacion
     /// ven entre sí, igual que <c>IRegionManager.CreateRegionManager()</c>.
     ///
     /// Cada vista que entra en una región lleva colgado el gestor de su ámbito (<see cref="GestorProperty"/>, como
-    /// <c>RegionManager.RegionManagerProperty</c>), para que las regiones de dentro se registren en él. Sin cablear en
-    /// este tramo: todavía no hay propiedad adjunta en el XAML que llame a <see cref="Registrar"/>.
+    /// <c>RegionManager.RegionManagerProperty</c>), para que las regiones de dentro se registren en él. Las regiones del XAML
+    /// llegan por la propiedad adjunta <see cref="Regiones.NombreProperty"/> (tramo 3, con el piloto <c>RegionesPropias</c>), que las
+    /// registra cuando encuentran su gestor; cada búsqueda (<see cref="Region"/>, <see cref="Contiene"/>) les da otra
+    /// oportunidad, como el <c>UpdatingRegions</c> de Prism.
     /// </summary>
     public sealed class GestorRegiones
     {
@@ -63,11 +65,26 @@ namespace Nesto.Infrastructure.Navegacion
         /// <summary>Quita la región del ámbito (sus vistas se quedan donde están). Si no existe, no hace nada.</summary>
         public bool QuitarRegion(string nombre) => nombre != null && _regiones.Remove(nombre);
 
-        public bool Contiene(string nombre) => nombre != null && _regiones.ContainsKey(nombre);
+        /// <summary>Quita la región con ese nombre solo si es esa (y no otra que se haya registrado después con el mismo).</summary>
+        internal bool QuitarRegion(string nombre, RegionNesto region)
+            => nombre != null && _regiones.TryGetValue(nombre, out RegionNesto actual) && ReferenceEquals(actual, region)
+               && _regiones.Remove(nombre);
 
-        /// <summary>La región con ese nombre en este ámbito; null si no existe.</summary>
+        public bool Contiene(string nombre)
+        {
+            Regiones.Actualizar();
+            return nombre != null && _regiones.ContainsKey(nombre);
+        }
+
+        /// <summary>
+        /// La región con ese nombre en este ámbito; null si no existe. Antes registra las regiones del XAML que ya
+        /// encuentran su gestor (<see cref="Regiones.Actualizar"/>), como hace Prism al pedirle una región.
+        /// </summary>
         public RegionNesto Region(string nombre)
-            => nombre != null && _regiones.TryGetValue(nombre, out RegionNesto region) ? region : null;
+        {
+            Regiones.Actualizar();
+            return nombre != null && _regiones.TryGetValue(nombre, out RegionNesto region) ? region : null;
+        }
 
         /// <summary>Un ámbito nuevo, vacío e independiente de este (el de una pestaña de maestro-detalle).</summary>
         public GestorRegiones CrearAmbito() => new GestorRegiones();
