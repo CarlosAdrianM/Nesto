@@ -17,8 +17,8 @@ namespace Nesto.Infrastructure.Contracts
     ///    sea mecánica y no haya que tocar cientos de líneas.
     /// 3. Cambiar la implementación por una sin Prism. Por eso aquí NO aparece ningún tipo de
     ///    Prism: los parámetros y el resultado son <see cref="ParametrosDialogo"/> y
-    ///    <see cref="ResultadoDialogo"/>. Hecho en piloto: <c>ControlesUsuario.Dialogs.ServicioDialogosNesto</c>
-    ///    (ventana propia), que se activa por usuario con el parámetro VentanaDialogosPropia. Los
+    ///    <see cref="ResultadoDialogo"/>. Hecho: <c>ControlesUsuario.Dialogs.ServicioDialogosNesto</c>
+    ///    (ventana propia), la de todos desde el 14/10/26 (antes, piloto por usuario). Los
     ///    diálogos genéricos se componen una sola vez en <c>ServicioDialogosBase</c>. Los ViewModels
     ///    de los diálogos pasan de IDialogAware a <see cref="IDialogoNesto"/> heredando de
     ///    <c>ControlesUsuario.Dialogs.DialogoNestoBase</c>, que los sigue presentando como IDialogAware a la

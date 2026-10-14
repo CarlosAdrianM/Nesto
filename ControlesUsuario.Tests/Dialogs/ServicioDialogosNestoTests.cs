@@ -1,5 +1,4 @@
 using ControlesUsuario.Dialogs;
-using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Prism.Services.Dialogs;
@@ -303,47 +302,6 @@ namespace ControlesUsuario.Tests.Dialogs
 
                 _ = Assert.ThrowsException<InvalidOperationException>(() => servicio.PrepararVentana("MiDialogo", null, null));
             });
-        }
-
-        [TestMethod]
-        public void Conmutable_ConElParametroAUno_AbreConLaVentanaPropia()
-        {
-            IServicioDialogos prism = A.Fake<IServicioDialogos>();
-            IServicioDialogos propio = A.Fake<IServicioDialogos>();
-            int lecturas = 0;
-            var servicio = new ServicioDialogosConmutable(prism, propio, () => { lecturas++; return true; });
-
-            servicio.ShowError("uno");
-            servicio.ShowNotification("dos");
-
-            A.CallTo(() => propio.ShowDialog("NotificationDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedTwiceExactly();
-            A.CallTo(() => prism.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
-            Assert.AreEqual(1, lecturas, "El parámetro se lee una sola vez");
-        }
-
-        [TestMethod]
-        public void Conmutable_SinElParametro_AbreConPrism()
-        {
-            IServicioDialogos prism = A.Fake<IServicioDialogos>();
-            IServicioDialogos propio = A.Fake<IServicioDialogos>();
-            var servicio = new ServicioDialogosConmutable(prism, propio, () => false);
-
-            servicio.Show("AvisoNoModal", null, null);
-
-            A.CallTo(() => prism.Show("AvisoNoModal", null, null)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => propio.Show(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
-        }
-
-        [TestMethod]
-        public void Conmutable_SiNoSePuedeLeerElParametro_AbreConPrism()
-        {
-            IServicioDialogos prism = A.Fake<IServicioDialogos>();
-            IServicioDialogos propio = A.Fake<IServicioDialogos>();
-            var servicio = new ServicioDialogosConmutable(prism, propio, () => throw new Exception("Sin conexión"));
-
-            servicio.ShowNotification("hola");
-
-            A.CallTo(() => prism.ShowDialog("NotificationDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
         }
 
         // Deja que el Dispatcher procese lo pendiente (el Loaded de la ventana, los bindings).

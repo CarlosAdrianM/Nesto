@@ -111,17 +111,11 @@ Partial Public Class Application
         ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
         ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).
         Dim unusedMessenger = containerRegistry.RegisterInstance(Of IMessenger)(WeakReferenceMessenger.Default)
-        ' Nesto#490 (4C.2): servicio de diálogos propio. Paso 3 (piloto): con el parámetro VentanaDialogosPropia = "1"
-        ' los diálogos se abren en la ventana propia de Nesto; sin él, en la de Prism como siempre. Los diálogos se
-        ' siguen registrando con RegisterDialog de Prism, y de ahí saca la vista la ventana propia.
+        ' Nesto#490 (4C.2): servicio de diálogos propio, con la ventana propia de Nesto para todos (14/10/26, tras 14 días
+        ' de piloto con el parámetro VentanaDialogosPropia sin ningún error). Los diálogos se siguen registrando con
+        ' RegisterDialog de Prism, y de ahí saca la vista la ventana propia.
         Dim unusedDialogos = containerRegistry.RegisterSingleton(Of IServicioDialogos)(
-            Function(provider)
-                Dim prism As New ServicioDialogosPrism(provider.Resolve(Of Prism.Services.Dialogs.IDialogService)())
-                Dim propio As New ServicioDialogosNesto(Function(nombre) provider.Resolve(GetType(Object), nombre))
-                Dim cfg = provider.Resolve(Of IConfiguracion)()
-                Return New ServicioDialogosConmutable(prism, propio,
-                    Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.VentanaDialogosPropia) = "1")
-            End Function)
+            Function(provider) New ServicioDialogosNesto(Function(nombre) provider.Resolve(GetType(Object), nombre)))
         ' Nesto#490 (4C.4): navegación propia. Paso 1: delega en el IRegionManager de Prism (mismo comportamiento).
         Dim unusedNavegacion = containerRegistry.RegisterSingleton(Of IServicioNavegacion, Nesto.Infrastructure.Navegacion.ServicioNavegacionPrism)()
         ' Nesto#490 (4C.4): el cargador de vistas de la navegación de Prism, salvo que nunca reutiliza las vistas de un
