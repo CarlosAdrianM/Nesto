@@ -1,6 +1,8 @@
 ﻿using ControlesUsuario.Behaviors;
 using Nesto.Modules.Producto.ViewModels;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 
 namespace Nesto.Modules.Producto.Views
@@ -12,6 +14,7 @@ namespace Nesto.Modules.Producto.Views
         {
             InitializeComponent();
             DataContext = viewModel;
+            IsVisibleChanged += AlCambiarVisibilidad;
             viewModel.PedirFocoEnLector += EnfocarLector;
             Loaded += async (_, _) =>
             {
@@ -43,6 +46,42 @@ namespace Nesto.Modules.Producto.Views
             if (DataContext is RecibirReposicionViewModel vm && e?.Item != null)
             {
                 vm.LeerProductoElegido(e.Item.Id, e.Item.Texto);
+            }
+        }
+
+        /// <summary>Tras abrir la ficha desde la rejilla, al volver a esta pestaña el cursor vuelve al lector.</summary>
+        private bool _volverAlLectorAlVerse;
+
+        /// <summary>
+        /// Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto. Solo en esa celda (en la fila, el
+        /// doble clic en la cantidad es para escribirla). Al volver a esta pestaña, el cursor vuelve al lector.
+        /// </summary>
+        private void Referencia_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGridCell celda || DataContext is not RecibirReposicionViewModel vm)
+            {
+                return;
+            }
+            string producto = celda.DataContext switch
+            {
+                LineaRecibirReposicion linea => linea.Producto,
+                _ => null
+            };
+            if (string.IsNullOrWhiteSpace(producto) || !vm.AbrirFichaProductoCommand.CanExecute(producto))
+            {
+                return;
+            }
+            e.Handled = true;
+            _volverAlLectorAlVerse = true;
+            vm.AbrirFichaProductoCommand.Execute(producto);
+        }
+
+        private void AlCambiarVisibilidad(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (_volverAlLectorAlVerse && e.NewValue is true)
+            {
+                _volverAlLectorAlVerse = false;
+                EnfocarLector();
             }
         }
     }

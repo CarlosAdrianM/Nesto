@@ -124,25 +124,29 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IConfiguracion _configuracion;
         private readonly ISonidosLector _sonidos;
         private readonly Action<string> _abrirFichero;
+        private readonly IServicioNavegacion _navegacion;
 
         /// <summary>Uno por reposición abierta: si la respuesta se pierde y se reintenta, no se recibe dos veces.</summary>
         private Guid _idRecepcion;
 
         public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos)
-            : this(servicio, dialogos, configuracion, sonidos, null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
         internal RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, Action<string> abrirFichero)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
             _sonidos = sonidos;
             _abrirFichero = abrirFichero ?? AbridorFicheros.AbrirConElVisorDelSistema;
+            _navegacion = navegacion;
+            // Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto
+            AbrirFichaProductoCommand = new RelayCommand<string>(AbrirFichaProducto);
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             ElegirCommand = new AsyncRelayCommand<RecepcionPendiente>(ElegirAsync);
             LeerCommand = new RelayCommand<string>(Leer);
@@ -255,6 +259,25 @@ namespace Nesto.Modules.Producto.ViewModels
                     ImprimirCommand.NotifyCanExecuteChanged();
                 }
             }
+        }
+
+        /// <summary>
+        /// Sugerencia 599 (Paloma): doble clic en la referencia de una línea abre la ficha del producto (en otra pestaña:
+        /// esta se queda como estaba). Recibe la referencia; vacía, no hace nada.
+        /// </summary>
+        public IRelayCommand<string> AbrirFichaProductoCommand { get; }
+
+        private void AbrirFichaProducto(string producto)
+        {
+            if (string.IsNullOrWhiteSpace(producto) || _navegacion == null)
+            {
+                return;
+            }
+            var parameters = new ParametrosNavegacion
+            {
+                { "numeroProductoParameter", producto.Trim() }
+            };
+            _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
         public IAsyncRelayCommand CargarCommand { get; }

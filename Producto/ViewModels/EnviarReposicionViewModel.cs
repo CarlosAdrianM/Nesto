@@ -119,25 +119,29 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IConfiguracion _configuracion;
         private readonly ISonidosLector _sonidos;
         private readonly Action<string> _abrirFichero;
+        private readonly IServicioNavegacion _navegacion;
 
         /// <summary>Mientras se ponen las cantidades que manda el servidor (o se deshace un cambio) no se le vuelven a mandar.</summary>
         private bool _aplicandoServidor;
 
         public EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos)
-            : this(servicio, dialogos, configuracion, sonidos, null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
         internal EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, Action<string> abrirFichero)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero)
         {
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
             _sonidos = sonidos;
             _abrirFichero = abrirFichero ?? AbridorFicheros.AbrirConElVisorDelSistema;
+            _navegacion = navegacion;
+            // Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto
+            AbrirFichaProductoCommand = new RelayCommand<string>(AbrirFichaProducto);
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             PrepararCommand = new AsyncRelayCommand(PrepararAsync, () => PuedePreparar);
             CambiarCantidadCommand = new AsyncRelayCommand<LineaEnviarReposicion>(CambiarCantidadAsync, AsyncRelayCommandOptions.AllowConcurrentExecutions);
@@ -669,6 +673,25 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _lectura;
         /// <summary>El cuadro del lector: Intro lo busca (<see cref="LeerLecturaCommand"/>) y lo vacía.</summary>
         public string Lectura { get => _lectura; set => SetProperty(ref _lectura, value); }
+
+        /// <summary>
+        /// Sugerencia 599 (Paloma): doble clic en la referencia de una línea abre la ficha del producto (en otra pestaña:
+        /// esta se queda como estaba). Recibe la referencia; vacía, no hace nada.
+        /// </summary>
+        public IRelayCommand<string> AbrirFichaProductoCommand { get; }
+
+        private void AbrirFichaProducto(string producto)
+        {
+            if (string.IsNullOrWhiteSpace(producto) || _navegacion == null)
+            {
+                return;
+            }
+            var parameters = new ParametrosNavegacion
+            {
+                { "numeroProductoParameter", producto.Trim() }
+            };
+            _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
+        }
 
         public IAsyncRelayCommand CargarCommand { get; }
         public IAsyncRelayCommand PrepararCommand { get; }

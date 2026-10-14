@@ -97,7 +97,16 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <!-- Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto -->
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="ToolTip" Value="Doble clic: abre la ficha del producto" />
+                            <EventSetter Event="MouseDoubleClick" Handler="Referencia_MouseDoubleClick" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
                 <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
                 <DataGridTextColumn x:Name="colCantidadPuntual" Header="Cantidad" Binding="{Binding Cantidad, UpdateSourceTrigger=PropertyChanged}" />
@@ -144,7 +153,16 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <!-- Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto -->
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="ToolTip" Value="Doble clic: abre la ficha del producto" />
+                            <EventSetter Event="MouseDoubleClick" Handler="Referencia_MouseDoubleClick" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
                 <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
                 <DataGridTextColumn x:Name="colCantidad" Header="Cantidad" Binding="{Binding Cantidad}" />

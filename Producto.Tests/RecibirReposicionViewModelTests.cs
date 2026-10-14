@@ -20,6 +20,7 @@ namespace Producto.Tests
         private IConfiguracion _configuracion = null!;
         private RecibirReposicionViewModel _vm = null!;
         private ISonidosLector _sonidos = null!;
+        private IServicioNavegacion _navegacion = null!;
         private readonly List<string> _abiertos = new();
         private int _focosEnLector;
         private TerminarRecepcionReposicion? _terminada;
@@ -61,7 +62,8 @@ namespace Producto.Tests
             _sonidos = A.Fake<ISonidosLector>();
             _abiertos.Clear();
             _focosEnLector = 0;
-            _vm = new RecibirReposicionViewModel(_servicio, _dialogos, _configuracion, _sonidos, ruta => _abiertos.Add(ruta));
+            _navegacion = A.Fake<IServicioNavegacion>();
+            _vm = new RecibirReposicionViewModel(_servicio, _dialogos, _configuracion, _sonidos, _navegacion, ruta => _abiertos.Add(ruta));
             _vm.PedirFocoEnLector += () => _focosEnLector++;
         }
 
@@ -731,6 +733,29 @@ namespace Producto.Tests
 
             Assert.AreEqual("La reposición 80878 no está pendiente de recibir en ALC.", _vm.Mensaje);
             Assert.AreEqual(0, _abiertos.Count);
+        }
+
+        // Sugerencia 599 (Paloma): doble clic en la referencia de la línea abre la ficha del producto
+        [TestMethod]
+        public async Task AbrirFichaProducto_ConLaReferenciaDeUnaLinea_NavegaAProductoViewConEseProducto()
+        {
+            await AbiertaAsync();
+            string producto = _vm.Lineas[0].Producto;
+
+            _vm.AbrirFichaProductoCommand.Execute(producto + "  ");
+
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView",
+                A<ParametrosNavegacion>.That.Matches(p => p.GetValue<string>("numeroProductoParameter") == producto.Trim())))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void AbrirFichaProducto_SinReferencia_NoNavega()
+        {
+            _vm.AbrirFichaProductoCommand.Execute(null);
+            _vm.AbrirFichaProductoCommand.Execute("  ");
+
+            A.CallTo(() => _navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
         }
     }
 }

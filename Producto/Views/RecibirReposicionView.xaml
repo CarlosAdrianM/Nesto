@@ -93,7 +93,16 @@
         <DataGrid Grid.Row="2" Grid.Column="2" ItemsSource="{Binding LineasVisibles}" AutoGenerateColumns="False"
                   CanUserAddRows="False" CanUserDeleteRows="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True" />
+                <!-- Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto -->
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="ToolTip" Value="Doble clic: abre la ficha del producto" />
+                            <EventSetter Event="MouseDoubleClick" Handler="Referencia_MouseDoubleClick" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" IsReadOnly="True" Width="*" />
                 <DataGridTextColumn Header="Enviado" Binding="{Binding Enviado}" IsReadOnly="True" />
                 <DataGridTextColumn Header="Leído" Binding="{Binding Leido, UpdateSourceTrigger=PropertyChanged}" />
