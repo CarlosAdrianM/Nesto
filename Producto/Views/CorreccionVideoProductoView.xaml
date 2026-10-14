@@ -5,12 +5,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             xmlns:prism="http://prismlibrary.com/"
+             xmlns:dialogos="clr-namespace:ControlesUsuario.Dialogs;assembly=ControlesUsuario"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              d:DesignHeight="600" d:DesignWidth="800">
 
-    <prism:Dialog.WindowStyle>
+    <dialogos:DialogoNesto.EstiloVentana>
         <Style TargetType="Window">
             <Setter Property="SizeToContent" Value="WidthAndHeight"/>
             <!-- MaxHeight y WindowStartupLocation se fijan en el code-behind (OnLoaded):
@@ -20,7 +20,7 @@
             <Setter Property="MaxWidth" Value="900"/>
             <Setter Property="ResizeMode" Value="CanResize"/>
         </Style>
-    </prism:Dialog.WindowStyle>
+    </dialogos:DialogoNesto.EstiloVentana>
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />

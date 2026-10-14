@@ -1,7 +1,6 @@
 using ControlesUsuario.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.Threading;
 using System.Windows;
@@ -148,7 +147,7 @@ namespace ControlesUsuario.Tests.Dialogs
                 var servicio = ServicioQueDevuelve(() =>
                 {
                     var vista = new Grid { DataContext = new DialogoDePrueba() };
-                    Dialog.SetWindowStyle(vista, estilo);
+                    DialogoNesto.SetEstiloVentana(vista, estilo);
                     return vista;
                 });
 

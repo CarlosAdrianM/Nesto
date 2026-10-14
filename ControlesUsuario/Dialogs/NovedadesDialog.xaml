@@ -1,13 +1,12 @@
 ﻿<UserControl x:Class="ControlesUsuario.Dialogs.NovedadesDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
              Background="White">
     <!-- Nesto#513: antes la vista tenía Width="620" fijo y la ventana (ajustada al contenido, con tope de 600)
          la cortaba por la derecha, igual que la barra de botones desde «Algo no funciona». Ahora la ventana nace
          con un tamaño cómodo, se puede agrandar o encoger (hasta un mínimo) y todo el contenido sigue su ancho. -->
-    <prism:Dialog.WindowStyle>
+    <local:DialogoNesto.EstiloVentana>
         <Style TargetType="Window">
             <Setter Property="SizeToContent" Value="Manual" />
             <Setter Property="ResizeMode" Value="CanResize" />
@@ -16,7 +15,7 @@
             <Setter Property="MinWidth" Value="560" />
             <Setter Property="MinHeight" Value="420" />
         </Style>
-    </prism:Dialog.WindowStyle>
+    </local:DialogoNesto.EstiloVentana>
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisible" />
         <local:BytesAImagenConverter x:Key="BytesAImagen" />

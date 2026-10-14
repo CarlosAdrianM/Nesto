@@ -1,5 +1,4 @@
 using Nesto.Infrastructure.Contracts;
-using Prism.Services.Dialogs;
 using System;
 using System.ComponentModel;
 using System.Linq;
@@ -14,7 +13,8 @@ namespace ControlesUsuario.Dialogs
     /// de eventos, misma ventana) para que el cambio no se note:
     /// - Ventana con el título enlazado a <c>Title</c> del ViewModel, centrada sobre la ventana
     ///   activa (que es su dueña) y ajustada al contenido, salvo que la vista traiga su propio
-    ///   <c>prism:Dialog.WindowStyle</c>, que la sustituye entera (como en Prism).
+    ///   estilo de ventana (<see cref="DialogoNesto.EstiloVentanaProperty"/>, antes <c>prism:Dialog.WindowStyle</c>),
+    ///   que la sustituye entera (como en Prism).
     /// - <c>OnDialogOpened</c> antes de enseñarla; <c>RequestClose</c> se escucha desde que se ha
     ///   cargado; <c>CanCloseDialog</c> puede impedir el cierre (también con la X); al cerrar,
     ///   <c>OnDialogClosed</c> y el callback (con <see cref="ResultadoBoton.None"/> si se cerró sin
@@ -63,7 +63,7 @@ namespace ControlesUsuario.Dialogs
 
             ConfigurarEventos(ventana, dialogo, callback);
 
-            Style estilo = Dialog.GetWindowStyle(contenido);
+            Style estilo = DialogoNesto.GetEstiloVentana(contenido);
             if (estilo != null)
             {
                 ventana.Style = estilo;

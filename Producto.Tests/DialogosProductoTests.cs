@@ -105,5 +105,53 @@ namespace Producto.Tests
 
             Assert.AreEqual(ResultadoBoton.Cancel, resultado!.Result);
         }
+
+        // Nesto#490 (4C.2): «Correcciones de productos del vídeo» trae su propio estilo de ventana con la propiedad
+        // adjunta de Nesto (DialogoNesto.EstiloVentana, antes prism:Dialog.WindowStyle), que la ventana propia usa
+        // en vez del suyo: ajustada al contenido, como mucho 900 de ancho y redimensionable.
+        [TestMethod]
+        public void CorreccionVideo_LaVistaTraeSuEstiloDeVentana()
+        {
+            EjecutarEnSTA(() =>
+            {
+                var vista = new Nesto.Modulos.Producto.Views.CorreccionVideoProductoView();
+
+                System.Windows.Style estilo = ControlesUsuario.Dialogs.DialogoNesto.GetEstiloVentana(vista);
+
+                Assert.IsNotNull(estilo, "La vista trae su estilo de ventana");
+                var ventana = new System.Windows.Window { Style = estilo };
+                Assert.AreEqual(900d, ventana.MaxWidth);
+                Assert.AreEqual(System.Windows.ResizeMode.CanResize, ventana.ResizeMode);
+                Assert.AreEqual(System.Windows.SizeToContent.WidthAndHeight, ventana.SizeToContent);
+                ventana.Close();
+            });
+        }
+
+        private static void EjecutarEnSTA(Action accion)
+        {
+            Exception? error = null;
+            var hilo = new Thread(() =>
+            {
+                try
+                {
+                    accion();
+                }
+                catch (Exception ex)
+                {
+                    error = ex;
+                }
+                finally
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown();
+                }
+            });
+            hilo.SetApartmentState(ApartmentState.STA);
+            hilo.Start();
+            hilo.Join();
+            if (error != null)
+            {
+                throw new AssertFailedException(error.Message, error);
+            }
+        }
     }
 }
