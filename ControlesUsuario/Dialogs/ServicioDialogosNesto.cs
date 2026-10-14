@@ -1,5 +1,4 @@
 using Nesto.Infrastructure.Contracts;
-using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
 using System.ComponentModel;
@@ -21,15 +20,19 @@ namespace ControlesUsuario.Dialogs
     ///   <c>OnDialogClosed</c> y el callback (con <see cref="ResultadoBoton.None"/> si se cerró sin
     ///   resultado).
     ///
-    /// Mientras dure la migración, la vista se sigue registrando con <c>RegisterDialog</c> de Prism
-    /// (se obtiene con <c>resolverVista</c>) y su ViewModel puede ser <see cref="IDialogoNesto"/> o
-    /// el <see cref="IDialogAware"/> de Prism de siempre.
+    /// La vista y su ViewModel los da <c>resolverVista</c>: en la aplicación, <see cref="RegistroDialogos.CrearDialogo"/>
+    /// con lo registrado con <see cref="RegistroDialogos.RegistrarDialogo"/> (antes, RegisterDialog de Prism y el
+    /// AutoWire de su ViewModelLocator). Mientras dure la migración, el ViewModel puede ser
+    /// <see cref="IDialogoNesto"/> o el <see cref="IDialogAware"/> de Prism de siempre.
     /// </summary>
     public class ServicioDialogosNesto : ServicioDialogosBase
     {
         private readonly Func<string, object> _resolverVista;
 
-        /// <param name="resolverVista">Devuelve la vista registrada con ese nombre (una nueva cada vez).</param>
+        /// <param name="resolverVista">
+        /// Devuelve la vista registrada con ese nombre (una nueva cada vez), con su ViewModel como DataContext;
+        /// null si no hay ninguna con ese nombre.
+        /// </param>
         public ServicioDialogosNesto(Func<string, object> resolverVista)
         {
             _resolverVista = resolverVista ?? throw new ArgumentNullException(nameof(resolverVista));
@@ -51,12 +54,6 @@ namespace ControlesUsuario.Dialogs
             if (!(_resolverVista(name) is FrameworkElement contenido))
             {
                 throw new InvalidOperationException($"El diálogo «{name}» no está registrado o no es un FrameworkElement");
-            }
-
-            // Igual que MvvmHelpers.AutowireViewModel de Prism: si la vista no trae ViewModel ni lo pide, se le pone.
-            if (contenido.DataContext == null && ViewModelLocator.GetAutoWireViewModel(contenido) == null)
-            {
-                ViewModelLocator.SetAutoWireViewModel(contenido, true);
             }
 
             IDialogoNesto dialogo = contenido.DataContext switch

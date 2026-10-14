@@ -1,4 +1,5 @@
-﻿using Prism.Modularity;
+﻿using ControlesUsuario.Dialogs;
+using Prism.Modularity;
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Modulos.Cliente.ViewModels;
@@ -25,8 +26,8 @@ namespace Nesto.Modulos.Cliente
             containerRegistry.Register<object, MantenimientoEventosView>("MantenimientoEventosView");
             containerRegistry.Register<object, SenalesEventosView>("SenalesEventosView");
             containerRegistry.Register<IEventosService, EventosService>();
-            containerRegistry.RegisterDialog<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
-            containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
+            containerRegistry.RegistrarDialogo<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
+            containerRegistry.RegistrarDialogo<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

@@ -1,4 +1,5 @@
-﻿Imports ControlesUsuario.Services
+﻿Imports ControlesUsuario.Dialogs
+Imports ControlesUsuario.Services
 Imports Nesto.Infrastructure.Contracts
 Imports Prism.Ioc
 Imports Prism.Modularity
@@ -11,14 +12,14 @@ Public Class PedidoVenta
     Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
         Dim unused3 = containerRegistry.Register(Of Object, PedidoVentaView)("PedidoVentaView")
         Dim unused2 = containerRegistry.Register(Of Object, DetallePedidoView)("DetallePedidoView")
-        containerRegistry.RegisterDialog(Of PickingPopupView, PickingPopupViewModel)
+        containerRegistry.RegistrarDialogo(Of PickingPopupView, PickingPopupViewModel)
         ' Sugerencia 575: pedidos que podrían ir por nuestra ruta, antes de sacar el picking
-        containerRegistry.RegisterDialog(Of SugerenciasRutaPickingPopup, SugerenciasRutaPickingPopupViewModel)(SugerenciasRutaPickingPopupViewModel.NOMBRE)
-        containerRegistry.RegisterDialog(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
-        containerRegistry.RegisterDialog(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
-        containerRegistry.RegisterDialog(Of CopiarFacturaView, CopiarFacturaViewModel)
+        containerRegistry.RegistrarDialogo(Of SugerenciasRutaPickingPopup, SugerenciasRutaPickingPopupViewModel)(SugerenciasRutaPickingPopupViewModel.NOMBRE)
+        containerRegistry.RegistrarDialogo(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
+        containerRegistry.RegistrarDialogo(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
+        containerRegistry.RegistrarDialogo(Of CopiarFacturaView, CopiarFacturaViewModel)
         ' NestoAPI#352: pregunta el grupo de comisión de las líneas de inmovilizado al guardar
-        containerRegistry.RegisterDialog(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
 
         ' Registrar servicios del módulo
         Dim unused1 = containerRegistry.RegisterSingleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)

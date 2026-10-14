@@ -1,8 +1,6 @@
 <UserControl x:Class="SugerenciasRutaPickingPopup"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Width="900" MaxHeight="620">
     <!-- Sugerencia 575 (Alfredo, almacén): antes de sacar el picking, los pedidos que van por OnTime y que seguramente
          saldrán por nuestra ruta (AT/16). Solo lo ve almacén; nada se cambia sin marcarlo. Sin colores fijos (modo claro y

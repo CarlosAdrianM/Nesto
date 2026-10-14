@@ -1,8 +1,6 @@
 <UserControl x:Class="ControlesUsuario.Dialogs.ParametrosUsuarioDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Width="480" Height="Auto">
     <!-- Caso real 20/08/26: sustituye al MessageBox de solo lectura del menú Parámetros.
          Los parámetros EDITABLES los decide el servidor (catálogo en NestoAPI): esta ventana

@@ -1,4 +1,5 @@
-﻿Imports Prism.Modularity
+﻿Imports ControlesUsuario.Dialogs
+Imports Prism.Modularity
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
 Imports Prism.Ioc
@@ -10,7 +11,7 @@ Public Class Rapports
     Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
         containerRegistry.Register(Of Object, ListaRapportsView)("ListaRapportsView")
         containerRegistry.Register(Of Object, RapportView)("RapportView")
-        containerRegistry.RegisterDialog(Of CopiarSeguimientosView, CopiarSeguimientosViewModel)
+        containerRegistry.RegistrarDialogo(Of CopiarSeguimientosView, CopiarSeguimientosViewModel)
     End Sub
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized

@@ -276,7 +276,9 @@ namespace ControlesUsuario.Tests
             {
                 try
                 {
-                    var vista = new RevisionConceptoDialog();
+                    // Nesto#490 (4C.2): la vista con su VM, como la crea el registro de diálogos (antes, el AutoWire de Prism)
+                    var vista = new DialogoRegistrado("RevisionConceptoDialog", typeof(RevisionConceptoDialog), typeof(RevisionConceptoDialogViewModel))
+                        .Crear(Activator.CreateInstance);
                     var bloque = new System.Windows.Controls.TextBlock();
                     TextoConCambios.SetTramos(bloque, RevisionConcepto.Trocear(PROPUESTO, ConCambios().Cambios));
 

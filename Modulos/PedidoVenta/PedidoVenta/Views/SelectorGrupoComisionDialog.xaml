@@ -1,8 +1,6 @@
 <UserControl x:Class="SelectorGrupoComisionDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Width="420">
     <!-- NestoAPI#352: una línea de inmovilizado comisiona por el grupo que elige quien mete
          el pedido. Se pregunta al guardar, una vez por línea sin grupo. -->

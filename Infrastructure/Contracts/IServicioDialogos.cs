@@ -26,7 +26,8 @@ namespace Nesto.Infrastructure.Contracts
     ///
     /// Los diálogos genéricos (NotificationDialog, ConfirmationDialog, InputAmountDialog,
     /// InputTextDialog) se registran en Application.RegisterTypes; los de cada módulo, en su
-    /// IModule.RegisterTypes.
+    /// IModule.RegisterTypes. Desde el 14/10/26, con el registro propio
+    /// (<c>ControlesUsuario.Dialogs.RegistroDialogos.RegistrarDialogo</c>) en vez del RegisterDialog de Prism.
     /// </summary>
     public interface IServicioDialogos
     {

@@ -20,17 +20,20 @@ namespace ControlesUsuario.Tests
     [TestClass]
     public class NovedadesComentarioALaVistaTests
     {
-        #region La vista se engancha al VM (antes no: el AutoWire pone el DataContext dentro de InitializeComponent)
+        #region La vista se engancha al VM (antes no: el AutoWire de Prism ponía el DataContext dentro de InitializeComponent)
 
         [TestMethod]
-        public void NovedadesDialog_ConElViewModelDelAutoWire_EscuchaSusCambios()
+        public void NovedadesDialog_ConElViewModelDelRegistroDeDialogos_EscuchaSusCambios()
         {
             EjecutarEnSTA(() =>
             {
-                var vista = new NovedadesDialog();
+                // Nesto#490 (4C.2): el VM ya no lo pone el AutoWire de Prism sino el registro de diálogos, después de
+                // crear la vista.
+                var vista = new DialogoRegistrado("NovedadesDialog", typeof(NovedadesDialog), typeof(NovedadesDialogViewModel))
+                    .Crear(Activator.CreateInstance);
 
                 Assert.IsInstanceOfType(vista.DataContext, typeof(NovedadesDialogViewModel),
-                    "El AutoWire de Prism pone el VM durante InitializeComponent");
+                    "El registro de diálogos pone el VM a la vista");
                 Assert.IsTrue(EscuchaA(vista.DataContext, vista),
                     "Sin engancharse al DataContext que ya trae, la vista nunca se entera de NovedadDestacada");
             });

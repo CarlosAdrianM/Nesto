@@ -103,7 +103,9 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                var servicio = new ServicioDialogosNesto(nombre => new NovedadesDialog());
+                // Como en la aplicación: la vista real con su ViewModel, del registro propio (ya sin AutoWire de Prism).
+                var registrado = new DialogoRegistrado("NovedadesDialog", typeof(NovedadesDialog), typeof(NovedadesDialogViewModel));
+                var servicio = new ServicioDialogosNesto(nombre => registrado.Crear(Activator.CreateInstance));
                 ResultadoDialogo recibido = null;
 
                 var ventana = servicio.PrepararVentana("NovedadesDialog", new ParametrosDialogo

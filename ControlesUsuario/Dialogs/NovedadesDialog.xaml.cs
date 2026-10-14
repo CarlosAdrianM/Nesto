@@ -17,9 +17,11 @@ namespace ControlesUsuario.Dialogs
         {
             InitializeComponent();
             DataContextChanged += OnDataContextChanged;
-            // Nesto#516: el AutoWire de Prism pone el VM DENTRO de InitializeComponent, antes de la suscripción
+            // Nesto#516: el AutoWire de Prism ponía el VM DENTRO de InitializeComponent, antes de la suscripción
             // de arriba: sin engancharse al que ya trae, la vista no se enteraba nunca de la novedad ni del
-            // comentario destacados (salían resaltados, pero la lista no se movía).
+            // comentario destacados (salían resaltados, pero la lista no se movía). Desde Nesto#490 (4C.2) el VM
+            // lo pone el registro de diálogos después de crear la vista y llega por DataContextChanged; esto se
+            // queda por si la vista ya trae uno.
             EngancharViewModel(null, DataContext);
             Unloaded += (s, e) => _temporizador?.Stop();
         }

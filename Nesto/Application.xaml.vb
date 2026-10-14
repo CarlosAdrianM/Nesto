@@ -112,10 +112,10 @@ Partial Public Class Application
         ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).
         Dim unusedMessenger = containerRegistry.RegisterInstance(Of IMessenger)(WeakReferenceMessenger.Default)
         ' Nesto#490 (4C.2): servicio de diálogos propio, con la ventana propia de Nesto para todos (14/10/26, tras 14 días
-        ' de piloto con el parámetro VentanaDialogosPropia sin ningún error). Los diálogos se siguen registrando con
-        ' RegisterDialog de Prism, y de ahí saca la vista la ventana propia.
+        ' de piloto con el parámetro VentanaDialogosPropia sin ningún error). Los diálogos se registran con
+        ' RegistrarDialogo (registro propio, ya no RegisterDialog de Prism) y la ventana saca de ahí la vista y su ViewModel.
         Dim unusedDialogos = containerRegistry.RegisterSingleton(Of IServicioDialogos)(
-            Function(provider) New ServicioDialogosNesto(Function(nombre) provider.Resolve(GetType(Object), nombre)))
+            Function(provider) New ServicioDialogosNesto(Function(nombre) RegistroDialogos.CrearDialogo(provider, nombre)))
         ' Nesto#490 (4C.4): navegación propia. Paso 1: delega en el IRegionManager de Prism (mismo comportamiento).
         Dim unusedNavegacion = containerRegistry.RegisterSingleton(Of IServicioNavegacion, Nesto.Infrastructure.Navegacion.ServicioNavegacionPrism)()
         ' Nesto#490 (4C.4): el cargador de vistas de la navegación de Prism, salvo que nunca reutiliza las vistas de un
@@ -302,21 +302,21 @@ Partial Public Class Application
         Dim unused39 = containerRegistry.Register(Of ServicioBusquedaProductos)
         Dim unused40 = containerRegistry.Register(Of ServicioBusquedaCuentas)
 
-        containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
-        containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
-        containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
-        containerRegistry.RegisterDialog(Of InputTextDialog, InputTextDialogViewModel)
-        containerRegistry.RegisterDialog(Of InputDateDialog, InputDateDialogViewModel) ' NestoAPI#582
-        containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
-        containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
+        containerRegistry.RegistrarDialogo(Of ConfirmationDialog, ConfirmationDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of NotificationDialog, NotificationDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of InputAmountDialog, InputAmountDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of InputTextDialog, InputTextDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of InputDateDialog, InputDateDialogViewModel) ' NestoAPI#582
+        containerRegistry.RegistrarDialogo(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
+        containerRegistry.RegistrarDialogo(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
         ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)
-        containerRegistry.RegisterDialog(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
         ' Nesto#372: diálogo "Qué hay de nuevo" (popup tras actualizar + Herramientas → Ayuda → Novedades)
-        containerRegistry.RegisterDialog(Of NovedadesDialog, NovedadesDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of NovedadesDialog, NovedadesDialogViewModel)
         ' Caso real 20/08/26: ventana de parámetros de usuario (sustituye al MessageBox del menú)
-        containerRegistry.RegisterDialog(Of ParametrosUsuarioDialog, ParametrosUsuarioDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of ParametrosUsuarioDialog, ParametrosUsuarioDialogViewModel)
         ' NestoAPI#609: «¿Quisiste decir…?» con la corrección del concepto antes de crear un enlace de pago
-        containerRegistry.RegisterDialog(Of RevisionConceptoDialog, RevisionConceptoDialogViewModel)
+        containerRegistry.RegistrarDialogo(Of RevisionConceptoDialog, RevisionConceptoDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

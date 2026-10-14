@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              Background="White">
     <!-- Nesto#513: antes la vista tenía Width="620" fijo y la ventana (ajustada al contenido, con tope de 600)
          la cortaba por la derecha, igual que la barra de botones desde «Algo no funciona». Ahora la ventana nace

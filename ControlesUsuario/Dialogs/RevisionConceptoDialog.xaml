@@ -1,9 +1,7 @@
 <UserControl x:Class="ControlesUsuario.Dialogs.RevisionConceptoDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
-             prism:ViewModelLocator.AutoWireViewModel="True"
              MinWidth="420" MaxWidth="640">
     <!-- NestoAPI#609: «¿Quisiste decir…?» antes de crear el enlace de pago. Sin colores fijos: el resaltado usa
          los colores de selección del sistema (se leen en claro y en oscuro). -->
