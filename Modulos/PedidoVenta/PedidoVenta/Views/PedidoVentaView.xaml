@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:prism="http://prismlibrary.com/"
+             xmlns:nav="clr-namespace:Nesto.Infrastructure.Navegacion;assembly=Infrastructure"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     
@@ -16,7 +16,7 @@
 
         <DockPanel>
             <TextBlock></TextBlock>
-            <ContentControl DockPanel.Dock="Bottom" prism:RegionManager.RegionName="ListaPedidosRegion"></ContentControl>
+            <ContentControl DockPanel.Dock="Bottom" nav:Regiones.Nombre="ListaPedidosRegion"></ContentControl>
         </DockPanel>
 
         <GridSplitter Grid.Column="1"
@@ -28,7 +28,7 @@
                       Background="LightGray"/>
 
         <Grid Grid.Column="2">
-            <ContentControl prism:RegionManager.RegionName="DetallePedidoRegion"></ContentControl>
+            <ContentControl nav:Regiones.Nombre="DetallePedidoRegion"></ContentControl>
         </Grid>
 
     </Grid>

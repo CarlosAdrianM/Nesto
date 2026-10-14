@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
-             xmlns:prism="http://prismlibrary.com/"
+             xmlns:nav="clr-namespace:Nesto.Infrastructure.Navegacion;assembly=Infrastructure"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" 
              xmlns:rapports="clr-namespace:Nesto.Modulos.Rapports" d:DataContext="{d:DesignInstance Type=rapports:ListaRapportsViewModel}"
              mc:Ignorable="d" 
@@ -617,6 +617,6 @@
                 </Border>
             </Grid>
         </xctk:BusyIndicator>
-        <ContentControl Grid.Column="4" prism:RegionManager.RegionName="RapportDetailRegion" Margin="3"></ContentControl>
+        <ContentControl Grid.Column="4" nav:Regiones.Nombre="RapportDetailRegion" Margin="3"></ContentControl>
     </Grid>
 </UserControl>

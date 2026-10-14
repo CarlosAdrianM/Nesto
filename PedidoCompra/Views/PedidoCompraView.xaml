@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoCompra.Views"
-             xmlns:prism="http://prismlibrary.com/" xmlns:viewmodels="clr-namespace:Nesto.Modulos.PedidoCompra.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:PedidoCompraViewModel}"
+             xmlns:nav="clr-namespace:Nesto.Infrastructure.Navegacion;assembly=Infrastructure" xmlns:viewmodels="clr-namespace:Nesto.Modulos.PedidoCompra.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:PedidoCompraViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
     <Grid>
@@ -15,11 +15,11 @@
 
         <DockPanel>
             <TextBlock></TextBlock>
-            <ContentControl DockPanel.Dock="Bottom" prism:RegionManager.RegionName="ListaPedidosCompraRegion"></ContentControl>
+            <ContentControl DockPanel.Dock="Bottom" nav:Regiones.Nombre="ListaPedidosCompraRegion"></ContentControl>
         </DockPanel>
 
         <Grid Grid.Column="1">
-            <ContentControl prism:RegionManager.RegionName="DetallePedidoCompraRegion"></ContentControl>
+            <ContentControl nav:Regiones.Nombre="DetallePedidoCompraRegion"></ContentControl>
         </Grid>
 
     </Grid>

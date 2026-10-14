@@ -40,6 +40,10 @@ Imports Unity
 
 Partial Public Class Application
 
+    ' Nesto#490 (4C.4, tramo 3): piloto de la región propia (parámetro RegionesPropias). Lo usan RegisterTypes (la
+    ' navegación) y CreateShell (la propiedad adjunta de las regiones y el gestor del shell), que tienen que ir por el mismo lado.
+    Private _conmutadorRegiones As Nesto.Infrastructure.Navegacion.ConmutadorRegiones
+
     ' Application-level events, such as Startup, Exit, and DispatcherUnhandledException
     ' can be handled in this file.
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
@@ -118,8 +122,18 @@ Partial Public Class Application
         ' RegistrarDialogo (registro propio, ya no RegisterDialog de Prism) y la ventana saca de ahí la vista y su ViewModel.
         Dim unusedDialogos = containerRegistry.RegisterSingleton(Of IServicioDialogos)(
             Function(provider) New ServicioDialogosNesto(Function(nombre) RegistroDialogos.CrearDialogo(provider, nombre)))
-        ' Nesto#490 (4C.4): navegación propia. Paso 1: delega en el IRegionManager de Prism (mismo comportamiento).
-        Dim unusedNavegacion = containerRegistry.RegisterSingleton(Of IServicioNavegacion, Nesto.Infrastructure.Navegacion.ServicioNavegacionPrism)()
+        ' Nesto#490 (4C.4): navegación propia. Tramo 3 (piloto): con el parámetro RegionesPropias = "1" va por la región
+        ' propia (ServicioNavegacionNesto sobre el GestorRegiones del shell, las vistas creadas por su nombre con los mismos
+        ' registros, y las navegaciones fallidas a la traza y a ELMAH); sin él, o si no se puede leer, por el IRegionManager
+        ' de Prism como siempre. El parámetro se lee una vez, en CreateShell.
+        _conmutadorRegiones = New Nesto.Infrastructure.Navegacion.ConmutadorRegiones(
+            Function() Container.Resolve(Of IConfiguracion)().LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.RegionesPropias),
+            Sub(ex, contexto) Container.Resolve(Of IServicioRegistroErrores)().RegistrarErrorAsync(ex, contexto))
+        Dim conmutadorRegiones = _conmutadorRegiones
+        Dim unusedNavegacion = containerRegistry.RegisterSingleton(Of IServicioNavegacion)(
+            Function(provider) conmutadorRegiones.CrearNavegacion(
+                Function() New Nesto.Infrastructure.Navegacion.ServicioNavegacionPrism(provider.Resolve(Of IRegionManager)()),
+                Function(nombre) provider.Resolve(GetType(Object), nombre)))
         ' Nesto#490 (4C.4): el cargador de vistas de la navegación de Prism, salvo que nunca reutiliza las vistas de un
         ' IReceptorNavegacionPestanaNueva (lo que antes hacía IsNavigationTarget = False). Sustituye al que registra Prism.
         Dim unusedCargadorVistas = containerRegistry.RegisterSingleton(Of IRegionNavigationContentLoader, Nesto.Infrastructure.Navegacion.CargadorVistasNavegacion)()
@@ -322,7 +336,11 @@ Partial Public Class Application
     End Sub
 
     Protected Overrides Function CreateShell() As Window
-        Return Container.Resolve(Of IMainWindow)
+        ' Nesto#490 (4C.4, tramo 3): la propiedad adjunta de las regiones tiene que saber si va el piloto antes de leer el XAML
+        _conmutadorRegiones.AntesDeCrearShell()
+        Dim shell As Window = CType(Container.Resolve(Of IMainWindow)(), Window)
+        _conmutadorRegiones.AlCrearShell(shell)
+        Return shell
     End Function
 
     Protected Overrides Sub ConfigureModuleCatalog(moduleCatalog As IModuleCatalog)
