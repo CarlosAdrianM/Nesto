@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <PackageReference Include="FakeItEasy" Version="8.3.0" />
+    <!-- Nesto#490 (4C.4): las pruebas que fijan cómo monta la cinta el shell -->
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.10.4" />
     <PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
