@@ -1,5 +1,4 @@
 ﻿Imports Prism.Ioc
-Imports Prism.Regions
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports System.ComponentModel
@@ -10,7 +9,6 @@ Partial Class MainWindow
     Implements IMainWindow
     Implements INotifyPropertyChanged
 
-    Private ReadOnly regionManager As IRegionManager
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private ReadOnly tituloVentana As String
     Private _configuracion As IConfiguracion
@@ -30,7 +28,7 @@ Partial Class MainWindow
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
                    novedadesService As INovedadesService, dialogService As IServicioDialogos,
                    campanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel,
                    avisosEnTiempoReal As IAvisosEnTiempoReal)
@@ -46,7 +44,6 @@ Partial Class MainWindow
                                  End Sub
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.regionManager = regionManager
         Me._servicioAutenticacion = servicioAutenticacion
         Me._configuracion = configuracion
         Me._novedadesService = novedadesService

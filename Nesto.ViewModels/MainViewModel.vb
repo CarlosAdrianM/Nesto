@@ -5,7 +5,6 @@ Imports System.Windows.Data
 Imports System.Windows.Media.Imaging
 Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Prism.Regions
 Imports System.Net.Http
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json
@@ -129,13 +128,11 @@ Public Class MainViewModel
     End Property
 
     Private ReadOnly container As IUnityContainer
-    Private ReadOnly regionManager As IRegionManager
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
+    Public Sub New(container As IUnityContainer)
         Dim parametros = New Parametros
         CargarVendedor()
         Me.container = container
-        Me.regionManager = regionManager
         'cmdCerrarVentana = New RelayCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
         Titulo = "Sin Título"
     End Sub
