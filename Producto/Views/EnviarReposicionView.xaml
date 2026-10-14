@@ -25,34 +25,43 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Enviar reposición a Algete" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding Almacen, StringFormat=' desde {0}'}" FontSize="20" />
-            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center" />
-            <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ToolTip="El servidor propone lo que hay que mandar a Algete (stock máximo, pendientes y stock de los dos almacenes)" />
-            <!-- Sugerencia 564: la lista en papel para prepararla a mano -->
-            <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ToolTip="Abre un PDF con la reposición para prepararla a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
-            <!-- Sugerencia 581: una reposición aparte con solo lo que piden mandar (la del calendario no cambia) -->
-            <!-- Sugerencia 581 (Carlos, 13/10/26): solo los días con viaje, con la de hoy rellena y enviada, y hasta que se marca
-                 que el repartidor se la ha llevado; si no, se ve desactivado y dice por qué (al lado y en el tooltip) -->
-            <Button Content="Reposición _puntual…" Command="{Binding EmpezarPuntualCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding MostrarBotonPuntual, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ToolTipService.ShowOnDisabled="True"
-                    ToolTip="{Binding ToolTipPuntual}" />
-            <!-- Sugerencia 581 (Carlos, 13/10/26): el repartidor no pasa siempre a la misma hora: la tienda marca cuándo se la ha llevado -->
-            <Button Content="El repartidor ya se la ha llevado" Command="{Binding MarcarRecogidaCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding MostrarBotonRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ToolTip="Púlsalo cuando el repartidor se haya llevado la reposición de hoy: desde ese momento ya no se puede hacer otra reposición puntual hoy (lo que quede va en la siguiente)" />
-            <TextBlock Text="{Binding AvisoPuntual}" VerticalAlignment="Center" Margin="8,0,0,0" Opacity="0.7" TextWrapping="Wrap" MaxWidth="420"
-                       Visibility="{Binding MostrarBotonPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            <TextBlock Text="Reposición puntual a Algete" FontSize="20" FontWeight="SemiBold" Margin="16,0,0,0" VerticalAlignment="Center"
-                       Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
-                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        <StackPanel Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Enviar reposición a Algete" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Almacen, StringFormat=' desde {0}'}" FontSize="20" />
+                <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center" />
+                <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="El servidor propone lo que hay que mandar a Algete (stock máximo, pendientes y stock de los dos almacenes)" />
+                <!-- Sugerencia 564: la lista en papel para prepararla a mano -->
+                <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Abre un PDF con la reposición para prepararla a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
+                <!-- Sugerencia 581: una reposición aparte con solo lo que piden mandar (la del calendario no cambia) -->
+                <!-- Sugerencia 581 (Carlos, 13/10/26): solo los días con viaje, con la de hoy rellena y enviada, y hasta que se marca
+                     que el repartidor se la ha llevado; si no, se ve desactivado y dice por qué (al lado y en el tooltip) -->
+                <Button Content="Reposición _puntual…" Command="{Binding EmpezarPuntualCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding MostrarBotonPuntual, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="{Binding ToolTipPuntual}" />
+                <!-- Sugerencia 581 (Carlos, 13/10/26): el repartidor no pasa siempre a la misma hora: la tienda marca cuándo se la ha llevado -->
+                <Button Content="El repartidor ya se la ha llevado" Command="{Binding MarcarRecogidaCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding MostrarBotonRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Púlsalo cuando el repartidor se haya llevado la reposición de hoy: desde ese momento ya no se puede hacer otra reposición puntual hoy (lo que quede va en la siguiente)" />
+                <TextBlock Text="{Binding AvisoPuntual}" VerticalAlignment="Center" Margin="8,0,0,0" Opacity="0.7" TextWrapping="Wrap" MaxWidth="420"
+                           Visibility="{Binding MostrarBotonPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="Reposición puntual a Algete" FontSize="20" FontWeight="SemiBold" Margin="16,0,0,0" VerticalAlignment="Center"
+                           Visibility="{Binding EnModoPuntual, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                           Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <!-- NestoAPI#622: lo que ha hecho hoy la API con la de la tienda (no se ha rellenado y por qué, o se ha sumado a una sin
+                 enviar). Sin colores fijos: modo claro y oscuro -->
+            <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                    Padding="0,6" Margin="0,8,0,0"
+                    Visibility="{Binding HayAvisoAutomatica, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding AvisoAutomatica}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+            </Border>
         </StackPanel>
 
         <!-- El lector: si el código está en la lista, el foco va a su cantidad -->

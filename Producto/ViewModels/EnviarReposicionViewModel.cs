@@ -686,6 +686,7 @@ namespace Nesto.Modules.Producto.ViewModels
             await Ocupado(async () =>
             {
                 _origenValido = false;
+                AvisoAutomatica = null;
                 string almacen = (await _configuracion.leerParametro(Empresa, Parametros.Claves.AlmacenPedidoVta).ConfigureAwait(true))?.Trim();
                 if (string.IsNullOrWhiteSpace(almacen))
                 {
@@ -701,6 +702,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 _origenValido = true;
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
                 await LeerEstadoPuntual().ConfigureAwait(true);
+                await LeerAvisosAutomatica().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
                 if (HayReposicion && EnModoPuntual)
@@ -717,6 +719,52 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }, avisarEnDialogo: false).ConfigureAwait(true);
             RefrescarEstado();
+        }
+
+        // ---------------------------------------------------------------- NestoAPI#622: lo que ha hecho hoy la API con la de la tienda
+
+        private string _avisoAutomatica;
+        /// <summary>
+        /// NestoAPI#622: arriba, lo que ha hecho hoy la API al rellenar la reposición de la tienda cuando hay algo que decir: que
+        /// la de hoy no se ha rellenado (y por qué) o que se ha sumado a una que la tienda tenía sin enviar. Null si nada.
+        /// </summary>
+        public string AvisoAutomatica
+        {
+            get => _avisoAutomatica;
+            private set
+            {
+                if (SetProperty(ref _avisoAutomatica, value))
+                {
+                    OnPropertyChanged(nameof(HayAvisoAutomatica));
+                }
+            }
+        }
+
+        public bool HayAvisoAutomatica => !string.IsNullOrWhiteSpace(AvisoAutomatica);
+
+        private async Task LeerAvisosAutomatica()
+        {
+            List<AvisoReposicionAutomatica> avisos;
+            try
+            {
+                avisos = await _servicio.LeerAvisosAutomatica(Empresa, Almacen).ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+                // Solo es para avisar: si no se sabe, no se dice nada
+                avisos = null;
+            }
+            AvisoAutomatica = TextoAvisos(avisos);
+        }
+
+        /// <summary>Un aviso por línea; null si no hay ninguno.</summary>
+        internal static string TextoAvisos(IEnumerable<AvisoReposicionAutomatica> avisos)
+        {
+            List<string> textos = (avisos ?? Enumerable.Empty<AvisoReposicionAutomatica>())
+                .Select(a => a?.Texto?.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .ToList();
+            return textos.Any() ? string.Join(Environment.NewLine, textos) : null;
         }
 
         /// <summary>Cuándo rellena la API la próxima reposición a Algete (null si la ruta no tiene calendario o no se sabe).</summary>
@@ -898,6 +946,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 _dialogos.ShowNotification("Reposición terminada", texto);
                 // Sugerencia 581: enviada la de hoy, ya se puede hacer la puntual y marcar la recogida
                 await LeerEstadoPuntual().ConfigureAwait(true);
+                // NestoAPI#622: enviada, el aviso de «tienes una sin enviar» ya no vale
+                await LeerAvisosAutomatica().ConfigureAwait(true);
             }).ConfigureAwait(true);
         }
 

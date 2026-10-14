@@ -255,6 +255,90 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.PuedePreparar);
         }
 
+        // ---------------------------------------------------------------- NestoAPI#622: lo que ha hecho hoy la API
+
+        private const string AVISO_COMPLETADA = "La reposición a ALG (corte de hoy a las 09:00) se ha sumado a la que tenías sin enviar del 09/10. " +
+            "Envíala desde «Enviar reposición».";
+
+        private void LaApiAvisa(params string[] textos)
+        {
+            A.CallTo(() => _servicio.LeerAvisosAutomatica(A<string>._, "ALC")).Returns(textos
+                .Select(t => new AvisoReposicionAutomatica { Origen = "ALC", Destino = "ALG", Tipo = AvisoReposicionAutomatica.COMPLETADA, Texto = t })
+                .ToList());
+        }
+
+        [TestMethod]
+        public async Task Cargar_ConAvisoDeLaApi_LoDiceArriba()
+        {
+            LaApiAvisa(AVISO_COMPLETADA);
+
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.HayAvisoAutomatica);
+            Assert.AreEqual(AVISO_COMPLETADA, _vm.AvisoAutomatica);
+            Assert.IsTrue(_vm.HayReposicion, "El aviso no cambia nada más: la reposición se enseña igual");
+        }
+
+        [TestMethod]
+        public async Task Cargar_SinAvisos_NoDiceNada()
+        {
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.HayAvisoAutomatica);
+            Assert.IsNull(_vm.AvisoAutomatica);
+        }
+
+        [TestMethod]
+        public async Task Cargar_SiNoSePuedenLeerLosAvisos_CargaIgualSinDecirNada()
+        {
+            A.CallTo(() => _servicio.LeerAvisosAutomatica(A<string>._, A<string>._)).ThrowsAsync(new HttpRequestException("Sin conexión"));
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.HayAvisoAutomatica);
+            Assert.IsTrue(_vm.HayReposicion);
+        }
+
+        [TestMethod]
+        public async Task Cargar_DesdeAlgete_NoPideAvisos()
+        {
+            A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
+
+            await _vm.CargarAsync();
+
+            A.CallTo(() => _servicio.LeerAvisosAutomatica(A<string>._, A<string>._)).MustNotHaveHappened();
+            Assert.IsFalse(_vm.HayAvisoAutomatica);
+        }
+
+        [TestMethod]
+        public async Task Terminar_VuelveALeerLosAvisos_YElDeSinEnviarDesaparece()
+        {
+            LaApiAvisa(AVISO_COMPLETADA);
+            A.CallTo(() => _servicio.Terminar(A<string>._, "ALC")).Returns(new ResultadoTerminarReposicion { NumTraspaso = 80999 });
+            await _vm.CargarAsync();
+            Assert.IsTrue(_vm.HayAvisoAutomatica);
+            LaApiAvisa();
+
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            Assert.IsFalse(_vm.HayAvisoAutomatica);
+        }
+
+        [TestMethod]
+        public void TextoAvisos_UnoPorLinea_SinLosVacios()
+        {
+            string texto = EnviarReposicionViewModel.TextoAvisos(new[]
+            {
+                new AvisoReposicionAutomatica { Texto = " Uno. " },
+                new AvisoReposicionAutomatica { Texto = "" },
+                null!,
+                new AvisoReposicionAutomatica { Texto = "Dos." }
+            });
+
+            Assert.AreEqual("Uno." + Environment.NewLine + "Dos.", texto);
+            Assert.IsNull(EnviarReposicionViewModel.TextoAvisos(null!));
+        }
+
         [TestMethod]
         public async Task Terminar_ConLineasACero_NoLasCuentaEnLaConfirmacion()
         {

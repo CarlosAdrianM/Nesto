@@ -5,6 +5,7 @@ using Nesto.Infrastructure.Services;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -331,6 +332,27 @@ namespace Infrastructure.Tests
             Assert.AreEqual("GET /api/Reposiciones/ProximaLlegada?origen=ALC&destino=ALG&empresa=1", handler.Urls[0]);
             Assert.AreEqual(new DateTime(2026, 10, 9, 10, 0, 0), proxima.CierraEl);
             Assert.AreEqual(4, proxima.DiasHastaSalida);
+        }
+
+        [TestMethod]
+        public async Task LeerAvisosAutomatica_PideLosDelOrigen_YConUnaApiAnteriorDevuelveVacia()
+        {
+            // NestoAPI#622
+            var handler = new HandlerFalso
+            {
+                Respuesta = "[{\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"Corte\":\"2026-10-13T09:00:00\",\"Tipo\":\"Completada\"," +
+                    "\"Texto\":\"La reposición a ALG (corte de hoy a las 09:00) se ha sumado a la que tenías sin enviar del 09/10.\"}]"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            List<AvisoReposicionAutomatica> avisos = await servicio.LeerAvisosAutomatica("1  ", "ALC");
+
+            Assert.AreEqual("GET /api/Reposiciones/AvisosAutomatica?origen=ALC&empresa=1", handler.Urls[0]);
+            Assert.AreEqual(AvisoReposicionAutomatica.COMPLETADA, avisos.Single().Tipo);
+            Assert.AreEqual(new DateTime(2026, 10, 13, 9, 0, 0), avisos.Single().Corte);
+            StringAssert.Contains(avisos.Single().Texto, "sin enviar del 09/10");
+            var anterior = new ServicioEnvioReposiciones(new FactoriaFalsa(new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" }));
+            Assert.AreEqual(0, (await anterior.LeerAvisosAutomatica("1", "ALC")).Count);
         }
 
         [TestMethod]

@@ -51,6 +51,24 @@ namespace Nesto.Infrastructure.Models
     }
 
     /// <summary>
+    /// GET api/Reposiciones/AvisosAutomatica (NestoAPI#622): lo que ha hecho hoy el job con una reposición de la tienda que hay
+    /// que decirle arriba: que no se ha rellenado (y por qué) o que se ha sumado a una que tenía sin enviar.
+    /// Espejo de AvisoReposicionAutomaticaDTO de NestoAPI.
+    /// </summary>
+    public class AvisoReposicionAutomatica
+    {
+        public const string OMITIDA = "Omitida";
+        public const string COMPLETADA = "Completada";
+
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public DateTime? Corte { get; set; }
+        /// <summary><see cref="OMITIDA"/> o <see cref="COMPLETADA"/>.</summary>
+        public string Tipo { get; set; }
+        public string Texto { get; set; }
+    }
+
+    /// <summary>
     /// GET api/Reposiciones/ProximaLlegada (NestoAPI#577): la próxima reposición de una ruta según el calendario.
     /// Espejo de ProximaReposicionDTO de NestoAPI.
     /// </summary>

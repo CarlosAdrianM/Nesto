@@ -30,6 +30,12 @@ namespace Nesto.Infrastructure.Services
         /// la API a la hora de corte del calendario. Una API anterior a #577 (404) no lo restringe: true.
         /// </summary>
         Task<bool> PuedeRellenarManual();
+        /// <summary>
+        /// NestoAPI#622: lo que ha hecho hoy la API con las reposiciones de la tienda que hay que decirle (GET
+        /// api/Reposiciones/AvisosAutomatica): la de hoy no se ha rellenado, o se ha sumado a una sin enviar. Vacía si no hay nada
+        /// o si la API todavía no lo sabe (404).
+        /// </summary>
+        Task<List<AvisoReposicionAutomatica>> LeerAvisosAutomatica(string empresa, string origen);
         /// <summary>NestoAPI#577: la próxima reposición de la ruta según el calendario, o null si la ruta no tiene calendario (404).</summary>
         Task<ProximaReposicion> LeerProximaLlegada(string empresa, string origen, string destino);
         /// <summary>
@@ -115,6 +121,20 @@ namespace Nesto.Infrastructure.Services
                 }
                 string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JsonConvert.DeserializeObject<bool>(json);
+            }
+        }
+
+        public async Task<List<AvisoReposicionAutomatica>> LeerAvisosAutomatica(string empresa, string origen)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/AvisosAutomatica" + Consulta(empresa, origen)).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // La API todavía no tiene #622: nada que decir
+                    return new List<AvisoReposicionAutomatica>();
+                }
+                return await Leer<List<AvisoReposicionAutomatica>>(response).ConfigureAwait(false) ?? new List<AvisoReposicionAutomatica>();
             }
         }
 
