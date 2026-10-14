@@ -1451,7 +1451,12 @@ Public Class PlantillaVentaViewModel
 #End Region
 
     ''' <summary>Vuelve a «Todo junto» (servirJunto marcado) cuando el servidor o la usuaria no aceptan salir de él.</summary>
-    Private Sub RevertirAServirJunto()
+    Friend Sub RevertirAServirJunto()
+        ' Nesto#525: si el modo del que se vuelve lo había puesto el sistema (con aviso) después de que el usuario
+        ' eligiera, el aviso que se ve ya no es verdad: se cambia por el de la vuelta a «Todo junto».
+        Dim anterior As Byte = ModoServicio
+        Dim avisar As Boolean = _modoServicioElegidoPorUsuario AndAlso HayAvisoModoServicio AndAlso
+            Not ModosServicio.EsTodoJunto(anterior)
         Estado.ModoServicio = ModosServicio.TODO_JUNTO
         Estado.ServirJunto = True
         If direccionEntregaSeleccionada IsNot Nothing Then
@@ -1460,6 +1465,9 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(ModoServicio))
         OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
         OnPropertyChanged(NameOf(baseImponibleParaPortes))
+        If avisar Then
+            AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(anterior)}»: el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+        End If
     End Sub
 
     Private Async Sub OnValidarServirJunto()
@@ -1673,6 +1681,12 @@ Public Class PlantillaVentaViewModel
                 ComentarioRuta = String.Empty
             End If
             Dim codigoPostalAnterior = _direccionEntregaSeleccionada?.codigoPostal
+            ' Nesto#525: el SelectorDireccionEntrega vuelve a empujar la dirección (otra instancia del MISMO
+            ' contacto) al recargar su lista (cambia TotalPedido, la BarraFiltro, se vuelve a la pestaña...).
+            ' Eso no es un cambio de dirección: no se reinicia nada de lo que el usuario ya eligió.
+            Dim anteriorDireccion As DireccionesEntregaCliente = _direccionEntregaSeleccionada
+            Dim mismoContacto As Boolean = _borradorEnRestauracion Is Nothing AndAlso
+                EsMismoContacto(_clienteDireccionEntrega, anteriorDireccion, Estado.Cliente, value)
             ' Si estamos restaurando un borrador, aplicar valores ANTES de SetProperty
             ' para que PropertyChanged notifique los bindings con los valores correctos
             If value IsNot Nothing AndAlso _borradorEnRestauracion IsNot Nothing Then
@@ -1680,7 +1694,14 @@ Public Class PlantillaVentaViewModel
                 Estado.ModoServicio = _borradorEnRestauracion.ModoServicio ' Nesto#476
                 ' Nesto#483: el modo que traiga el borrador manda sobre lo que sugiera el servidor.
                 _modoServicioElegidoPorUsuario = _borradorEnRestauracion.ModoServicio.HasValue
+            ElseIf mismoContacto Then
+                ' Nesto#525: se conservan el modo de servicio, el de facturación, las marcas de elección del usuario
+                ' y el último sugerido aplicado. Solo hay que pasar el servirJunto a la instancia nueva, porque
+                ' de ahí lo leen el getter de ModoServicio, los portes, los bonificables y la validación.
+                value.servirJunto = anteriorDireccion.servirJunto
             ElseIf value IsNot Nothing Then
+                Dim modoAntesDelCambio As Byte = ModoServicio
+                Dim habiaElegidoModo As Boolean = _modoServicioElegidoPorUsuario AndAlso anteriorDireccion IsNot Nothing
                 ' NestoAPI#482: el pedido nuevo NACE en el modo por defecto (3 salvo parámetro). No se arrastra
                 ' el ServirJunto de la ficha: dejaba pedidos «todo junto» sin servir nunca por una referencia
                 ' agotada o anulada (Carlos, 16/09/26). El usuario puede cambiarlo en el selector.
@@ -1696,6 +1717,13 @@ Public Class PlantillaVentaViewModel
                 ' del «Mantener junto» de la ficha (como siempre) y lo completa el sugerido de la API.
                 Estado.ModoFacturacion = Nothing
                 _modoFacturacionElegidoPorUsuario = False
+                ' Nesto#525: nada de cambiar en silencio. Si el usuario había elegido un modo y al cambiar de
+                ' contacto se pierde, se le dice (no se nombra el nuevo: la sugerencia lo puede recalcular).
+                AvisoModoServicio = If(habiaElegidoModo AndAlso modoAntesDelCambio <> modoInicial,
+                    TextoAvisoModoReiniciadoPorDireccion(modoAntesDelCambio), Nothing)
+            End If
+            If value IsNot Nothing Then
+                _clienteDireccionEntrega = Estado.Cliente
             End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
 
@@ -1705,13 +1733,18 @@ Public Class PlantillaVentaViewModel
                 Estado.Vendedor = value.vendedor
                 Estado.PeriodoFacturacion = value.periodoFacturacion
                 Estado.Ruta = value.ruta
-                Estado.Ccc = value.ccc
+                ' Nesto#525: con el mismo contacto se respeta el CCC que haya elegido el usuario en la plantilla.
+                If Not mismoContacto Then
+                    Estado.Ccc = value.ccc
+                End If
                 OnPropertyChanged(NameOf(CccSeleccionado)) ' Nesto#486
                 Estado.NoComisiona = value.noComisiona
                 ' Nesto#493: el pedido ya no cuelga del mantenerJunto de la dirección: de un borrador se restaura lo
                 ' guardado; si no, el de la ficha es solo el punto de partida del combo «Facturación».
                 If _borradorEnRestauracion IsNot Nothing Then
                     RestaurarModoFacturacion(_borradorEnRestauracion.ModoFacturacion, _borradorEnRestauracion.MantenerJunto)
+                ElseIf mismoContacto Then
+                    ' Nesto#525: el MantenerJunto es el del modo de facturación que ya tiene el pedido: no se pisa.
                 Else
                     Estado.MantenerJunto = value.mantenerJunto
                 End If
@@ -1723,7 +1756,10 @@ Public Class PlantillaVentaViewModel
             PedirModoFacturacionConDebounce()
             PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606: cambian la ruta y los días de servir del contacto
 
-            If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
+            ' Nesto#525: con el mismo contacto, la forma y los plazos de pago que haya cambiado el usuario se
+            ' respetan; la ficha solo rellena los que estén vacíos.
+            If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago AndAlso
+                (Not mismoContacto OrElse String.IsNullOrWhiteSpace(PlazoPagoCliente)) Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             End If
 
@@ -1732,7 +1768,9 @@ Public Class PlantillaVentaViewModel
                 CargarInfoPortesConDebounce()
             End If
 
-            FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
+            If Not mismoContacto OrElse String.IsNullOrWhiteSpace(FormaPagoCliente) Then
+                FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
+            End If
             If String.IsNullOrEmpty(ComentarioRuta) AndAlso Not IsNothing(_direccionEntregaSeleccionada) Then
                 ComentarioRuta = _direccionEntregaSeleccionada.comentarioRuta
             End If
@@ -1762,6 +1800,42 @@ Public Class PlantillaVentaViewModel
             'End If
         End Set
     End Property
+
+    ' Nesto#525: el cliente al que pertenecía la dirección de entrega cuando se fijó (DireccionesEntregaCliente no lo
+    ' lleva): el contacto "0" de otro cliente NO es la misma dirección.
+    Private _clienteDireccionEntrega As String
+
+    ''' <summary>
+    ''' Nesto#525: ¿la dirección nueva es la misma que la actual (mismo cliente y mismo contacto)? Se compara como SQL
+    ''' Server: sin el relleno de espacios y sin distinguir mayúsculas. Sin contacto no se puede saber: no es la misma
+    ''' (salvo que sea la misma instancia).
+    ''' </summary>
+    Friend Shared Function EsMismoContacto(clienteAnterior As String, anterior As DireccionesEntregaCliente,
+                                           clienteNuevo As String, nueva As DireccionesEntregaCliente) As Boolean
+        If anterior Is Nothing OrElse nueva Is Nothing Then
+            Return False
+        End If
+        If Not CampoIgualSql(clienteAnterior, clienteNuevo) Then
+            Return False
+        End If
+        If ReferenceEquals(anterior, nueva) Then
+            Return True
+        End If
+        If String.IsNullOrWhiteSpace(anterior.contacto) OrElse String.IsNullOrWhiteSpace(nueva.contacto) Then
+            Return False
+        End If
+        Return CampoIgualSql(anterior.contacto, nueva.contacto)
+    End Function
+
+    Private Shared Function CampoIgualSql(a As String, b As String) As Boolean
+        Return String.Equals(If(a, String.Empty).Trim(), If(b, String.Empty).Trim(), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>Nesto#525: el aviso cuando el modo que eligió el usuario se pierde al cambiar de dirección de entrega.</summary>
+    Friend Shared Function TextoAvisoModoReiniciadoPorDireccion(modoAnterior As Byte) As String
+        Return $"Al cambiar de dirección de entrega, el modo de servicio que habías elegido («{ModosServicio.Nombre(modoAnterior)}») " &
+            "se ha vuelto a calcular: revísalo."
+    End Function
 
     Private _direccionGoogleMaps As String
     Public Property DireccionGoogleMaps As String
@@ -3710,12 +3784,17 @@ Public Class PlantillaVentaViewModel
     Friend Async Function ResolverModoConPickingAsync(ex As ModoConPickingException, empresa As String, numero As Integer,
                                                       modoDeseado As Byte, modoGuardado As Byte?) As Task
         If modoGuardado.HasValue Then
+            Dim anterior As Byte = ModoServicio
             _restaurandoModoGuardado = True
             Try
                 ModoServicio = modoGuardado.Value
             Finally
                 _restaurandoModoGuardado = False
             End Try
+            ' Nesto#525: nada de cambiar en silencio; además del diálogo, el aviso queda junto al selector.
+            If anterior <> ModoServicio Then
+                AvisoModoServicio = $"El pedido ya tiene picking: no se ha podido cambiar a «{ModosServicio.Nombre(anterior)}» y se queda en «{ModosServicio.Nombre(ModoServicio)}»."
+            End If
         End If
         Await SolicitudCambioModoAlmacen.OfrecerAsync(dialogService, servicioPedidosVenta, empresa, numero, modoDeseado, ex.Message)
     End Function
