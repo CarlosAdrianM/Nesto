@@ -1,9 +1,14 @@
 ﻿Imports Microsoft.Xaml.Behaviors
 Imports Nesto.Infrastructure.Contracts
-Imports Prism.Regions
+Imports Nesto.Infrastructure.Navegacion
+Imports Prism.Ioc
 
 Public Class CloseTabAction
     Inherits TriggerAction(Of Button)
+
+    ' Nesto#490 (4C.4, shell): la región de la que se quita la pestaña. Antes se sacaba de Prism a partir del TabControl
+    ' (RegionManager.GetObservableRegion); la X solo está en las pestañas de MainRegion (MainWindow).
+    Public Property NombreRegion As String = CierrePestanas.REGION_PRINCIPAL
 
     Protected Overrides Sub Invoke(parameter As Object)
         Dim args = TryCast(parameter, RoutedEventArgs)
@@ -24,26 +29,9 @@ Public Class CloseTabAction
         End If
 
 
-        ' Verificar si el ViewModel quiere confirmar el cierre
-        Dim viewModel = TryCast(tabItem.Content?.DataContext, ITabCloseConfirmation)
-        If viewModel IsNot Nothing Then
-            Dim shouldClose = viewModel.ConfirmTabClose()
-            If Not shouldClose Then
-                Return ' No cerrar el tab
-            End If
-        End If
-
-        Dim region As IRegion = RegionManager.GetObservableRegion(tabControl).Value
-
-        If IsNothing(region) Then
-            Return
-        End If
-
-        If region.Views.Contains(tabItem.Content) Then
-            region.Remove(tabItem.Content)
-        End If
-
-
+        ' Pregunta al ViewModel si quiere confirmar el cierre (ITabCloseConfirmation) y, si se puede, quita la vista de la región
+        Dim navegacion = ContainerLocator.Container.Resolve(Of IServicioNavegacion)()
+        Dim unused = CierrePestanas.Cerrar(navegacion, NombreRegion, tabItem.Content)
     End Sub
 
     Private Shared Function FindParent(Of T As DependencyObject)(child As DependencyObject) As T

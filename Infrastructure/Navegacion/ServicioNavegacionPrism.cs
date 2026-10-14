@@ -52,6 +52,20 @@ namespace Nesto.Infrastructure.Navegacion
             }
         }
 
+        // Nesto#490 (4C.4, shell): lo que hacía CloseTabAction con la región del TabControl: quitarla solo si está
+        public void CerrarVista(string regionName, object vista)
+        {
+            if (vista == null || !_regionManager.Regions.ContainsRegionWithName(regionName))
+            {
+                return;
+            }
+            IRegion region = _regionManager.Regions[regionName];
+            if (region.Views.Contains(vista))
+            {
+                region.Remove(vista);
+            }
+        }
+
         public void QuitarVistas(string regionName)
         {
             if (!_regionManager.Regions.ContainsRegionWithName(regionName))

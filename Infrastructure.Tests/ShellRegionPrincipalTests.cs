@@ -116,23 +116,12 @@ namespace Nesto.Infrastructure.Tests
             return new Shell { Pestanas = pestanas, Region = region, Gestor = gestor, Navegacion = new ServicioNavegacionPrism(gestor) };
         }
 
-        // Lo que hace la X de la pestaña (CloseTabAction en el shell) con la vista de esa pestaña
+        // Lo que hace la X de la pestaña (CloseTabAction en el shell) con la vista de esa pestaña. Antes de este tramo,
+        // estas pruebas copiaban lo que hacía la acción con Prism (RegionManager.GetObservableRegion del TabControl y
+        // region.Remove); ahora la acción llama a CierrePestanas y las comprobaciones son las mismas.
         private static void CerrarPestana(Shell shell, object vista)
         {
-            var confirmacion = (vista as FrameworkElement)?.DataContext as ITabCloseConfirmation;
-            if (confirmacion != null && !confirmacion.ConfirmTabClose())
-            {
-                return;
-            }
-            IRegion region = RegionManager.GetObservableRegion(shell.Pestanas).Value;
-            if (region == null)
-            {
-                return;
-            }
-            if (region.Views.Contains(vista))
-            {
-                region.Remove(vista);
-            }
+            CierrePestanas.Cerrar(shell.Navegacion, CierrePestanas.REGION_PRINCIPAL, vista);
         }
 
         private static List<object> Pestanas(Shell shell) => shell.Pestanas.Items.Cast<object>().ToList();

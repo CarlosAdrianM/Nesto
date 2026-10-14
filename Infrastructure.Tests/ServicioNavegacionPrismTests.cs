@@ -128,6 +128,47 @@ namespace Nesto.Infrastructure.Tests
             A.CallTo(() => region.Remove(segunda)).MustHaveHappenedOnceExactly();
         }
 
+        // Nesto#490 (4C.4, shell): la X de una pestaña (CloseTabAction)
+        [TestMethod]
+        public void CerrarVista_SiEstaEnLaRegion_LaQuitaAunqueNoSeaLaActiva()
+        {
+            var activa = new object();
+            var otra = new object();
+            IRegion region = ConfigurarRegion("MainRegion", activa);
+            var todas = A.Fake<IViewsCollection>();
+            A.CallTo(() => todas.Contains(otra)).Returns(true);
+            A.CallTo(() => region.Views).Returns(todas);
+
+            _servicio.CerrarVista("MainRegion", otra);
+
+            A.CallTo(() => region.Remove(otra)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => region.Remove(activa)).MustNotHaveHappened();
+            A.CallTo(() => region.Deactivate(A<object>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void CerrarVista_SiNoEstaEnLaRegion_NoQuitaNada()
+        {
+            IRegion region = ConfigurarRegion("MainRegion");
+            var todas = A.Fake<IViewsCollection>();
+            A.CallTo(() => todas.Contains(A<object>._)).Returns(false);
+            A.CallTo(() => region.Views).Returns(todas);
+
+            _servicio.CerrarVista("MainRegion", new object());
+
+            A.CallTo(() => region.Remove(A<object>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void CerrarVista_SiLaRegionNoExiste_NoHaceNada()
+        {
+            A.CallTo(() => _regionManager.Regions.ContainsRegionWithName("MainRegion")).Returns(false);
+
+            _servicio.CerrarVista("MainRegion", new object());
+
+            A.CallTo(() => _regionManager.Regions["MainRegion"]).MustNotHaveHappened();
+        }
+
         [TestMethod]
         public void QuitarVistas_SiLaRegionNoExiste_NoHaceNada()
         {
