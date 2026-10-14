@@ -42,11 +42,20 @@ namespace Nesto.Infrastructure.Shared
 
             foreach (var view in e.OldItems)
             {
-                LiberarVista(view);
+                LimpiezaVistas.Liberar(view);
             }
         }
+    }
 
-        private static void LiberarVista(object view)
+    /// <summary>
+    /// Nesto#490 (4C.4, región propia): lo que hace <see cref="LimpiarVistaAlQuitarRegionBehavior"/> con la vista que sale
+    /// de una región, sacado aquí para que lo use igual la región propia de Nesto (<c>Navegacion.RegionNesto</c>), sin
+    /// tipos de Prism. Mismo código que tenía el behavior.
+    /// </summary>
+    public static class LimpiezaVistas
+    {
+        /// <summary>Anula el DataContext de la vista (si es un FrameworkElement), con el blindaje de los async void.</summary>
+        public static void Liberar(object view)
         {
             if (view is not FrameworkElement elemento)
             {

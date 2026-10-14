@@ -60,6 +60,42 @@ namespace Nesto.Infrastructure.Navegacion
                 || (vista as FrameworkElement)?.DataContext is IReceptorNavegacionPestanaNueva;
         }
 
+        /// <summary>
+        /// Nesto#490 (7.º tramo): entrega la navegación de un ámbito a la vista y a su DataContext que sean
+        /// <see cref="IConAmbitoNavegacion"/>, a cada uno si lo pide. Lo usan las dos implementaciones de
+        /// <see cref="IServicioNavegacion"/> (la de Prism y la propia).
+        /// </summary>
+        internal static void EntregarAmbito(object vista, IServicioNavegacion navegacion)
+        {
+            if (vista is IConAmbitoNavegacion conAmbito)
+            {
+                conAmbito.NavegacionAmbito = navegacion;
+            }
+            if (vista is FrameworkElement elemento && elemento.DataContext is IConAmbitoNavegacion contextoConAmbito
+                && !ReferenceEquals(contextoConAmbito, vista))
+            {
+                contextoConAmbito.NavegacionAmbito = navegacion;
+            }
+        }
+
+        /// <summary>«ExtractoClienteView?cliente=1» → «ExtractoClienteView»; null si no hay destino.</summary>
+        internal static string Contrato(string destino) => NombreDelDestino(destino);
+
+        /// <summary>
+        /// Las vistas de la lista cuyo tipo se llama como el contrato (el nombre corto o el completo), como el
+        /// <c>RegionNavigationContentLoader</c> de Prism, en su orden.
+        /// </summary>
+        internal static IEnumerable<object> VistasDelContrato(IEnumerable<object> vistas, string contrato)
+        {
+            foreach (object vista in vistas ?? Array.Empty<object>())
+            {
+                if (EsDelContrato(vista, contrato))
+                {
+                    yield return vista;
+                }
+            }
+        }
+
         // «ExtractoClienteView?cliente=1» → «ExtractoClienteView» (los parámetros llegan aparte)
         private static string NombreDelDestino(string destino)
         {
@@ -75,20 +111,18 @@ namespace Nesto.Infrastructure.Navegacion
         // Como RegionNavigationContentLoader de Prism: el nombre del tipo de la vista, o el completo
         private static object Buscar(IEnumerable<object> vistas, string contrato)
         {
-            if (vistas == null)
+            foreach (object vista in VistasDelContrato(vistas, contrato))
             {
-                return null;
-            }
-            foreach (object vista in vistas)
-            {
-                Type tipo = vista?.GetType();
-                if (tipo != null && (string.Equals(tipo.Name, contrato, StringComparison.Ordinal)
-                                     || string.Equals(tipo.FullName, contrato, StringComparison.Ordinal)))
-                {
-                    return vista;
-                }
+                return vista;
             }
             return null;
+        }
+
+        private static bool EsDelContrato(object vista, string contrato)
+        {
+            Type tipo = vista?.GetType();
+            return tipo != null && (string.Equals(tipo.Name, contrato, StringComparison.Ordinal)
+                                    || string.Equals(tipo.FullName, contrato, StringComparison.Ordinal));
         }
     }
 }

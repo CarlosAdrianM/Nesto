@@ -2,7 +2,6 @@
 using Prism.Regions;
 using System;
 using System.Linq;
-using System.Windows;
 
 namespace Nesto.Infrastructure.Navegacion
 {
@@ -91,7 +90,7 @@ namespace Nesto.Infrastructure.Navegacion
                 contador++;
             }
             region.Add(vista, unico);
-            EntregarAmbito(vista, this);
+            ReceptorNavegacion.EntregarAmbito(vista, this);
             region.Activate(vista);
         }
 
@@ -102,23 +101,9 @@ namespace Nesto.Infrastructure.Navegacion
             IRegion region = _regionManager.Regions[regionName];
             IRegionManager ambito = region.Add(vista, null, true);
             var navegacionAmbito = new ServicioNavegacionPrism(ambito);
-            EntregarAmbito(vista, navegacionAmbito);
+            ReceptorNavegacion.EntregarAmbito(vista, navegacionAmbito);
             region.Activate(vista);
             return navegacionAmbito;
-        }
-
-        // Nesto#490 (7.º tramo): a la vista y a su DataContext, a cada uno si lo pide
-        private static void EntregarAmbito(object vista, IServicioNavegacion navegacion)
-        {
-            if (vista is IConAmbitoNavegacion conAmbito)
-            {
-                conAmbito.NavegacionAmbito = navegacion;
-            }
-            if (vista is FrameworkElement elemento && elemento.DataContext is IConAmbitoNavegacion contextoConAmbito
-                && !ReferenceEquals(contextoConAmbito, vista))
-            {
-                contextoConAmbito.NavegacionAmbito = navegacion;
-            }
         }
 
         /// <summary>Lo contrario de <see cref="AParametrosPrism"/>: para entregar la navegación sin tipos de Prism.</summary>
