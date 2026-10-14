@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Rapports;
+using Prism;
 using Prism.Regions;
 using System.Collections.ObjectModel;
 using Unity;
@@ -77,6 +78,24 @@ namespace RapportsTests
             _messenger.Send(new RapportNoGuardadoMensaje(nuevo));
 
             Assert.AreEqual(1, vm.listaRapports.Count);
+        }
+
+        [TestMethod]
+        public void ConLaRegionPropia_IConActivacion_DaDeAltaYDeBajaEnLosMensajes()
+        {
+            // Nesto#490 (4C.4, tramo 3): la región propia avisa por IConActivacion, no por el IActiveAware de Prism
+            var (vm, nuevo) = ConRapportNuevo(CrearLista());
+            IConActivacion activable = vm;
+
+            activable.IsActive = true;
+            Assert.IsTrue(((IActiveAware)vm).IsActive, "Es la misma propiedad para las dos regiones");
+            activable.IsActive = false;
+            _messenger.Send(new RapportNoGuardadoMensaje(nuevo));
+            Assert.AreEqual(2, vm.listaRapports.Count, "Inactiva: no le llega");
+
+            activable.IsActive = true;
+            _messenger.Send(new RapportNoGuardadoMensaje(nuevo));
+            Assert.AreEqual(1, vm.listaRapports.Count, "Activa: le llega");
         }
 
         [TestMethod]

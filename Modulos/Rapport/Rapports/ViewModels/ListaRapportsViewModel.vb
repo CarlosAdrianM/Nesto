@@ -11,7 +11,7 @@ Imports Unity
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBasico
-    Implements IReceptorNavegacion, IActiveAware
+    Implements IReceptorNavegacion, IActiveAware, IConActivacion
 
     Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
@@ -194,9 +194,10 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
-    ' Implementación de IActiveAware
+    ' Implementación de IActiveAware (Prism) y de IConActivacion (la región propia, Nesto#490 4C.4): la misma propiedad,
+    ' para que se dé de alta en los mensajes de rapports mientras su pestaña está activa con cualquiera de las dos regiones.
     Private _isActive As Boolean
-    Public Property IsActive As Boolean Implements IActiveAware.IsActive
+    Public Property IsActive As Boolean Implements IActiveAware.IsActive, IConActivacion.IsActive
         Get
             Return _isActive
         End Get
