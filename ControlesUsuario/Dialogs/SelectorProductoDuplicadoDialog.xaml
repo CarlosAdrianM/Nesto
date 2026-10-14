@@ -1,7 +1,6 @@
 <UserControl x:Class="ControlesUsuario.Dialogs.SelectorProductoDuplicadoDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"
              MinWidth="420" MinHeight="320">
     <Grid Margin="15">
         <Grid.RowDefinitions>
