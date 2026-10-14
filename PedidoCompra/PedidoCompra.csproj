@@ -23,7 +23,6 @@
     <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="Microsoft.Graph" Version="4.54.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
   </ItemGroup>
 
   <ItemGroup>

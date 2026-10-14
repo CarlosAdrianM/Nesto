@@ -104,6 +104,5 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
   </ItemGroup>
 </Project>

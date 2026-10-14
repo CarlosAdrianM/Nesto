@@ -1,9 +1,5 @@
-using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Cinta;
-using Prism.Ioc;
-using Prism.Regions;
-using Prism.RibbonRegionAdapter;
 using System;
 using System.Linq;
 using System.Threading;
@@ -20,17 +16,15 @@ namespace Nesto.Infrastructure.Tests
     /// Contabilidad…) se juntan en una sola y cada grupo conserva el DataContext de su módulo, que es el que da los
     /// comandos de los botones.
     /// <para>
-    /// Cada prueba se ejecuta con las dos implementaciones: la de antes (<c>RibbonRegionAdapter</c> de Prism, único,
-    /// con <c>Initialize(cinta, "NombreDelModulo")</c> + <c>region.Add(menu, "MenuBar")</c>) y la nueva
-    /// (<see cref="ServicioCinta"/>). Las comprobaciones son las mismas: así se ve que hacen lo mismo.
+    /// Hasta el 4C.4 lo hacía el <c>RibbonRegionAdapter</c> de Prism (<c>Initialize(cinta, "NombreDelModulo")</c> +
+    /// <c>region.Add(menu, "MenuBar")</c>); ahora lo hace <see cref="ServicioCinta"/>. Estas pruebas se ejecutaron con
+    /// las dos implementaciones y las mismas comprobaciones (commit «fusión de la cinta sin Prism») antes de quitar el
+    /// paquete PrismRibbonRegionAdapter; ahora solo con la nueva.
     /// </para>
     /// </summary>
     [TestClass]
     public class ShellCintaPrincipalTests
     {
-        private const string PRISM = "Prism";
-        private const string NESTO = "Nesto";
-
         private static void EnSta(Action accion)
         {
             Exception error = null;
@@ -47,19 +41,10 @@ namespace Nesto.Infrastructure.Tests
             }
         }
 
-        // Lo que hace cada IModule en OnInitialized, con una u otra implementación. Como en Nesto, una sola instancia
-        // (el adaptador o el servicio) para todos los módulos.
-        private static Action<string, UIElement> CrearCinta(string implementacion, Ribbon cintaPrincipal)
+        // Lo que hace cada IModule en OnInitialized. Como en Nesto, un solo servicio para todos los módulos (el nombre
+        // del módulo ya no se usa; se deja para que se lea qué módulo añade cada menú).
+        private static Action<string, UIElement> CrearCinta(Ribbon cintaPrincipal)
         {
-            if (implementacion == PRISM)
-            {
-                var adaptador = new RibbonRegionAdapter(new RegionBehaviorFactory(A.Fake<IContainerExtension>()));
-                return (modulo, menu) =>
-                {
-                    IRegion region = adaptador.Initialize(cintaPrincipal, modulo);
-                    region.Add(menu, "MenuBar");
-                };
-            }
             var servicio = new ServicioCinta(cintaPrincipal);
             return (modulo, menu) => servicio.AnadirMenu(menu);
         }
@@ -89,10 +74,8 @@ namespace Nesto.Infrastructure.Tests
         private static string[] Grupos(RibbonTab pestana)
             => pestana.Items.OfType<RibbonGroup>().Select(g => (string)g.Header).ToArray();
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void UnModulo_SusPestanasPasanALaCintaPrincipalConElDataContextDelModulo(string implementacion)
+        [TestMethod]
+        public void UnModulo_SusPestanasPasanALaCintaPrincipalConElDataContextDelModulo()
         {
             EnSta(() =>
             {
@@ -100,7 +83,7 @@ namespace Nesto.Infrastructure.Tests
                 var viewModelCajas = new object();
                 var menu = MenuDeModulo(viewModelCajas, ("Contabilidad", "Cajas"), ("Contabilidad", "Verifactu"));
 
-                CrearCinta(implementacion, cintaPrincipal)("Cajas", menu);
+                CrearCinta(cintaPrincipal)("Cajas", menu);
 
                 RibbonTab contabilidad = Pestana(cintaPrincipal, "Contabilidad");
                 CollectionAssert.AreEqual(new[] { "Cajas", "Verifactu" }, Grupos(contabilidad));
@@ -110,15 +93,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void DosModulosConUnaPestanaDelMismoTitulo_SeFusionanEnUnaSolaYCadaGrupoConservaSuDataContext(string implementacion)
+        [TestMethod]
+        public void DosModulosConUnaPestanaDelMismoTitulo_SeFusionanEnUnaSolaYCadaGrupoConservaSuDataContext()
         {
             EnSta(() =>
             {
                 var cintaPrincipal = new Ribbon();
-                var anadir = CrearCinta(implementacion, cintaPrincipal);
+                var anadir = CrearCinta(cintaPrincipal);
                 var viewModelCliente = new object();
                 var viewModelRapports = new object();
 
@@ -135,15 +116,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void VariosModulos_LasPestanasNuevasQuedanEnElOrdenEnQueSeCarganLosModulos(string implementacion)
+        [TestMethod]
+        public void VariosModulos_LasPestanasNuevasQuedanEnElOrdenEnQueSeCarganLosModulos()
         {
             EnSta(() =>
             {
                 var cintaPrincipal = new Ribbon();
-                var anadir = CrearCinta(implementacion, cintaPrincipal);
+                var anadir = CrearCinta(cintaPrincipal);
 
                 anadir("NewMainMenu", MenuDeModulo(new object(), ("Clientes", "Fichas"), ("Herramientas", "Parámetros")));
                 anadir("PedidoCompra", MenuDeModulo(new object(), ("Proveedores", "Pedidos")));
@@ -154,10 +133,8 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void ElMenuDeAplicacionDelModuloPasaAlDeLaCintaPrincipal(string implementacion)
+        [TestMethod]
+        public void ElMenuDeAplicacionDelModuloPasaAlDeLaCintaPrincipal()
         {
             // MenuBarView (el de lo viejo) trae el menú de aplicación: Parámetros, Novedades…
             EnSta(() =>
@@ -169,7 +146,7 @@ namespace Nesto.Infrastructure.Tests
                 cintaModulo.ApplicationMenu.Items.Add(new RibbonApplicationMenuItem { Header = "Novedades" });
                 var menu = new UserControl { DataContext = viewModel, Content = cintaModulo };
 
-                CrearCinta(implementacion, cintaPrincipal)("NewMainMenu", menu);
+                CrearCinta(cintaPrincipal)("NewMainMenu", menu);
 
                 Assert.IsNotNull(cintaPrincipal.ApplicationMenu);
                 CollectionAssert.AreEqual(new[] { "Parámetros", "Novedades" },
@@ -178,15 +155,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void DosModulosConUnGrupoDelMismoTituloEnLaMismaPestana_SeJuntanLosBotonesYCadaUnoConservaSuDataContext(string implementacion)
+        [TestMethod]
+        public void DosModulosConUnGrupoDelMismoTituloEnLaMismaPestana_SeJuntanLosBotonesYCadaUnoConservaSuDataContext()
         {
             EnSta(() =>
             {
                 var cintaPrincipal = new Ribbon();
-                var anadir = CrearCinta(implementacion, cintaPrincipal);
+                var anadir = CrearCinta(cintaPrincipal);
                 var viewModelA = new object();
                 var viewModelB = new object();
                 UserControl MenuConBoton(object viewModel, string boton)
@@ -213,15 +188,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void UnaPestanaSinTitulo_SeFusionaPorSuNombre(string implementacion)
+        [TestMethod]
+        public void UnaPestanaSinTitulo_SeFusionaPorSuNombre()
         {
             EnSta(() =>
             {
                 var cintaPrincipal = new Ribbon();
-                var anadir = CrearCinta(implementacion, cintaPrincipal);
+                var anadir = CrearCinta(cintaPrincipal);
                 UserControl MenuConPestanaConNombre(string grupo)
                 {
                     var pestana = new RibbonTab { Name = "PestanaSinTitulo" };
@@ -239,10 +212,8 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaBarraDeAccesoRapidoDelModuloPasaALaDeLaCintaPrincipal(string implementacion)
+        [TestMethod]
+        public void LaBarraDeAccesoRapidoDelModuloPasaALaDeLaCintaPrincipal()
         {
             EnSta(() =>
             {
@@ -252,7 +223,7 @@ namespace Nesto.Infrastructure.Tests
                 cintaModulo.QuickAccessToolBar.Items.Add(new RibbonButton { Label = "Guardar" });
                 var menu = new UserControl { DataContext = viewModel, Content = cintaModulo };
 
-                CrearCinta(implementacion, cintaPrincipal)("A", menu);
+                CrearCinta(cintaPrincipal)("A", menu);
 
                 Assert.IsNotNull(cintaPrincipal.QuickAccessToolBar);
                 RibbonButton guardar = cintaPrincipal.QuickAccessToolBar.Items.OfType<RibbonButton>().Single();
@@ -261,15 +232,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void UnMenuQueNoEsUnaCinta_NoSePuedeAnadir(string implementacion)
+        [TestMethod]
+        public void UnMenuQueNoEsUnaCinta_NoSePuedeAnadir()
         {
             EnSta(() =>
             {
                 var cintaPrincipal = new Ribbon();
-                var anadir = CrearCinta(implementacion, cintaPrincipal);
+                var anadir = CrearCinta(cintaPrincipal);
 
                 Assert.ThrowsException<NotSupportedException>(() => anadir("A", new UserControl { Content = new Grid() }));
                 Assert.ThrowsException<NotSupportedException>(() => anadir("B", new Border()));
