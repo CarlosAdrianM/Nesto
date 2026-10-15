@@ -1434,6 +1434,10 @@ Public Class PlantillaVentaViewModel
         If Not CanAplicarOfertaSugerida(sugerencia) Then
             Return
         End If
+        If sugerencia.Accion = AccionesSugerenciaOferta.ANADIR_LINEA Then
+            AnadirRegaloSugerido(sugerencia) ' Nesto#524
+            Return
+        End If
         Dim linea = listaProductosPedido?.FirstOrDefault(Function(l) l.producto?.Trim() = sugerencia.Producto?.Trim())
         If linea Is Nothing Then
             dialogService.ShowError($"El producto {sugerencia.Producto?.Trim()} ya no está en el pedido.")
@@ -1443,11 +1447,56 @@ Public Class PlantillaVentaViewModel
         If sugerencia.CantidadSugerida > sugerencia.CantidadActual Then
             linea.cantidad += sugerencia.CantidadSugerida - sugerencia.CantidadActual
         End If
-        linea.cantidadOferta = sugerencia.CantidadRegalo
+        ' Nesto#524: el «ampliar» de una combinada solo sube lo que se paga; su regalo es de otro producto y
+        ' lo propone la API como «añadir línea» en cuanto el pedido llega.
+        If sugerencia.Tipo <> TiposSugerenciaOferta.AMPLIAR_CANTIDAD_COMBINADA Then
+            linea.cantidadOferta = sugerencia.CantidadRegalo
+        End If
 
         cmdActualizarProductosPedido.Execute(linea)
         ActualizarTotales()
     End Sub
+
+    Private Async Sub AnadirRegaloSugerido(sugerencia As SugerenciaOfertaDTO)
+        Try
+            Await AnadirRegaloSugeridoAsync(sugerencia)
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido añadir el regalo de la oferta: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#524 (NestoAPI#626): el regalo de una oferta combinada. Se añaden las unidades de regalo del producto
+    ''' (cantidadOferta: van a precio 0, como la unidad gratis de un N+M) por la misma ruta que si lo tecleara el
+    ''' vendedor, para que precio, stock y validaciones se recalculen igual. El producto se busca en la plantilla
+    ''' del cliente y, si no lo ha comprado nunca, en todos los productos. Si el regalo es de un grupo de
+    ''' alternativas, se pregunta cuál.
+    ''' </summary>
+    Friend Async Function AnadirRegaloSugeridoAsync(sugerencia As SugerenciaOfertaDTO) As Task
+        Dim numero As String = sugerencia.Producto?.Trim()
+        If sugerencia.Alternativas IsNot Nothing AndAlso sugerencia.Alternativas.Count > 1 Then
+            Dim referencias As List(Of String) = sugerencia.Alternativas.Where(Function(a) Not String.IsNullOrWhiteSpace(a)).Select(Function(a) a.Trim()).ToList()
+            Dim elegida As String = dialogService.GetText("Regalo de la oferta",
+                $"¿Qué referencia quiere de regalo? Puede elegir entre: {String.Join(", ", referencias)}.", numero)
+            If String.IsNullOrWhiteSpace(elegida) Then
+                Return ' cancelado
+            End If
+            numero = referencias.FirstOrDefault(Function(a) String.Equals(a, elegida.Trim(), StringComparison.OrdinalIgnoreCase))
+            If numero Is Nothing Then
+                dialogService.ShowError($"La referencia {elegida.Trim()} no es ninguna de las de la oferta ({String.Join(", ", referencias)}).")
+                Return
+            End If
+        End If
+
+        Dim linea As LineaPlantillaVenta = Await BuscarLineaParaAnadirAsync(numero)
+        If IsNothing(linea) Then
+            dialogService.ShowError($"No se ha encontrado el producto {numero}. Búsquelo a mano y póngale las unidades de regalo.")
+            Return
+        End If
+        linea.cantidadOferta += sugerencia.CantidadRegalo
+        cmdActualizarProductosPedido.Execute(linea)
+        ActualizarTotales()
+    End Function
 
 #End Region
 
@@ -3014,15 +3063,7 @@ Public Class PlantillaVentaViewModel
         If String.IsNullOrEmpty(numero) Then
             Return
         End If
-        Dim nueva As LineaPlantillaVenta = ListaFiltrableProductos.ListaOriginal.OfType(Of LineaPlantillaVenta)().
-            FirstOrDefault(Function(l) String.Equals(l.producto?.Trim(), numero, StringComparison.OrdinalIgnoreCase))
-        If IsNothing(nueva) Then
-            nueva = Await servicio.BuscarLineaProducto(clienteSeleccionado.empresa, numero)
-            If Not IsNothing(nueva) AndAlso (clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR) Then
-                nueva.aplicarDescuento = True
-                nueva.aplicarDescuentoFicha = True
-            End If
-        End If
+        Dim nueva As LineaPlantillaVenta = Await BuscarLineaParaAnadirAsync(numero)
         If IsNothing(nueva) Then
             dialogService.ShowError($"No se ha encontrado el producto {numero}. Búscalo a mano y pásale las unidades.")
             Return
@@ -3034,6 +3075,27 @@ Public Class PlantillaVentaViewModel
         linea.cantidadOferta = 0
         cmdActualizarProductosPedido.Execute(linea)
         cmdActualizarProductosPedido.Execute(nueva)
+    End Function
+
+    ''' <summary>
+    ''' La línea de la plantilla de un producto para meterlo en el pedido: la de la plantilla del cliente y, si no
+    ''' lo ha comprado nunca, la que devuelve la búsqueda de productos (NestoAPI#581, Nesto#524). Nothing si no existe.
+    ''' </summary>
+    Friend Async Function BuscarLineaParaAnadirAsync(numero As String) As Task(Of LineaPlantillaVenta)
+        If String.IsNullOrWhiteSpace(numero) Then
+            Return Nothing
+        End If
+        numero = numero.Trim()
+        Dim linea As LineaPlantillaVenta = ListaFiltrableProductos.ListaOriginal?.OfType(Of LineaPlantillaVenta)().
+            FirstOrDefault(Function(l) String.Equals(l.producto?.Trim(), numero, StringComparison.OrdinalIgnoreCase))
+        If IsNothing(linea) Then
+            linea = Await servicio.BuscarLineaProducto(clienteSeleccionado.empresa, numero)
+            If Not IsNothing(linea) AndAlso (clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR) Then
+                linea.aplicarDescuento = True
+                linea.aplicarDescuentoFicha = True
+            End If
+        End If
+        Return linea
     End Function
 
     Private _soloConStockCommand As RelayCommand

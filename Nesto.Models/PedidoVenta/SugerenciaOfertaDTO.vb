@@ -25,16 +25,38 @@ Public Class SugerenciaOfertaDTO
     Public Property Descuento As Decimal
     ''' <summary>Id de la oferta escalonada que la sustenta.</summary>
     Public Property OfertaEscalonada As Integer?
+    ''' <summary>
+    ''' NestoAPI#626: una de las constantes de AccionesSugerenciaOferta. «ModificarLinea»: se toca la línea del
+    ''' producto que ya está en el pedido. «AnadirLinea»: se añaden CantidadRegalo unidades de regalo (100 %) del
+    ''' producto, que puede no estar en el pedido. Nothing: solo informativa.
+    ''' </summary>
+    Public Property Accion As String
+    ''' <summary>NestoAPI#626: Id de la oferta combinada que la sustenta.</summary>
+    Public Property OfertaCombinada As Integer?
+    ''' <summary>NestoAPI#626: regalo de un grupo de alternativas: las referencias que valen (la primera es Producto).</summary>
+    Public Property Alternativas As System.Collections.Generic.List(Of String)
 
     ''' <summary>
     ''' Las que se pueden aplicar de un clic desde la plantilla: las de cantidad, porque sabemos a qué
-    ''' producto y a qué cantidades tocar. Las de importe y las escalonadas dicen lo que falta, pero no
-    ''' qué añadir: esas se enseñan y decide el comercial.
+    ''' producto y a qué cantidades tocar, y (Nesto#524) el regalo de una oferta combinada, que dice qué
+    ''' producto añadir. Las de importe y las escalonadas dicen lo que falta, pero no qué añadir: esas se
+    ''' enseñan y decide el comercial.
     ''' </summary>
     Public ReadOnly Property EsAplicable As Boolean
         Get
-            Return (Tipo = TiposSugerenciaOferta.OFERTA_NO_APLICADA OrElse Tipo = TiposSugerenciaOferta.AMPLIAR_CANTIDAD) AndAlso
-                   Not String.IsNullOrWhiteSpace(Producto) AndAlso CantidadRegalo > 0
+            If String.IsNullOrWhiteSpace(Producto) Then
+                Return False
+            End If
+            Select Case Tipo
+                Case TiposSugerenciaOferta.OFERTA_NO_APLICADA, TiposSugerenciaOferta.AMPLIAR_CANTIDAD
+                    Return CantidadRegalo > 0
+                Case TiposSugerenciaOferta.REGALO_COMBINADA_NO_APLICADO
+                    Return Accion = AccionesSugerenciaOferta.ANADIR_LINEA AndAlso CantidadRegalo > 0
+                Case TiposSugerenciaOferta.AMPLIAR_CANTIDAD_COMBINADA
+                    Return CantidadSugerida > CantidadActual
+                Case Else
+                    Return False
+            End Select
         End Get
     End Property
 End Class
@@ -50,4 +72,16 @@ Public NotInheritable Class TiposSugerenciaOferta
     Public Const AMPLIAR_IMPORTE As String = "AmpliarImporte"
     Public Const DESCUENTO_NO_APLICADO As String = "DescuentoNoAplicado"
     Public Const AMPLIAR_CANTIDAD_ESCALONADA As String = "AmpliarCantidadEscalonada"
+    ' Nesto#524 / NestoAPI#626: ofertas combinadas
+    Public Const REGALO_COMBINADA_NO_APLICADO As String = "RegaloCombinadaNoAplicado"
+    Public Const AMPLIAR_CANTIDAD_COMBINADA As String = "AmpliarCantidadCombinada"
+End Class
+
+''' <summary>Nesto#524: los valores de SugerenciaOfertaDTO.Accion que manda NestoAPI#626.</summary>
+Public NotInheritable Class AccionesSugerenciaOferta
+    Private Sub New()
+    End Sub
+
+    Public Const MODIFICAR_LINEA As String = "ModificarLinea"
+    Public Const ANADIR_LINEA As String = "AnadirLinea"
 End Class
