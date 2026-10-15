@@ -74,6 +74,16 @@ namespace Nesto.Infrastructure.Models
         public string AvisoConRecuperadas { get; set; }
         /// <summary>Además, si se ha leído algo que no venía. Null: nada que añadir.</summary>
         public string AvisoConAjenos { get; set; }
+
+        // Nesto#530 (NestoAPI#645): etiquetas por bulto.
+
+        /// <summary>
+        /// Hay que leer la etiqueta de un bulto (R81010-2) antes de recibirla. False con una API anterior o en las reposiciones
+        /// enviadas sin bultos (las de antes): se reciben como siempre.
+        /// </summary>
+        public bool ExigeEtiqueta { get; set; }
+        /// <summary>Cuántos bultos lleva (0 si se envió sin bultos o con una API anterior).</summary>
+        public int Bultos { get; set; }
     }
 
     public class LecturaRecepcionReposicion
@@ -89,6 +99,8 @@ namespace Nesto.Infrastructure.Models
         public Guid IdRecepcion { get; set; }
         public List<LecturaRecepcionReposicion> Lecturas { get; set; } = new List<LecturaRecepcionReposicion>();
         public string Dispositivo { get; set; }
+        /// <summary>Nesto#530 (NestoAPI#645): las etiquetas de los bultos leídas al recibirla (R81010-1, R81010-2…).</summary>
+        public List<string> CodigosBulto { get; set; } = new List<string>();
     }
 
     public class DiferenciaRecepcionReposicion
@@ -118,6 +130,20 @@ namespace Nesto.Infrastructure.Models
         /// se ha avisado, Ubicar…). Null con una API anterior: se monta aquí.
         /// </summary>
         public string Mensaje { get; set; }
+    }
+
+    /// <summary>Nesto#530 (NestoAPI#645): GET api/Reposiciones/Bultos/{codigo}, la etiqueta de un bulto leída al recibir.</summary>
+    public class EtiquetaBultoReposicion
+    {
+        /// <summary>«R81010-2».</summary>
+        public string Codigo { get; set; }
+        public string Traspaso { get; set; }
+        public int Bulto { get; set; }
+        public int Total { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public bool Leido { get; set; }
+        public DateTime? FechaLectura { get; set; }
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (sin permiso, ya terminada…).</summary>

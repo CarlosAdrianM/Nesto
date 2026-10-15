@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
@@ -222,6 +223,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _seleccionada, value))
                 {
                     ImprimirCommand.NotifyCanExecuteChanged();
+                    RefrescarBultos();
                 }
             }
         }
@@ -345,6 +347,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Seleccionada = pendiente;
                 Filtro = null;
                 Lineas.Clear();
+                CodigosBulto.Clear();
                 foreach (LineaRecepcionReposicion linea in recepcion.Lineas ?? new List<LineaRecepcionReposicion>())
                 {
                     Lineas.Add(new LineaRecibirReposicion
@@ -359,11 +362,125 @@ namespace Nesto.Modules.Producto.ViewModels
                     });
                 }
                 PuedeTerminar = recepcion.PuedeTerminar && recepcion.SeTerminaDesdeAqui;
+                RefrescarBultos();
                 if (!PuedeTerminar)
                 {
                     Mensaje = $"Esta reposición se recibe en {Almacen}: con tu usuario puedes leerla, pero no puedes terminarla.";
                 }
+                else if (EsperandoEtiqueta)
+                {
+                    Mensaje = TextoLeaEtiqueta(DocumentoAbierto);
+                }
             }).ConfigureAwait(true);
+            if (EsperandoEtiqueta)
+            {
+                PedirFocoEnLector?.Invoke();
+            }
+        }
+
+        // ---------------------------------------------------------------- Nesto#530 (NestoAPI#645): etiquetas de los bultos
+
+        /// <summary>«R81010-2»: la etiqueta de un bulto (R, el traspaso, guion y el número de bulto).</summary>
+        private static readonly Regex _patronEtiqueta = new Regex(@"^R\d+-\d+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        internal static bool EsEtiquetaBulto(string codigo) => !string.IsNullOrWhiteSpace(codigo) && _patronEtiqueta.IsMatch(codigo.Trim());
+
+        internal static string TextoLeaEtiqueta(string documento)
+            => $"Lea la etiqueta del bulto (R{documento}-n) antes de leer los productos.";
+
+        /// <summary>Las etiquetas de los bultos leídas de la reposición abierta: van todas al terminar.</summary>
+        public ObservableCollection<string> CodigosBulto { get; } = new ObservableCollection<string>();
+
+        private string DocumentoAbierto => Seleccionada?.Documento?.Trim();
+
+        /// <summary>
+        /// La reposición abierta exige leer la etiqueta de un bulto (las enviadas con bultos) y todavía no se ha leído ninguna:
+        /// hasta entonces no se pueden leer productos.
+        /// </summary>
+        public bool EsperandoEtiqueta => Seleccionada != null && _recepcion?.ExigeEtiqueta == true && CodigosBulto.Count == 0;
+
+        /// <summary>Se pueden leer (o teclear) productos: hay una reposición abierta y, si la exige, ya se ha leído la etiqueta.</summary>
+        public bool PuedeLeerProductos => Seleccionada != null && !EsperandoEtiqueta;
+
+        /// <summary>«Bultos leídos: 2 de 3 (R81010-1, R81010-3)». Null si no se ha leído ninguno.</summary>
+        public string TextoBultos
+        {
+            get
+            {
+                if (CodigosBulto.Count == 0)
+                {
+                    return null;
+                }
+                int total = _recepcion?.Bultos ?? 0;
+                string cuantos = total > 0 ? $"{CodigosBulto.Count} de {total}" : CodigosBulto.Count.ToString(CultureInfo.InvariantCulture);
+                return $"Bultos leídos: {cuantos} ({string.Join(", ", CodigosBulto)})";
+            }
+        }
+
+        /// <summary>La lectura de etiqueta en curso (los tests la esperan).</summary>
+        internal Task LecturaEtiquetaEnCurso { get; private set; } = Task.CompletedTask;
+
+        private void RefrescarBultos()
+        {
+            OnPropertyChanged(nameof(EsperandoEtiqueta));
+            OnPropertyChanged(nameof(PuedeLeerProductos));
+            OnPropertyChanged(nameof(TextoBultos));
+        }
+
+        /// <summary>
+        /// Nesto#530: lo leído es la etiqueta de un bulto. Se comprueba en la API de qué reposición es: si no hay ninguna abierta
+        /// se abre la suya; si hay otra abierta, no vale (cada bulto se recibe en su reposición).
+        /// </summary>
+        internal async Task LeerEtiquetaAsync(string codigo)
+        {
+            codigo = codigo.Trim().ToUpperInvariant();
+            EtiquetaBultoReposicion etiqueta = null;
+            Mensaje = null;
+            await Ocupado(async () =>
+            {
+                etiqueta = await _servicio.LeerBulto(Empresa, codigo).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+            if (etiqueta == null)
+            {
+                // No existe (404, con el texto de la API) o no ha contestado: Ocupado ya ha puesto el motivo
+                LecturaFallida(Mensaje ?? $"No hay ningún bulto con la etiqueta {codigo}.");
+                return;
+            }
+            string traspaso = etiqueta.Traspaso?.Trim();
+            if (Seleccionada == null)
+            {
+                RecepcionPendiente suya = Pendientes.FirstOrDefault(p => string.Equals(p.Documento?.Trim(), traspaso, StringComparison.OrdinalIgnoreCase));
+                if (suya == null)
+                {
+                    LecturaFallida($"La etiqueta {codigo} es de la reposición {traspaso}, que no está pendiente de recibir en {Almacen}.");
+                    return;
+                }
+                await ElegirAsync(suya).ConfigureAwait(true);
+                if (Seleccionada != suya)
+                {
+                    // No se ha podido abrir: ElegirAsync ya ha dicho por qué
+                    _sonidos?.Error();
+                    PedirFocoEnLector?.Invoke();
+                    return;
+                }
+            }
+            if (!string.Equals(traspaso, DocumentoAbierto, StringComparison.OrdinalIgnoreCase))
+            {
+                LecturaFallida($"Esa etiqueta es de la reposición {traspaso}, no de la {DocumentoAbierto}.");
+                return;
+            }
+            string leida = string.IsNullOrWhiteSpace(etiqueta.Codigo) ? codigo : etiqueta.Codigo.Trim().ToUpperInvariant();
+            string bulto = etiqueta.Total > 0 ? $"{etiqueta.Bulto} de {etiqueta.Total}" : etiqueta.Bulto.ToString(CultureInfo.InvariantCulture);
+            if (CodigosBulto.Contains(leida))
+            {
+                LecturaFallida($"El bulto {bulto} ({leida}) ya estaba leído.");
+                return;
+            }
+            CodigosBulto.Add(leida);
+            RefrescarBultos();
+            Mensaje = $"Bulto {bulto} de la reposición {DocumentoAbierto} leído. Lea los productos.";
+            _sonidos?.Correcto();
+            PedirFocoEnLector?.Invoke();
         }
 
         /// <summary>Lo que manda el lector (o se teclea): un código de barras o la referencia suma una unidad.</summary>
@@ -374,10 +491,21 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            if (EsEtiquetaBulto(codigo))
+            {
+                // Nesto#530: la etiqueta de un bulto (también sin ninguna abierta: abre su reposición)
+                LecturaEtiquetaEnCurso = LeerEtiquetaAsync(codigo);
+                return;
+            }
             if (Seleccionada == null)
             {
                 // Incidencia 505: antes lo leído desaparecía sin decir nada
                 LecturaFallida("Primero abre una reposición de la lista (doble clic) y después lee los códigos.");
+                return;
+            }
+            if (EsperandoEtiqueta)
+            {
+                LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
                 return;
             }
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();
@@ -404,6 +532,11 @@ namespace Nesto.Modules.Producto.ViewModels
             if (Seleccionada == null)
             {
                 LecturaFallida("Primero abre una reposición de la lista (doble clic) y después lee los códigos.");
+                return;
+            }
+            if (EsperandoEtiqueta)
+            {
+                LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
                 return;
             }
             SumarUnaUnidad(Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)),
@@ -478,6 +611,12 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            if (EsperandoEtiqueta)
+            {
+                // La API tampoco la deja terminar sin la etiqueta
+                LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
+                return;
+            }
             string tituloConfirmacion = string.IsNullOrWhiteSpace(_recepcion.TituloConfirmacion)
                 ? $"¿Terminar la reposición {Seleccionada.Documento}?"
                 : _recepcion.TituloConfirmacion.Trim();
@@ -491,7 +630,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 Dispositivo = Environment.MachineName,
                 Lecturas = Lineas.Where(l => l.Leido > 0)
                     .Select(l => new LecturaRecepcionReposicion { Producto = l.Producto, Cantidad = l.Leido })
-                    .ToList()
+                    .ToList(),
+                // Nesto#530: las etiquetas de los bultos leídas (la API las exige en las reposiciones enviadas con bultos)
+                CodigosBulto = CodigosBulto.ToList()
             };
             await Ocupado(async () =>
             {
@@ -501,6 +642,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 Seleccionada = null;
                 _recepcion = null;
                 Lineas.Clear();
+                CodigosBulto.Clear();
+                RefrescarBultos();
                 PuedeTerminar = false;
             }).ConfigureAwait(true);
         }

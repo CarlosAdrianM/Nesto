@@ -28,6 +28,12 @@ namespace Nesto.Infrastructure.Services
         /// </summary>
         /// <exception cref="RecepcionReposicionException">Ya no está pendiente (404) o la API no lo ha generado.</exception>
         Task<byte[]> DescargarListadoPdf(string empresa, string almacen, string traspaso);
+        /// <summary>
+        /// Nesto#530 (NestoAPI#645): la etiqueta de bulto leída (GET api/Reposiciones/Bultos/{codigo}): de qué reposición es y
+        /// qué bulto.
+        /// </summary>
+        /// <exception cref="RecepcionReposicionException">No hay ningún bulto con ese código (404), con el motivo de la API.</exception>
+        Task<EtiquetaBultoReposicion> LeerBulto(string empresa, string codigo);
     }
 
     public class ServicioRecepcionReposiciones : IServicioRecepcionReposiciones
@@ -83,6 +89,10 @@ namespace Nesto.Infrastructure.Services
                 return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
+
+        public Task<EtiquetaBultoReposicion> LeerBulto(string empresa, string codigo)
+            => LeerAsync<EtiquetaBultoReposicion>($"Reposiciones/Bultos/{Uri.EscapeDataString(codigo?.Trim() ?? string.Empty)}"
+                + "?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty));
 
         private async Task<T> LeerAsync<T>(string url) where T : class
         {
