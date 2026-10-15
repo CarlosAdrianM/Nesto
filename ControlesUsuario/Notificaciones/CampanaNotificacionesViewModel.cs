@@ -317,6 +317,15 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
                 return;
             }
+            // Nesto#526 (NestoAPI#634): lo recibido en una reposición no coincide con lo enviado: abre la lista de
+            // diferencias de reposición (si ya está abierta, se reutiliza la pestaña y se vuelve a leer).
+            if (string.Equals(item.Notificacion.Dato("vista"), NotificacionBuzon.DATO_VISTA_DIFERENCIAS_REPOSICION, StringComparison.OrdinalIgnoreCase)
+                && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_DIFERENCIAS_REPOSICION);
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");

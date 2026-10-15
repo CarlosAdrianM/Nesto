@@ -295,6 +295,47 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public async Task PulsarElAvisoDeDiferenciaDeReposicion_AbreLaListaDeDiferencias()
+        {
+            // Nesto#526 (NestoAPI#634): «38631: enviado 1, leído 0» lleva a la ventana de diferencias de reposición
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 11,
+                Titulo = "Reposición 80915 recibida con diferencias",
+                Cuerpo = "38631: enviado 1, leído 0, diferencia -1",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "RecepcionReposicion", ["vista"] = "DiferenciasReposicion" }
+            });
+            vm.PanelAbierto = true;
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(11)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "DiferenciasReposicionView")).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public async Task PulsarUnAvisoDeRecepcionSinVista_SoloSeDespliega()
+        {
+            // Los avisos de recepción anteriores a NestoAPI#634 no traen «vista»: se leen enteros, como siempre
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 12,
+                Titulo = "Reposición 80906 recibida con diferencias",
+                Cuerpo = "39001: enviado 6, leído 7, diferencia 1",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "RecepcionReposicion" }
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._)).MustNotHaveHappened();
+            Assert.IsTrue(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
         public async Task PulsarElAvisoDePropuestasDeStock_AbreEsaVentana()
         {
             // Nesto#529 (NestoAPI#631): el aviso a Compras de propuestas de stock nuevas lleva a la ventana de propuestas

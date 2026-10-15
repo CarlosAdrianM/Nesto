@@ -34,6 +34,15 @@ namespace Nesto.Infrastructure.Contracts
         public const string VISTA_PROPUESTAS_STOCK = "PropuestasStockView";
 
         /// <summary>
+        /// Nesto#526 (NestoAPI#634): el aviso de que lo recibido en una reposición no coincide con lo enviado. Trae
+        /// Datos["vista"] = <see cref="DATO_VISTA_DIFERENCIAS_REPOSICION"/> y abre <see cref="VISTA_DIFERENCIAS_REPOSICION"/>.
+        /// </summary>
+        public const string TIPO_RECEPCION_REPOSICION = "RecepcionReposicion";
+        public const string DATO_VISTA_DIFERENCIAS_REPOSICION = "DiferenciasReposicion";
+        /// <summary>Nesto#526: la ventana (módulo Producto) de las diferencias de reposición.</summary>
+        public const string VISTA_DIFERENCIAS_REPOSICION = "DiferenciasReposicionView";
+
+        /// <summary>
         /// Nesto#509 (Ariadna#8): un mozo dice que un dato de la ficha de un producto está mal. Trae Datos["avisoId"] y
         /// Datos["producto"]; se cierra con <see cref="RESULTADO_AVISO_CAMBIADO"/> o <see cref="RESULTADO_AVISO_ESTABA_BIEN"/>.
         /// </summary>
