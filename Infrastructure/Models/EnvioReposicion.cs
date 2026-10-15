@@ -165,6 +165,29 @@ namespace Nesto.Infrastructure.Models
         public string Destino { get; set; }
     }
 
+    /// <summary>Nesto#530 (NestoAPI#645): una etiqueta de bulto de la reposición enviada.</summary>
+    public class BultoReposicion
+    {
+        /// <summary>«R81010-2».</summary>
+        public string Codigo { get; set; }
+        public int Bulto { get; set; }
+        public int Total { get; set; }
+        /// <summary>«81010 · bulto 2/3 · ALC→ALG».</summary>
+        public string Texto { get; set; }
+    }
+
+    /// <summary>Nesto#530 (NestoAPI#645): POST api/Reposiciones/{traspaso}/Bultos (y Bultos/Reimprimir).</summary>
+    public class BultosReposicion
+    {
+        public string Traspaso { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        /// <summary>La impresora de etiquetas del usuario (parámetro ImpresoraCodBarras) en la que se han impreso.</summary>
+        public string Impresora { get; set; }
+        public List<BultoReposicion> Bultos { get; set; } = new List<BultoReposicion>();
+        public List<string> Avisos { get; set; } = new List<string>();
+    }
+
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>
     public class EnvioReposicionException : Exception
     {

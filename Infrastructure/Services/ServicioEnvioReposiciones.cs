@@ -65,6 +65,15 @@ namespace Nesto.Infrastructure.Services
         /// </summary>
         /// <exception cref="EnvioReposicionException">Hoy no hay viaje, la de hoy sin enviar, ya marcada, sin permiso…</exception>
         Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion);
+        /// <summary>
+        /// Nesto#530 (NestoAPI#645): crea los bultos de la reposición enviada y la API imprime una etiqueta por bulto en la
+        /// impresora de etiquetas del usuario (POST api/Reposiciones/{traspaso}/Bultos).
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">502 si no se han podido imprimir (los bultos quedan creados: se reimprimen
+        /// con <see cref="ReimprimirBultos"/>); 409 si ya se ha leído alguno.</exception>
+        Task<BultosReposicion> CrearBultos(string empresa, string traspaso, int bultos);
+        /// <summary>Nesto#530: vuelve a imprimir las etiquetas de los bultos ya creados (POST api/Reposiciones/{traspaso}/Bultos/Reimprimir).</summary>
+        Task<BultosReposicion> ReimprimirBultos(string empresa, string traspaso);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -197,6 +206,16 @@ namespace Nesto.Infrastructure.Services
 
         public Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion)
             => Enviar<EstadoReposicionPuntual>(HttpMethod.Post, "Reposiciones/Recogida", peticion);
+
+        public Task<BultosReposicion> CrearBultos(string empresa, string traspaso, int bultos)
+            => Enviar<BultosReposicion>(HttpMethod.Post, $"Reposiciones/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/Bultos" + ConsultaEmpresa(empresa),
+                new { Bultos = bultos, Imprimir = true });
+
+        public Task<BultosReposicion> ReimprimirBultos(string empresa, string traspaso)
+            => Enviar<BultosReposicion>(HttpMethod.Post, $"Reposiciones/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/Bultos/Reimprimir" + ConsultaEmpresa(empresa), null);
+
+        private static string ConsultaEmpresa(string empresa)
+            => "?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty);
 
         private async Task<T> Enviar<T>(HttpMethod metodo, string url, object cuerpo) where T : class, new()
         {

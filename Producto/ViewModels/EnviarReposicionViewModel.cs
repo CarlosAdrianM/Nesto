@@ -158,6 +158,7 @@ namespace Nesto.Modules.Producto.ViewModels
             EnviarPuntualCommand = new AsyncRelayCommand(EnviarPuntualAsync, () => EnModoPuntual && UnidadesPuntual > 0 && !EstaOcupado);
             QuitarLineaPuntualCommand = new RelayCommand<LineaPuntualReposicion>(QuitarLineaPuntual, l => l != null && EnModoPuntual && !EstaOcupado);
             MarcarRecogidaCommand = new AsyncRelayCommand(MarcarRecogidaAsync, () => MostrarBotonRecogida && !EstaOcupado);
+            ReimprimirEtiquetasCommand = new AsyncRelayCommand(ReimprimirEtiquetasAsync, () => PuedeReimprimirEtiquetas && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -609,6 +610,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            ResultadoTerminarReposicion enviada = null;
             await Ocupado(async () =>
             {
                 ResultadoTerminarReposicion resultado = await _servicio.CrearPuntual(new CrearReposicion
@@ -622,7 +624,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 SalirDePuntual();
                 Mensaje = texto;
                 _dialogos.ShowNotification("Reposición puntual enviada", texto);
+                enviada = resultado;
             }).ConfigureAwait(true);
+            if (enviada != null)
+            {
+                // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
+                await PedirBultosEImprimirAsync(enviada.NumTraspaso).ConfigureAwait(true);
+                return;
+            }
             if (EnModoPuntual)
             {
                 // No se ha mandado (409…): que el botón diga lo que diga ahora la API, sin perder el motivo
@@ -960,6 +969,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            ResultadoTerminarReposicion terminada = null;
             await Ocupado(async () =>
             {
                 ResultadoTerminarReposicion resultado = await _servicio.Terminar(Empresa, Almacen).ConfigureAwait(true);
@@ -971,7 +981,137 @@ namespace Nesto.Modules.Producto.ViewModels
                 await LeerEstadoPuntual().ConfigureAwait(true);
                 // NestoAPI#622: enviada, el aviso de «tienes una sin enviar» ya no vale
                 await LeerAvisosAutomatica().ConfigureAwait(true);
+                terminada = resultado;
             }).ConfigureAwait(true);
+            if (terminada != null)
+            {
+                // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
+                await PedirBultosEImprimirAsync(terminada.NumTraspaso).ConfigureAwait(true);
+            }
+        }
+
+        // ---------------------------------------------------------------- Nesto#530 (NestoAPI#645): bultos y etiquetas
+
+        internal const int MAXIMO_BULTOS = 50;
+        internal const string TITULO_BULTOS = "Bultos de la reposición";
+        internal const string TITULO_ETIQUETAS = "Etiquetas de los bultos";
+        internal const string TEXTO_SIN_BULTOS = "No se han hecho etiquetas de bultos: esta reposición se recibirá en Algete sin leer la etiqueta.";
+
+        /// <summary>El traspaso cuyas etiquetas no se han podido imprimir (los bultos ya están creados). Null: ninguno.</summary>
+        private string _traspasoSinImprimir;
+
+        /// <summary>Se ve «Reimprimir etiquetas»: los bultos de la última reposición están creados pero sus etiquetas no han salido.</summary>
+        public bool PuedeReimprimirEtiquetas => !string.IsNullOrEmpty(_traspasoSinImprimir);
+
+        public IAsyncRelayCommand ReimprimirEtiquetasCommand { get; }
+
+        internal static string PreguntaBultos(string traspaso)
+            => $"¿Cuántos bultos lleva la reposición {traspaso}? (de 1 a {MAXIMO_BULTOS}; se imprime una etiqueta por bulto)";
+
+        /// <summary>«3» → 3; vacío, no numérico o fuera de 1-50 → null.</summary>
+        internal static int? LeerNumeroBultos(string texto)
+            => int.TryParse(texto?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int bultos) && bultos >= 1 && bultos <= MAXIMO_BULTOS
+                ? bultos
+                : (int?)null;
+
+        internal static string TextoEtiquetasImpresas(BultosReposicion resultado)
+        {
+            int etiquetas = resultado?.Bultos?.Count ?? 0;
+            string impresora = resultado?.Impresora?.Trim();
+            string texto = (etiquetas == 1 ? "Se ha impreso 1 etiqueta" : $"Se han impreso {etiquetas} etiquetas")
+                + (string.IsNullOrEmpty(impresora) ? "." : $" en {impresora}.");
+            IEnumerable<string> avisos = (resultado?.Avisos ?? new List<string>()).Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim());
+            return string.Join(" ", new[] { texto }.Concat(avisos));
+        }
+
+        /// <summary>
+        /// Nesto#530: al mandar la reposición (ya se sabe el traspaso) se pregunta cuántos bultos lleva y la API imprime una
+        /// etiqueta por bulto. Si se cancela no se crean bultos: esa reposición se recibirá sin leer la etiqueta.
+        /// </summary>
+        private async Task PedirBultosEImprimirAsync(int numTraspaso)
+        {
+            string traspaso = numTraspaso.ToString(CultureInfo.InvariantCulture);
+            string enviada = Mensaje;
+            string pregunta = PreguntaBultos(traspaso);
+            int? bultos = null;
+            for (int intento = 0; intento < 3 && bultos == null; intento++)
+            {
+                string tecleado = _dialogos.GetText(TITULO_BULTOS, pregunta, "1");
+                if (string.IsNullOrWhiteSpace(tecleado))
+                {
+                    break;
+                }
+                bultos = LeerNumeroBultos(tecleado);
+                pregunta = $"«{tecleado.Trim()}» no vale: escriba un número de 1 a {MAXIMO_BULTOS}. " + PreguntaBultos(traspaso);
+            }
+            string texto = bultos == null
+                ? TEXTO_SIN_BULTOS
+                : await ImprimirEtiquetasAsync(traspaso, () => _servicio.CrearBultos(Empresa, traspaso, bultos.Value)).ConfigureAwait(true);
+            Mensaje = string.IsNullOrWhiteSpace(enviada) ? texto : $"{enviada} {texto}";
+        }
+
+        private async Task ReimprimirEtiquetasAsync()
+        {
+            string traspaso = _traspasoSinImprimir;
+            if (string.IsNullOrEmpty(traspaso))
+            {
+                return;
+            }
+            Mensaje = await ImprimirEtiquetasAsync(traspaso, () => _servicio.ReimprimirBultos(Empresa, traspaso)).ConfigureAwait(true);
+        }
+
+        /// <summary>
+        /// Crea los bultos (o los reimprime) y devuelve lo que hay que decir. Si la impresora falla (502) los bultos ya están
+        /// creados: se ofrece reimprimir, y si no, queda el botón «Reimprimir etiquetas».
+        /// </summary>
+        private async Task<string> ImprimirEtiquetasAsync(string traspaso, Func<Task<BultosReposicion>> llamada)
+        {
+            while (true)
+            {
+                string motivoImpresora;
+                _operacionesEnCurso++;
+                EstaOcupado = true;
+                try
+                {
+                    BultosReposicion resultado = await llamada().ConfigureAwait(true);
+                    TraspasoSinImprimir(null);
+                    return TextoEtiquetasImpresas(resultado);
+                }
+                catch (EnvioReposicionException ex) when (ex.Codigo == 502)
+                {
+                    TraspasoSinImprimir(traspaso);
+                    motivoImpresora = ex.Message?.Trim();
+                }
+                catch (EnvioReposicionException ex)
+                {
+                    _dialogos.ShowError(ex.Message);
+                    return ex.Message;
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+                {
+                    string texto = "No se ha podido conectar con el servidor para hacer las etiquetas de los bultos.";
+                    _dialogos.ShowError(texto);
+                    return texto;
+                }
+                finally
+                {
+                    _operacionesEnCurso--;
+                    EstaOcupado = _operacionesEnCurso > 0;
+                }
+                if (!await _dialogos.ShowConfirmationAsync(TITULO_ETIQUETAS,
+                    $"{motivoImpresora}{Environment.NewLine}Los bultos ya están creados. ¿Reimprimir las etiquetas?").ConfigureAwait(true))
+                {
+                    return $"{motivoImpresora} Los bultos ya están creados: pulse «Reimprimir etiquetas» cuando la impresora esté lista.";
+                }
+                llamada = () => _servicio.ReimprimirBultos(Empresa, traspaso);
+            }
+        }
+
+        private void TraspasoSinImprimir(string traspaso)
+        {
+            _traspasoSinImprimir = traspaso;
+            OnPropertyChanged(nameof(PuedeReimprimirEtiquetas));
+            ReimprimirEtiquetasCommand?.NotifyCanExecuteChanged();
         }
 
         internal string TextoConfirmacion()
@@ -1094,6 +1234,7 @@ namespace Nesto.Modules.Producto.ViewModels
             EnviarPuntualCommand?.NotifyCanExecuteChanged();
             QuitarLineaPuntualCommand?.NotifyCanExecuteChanged();
             MarcarRecogidaCommand?.NotifyCanExecuteChanged();
+            ReimprimirEtiquetasCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>
