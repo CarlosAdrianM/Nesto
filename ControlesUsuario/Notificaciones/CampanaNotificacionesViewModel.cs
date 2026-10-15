@@ -310,6 +310,13 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FACTURAS_PENDIENTES_VERIFACTU);
                 return;
             }
+            // Nesto#529 (NestoAPI#631): el aviso a Compras de propuestas de stock nuevas abre la ventana de propuestas
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_PROPUESTAS_STOCK && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");

@@ -295,6 +295,28 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public async Task PulsarElAvisoDePropuestasDeStock_AbreEsaVentana()
+        {
+            // Nesto#529 (NestoAPI#631): el aviso a Compras de propuestas de stock nuevas lleva a la ventana de propuestas
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 12,
+                Titulo = "Propuestas de stock de octubre 2026",
+                Cuerpo = "Hay 120 propuestas pendientes de decidir",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "PropuestasStock" }
+            });
+            vm.PanelAbierto = true;
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(12)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "PropuestasStockView")).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
         public async Task PulsarUnAvisoConPedido_AbreEsePedido()
         {
             // NestoAPI#555: «El pedido 927075 ha cogido picking» lleva al pedido

@@ -20,6 +20,19 @@ namespace Nesto.Modules.Producto
             AbrirRecibirReposicionCommand = new RelayCommand(OnAbrirRecibirReposicion, CanAbrirRecibirReposicion);
             AbrirEnviarReposicionCommand = new RelayCommand(OnAbrirEnviarReposicion, CanAbrirRecibirReposicion);
             AbrirCalendarioReposicionesCommand = new RelayCommand(OnAbrirCalendarioReposiciones);
+            AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
+        }
+
+        /// <summary>
+        /// Nesto#529 (NestoAPI#631): las propuestas mensuales de máximo y mínimo. Solo las ven y deciden Compras y Dirección
+        /// (la API contesta 403 al resto); los demás no ven la opción en la cinta.
+        /// </summary>
+        public bool PuedeVerPropuestasStock => Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS)
+            || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        public ICommand AbrirPropuestasStockCommand { get; private set; }
+        private void OnAbrirPropuestasStock()
+        {
+            Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
         }
 
         /// <summary>

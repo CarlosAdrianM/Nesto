@@ -6,6 +6,9 @@
              xmlns:local="clr-namespace:Nesto.Modulos.Producto"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibilidadPropuestasStock" />
+    </UserControl.Resources>
     <Ribbon x:Name="MainMenu" x:FieldModifier="protected internal">
         <RibbonTab x:Name="tabProductos"
                             Header="Productos">
@@ -23,6 +26,12 @@
             <RibbonGroup x:Name="grpAlmacen"
                                 Header="Almacén">
                 <RibbonButton Label="Etiquetas de hueco" LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirEtiquetasHuecoCommand}" />
+            </RibbonGroup>
+            <!-- Nesto#529 (NestoAPI#631): solo Compras y Dirección ven las propuestas de stock -->
+            <RibbonGroup x:Name="grpCompras"
+                                Header="Compras"
+                                Visibility="{Binding PuedeVerPropuestasStock, Converter={StaticResource VisibilidadPropuestasStock}}">
+                <RibbonButton Label="Propuestas de stock" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirPropuestasStockCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>
