@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Nesto#490 (4C.5): pruebas del exe (Views.vbproj): la composición de Nesto montada sobre Microsoft.Extensions.DependencyInjection (prueba sombra) -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Nesto.Tests</RootNamespace>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <!-- Con la plataforma de la solución por defecto (Mixed Platforms) el exe sale de 32 bits (Debug|x86 en Nesto.sln):
+       las pruebas tienen que correr en un proceso de 32 bits para poder cargarlo (vstest lo elige por la DLL). -->
+  <PropertyGroup Condition="'$(Platform)' != 'x64'">
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FakeItEasy" Version="8.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.10.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.10.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nesto\Views.vbproj" />
+  </ItemGroup>
+
+</Project>
