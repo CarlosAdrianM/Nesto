@@ -67,7 +67,8 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private ReadOnly _servicioServirJunto As IServirJuntoService
+    ' Nesto#527: Friend y con Set para que los tests pongan un servicio falso en vez del real.
+    Friend Property ServicioServirJunto As IServirJuntoService
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
@@ -80,7 +81,7 @@ Public Class PlantillaVentaViewModel
         Me.dialogService = dialogService
         Me.servicioPedidosVenta = servicioPedidosVenta
         Me.servicioBorradores = servicioBorradores
-        _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
+        ServicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(_clienteApiFactory) ' NestoAPI#606
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
@@ -1481,55 +1482,35 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        ' Issue #141: No saltar validación si no hay regalos - dejar que el servidor decida
-        ' Issue NestoAPI#161: se envían también las líneas del pedido para que el backend
-        ' pueda detectar muestras (subgrupo MMP) que se quedarían pendientes.
+        Dim modoElegido As Byte = ModoServicio
         Try
-            Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
-            Dim regalosSeleccionados = ListaRegalosSeleccionados
-            Dim productosConCantidad = If(
-                regalosSeleccionados IsNot Nothing AndAlso regalosSeleccionados.Any(),
-                regalosSeleccionados.Select(Function(r) New ProductoBonificadoConCantidadRequest With {
-                    .ProductoId = r.producto,
-                    .Cantidad = r.cantidad
-                }).ToList(),
-                New List(Of ProductoBonificadoConCantidadRequest)()
-            )
-            ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
-            ' a 0 EUR (descuento 100%). El servidor confirma contra la tabla Ganavision
-            ' y descarta los falsos positivos (MMP, regalos por importe, etc.).
-            Dim lineasDelPedido = If(
-                listaProductosPedido IsNot Nothing,
-                listaProductosPedido.Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.cantidad > 0) _
-                    .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
-                        .ProductoId = l.producto,
-                        .Cantidad = l.cantidad,
-                        .EsBonificadoGanavisiones = l.baseImponible = 0
-                    }).ToList(),
-                New List(Of ProductoBonificadoConCantidadRequest)()
-            )
+            Dim lineas As List(Of LineaPlantillaVenta) = If(listaProductosPedido?.ToList(), New List(Of LineaPlantillaVenta))
+            Dim respuesta = Await ValidarSalirDeTodoJunto(lineas, modoElegido).ConfigureAwait(True)
 
-            ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
-            ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
-            ' NotaEntrega no aplica en PlantillaVenta (pedidos nuevos desde cliente).
-            Dim respuesta = Await _servicioServirJunto.Validar(
-                almacen,
-                productosConCantidad,
-                lineasDelPedido,
-                Estado?.FormaPago,
-                Estado?.PlazosPago,
-                Estado?.Ccc,
-                Estado?.PeriodoFacturacion,
-                False,
-                modoServicio:=ModoServicio).ConfigureAwait(True) ' NestoAPI#482: el mensaje nombra el modo elegido
-
+            ' Nesto#527 (como Nesto#452 en el detalle del pedido): si el servidor deniega porque hay muestras
+            ' (o bonificados) sin stock que se quedarían pendientes y todas están en el pedido, se ofrece
+            ' quitarlas en el mismo paso. Nunca se quita nada sin confirmación, y antes de quitarlas se
+            ' revalida SIN ellas: si seguiría denegado por otro motivo, el pedido no se toca.
+            Dim lineasAQuitar As New List(Of LineaPlantillaVenta)
             If Not respuesta.PuedeDesmarcar Then
-                ' Revertir el cambio - volver a marcar ServirJunto
-                RevertirAServirJunto()
-
-                ' Mostrar mensaje al usuario
-                dialogService.ShowError(respuesta.Mensaje)
-                Return
+                lineasAQuitar = LineasQueImpidenSalirDeTodoJunto(lineas, respuesta.ProductosProblematicos)
+                If Not SePuedeOfrecerQuitarlas(lineasAQuitar, respuesta.ProductosProblematicos) Then
+                    VolverATodoJuntoAvisando(modoElegido)
+                    dialogService.ShowError(AnadirVueltaATodoJunto(respuesta.Mensaje))
+                    Return
+                End If
+                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaQuitarYCambiarModo(lineasAQuitar, modoElegido)) Then
+                    VolverATodoJuntoAvisando(modoElegido)
+                    Return
+                End If
+                Dim lineasQueQuedan = lineas.Where(Function(l) Not lineasAQuitar.Contains(l)).ToList()
+                respuesta = Await ValidarSalirDeTodoJunto(lineasQueQuedan, modoElegido).ConfigureAwait(True)
+                If Not respuesta.PuedeDesmarcar Then
+                    VolverATodoJuntoAvisando(modoElegido)
+                    dialogService.ShowError($"No se ha quitado ninguna línea: aunque se quitaran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}». " &
+                                            AnadirVueltaATodoJunto(respuesta.Mensaje))
+                    Return
+                End If
             End If
 
             ' NestoAPI#187: aviso no-bloqueante (comisión por envío). Si el usuario
@@ -1537,12 +1518,128 @@ Public Class PlantillaVentaViewModel
             If Not String.IsNullOrEmpty(respuesta.Aviso) Then
                 If Not dialogService.ShowConfirmationAnswer("Servir Junto", respuesta.Aviso) Then
                     RevertirAServirJunto()
+                    Return
                 End If
+            End If
+
+            ' Nesto#527: solo ahora, con el modo aceptado por el servidor y por la usuaria, se quitan del
+            ' pedido las líneas que lo impedían (en la plantilla, quitar un producto es dejarlo a cantidad 0).
+            If lineasAQuitar.Any() Then
+                For Each linea In lineasAQuitar
+                    linea.cantidad = 0
+                    linea.cantidadOferta = 0
+                    cmdActualizarProductosPedido.Execute(linea)
+                Next
+                ActualizarTotales()
             End If
         Catch ex As Exception
             ' Si hay error, permitir desmarcar (fail-safe)
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Pide al servidor si el pedido puede salir de «Todo junto» con las líneas indicadas (todas las del
+    ''' pedido, o las que quedarían tras quitar las problemáticas en Nesto#527).
+    ''' </summary>
+    Private Function ValidarSalirDeTodoJunto(lineas As IEnumerable(Of LineaPlantillaVenta), modo As Byte) As Task(Of ValidarServirJuntoResponse)
+        ' Issue #141: No saltar validación si no hay regalos - dejar que el servidor decida
+        ' Issue NestoAPI#161: se envían también las líneas del pedido para que el backend
+        ' pueda detectar muestras (subgrupo MMP) que se quedarían pendientes.
+        Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
+        Dim regalosSeleccionados = ListaRegalosSeleccionados
+        Dim productosConCantidad = If(
+            regalosSeleccionados IsNot Nothing AndAlso regalosSeleccionados.Any(),
+            regalosSeleccionados.Select(Function(r) New ProductoBonificadoConCantidadRequest With {
+                .ProductoId = r.producto,
+                .Cantidad = r.cantidad
+            }).ToList(),
+            New List(Of ProductoBonificadoConCantidadRequest)()
+        )
+        ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
+        ' a 0 EUR (descuento 100%). El servidor confirma contra la tabla Ganavision
+        ' y descarta los falsos positivos (MMP, regalos por importe, etc.).
+        Dim lineasDelPedido = lineas _
+            .Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.cantidad > 0) _
+            .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
+                .ProductoId = l.producto,
+                .Cantidad = l.cantidad,
+                .EsBonificadoGanavisiones = l.baseImponible = 0
+            }).ToList()
+
+        ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
+        ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
+        ' NotaEntrega no aplica en PlantillaVenta (pedidos nuevos desde cliente).
+        Return ServicioServirJunto.Validar(
+            almacen,
+            productosConCantidad,
+            lineasDelPedido,
+            Estado?.FormaPago,
+            Estado?.PlazosPago,
+            Estado?.Ccc,
+            Estado?.PeriodoFacturacion,
+            False,
+            modoServicio:=modo) ' NestoAPI#482: el mensaje nombra el modo elegido
+    End Function
+
+    ''' <summary>
+    ''' Nesto#527: vuelve a «Todo junto» y lo deja dicho junto al selector, para que no parezca que el modo
+    ''' elegido se ha quedado puesto (María José, 15/10/26: 8 intentos seguidos sin saberlo).
+    ''' </summary>
+    Private Sub VolverATodoJuntoAvisando(modoElegido As Byte)
+        RevertirAServirJunto()
+        AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(modoElegido)}»: el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+    End Sub
+
+    ''' <summary>Nesto#527: el mensaje del servidor, terminado con que el pedido se queda en «Todo junto».</summary>
+    Friend Shared Function AnadirVueltaATodoJunto(mensaje As String) As String
+        Dim vuelta As String = $"El pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+        Dim texto As String = If(mensaje, String.Empty).Trim()
+        If texto = String.Empty Then
+            Return vuelta
+        End If
+        If Not (texto.EndsWith(".") OrElse texto.EndsWith("!") OrElse texto.EndsWith("?")) Then
+            texto &= "."
+        End If
+        Return texto & " " & vuelta
+    End Function
+
+    ''' <summary>
+    ''' Nesto#527: líneas del pedido cuyo producto está entre los problemáticos que devolvió el servidor
+    ''' (comparación sin relleno ni mayúsculas, como los char de BD).
+    ''' </summary>
+    Friend Shared Function LineasQueImpidenSalirDeTodoJunto(lineas As IEnumerable(Of LineaPlantillaVenta), problematicos As IEnumerable(Of ProductoSinStockDTO)) As List(Of LineaPlantillaVenta)
+        If lineas Is Nothing OrElse problematicos Is Nothing Then Return New List(Of LineaPlantillaVenta)
+        Dim ids = New HashSet(Of String)(problematicos.Where(Function(p) Not String.IsNullOrWhiteSpace(p?.ProductoId)).Select(Function(p) p.ProductoId.Trim()), StringComparer.OrdinalIgnoreCase)
+        Return lineas _
+            .Where(Function(l) l IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.cantidad > 0 AndAlso ids.Contains(l.producto.Trim())) _
+            .ToList()
+    End Function
+
+    ''' <summary>
+    ''' Nesto#527: solo se ofrece quitarlas si TODOS los productos problemáticos están en el pedido (si
+    ''' alguno es, p. ej., un regalo de la lista de regalos, quitar las líneas no resolvería nada).
+    ''' </summary>
+    Friend Shared Function SePuedeOfrecerQuitarlas(lineasAQuitar As IEnumerable(Of LineaPlantillaVenta), problematicos As IEnumerable(Of ProductoSinStockDTO)) As Boolean
+        If lineasAQuitar Is Nothing OrElse problematicos Is Nothing Then Return False
+        Dim lineas = lineasAQuitar.ToList()
+        If Not lineas.Any() OrElse Not problematicos.Any() Then Return False
+        Dim productosEnLineas = New HashSet(Of String)(lineas.Select(Function(l) l.producto.Trim()), StringComparer.OrdinalIgnoreCase)
+        Return problematicos.All(Function(p) Not String.IsNullOrWhiteSpace(p?.ProductoId) AndAlso productosEnLineas.Contains(p.ProductoId.Trim()))
+    End Function
+
+    ''' <summary>Nesto#527: texto de la confirmación que ofrece quitar las líneas y cambiar de modo en un paso.</summary>
+    Friend Shared Function ConstruirOfertaQuitarYCambiarModo(lineasAQuitar As IEnumerable(Of LineaPlantillaVenta), modoElegido As Byte) As String
+        Dim nombreModo As String = ModosServicio.Nombre(modoElegido)
+        Dim sb As New StringBuilder()
+        sb.AppendLine($"No se puede pasar el pedido a «{nombreModo}» porque estas líneas se quedarían pendientes y no está permitido:")
+        For Each linea In lineasAQuitar
+            sb.AppendLine($" · {linea.producto?.Trim()} {linea.texto?.Trim()}".TrimEnd())
+        Next
+        sb.AppendLine()
+        sb.AppendLine($"¿Quiere quitarlas del pedido y pasarlo a «{nombreModo}»?")
+        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}».")
+        Return sb.ToString()
+    End Function
 #End Region
 
     Friend _clienteSeleccionado As ClienteJson

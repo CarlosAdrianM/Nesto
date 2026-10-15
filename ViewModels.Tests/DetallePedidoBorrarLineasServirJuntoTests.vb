@@ -86,7 +86,7 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
     Private Shared Function Denegada(ParamArray productos() As String) As ValidarServirJuntoResponse
         Return New ValidarServirJuntoResponse With {
             .PuedeDesmarcar = False,
-            .Mensaje = "No se puede desmarcar 'Servir junto': estas muestras (material promocional) se quedarían pendientes y no está permitido. Bórralas primero del pedido: " & String.Join(", ", productos) & ".",
+            .Mensaje = "No se puede pasar el pedido a «Según vaya entrando»: no hay stock en ALG de estas muestras (material promocional) y no pueden quedarse pendientes. Bórrelas del pedido: " & String.Join(", ", productos) & ". O elija otro modo de servicio.",
             .ProductosProblematicos = productos.Select(Function(p) New ProductoSinStockDTO With {.ProductoId = p, .ProductoNombre = "MUESTRA " & p}).ToList()
         }
     End Function
@@ -123,7 +123,8 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
         Dim oferta = mensajesDialogo.Single()
         Assert.IsTrue(oferta.Contains("45461") AndAlso oferta.Contains("SENSITIVE MUESTRA CREMA FACIAL"), "La oferta lista código y nombre: " & oferta)
         Assert.IsTrue(oferta.Contains("45444"), oferta)
-        Assert.IsTrue(oferta.Contains("borrarlas"), oferta)
+        Assert.IsTrue(oferta.Contains("¿Quiere borrarlas del pedido y pasarlo a «Según vaya entrando»?"), "Nesto#527: de usted y nombrando el modo: " & oferta)
+        Assert.IsFalse(oferta.Contains("desmarcar"), "Nesto#527: la casilla «Servir junto» ya no existe: " & oferta)
     End Sub
 
     <TestMethod()>
@@ -154,6 +155,8 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
         Assert.AreEqual(2, lineasEnviadas.Count)
         Dim aviso = mensajesDialogo.Last()
         Assert.IsTrue(aviso.Contains("No se ha borrado ninguna línea"), aviso)
+        Assert.IsTrue(aviso.Contains("seguiría sin poder pasar a «Según vaya entrando» y se queda en «Todo junto»"), "Nesto#527: nombra el modo y dice cómo queda: " & aviso)
+        Assert.IsFalse(aviso.Contains("desmarcar 'Servir junto'"), aviso)
         Assert.IsTrue(aviso.Contains("77777"), "Se enseña el motivo nuevo del servidor: " & aviso)
     End Sub
 
@@ -183,7 +186,7 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
         Assert.IsTrue(vm.pedido.servirJunto)
         Assert.AreEqual(1, lineasEnviadas.Count)
         Assert.IsFalse(dialogosMostrados.Contains("ConfirmationDialog"), "Con picking no se ofrece borrar")
-        Assert.IsTrue(mensajesDialogo.Single().Contains("Bórralas primero"), "Se enseña el mensaje del servidor, como antes")
+        Assert.IsTrue(mensajesDialogo.Single().Contains("Bórrelas del pedido"), "Se enseña el mensaje del servidor, como antes")
     End Sub
 
     <TestMethod()>
@@ -236,11 +239,21 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
 
     <TestMethod()>
     Public Sub ConstruirOfertaBorrarYDesmarcar_ListaCodigoYNombreDeCadaLinea()
-        Dim texto = DetallePedidoViewModel.ConstruirOfertaBorrarYDesmarcar({Linea("45461 ", "SENSITIVE MUESTRA CREMA FACIAL "), Linea("45444", "MUESTRA CREMA REPARADORA")})
+        Dim texto = DetallePedidoViewModel.ConstruirOfertaBorrarYDesmarcar({Linea("45461 ", "SENSITIVE MUESTRA CREMA FACIAL "), Linea("45444", "MUESTRA CREMA REPARADORA")}, ModosServicio.SEGUN_VAYA_ENTRANDO)
 
         Assert.IsTrue(texto.Contains("· 45461 SENSITIVE MUESTRA CREMA FACIAL"), texto)
         Assert.IsTrue(texto.Contains("· 45444 MUESTRA CREMA REPARADORA"), texto)
-        Assert.IsTrue(texto.Contains("desmarcar 'Servir junto'?"), texto)
+        Assert.IsTrue(texto.Contains("No se puede pasar el pedido a «Según vaya entrando»"), texto)
+        Assert.IsTrue(texto.Contains("¿Quiere borrarlas del pedido y pasarlo a «Según vaya entrando»?"), texto)
+        Assert.IsTrue(texto.EndsWith("Si no, el pedido se queda en «Todo junto»."), texto)
+        Assert.IsFalse(texto.Contains("Servir junto"), "Nesto#527: la casilla ya no existe: " & texto)
+    End Sub
+
+    <TestMethod()>
+    Public Sub ConstruirOfertaBorrarYDesmarcar_NombraElModoElegido()
+        Dim texto = DetallePedidoViewModel.ConstruirOfertaBorrarYDesmarcar({Linea("45461", "MUESTRA")}, ModosServicio.TRAS_REPONER_DE_TIENDAS)
+
+        Assert.IsTrue(texto.Contains("pasarlo a «Tras reponer de tiendas»?"), texto)
     End Sub
 
 End Class

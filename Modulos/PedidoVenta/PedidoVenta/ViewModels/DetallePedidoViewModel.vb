@@ -2978,7 +2978,9 @@ Public Class DetallePedidoViewModel
                     dialogService.ShowError(respuesta.Mensaje)
                     Return
                 End If
-                If Not dialogService.ShowConfirmationAnswer("Servir junto", ConstruirOfertaBorrarYDesmarcar(lineasABorrar)) Then
+                ' Nesto#527: los textos nombran el modo elegido (la casilla «Servir junto» ya no existe).
+                Dim modoElegido As Byte = pedido.ModoServicio
+                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaBorrarYDesmarcar(lineasABorrar, modoElegido)) Then
                     RevertirDesmarcadoServirJunto()
                     Return
                 End If
@@ -2986,7 +2988,7 @@ Public Class DetallePedidoViewModel
                 respuesta = Await ValidarDesmarcarServirJunto(lineasQueQuedan).ConfigureAwait(True)
                 If Not respuesta.PuedeDesmarcar Then
                     RevertirDesmarcadoServirJunto()
-                    dialogService.ShowError("No se ha borrado ninguna línea: aunque se borraran, seguiría sin poderse desmarcar 'Servir junto'. " & respuesta.Mensaje)
+                    dialogService.ShowError($"No se ha borrado ninguna línea: aunque se borraran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}» y se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}». " & respuesta.Mensaje)
                     Return
                 End If
             End If
@@ -3099,15 +3101,20 @@ Public Class DetallePedidoViewModel
         Return lineas.All(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso l.picking = 0)
     End Function
 
-    ''' <summary>Nesto#452: texto de la confirmación que ofrece borrar las líneas y desmarcar en un paso.</summary>
-    Friend Shared Function ConstruirOfertaBorrarYDesmarcar(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper)) As String
+    ''' <summary>
+    ''' Nesto#452: texto de la confirmación que ofrece borrar las líneas y cambiar de modo en un paso.
+    ''' Nesto#527: nombra el modo elegido (la casilla «Servir junto» ya no existe desde NestoAPI#482) y trata de usted.
+    ''' </summary>
+    Friend Shared Function ConstruirOfertaBorrarYDesmarcar(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper), modoElegido As Byte) As String
+        Dim nombreModo As String = ModosServicio.Nombre(modoElegido)
         Dim sb As New StringBuilder()
-        sb.AppendLine("No se puede desmarcar 'Servir junto' porque estas líneas se quedarían pendientes y no está permitido:")
+        sb.AppendLine($"No se puede pasar el pedido a «{nombreModo}» porque estas líneas se quedarían pendientes y no está permitido:")
         For Each linea In lineasABorrar
             sb.AppendLine($" · {linea.Producto?.Trim()} {linea.texto?.Trim()}".TrimEnd())
         Next
         sb.AppendLine()
-        sb.Append("¿Quieres borrarlas del pedido y desmarcar 'Servir junto'?")
+        sb.AppendLine($"¿Quiere borrarlas del pedido y pasarlo a «{nombreModo}»?")
+        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}».")
         Return sb.ToString()
     End Function
 
