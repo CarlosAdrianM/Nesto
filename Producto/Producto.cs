@@ -28,6 +28,14 @@ namespace Nesto.Modulos.Producto
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ProductoMenuBar>();
             registro.Transitorio<ProductoMenuBarViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.ProductoViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.ReposicionViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.VideosViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.EtiquetasHuecoViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecibirReposicionViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviarReposicionViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.CalendarioReposicionesViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

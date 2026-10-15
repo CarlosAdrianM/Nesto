@@ -31,6 +31,13 @@ namespace Nesto.Modulos.CanalesExternos
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<CanalesExternosMenuBar>();
             registro.Transitorio<CanalesExternosMenuBarViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<ViewModels.CanalesExternosPedidosViewModel>();
+            registro.Transitorio<ViewModels.CanalesExternosPagosViewModel>();
+            registro.Transitorio<ViewModels.CanalesExternosProductosViewModel>();
+            registro.Transitorio<ViewModels.CanalesExternosFacturasViewModel>();
+            registro.Transitorio<ViewModels.CanalesExternosCuadreFacturasViewModel>();
+            registro.Transitorio<ViewModels.PoisonPillsViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

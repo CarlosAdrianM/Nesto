@@ -23,6 +23,8 @@ namespace Nesto.Modulos.OfertasCombinadas
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<OfertasCombinadasMenuBar>();
             registro.Transitorio<OfertasCombinadasMenuBarViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<OfertasCombinadasViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

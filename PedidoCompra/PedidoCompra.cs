@@ -26,6 +26,9 @@ namespace Nesto.Modulos.PedidoCompra
             registro.Transitorio<PedidoCompraViewModel>();
             registro.Transitorio<PedidoCompraView>();
             registro.Transitorio<ListaPedidosCompraView>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<ListaPedidosCompraViewModel>();
+            registro.Transitorio<DetallePedidoCompraViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

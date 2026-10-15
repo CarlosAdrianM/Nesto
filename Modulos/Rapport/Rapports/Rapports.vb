@@ -25,6 +25,8 @@ Public Class Rapports
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar
         registro.Transitorio(Of RapportsMenuBar)()
         registro.Transitorio(Of ListaRapportsViewModel)()
+        ' Los ViewModels de sus vistas
+        registro.Transitorio(Of RapportViewModel)()
     End Sub
 
     Public Sub Inicializar(resolutor As IResolutorNesto) Implements IModuloNesto.Inicializar

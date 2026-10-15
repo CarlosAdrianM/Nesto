@@ -43,6 +43,9 @@ Public Class PedidoVenta
         registro.Transitorio(Of PedidoVentaViewModel)()
         registro.Transitorio(Of PedidoVentaView)()
         registro.Transitorio(Of ListaPedidosVenta)()
+        ' Los ViewModels de sus vistas
+        registro.Transitorio(Of ListaPedidosVentaViewModel)()
+        registro.Transitorio(Of DetallePedidoViewModel)()
     End Sub
 
     Public Sub Inicializar(resolutor As IResolutorNesto) Implements IModuloNesto.Inicializar

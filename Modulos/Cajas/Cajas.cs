@@ -33,6 +33,12 @@ namespace Nesto.Modulos.Cajas
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<CajasMenuBar>();
             registro.Transitorio<CajasMenuBarViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<ViewModels.CajasViewModel>();
+            registro.Transitorio<ViewModels.BancosViewModel>();
+            registro.Transitorio<ViewModels.MayorCuentaViewModel>();
+            registro.Transitorio<ViewModels.FacturasPendientesVerifactuViewModel>();
+            registro.Transitorio<ViewModels.AuditoriaEnlacesPagoViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

@@ -23,6 +23,8 @@ namespace Nesto.Modulos.Ganavisiones
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<GanavisionesMenuBar>();
             registro.Transitorio<GanavisionesMenuBarViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<GanavisionesViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

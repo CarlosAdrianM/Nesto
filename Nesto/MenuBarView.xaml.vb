@@ -40,6 +40,15 @@ Public Class MenuBarView
         For Each tipoVentana In VentanasPorNombre.Values
             registro.Transitorio(tipoVentana, tipoVentana)
         Next
+        ' Y los ViewModels que reciben esas ventanas por constructor
+        registro.Transitorio(Of ClientesViewModel)()
+        registro.Transitorio(Of AlquileresViewModel)()
+        registro.Transitorio(Of RemesasViewModel)()
+        registro.Transitorio(Of AgenciasViewModel)()
+        registro.Transitorio(Of AgenciasMantenimientoViewModel)()
+        registro.Transitorio(Of FamiliasMantenimientoViewModel)()
+        registro.Transitorio(Of ComisionesViewModel)()
+        registro.Transitorio(Of PlanesVentajasViewModel)()
     End Sub
 
     Public Sub Inicializar(resolutor As IResolutorNesto) Implements IModuloNesto.Inicializar

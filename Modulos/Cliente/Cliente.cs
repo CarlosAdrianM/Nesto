@@ -36,6 +36,13 @@ namespace Nesto.Modulos.Cliente
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ClienteMenuBar>();
             registro.Transitorio<CrearClienteViewModel>();
+            // Los ViewModels de sus vistas
+            registro.Transitorio<Modelo347ViewModel>();
+            registro.Transitorio<ExtractoClienteViewModel>();
+            registro.Transitorio<ClientesNifIncorrectosViewModel>();
+            registro.Transitorio<MantenimientoCodigosPostalesViewModel>();
+            registro.Transitorio<MantenimientoEventosViewModel>();
+            registro.Transitorio<SenalesEventosViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)
