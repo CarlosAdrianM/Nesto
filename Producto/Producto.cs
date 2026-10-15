@@ -36,6 +36,11 @@ namespace Nesto.Modulos.Producto
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecibirReposicionViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviarReposicionViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.CalendarioReposicionesViewModel>();
+
+            // Nesto#529 (NestoAPI#631): propuestas de stock (Compras decide; la campana con tipo PropuestasStock abre aquí)
+            registro.Vista<PropuestasStockView>(NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.PropuestasStockViewModel>();
+            registro.Singleton<IServicioPropuestasStock, ServicioPropuestasStock>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

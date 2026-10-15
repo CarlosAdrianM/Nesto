@@ -26,6 +26,14 @@ namespace Nesto.Infrastructure.Contracts
         public const string VISTA_FACTURAS_PENDIENTES_VERIFACTU = "FacturasPendientesVerifactuView";
 
         /// <summary>
+        /// NestoAPI#631 / Nesto#529: aviso a Compras de que el job mensual ha dejado propuestas de stock pendientes de decidir.
+        /// </summary>
+        public const string TIPO_PROPUESTAS_STOCK = "PropuestasStock";
+
+        /// <summary>Nesto#529: la ventana (módulo Producto) que abre ese aviso al pulsarlo.</summary>
+        public const string VISTA_PROPUESTAS_STOCK = "PropuestasStockView";
+
+        /// <summary>
         /// Nesto#509 (Ariadna#8): un mozo dice que un dato de la ficha de un producto está mal. Trae Datos["avisoId"] y
         /// Datos["producto"]; se cierra con <see cref="RESULTADO_AVISO_CAMBIADO"/> o <see cref="RESULTADO_AVISO_ESTABA_BIEN"/>.
         /// </summary>

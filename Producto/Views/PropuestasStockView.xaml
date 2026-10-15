@@ -1,0 +1,148 @@
+﻿<UserControl x:Class="Nesto.Modules.Producto.Views.PropuestasStockView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:PropuestasStockViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- Nesto#529 (NestoAPI#631): Compras decide cada propuesta mensual de máximo y mínimo del motor de tendencias. -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="Mes:" VerticalAlignment="Center" Margin="24,0,6,0" />
+            <ComboBox Width="170" ItemsSource="{Binding Meses}" DisplayMemberPath="Texto" SelectedItem="{Binding MesSeleccionado}" />
+            <TextBlock Text="Estado:" VerticalAlignment="Center" Margin="16,0,6,0" />
+            <ComboBox Width="130" ItemsSource="{Binding Estados}" DisplayMemberPath="Texto" SelectedItem="{Binding EstadoSeleccionado}" />
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center"
+                    ToolTip="Vuelve a leer las propuestas y el resumen" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Text="{Binding TextoResumen}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="420" MinWidth="280" />
+            </Grid.ColumnDefinitions>
+
+            <DataGrid ItemsSource="{Binding Propuestas}" SelectedItem="{Binding PropuestaSeleccionada}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="200" />
+                    <DataGridTextColumn Header="Alm." Binding="{Binding Almacen}" />
+                    <DataGridTextColumn Header="Fase" Binding="{Binding Fase}" />
+                    <DataGridTextColumn Header="Acción" Binding="{Binding Accion}" />
+                    <DataGridTextColumn Header="Máx/mín actual" Binding="{Binding MaxMinActual}" />
+                    <DataGridTextColumn Header="Máx/mín propuesto" Binding="{Binding MaxMinPropuesto}" />
+                    <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" />
+                    <DataGridTextColumn Header="Exceso" Binding="{Binding ExcesoValorado, StringFormat='{}{0:C0}', ConverterCulture=es-ES}" />
+                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                    <DataGridTemplateColumn Header="Explicación" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Explicacion}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Explicacion}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" />
+
+            <!-- Detalle: la explicación entera (trazabilidad de cada máximo y mínimo) y la decisión -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding HayPropuestaSeleccionada, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="8,0,0,0">
+                    <TextBlock Text="{Binding PropuestaSeleccionada.ProductoYNombre}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock TextWrapping="Wrap" Margin="0,4,0,0">
+                        <Run Text="Acción propuesta:" />
+                        <Run Text="{Binding PropuestaSeleccionada.Accion, Mode=OneWay}" FontWeight="SemiBold" />
+                        <Run Text="· Estado:" />
+                        <Run Text="{Binding PropuestaSeleccionada.Estado, Mode=OneWay}" FontWeight="SemiBold" />
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,2,0,0">
+                        <Run Text="Máximo/mínimo actual:" />
+                        <Run Text="{Binding PropuestaSeleccionada.MaxMinActual, Mode=OneWay}" />
+                        <Run Text="· propuesto:" />
+                        <Run Text="{Binding PropuestaSeleccionada.MaxMinPropuesto, Mode=OneWay}" FontWeight="SemiBold" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding PropuestaSeleccionada.TextoDecision}" TextWrapping="Wrap" Margin="0,4,0,0" FontStyle="Italic" />
+
+                    <TextBlock Text="Explicación" FontWeight="SemiBold" Margin="0,10,0,2" />
+                    <TextBox Text="{Binding PropuestaSeleccionada.Explicacion, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
+                             MinHeight="120" MaxHeight="320" VerticalScrollBarVisibility="Auto" />
+
+                    <StackPanel IsEnabled="{Binding PuedeDecidir}" Margin="0,12,0,0">
+                        <TextBlock Text="Decisión" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                    Visibility="{Binding PropuestaSeleccionada.EsAjuste, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Máximo:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBox Width="70" Text="{Binding StockMaximo, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Text="Mínimo:" VerticalAlignment="Center" Margin="12,0,4,0" />
+                            <TextBox Width="70" Text="{Binding StockMinimo, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <TextBlock Text="Motivo (obligatorio al rechazar o si cambia el máximo o el mínimo):" TextWrapping="Wrap" />
+                        <TextBox Text="{Binding Motivo, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="44" MaxLength="500" />
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Aplicar" Command="{Binding AplicarCommand}" Padding="14,2" Margin="0,0,8,4"
+                                    ToolTip="Escribe el máximo y el mínimo (o el estado) que se propone" />
+                            <Button Content="Rechazar" Command="{Binding RechazarCommand}" Padding="14,2" Margin="0,0,8,4"
+                                    ToolTip="No se aplica; el motivo sirve para ajustar las fórmulas" />
+                            <Button Content="Posponer" Command="{Binding PosponerCommand}" Padding="14,2" Margin="0,0,8,4"
+                                    ToolTip="No se hace nada: vuelve a salir el mes que viene" />
+                        </WrapPanel>
+
+                        <TextBlock Text="Silenciar" FontWeight="SemiBold" Margin="0,8,0,2" />
+                        <WrapPanel>
+                            <ComboBox Width="130" ItemsSource="{Binding MotivosSilencio}" SelectedItem="{Binding MotivoSilencio}" Margin="0,0,8,4"
+                                      ToolTip="Por qué se silencia" />
+                            <TextBlock Text="hasta" VerticalAlignment="Center" Margin="0,0,4,4" />
+                            <DatePicker SelectedDate="{Binding SilenciarHasta}" Width="120" Margin="0,0,8,4"
+                                        ToolTip="Como mucho 24 meses" />
+                            <Button Content="Silenciar" Command="{Binding SilenciarCommand}" Padding="14,2" Margin="0,0,0,4"
+                                    ToolTip="No vuelve a salir como pendiente hasta esa fecha" />
+                        </WrapPanel>
+
+                        <StackPanel Visibility="{Binding PropuestaSeleccionada.EsLiquidar, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Liquidar" FontWeight="SemiBold" Margin="0,8,0,2" />
+                            <WrapPanel>
+                                <ComboBox Width="130" ItemsSource="{Binding CanalesLiquidacion}" SelectedItem="{Binding CanalLiquidacion}" Margin="0,0,8,4"
+                                          ToolTip="Dónde se liquida" />
+                                <Button Content="Liquidar" Command="{Binding LiquidarCommand}" Padding="14,2" Margin="0,0,0,4"
+                                        ToolTip="Acepta la liquidación: el máximo pasa a 0; la liquidación la hace usted" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <StackPanel Grid.Row="3" Margin="0,8,0,0">
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding UltimosCambios}" Margin="12,2,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Grid>
+</UserControl>
