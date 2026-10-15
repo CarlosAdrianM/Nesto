@@ -151,6 +151,9 @@ Public NotInheritable Class ComposicionNesto
         ' NestoAPI#577: el calendario de reposiciones (api/Reposiciones/Calendario), que antes se cambiaba con scripts
         registro.Singleton(Of IServicioCalendarioReposiciones)(Function(r) New ServicioCalendarioReposiciones(r.Resolver(Of IClienteApiFactory)()))
 
+        ' Nesto#526 (NestoAPI#634): las diferencias de reposición (api/Reposiciones/Diferencias): la ventana y el contador de la cinta
+        registro.Singleton(Of IServicioDiferenciasReposicion)(Function(r) New ServicioDiferenciasReposicion(r.Resolver(Of IClienteApiFactory)()))
+
         ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
         registro.Singleton(Of IServicioChequesRegalo)(Function(r) New ServicioChequesRegalo(r.Resolver(Of IClienteApiFactory)()))
 
