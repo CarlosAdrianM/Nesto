@@ -6,6 +6,7 @@ Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Services
 Imports ControlesUsuario.ViewModels
+Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
@@ -107,21 +108,11 @@ Partial Public Class Application
     End Sub
 
     Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
-        Dim unused29 = containerRegistry.RegisterSingleton(GetType(IMainWindow), GetType(MainWindow))
-        ' Nesto#490 (4C.4): cada módulo pone su menú en la cinta principal con IServicioCinta, sin el RibbonRegionAdapter
-        ' de Prism (la misma fusión de pestañas, portada a Infrastructure). La cinta es la de MainWindow (el shell).
-        Dim unusedCinta = containerRegistry.RegisterSingleton(Of IServicioCinta)(
-            Function(provider) New Nesto.Infrastructure.Cinta.ServicioCinta(provider.Resolve(Of IMainWindow)().mainRibbon))
-        Dim unused28 = containerRegistry.RegisterSingleton(GetType(IMenuBar), GetType(MenuBarView))
-        Dim unused27 = containerRegistry.RegisterSingleton(GetType(IConfiguracion), GetType(Configuracion))
-        ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
-        ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).
-        Dim unusedMessenger = containerRegistry.RegisterInstance(Of IMessenger)(WeakReferenceMessenger.Default)
-        ' Nesto#490 (4C.2): servicio de diálogos propio, con la ventana propia de Nesto para todos (14/10/26, tras 14 días
-        ' de piloto con el parámetro VentanaDialogosPropia sin ningún error). Los diálogos se registran con
-        ' RegistrarDialogo (registro propio, ya no RegisterDialog de Prism) y la ventana saca de ahí la vista y su ViewModel.
-        Dim unusedDialogos = containerRegistry.RegisterSingleton(Of IServicioDialogos)(
-            Function(provider) New ServicioDialogosNesto(Function(nombre) RegistroDialogos.CrearDialogo(provider, nombre)))
+        ' Nesto#490 (4C.5): todo lo de la aplicación se registra en ComposicionNesto, sin tipos de Prism (la prueba sombra
+        ' lo monta igual sobre Microsoft.Extensions.DependencyInjection). Aquí solo queda lo de las regiones y la
+        ' navegación, que se va con el tramo 4 de 4C.4.
+        ComposicionNesto.Registrar(New RegistroPrism(containerRegistry))
+
         ' Nesto#490 (4C.4): navegación propia. Tramo 3 (piloto): con el parámetro RegionesPropias = "1" va por la región
         ' propia (ServicioNavegacionNesto sobre el GestorRegiones del shell, las vistas creadas por su nombre con los mismos
         ' registros, y las navegaciones fallidas a la traza y a ELMAH); sin él, o si no se puede leer, por el IRegionManager
@@ -137,202 +128,6 @@ Partial Public Class Application
         ' Nesto#490 (4C.4): el cargador de vistas de la navegación de Prism, salvo que nunca reutiliza las vistas de un
         ' IReceptorNavegacionPestanaNueva (lo que antes hacía IsNavigationTarget = False). Sustituye al que registra Prism.
         Dim unusedCargadorVistas = containerRegistry.RegisterSingleton(Of IRegionNavigationContentLoader, Nesto.Infrastructure.Navegacion.CargadorVistasNavegacion)()
-
-        Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
-        ' Nesto#400: credencial con caché de tokens persistida y AuthenticationRecord rehidratado:
-        ' el navegador de MS Graph solo se abre la primera vez, no en cada arranque de Nesto.
-        Dim interactiveBrowserCredential As New CredencialGraphPersistente(clientId)
-        Dim unused26 = containerRegistry.RegisterInstance(GetType(InteractiveBrowserCredential), interactiveBrowserCredential)
-
-        ' Registrar servicio de autenticación con la URL base de tu API
-        Dim unused31 = containerRegistry.RegisterSingleton(Of IServicioAutenticacion)(
-            Function(provider)
-                Dim cfg = provider.Resolve(Of IConfiguracion)()
-                Return New ServicioAutenticacion(cfg.servidorAPI)
-            End Function)
-
-        ' Registro centralizado de errores del cliente en ELMAH (vía NestoAPI)
-        Dim unusedErrores = containerRegistry.RegisterSingleton(Of IServicioRegistroErrores)(
-            Function(provider)
-                Dim cfg = provider.Resolve(Of IConfiguracion)()
-                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
-                Return New ServicioRegistroErrores(cfg.servidorAPI, auth, cfg.usuario)
-            End Function)
-
-        ' Factory de HttpClient que adjunta el JWT automáticamente (para que el usuario
-        ' salga en ELMAH). Usar IClienteApiFactory.Crear() en vez de 'New HttpClient'.
-        Dim unusedClienteApi = containerRegistry.RegisterSingleton(Of IClienteApiFactory)(
-            Function(provider)
-                Dim cfg = provider.Resolve(Of IConfiguracion)()
-                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
-                Return New ClienteApiFactory(cfg.servidorAPI, auth)
-            End Function)
-
-        ' Nesto#372: changelog de novedades para el usuario al actualizar
-        Dim unusedNovedades = containerRegistry.RegisterSingleton(Of INovedadesService)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New NovedadesService(factory)
-            End Function)
-        ' Nesto#519 (NestoAPI#616): adjuntos de las novedades (PDF e imágenes)
-        Dim unusedAdjuntosNovedades = containerRegistry.RegisterSingleton(Of IServicioAdjuntosNovedades)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioAdjuntosNovedades(factory)
-            End Function)
-        ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
-        Dim unusedAbridorNovedades = containerRegistry.Register(Of IAbridorNovedades, AbridorNovedades)()
-        ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno
-        Dim unusedAbridorPedidos = containerRegistry.Register(Of IAbridorPedidos, AbridorPedidos)()
-
-        ' Nesto#477: buzón de notificaciones (campana de la cinta)
-        Dim unusedBuzon = containerRegistry.RegisterSingleton(Of IBuzonNotificacionesService)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New BuzonNotificacionesService(factory)
-            End Function)
-        ' NestoAPI#536: la campana (Nesto#477) recibe al momento, por SignalR, el aviso de notificaciones nuevas.
-        ' La conexión se arranca en OnInitialized (tras tener token) salvo que el parámetro AvisosTiempoReal
-        ' sea "NO": entonces no se conecta nunca y se comporta como el antiguo AvisosEnTiempoRealNulo.
-        Dim unusedAvisos = containerRegistry.RegisterSingleton(Of IAvisosEnTiempoReal)(
-            Function(provider)
-                Dim cfg = provider.Resolve(Of IConfiguracion)()
-                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
-                Dim errores = provider.Resolve(Of IServicioRegistroErrores)()
-                Return New AvisosEnTiempoRealSignalR(cfg.servidorAPI, auth,
-                    Sub(ex) errores.RegistrarErrorAsync(ex, "AvisosEnTiempoReal"))
-            End Function)
-
-        ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
-        Dim unusedAgencias = containerRegistry.RegisterSingleton(Of IServicioAgenciasMantenimiento)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New AgenciasMantenimientoService(factory)
-            End Function)
-
-        ' Etiquetas de hueco del almacén: las imprime la API por la ImpresoraCodBarras del usuario
-        Dim unusedEtiquetasHueco = containerRegistry.RegisterSingleton(Of IServicioEtiquetasHueco)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioEtiquetasHueco(factory)
-            End Function)
-
-        ' NestoAPI#553: la tienda recibe la reposición con la misma API que Ariadna (api/Almacen/Recepciones, REPO)
-        Dim unusedRecepcionReposiciones = containerRegistry.RegisterSingleton(Of IServicioRecepcionReposiciones)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioRecepcionReposiciones(factory)
-            End Function)
-
-        ' NestoAPI#553: la tienda prepara y termina la reposición que manda a Algete (api/Reposiciones)
-        Dim unusedEnvioReposiciones = containerRegistry.RegisterSingleton(Of IServicioEnvioReposiciones)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioEnvioReposiciones(factory)
-            End Function)
-
-        ' NestoAPI#577: el calendario de reposiciones (api/Reposiciones/Calendario), que antes se cambiaba con scripts
-        Dim unusedCalendarioReposiciones = containerRegistry.RegisterSingleton(Of IServicioCalendarioReposiciones)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioCalendarioReposiciones(factory)
-            End Function)
-
-        ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
-        Dim unusedChequesRegalo = containerRegistry.RegisterSingleton(Of IServicioChequesRegalo)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New ServicioChequesRegalo(factory)
-            End Function)
-
-        ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
-        Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
-            Function(provider)
-                Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New FamiliasMantenimientoService(factory)
-            End Function)
-
-        Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
-        Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
-        ' Issue #286: Borradores de PlantillaVenta
-        Dim unusedBorrador = containerRegistry.Register(GetType(IBorradorPlantillaVentaService), GetType(BorradorPlantillaVentaService))
-        Dim unused23 = containerRegistry.Register(GetType(IInventario), GetType(Inventario))
-        Dim unused22 = containerRegistry.Register(GetType(ICarteraPagosService), GetType(CarteraPagosService))
-        Dim unused21 = containerRegistry.Register(GetType(ICarteraPagos), GetType(CarteraPagos))
-        Dim unused20 = containerRegistry.Register(GetType(IPedidoVentaService), GetType(PedidoVentaService))
-        Dim unused19 = containerRegistry.Register(GetType(IPedidoVenta), GetType(PedidoVenta))
-        Dim unused18 = containerRegistry.Register(GetType(IRapportService), GetType(RapportService))
-        Dim unused17 = containerRegistry.Register(GetType(IRapports), GetType(Rapports))
-        Dim unused16 = containerRegistry.Register(GetType(ICanalesExternos), GetType(Nesto.Modulos.CanalesExternos.CanalesExternos))
-        Dim unused15 = containerRegistry.Register(GetType(IAgenciaService), GetType(AgenciaService))
-        Dim unused14 = containerRegistry.Register(GetType(IProducto), GetType(Nesto.Modulos.Producto.Producto))
-        Dim unused13 = containerRegistry.Register(GetType(IProductoService), GetType(ProductoService))
-        Dim unused12 = containerRegistry.Register(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente))
-        Dim unused11 = containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
-        Dim unused10 = containerRegistry.Register(GetType(IPedidoCompra), GetType(Nesto.Modulos.PedidoCompra.PedidoCompra))
-        Dim unused9 = containerRegistry.Register(GetType(IClienteComercialService), GetType(ClienteComercialService))
-        Dim unused8 = containerRegistry.Register(GetType(ISelectorClienteService), GetType(SelectorClienteService))
-        Dim unused7 = containerRegistry.Register(GetType(ICajas), GetType(Cajas))
-        Dim unused6 = containerRegistry.Register(GetType(IContabilidadService), GetType(ContabilidadService))
-        Dim unused5 = containerRegistry.Register(GetType(IBancosService), GetType(BancosService))
-
-        ' Carlos 04/02/26: Issue #281 - Ganavisiones
-        Dim unusedGanavisiones1 = containerRegistry.Register(GetType(IGanavisiones), GetType(Ganavisiones))
-        Dim unusedGanavisiones2 = containerRegistry.Register(GetType(IGanavisionesService), GetType(GanavisionesService))
-
-        ' Carlos 27/02/26: Issue #299 - Ofertas Combinadas
-        Dim unusedOfertasCombinadas1 = containerRegistry.Register(GetType(IOfertasCombinadas), GetType(OfertasCombinadas))
-        Dim unusedOfertasCombinadas2 = containerRegistry.Register(GetType(IOfertasCombinadasService), GetType(OfertasCombinadasService))
-        Dim unused4 = containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
-        Dim unused3 = containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
-        Dim unused2 = containerRegistry.Register(GetType(IRecursosHumanosService), GetType(RecursosHumanosService))
-        Dim unused1 = containerRegistry.Register(GetType(ICanalesExternosProductosService), GetType(CanalesExternosProductosService))
-        Dim unused = containerRegistry.Register(GetType(ICanalesExternosPagosService), GetType(CanalesExternosPagosService))
-
-        ' Carlos 20/11/24: FASE 3 - Registrar servicio de direcciones de entrega para SelectorDireccionEntrega
-        Dim unused32 = containerRegistry.RegisterSingleton(GetType(IServicioDireccionesEntrega), GetType(ServicioDireccionesEntrega))
-
-        ' Carlos 20/11/24: Registrar servicio de CCCs para SelectorCCC
-        Dim unused33 = containerRegistry.RegisterSingleton(GetType(IServicioCCC), GetType(ServicioCCC))
-
-        ' Carlos 04/12/24: Issue #252 - Registrar servicio de formas de venta para SelectorFormaVenta
-        Dim unused34 = containerRegistry.RegisterSingleton(GetType(IServicioFormaVenta), GetType(ServicioFormaVenta))
-
-        ' Carlos 09/12/25: Issue #253/#52 - Registrar servicio de almacenes para SelectorAlmacen
-        Dim unused35 = containerRegistry.RegisterSingleton(GetType(IServicioAlmacenes), GetType(ServicioAlmacenes))
-
-        ' Carlos 09/12/25: Issue #245 - Registrar servicio de series para SelectorSerie
-        Dim unused36 = containerRegistry.RegisterSingleton(GetType(IServicioSeries), GetType(ServicioSeries))
-
-        ' Caso real 20/08/26: parámetros que el propio usuario puede cambiarse (Tienda Online
-        ' alterna AMZ/ALG según facture FBA o rutas). El catálogo vive en NestoAPI.
-        Dim unusedParametrosEditables = containerRegistry.RegisterSingleton(GetType(IServicioParametrosEditables), GetType(ServicioParametrosEditables))
-
-        ' Carlos 11/12/25: Issue #258 - Registrar servicio de cuentas contables para CuentaContableBehavior
-        Dim unused37 = containerRegistry.Register(GetType(IServicioCuentaContable), GetType(ServicioCuentaContable))
-
-        ' Carlos 11/12/25: Issue #258 - Registrar servicio de productos para ProductoBehavior
-        Dim unused38 = containerRegistry.Register(GetType(IServicioProducto), GetType(ServicioProducto))
-
-        ' Carlos 04/02/26: Issue #281 - Registrar servicio de búsqueda para AutocompleteBehavior
-        Dim unused39 = containerRegistry.Register(Of ServicioBusquedaProductos)
-        Dim unused40 = containerRegistry.Register(Of ServicioBusquedaCuentas)
-
-        containerRegistry.RegistrarDialogo(Of ConfirmationDialog, ConfirmationDialogViewModel)
-        containerRegistry.RegistrarDialogo(Of NotificationDialog, NotificationDialogViewModel)
-        containerRegistry.RegistrarDialogo(Of InputAmountDialog, InputAmountDialogViewModel)
-        containerRegistry.RegistrarDialogo(Of InputTextDialog, InputTextDialogViewModel)
-        containerRegistry.RegistrarDialogo(Of InputDateDialog, InputDateDialogViewModel) ' NestoAPI#582
-        containerRegistry.RegistrarDialogo(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
-        containerRegistry.RegistrarDialogo(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
-        ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)
-        containerRegistry.RegistrarDialogo(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
-        ' Nesto#372: diálogo "Qué hay de nuevo" (popup tras actualizar + Herramientas → Ayuda → Novedades)
-        containerRegistry.RegistrarDialogo(Of NovedadesDialog, NovedadesDialogViewModel)
-        ' Caso real 20/08/26: ventana de parámetros de usuario (sustituye al MessageBox del menú)
-        containerRegistry.RegistrarDialogo(Of ParametrosUsuarioDialog, ParametrosUsuarioDialogViewModel)
-        ' NestoAPI#609: «¿Quisiste decir…?» con la corrección del concepto antes de crear un enlace de pago
-        containerRegistry.RegistrarDialogo(Of RevisionConceptoDialog, RevisionConceptoDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window
@@ -345,44 +140,10 @@ Partial Public Class Application
 
     Protected Overrides Sub ConfigureModuleCatalog(moduleCatalog As IModuleCatalog)
         MyBase.ConfigureModuleCatalog(moduleCatalog)
-        ' Módulo que tiene los botones del Ribbon de todo lo viejo que no se hizo con módulos
-        Dim unused10 = moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
-
-        ' Plantilla de Ventas - 17/07/15
-        Dim unused9 = moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
-
-        ' Inventarios - 09/11/15
-        Dim unused8 = moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
-
-        ' Cartera de Pagos - 19/07/16
-        Dim unused7 = moduleCatalog.AddModule(GetType(ICarteraPagos)) ', InitializationMode.WhenAvailable
-
-        ' Pedido de Venta - 26/10/16
-        Dim unused6 = moduleCatalog.AddModule(GetType(IPedidoVenta))
-
-        ' Rapports - 14/03/17
-        Dim unused5 = moduleCatalog.AddModule(GetType(IRapports))
-
-        ' Canales Externos - 03/10/17
-        Dim unused4 = moduleCatalog.AddModule(Of Nesto.Modulos.CanalesExternos.CanalesExternos)
-
-        ' Producto - 29/05/18
-        Dim unused3 = moduleCatalog.AddModule(GetType(IProducto))
-
-        ' Cliente - 29/05/19
-        Dim unused2 = moduleCatalog.AddModule(GetType(ICliente))
-
-        ' Pedido de Compra - 17/11/21
-        Dim unused1 = moduleCatalog.AddModule(GetType(IPedidoCompra))
-
-        ' Cajas - 19/12/23
-        Dim unused = moduleCatalog.AddModule(GetType(ICajas))
-
-        ' Ganavisiones - 04/02/26 (Issue #281)
-        Dim unusedGanavisiones = moduleCatalog.AddModule(GetType(IGanavisiones))
-
-        ' Ofertas Combinadas - 27/02/26 (Issue #299)
-        Dim unusedOfertasCombinadas = moduleCatalog.AddModule(GetType(IOfertasCombinadas))
+        ' Nesto#490 (4C.5): la lista de módulos (con sus fechas) está en ComposicionNesto, para que la prueba sombra cargue los mismos
+        For Each tipoModulo In ComposicionNesto.Modulos
+            Dim unused = moduleCatalog.AddModule(tipoModulo)
+        Next
     End Sub
 
     ' Memory leak: al quitar una vista de cualquier región, limpiamos su DataContext para

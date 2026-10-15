@@ -1,7 +1,7 @@
 using ControlesUsuario.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
-using Prism.Ioc;
 using Prism.Unity;
 using System;
 using System.Threading;
@@ -49,12 +49,14 @@ namespace ControlesUsuario.Tests.Dialogs
             public void Aceptar() => RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "respuesta", 42 } }));
         }
 
-        private static UnityContainerExtension ContenedorConElDialogo(string nombre = null)
+        // Nesto#490 (4C.5): se registra con RegistroPrism y se resuelve con ResolutorPrism, sobre Unity como en Nesto
+        private static IResolutorNesto ContenedorConElDialogo(string nombre = null)
         {
-            var contenedor = new UnityContainerExtension();
-            _ = contenedor.Register<IServicioDePrueba, ServicioDePrueba>();
-            contenedor.RegistrarDialogo<VistaDePrueba, DialogoDePrueba>(nombre);
-            return contenedor;
+            var unity = new UnityContainerExtension();
+            var registro = new RegistroPrism(unity);
+            registro.Transitorio<IServicioDePrueba, ServicioDePrueba>();
+            registro.RegistrarDialogo<VistaDePrueba, DialogoDePrueba>(nombre);
+            return new ResolutorPrism(unity);
         }
 
         [TestMethod]
@@ -62,7 +64,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                UnityContainerExtension contenedor = ContenedorConElDialogo();
+                IResolutorNesto contenedor = ContenedorConElDialogo();
 
                 FrameworkElement vista = RegistroDialogos.CrearDialogo(contenedor, "VistaDePrueba");
 
@@ -77,7 +79,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                UnityContainerExtension contenedor = ContenedorConElDialogo("OtroNombre");
+                IResolutorNesto contenedor = ContenedorConElDialogo("OtroNombre");
 
                 Assert.IsNotNull(RegistroDialogos.CrearDialogo(contenedor, "OtroNombre"));
                 Assert.IsNull(RegistroDialogos.CrearDialogo(contenedor, "VistaDePrueba"));
@@ -89,7 +91,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                UnityContainerExtension contenedor = ContenedorConElDialogo();
+                IResolutorNesto contenedor = ContenedorConElDialogo();
 
                 FrameworkElement primera = RegistroDialogos.CrearDialogo(contenedor, "VistaDePrueba");
                 FrameworkElement segunda = RegistroDialogos.CrearDialogo(contenedor, "VistaDePrueba");
@@ -102,7 +104,7 @@ namespace ControlesUsuario.Tests.Dialogs
         [TestMethod]
         public void UnNombreNoRegistrado_DevuelveNull()
         {
-            var contenedor = new UnityContainerExtension();
+            var contenedor = new ResolutorPrism(new UnityContainerExtension());
 
             Assert.IsNull(RegistroDialogos.CrearDialogo(contenedor, "NoExiste"));
             Assert.IsNull(RegistroDialogos.CrearDialogo(contenedor, null));
@@ -113,7 +115,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                UnityContainerExtension contenedor = ContenedorConElDialogo();
+                IResolutorNesto contenedor = ContenedorConElDialogo();
                 var servicio = new ServicioDialogosNesto(nombre => RegistroDialogos.CrearDialogo(contenedor, nombre));
                 ResultadoDialogo recibido = null;
 
@@ -138,7 +140,7 @@ namespace ControlesUsuario.Tests.Dialogs
         {
             EjecutarEnSTA(() =>
             {
-                UnityContainerExtension contenedor = ContenedorConElDialogo();
+                IResolutorNesto contenedor = ContenedorConElDialogo();
                 var servicio = new ServicioDialogosNesto(nombre => RegistroDialogos.CrearDialogo(contenedor, nombre));
 
                 var ex = Assert.ThrowsException<InvalidOperationException>(() => servicio.PrepararVentana("PickingPopupView", null, null));

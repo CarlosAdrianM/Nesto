@@ -1,27 +1,37 @@
+using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Services;
+using Nesto.Modulos.OfertasCombinadas.ViewModels;
 using Nesto.Modulos.OfertasCombinadas.Views;
 using Prism.Ioc;
 using Prism.Modularity;
 
 namespace Nesto.Modulos.OfertasCombinadas
 {
-    public class OfertasCombinadas : IModule, IOfertasCombinadas
+    public class OfertasCombinadas : IModule, IModuloNesto, IOfertasCombinadas
     {
-        public void OnInitialized(IContainerProvider containerProvider)
+        // Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
+        void IModule.RegisterTypes(IContainerRegistry containerRegistry) => Registrar(new RegistroPrism(containerRegistry));
+        void IModule.OnInitialized(IContainerProvider containerProvider) => Inicializar(new ResolutorPrism(containerProvider));
+
+        public void Registrar(IRegistroNesto registro)
         {
-            var view = containerProvider.Resolve<OfertasCombinadasMenuBar>();
-            if (view != null)
-            {
-                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
-            }
+            registro.Vista<OfertasCombinadasView>("OfertasCombinadasView");
+            registro.Transitorio<IOfertasCombinadasService, OfertasCombinadasService>();
+
+            // Nesto#490 (4C.5): lo que Unity construía sin registrar
+            registro.Transitorio<OfertasCombinadasMenuBar>();
+            registro.Transitorio<OfertasCombinadasMenuBarViewModel>();
         }
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public void Inicializar(IResolutorNesto resolutor)
         {
-            containerRegistry.Register<object, OfertasCombinadasView>("OfertasCombinadasView");
-            containerRegistry.Register<IOfertasCombinadasService, OfertasCombinadasService>();
+            var view = resolutor.Resolver<OfertasCombinadasMenuBar>();
+            if (view != null)
+            {
+                resolutor.Resolver<IServicioCinta>().AnadirMenu(view);
+            }
         }
     }
 

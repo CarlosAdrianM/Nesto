@@ -1,36 +1,45 @@
-﻿using Prism.Modularity;
-using Prism.Ioc;
-using Nesto.Modulos.CanalesExternos.Views;
+﻿using Nesto.Infrastructure.Composicion;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Services;
-using Nesto.Infrastructure.Contracts;
+using Nesto.Modulos.CanalesExternos.Views;
+using Prism.Ioc;
+using Prism.Modularity;
 
 namespace Nesto.Modulos.CanalesExternos
 {
-    public class CanalesExternos : IModule, ICanalesExternos
-    {        
-        public void OnInitialized(IContainerProvider containerProvider)
-        {
-            var view = containerProvider.Resolve<CanalesExternosMenuBar>();
-            if (view != null)
-            {
-                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
-            }
-        }
+    public class CanalesExternos : IModule, IModuloNesto, ICanalesExternos
+    {
+        // Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
+        void IModule.RegisterTypes(IContainerRegistry containerRegistry) => Registrar(new RegistroPrism(containerRegistry));
+        void IModule.OnInitialized(IContainerProvider containerProvider) => Inicializar(new ResolutorPrism(containerProvider));
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public void Registrar(IRegistroNesto registro)
         {
-            containerRegistry.Register<object, CanalesExternosPedidosView>("CanalesExternosPedidosView");
-            containerRegistry.Register<object, CanalesExternosPagosView>("CanalesExternosPagosView");
-            containerRegistry.Register<object, CanalesExternosProductosView>("CanalesExternosProductosView");
-            containerRegistry.Register<object, CanalesExternosFacturasView>("CanalesExternosFacturasView");
-            containerRegistry.Register<object, CanalesExternosCuadreFacturasView>("CanalesExternosCuadreFacturasView");
-            containerRegistry.Register<object, PoisonPillsView>("PoisonPillsView");
+            registro.Vista<CanalesExternosPedidosView>("CanalesExternosPedidosView");
+            registro.Vista<CanalesExternosPagosView>("CanalesExternosPagosView");
+            registro.Vista<CanalesExternosProductosView>("CanalesExternosProductosView");
+            registro.Vista<CanalesExternosFacturasView>("CanalesExternosFacturasView");
+            registro.Vista<CanalesExternosCuadreFacturasView>("CanalesExternosCuadreFacturasView");
+            registro.Vista<PoisonPillsView>("PoisonPillsView");
 
             // Registrar servicios
-            containerRegistry.Register<IPoisonPillsService, PoisonPillsService>();
-            containerRegistry.Register<IFacturasAmazonService, FacturasAmazonService>(); // Nesto#434
-            containerRegistry.Register<IClientesPorTelefonoService, ClientesPorTelefonoService>(); // Nesto#340
+            registro.Transitorio<IPoisonPillsService, PoisonPillsService>();
+            registro.Transitorio<IFacturasAmazonService, FacturasAmazonService>(); // Nesto#434
+            registro.Transitorio<IClientesPorTelefonoService, ClientesPorTelefonoService>(); // Nesto#340
+
+            // Nesto#490 (4C.5): lo que Unity construía sin registrar
+            registro.Transitorio<CanalesExternosMenuBar>();
+            registro.Transitorio<CanalesExternosMenuBarViewModel>();
+        }
+
+        public void Inicializar(IResolutorNesto resolutor)
+        {
+            var view = resolutor.Resolver<CanalesExternosMenuBar>();
+            if (view != null)
+            {
+                resolutor.Resolver<IServicioCinta>().AnadirMenu(view);
+            }
         }
     }
 }

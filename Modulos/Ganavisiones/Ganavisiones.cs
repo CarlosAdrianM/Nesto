@@ -1,27 +1,37 @@
+using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Ganavisiones.Interfaces;
 using Nesto.Modulos.Ganavisiones.Services;
+using Nesto.Modulos.Ganavisiones.ViewModels;
 using Nesto.Modulos.Ganavisiones.Views;
 using Prism.Ioc;
 using Prism.Modularity;
 
 namespace Nesto.Modulos.Ganavisiones
 {
-    public class Ganavisiones : IModule, IGanavisiones
+    public class Ganavisiones : IModule, IModuloNesto, IGanavisiones
     {
-        public void OnInitialized(IContainerProvider containerProvider)
+        // Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
+        void IModule.RegisterTypes(IContainerRegistry containerRegistry) => Registrar(new RegistroPrism(containerRegistry));
+        void IModule.OnInitialized(IContainerProvider containerProvider) => Inicializar(new ResolutorPrism(containerProvider));
+
+        public void Registrar(IRegistroNesto registro)
         {
-            var view = containerProvider.Resolve<GanavisionesMenuBar>();
-            if (view != null)
-            {
-                containerProvider.Resolve<IServicioCinta>().AnadirMenu(view);
-            }
+            registro.Vista<GanavisionesView>("GanavisionesView");
+            registro.Transitorio<IGanavisionesService, GanavisionesService>();
+
+            // Nesto#490 (4C.5): lo que Unity construía sin registrar
+            registro.Transitorio<GanavisionesMenuBar>();
+            registro.Transitorio<GanavisionesMenuBarViewModel>();
         }
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public void Inicializar(IResolutorNesto resolutor)
         {
-            containerRegistry.Register<object, GanavisionesView>("GanavisionesView");
-            containerRegistry.Register<IGanavisionesService, GanavisionesService>();
+            var view = resolutor.Resolver<GanavisionesMenuBar>();
+            if (view != null)
+            {
+                resolutor.Resolver<IServicioCinta>().AnadirMenu(view);
+            }
         }
     }
 
