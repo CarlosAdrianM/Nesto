@@ -1,6 +1,10 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
+using Nesto.Infrastructure.Models;
+using Nesto.Infrastructure.Services;
+using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace Nesto.Modules.Producto
@@ -9,10 +13,12 @@ namespace Nesto.Modules.Producto
     {
         private IServicioNavegacion Navegacion { get; }
         private IConfiguracion Configuracion { get; }
-        public ProductoMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion)
+        private IServicioDiferenciasReposicion Diferencias { get; }
+        public ProductoMenuBarViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IServicioDiferenciasReposicion diferencias)
         {
             Navegacion = navegacion;
             Configuracion = configuracion;
+            Diferencias = diferencias;
 
             AbrirModuloFichaCommand = new RelayCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
             AbrirModuloReposicionCommand = new RelayCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
@@ -21,6 +27,66 @@ namespace Nesto.Modules.Producto
             AbrirEnviarReposicionCommand = new RelayCommand(OnAbrirEnviarReposicion, CanAbrirRecibirReposicion);
             AbrirCalendarioReposicionesCommand = new RelayCommand(OnAbrirCalendarioReposiciones);
             AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
+            AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
+
+            if (Diferencias != null && CanAbrirRecibirReposicion())
+            {
+                Diferencias.DiferenciasCambiadas += (_, _) => _ = ActualizarDiferenciasPendientesAsync();
+                _ = ActualizarDiferenciasPendientesAsync();
+            }
+        }
+
+        public const string ETIQUETA_DIFERENCIAS = "Diferencias";
+
+        /// <summary>
+        /// Nesto#526 (NestoAPI#634): lo recibido que no coincide con lo enviado, pendiente de comprobar en el origen. La ven
+        /// los mismos que reciben reposiciones; la API decide cuáles ve cada uno (Almacén y Dirección todas; el resto, las de
+        /// su almacén) y quién resuelve.
+        /// </summary>
+        public ICommand AbrirDiferenciasReposicionCommand { get; private set; }
+        private void OnAbrirDiferenciasReposicion()
+        {
+            Navegacion.RequestNavigate("MainRegion", "DiferenciasReposicionView");
+            _ = ActualizarDiferenciasPendientesAsync();
+        }
+
+        private int _diferenciasPendientes;
+        /// <summary>Las pendientes que puede ver el usuario (0 si no se ha podido leer).</summary>
+        public int DiferenciasPendientes
+        {
+            get => _diferenciasPendientes;
+            private set
+            {
+                if (SetProperty(ref _diferenciasPendientes, value))
+                {
+                    RaisePropertyChanged(nameof(EtiquetaDiferencias));
+                    RaisePropertyChanged(nameof(AyudaDiferencias));
+                }
+            }
+        }
+
+        /// <summary>«Diferencias» o «Diferencias (2)».</summary>
+        public string EtiquetaDiferencias => DiferenciasPendientes > 0 ? $"{ETIQUETA_DIFERENCIAS} ({DiferenciasPendientes})" : ETIQUETA_DIFERENCIAS;
+
+        public string AyudaDiferencias => DiferenciasPendientes switch
+        {
+            0 => "Diferencias entre lo enviado y lo recibido en las reposiciones",
+            1 => "1 diferencia de reposición pendiente de comprobar",
+            _ => $"{DiferenciasPendientes} diferencias de reposición pendientes de comprobar"
+        };
+
+        /// <summary>Lee el contador de la API; si falla (sin permiso, sin conexión…) se queda como estaba, sin molestar.</summary>
+        internal async Task ActualizarDiferenciasPendientesAsync()
+        {
+            try
+            {
+                ContadorDiferenciasReposicion contador = await Diferencias.ContarPendientes(Constantes.Empresas.EMPRESA_DEFECTO, null).ConfigureAwait(true);
+                DiferenciasPendientes = contador?.Pendientes ?? 0;
+            }
+            catch (Exception)
+            {
+                // El contador es una ayuda: la ventana enseña el error si lo hay
+            }
         }
 
         /// <summary>

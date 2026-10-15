@@ -19,7 +19,7 @@ namespace Producto.Tests
         public void Inicializar()
         {
             _navegacion = A.Fake<IServicioNavegacion>();
-            _menu = new ProductoMenuBarViewModel(_navegacion, A.Fake<IConfiguracion>());
+            _menu = new ProductoMenuBarViewModel(_navegacion, A.Fake<IConfiguracion>(), A.Fake<Nesto.Infrastructure.Services.IServicioDiferenciasReposicion>());
         }
 
         [TestMethod]

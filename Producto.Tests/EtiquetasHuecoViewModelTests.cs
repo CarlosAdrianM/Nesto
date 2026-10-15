@@ -194,7 +194,7 @@ namespace Producto.Tests
         public void MenuBar_AbreLaVentanaDeEtiquetasDeHueco()
         {
             var navegacion = A.Fake<IServicioNavegacion>();
-            var menu = new ProductoMenuBarViewModel(navegacion, A.Fake<IConfiguracion>());
+            var menu = new ProductoMenuBarViewModel(navegacion, A.Fake<IConfiguracion>(), A.Fake<Nesto.Infrastructure.Services.IServicioDiferenciasReposicion>());
 
             menu.AbrirEtiquetasHuecoCommand.Execute(null);
 

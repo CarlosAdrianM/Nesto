@@ -22,6 +22,8 @@ namespace Nesto.Modulos.Producto
             registro.Vista<RecibirReposicionView>("RecibirReposicionView");
             registro.Vista<EnviarReposicionView>("EnviarReposicionView");
             registro.Vista<CalendarioReposicionesView>("CalendarioReposicionesView");
+            // Nesto#526: lo recibido que no coincide con lo enviado (también la abre el aviso de la campana)
+            registro.Vista<DiferenciasReposicionView>("DiferenciasReposicionView");
             // Lo que suena al leer en Enviar y Recibir reposición
             registro.Singleton<ISonidosLector, SonidosLectorSistema>();
 
@@ -36,6 +38,7 @@ namespace Nesto.Modulos.Producto
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecibirReposicionViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviarReposicionViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.CalendarioReposicionesViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.DiferenciasReposicionViewModel>();
 
             // Nesto#529 (NestoAPI#631): propuestas de stock (Compras decide; la campana con tipo PropuestasStock abre aquí)
             registro.Vista<PropuestasStockView>(NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
