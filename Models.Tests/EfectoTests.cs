@@ -6,6 +6,24 @@ namespace Models.Tests
     [TestClass]
     public class EfectoTests
     {
+        #region Forma de pago de los efectos manuales (Magan, pedido 928499, 15/10/26)
+
+        [TestMethod]
+        public void PedidoVenta_FormaPago_LlegaALosEfectosManuales()
+        {
+            var pedido = new PedidoVentaDTO();
+            pedido.ccc = "3";
+            pedido.formaPago = "RCB";
+
+            pedido.Efectos.AnnadirEfectoCommand.Execute(null);
+
+            Assert.AreEqual("RCB", pedido.Efectos.FormaPagoCliente);
+            Assert.AreEqual("RCB", pedido.Efectos[0].FormaPago, "El primer efecto nacía sin forma de pago y la API rechazaba el pedido");
+            Assert.AreEqual("3", pedido.Efectos[0].CCC);
+        }
+
+        #endregion
+
         #region CCC
 
         [TestMethod]

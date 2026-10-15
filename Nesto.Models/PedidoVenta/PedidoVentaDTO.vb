@@ -20,7 +20,24 @@ Public Class PedidoVentaDTO
     Public Property cliente() As String
     Public Property contacto() As String
     Public Property fecha() As Nullable(Of System.DateTime)
+    Private _formaPago As String
+    ''' <summary>
+    ''' 15/10/26 (Magan, pedido 928499): como ccc, se copia a los efectos manuales; si no, el primer efecto nacía sin forma de
+    ''' pago (ListaEfectos.FormaPagoCliente vacía) y la API rechazaba el pedido («El campo FormaPago es obligatorio»).
+    ''' </summary>
     Public Property formaPago() As String
+        Get
+            Return _formaPago
+        End Get
+        Set(value As String)
+            If _formaPago <> value Then
+                _formaPago = value
+                If Efectos IsNot Nothing Then
+                    Efectos.FormaPagoCliente = value
+                End If
+            End If
+        End Set
+    End Property
     Public Property plazosPago() As String
     Public Property primerVencimiento() As Nullable(Of System.DateTime)
     Public Property iva() As String
