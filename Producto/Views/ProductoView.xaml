@@ -166,6 +166,14 @@
         <StackPanel Grid.Row="12" Grid.Column="1" Orientation="Horizontal" Margin="0,5">
             <Button Command="{Binding GuardarProductoCommand}" Visibility="{Binding EsDeGrupoPermitido, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,10,0" Padding="10,5">Guardar Cambios</Button>
             <Button Command="{Binding AbrirActualizarControlesStockCommand}" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Padding="10,5">Actualizar Stocks por Proveedor</Button>
+            <!-- Nesto#534 (sugerencia 546): la etiqueta de código de barras del producto, en la impresora de etiquetas del usuario -->
+            <StackPanel Orientation="Horizontal" Margin="10,0,0,0"
+                        Visibility="{Binding PuedeImprimirEtiquetaCodigoBarras, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                <xctk:IntegerUpDown Width="55" Minimum="1" Maximum="100" Value="{Binding CopiasEtiquetaCodigoBarras, UpdateSourceTrigger=PropertyChanged}"
+                                    ToolTip="Cuántas etiquetas iguales (de 1 a 100)"/>
+                <Button Command="{Binding ImprimirEtiquetaCodigoBarrasCommand}" Margin="4,0,0,0" Padding="10,5"
+                        ToolTip="Imprime la etiqueta de código de barras del producto (30 × 20 mm: nombre, subgrupo, tamaño, código de barras y referencia) en su impresora de etiquetas">Imprimir etiqueta</Button>
+            </StackPanel>
         </StackPanel>
 
         <Image Grid.Row="13" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>

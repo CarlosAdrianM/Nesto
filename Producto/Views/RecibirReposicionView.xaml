@@ -85,6 +85,10 @@
             <!-- Sugerencia 564: lo que llega en papel, para comprobarlo a mano -->
             <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0"
                     ToolTip="Abre un PDF con lo que llega para comprobarlo a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
+            <!-- Nesto#534: cuántas etiquetas de producto saca el botón «Imprimir» de cada línea -->
+            <TextBlock Text="Etiquetas por línea:" VerticalAlignment="Center" Margin="24,2,6,2" />
+            <TextBox Width="40" Text="{Binding CopiasEtiqueta, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                     ToolTip="Cuántas etiquetas de código de barras imprime el botón de la columna «Etiqueta» (de 1 a 100)" />
             <!-- Sugerencia 545: encontrar en la lista lo que no entra por el lector y teclear su cantidad en «Leído» -->
             <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="24,2,6,2" />
             <TextBox Width="200" Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}"
@@ -139,6 +143,17 @@
                         </Style>
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
+                <!-- Nesto#534 (sugerencia 546): la etiqueta de código de barras del producto, en la impresora de etiquetas -->
+                <DataGridTemplateColumn Header="Etiqueta">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Imprimir" Padding="8,0" Margin="2,1"
+                                    Command="{Binding DataContext.ImprimirEtiquetaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip="Imprime la etiqueta de código de barras del producto (30 × 20 mm) en su impresora de etiquetas, para pegarla en lo que no tiene un código que se pueda leer" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 

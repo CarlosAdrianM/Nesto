@@ -142,6 +142,9 @@ Public NotInheritable Class ComposicionNesto
         ' Etiquetas de hueco del almacén: las imprime la API por la ImpresoraCodBarras del usuario
         registro.Singleton(Of IServicioEtiquetasHueco)(Function(r) New ServicioEtiquetasHueco(r.Resolver(Of IClienteApiFactory)()))
 
+        ' Nesto#534 (NestoAPI#654): la etiqueta de código de barras de producto, también por la ImpresoraCodBarras del usuario
+        registro.Singleton(Of IServicioEtiquetasProducto)(Function(r) New ServicioEtiquetasProducto(r.Resolver(Of IClienteApiFactory)()))
+
         ' NestoAPI#553: la tienda recibe la reposición con la misma API que Ariadna (api/Almacen/Recepciones, REPO)
         registro.Singleton(Of IServicioRecepcionReposiciones)(Function(r) New ServicioRecepcionReposiciones(r.Resolver(Of IClienteApiFactory)()))
 

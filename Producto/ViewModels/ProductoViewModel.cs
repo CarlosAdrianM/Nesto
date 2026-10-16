@@ -62,6 +62,7 @@ namespace Nesto.Modules.Producto.ViewModels
             _dialogService = dialogService;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
             ServicioSustituciones = new ServicioSustitucionesProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#581
+            ServicioEtiquetasProducto = new ServicioEtiquetasProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#534
 
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
@@ -92,12 +93,18 @@ namespace Nesto.Modules.Producto.ViewModels
             DarDeBajaCodigoBarrasCommand = new RelayCommand(OnDarDeBajaCodigoBarras, CanCambiarCodigoBarrasSeleccionado);
             GuardarSustitucionCommand = new RelayCommand(OnGuardarSustitucion, CanGuardarSustitucion);
             AnularSustitucionCommand = new RelayCommand(OnAnularSustitucion, CanAnularSustitucion);
+            ImprimirEtiquetaCodigoBarrasCommand = new AsyncRelayCommand(ImprimirEtiquetaCodigoBarrasAsync, () => ProductoActual != null);
 
             Titulo = "Producto";
 
             EsDelGrupoCompras = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS);
             EsDelGrupoTiendas = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
             EsDelGrupoTiendaOnline = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+            // Nesto#534: los mismos grupos que deja la API (los que gestionan los códigos de barras)
+            PuedeImprimirEtiquetaCodigoBarras = EsDelGrupoCompras || EsDelGrupoTiendas
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
         }
 
         public async Task CargarProducto(string productoId)
@@ -282,6 +289,7 @@ namespace Nesto.Modules.Producto.ViewModels
                         BuscarClientesCommand.Execute(null);
                     }
                     AbrirProductoWebCommand.NotifyCanExecuteChanged();
+                    ImprimirEtiquetaCodigoBarrasCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -1568,6 +1576,50 @@ namespace Nesto.Modules.Producto.ViewModels
             catch (Exception ex)
             {
                 _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Etiqueta de código de barras (Nesto#534, NestoAPI#654)
+
+        // Sugerencia 546 (Paloma): la etiqueta de 30×20 mm con el código de barras del producto, para pegarla en lo que no
+        // tiene un código que se pueda leer. La monta e imprime la API, en la impresora de etiquetas del usuario.
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioEtiquetasProducto ServicioEtiquetasProducto { get; set; }
+
+        /// <summary>Compras, Almacén, Tiendas, Dirección e Informática: los mismos que deja la API.</summary>
+        public bool PuedeImprimirEtiquetaCodigoBarras { get; }
+
+        private int _copiasEtiquetaCodigoBarras = 1;
+        /// <summary>Cuántas etiquetas iguales (de 1 a 100).</summary>
+        public int CopiasEtiquetaCodigoBarras
+        {
+            get => _copiasEtiquetaCodigoBarras;
+            set => SetProperty(ref _copiasEtiquetaCodigoBarras, Math.Max(1, Math.Min(100, value)));
+        }
+
+        public IAsyncRelayCommand ImprimirEtiquetaCodigoBarrasCommand { get; }
+
+        internal async Task ImprimirEtiquetaCodigoBarrasAsync()
+        {
+            string producto = ProductoActual?.Producto?.Trim();
+            if (string.IsNullOrEmpty(producto) || ServicioEtiquetasProducto == null)
+            {
+                return;
+            }
+            try
+            {
+                ResultadoEtiquetasProducto resultado = await ServicioEtiquetasProducto
+                    .Imprimir(Constantes.Empresas.EMPRESA_DEFECTO, producto, CopiasEtiquetaCodigoBarras).ConfigureAwait(true);
+                _dialogService.ShowNotification(string.IsNullOrWhiteSpace(resultado?.Mensaje)
+                    ? $"Etiqueta de {producto} mandada a la impresora."
+                    : resultado.Mensaje.Trim());
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"No se ha podido imprimir la etiqueta.\n{ex.Message}");
             }
         }
 

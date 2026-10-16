@@ -126,20 +126,23 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly ISonidosLector _sonidos;
         private readonly Action<string> _abrirFichero;
         private readonly IServicioNavegacion _navegacion;
+        private readonly IServicioEtiquetasProducto _etiquetas;
 
         /// <summary>Uno por reposición abierta: si la respuesta se pierde y se reintenta, no se recibe dos veces.</summary>
         private Guid _idRecepcion;
 
         public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion)
-            : this(servicio, dialogos, configuracion, sonidos, navegacion, null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
+        /// <param name="etiquetas">Nesto#534: la etiqueta de código de barras de cada línea. Sin él, el botón no hace nada.</param>
         internal RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null)
         {
+            _etiquetas = etiquetas;
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
@@ -159,6 +162,8 @@ namespace Nesto.Modules.Producto.ViewModels
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => PuedeTerminar && !EstaOcupado);
             LimpiarFiltroCommand = new RelayCommand(() => Filtro = null);
             ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => Seleccionada != null && !EstaOcupado);
+            ImprimirEtiquetaCommand = new AsyncRelayCommand<LineaRecibirReposicion>(ImprimirEtiquetaAsync,
+                l => l != null && !string.IsNullOrWhiteSpace(l.Producto) && !EstaOcupado);
             // Sugerencia 545: la grid enseña las líneas filtradas; lo leído está en las líneas, así que filtrar no lo pierde
             var vista = new ListCollectionView(Lineas);
             vista.Filter = l => ((LineaRecibirReposicion)l).CasaConFiltro(Filtro);
@@ -259,6 +264,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     TerminarCommand.NotifyCanExecuteChanged();
                     ImprimirCommand.NotifyCanExecuteChanged();
+                    ImprimirEtiquetaCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -603,6 +609,46 @@ namespace Nesto.Modules.Producto.ViewModels
                     Mensaje = error;
                 }
             }).ConfigureAwait(true);
+        }
+
+        // ---------------------------------------------------------------- Nesto#534 (NestoAPI#654): etiqueta de producto
+
+        /// <summary>
+        /// Sugerencia 546 (Paloma): el botón de cada línea imprime la etiqueta de código de barras del producto (30×20 mm, en
+        /// la impresora de etiquetas del usuario), para pegarla en lo que llega sin un código que se pueda leer.
+        /// </summary>
+        public IAsyncRelayCommand<LineaRecibirReposicion> ImprimirEtiquetaCommand { get; }
+
+        private int _copiasEtiqueta = 1;
+        /// <summary>Cuántas etiquetas saca cada botón de línea (de 1 a 100).</summary>
+        public int CopiasEtiqueta
+        {
+            get => _copiasEtiqueta;
+            set => SetProperty(ref _copiasEtiqueta, Math.Max(1, Math.Min(100, value)));
+        }
+
+        internal async Task ImprimirEtiquetaAsync(LineaRecibirReposicion linea)
+        {
+            if (linea == null || string.IsNullOrWhiteSpace(linea.Producto) || _etiquetas == null)
+            {
+                return;
+            }
+            Mensaje = null;
+            await Ocupado(async () =>
+            {
+                try
+                {
+                    ResultadoEtiquetasProducto resultado = await _etiquetas.Imprimir(Empresa, linea.Producto, CopiasEtiqueta).ConfigureAwait(true);
+                    Mensaje = string.IsNullOrWhiteSpace(resultado?.Mensaje)
+                        ? $"Etiqueta de {linea.Producto} mandada a la impresora."
+                        : resultado.Mensaje.Trim();
+                }
+                catch (EtiquetasProductoException ex)
+                {
+                    Mensaje = ex.Message;
+                }
+            }).ConfigureAwait(true);
+            PedirFocoEnLector?.Invoke();
         }
 
         private async Task TerminarAsync()
