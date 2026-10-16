@@ -108,6 +108,11 @@ Partial Public Class Application
     End Sub
 
     Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
+        ' Nesto#490 (4C.5, tramo 2): Contenedor.Actual sustituye a ContainerLocator.Container. Prism deja listo su
+        ' ContainerLocator justo antes de llamar aquí (y antes de crear el shell y los módulos), así que es el sitio para
+        ' dejar listo el nuestro: el mismo contenedor de Prism/Unity, envuelto en un IResolutorNesto. En el tramo 4 será el de MS.DI.
+        Nesto.Infrastructure.Contracts.Contenedor.Establecer(New ResolutorPrism(ContainerLocator.Container))
+
         ' Nesto#490 (4C.5): todo lo de la aplicación se registra en ComposicionNesto, sin tipos de Prism (la prueba sombra
         ' lo monta igual sobre Microsoft.Extensions.DependencyInjection). Aquí solo queda lo de las regiones y la
         ' navegación, que se va con el tramo 4 de 4C.4.
