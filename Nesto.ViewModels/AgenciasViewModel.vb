@@ -285,6 +285,10 @@ Public Class AgenciasViewModel
     End Property
 
     Private agenciaEspecifica As IAgencia
+    ' Recoger producto (16/10/26): pedido para el que están puestos en pantalla el retorno, el servicio y el
+    ' horario, y la etiqueta pendiente de ese pedido (si la hay). Ver el setter de agenciaSeleccionada.
+    Private _pedidoDeLosDatosDeEnvio As Integer?
+    Private _envioPendienteDelPedido As EnviosAgencia
 
     Private _agenciaSeleccionada As AgenciasTransporte
     Public Property agenciaSeleccionada As AgenciasTransporte
@@ -293,6 +297,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             Try
+                Dim numeroAgenciaAnterior As Integer? = _agenciaSeleccionada?.Numero
                 Dim unused = SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     ' Nesto#467: TryGetValue, no el indexador. Aunque el desplegable ya solo
@@ -325,9 +330,33 @@ Public Class AgenciasViewModel
                         paisActual = If(Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL,
                             listaPaises.Single(Function(p) p.Nombre = nombrePais),
                             listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto))
+                        ' Recoger producto (16/10/26, envíos 249764 y 249772): al teclear el peso, el setter
+                        ' de Peso vuelve a poner la MISMA agencia y aquí se ponían siempre los defectos: el
+                        ' retorno 1 de la pendiente de CTT pasaba a «sin retorno» y así se imprimía. Si la
+                        ' agencia y el pedido no cambian, se conserva lo que hay en pantalla (lo cargado de
+                        ' la pendiente o lo elegido a mano); si cambian, los defectos y, si la agencia es la
+                        ' de la pendiente del pedido, lo de la pendiente.
+                        Dim conservarDatosEnvio As Boolean = PestannaNombre = Pestannas.PEDIDOS AndAlso
+                            numeroAgenciaAnterior.HasValue AndAlso numeroAgenciaAnterior.Value = value.Numero AndAlso
+                            pedidoSeleccionado IsNot Nothing AndAlso _pedidoDeLosDatosDeEnvio.HasValue AndAlso
+                            _pedidoDeLosDatosDeEnvio.Value = pedidoSeleccionado.Número
+                        Dim retornoAnterior As Byte = retornoActual.id
+                        Dim servicioAnterior As Byte? = servicioActual?.ServicioId
+                        Dim horarioAnterior As Byte = horarioActual.id
                         retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
                         servicioActual = listaServicios.Single(Function(s) s.ServicioId = agenciaEspecifica.ServicioDefecto)
                         horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
+                        If conservarDatosEnvio Then
+                            ' Las listas se acaban de rehacer: se vuelve a buscar cada valor en ellas por su id.
+                            If listaTiposRetorno.Any(Function(r) r.id = retornoAnterior) Then retornoActual = listaTiposRetorno.First(Function(r) r.id = retornoAnterior)
+                            Dim servicioConservado = listaServicios.FirstOrDefault(Function(s) servicioAnterior.HasValue AndAlso s.ServicioId = servicioAnterior.Value)
+                            If servicioConservado IsNot Nothing Then servicioActual = servicioConservado
+                            If listaHorarios.Any(Function(h) h.id = horarioAnterior) Then horarioActual = listaHorarios.First(Function(h) h.id = horarioAnterior)
+                        ElseIf PestannaNombre = Pestannas.PEDIDOS AndAlso _envioPendienteDelPedido IsNot Nothing AndAlso pedidoSeleccionado IsNot Nothing AndAlso
+                               _envioPendienteDelPedido.Pedido.HasValue AndAlso _envioPendienteDelPedido.Pedido.Value = pedidoSeleccionado.Número Then
+                            CargarServicioYRetornoDelPendiente(_envioPendienteDelPedido)
+                        End If
+                        _pedidoDeLosDatosDeEnvio = pedidoSeleccionado?.Número
                     End If
                     If PestannaNombre = Pestannas.PENDIENTES Then
                         ActualizarListas()
@@ -516,6 +545,7 @@ Public Class AgenciasViewModel
 
                 Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
                 Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
+                _envioPendienteDelPedido = envioPendiente
 
                 ' Nesto#395: si hay un envío PENDIENTE (etiqueta creada por la tienda online), el destino
                 ' real es el de ESE envío, no el de la ficha del cliente del pedido (que suele ser el
@@ -3553,6 +3583,8 @@ Public Class AgenciasViewModel
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
                     AplicarServicioYRetornoAlPendiente(envioActual, agenciaInsercion, If(agenciaTransporteInsercion?.Numero, 0))
+                    ' Ya no es pendiente: lo que manda a partir de ahora es lo de la pantalla.
+                    _envioPendienteDelPedido = Nothing
                     ' #252: la etiqueta pendiente se creó con Peso=0; al imprimir el operario indica el
                     ' peso real, que hay que persistir (antes se quedaba a 0 en la rama pendiente). El
                     ' peso es necesario para el coste/comparador y para la tramitación con la agencia.
