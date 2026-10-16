@@ -795,7 +795,7 @@ Public Class AgenciaService
     ' Best-effort: registrar el error nunca puede romper el flujo ni tapar el error de verdad.
     Private Shared Async Function RegistrarErrorEnElmah(ex As Exception, contexto As String) As Task
         Try
-            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            Dim servicioErrores = Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)()
             If servicioErrores IsNot Nothing Then
                 Await servicioErrores.RegistrarErrorAsync(ex, contexto)
             End If

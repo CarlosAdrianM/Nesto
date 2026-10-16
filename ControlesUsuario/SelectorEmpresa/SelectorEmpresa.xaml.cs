@@ -27,7 +27,7 @@ namespace ControlesUsuario
 
             try
             {
-                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+                _clienteApiFactory = Contenedor.Actual.Resolver<IClienteApiFactory>();
             }
             catch
             {

@@ -1,3 +1,4 @@
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Prism.Ioc;
@@ -32,7 +33,7 @@ namespace ControlesUsuario
 
         /// <summary>
         /// Constructor sin parámetros (usado por XAML).
-        /// Carlos 20/11/24: Resuelve dependencias desde ContainerLocator igual que SelectorDireccionEntrega.
+        /// Carlos 20/11/24: Resuelve dependencias desde Contenedor.Actual igual que SelectorDireccionEntrega.
         /// </summary>
         public SelectorCCC()
         {
@@ -41,7 +42,7 @@ namespace ControlesUsuario
 
             try
             {
-                _servicioCCC = ContainerLocator.Container.Resolve<IServicioCCC>();
+                _servicioCCC = Contenedor.Actual.Resolver<IServicioCCC>();
             }
             catch
             {

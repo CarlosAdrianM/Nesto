@@ -1,3 +1,4 @@
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Microsoft.Xaml.Behaviors;
@@ -527,7 +528,7 @@ namespace ControlesUsuario.Behaviors
         {
             try
             {
-                if (ContainerLocator.Container == null)
+                if (Contenedor.Actual == null)
                 {
                     return null;
                 }
@@ -535,10 +536,10 @@ namespace ControlesUsuario.Behaviors
                 switch (TipoBusqueda)
                 {
                     case TipoBusquedaEnum.Producto:
-                        return ContainerLocator.Container.Resolve<ServicioBusquedaProductos>();
+                        return Contenedor.Actual.Resolver<ServicioBusquedaProductos>();
 
                     case TipoBusquedaEnum.CuentaContable:
-                        return ContainerLocator.Container.Resolve<ServicioBusquedaCuentas>();
+                        return Contenedor.Actual.Resolver<ServicioBusquedaCuentas>();
 
                     default:
                         return null;

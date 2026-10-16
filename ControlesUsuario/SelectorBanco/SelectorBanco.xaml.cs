@@ -32,7 +32,7 @@ namespace ControlesUsuario
 
             try
             {
-                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+                _clienteApiFactory = Contenedor.Actual.Resolver<IClienteApiFactory>();
             }
             catch
             {
@@ -225,7 +225,7 @@ namespace ControlesUsuario
         {
             if (Configuracion is null)
             {
-                Configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                Configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
             }
             if (Empresa is null)
             {

@@ -120,7 +120,7 @@ Partial Class MainWindow
             If Constantes.Sedes.ListaSedes.Select(Function(s) s.Codigo).Contains(delegacionDeMaquina) Then
                 Return
             End If
-            Dim servicio = ContainerLocator.Container.Resolve(Of ControlesUsuario.Services.IServicioParametrosEditables)()
+            Dim servicio = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(Of ControlesUsuario.Services.IServicioParametrosEditables)()
             Dim editables = Await servicio.LeerEditables()
             Dim almacen = editables?.FirstOrDefault(Function(p) p.Clave = Parametros.Claves.AlmacenPedidoVta)
             If almacen Is Nothing OrElse String.IsNullOrWhiteSpace(almacen.ValorTitular) OrElse

@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ namespace ControlesUsuario
 
             try
             {
-                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+                _clienteApiFactory = Contenedor.Actual.Resolver<IClienteApiFactory>();
             }
             catch
             {
@@ -39,7 +40,7 @@ namespace ControlesUsuario
             {
                 return _clienteApiFactory.Crear();
             }
-            IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+            IConfiguracion configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
             return new HttpClient { BaseAddress = new Uri(configuracion.servidorAPI) };
         }
 

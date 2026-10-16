@@ -30,7 +30,7 @@ Public Class CloseTabAction
 
 
         ' Pregunta al ViewModel si quiere confirmar el cierre (ITabCloseConfirmation) y, si se puede, quita la vista de la región
-        Dim navegacion = ContainerLocator.Container.Resolve(Of IServicioNavegacion)()
+        Dim navegacion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(Of IServicioNavegacion)()
         Dim unused = CierrePestanas.Cerrar(navegacion, NombreRegion, tabItem.Content)
     End Sub
 

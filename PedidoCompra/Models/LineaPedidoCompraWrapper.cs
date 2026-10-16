@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Nesto.Infrastructure.Contracts;
 using System;
 using Prism.Ioc;
 using System.Collections.Generic;
@@ -15,8 +16,8 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public LineaPedidoCompraWrapper()
         {
             // Este constructor solo vale para que permita ingresar desde el Datagrid
-            var container = ContainerLocator.Container;
-            Servicio = container.Resolve<IPedidoCompraService>();
+            var container = Contenedor.Actual;
+            Servicio = container.Resolver<IPedidoCompraService>();
             Model = new LineaPedidoCompraDTO
             {
                 Cantidad = 1

@@ -48,7 +48,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             // El Show no modal de IServicioDialogos ya abre en el hilo de UI (antes, DialogServiceEnHiloUi).
             var avisoConfirmacionAmazon = new ApisExternas.AvisoConfirmacionAmazonNoModal(
                 dialogService,
-                () => ContainerLocator.Container?.Resolve<IServicioRegistroErrores>());
+                () => Contenedor.Actual?.Resolver<IServicioRegistroErrores>());
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService, avisoConfirmacionAmazon));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService));
             // Nesto#520: la tienda de Eva Visnú (evavisnu.com), igual que la de Nueva Visión salvo la serie (EV)
@@ -388,7 +388,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             catch (Exception ex)
             {
                 // 22/09/26: el fallo se quedaba en el diálogo y no llegaba a ELMAH (primer día de CTT).
-                _ = Prism.Ioc.ContainerLocator.Container?.Resolve<Nesto.Infrastructure.Contracts.IServicioRegistroErrores>()
+                _ = Contenedor.Actual?.Resolver<Nesto.Infrastructure.Contracts.IServicioRegistroErrores>()
                     ?.RegistrarErrorAsync(ex, $"CanalesExternos.ConfirmarEnvio canal={CanalSeleccionado?.GetType().Name} pedido={(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.PedidoNestoId}");
                 DialogService.ShowError(ex.Message);
             }

@@ -67,7 +67,7 @@ Public Class RelayCommandLegado
 
     Private Shared Sub RegistrarErrorEnServidor(ex As Exception, contexto As String)
         Debug.WriteLine(contexto + ": " + ex.ToString())
-        Dim servicioErrores = TryCast(ContainerLocator.Container?.Resolve(GetType(Nesto.Infrastructure.Contracts.IServicioRegistroErrores)), Nesto.Infrastructure.Contracts.IServicioRegistroErrores)
+        Dim servicioErrores = TryCast(Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(GetType(Nesto.Infrastructure.Contracts.IServicioRegistroErrores)), Nesto.Infrastructure.Contracts.IServicioRegistroErrores)
         Dim unused = servicioErrores?.RegistrarErrorAsync(ex, contexto)
     End Sub
 
@@ -176,7 +176,7 @@ Public Class MainViewModel
     Private Function CrearClienteApi() As HttpClient
         Try
             ' Nesto#369: cliente con JWT y URL de configuración (funciona también en desarrollo/localhost)
-            Return Prism.Ioc.ContainerLocator.Container.Resolve(Of Nesto.Infrastructure.Contracts.IClienteApiFactory)().Crear()
+            Return Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(Of Nesto.Infrastructure.Contracts.IClienteApiFactory)().Crear()
         Catch
             ' Fallback si el contenedor no está disponible (tests, diseño)
             Return New HttpClient With {.BaseAddress = New Uri("http://api.nuevavision.es/api/")}

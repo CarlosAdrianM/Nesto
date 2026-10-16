@@ -58,10 +58,10 @@ namespace ControlesUsuario
 
             try
             {
-                navegacion = ContainerLocator.Container.Resolve<IServicioNavegacion>();
-                messenger = ContainerLocator.Container.Resolve<IMessenger>();
-                _configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
-                _servicioDirecciones = ContainerLocator.Container.Resolve<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
+                navegacion = Contenedor.Actual.Resolver<IServicioNavegacion>();
+                messenger = Contenedor.Actual.Resolver<IMessenger>();
+                _configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
+                _servicioDirecciones = Contenedor.Actual.Resolver<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
                 ConfigurarEventHandlers();
             }

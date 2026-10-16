@@ -460,9 +460,9 @@ namespace ControlesUsuario.Behaviors
             // Intentar resolver desde el contenedor de Prism
             try
             {
-                if (ContainerLocator.Container != null)
+                if (Contenedor.Actual != null)
                 {
-                    return ContainerLocator.Container.Resolve<IServicioCuentaContable>();
+                    return Contenedor.Actual.Resolver<IServicioCuentaContable>();
                 }
             }
             catch
@@ -473,9 +473,9 @@ namespace ControlesUsuario.Behaviors
             // Alternativa: buscar IConfiguracion y crear el servicio manualmente
             try
             {
-                if (ContainerLocator.Container != null)
+                if (Contenedor.Actual != null)
                 {
-                    var configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                    var configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
                     if (configuracion != null)
                     {
                         return new ServicioCuentaContable(configuracion);

@@ -23,8 +23,8 @@ namespace ControlesUsuario.Services
         {
             using (HttpClient client = new HttpClient())
             {
-                IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
-                IServicioAutenticacion servicioAutenticacion = ContainerLocator.Container.Resolve<IServicioAutenticacion>();
+                IConfiguracion configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
+                IServicioAutenticacion servicioAutenticacion = Contenedor.Actual.Resolver<IServicioAutenticacion>();
 
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
 
@@ -85,8 +85,8 @@ namespace ControlesUsuario.Services
         {
             using (HttpClient client = new HttpClient())
             {
-                IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
-                IServicioAutenticacion servicioAutenticacion = ContainerLocator.Container.Resolve<IServicioAutenticacion>();
+                IConfiguracion configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
+                IServicioAutenticacion servicioAutenticacion = Contenedor.Actual.Resolver<IServicioAutenticacion>();
 
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
 

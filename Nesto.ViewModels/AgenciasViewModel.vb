@@ -153,7 +153,7 @@ Public Class AgenciasViewModel
     ' devuelve si se guardó DE VERDAD: el Insertar estampa en el envío el Numero generado por la
     ' BD (identity), así que Numero > 0 = insertado.
     Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, configuracion As IConfiguracion, dialogService As IServicioDialogos) As Boolean
-        Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
+        Dim servicioAutenticacion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(Of IServicioAutenticacion)()
         Dim agenciasVM = New AgenciasViewModel(New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
         agenciasVM.InsertarEnvioPendienteCommand.Execute(Nothing)
@@ -2263,7 +2263,7 @@ Public Class AgenciasViewModel
     ' debe romper la operación ni lanzar (mismo patrón que el log del comparador shadow).
     Private Sub RegistrarIncidenciaAgencia(mensaje As String, contexto As String)
         Try
-            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            Dim servicioErrores = Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)()
             Dim unused = servicioErrores?.RegistrarErrorAsync(New Exception(mensaje), contexto)
         Catch
             ' nunca lanzar
@@ -3817,7 +3817,7 @@ Public Class AgenciasViewModel
     ' (el gestor global no las ve porque nunca llegan a escapar). Best-effort: nunca lanza.
     Private Shared Async Function RegistrarErrorAgenciaEnElmah(ex As Exception, contexto As String) As Task
         Try
-            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            Dim servicioErrores = Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)()
             If servicioErrores IsNot Nothing Then
                 Await servicioErrores.RegistrarErrorAsync(ex, contexto)
             End If
@@ -3830,7 +3830,7 @@ Public Class AgenciasViewModel
     ' Nunca lanza: el registro de diagnóstico no debe afectar al flujo real.
     Private Shared Async Function RegistrarShadowEnElmah(mensaje As String) As Task
         Try
-            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            Dim servicioErrores = Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)()
             If servicioErrores IsNot Nothing Then
                 Await servicioErrores.RegistrarErrorAsync(New Exception("[ComparadorShadow] " & mensaje), "AgenciasViewModel.ComparacionShadow")
             End If

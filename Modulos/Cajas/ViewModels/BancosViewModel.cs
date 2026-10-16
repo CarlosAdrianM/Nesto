@@ -774,7 +774,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             try
             {
-                _ = (Prism.Ioc.ContainerLocator.Container?.Resolve(typeof(IServicioRegistroErrores)) as IServicioRegistroErrores)?.RegistrarErrorAsync(ex, contexto);
+                _ = (Contenedor.Actual?.Resolver(typeof(IServicioRegistroErrores)) as IServicioRegistroErrores)?.RegistrarErrorAsync(ex, contexto);
             }
             catch
             {

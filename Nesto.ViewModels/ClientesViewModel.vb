@@ -73,8 +73,8 @@ Public Class ClientesViewModel
         ' Este ViewModel se usa con dos Views y eso es un desastre.
         ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
         '***************************
-        configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
-        _servicioAutenticacion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioAutenticacion))
+        configuracion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IConfiguracion))
+        _servicioAutenticacion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioAutenticacion))
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         ' Nesto#340 (1C.8, slice 4): actualizarCliente carga la ficha por la API en las dos vistas,
         ' así que el servicio también hace falta en este constructor.
@@ -175,7 +175,7 @@ Public Class ClientesViewModel
     Private ReadOnly Property ServicioDireccionesEntrega As ControlesUsuario.Services.IServicioDireccionesEntrega
         Get
             If _servicioDireccionesEntrega Is Nothing Then
-                _servicioDireccionesEntrega = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(ControlesUsuario.Services.IServicioDireccionesEntrega))
+                _servicioDireccionesEntrega = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(ControlesUsuario.Services.IServicioDireccionesEntrega))
             End If
             Return _servicioDireccionesEntrega
         End Get
@@ -2395,7 +2395,7 @@ Public Class ClientesViewModel
                 If contenedor IsNot Nothing Then
                     servicioErrores = contenedor.Resolve(Of IServicioRegistroErrores)()
                 Else
-                    servicioErrores = CType(Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
+                    servicioErrores = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
                 End If
                 If servicioErrores IsNot Nothing Then
                     Await servicioErrores.RegistrarErrorAsync(errorEmpresas, "ClientesViewModel.cargarDatos (empresas)")

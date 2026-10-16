@@ -75,7 +75,7 @@ namespace CanalesExternosTests
         [TestMethod]
         public void Obtener_SinContenedorDisponible_DevuelveNullSinExcepcion()
         {
-            // En tests no hay ContainerLocator configurado: el provider debe tragarse el error
+            // En tests no hay Contenedor.Actual configurado: el provider debe tragarse el error
             // y devolver null para que el llamante caiga al config (nunca tirar la descarga).
             CredencialAmazonProvider.ReiniciarParaTests();
 

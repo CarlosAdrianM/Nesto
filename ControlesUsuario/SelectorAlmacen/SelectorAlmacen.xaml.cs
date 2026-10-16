@@ -1,3 +1,4 @@
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Prism.Ioc;
@@ -34,7 +35,7 @@ namespace ControlesUsuario
 
             try
             {
-                _servicioAlmacenes = ContainerLocator.Container.Resolve<IServicioAlmacenes>();
+                _servicioAlmacenes = Contenedor.Actual.Resolver<IServicioAlmacenes>();
             }
             catch
             {

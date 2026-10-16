@@ -1,4 +1,5 @@
 ﻿using ControlesUsuario.Models;
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.ViewModels;
 using Nesto.Infrastructure.Shared;
 using System;
@@ -31,7 +32,7 @@ namespace ControlesUsuario
         // Nesto#490 (4C.3): el selector se crea desde XAML, así que el ViewModel se resuelve aquí
         // del contenedor (antes lo hacía el ViewModelLocator de Prism durante InitializeComponent).
         public SelectorProveedor()
-            : this(ContainerLocator.Container.Resolve<SelectorProveedorViewModel>())
+            : this(Contenedor.Actual.Resolver<SelectorProveedorViewModel>())
         {
         }
 

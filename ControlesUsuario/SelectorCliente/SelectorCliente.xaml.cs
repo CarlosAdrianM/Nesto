@@ -29,7 +29,7 @@ namespace ControlesUsuario
         // Nesto#490 (4C.3): el selector se crea desde XAML, así que el ViewModel se resuelve aquí
         // del contenedor (antes lo hacía el ViewModelLocator de Prism durante InitializeComponent).
         public SelectorCliente()
-            : this(ContainerLocator.Container.Resolve<SelectorClienteViewModel>(), ContainerLocator.Container.Resolve<IServicioNavegacion>())
+            : this(Contenedor.Actual.Resolver<SelectorClienteViewModel>(), Contenedor.Actual.Resolver<IServicioNavegacion>())
         {
         }
 

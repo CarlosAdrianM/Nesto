@@ -245,7 +245,7 @@ Public NotInheritable Class ComposicionNesto
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar y se pide por su tipo concreto
         ' La campana de la ventana principal (la recibe MainWindow por constructor)
         registro.Transitorio(Of ControlesUsuario.Notificaciones.CampanaNotificacionesViewModel)()
-        ' Los selectores de cliente y de proveedor sacan su ViewModel del contenedor (ContainerLocator)
+        ' Los selectores de cliente y de proveedor sacan su ViewModel del contenedor (Contenedor.Actual)
         registro.Transitorio(Of SelectorClienteViewModel)()
         registro.Transitorio(Of SelectorProveedorViewModel)()
     End Sub

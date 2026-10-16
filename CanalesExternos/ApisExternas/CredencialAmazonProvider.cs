@@ -61,8 +61,8 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
         private static async Task<CredencialAmazonRotada> ObtenerDesdeApiAsync()
         {
-            IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
-            IServicioAutenticacion servicioAutenticacion = ContainerLocator.Container.Resolve<IServicioAutenticacion>();
+            IConfiguracion configuracion = Contenedor.Actual.Resolver<IConfiguracion>();
+            IServicioAutenticacion servicioAutenticacion = Contenedor.Actual.Resolver<IServicioAutenticacion>();
 
             using HttpClient client = new()
             {

@@ -1,3 +1,4 @@
+using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Prism.Ioc;
@@ -26,7 +27,7 @@ namespace ControlesUsuario
 
         /// <summary>
         /// Constructor sin parámetros (usado por XAML).
-        /// Resuelve dependencias desde ContainerLocator.
+        /// Resuelve dependencias desde Contenedor.Actual.
         /// </summary>
         public SelectorFormaVenta()
         {
@@ -34,7 +35,7 @@ namespace ControlesUsuario
 
             try
             {
-                _servicioFormaVenta = ContainerLocator.Container.Resolve<IServicioFormaVenta>();
+                _servicioFormaVenta = Contenedor.Actual.Resolver<IServicioFormaVenta>();
             }
             catch
             {

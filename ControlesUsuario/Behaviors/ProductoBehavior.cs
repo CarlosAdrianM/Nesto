@@ -511,9 +511,9 @@ namespace ControlesUsuario.Behaviors
         {
             try
             {
-                if (ContainerLocator.Container != null)
+                if (Contenedor.Actual != null)
                 {
-                    return ContainerLocator.Container.Resolve<IServicioProducto>();
+                    return Contenedor.Actual.Resolver<IServicioProducto>();
                 }
             }
             catch
@@ -554,9 +554,9 @@ namespace ControlesUsuario.Behaviors
         {
             try
             {
-                if (ContainerLocator.Container != null)
+                if (Contenedor.Actual != null)
                 {
-                    return ContainerLocator.Container.Resolve<IServicioDialogos>();
+                    return Contenedor.Actual.Resolver<IServicioDialogos>();
                 }
             }
             catch
