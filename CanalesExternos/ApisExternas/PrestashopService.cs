@@ -184,6 +184,42 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             return pedidoPrestashop;
         }
 
+        /// <summary>
+        /// Nesto#533: las reglas de carrito aplicadas al pedido (<c>order_cart_rules</c>), con su código (que solo está en
+        /// <c>cart_rules</c>). La clave del webservice necesita GET en los dos recursos; si no, lanza.
+        /// </summary>
+        internal async Task<List<ReglaCarritoPrestashop>> LeerReglasCarritoAsync(string idPedido)
+        {
+            var reglas = new List<ReglaCarritoPrestashop>();
+            using (HttpClient client = CrearCliente())
+            {
+                string url = $"{Tienda.UrlApi}/order_cart_rules?filter[id_order]={Uri.EscapeDataString(idPedido?.Trim() ?? string.Empty)}&display=full";
+                XDocument xml = XDocument.Parse(await LeerTextoAsync(client, url));
+                foreach (XElement fila in xml.Descendants("order_cart_rule"))
+                {
+                    if ((string)fila.Element("deleted") == "1")
+                    {
+                        continue;
+                    }
+                    string idReglaCarrito = fila.Element("id_cart_rule")?.Value?.Trim();
+                    string codigo = null;
+                    if (!string.IsNullOrEmpty(idReglaCarrito))
+                    {
+                        XElement reglaCarrito = await LeerElementoAsync(client, $"{Tienda.UrlApi}/cart_rules/{Uri.EscapeDataString(idReglaCarrito)}", "cart_rule");
+                        codigo = reglaCarrito?.Element("code")?.Value?.Trim();
+                    }
+                    reglas.Add(new ReglaCarritoPrestashop
+                    {
+                        Codigo = codigo,
+                        Nombre = fila.Element("name")?.Value?.Trim(),
+                        ValorConIva = ChequeRegaloPrestashop.LeerImporte(fila.Element("value")?.Value),
+                        ValorSinIva = ChequeRegaloPrestashop.LeerImporte(fila.Element("value_tax_excl")?.Value)
+                    });
+                }
+            }
+            return reglas;
+        }
+
         internal async Task<string> ObtenerPedidoPorReferenciaAsync(string referenciaPedido)
         {
             using (HttpClient client = CrearCliente())
@@ -346,6 +382,10 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
         public XElement Pais { get; set; }
         public XElement Provincia { get; set; }
         public int PedidoNestoId { get; set; }
+        /// <summary>Nesto#533: las reglas de carrito del pedido; null si no se han leído (o no se han podido leer).</summary>
+        public List<ReglaCarritoPrestashop> ReglasCarrito { get; set; }
+        /// <summary>Nesto#533: el motivo si se han intentado leer y ha fallado (permisos del webservice, tienda caída…).</summary>
+        public string ErrorReglasCarrito { get; set; }
     }
 
     [XmlRoot("prestashop")]

@@ -41,6 +41,12 @@
         /// </summary>
         public bool UsaTransportistaDeNestoAPI { get; init; }
 
+        /// <summary>
+        /// Nesto#533: la tienda tiene el módulo nestocheques (canje del cheque regalo con reglas NVCHEQUE-*). Solo
+        /// entonces se leen las reglas de carrito de los pedidos con descuento.
+        /// </summary>
+        public bool CanjeaChequesRegalo { get; init; }
+
         public static readonly TiendaPrestashop NuevaVision = new()
         {
             Nombre = "Nueva Visión",
@@ -49,7 +55,8 @@
             Autenticacion = AutenticacionPrestashop.Basica,
             Serie = "NV",
             ConceptoPrepago = "Tienda Online",
-            UsaTransportistaDeNestoAPI = true
+            UsaTransportistaDeNestoAPI = true,
+            CanjeaChequesRegalo = true
         };
 
         public static readonly TiendaPrestashop EvaVisnu = new()
