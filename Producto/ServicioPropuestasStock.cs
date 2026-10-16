@@ -17,13 +17,22 @@ namespace Nesto.Modules.Producto
     /// </summary>
     public interface IServicioPropuestasStock
     {
-        /// <summary>GET api/PropuestasStock. <paramref name="mes"/> AAAA-MM (null: el último guardado); <paramref name="estado"/> null: todas.</summary>
+        /// <summary>
+        /// GET api/PropuestasStock. <paramref name="mes"/> AAAA-MM (null: el último guardado); <paramref name="estado"/> null: todas.
+        /// Sugerencia 644: <paramref name="filtro"/> (familia, grupo, acción y texto; null o vacío: sin filtro).
+        /// </summary>
         /// <exception cref="PropuestasStockException">403 (solo Compras y Dirección), 400, 404…</exception>
-        Task<List<PropuestaStockModel>> LeerPropuestas(string mes, string estado, int top);
+        Task<List<PropuestaStockModel>> LeerPropuestas(string mes, string estado, int top, FiltroPropuestasStock filtro);
 
-        /// <summary>GET api/PropuestasStock/Resumen: cuántas hay en cada estado y cuánto exceso suman.</summary>
+        /// <summary>GET api/PropuestasStock/Resumen: cuántas hay en cada estado y cuánto exceso suman (sugerencia 644: solo las del filtro).</summary>
         /// <exception cref="PropuestasStockException">403, 404…</exception>
-        Task<List<ResumenEstadoPropuestasModel>> LeerResumen(string mes);
+        Task<List<ResumenEstadoPropuestasModel>> LeerResumen(string mes, FiltroPropuestasStock filtro);
+
+        /// <summary>
+        /// Sugerencia 644: GET api/PropuestasStock/Filtros: familias, grupos y acciones del mes. Nunca lanza: si la API no lo
+        /// tiene todavía o falla, listas vacías (los desplegables solo ofrecen «(todas)»).
+        /// </summary>
+        Task<OpcionesFiltroPropuestasModel> LeerOpcionesFiltro(string mes);
 
         /// <summary>
         /// GET api/PropuestasStock/MotivosSilencio. Nunca lanza: si la API no lo tiene todavía o falla, los de reserva
@@ -47,7 +56,7 @@ namespace Nesto.Modules.Producto
             _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
-        public async Task<List<PropuestaStockModel>> LeerPropuestas(string mes, string estado, int top)
+        public async Task<List<PropuestaStockModel>> LeerPropuestas(string mes, string estado, int top, FiltroPropuestasStock filtro)
         {
             var parametros = new List<string> { "top=" + top };
             if (!string.IsNullOrWhiteSpace(mes))
@@ -58,6 +67,7 @@ namespace Nesto.Modules.Producto
             {
                 parametros.Add("estado=" + Uri.EscapeDataString(estado.Trim()));
             }
+            parametros.AddRange(filtro?.ParametrosUrl() ?? new List<string>());
             using (HttpClient client = _clienteApiFactory.Crear())
             {
                 HttpResponseMessage response = await client.GetAsync("PropuestasStock?" + string.Join("&", parametros)).ConfigureAwait(false);
@@ -65,13 +75,45 @@ namespace Nesto.Modules.Producto
             }
         }
 
-        public async Task<List<ResumenEstadoPropuestasModel>> LeerResumen(string mes)
+        public async Task<List<ResumenEstadoPropuestasModel>> LeerResumen(string mes, FiltroPropuestasStock filtro)
         {
-            string url = "PropuestasStock/Resumen" + (string.IsNullOrWhiteSpace(mes) ? "" : "?mes=" + Uri.EscapeDataString(mes.Trim()));
+            var parametros = new List<string>();
+            if (!string.IsNullOrWhiteSpace(mes))
+            {
+                parametros.Add("mes=" + Uri.EscapeDataString(mes.Trim()));
+            }
+            parametros.AddRange(filtro?.ParametrosUrl() ?? new List<string>());
+            string url = "PropuestasStock/Resumen" + (parametros.Count == 0 ? "" : "?" + string.Join("&", parametros));
             using (HttpClient client = _clienteApiFactory.Crear())
             {
                 HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                 return await Leer<List<ResumenEstadoPropuestasModel>>(response).ConfigureAwait(false) ?? new List<ResumenEstadoPropuestasModel>();
+            }
+        }
+
+        public async Task<OpcionesFiltroPropuestasModel> LeerOpcionesFiltro(string mes)
+        {
+            string url = "PropuestasStock/Filtros" + (string.IsNullOrWhiteSpace(mes) ? "" : "?mes=" + Uri.EscapeDataString(mes.Trim()));
+            try
+            {
+                using (HttpClient client = _clienteApiFactory.Crear())
+                {
+                    HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return new OpcionesFiltroPropuestasModel();
+                    }
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    OpcionesFiltroPropuestasModel opciones = JsonConvert.DeserializeObject<OpcionesFiltroPropuestasModel>(json) ?? new OpcionesFiltroPropuestasModel();
+                    opciones.Familias ??= new List<string>();
+                    opciones.Grupos ??= new List<string>();
+                    opciones.Acciones ??= new List<string>();
+                    return opciones;
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is JsonException)
+            {
+                return new OpcionesFiltroPropuestasModel();
             }
         }
 

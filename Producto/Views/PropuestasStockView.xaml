@@ -16,6 +16,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -32,9 +33,29 @@
                        Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Text="{Binding TextoResumen}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <!-- Sugerencia 644: filtros por familia, grupo, acción y texto (los filtra la API; el contador cuenta lo filtrado) -->
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+            <TextBlock Text="Familia:" VerticalAlignment="Center" Margin="0,0,6,4" />
+            <ComboBox Width="150" ItemsSource="{Binding Familias}" DisplayMemberPath="Texto" SelectedItem="{Binding FamiliaSeleccionada}" Margin="0,0,0,4"
+                      IsTextSearchEnabled="True" TextSearch.TextPath="Texto" />
+            <TextBlock Text="Grupo:" VerticalAlignment="Center" Margin="16,0,6,4" />
+            <ComboBox Width="90" ItemsSource="{Binding Grupos}" DisplayMemberPath="Texto" SelectedItem="{Binding GrupoSeleccionado}" Margin="0,0,0,4" />
+            <TextBlock Text="Acción:" VerticalAlignment="Center" Margin="16,0,6,4" />
+            <ComboBox Width="180" ItemsSource="{Binding Acciones}" DisplayMemberPath="Texto" SelectedItem="{Binding AccionSeleccionada}" Margin="0,0,0,4" />
+            <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="16,0,6,4" />
+            <TextBox Width="180" Text="{Binding TextoBusqueda, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" Margin="0,0,0,4"
+                     ToolTip="Parte del código o del nombre del producto. Pulse Intro para buscar">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding CargarCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+            <Button Content="Quitar filtros" Command="{Binding LimpiarFiltrosCommand}" Padding="12,2" Margin="16,0,0,4" VerticalAlignment="Center"
+                    ToolTip="Quita la familia, el grupo, la acción y el texto (no el mes ni el estado)" />
+        </WrapPanel>
 
-        <Grid Grid.Row="2">
+        <TextBlock Grid.Row="2" Text="{Binding TextoResumen}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="300" />
                 <ColumnDefinition Width="Auto" />
@@ -46,9 +67,18 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
                     <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="200" />
+                    <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
+                    <DataGridTextColumn Header="Grupo" Binding="{Binding Grupo}" />
                     <DataGridTextColumn Header="Alm." Binding="{Binding Almacen}" />
                     <DataGridTextColumn Header="Fase" Binding="{Binding Fase}" />
-                    <DataGridTextColumn Header="Acción" Binding="{Binding Accion}" />
+                    <DataGridTemplateColumn Header="Acción" SortMemberPath="Accion">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <!-- Sugerencia 644: al pasar el ratón, qué pasa al aplicarla -->
+                                <TextBlock Text="{Binding Accion}" ToolTip="{Binding Consecuencia}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Máx/mín actual" Binding="{Binding MaxMinActual}" />
                     <DataGridTextColumn Header="Máx/mín propuesto" Binding="{Binding MaxMinPropuesto}" />
                     <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" />
@@ -84,6 +114,23 @@
                         <Run Text="{Binding PropuestaSeleccionada.MaxMinPropuesto, Mode=OneWay}" FontWeight="SemiBold" />
                     </TextBlock>
                     <TextBlock Text="{Binding PropuestaSeleccionada.TextoDecision}" TextWrapping="Wrap" Margin="0,4,0,0" FontStyle="Italic" />
+
+                    <!-- Sugerencia 644: qué pasa exactamente al aplicar la propuesta (lo calcula la API) -->
+                    <Border Background="#FFF4F7FB" BorderBrush="#FFB8C7DA" BorderThickness="1" Padding="8,6" Margin="0,10,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding PropuestaSeleccionada.Consecuencia}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="Si se aplica" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding PropuestaSeleccionada.Consecuencia}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
 
                     <TextBlock Text="Explicación" FontWeight="SemiBold" Margin="0,10,0,2" />
                     <TextBox Text="{Binding PropuestaSeleccionada.Explicacion, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
@@ -134,7 +181,7 @@
             </ScrollViewer>
         </Grid>
 
-        <StackPanel Grid.Row="3" Margin="0,8,0,0">
+        <StackPanel Grid.Row="4" Margin="0,8,0,0">
             <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" />
             <ItemsControl ItemsSource="{Binding UltimosCambios}" Margin="12,2,0,0">
                 <ItemsControl.ItemTemplate>

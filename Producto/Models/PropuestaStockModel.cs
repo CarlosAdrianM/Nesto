@@ -22,10 +22,13 @@ namespace Nesto.Modules.Producto.Models
         public const string ESTADO_SILENCIADA = "Silenciada";
         public const string ESTADO_SUPERADA = "Superada";
         public const string ESTADO_SIN_ACCION = "SinAccion";
+        /// <summary>NestoAPI#655: con una potenciación de ventas vigente (objetivo y fecha de revisión).</summary>
+        public const string ESTADO_EN_POTENCIACION = "EnPotenciacion";
 
         public static readonly IReadOnlyList<string> ESTADOS = new[]
         {
-            ESTADO_PENDIENTE, ESTADO_APLICADA, ESTADO_RECHAZADA, ESTADO_POSPUESTA, ESTADO_SILENCIADA, ESTADO_SUPERADA, ESTADO_SIN_ACCION
+            ESTADO_PENDIENTE, ESTADO_APLICADA, ESTADO_RECHAZADA, ESTADO_POSPUESTA, ESTADO_SILENCIADA, ESTADO_SUPERADA, ESTADO_SIN_ACCION,
+            ESTADO_EN_POTENCIACION
         };
 
         public const string ACCION_AJUSTAR = "Ajustar máx/mín";
@@ -78,6 +81,11 @@ namespace Nesto.Modules.Producto.Models
         public int? StockMinimoPropuesto { get; set; }
         /// <summary>La trazabilidad de cada máximo y mínimo (de dónde sale cada número).</summary>
         public string Explicacion { get; set; }
+        /// <summary>
+        /// Sugerencia 644: qué pasa exactamente al aplicar la propuesta («El máximo de ALG pasa de 59 a 88 y el mínimo de 39 a
+        /// 68»). La calcula la API (un solo sitio para todos los clientes); con una API anterior llega vacía.
+        /// </summary>
+        public string Consecuencia { get; set; }
 
         public string Estado { get; set; }
         public string Decision { get; set; }
@@ -145,6 +153,60 @@ namespace Nesto.Modules.Producto.Models
 
         private static string Pareja(int? maximo, int? minimo)
             => maximo.HasValue || minimo.HasValue ? $"{maximo?.ToString() ?? "-"}/{minimo?.ToString() ?? "-"}" : "-";
+    }
+
+    /// <summary>
+    /// Sugerencia 644: los filtros de la pantalla que van a la API (GET api/PropuestasStock y GET api/PropuestasStock/Resumen),
+    /// además del mes y el estado. Vacíos, sin filtro.
+    /// </summary>
+    public class FiltroPropuestasStock
+    {
+        public string Familia { get; set; }
+        public string Grupo { get; set; }
+        public string Accion { get; set; }
+        /// <summary>Parte del código o del nombre del producto.</summary>
+        public string Texto { get; set; }
+
+        public bool EstaVacio => string.IsNullOrWhiteSpace(Familia) && string.IsNullOrWhiteSpace(Grupo)
+            && string.IsNullOrWhiteSpace(Accion) && string.IsNullOrWhiteSpace(Texto);
+
+        /// <summary>Los parámetros de la URL («familia=Lisap», …), escapados; solo los que tienen valor.</summary>
+        public List<string> ParametrosUrl()
+        {
+            var parametros = new List<string>();
+            Anadir(parametros, "familia", Familia);
+            Anadir(parametros, "grupo", Grupo);
+            Anadir(parametros, "accion", Accion);
+            Anadir(parametros, "texto", Texto);
+            return parametros;
+        }
+
+        /// <summary>Para la cabecera: «familia Lisap · acción Liquidar · "champú"»; null sin filtros.</summary>
+        public string Descripcion()
+        {
+            var partes = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Familia)) partes.Add("familia " + Familia.Trim());
+            if (!string.IsNullOrWhiteSpace(Grupo)) partes.Add("grupo " + Grupo.Trim());
+            if (!string.IsNullOrWhiteSpace(Accion)) partes.Add("acción " + Accion.Trim());
+            if (!string.IsNullOrWhiteSpace(Texto)) partes.Add($"«{Texto.Trim()}»");
+            return partes.Count == 0 ? null : string.Join(" · ", partes);
+        }
+
+        private static void Anadir(List<string> parametros, string nombre, string valor)
+        {
+            if (!string.IsNullOrWhiteSpace(valor))
+            {
+                parametros.Add(nombre + "=" + Uri.EscapeDataString(valor.Trim()));
+            }
+        }
+    }
+
+    /// <summary>Sugerencia 644: GET api/PropuestasStock/Filtros: lo que hay en las propuestas del mes para los desplegables.</summary>
+    public class OpcionesFiltroPropuestasModel
+    {
+        public List<string> Familias { get; set; } = new List<string>();
+        public List<string> Grupos { get; set; } = new List<string>();
+        public List<string> Acciones { get; set; } = new List<string>();
     }
 
     /// <summary>Una fila de GET api/PropuestasStock/Resumen.</summary>

@@ -31,6 +31,9 @@ namespace Nesto.Modules.Producto.ViewModels
     /// Rechazar (con motivo), Posponer, Silenciar (motivo de la lista de la API y fecha, como mucho 24 meses) o Liquidar
     /// (Outlet o Ganavisiones; la API pone el máximo a 0). Nada se aplica solo: las reglas son de la API y su mensaje se
     /// enseña tal cual. Solo la ven Compras y Dirección (la API contesta 403 al resto).
+    /// <para>Sugerencia 644 (Manuel): columnas Familia y Grupo; filtros por familia, grupo, acción y texto (código o nombre),
+    /// que filtra la API, y el contador de arriba cuenta solo lo filtrado (GET Resumen con los mismos filtros); y la
+    /// «Consecuencia» de cada propuesta (qué pasa exactamente al aplicarla), que calcula la API.</para>
     /// </summary>
     public class PropuestasStockViewModel : ObservableObject, IReceptorNavegacion
     {
@@ -39,6 +42,12 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IServicioPropuestasStock _servicio;
         private readonly Func<DateTime> _hoy;
         private bool _motivosCargados;
+        /// <summary>El mes del que están cargadas las opciones de familia, grupo y acción («» = el último guardado; null = sin cargar).</summary>
+        private string _mesOpciones;
+        /// <summary>Mientras se rellenan o se limpian los filtros, cambiar la selección no vuelve a leer.</summary>
+        private bool _sinRecargar;
+
+        internal const string TEXTO_TODAS = "(todas)";
 
         public PropuestasStockViewModel(IServicioPropuestasStock servicio) : this(servicio, null)
         {
@@ -56,7 +65,15 @@ namespace Nesto.Modules.Producto.ViewModels
             _mesSeleccionado = Meses[0];
             _estadoSeleccionado = Estados.First(e => e.Valor == PropuestasStockConstantes.ESTADO_PENDIENTE);
 
+            Familias = new ObservableCollection<OpcionFiltroPropuestas> { Todas() };
+            Grupos = new ObservableCollection<OpcionFiltroPropuestas> { Todas() };
+            Acciones = new ObservableCollection<OpcionFiltroPropuestas> { Todas() };
+            _familiaSeleccionada = Familias[0];
+            _grupoSeleccionado = Grupos[0];
+            _accionSeleccionada = Acciones[0];
+
             CargarCommand = new AsyncRelayCommand(CargarAsync, () => !EstaOcupado);
+            LimpiarFiltrosCommand = new AsyncRelayCommand(LimpiarFiltrosAsync, () => !EstaOcupado);
             AplicarCommand = new AsyncRelayCommand(AplicarAsync, () => PuedeDecidir && !PropuestaSeleccionada.EsLiquidar);
             RechazarCommand = new AsyncRelayCommand(RechazarAsync, () => PuedeDecidir);
             PosponerCommand = new AsyncRelayCommand(PosponerAsync, () => PuedeDecidir);
@@ -99,6 +116,53 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }
         }
+
+        /// <summary>Sugerencia 644: las familias, grupos y acciones del mes (GET api/PropuestasStock/Filtros), con «(todas)» delante.</summary>
+        public ObservableCollection<OpcionFiltroPropuestas> Familias { get; }
+        public ObservableCollection<OpcionFiltroPropuestas> Grupos { get; }
+        public ObservableCollection<OpcionFiltroPropuestas> Acciones { get; }
+
+        private OpcionFiltroPropuestas _familiaSeleccionada;
+        public OpcionFiltroPropuestas FamiliaSeleccionada
+        {
+            get => _familiaSeleccionada;
+            set => CambiarFiltro(ref _familiaSeleccionada, value);
+        }
+
+        private OpcionFiltroPropuestas _grupoSeleccionado;
+        public OpcionFiltroPropuestas GrupoSeleccionado
+        {
+            get => _grupoSeleccionado;
+            set => CambiarFiltro(ref _grupoSeleccionado, value);
+        }
+
+        private OpcionFiltroPropuestas _accionSeleccionada;
+        public OpcionFiltroPropuestas AccionSeleccionada
+        {
+            get => _accionSeleccionada;
+            set => CambiarFiltro(ref _accionSeleccionada, value);
+        }
+
+        private string _textoBusqueda;
+        /// <summary>Parte del código o del nombre del producto. Se busca con Intro o «Actualizar» (no a cada tecla: cada lectura carga la BD).</summary>
+        public string TextoBusqueda { get => _textoBusqueda; set => SetProperty(ref _textoBusqueda, value); }
+
+        private void CambiarFiltro(ref OpcionFiltroPropuestas campo, OpcionFiltroPropuestas valor, [System.Runtime.CompilerServices.CallerMemberName] string propiedad = null)
+        {
+            if (SetProperty(ref campo, valor, propiedad) && !EstaOcupado && !_sinRecargar)
+            {
+                _ = CargarAsync();
+            }
+        }
+
+        /// <summary>Los filtros que van a la API (además del mes y el estado).</summary>
+        public FiltroPropuestasStock FiltroActual() => new FiltroPropuestasStock
+        {
+            Familia = FamiliaSeleccionada?.Valor,
+            Grupo = GrupoSeleccionado?.Valor,
+            Accion = AccionSeleccionada?.Valor,
+            Texto = string.IsNullOrWhiteSpace(TextoBusqueda) ? null : TextoBusqueda.Trim()
+        };
 
         public ObservableCollection<PropuestaStockModel> Propuestas { get; } = new ObservableCollection<PropuestaStockModel>();
         public ObservableCollection<ResumenEstadoPropuestasModel> Resumen { get; } = new ObservableCollection<ResumenEstadoPropuestasModel>();
@@ -160,6 +224,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     OnPropertyChanged(nameof(PuedeDecidir));
                     CargarCommand.NotifyCanExecuteChanged();
+                    LimpiarFiltrosCommand.NotifyCanExecuteChanged();
                     NotificarComandos();
                 }
             }
@@ -184,6 +249,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public string Mensaje { get => _mensaje; set => SetProperty(ref _mensaje, value); }
 
         public IAsyncRelayCommand CargarCommand { get; }
+        /// <summary>Sugerencia 644: quita la familia, el grupo, la acción y el texto (no el mes ni el estado) y vuelve a leer.</summary>
+        public IAsyncRelayCommand LimpiarFiltrosCommand { get; }
         public IAsyncRelayCommand AplicarCommand { get; }
         public IAsyncRelayCommand RechazarCommand { get; }
         public IAsyncRelayCommand PosponerCommand { get; }
@@ -207,6 +274,63 @@ namespace Nesto.Modules.Producto.ViewModels
             await LeerAsync(null).ConfigureAwait(true);
         }
 
+        private async Task LimpiarFiltrosAsync()
+        {
+            _sinRecargar = true;
+            try
+            {
+                FamiliaSeleccionada = Familias[0];
+                GrupoSeleccionado = Grupos[0];
+                AccionSeleccionada = Acciones[0];
+                TextoBusqueda = null;
+            }
+            finally
+            {
+                _sinRecargar = false;
+            }
+            await CargarAsync().ConfigureAwait(true);
+        }
+
+        /// <summary>
+        /// Las opciones de familia, grupo y acción del mes (solo si ha cambiado de mes). Lo elegido se mantiene si sigue en la
+        /// lista; si no, vuelve a «(todas)».
+        /// </summary>
+        private async Task CargarOpcionesFiltroAsync(string mes)
+        {
+            string clave = mes ?? string.Empty;
+            if (_mesOpciones == clave)
+            {
+                return;
+            }
+            OpcionesFiltroPropuestasModel opciones = await _servicio.LeerOpcionesFiltro(mes).ConfigureAwait(true) ?? new OpcionesFiltroPropuestasModel();
+            _sinRecargar = true;
+            try
+            {
+                FamiliaSeleccionada = Rellenar(Familias, opciones.Familias, FamiliaSeleccionada);
+                GrupoSeleccionado = Rellenar(Grupos, opciones.Grupos, GrupoSeleccionado);
+                AccionSeleccionada = Rellenar(Acciones, opciones.Acciones, AccionSeleccionada);
+            }
+            finally
+            {
+                _sinRecargar = false;
+            }
+            _mesOpciones = clave;
+        }
+
+        private static OpcionFiltroPropuestas Todas() => new OpcionFiltroPropuestas(null, TEXTO_TODAS);
+
+        private static OpcionFiltroPropuestas Rellenar(ObservableCollection<OpcionFiltroPropuestas> lista, IEnumerable<string> valores, OpcionFiltroPropuestas seleccionada)
+        {
+            string anterior = seleccionada?.Valor;
+            lista.Clear();
+            lista.Add(Todas());
+            foreach (string valor in (valores ?? Enumerable.Empty<string>()).Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.Trim()).Distinct())
+            {
+                lista.Add(new OpcionFiltroPropuestas(valor, valor));
+            }
+            return lista.FirstOrDefault(o => o.Valor == anterior) ?? lista[0];
+        }
+
         /// <summary>Lee el resumen y la lista con los filtros; si se le pasa una fila, intenta dejarla seleccionada (o la siguiente).</summary>
         private async Task LeerAsync(int? seleccionarCercaDe)
         {
@@ -223,8 +347,10 @@ namespace Nesto.Modules.Producto.ViewModels
                     _motivosCargados = true;
                 }
                 string mes = MesSeleccionado?.Valor;
-                List<ResumenEstadoPropuestasModel> resumen = await _servicio.LeerResumen(mes).ConfigureAwait(true);
-                List<PropuestaStockModel> filas = await _servicio.LeerPropuestas(mes, EstadoSeleccionado?.Valor, PropuestasStockConstantes.TOP).ConfigureAwait(true);
+                await CargarOpcionesFiltroAsync(mes).ConfigureAwait(true);
+                FiltroPropuestasStock filtro = FiltroActual();
+                List<ResumenEstadoPropuestasModel> resumen = await _servicio.LeerResumen(mes, filtro).ConfigureAwait(true);
+                List<PropuestaStockModel> filas = await _servicio.LeerPropuestas(mes, EstadoSeleccionado?.Valor, PropuestasStockConstantes.TOP, filtro).ConfigureAwait(true);
                 SinPermiso = false;
 
                 Resumen.Clear();
@@ -232,7 +358,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     Resumen.Add(r);
                 }
-                TextoResumen = ComponerResumen(resumen);
+                TextoResumen = ComponerResumen(resumen, filtro.Descripcion());
 
                 int indiceAnterior = seleccionarCercaDe.HasValue ? Propuestas.ToList().FindIndex(p => p.Id == seleccionarCercaDe.Value) : -1;
                 Propuestas.Clear();
@@ -457,7 +583,9 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         internal static string NombreEstado(string estado)
-            => estado == PropuestasStockConstantes.ESTADO_SIN_ACCION ? "Sin acción" : estado;
+            => estado == PropuestasStockConstantes.ESTADO_SIN_ACCION ? "Sin acción"
+            : estado == PropuestasStockConstantes.ESTADO_EN_POTENCIACION ? "En potenciación"
+            : estado;
 
         private static int OrdenEstado(string estado)
         {
@@ -465,17 +593,21 @@ namespace Nesto.Modules.Producto.ViewModels
             return indice < 0 ? int.MaxValue : indice;
         }
 
-        internal static string ComponerResumen(IEnumerable<ResumenEstadoPropuestasModel> resumen)
+        /// <summary>La cabecera. Sugerencia 644: con <paramref name="filtros"/> (la descripción de los filtros), cuenta solo lo filtrado.</summary>
+        internal static string ComponerResumen(IEnumerable<ResumenEstadoPropuestasModel> resumen, string filtros = null)
         {
             List<ResumenEstadoPropuestasModel> filas = resumen?.ToList() ?? new List<ResumenEstadoPropuestasModel>();
             if (filas.Count == 0)
             {
-                return "No hay propuestas guardadas de ese mes.";
+                return string.IsNullOrWhiteSpace(filtros)
+                    ? "No hay propuestas guardadas de ese mes."
+                    : $"No hay propuestas de ese mes con estos filtros ({filtros}).";
             }
             DateTime mes = filas.Max(f => f.Mes);
+            string conFiltros = string.IsNullOrWhiteSpace(filtros) ? string.Empty : $" ({filtros})";
             string partes = string.Join(" · ", filas.OrderBy(f => OrdenEstado(f.Estado))
                 .Select(f => $"{NombreEstado(f.Estado)}: {f.Propuestas} ({f.ExcesoValorado.ToString("C0", _es)})"));
-            return $"Propuestas de {mes.ToString("MMMM yyyy", _es)}: {filas.Sum(f => f.Propuestas)}. {partes}";
+            return $"Propuestas de {mes.ToString("MMMM yyyy", _es)}{conFiltros}: {filas.Sum(f => f.Propuestas)}. {partes}";
         }
     }
 }

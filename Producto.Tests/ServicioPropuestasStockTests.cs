@@ -48,10 +48,61 @@ namespace Producto.Tests
         {
             var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "[{\"Id\":7,\"Producto\":\"17404\",\"Explicacion\":\"x\"}]"));
 
-            List<PropuestaStockModel> filas = await Crear(handler).LeerPropuestas("2026-10", "Pendiente", 2000);
+            List<PropuestaStockModel> filas = await Crear(handler).LeerPropuestas("2026-10", "Pendiente", 2000, null!);
 
             Assert.AreEqual("/api/PropuestasStock?top=2000&mes=2026-10&estado=Pendiente", handler.Urls.Single());
             Assert.AreEqual(7, filas.Single().Id);
+        }
+
+        [TestMethod]
+        public async Task LeerPropuestasYResumen_ConFiltros_LosPasanEscapados()
+        {
+            // Sugerencia 644: la lista y el contador van con los mismos filtros.
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "[]"));
+            var filtro = new FiltroPropuestasStock { Familia = "Eva Visnu", Grupo = "COS", Accion = "Liquidar", Texto = "crema" };
+
+            await Crear(handler).LeerPropuestas("2026-09", null!, 2000, filtro);
+            await Crear(handler).LeerResumen("2026-09", filtro);
+
+            Assert.AreEqual("/api/PropuestasStock?top=2000&mes=2026-09&familia=Eva%20Visnu&grupo=COS&accion=Liquidar&texto=crema", handler.Urls[0]);
+            Assert.AreEqual("/api/PropuestasStock/Resumen?mes=2026-09&familia=Eva%20Visnu&grupo=COS&accion=Liquidar&texto=crema", handler.Urls[1]);
+        }
+
+        [TestMethod]
+        public async Task LeerPropuestas_TraeLaConsecuenciaDeLaApi()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK,
+                "[{\"Id\":7,\"Familia\":\"Lisap\",\"Grupo\":\"COS\",\"Consecuencia\":\"El máximo de ALG pasa de 59 a 88 y el mínimo de 39 a 68.\"}]"));
+
+            PropuestaStockModel fila = (await Crear(handler).LeerPropuestas(null!, null!, 10, null!)).Single();
+
+            Assert.AreEqual("Lisap", fila.Familia);
+            Assert.AreEqual("COS", fila.Grupo);
+            Assert.AreEqual("El máximo de ALG pasa de 59 a 88 y el mínimo de 39 a 68.", fila.Consecuencia);
+        }
+
+        [TestMethod]
+        public async Task LeerOpcionesFiltro_DevuelveLasListasDeLaApi()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"Familias\":[\"Lisap\"],\"Grupos\":[\"COS\"],\"Acciones\":[\"Liquidar\"]}"));
+
+            OpcionesFiltroPropuestasModel opciones = await Crear(handler).LeerOpcionesFiltro("2026-09");
+
+            Assert.AreEqual("/api/PropuestasStock/Filtros?mes=2026-09", handler.Urls.Single());
+            CollectionAssert.AreEqual(new[] { "Lisap" }, opciones.Familias);
+            CollectionAssert.AreEqual(new[] { "COS" }, opciones.Grupos);
+            CollectionAssert.AreEqual(new[] { "Liquidar" }, opciones.Acciones);
+        }
+
+        [TestMethod]
+        public async Task LeerOpcionesFiltro_ApiSinElEndpoint_ListasVaciasSinLanzar()
+        {
+            var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            OpcionesFiltroPropuestasModel opciones = await Crear(handler).LeerOpcionesFiltro(null!);
+
+            Assert.AreEqual("/api/PropuestasStock/Filtros", handler.Urls.Single());
+            Assert.AreEqual(0, opciones.Familias.Count + opciones.Grupos.Count + opciones.Acciones.Count);
         }
 
         [TestMethod]
@@ -59,7 +110,7 @@ namespace Producto.Tests
         {
             var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "[]"));
 
-            await Crear(handler).LeerResumen(null!);
+            await Crear(handler).LeerResumen(null!, null!);
 
             Assert.AreEqual("/api/PropuestasStock/Resumen", handler.Urls.Single());
         }
@@ -69,7 +120,7 @@ namespace Producto.Tests
         {
             var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.Forbidden));
 
-            var ex = await Assert.ThrowsExceptionAsync<PropuestasStockException>(() => Crear(handler).LeerPropuestas(null!, null!, 10));
+            var ex = await Assert.ThrowsExceptionAsync<PropuestasStockException>(() => Crear(handler).LeerPropuestas(null!, null!, 10, null!));
 
             Assert.IsTrue(ex.SinPermiso);
             StringAssert.Contains(ex.Message, "Solo Compras y Dirección");

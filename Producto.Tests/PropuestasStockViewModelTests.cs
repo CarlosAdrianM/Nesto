@@ -19,6 +19,8 @@ namespace Producto.Tests
         private PropuestasStockViewModel _vm = null!;
         private List<(int Id, DecisionPropuestaStockPeticion Peticion)> _decisiones = null!;
         private List<(string? Mes, string? Estado)> _lecturas = null!;
+        private List<FiltroPropuestasStock> _filtros = null!;
+        private List<FiltroPropuestasStock> _filtrosResumen = null!;
 
         private static PropuestaStockModel Ajuste(int id = 1) => new()
         {
@@ -40,16 +42,30 @@ namespace Producto.Tests
             _servicio = A.Fake<IServicioPropuestasStock>();
             _decisiones = new();
             _lecturas = new();
-            A.CallTo(() => _servicio.LeerMotivosSilencio()).Returns(new List<string> { "Nuevo", "Estacional", "Aparato", "Campaña" });
-            A.CallTo(() => _servicio.LeerResumen(A<string>._)).Returns(new List<ResumenEstadoPropuestasModel>
+            _filtros = new();
+            _filtrosResumen = new();
+            A.CallTo(() => _servicio.LeerOpcionesFiltro(A<string>._)).Returns(new OpcionesFiltroPropuestasModel
             {
-                new() { Mes = new DateTime(2026, 10, 1), Estado = "Aplicada", Propuestas = 3, ExcesoValorado = 100m },
-                new() { Mes = new DateTime(2026, 10, 1), Estado = "Pendiente", Propuestas = 2, ExcesoValorado = 1200m }
+                Familias = new List<string> { "Lisap", "Eva Visnu" },
+                Grupos = new List<string> { "COS", "APA" },
+                Acciones = new List<string> { PropuestasStockConstantes.ACCION_AJUSTAR, PropuestasStockConstantes.ACCION_LIQUIDAR }
             });
-            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._))
-                .ReturnsLazily((string mes, string estado, int top) =>
+            A.CallTo(() => _servicio.LeerMotivosSilencio()).Returns(new List<string> { "Nuevo", "Estacional", "Aparato", "Campaña" });
+            A.CallTo(() => _servicio.LeerResumen(A<string>._, A<FiltroPropuestasStock>._))
+                .ReturnsLazily((string mes, FiltroPropuestasStock filtro) =>
+                {
+                    _filtrosResumen.Add(filtro);
+                    return Task.FromResult(new List<ResumenEstadoPropuestasModel>
+                    {
+                        new() { Mes = new DateTime(2026, 10, 1), Estado = "Aplicada", Propuestas = 3, ExcesoValorado = 100m },
+                        new() { Mes = new DateTime(2026, 10, 1), Estado = "Pendiente", Propuestas = 2, ExcesoValorado = 1200m }
+                    });
+                });
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
+                .ReturnsLazily((string mes, string estado, int top, FiltroPropuestasStock filtro) =>
                 {
                     _lecturas.Add((mes, estado));
+                    _filtros.Add(filtro);
                     return Task.FromResult(new List<PropuestaStockModel> { Ajuste(), Liquidar() });
                 });
             A.CallTo(() => _servicio.Decidir(A<int>._, A<DecisionPropuestaStockPeticion>._))
@@ -94,7 +110,148 @@ namespace Producto.Tests
 
             CollectionAssert.Contains(_lecturas, ("2026-09", "Pendiente"));
             Assert.AreEqual(("2026-09", (string?)null), _lecturas.Last(), "«Todas» va sin estado");
-            A.CallTo(() => _servicio.LeerResumen("2026-09")).MustHaveHappened();
+            A.CallTo(() => _servicio.LeerResumen("2026-09", A<FiltroPropuestasStock>._)).MustHaveHappened();
+        }
+
+        // Sugerencia 644 (Manuel): filtros por familia, grupo, acción y texto, y el contador refleja lo filtrado.
+
+        [TestMethod]
+        public async Task Cargar_RellenaLosFiltrosConTodasDelanteYSinFiltrar()
+        {
+            await _vm.CargarAsync();
+
+            CollectionAssert.AreEqual(new string?[] { null, "Lisap", "Eva Visnu" }, _vm.Familias.Select(f => f.Valor).ToList());
+            Assert.AreEqual("(todas)", _vm.Familias[0].Texto);
+            CollectionAssert.AreEqual(new string?[] { null, "COS", "APA" }, _vm.Grupos.Select(g => g.Valor).ToList());
+            CollectionAssert.AreEqual(new string?[] { null, PropuestasStockConstantes.ACCION_AJUSTAR, PropuestasStockConstantes.ACCION_LIQUIDAR },
+                _vm.Acciones.Select(a => a.Valor).ToList());
+            Assert.IsNull(_vm.FamiliaSeleccionada.Valor);
+            Assert.IsTrue(_filtros.Single().EstaVacio, "De entrada, sin filtros");
+            Assert.AreEqual(1, _lecturas.Count, "Rellenar los desplegables no vuelve a leer");
+        }
+
+        [TestMethod]
+        public async Task CambiarFamiliaGrupoYAccion_VuelveALeerConElFiltroYElResumenFiltrado()
+        {
+            await _vm.CargarAsync();
+
+            _vm.FamiliaSeleccionada = _vm.Familias.First(f => f.Valor == "Lisap");
+            await Task.Yield();
+            _vm.GrupoSeleccionado = _vm.Grupos.First(g => g.Valor == "COS");
+            await Task.Yield();
+            _vm.AccionSeleccionada = _vm.Acciones.First(a => a.Valor == PropuestasStockConstantes.ACCION_LIQUIDAR);
+            await Task.Yield();
+
+            FiltroPropuestasStock ultimo = _filtros.Last();
+            Assert.AreEqual("Lisap", ultimo.Familia);
+            Assert.AreEqual("COS", ultimo.Grupo);
+            Assert.AreEqual(PropuestasStockConstantes.ACCION_LIQUIDAR, ultimo.Accion);
+            Assert.AreEqual(4, _lecturas.Count, "Una lectura al cargar y otra por cada filtro");
+            Assert.AreEqual("Lisap", _filtrosResumen.Last().Familia, "El resumen (el contador) va con los mismos filtros");
+            Assert.AreEqual(PropuestasStockConstantes.ACCION_LIQUIDAR, _filtrosResumen.Last().Accion);
+        }
+
+        [TestMethod]
+        public async Task ContadorConFiltros_DiceLosFiltrosYCuentaLoQueDevuelveLaApi()
+        {
+            await _vm.CargarAsync();
+
+            _vm.FamiliaSeleccionada = _vm.Familias.First(f => f.Valor == "Lisap");
+            await Task.Yield();
+
+            StringAssert.StartsWith(_vm.TextoResumen, "Propuestas de octubre 2026 (familia Lisap): 5. Pendiente: 2 (");
+            StringAssert.Contains(_vm.TextoResumen, "· Aplicada: 3 (");
+        }
+
+        [TestMethod]
+        public async Task Buscar_ElTextoVaConIntroOActualizarNoACadaTecla()
+        {
+            await _vm.CargarAsync();
+
+            _vm.TextoBusqueda = "  crema ";
+            Assert.AreEqual(1, _lecturas.Count, "Escribir no lee");
+
+            await _vm.CargarCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("crema", _filtros.Last().Texto);
+            Assert.AreEqual("crema", _filtrosResumen.Last().Texto);
+            StringAssert.Contains(_vm.TextoResumen, "(«crema»)");
+        }
+
+        [TestMethod]
+        public async Task QuitarFiltros_LosDejaEnTodasYLeeUnaSolaVez()
+        {
+            await _vm.CargarAsync();
+            _vm.FamiliaSeleccionada = _vm.Familias.First(f => f.Valor == "Lisap");
+            await Task.Yield();
+            _vm.TextoBusqueda = "crema";
+            int lecturas = _lecturas.Count;
+
+            await _vm.LimpiarFiltrosCommand.ExecuteAsync(null);
+
+            Assert.IsNull(_vm.FamiliaSeleccionada.Valor);
+            Assert.IsNull(_vm.TextoBusqueda);
+            Assert.AreEqual(lecturas + 1, _lecturas.Count, "Una sola lectura al quitar los filtros");
+            Assert.IsTrue(_filtros.Last().EstaVacio);
+            Assert.AreEqual("Pendiente", _lecturas.Last().Estado, "El estado no se toca");
+        }
+
+        [TestMethod]
+        public async Task CambiarDeMes_RecargaLasOpcionesYMantieneLaFamiliaSiSigue()
+        {
+            await _vm.CargarAsync();
+            _vm.FamiliaSeleccionada = _vm.Familias.First(f => f.Valor == "Lisap");
+            await Task.Yield();
+            _vm.AccionSeleccionada = _vm.Acciones.First(a => a.Valor == PropuestasStockConstantes.ACCION_LIQUIDAR);
+            await Task.Yield();
+            A.CallTo(() => _servicio.LeerOpcionesFiltro("2026-09")).Returns(new OpcionesFiltroPropuestasModel
+            {
+                Familias = new List<string> { "Lisap" },
+                Acciones = new List<string> { PropuestasStockConstantes.ACCION_AJUSTAR }
+            });
+
+            _vm.MesSeleccionado = _vm.Meses.First(m => m.Valor == "2026-09");
+            await Task.Yield();
+
+            A.CallTo(() => _servicio.LeerOpcionesFiltro("2026-09")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual("Lisap", _vm.FamiliaSeleccionada.Valor, "Lisap sigue en septiembre");
+            Assert.IsNull(_vm.AccionSeleccionada.Valor, "«Liquidar» no está en septiembre: vuelve a «(todas)»");
+            Assert.AreEqual("Lisap", _filtros.Last().Familia);
+            Assert.IsNull(_filtros.Last().Accion);
+        }
+
+        [TestMethod]
+        public async Task OpcionesSoloSeLeenUnaVezPorMes()
+        {
+            await _vm.CargarAsync();
+            await _vm.CargarCommand.ExecuteAsync(null);
+            _vm.FamiliaSeleccionada = _vm.Familias.First(f => f.Valor == "Lisap");
+            await Task.Yield();
+
+            A.CallTo(() => _servicio.LeerOpcionesFiltro(A<string>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void ComponerResumen_ConFiltrosYSinPropuestas_LoDice()
+        {
+            Assert.AreEqual("No hay propuestas de ese mes con estos filtros (familia Lisap · acción Liquidar).",
+                PropuestasStockViewModel.ComponerResumen(new List<ResumenEstadoPropuestasModel>(), "familia Lisap · acción Liquidar"));
+        }
+
+        [TestMethod]
+        public void Filtro_ParametrosUrlYDescripcion()
+        {
+            var filtro = new FiltroPropuestasStock { Familia = "Eva Visnu", Accion = "Ajustar máx/mín", Texto = " 50% " };
+
+            CollectionAssert.AreEqual(new[] { "familia=Eva%20Visnu", "accion=Ajustar%20m%C3%A1x%2Fm%C3%ADn", "texto=50%25" }, filtro.ParametrosUrl());
+            Assert.AreEqual("familia Eva Visnu · acción Ajustar máx/mín · «50%»", filtro.Descripcion());
+        }
+
+        [TestMethod]
+        public void NombreEstado_EnPotenciacion()
+        {
+            Assert.AreEqual("En potenciación", PropuestasStockViewModel.NombreEstado(PropuestasStockConstantes.ESTADO_EN_POTENCIACION));
+            CollectionAssert.Contains(_vm.Estados.Select(e => e.Valor).ToList(), PropuestasStockConstantes.ESTADO_EN_POTENCIACION);
         }
 
         [TestMethod]
@@ -267,7 +424,7 @@ namespace Producto.Tests
             superada.Estado = "Superada";
             var mantener = Ajuste(7);
             mantener.Accion = PropuestasStockConstantes.ACCION_MANTENER;
-            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._))
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
                 .Returns(new List<PropuestaStockModel> { aplicada, superada, mantener });
             await _vm.CargarAsync();
 
@@ -301,7 +458,7 @@ namespace Producto.Tests
         [TestMethod]
         public async Task Cargar_403_DejaLaVentanaVaciaSinDecisionesYConElMensaje()
         {
-            A.CallTo(() => _servicio.LeerResumen(A<string>._))
+            A.CallTo(() => _servicio.LeerResumen(A<string>._, A<FiltroPropuestasStock>._))
                 .ThrowsAsync(new PropuestasStockException("Solo Compras y Dirección pueden ver las propuestas de stock.", 403));
 
             await _vm.CargarAsync();
@@ -329,7 +486,7 @@ namespace Producto.Tests
         public async Task TrasDecidir_SiLaFilaYaNoSaleSeSeleccionaLaSiguiente()
         {
             await _vm.CargarAsync();
-            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._))
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
                 .Returns(new List<PropuestaStockModel> { Liquidar() });
 
             await _vm.PosponerCommand.ExecuteAsync(null);
@@ -342,7 +499,7 @@ namespace Producto.Tests
         {
             _vm.AlLlegar(new Nesto.Infrastructure.Contracts.ParametrosNavegacion());
 
-            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._)).MustHaveHappened();
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._)).MustHaveHappened();
         }
     }
 }
