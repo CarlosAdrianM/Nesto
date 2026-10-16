@@ -510,7 +510,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 }
 
                 var ofertasFamilia = await _service.GetOfertasPermitidasFamilia(Empresa);
-                foreach (var item in ofertasFamilia.OrderBy(o => o.Familia).ThenBy(o => o.FiltroProducto))
+                foreach (var item in ofertasFamilia
+                    .Where(o => !SoloActivas || EstaVigente(o.FechaDesde, o.FechaHasta, DateTime.Today))
+                    .OrderBy(o => o.Familia).ThenBy(o => o.FiltroProducto))
                 {
                     OfertasFamilia.Add(new OfertaPermitidaFamiliaWrapper(item));
                 }
@@ -532,6 +534,22 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 EstaCargando = false;
             }
+        }
+
+        internal const string ERROR_FECHAS_AL_REVES = "La fecha «Hasta» no puede ser anterior a la fecha «Desde».";
+
+        internal static bool FechasAlReves(DateTime? desde, DateTime? hasta) =>
+            desde.HasValue && hasta.HasValue && desde.Value.Date > hasta.Value.Date;
+
+        /// <summary>
+        /// Sugerencia 643: la regla de «Solo activas» para las pestañas que se filtran aquí (por
+        /// familia y de producto). La misma que la API: nulas = sin límite; inclusivas, por días.
+        /// Se calcula con las fechas y no con el Vigente del servidor para no depender de él.
+        /// </summary>
+        internal static bool EstaVigente(DateTime? desde, DateTime? hasta, DateTime hoy)
+        {
+            return (desde == null || desde.Value.Date <= hoy.Date)
+                && (hasta == null || hasta.Value.Date >= hoy.Date);
         }
 
         private bool TieneCambiosSinGuardar()
@@ -1126,7 +1144,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             OfertasProducto.Clear();
             var ofertas = await _service.GetOfertasProducto(IncluirOfertasProductoCaducadas);
-            foreach (var item in ofertas ?? new List<OfertaProductoModel>())
+            foreach (var item in (ofertas ?? new List<OfertaProductoModel>())
+                // «Ver también las caducadas» es una petición explícita de esta pestaña: manda sobre «Solo activas».
+                .Where(o => !SoloActivas || IncluirOfertasProductoCaducadas || EstaVigente(o.FechaDesde, o.FechaHasta, DateTime.Today)))
             {
                 OfertasProducto.Add(new OfertaProductoWrapper(item));
             }
@@ -1155,6 +1175,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             if (oferta.CantidadConPrecio < 1 || oferta.CantidadRegalo < 1)
             {
                 _dialogService.ShowError("Las cantidades tienen que ser al menos 1.");
+                return;
+            }
+            if (FechasAlReves(oferta.FechaDesde, oferta.FechaHasta))
+            {
+                _dialogService.ShowError(ERROR_FECHAS_AL_REVES);
                 return;
             }
 
@@ -1231,6 +1256,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             if (string.IsNullOrWhiteSpace(oferta.Familia))
             {
                 _dialogService.ShowError("Debe introducir una familia.");
+                return;
+            }
+            if (FechasAlReves(oferta.FechaDesde, oferta.FechaHasta))
+            {
+                _dialogService.ShowError(ERROR_FECHAS_AL_REVES);
                 return;
             }
 
@@ -2084,6 +2114,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             FiltroProducto = model.FiltroProducto;
             SubGrupo = model.SubGrupo;
             Denegar = model.Denegar;
+            FechaDesde = model.FechaDesde;
+            FechaHasta = model.FechaHasta;
+            Vigente = model.Vigente;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             _rastreandoCambios = true;
@@ -2101,6 +2134,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             FiltroProducto = model.FiltroProducto;
             SubGrupo = model.SubGrupo;
             Denegar = model.Denegar;
+            FechaDesde = model.FechaDesde;
+            FechaHasta = model.FechaHasta;
+            Vigente = model.Vigente;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             _rastreandoCambios = true;
@@ -2121,7 +2157,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 CantidadRegalo = CantidadRegalo,
                 FiltroProducto = FiltroProducto,
                 SubGrupo = SubGrupo?.Trim().ToUpperInvariant() ?? string.Empty,
-                Denegar = Denegar
+                Denegar = Denegar,
+                // Sugerencia 643: sin «Hasta» la oferta es permanente.
+                FechaDesde = FechaDesde?.Date,
+                FechaHasta = FechaHasta?.Date,
+                ActualizarFechas = true
             };
         }
 
@@ -2176,6 +2216,28 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _denegar;
             set { if (SetProperty(ref _denegar, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // Sugerencia 643: caducidad de la oferta. Sin «Hasta» = permanente.
+        private DateTime? _fechaDesde;
+        public DateTime? FechaDesde
+        {
+            get => _fechaDesde;
+            set { if (SetProperty(ref _fechaDesde, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaHasta;
+        public DateTime? FechaHasta
+        {
+            get => _fechaHasta;
+            set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private bool _vigente = true;
+        public bool Vigente
+        {
+            get => _vigente;
+            set => SetProperty(ref _vigente, value);
         }
 
         public string Usuario { get; set; }

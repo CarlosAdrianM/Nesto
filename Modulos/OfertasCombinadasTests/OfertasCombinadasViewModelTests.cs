@@ -6,6 +6,7 @@ using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Nesto.Modulos.OfertasCombinadas.ViewModels;
 using Prism.Regions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -498,6 +499,196 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             var oferta = new OfertaPermitidaFamiliaWrapper(DenegacionGenericosDes());
 
             Assert.IsTrue(OfertasCombinadasViewModel.CoincideOfertaFamilia(oferta, "des"));
+        }
+
+        #endregion
+
+        #region Sugerencia 643: caducidad en ofertas por familia y de producto
+
+        private static OfertaPermitidaFamiliaModel Familia(int nOrden, string familia, DateTime? desde, DateTime? hasta) => new OfertaPermitidaFamiliaModel
+        {
+            NOrden = nOrden, Familia = familia, CantidadConPrecio = 6, CantidadRegalo = 1,
+            FechaDesde = desde, FechaHasta = hasta
+        };
+
+        private static OfertaProductoModel Producto(int nOrden, string producto, DateTime? desde, DateTime? hasta) => new OfertaProductoModel
+        {
+            NOrden = nOrden, Producto = producto, CantidadConPrecio = 6, CantidadRegalo = 2,
+            FechaDesde = desde, FechaHasta = hasta
+        };
+
+        private void DevolverOfertasConFechas()
+        {
+            DateTime hoy = DateTime.Today;
+            A.CallTo(() => _service.GetOfertasPermitidasFamilia(A<string>._))
+                .Returns(Task.FromResult(new List<OfertaPermitidaFamiliaModel>
+                {
+                    Familia(1, "Permanente", null, null),
+                    Familia(2, "EnFechas", hoy.AddDays(-5), hoy),
+                    Familia(3, "Caducada", hoy.AddMonths(-2), hoy.AddDays(-1)),
+                    Familia(4, "Futura", hoy.AddDays(1), null)
+                }));
+            A.CallTo(() => _service.GetOfertasProducto(A<bool>._))
+                .Returns(Task.FromResult(new List<OfertaProductoModel>
+                {
+                    Producto(10, "PERMANENTE", null, null),
+                    Producto(11, "EMPIEZAHOY", hoy, hoy.AddDays(30)),
+                    Producto(12, "FUTURA", hoy.AddDays(7), hoy.AddDays(30))
+                }));
+        }
+
+        [TestMethod]
+        public async Task SoloActivas_FiltraLasOfertasPorFamiliaPorFechas()
+        {
+            DevolverOfertasConFechas();
+            var vm = CrearViewModel();
+
+            vm.SoloActivas = false;
+            await Task.Delay(30);
+            vm.SoloActivas = true;
+            await Task.Delay(80);
+
+            CollectionAssert.AreEquivalent(new[] { "Permanente", "EnFechas" }, vm.OfertasFamilia.Select(o => o.Familia).ToList());
+        }
+
+        [TestMethod]
+        public async Task SoloActivas_FiltraLasOfertasDeProductoPorFechas()
+        {
+            DevolverOfertasConFechas();
+            var vm = CrearViewModel();
+
+            vm.SoloActivas = false;
+            await Task.Delay(30);
+            vm.SoloActivas = true;
+            await Task.Delay(80);
+
+            CollectionAssert.AreEquivalent(new[] { "PERMANENTE", "EMPIEZAHOY" }, vm.OfertasProducto.Select(o => o.Producto).ToList());
+        }
+
+        [TestMethod]
+        public async Task SinSoloActivas_SeVenTodasLasOfertasPorFamilia()
+        {
+            DevolverOfertasConFechas();
+            var vm = CrearViewModel();
+
+            vm.SoloActivas = false;
+            await Task.Delay(80);
+
+            Assert.AreEqual(4, vm.OfertasFamilia.Count);
+            Assert.AreEqual(3, vm.OfertasProducto.Count);
+        }
+
+        [TestMethod]
+        public async Task SoloActivas_VerTambienLasCaducadasDeProducto_MandaEnSuPestana()
+        {
+            DevolverOfertasConFechas();
+            var vm = CrearViewModel();
+            Assert.IsTrue(vm.SoloActivas, "«Solo activas» sale marcado de serie");
+
+            vm.IncluirOfertasProductoCaducadas = true;
+            await Task.Delay(80);
+
+            Assert.AreEqual(3, vm.OfertasProducto.Count, "Si no, la casilla de la pestaña no haría nada");
+        }
+
+        [TestMethod]
+        public void EstaVigente_FechasInclusivasYNulasSinLimite()
+        {
+            var hoy = new DateTime(2026, 10, 16);
+
+            Assert.IsTrue(OfertasCombinadasViewModel.EstaVigente(null, null, hoy), "Sin fechas = permanente");
+            Assert.IsTrue(OfertasCombinadasViewModel.EstaVigente(hoy, hoy, hoy), "El primer y el último día cuentan");
+            Assert.IsFalse(OfertasCombinadasViewModel.EstaVigente(null, hoy.AddDays(-1), hoy));
+            Assert.IsFalse(OfertasCombinadasViewModel.EstaVigente(hoy.AddDays(1), null, hoy));
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_DesdeServidor_CargaLasFechasSinMarcarCambios()
+        {
+            var hasta = new DateTime(2026, 12, 31);
+            var oferta = new OfertaPermitidaFamiliaWrapper(Familia(5, "Genéricos", null, hasta));
+
+            Assert.AreEqual(hasta, oferta.FechaHasta);
+            Assert.IsFalse(oferta.HaCambiado);
+
+            oferta.FechaHasta = null;
+            Assert.IsTrue(oferta.HaCambiado, "Cambiar la caducidad tiene que mostrar el botón Guardar");
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_SinVigenteDelServidor_NoSeVeApagada()
+        {
+            // Una API anterior a la sugerencia 643 no manda Vigente: sus ofertas no tienen fechas.
+            var modelo = Newtonsoft.Json.JsonConvert.DeserializeObject<OfertaPermitidaFamiliaModel>("{\"NOrden\":1,\"Familia\":\"Lisap\"}");
+
+            Assert.IsTrue(new OfertaPermitidaFamiliaWrapper(modelo).Vigente);
+        }
+
+        [TestMethod]
+        public async Task OfertaFamilia_Guardar_EnviaLasFechasALaApi()
+        {
+            OfertaPermitidaFamiliaCreateModel enviado = null;
+            var desde = new DateTime(2026, 11, 1);
+            var hasta = new DateTime(2026, 11, 30);
+            A.CallTo(() => _service.UpdateOfertaPermitidaFamilia(A<int>._, A<OfertaPermitidaFamiliaCreateModel>._))
+                .Invokes((int _, OfertaPermitidaFamiliaCreateModel m) => enviado = m)
+                .Returns(Task.FromResult(Familia(7, "Genéricos", desde, hasta)));
+            var vm = CrearViewModel();
+            var oferta = new OfertaPermitidaFamiliaWrapper(Familia(7, "Genéricos", null, null));
+            oferta.FechaDesde = desde;
+            oferta.FechaHasta = hasta;
+
+            vm.GuardarOfertaFamiliaCommand.Execute(oferta);
+            await Task.Delay(50);
+
+            Assert.IsNotNull(enviado);
+            Assert.AreEqual(desde, enviado.FechaDesde);
+            Assert.AreEqual(hasta, enviado.FechaHasta);
+            Assert.IsTrue(enviado.ActualizarFechas, "Sin la marca, la API conservaría las fechas viejas");
+            Assert.IsFalse(oferta.HaCambiado);
+        }
+
+        [TestMethod]
+        public void OfertaFamilia_CrearModeloGuardado_SinHastaViajaNulo()
+        {
+            // Sin «Hasta» = permanente: tiene que llegar null (y con la marca) para que la API la quite.
+            var oferta = new OfertaPermitidaFamiliaWrapper(Familia(7, "Genéricos", null, new DateTime(2026, 12, 31)));
+            oferta.FechaHasta = null;
+
+            var modelo = oferta.CrearModeloGuardado("1");
+
+            Assert.IsNull(modelo.FechaHasta);
+            Assert.IsTrue(modelo.ActualizarFechas);
+        }
+
+        [TestMethod]
+        public async Task OfertaFamilia_GuardarConHastaAnteriorADesde_NoLlamaALaApi()
+        {
+            var vm = CrearViewModel();
+            var oferta = new OfertaPermitidaFamiliaWrapper(Familia(7, "Genéricos", null, null));
+            oferta.FechaDesde = new DateTime(2026, 11, 30);
+            oferta.FechaHasta = new DateTime(2026, 11, 1);
+
+            vm.GuardarOfertaFamiliaCommand.Execute(oferta);
+            await Task.Delay(50);
+
+            A.CallTo(() => _service.UpdateOfertaPermitidaFamilia(A<int>._, A<OfertaPermitidaFamiliaCreateModel>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowError(OfertasCombinadasViewModel.ERROR_FECHAS_AL_REVES)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task OfertaProducto_GuardarConHastaAnteriorADesde_NoLlamaALaApi()
+        {
+            var vm = CrearViewModel();
+            var oferta = new OfertaProductoWrapper(Producto(10, "44724", null, null));
+            oferta.FechaDesde = new DateTime(2026, 11, 30);
+            oferta.FechaHasta = new DateTime(2026, 11, 1);
+
+            vm.GuardarOfertaProductoCommand.Execute(oferta);
+            await Task.Delay(50);
+
+            A.CallTo(() => _service.UpdateOfertaProducto(A<int>._, A<OfertaProductoModel>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowError(OfertasCombinadasViewModel.ERROR_FECHAS_AL_REVES)).MustHaveHappenedOnceExactly();
         }
 
         #endregion

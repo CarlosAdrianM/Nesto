@@ -98,6 +98,12 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         // NestoAPI#564: subgrupo al que se limita la regla (null = toda la familia) y si PROHÍBE la oferta.
         public string SubGrupo { get; set; }
         public bool Denegar { get; set; }
+        // Sugerencia 643: caducidad. Nulas = sin límite por ese lado (sin FechaHasta = permanente).
+        public DateTime? FechaDesde { get; set; }
+        public DateTime? FechaHasta { get; set; }
+        /// <summary>Lo calcula el servidor: si la oferta está en vigor hoy. Por defecto true: una API
+        /// anterior a la sugerencia 643 no lo manda y sus ofertas no tienen fechas.</summary>
+        public bool Vigente { get; set; } = true;
         public string Usuario { get; set; }
         public DateTime FechaModificacion { get; set; }
     }
@@ -113,6 +119,11 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         // (para los Nesto antiguos), así que "sin subgrupo" viaja como "" y no como null.
         public string SubGrupo { get; set; }
         public bool Denegar { get; set; }
+        // Sugerencia 643: las fechas viajan siempre, con ActualizarFechas = true. Sin esa marca
+        // (Nesto antiguo) la API conserva las que tenga la fila en el PUT.
+        public DateTime? FechaDesde { get; set; }
+        public DateTime? FechaHasta { get; set; }
+        public bool ActualizarFechas { get; set; } = true;
     }
 
     /// <summary>NestoAPI#233: lo que se ha mandado a los vendedores de NestoApp y a cuántos dispositivos ha llegado.</summary>

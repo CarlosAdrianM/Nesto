@@ -35,7 +35,7 @@
                           IsChecked="{Binding SoloActivas}"
                           VerticalAlignment="Center"
                           Margin="10,0,0,0"
-                          ToolTip="Mostrar solo ofertas vigentes (FechaDesde &lt;= hoy y FechaHasta nula o >= hoy)"/>
+                          ToolTip="Mostrar solo las ofertas vigentes hoy en todas las pestañas («Desde» vacía o &lt;= hoy y «Hasta» vacía o >= hoy)"/>
                 <TextBlock Text="Mantenimiento de Ofertas y descuentos"
                            VerticalAlignment="Center" FontWeight="Bold" Margin="20,0,0,0"/>
             </StackPanel>
@@ -508,6 +508,11 @@
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                                     <Style.Triggers>
+                                        <!-- Sugerencia 643: fuera de fechas se ve apagada, como en Ofertas de Producto. -->
+                                        <DataTrigger Binding="{Binding Vigente}" Value="False">
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
                                         <!-- NestoAPI#564: una denegación (Genéricos + DES 6+1) no puede
                                              parecer otra «Genéricos 6+1» repetida. -->
                                         <DataTrigger Binding="{Binding Denegar}" Value="True">
@@ -617,6 +622,44 @@
                                     </DataGridCheckBoxColumn.EditingElementStyle>
                                 </DataGridCheckBoxColumn>
 
+                                <!-- Sugerencia 643: caducidad (mismas columnas que Ofertas de Producto) -->
+                                <DataGridTemplateColumn Header="Desde" Width="110">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FechaDesde, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding FechaDesde, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="Hasta" Width="110">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FechaHasta, StringFormat=d, TargetNullValue=Permanente}" VerticalAlignment="Center" Margin="2,0"
+                                                       ToolTip="Sin fecha de fin = permanente. La oferta vale TODO el día que se ponga aquí"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding FechaHasta, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridCheckBoxColumn Header="Vigente" Binding="{Binding Vigente}" Width="60" IsReadOnly="True">
+                                    <DataGridCheckBoxColumn.ElementStyle>
+                                        <Style TargetType="CheckBox">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="Si la oferta está en vigor HOY según sus fechas. Sin fechas, siempre vigente."/>
+                                        </Style>
+                                    </DataGridCheckBoxColumn.ElementStyle>
+                                </DataGridCheckBoxColumn>
+
                                 <!-- Acciones -->
                                 <DataGridTemplateColumn Header="Acciones" Width="150">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -664,7 +707,7 @@
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="Total ofertas familia: " VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OfertasFamilia.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBlock Text=" | El filtro busca productos cuyo nombre empiece por el texto indicado (dentro de la familia)"
+                            <TextBlock Text=" | El filtro busca productos cuyo nombre empiece por el texto indicado (dentro de la familia). Las fechas son inclusivas; sin «Hasta», la oferta es permanente."
                                        VerticalAlignment="Center" Margin="20,0,0,0"
                                        Foreground="Gray" FontStyle="Italic"/>
                         </StackPanel>
@@ -1476,8 +1519,8 @@
                                 <DataGridTemplateColumn Header="Hasta" Width="110">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding FechaHasta, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"
-                                                       ToolTip="Vacío = sin fecha de fin. La oferta vale TODO el día que se ponga aquí"/>
+                                            <TextBlock Text="{Binding FechaHasta, StringFormat=d, TargetNullValue=Permanente}" VerticalAlignment="Center" Margin="2,0"
+                                                       ToolTip="Sin fecha de fin = permanente. La oferta vale TODO el día que se ponga aquí"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                     <DataGridTemplateColumn.CellEditingTemplate>
@@ -1566,7 +1609,7 @@
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="Ofertas: " VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OfertasProducto.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBlock Text=" | Un 6+2 son 6 cobradas y 2 de regalo. Las fechas son inclusivas y se pueden dejar vacías (sin fechas = siempre vigente). Las ofertas de un cliente concreto no se gestionan aquí."
+                            <TextBlock Text=" | Un 6+2 son 6 cobradas y 2 de regalo. Las fechas son inclusivas; sin «Hasta», la oferta es permanente. Las ofertas de un cliente concreto no se gestionan aquí."
                                        VerticalAlignment="Center" Margin="20,0,0,0"
                                        Foreground="Gray" FontStyle="Italic" TextWrapping="Wrap"/>
                         </StackPanel>
