@@ -14,6 +14,8 @@ namespace Nesto.Modules.Producto.Models
         public const string DECISION_RECHAZAR = "Rechazar";
         public const string DECISION_POSPONER = "Posponer";
         public const string DECISION_SILENCIAR = "Silenciar";
+        /// <summary>Nesto#535 (NestoAPI#655): darle un plazo para vender más, con objetivo (uds/mes) y fecha de revisión.</summary>
+        public const string DECISION_POTENCIAR = "Potenciar";
 
         public const string ESTADO_PENDIENTE = "Pendiente";
         public const string ESTADO_APLICADA = "Aplicada";
@@ -47,6 +49,23 @@ namespace Nesto.Modules.Producto.Models
         public const int MESES_MAXIMOS_SILENCIO = 24;
         /// <summary>La fecha de caducidad que se propone al silenciar.</summary>
         public const int MESES_SILENCIO_POR_DEFECTO = 3;
+        /// <summary>Nesto#535: la fecha de revisión que se propone al potenciar (la misma que pone la API si no se dice).</summary>
+        public const int MESES_POTENCIACION_POR_DEFECTO = 6;
+        /// <summary>Nesto#535: una potenciación no puede durar más (lo comprueba también la API).</summary>
+        public const int MESES_MAXIMOS_POTENCIACION = 24;
+
+        /// <summary>
+        /// Nesto#535: lo que se enseña si la API publicada aún no tiene la decisión «Potenciar» (anterior a NestoAPI#655): contesta
+        /// 400 con la lista de decisiones sin «Potenciar».
+        /// </summary>
+        public const string MENSAJE_API_SIN_POTENCIAR = "El servidor todavía no admite «Potenciar ventas»: hay que publicar la versión nueva de NestoAPI. " +
+            "Mientras tanto puede aplicar, rechazar, posponer o silenciar la propuesta.";
+
+        /// <summary>El nombre que se ve de cada estado («SinAccion» → «Sin acción»).</summary>
+        public static string NombreEstado(string estado)
+            => estado == ESTADO_SIN_ACCION ? "Sin acción"
+            : estado == ESTADO_EN_POTENCIACION ? "En potenciación"
+            : estado;
         /// <summary>Cuántas filas se piden a la API de una vez.</summary>
         public const int TOP = 2000;
     }
@@ -103,6 +122,53 @@ namespace Nesto.Modules.Producto.Models
         public string SilencioMotivo { get; set; }
         public DateTime? MesMasReciente { get; set; }
 
+        // Nesto#535 (NestoAPI#655): potenciar ventas. Con una API anterior (o sin su script) llegan vacíos.
+        public decimal VentaMedia6Meses { get; set; }
+        /// <summary>Lo decidido en esta fila (solo si su decisión es «Potenciar»).</summary>
+        public int? ObjetivoVentaMensual { get; set; }
+        public DateTime? PotenciarHasta { get; set; }
+        /// <summary>La última potenciación del producto y almacén (de esta fila o de una anterior).</summary>
+        public int? PotenciacionPropuestaId { get; set; }
+        public int? PotenciacionObjetivo { get; set; }
+        public DateTime? PotenciacionHasta { get; set; }
+        public bool PotenciacionVigente { get; set; }
+        /// <summary>Cómo va la potenciación (venta media frente al objetivo), como lo escribe la API.</summary>
+        public string NotaPotenciacion { get; set; }
+        /// <summary>El objetivo que propone la API al potenciar (venta media × 1,5); null si no lo trae.</summary>
+        public int? ObjetivoVentaSugerido { get; set; }
+
+        public string NombreEstado => PropuestasStockConstantes.NombreEstado(Estado);
+        public bool EstaEnPotenciacion => Estado == PropuestasStockConstantes.ESTADO_EN_POTENCIACION;
+
+        /// <summary>Para la columna: «40 uds/mes hasta 15/04/2027» si está en potenciación; vacío si no.</summary>
+        public string ObjetivoYFechaPotenciacion
+        {
+            get
+            {
+                int? objetivo = PotenciacionObjetivo ?? ObjetivoVentaMensual;
+                DateTime? hasta = PotenciacionHasta ?? PotenciarHasta;
+                if (!EstaEnPotenciacion || !objetivo.HasValue)
+                {
+                    return null;
+                }
+                return hasta.HasValue ? $"{objetivo} uds/mes hasta {hasta:dd/MM/yyyy}" : $"{objetivo} uds/mes";
+            }
+        }
+
+        /// <summary>Para el panel: la nota de la API; si no la trae, el objetivo y la fecha.</summary>
+        public string TextoPotenciacion
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(NotaPotenciacion))
+                {
+                    return NotaPotenciacion.Trim();
+                }
+                string objetivoYFecha = ObjetivoYFechaPotenciacion;
+                return objetivoYFecha == null ? null : "En potenciación: objetivo " + objetivoYFecha + ".";
+            }
+        }
+
         public string ProductoYNombre => $"{Producto?.Trim()} {Nombre?.Trim()}".Trim();
         public string MaxMinActual => Pareja(StockMaximoActual, StockMinimoActual);
         public string MaxMinPropuesto => Pareja(StockMaximoPropuesto, StockMinimoPropuesto);
@@ -142,6 +208,12 @@ namespace Nesto.Modules.Producto.Models
                 if (!string.IsNullOrWhiteSpace(CanalLiquidacion))
                 {
                     texto += $" (liquidar en {CanalLiquidacion.Trim()})";
+                }
+                if (ObjetivoVentaMensual.HasValue)
+                {
+                    texto += PotenciarHasta.HasValue
+                        ? $" (objetivo {ObjetivoVentaMensual} uds/mes, revisión el {PotenciarHasta:dd/MM/yyyy})"
+                        : $" (objetivo {ObjetivoVentaMensual} uds/mes)";
                 }
                 if (StockMaximoAplicado.HasValue || StockMinimoAplicado.HasValue)
                 {
@@ -228,6 +300,10 @@ namespace Nesto.Modules.Producto.Models
         public string MotivoSilencio { get; set; }
         public DateTime? SilenciarHasta { get; set; }
         public string CanalLiquidacion { get; set; }
+        /// <summary>Nesto#535: solo al potenciar (obligatorio, más de 0): unidades al mes.</summary>
+        public int? ObjetivoVentaMensual { get; set; }
+        /// <summary>Nesto#535: solo al potenciar: la fecha de revisión (incluida).</summary>
+        public DateTime? PotenciarHasta { get; set; }
     }
 
     /// <summary>Respuesta de POST api/PropuestasStock/{id}/Decision.</summary>

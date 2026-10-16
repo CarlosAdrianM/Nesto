@@ -145,6 +145,43 @@ namespace Producto.Tests
             CollectionAssert.AreEqual(new[] { "ALG: máximo 555 → 364" }, resultado.Cambios);
         }
 
+        [TestMethod]
+        public async Task Decidir_Potenciar_MandaObjetivoYFechaConLosNombresDeLaApi()
+        {
+            // Nesto#535: el contrato de NestoAPI#655 (DecisionPropuestaStockDTO.ObjetivoVentaMensual y PotenciarHasta).
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK,
+                "{\"Id\":7,\"Producto\":\"17404\",\"Decision\":\"Potenciar\",\"Estado\":\"EnPotenciacion\",\"Cambios\":[],\"Mensaje\":\"En potenciación\"}"));
+
+            ResultadoDecisionPropuestaStock resultado = await Crear(handler).Decidir(7, new DecisionPropuestaStockPeticion
+            {
+                Decision = "Potenciar", ObjetivoVentaMensual = 40, PotenciarHasta = new DateTime(2027, 4, 15)
+            });
+
+            JObject cuerpo = JObject.Parse(handler.Cuerpos.Single());
+            Assert.AreEqual("Potenciar", (string?)cuerpo["Decision"]);
+            Assert.AreEqual(40, (int?)cuerpo["ObjetivoVentaMensual"]);
+            Assert.AreEqual(new DateTime(2027, 4, 15), (DateTime?)cuerpo["PotenciarHasta"]);
+            Assert.AreEqual("EnPotenciacion", resultado.Estado);
+        }
+
+        [TestMethod]
+        public async Task LeerPropuestas_TraeLaPotenciacionYElObjetivoSugerido()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK,
+                "[{\"Id\":7,\"Estado\":\"EnPotenciacion\",\"VentaMedia6Meses\":30.0,\"ObjetivoVentaSugerido\":45,\"PotenciacionPropuestaId\":5," +
+                "\"PotenciacionObjetivo\":40,\"PotenciacionHasta\":\"2027-04-15T00:00:00\",\"PotenciacionVigente\":true," +
+                "\"NotaPotenciacion\":\"En potenciación hasta el 15/04/2027: venta media 30,0 uds/mes de un objetivo de 40 (75 %)\"}]"));
+
+            PropuestaStockModel fila = (await Crear(handler).LeerPropuestas(null!, null!, 10, null!)).Single();
+
+            Assert.AreEqual(45, fila.ObjetivoVentaSugerido);
+            Assert.AreEqual(40, fila.PotenciacionObjetivo);
+            Assert.IsTrue(fila.PotenciacionVigente);
+            Assert.AreEqual("40 uds/mes hasta 15/04/2027", fila.ObjetivoYFechaPotenciacion);
+            StringAssert.StartsWith(fila.TextoPotenciacion, "En potenciación hasta el 15/04/2027");
+            Assert.AreEqual("En potenciación", fila.NombreEstado);
+        }
+
         [DataTestMethod]
         [DataRow(HttpStatusCode.BadRequest)]
         [DataRow(HttpStatusCode.NotFound)]

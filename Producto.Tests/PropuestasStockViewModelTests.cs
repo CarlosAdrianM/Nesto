@@ -494,6 +494,165 @@ namespace Producto.Tests
             Assert.AreEqual(2, _vm.PropuestaSeleccionada?.Id);
         }
 
+        // Nesto#535 (gemela de NestoAPI#655): «Potenciar ventas» con objetivo y fecha de revisión.
+
+        private static PropuestaStockModel Propio(int id = 3, int? sugerido = 45) => new()
+        {
+            Id = id, Mes = new DateTime(2026, 10, 1), Producto = "40100", Nombre = "Sérum propio", Almacen = "ALG",
+            Accion = "Potenciar ventas", Estado = "Pendiente", VentaMedia6Meses = 30m, ObjetivoVentaSugerido = sugerido
+        };
+
+        private async Task CargarConPropio(int? sugerido = 45)
+        {
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
+                .Returns(new List<PropuestaStockModel> { Propio(sugerido: sugerido) });
+            await _vm.CargarAsync();
+        }
+
+        [TestMethod]
+        public async Task Potenciar_DeEntrada_ObjetivoSugeridoPorLaApiYRevisionDentroDeSeisMeses()
+        {
+            await CargarConPropio();
+
+            Assert.AreEqual(45, _vm.ObjetivoVentaMensual);
+            Assert.AreEqual(Hoy.AddMonths(6), _vm.PotenciarHasta);
+            Assert.IsTrue(_vm.PotenciarCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task Potenciar_SinObjetivoSugerido_QuedaVacioYEsObligatorio()
+        {
+            await CargarConPropio(sugerido: null);
+            Assert.IsNull(_vm.ObjetivoVentaMensual);
+
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+            Assert.AreEqual(0, _decisiones.Count);
+            StringAssert.Contains(_vm.Mensaje, "indique el objetivo de venta");
+
+            _vm.ObjetivoVentaMensual = 0;
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+            Assert.AreEqual(0, _decisiones.Count, "El objetivo tiene que ser más de 0");
+        }
+
+        [TestMethod]
+        public async Task Potenciar_FechaDeRevisionFuturaYComoMucho24Meses()
+        {
+            await CargarConPropio();
+
+            _vm.PotenciarHasta = null;
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+            StringAssert.Contains(_vm.Mensaje, "fecha de revisión");
+
+            _vm.PotenciarHasta = Hoy;
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+            StringAssert.Contains(_vm.Mensaje, "posterior a hoy");
+
+            _vm.PotenciarHasta = Hoy.AddMonths(24).AddDays(1);
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+            StringAssert.Contains(_vm.Mensaje, "24 meses");
+            Assert.AreEqual(0, _decisiones.Count);
+        }
+
+        [TestMethod]
+        public async Task Potenciar_MandaDecisionObjetivoFechaYMotivo_YTrasReleerSeVeEnPotenciacion()
+        {
+            await CargarConPropio();
+            _vm.ObjetivoVentaMensual = 50;
+            _vm.PotenciarHasta = new DateTime(2027, 4, 15, 13, 0, 0);
+            _vm.Motivo = "  Campaña en salones  ";
+            var enPotenciacion = Propio();
+            enPotenciacion.Estado = PropuestasStockConstantes.ESTADO_EN_POTENCIACION;
+            enPotenciacion.Decision = "Potenciar";
+            enPotenciacion.ObjetivoVentaMensual = 50;
+            enPotenciacion.PotenciarHasta = new DateTime(2027, 4, 15);
+            enPotenciacion.PotenciacionPropuestaId = 3;
+            enPotenciacion.PotenciacionObjetivo = 50;
+            enPotenciacion.PotenciacionHasta = new DateTime(2027, 4, 15);
+            enPotenciacion.PotenciacionVigente = true;
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
+                .Returns(new List<PropuestaStockModel> { enPotenciacion });
+
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+
+            var (id, peticion) = _decisiones.Single();
+            Assert.AreEqual(3, id);
+            Assert.AreEqual(PropuestasStockConstantes.DECISION_POTENCIAR, peticion.Decision);
+            Assert.AreEqual(50, peticion.ObjetivoVentaMensual);
+            Assert.AreEqual(new DateTime(2027, 4, 15), peticion.PotenciarHasta, "Solo la fecha, sin hora");
+            Assert.AreEqual("Campaña en salones", peticion.Motivo);
+            Assert.IsNull(peticion.StockMaximo);
+            Assert.IsNull(peticion.CanalLiquidacion);
+
+            PropuestaStockModel fila = _vm.PropuestaSeleccionada!;
+            Assert.AreEqual(3, fila.Id, "Sigue seleccionada la misma fila, ya releída");
+            Assert.IsTrue(fila.EstaEnPotenciacion);
+            Assert.AreEqual("50 uds/mes hasta 15/04/2027", fila.ObjetivoYFechaPotenciacion);
+            Assert.AreEqual("En potenciación: objetivo 50 uds/mes hasta 15/04/2027.", fila.TextoPotenciacion, "Sin nota de la API, el objetivo y la fecha");
+            StringAssert.Contains(fila.TextoDecision, "objetivo 50 uds/mes, revisión el 15/04/2027");
+            Assert.IsFalse(_vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public async Task Potenciar_ApiAnteriorSinLaDecision_MensajeClaroSinRomper()
+        {
+            A.CallTo(() => _servicio.Decidir(A<int>._, A<DecisionPropuestaStockPeticion>._))
+                .ThrowsAsync(new PropuestasStockException("La decisión tiene que ser Aplicar, Rechazar, Posponer, Silenciar.", 400));
+            await CargarConPropio();
+
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(PropuestasStockConstantes.MENSAJE_API_SIN_POTENCIAR, _vm.Mensaje);
+            Assert.IsFalse(_vm.EstaOcupado);
+            Assert.IsTrue(_vm.PotenciarCommand.CanExecute(null), "La pantalla sigue funcionando");
+        }
+
+        [TestMethod]
+        public async Task Potenciar_ApiSinElScript_EnsenaSuMensajeTalCual()
+        {
+            const string sinScript = "Falta el script de «Potenciar ventas» (Scripts/Issue655_PotenciarVentas.sql): de momento solo se puede aplicar, rechazar, posponer o silenciar.";
+            A.CallTo(() => _servicio.Decidir(A<int>._, A<DecisionPropuestaStockPeticion>._))
+                .ThrowsAsync(new PropuestasStockException(sinScript, 404));
+            await CargarConPropio();
+
+            await _vm.PotenciarCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(sinScript, _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public void MensajeErrorPotenciar_OtrosErroresTalCual()
+        {
+            Assert.AreEqual("Para potenciar las ventas indique el objetivo de venta (unidades al mes, más de 0).",
+                PropuestasStockViewModel.MensajeErrorPotenciar(new PropuestasStockException("Para potenciar las ventas indique el objetivo de venta (unidades al mes, más de 0).", 400)));
+            Assert.AreEqual("La decisión tiene que ser Aplicar, Rechazar, Posponer, Silenciar, Potenciar.",
+                PropuestasStockViewModel.MensajeErrorPotenciar(new PropuestasStockException("La decisión tiene que ser Aplicar, Rechazar, Posponer, Silenciar, Potenciar.", 400)));
+        }
+
+        [TestMethod]
+        public async Task Potenciar_NoSePuedeEnLasQueNoSeDeciden_NiSinPermiso()
+        {
+            var aplicada = Propio();
+            aplicada.Estado = "Aplicada";
+            A.CallTo(() => _servicio.LeerPropuestas(A<string>._, A<string>._, A<int>._, A<FiltroPropuestasStock>._))
+                .Returns(new List<PropuestaStockModel> { aplicada });
+            await _vm.CargarAsync();
+            Assert.IsFalse(_vm.PotenciarCommand.CanExecute(null));
+
+            A.CallTo(() => _servicio.LeerResumen(A<string>._, A<FiltroPropuestasStock>._))
+                .ThrowsAsync(new PropuestasStockException("Solo Compras y Dirección pueden ver las propuestas de stock.", 403));
+            await _vm.CargarAsync();
+            Assert.IsFalse(_vm.PotenciarCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void SinPotenciacion_NoSeEnsenaObjetivoNiNota()
+        {
+            PropuestaStockModel fila = Ajuste();
+
+            Assert.IsNull(fila.ObjetivoYFechaPotenciacion);
+            Assert.IsNull(fila.TextoPotenciacion);
+        }
+
         [TestMethod]
         public void AlLlegar_Carga()
         {

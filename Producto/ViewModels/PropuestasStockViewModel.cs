@@ -34,6 +34,8 @@ namespace Nesto.Modules.Producto.ViewModels
     /// <para>Sugerencia 644 (Manuel): columnas Familia y Grupo; filtros por familia, grupo, acción y texto (código o nombre),
     /// que filtra la API, y el contador de arriba cuenta solo lo filtrado (GET Resumen con los mismos filtros); y la
     /// «Consecuencia» de cada propuesta (qué pasa exactamente al aplicarla), que calcula la API.</para>
+    /// <para>Nesto#535 (gemela de NestoAPI#655): «Potenciar ventas» con objetivo (uds/mes; de entrada el que sugiere la API) y
+    /// fecha de revisión (de entrada, dentro de 6 meses). Las filas en potenciación enseñan el objetivo, la fecha y cómo va.</para>
     /// </summary>
     public class PropuestasStockViewModel : ObservableObject, IReceptorNavegacion
     {
@@ -79,6 +81,7 @@ namespace Nesto.Modules.Producto.ViewModels
             PosponerCommand = new AsyncRelayCommand(PosponerAsync, () => PuedeDecidir);
             SilenciarCommand = new AsyncRelayCommand(SilenciarAsync, () => PuedeDecidir);
             LiquidarCommand = new AsyncRelayCommand(LiquidarAsync, () => PuedeDecidir && PropuestaSeleccionada.EsLiquidar);
+            PotenciarCommand = new AsyncRelayCommand(PotenciarAsync, () => PuedeDecidir);
         }
 
         public string Titulo => "Propuestas de stock";
@@ -214,6 +217,14 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _canalLiquidacion;
         public string CanalLiquidacion { get => _canalLiquidacion; set => SetProperty(ref _canalLiquidacion, value); }
 
+        private int? _objetivoVentaMensual;
+        /// <summary>Nesto#535: al potenciar, la venta que se quiere conseguir (uds/mes). De entrada, la que sugiere la API (si la trae).</summary>
+        public int? ObjetivoVentaMensual { get => _objetivoVentaMensual; set => SetProperty(ref _objetivoVentaMensual, value); }
+
+        private DateTime? _potenciarHasta;
+        /// <summary>Nesto#535: al potenciar, la fecha de revisión. De entrada, dentro de 6 meses.</summary>
+        public DateTime? PotenciarHasta { get => _potenciarHasta; set => SetProperty(ref _potenciarHasta, value); }
+
         private bool _estaOcupado;
         public bool EstaOcupado
         {
@@ -256,6 +267,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public IAsyncRelayCommand PosponerCommand { get; }
         public IAsyncRelayCommand SilenciarCommand { get; }
         public IAsyncRelayCommand LiquidarCommand { get; }
+        /// <summary>Nesto#535 (NestoAPI#655): «Potenciar ventas» con objetivo y fecha de revisión.</summary>
+        public IAsyncRelayCommand PotenciarCommand { get; }
 
         /// <summary>Al llegar (también desde la campana con la pestaña ya abierta) se vuelve a leer.</summary>
         public void AlLlegar(ParametrosNavegacion parametros)
@@ -419,6 +432,8 @@ namespace Nesto.Modules.Producto.ViewModels
             MotivoSilencio = null;
             SilenciarHasta = _hoy().Date.AddMonths(PropuestasStockConstantes.MESES_SILENCIO_POR_DEFECTO);
             CanalLiquidacion = null;
+            ObjetivoVentaMensual = propuesta?.ObjetivoVentaSugerido;
+            PotenciarHasta = _hoy().Date.AddMonths(PropuestasStockConstantes.MESES_POTENCIACION_POR_DEFECTO);
         }
 
         /// <summary>¿Ha cambiado el máximo o el mínimo propuesto? Entonces hay que decir por qué.</summary>
@@ -524,7 +539,52 @@ namespace Nesto.Modules.Producto.ViewModels
             });
         }
 
-        private async Task DecidirAsync(PropuestaStockModel propuesta, DecisionPropuestaStockPeticion peticion)
+        private Task PotenciarAsync()
+        {
+            if (!ObjetivoVentaMensual.HasValue || ObjetivoVentaMensual.Value <= 0)
+            {
+                Mensaje = "Para potenciar las ventas indique el objetivo de venta (unidades al mes, más de 0).";
+                return Task.CompletedTask;
+            }
+            if (!PotenciarHasta.HasValue)
+            {
+                Mensaje = "Para potenciar las ventas indique la fecha de revisión.";
+                return Task.CompletedTask;
+            }
+            DateTime hoy = _hoy().Date;
+            DateTime hasta = PotenciarHasta.Value.Date;
+            if (hasta <= hoy)
+            {
+                Mensaje = "La fecha de revisión de la potenciación tiene que ser posterior a hoy.";
+                return Task.CompletedTask;
+            }
+            if (hasta > hoy.AddMonths(PropuestasStockConstantes.MESES_MAXIMOS_POTENCIACION))
+            {
+                Mensaje = $"Una potenciación no puede durar más de {PropuestasStockConstantes.MESES_MAXIMOS_POTENCIACION} meses.";
+                return Task.CompletedTask;
+            }
+            return DecidirAsync(PropuestaSeleccionada, new DecisionPropuestaStockPeticion
+            {
+                Decision = PropuestasStockConstantes.DECISION_POTENCIAR,
+                Motivo = MotivoLimpio(),
+                ObjetivoVentaMensual = ObjetivoVentaMensual.Value,
+                PotenciarHasta = hasta
+            }, MensajeErrorPotenciar);
+        }
+
+        /// <summary>
+        /// Nesto#535: una API anterior a NestoAPI#655 contesta 400 con la lista de decisiones sin «Potenciar»: se dice claro que
+        /// falta publicar la API. El resto de errores (también el 404 de «falta el script»), tal cual.
+        /// </summary>
+        internal static string MensajeErrorPotenciar(PropuestasStockException ex)
+            => ex.Codigo == 400
+                && ex.Message.StartsWith("La decisión tiene que ser", StringComparison.OrdinalIgnoreCase)
+                && ex.Message.IndexOf(PropuestasStockConstantes.DECISION_POTENCIAR, StringComparison.OrdinalIgnoreCase) < 0
+                ? PropuestasStockConstantes.MENSAJE_API_SIN_POTENCIAR
+                : ex.Message;
+
+        private async Task DecidirAsync(PropuestaStockModel propuesta, DecisionPropuestaStockPeticion peticion,
+            Func<PropuestasStockException, string> mensajeError = null)
         {
             Mensaje = null;
             UltimosCambios.Clear();
@@ -536,7 +596,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (PropuestasStockException ex)
             {
-                Mensaje = ex.Message;
+                Mensaje = mensajeError?.Invoke(ex) ?? ex.Message;
                 return;
             }
             catch (Exception ex)
@@ -567,6 +627,7 @@ namespace Nesto.Modules.Producto.ViewModels
             PosponerCommand?.NotifyCanExecuteChanged();
             SilenciarCommand?.NotifyCanExecuteChanged();
             LiquidarCommand?.NotifyCanExecuteChanged();
+            PotenciarCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>El último mes calculado (por defecto) y los 24 anteriores al actual.</summary>
@@ -582,10 +643,7 @@ namespace Nesto.Modules.Producto.ViewModels
             return meses;
         }
 
-        internal static string NombreEstado(string estado)
-            => estado == PropuestasStockConstantes.ESTADO_SIN_ACCION ? "Sin acción"
-            : estado == PropuestasStockConstantes.ESTADO_EN_POTENCIACION ? "En potenciación"
-            : estado;
+        internal static string NombreEstado(string estado) => PropuestasStockConstantes.NombreEstado(estado);
 
         private static int OrdenEstado(string estado)
         {

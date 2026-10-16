@@ -83,7 +83,9 @@
                     <DataGridTextColumn Header="Máx/mín propuesto" Binding="{Binding MaxMinPropuesto}" />
                     <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" />
                     <DataGridTextColumn Header="Exceso" Binding="{Binding ExcesoValorado, StringFormat='{}{0:C0}', ConverterCulture=es-ES}" />
-                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                    <DataGridTextColumn Header="Estado" Binding="{Binding NombreEstado}" SortMemberPath="Estado" />
+                    <!-- Nesto#535: si está en potenciación, el objetivo y la fecha de revisión -->
+                    <DataGridTextColumn Header="Objetivo" Binding="{Binding ObjetivoYFechaPotenciacion}" />
                     <DataGridTemplateColumn Header="Explicación" Width="*">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -105,7 +107,7 @@
                         <Run Text="Acción propuesta:" />
                         <Run Text="{Binding PropuestaSeleccionada.Accion, Mode=OneWay}" FontWeight="SemiBold" />
                         <Run Text="· Estado:" />
-                        <Run Text="{Binding PropuestaSeleccionada.Estado, Mode=OneWay}" FontWeight="SemiBold" />
+                        <Run Text="{Binding PropuestaSeleccionada.NombreEstado, Mode=OneWay}" FontWeight="SemiBold" />
                     </TextBlock>
                     <TextBlock TextWrapping="Wrap" Margin="0,2,0,0">
                         <Run Text="Máximo/mínimo actual:" />
@@ -114,6 +116,23 @@
                         <Run Text="{Binding PropuestaSeleccionada.MaxMinPropuesto, Mode=OneWay}" FontWeight="SemiBold" />
                     </TextBlock>
                     <TextBlock Text="{Binding PropuestaSeleccionada.TextoDecision}" TextWrapping="Wrap" Margin="0,4,0,0" FontStyle="Italic" />
+
+                    <!-- Nesto#535 (NestoAPI#655): cómo va la potenciación (objetivo, fecha de revisión y venta media) -->
+                    <Border Background="#FFF3F9F1" BorderBrush="#FFA9CFA0" BorderThickness="1" Padding="8,6" Margin="0,10,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding PropuestaSeleccionada.TextoPotenciacion}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="Potenciación de ventas" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding PropuestaSeleccionada.TextoPotenciacion}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
 
                     <!-- Sugerencia 644: qué pasa exactamente al aplicar la propuesta (lo calcula la API) -->
                     <Border Background="#FFF4F7FB" BorderBrush="#FFB8C7DA" BorderThickness="1" Padding="8,6" Margin="0,10,0,0">
@@ -165,6 +184,23 @@
                                         ToolTip="Como mucho 24 meses" />
                             <Button Content="Silenciar" Command="{Binding SilenciarCommand}" Padding="14,2" Margin="0,0,0,4"
                                     ToolTip="No vuelve a salir como pendiente hasta esa fecha" />
+                        </WrapPanel>
+
+                        <!-- Nesto#535 (NestoAPI#655): en vez de liquidar, un plazo para vender más -->
+                        <TextBlock Text="Potenciar ventas" FontWeight="SemiBold" Margin="0,8,0,2" />
+                        <WrapPanel>
+                            <TextBlock Text="Objetivo" VerticalAlignment="Center" Margin="0,0,4,4" />
+                            <TextBox Width="60" Text="{Binding ObjetivoVentaMensual, TargetNullValue='', UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"
+                                     VerticalContentAlignment="Center" ToolTip="Venta que se quiere conseguir, en unidades al mes (obligatorio). Intro para potenciar">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding PotenciarCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <TextBlock Text="uds/mes, revisión el" VerticalAlignment="Center" Margin="0,0,4,4" />
+                            <DatePicker SelectedDate="{Binding PotenciarHasta}" Width="120" Margin="0,0,8,4"
+                                        ToolTip="Fecha de revisión: por defecto, dentro de 6 meses; como mucho 24" />
+                            <Button Content="Potenciar" Command="{Binding PotenciarCommand}" Padding="14,2" Margin="0,0,0,4"
+                                    ToolTip="No cambia el stock: hasta la fecha de revisión sale «En potenciación» con la venta media frente al objetivo" />
                         </WrapPanel>
 
                         <StackPanel Visibility="{Binding PropuestaSeleccionada.EsLiquidar, Converter={StaticResource BooleanToVisibilityConverter}}">
