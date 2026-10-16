@@ -123,7 +123,13 @@
                     <TextBlock Text="Stock Mínimo (actual)" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="1" />
                     <xctk:ShortUpDown Value="{Binding StockMinimoActual}" Margin="3" Grid.Column="2" />
                     <TextBlock Text="Stock Mínimo (sugerido)" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="3" />
-                    <TextBlock Text="{Binding StockMinimoCalculado}" VerticalAlignment="Center" Grid.Column="4" Margin="10,0,0,0"/>
+                    <!-- NestoAPI#628 (ficha = Excel): tooltip con cómo lo ha calculado la API (sin tooltip si la API no lo manda) -->
+                    <TextBlock Text="{Binding StockMinimoCalculado}" VerticalAlignment="Center" Grid.Column="4" Margin="10,0,0,0"
+                               ToolTipService.IsEnabled="{Binding TieneTooltipStockMinimoSugerido}" ToolTipService.ShowDuration="60000">
+                        <TextBlock.ToolTip>
+                            <TextBlock Text="{Binding TooltipStockMinimoSugerido}" TextWrapping="Wrap" MaxWidth="500"/>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
                     <!-- Nesto#392: múltiplos a nivel producto, persisten en el almacén central (ALG) -->
                     <TextBlock Text="Múltiplos" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="5"
                                ToolTip="Cantidad múltiplo en la que se repone el producto. Se guarda en el almacén central (ALG), igual que el stock mínimo."/>
@@ -155,7 +161,13 @@
                                 <TextBlock Text="Stock Máximo (actual)" Grid.Column="0" Grid.Row="0" VerticalAlignment="Center" ></TextBlock>
                                 <xctk:ShortUpDown Value="{Binding StockMaximoActual}" IsEnabled="{Binding IsActive}" Margin="3" Grid.Column="1" Grid.Row="0"  VerticalAlignment="Center"/>
                                 <TextBlock Text="Stock Máximo (sugerido)" Grid.Column="0" Grid.Row="1" VerticalAlignment="Center"></TextBlock>
-                                <TextBlock Text="{Binding StockMaximoCalculado}" Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"></TextBlock>
+                                <!-- NestoAPI#628 (ficha = Excel): tooltip con cómo lo ha calculado la API, por almacén -->
+                                <TextBlock Text="{Binding StockMaximoCalculado}" Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           ToolTipService.IsEnabled="{Binding TieneTooltipStockMaximoSugerido}" ToolTipService.ShowDuration="60000">
+                                    <TextBlock.ToolTip>
+                                        <TextBlock Text="{Binding TooltipStockMaximoSugerido}" TextWrapping="Wrap" MaxWidth="500"/>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
                             </Grid>
                         </Border>
                     </xctk:BusyIndicator>

@@ -55,5 +55,9 @@ namespace Nesto.Modules.Producto.Models
             } 
         }
         public int StockMaximoCalculado => Model != null ? Model.StockMaximoCalculado : 0;
+
+        /// <summary>NestoAPI#628 (ficha = Excel): cómo ha calculado la API el máximo sugerido. Null (sin tooltip) si no lo manda.</summary>
+        public string TooltipStockMaximoSugerido => Model?.TooltipSugerido;
+        public bool TieneTooltipStockMaximoSugerido => TooltipStockMaximoSugerido != null;
     }
 }

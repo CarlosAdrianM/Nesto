@@ -97,6 +97,14 @@ namespace Nesto.Modules.Producto.Models
         }
         public int StockMinimoCalculado => Model != null ? Model.StockMinimoCalculado : 0;
 
+        /// <summary>
+        /// NestoAPI#628 (ficha = Excel): el mínimo sugerido es el de ALG, así que su tooltip es la explicación que manda la API
+        /// para ALG (la misma que la del máximo de ALG). Null (sin tooltip) si la API no la manda.
+        /// </summary>
+        public string TooltipStockMinimoSugerido => Model?.ControlesStocksAlmacen?
+            .FirstOrDefault(c => c.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL)?.TooltipSugerido;
+        public bool TieneTooltipStockMinimoSugerido => TooltipStockMinimoSugerido != null;
+
         // Nesto#392: los múltiplos se editan a nivel producto (espejo del stock mínimo) y
         // persisten en el almacén central (ALG); los del resto de almacenes no se tocan.
         public int MultiplosActual
