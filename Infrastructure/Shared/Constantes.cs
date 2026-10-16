@@ -133,6 +133,11 @@ namespace Nesto.Infrastructure.Shared
         public class Pedidos
         {
             public const string RUTA_GLOVO = "GLV";
+            /// <summary>
+            /// Nesto#531: rutas de reparto que salen de Algete (espejo de RutaPropia + RutaAgencia de NestoAPI,
+            /// NestoAPI#649). En ellas una muestra solo puede llevar las unidades que hay en Algete.
+            /// </summary>
+            public static readonly string[] RUTAS_QUE_SALEN_DE_ALGETE = { "AT", "16", "00", "FW" };
         }
         public class PeriodosFacturacion
         {
@@ -165,6 +170,8 @@ namespace Nesto.Infrastructure.Shared
             public class Grupos
             {
                 public const string MUESTRAS = "MMP";
+                /// <summary>Nesto#531: la plantilla recibe la descripción del subgrupo, no el código MMP.</summary>
+                public const string DESCRIPCION_MUESTRAS = "Muestras y material promocional";
             }
             // Nesto#453: sentinel de PrestashopProductos.PVP_IVA_Incluido (espejo de NestoAPI
             // Constantes.Productos.PVP_IVA_MISMO_QUE_PROFESIONAL): el público es el mismo que el profesional.

@@ -1689,6 +1689,64 @@ Public Class PlantillaVentaViewModel
         sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}».")
         Return sb.ToString()
     End Function
+
+    ''' <summary>
+    ''' Nesto#531 (gemela de NestoAPI#649): en un pedido que sale por ruta desde Algete, las muestras
+    ''' (subgrupo MMP) solo pueden llevar las unidades que hay en Algete; la API rechaza al grabar las que
+    ''' pasan de ahí. Es la misma regla en la plantilla, para ofrecerlo ANTES de grabar: líneas nuevas de
+    ''' muestra con el stock ya cargado del almacén del pedido (ALG) y menos disponible que cantidad.
+    ''' Las líneas ya guardadas (edición) no se miran: la API solo cuenta lo que se añade y aquí el
+    ''' disponible incluye la reserva de la propia línea. Presupuestos y pedidos de tienda, fuera.
+    ''' </summary>
+    Friend Shared Function MuestrasPorEncimaDeAlgete(lineas As IEnumerable(Of LineaPlantillaVenta), ruta As String, almacen As String, esPresupuesto As Boolean) As List(Of LineaPlantillaVenta)
+        If lineas Is Nothing OrElse esPresupuesto OrElse Not SalePorRutaDesdeAlgete(ruta, almacen) Then
+            Return New List(Of LineaPlantillaVenta)
+        End If
+        Return lineas.Where(Function(l) l IsNot Nothing AndAlso
+                                EsMuestra(l) AndAlso
+                                l.idLineaPedido = 0 AndAlso
+                                l.stockActualizado AndAlso
+                                l.cantidad > 0 AndAlso
+                                l.cantidadDisponible < l.cantidad).ToList()
+    End Function
+
+    ''' <summary>Nesto#531: ruta de reparto (no recoger en tienda, Glovo…) y almacén del pedido ALG.</summary>
+    Friend Shared Function SalePorRutaDesdeAlgete(ruta As String, almacen As String) As Boolean
+        If String.IsNullOrWhiteSpace(ruta) OrElse String.IsNullOrWhiteSpace(almacen) Then Return False
+        Return Constantes.Pedidos.RUTAS_QUE_SALEN_DE_ALGETE.Contains(ruta.Trim(), StringComparer.OrdinalIgnoreCase) AndAlso
+            String.Equals(almacen.Trim(), Constantes.Almacenes.ALMACEN_ALGETE, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>Nesto#531: la plantilla trae la descripción del subgrupo; se acepta también el código.</summary>
+    Friend Shared Function EsMuestra(linea As LineaPlantillaVenta) As Boolean
+        Dim subGrupo As String = linea?.subGrupo?.Trim()
+        Return String.Equals(subGrupo, Constantes.Productos.Grupos.MUESTRAS, StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(subGrupo, Constantes.Productos.Grupos.DESCRIPCION_MUESTRAS, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>Nesto#531: texto de la confirmación que ofrece dejar las muestras en lo que hay en Algete.</summary>
+    Friend Shared Function ConstruirOfertaAjustarMuestrasAlgete(muestras As IEnumerable(Of LineaPlantillaVenta)) As String
+        Dim lista = muestras.ToList()
+        Dim sb As New StringBuilder()
+        sb.AppendLine("Este pedido sale por ruta desde Algete y las muestras solo pueden llevar las unidades que hay allí (no se reponen para un pedido):")
+        For Each linea In lista
+            Dim hay As String = If(linea.cantidadDisponible <= 0, "no hay ninguna", $"solo hay {linea.cantidadDisponible}")
+            sb.AppendLine($" · {linea.producto?.Trim()} {linea.texto?.Trim()}: pide {linea.cantidad}, {hay} en Algete")
+        Next
+        sb.AppendLine()
+        sb.AppendLine(If(lista.Count = 1,
+                         "¿Quiere dejarla en lo que hay en Algete (si no hay ninguna, se quita del pedido) y grabar el pedido?",
+                         "¿Quiere dejarlas en lo que hay en Algete (las que no tienen ninguna se quitan del pedido) y grabar el pedido?"))
+        sb.Append("Si no, el pedido no se graba y puede cambiarlas usted.")
+        Return sb.ToString()
+    End Function
+
+    ''' <summary>Nesto#531: deja cada muestra en las unidades disponibles en Algete (0 = fuera del pedido).</summary>
+    Friend Shared Sub AjustarMuestrasAAlgete(muestras As IEnumerable(Of LineaPlantillaVenta))
+        For Each linea In muestras
+            linea.cantidad = Math.Max(0, linea.cantidadDisponible)
+        Next
+    End Sub
 #End Region
 
     Friend _clienteSeleccionado As ClienteJson
@@ -3746,6 +3804,20 @@ Public Class PlantillaVentaViewModel
                 Return
             End If
         Next
+
+        ' Nesto#531 (NestoAPI#649): una muestra por encima de lo que hay en Algete en un pedido por ruta la
+        ' rechaza la API. Se ofrece antes de grabar dejarlas en lo que hay; nunca sin confirmación.
+        Dim muestrasSinStock = MuestrasPorEncimaDeAlgete(listaProductosPedido, direccionEntregaSeleccionada?.ruta, almacenSeleccionado?.Codigo, EsPresupuesto)
+        If muestrasSinStock.Any() Then
+            If Not dialogService.ShowConfirmationAnswer("Muestras sin stock en Algete", ConstruirOfertaAjustarMuestrasAlgete(muestrasSinStock)) Then
+                Return
+            End If
+            AjustarMuestrasAAlgete(muestrasSinStock)
+            For Each linea In muestrasSinStock
+                cmdActualizarProductosPedido.Execute(linea)
+            Next
+            ActualizarTotales()
+        End If
 
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()
