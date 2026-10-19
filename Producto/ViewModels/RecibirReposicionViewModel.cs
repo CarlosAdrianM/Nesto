@@ -160,6 +160,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Lectura = string.Empty;
             });
             TerminarCommand = new AsyncRelayCommand(TerminarAsync, () => PuedeTerminar && !EstaOcupado);
+            RecibirLoLeidoCommand = new AsyncRelayCommand(RecibirLoLeidoAsync, () => PuedeRecibirEnParte && !EstaOcupado);
             LimpiarFiltroCommand = new RelayCommand(() => Filtro = null);
             ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => Seleccionada != null && !EstaOcupado);
             ImprimirEtiquetaCommand = new AsyncRelayCommand<LineaRecibirReposicion>(ImprimirEtiquetaAsync,
@@ -247,6 +248,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _puedeTerminar, value))
                 {
                     TerminarCommand.NotifyCanExecuteChanged();
+                    RefrescarRecibirEnParte();
                 }
             }
         }
@@ -263,6 +265,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _estaOcupado, value))
                 {
                     TerminarCommand.NotifyCanExecuteChanged();
+                    RecibirLoLeidoCommand.NotifyCanExecuteChanged();
                     ImprimirCommand.NotifyCanExecuteChanged();
                     ImprimirEtiquetaCommand.NotifyCanExecuteChanged();
                 }
@@ -325,6 +328,16 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     Mensaje = $"No hay ninguna reposición pendiente de recibir en {Almacen}.";
                 }
+                else
+                {
+                    // NestoAPI#673: la que lleva más de 2 días recibida solo en parte se señala nada más entrar
+                    List<string> avisos = Pendientes.Where(p => p.AvisarRecibidaEnParte)
+                        .Select(p => string.IsNullOrWhiteSpace(p.AvisoRecibidaEnParte)
+                            ? $"La reposición {p.Documento?.Trim()} lleva más de 2 días recibida solo en parte: termine de recibirla."
+                            : p.AvisoRecibidaEnParte.Trim())
+                        .ToList();
+                    Mensaje = avisos.Count == 0 ? null : string.Join(Environment.NewLine, avisos);
+                }
             }).ConfigureAwait(true);
             // Incidencia 505: si solo hay una, se abre sola (antes había que hacer doble clic y no era evidente)
             if (Pendientes.Count == 1 && Seleccionada == null)
@@ -339,7 +352,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
-            Mensaje = null;
+            // NestoAPI#673: el aviso de las recibidas en parte hace más de 2 días se queda a la vista al abrir una
+            Mensaje = Pendientes.Any(p => p.AvisarRecibidaEnParte) ? Mensaje : null;
             await Ocupado(async () =>
             {
                 RecepcionReposicion recepcion = await _servicio.LeerRecepcion(Empresa, Almacen, pendiente.Documento).ConfigureAwait(true);
@@ -368,6 +382,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     });
                 }
                 PuedeTerminar = recepcion.PuedeTerminar && recepcion.SeTerminaDesdeAqui;
+                RefrescarRecibirEnParte();
                 RefrescarBultos();
                 if (!PuedeTerminar)
                 {
@@ -770,7 +785,170 @@ namespace Nesto.Modules.Producto.ViewModels
                 CodigosBulto.Clear();
                 RefrescarBultos();
                 PuedeTerminar = false;
+                RefrescarRecibirEnParte();
             }).ConfigureAwait(true);
+        }
+
+        // ---------------------------------------------------------------- NestoAPI#673: recibir por partes
+
+        /// <summary>
+        /// NestoAPI#673 (Novedades 598, Reina): «Dar de alta solo lo leído». La clienta que viene a recoger lo que pidió el mismo
+        /// día que llega la reposición: se lee solo eso, entra ya y el resto de la reposición queda pendiente para recibirlo
+        /// después (sin contarlo como falta). Como en Nesto viejo, que dejaba contabilizar una sola línea.
+        /// </summary>
+        public IAsyncRelayCommand RecibirLoLeidoCommand { get; }
+
+        /// <summary>Se puede dar de alta solo lo leído: se puede terminar y la API lo admite (una anterior la terminaría entera).</summary>
+        public bool PuedeRecibirEnParte => PuedeTerminar && _recepcion?.AdmiteRecibirEnParte == true;
+
+        /// <summary>«Recibido en parte: 1 línea, 2 ud.» de la reposición abierta. Null si no se ha recibido nada en parte.</summary>
+        public string TextoRecibidaEnParte => string.IsNullOrWhiteSpace(_recepcion?.TextoRecibidaEnParte) ? null : _recepcion.TextoRecibidaEnParte.Trim();
+
+        private void RefrescarRecibirEnParte()
+        {
+            OnPropertyChanged(nameof(PuedeRecibirEnParte));
+            OnPropertyChanged(nameof(TextoRecibidaEnParte));
+            RecibirLoLeidoCommand?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>Lo que entra en una parcial: lo leído de cada línea que venía (nunca más de lo enviado).</summary>
+        internal int UnidadesParaRecibirEnParte => Lineas.Where(l => !l.NoVenia).Sum(l => Math.Min(l.Leido, l.Enviado));
+
+        internal static string TextoConfirmarParcial(int unidades)
+            => $"Se darán de alta {(unidades == 1 ? "la unidad leída" : $"las {unidades} unidades leídas")}. " +
+               "El resto de la reposición queda pendiente para recibirlo después.";
+
+        internal async Task RecibirLoLeidoAsync()
+        {
+            if (_recepcion == null || Seleccionada == null || !PuedeRecibirEnParte)
+            {
+                return;
+            }
+            if (EsperandoEtiqueta)
+            {
+                // La API tampoco la deja recibir sin la etiqueta
+                LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
+                return;
+            }
+            // En una parcial no entra nada que no viniera ni más de lo enviado (eso se ve al terminarla): se dice antes de preguntar
+            List<string> noVenian = Lineas.Where(l => l.NoVenia && l.Leido > 0).Select(l => l.Producto).ToList();
+            if (noVenian.Count > 0)
+            {
+                LecturaFallida($"Para dar de alta solo lo leído, todo tiene que venir en la reposición: {string.Join(", ", noVenian)} no venía. " +
+                    "Ponga su «Leído» a 0 o termine la reposición entera.");
+                return;
+            }
+            List<LineaRecibirReposicion> sobran = Lineas.Where(l => !l.NoVenia && l.Leido > l.Enviado).ToList();
+            if (sobran.Count > 0)
+            {
+                LecturaFallida("Para dar de alta solo lo leído, no puede haber más de lo enviado: " +
+                    string.Join(", ", sobran.Select(l => $"{l.Producto} (enviado {l.Enviado}, leído {l.Leido})")) +
+                    ". Corrija lo leído o termine la reposición entera.");
+                return;
+            }
+            int unidades = UnidadesParaRecibirEnParte;
+            if (unidades == 0)
+            {
+                LecturaFallida("No ha leído nada: lea lo que quiere dar de alta y vuelva a pulsar «Dar de alta solo lo leído».");
+                return;
+            }
+            if (!await _dialogos.ShowConfirmationAsync("¿Dar de alta solo lo leído?", TextoConfirmarParcial(unidades)).ConfigureAwait(true))
+            {
+                return;
+            }
+            var terminar = new TerminarRecepcionReposicion
+            {
+                IdRecepcion = _idRecepcion,
+                Dispositivo = Environment.MachineName,
+                Lecturas = Lineas.Where(l => !l.NoVenia && l.Leido > 0)
+                    .Select(l => new LecturaRecepcionReposicion { Producto = l.Producto, Cantidad = l.Leido })
+                    .ToList(),
+                CodigosBulto = CodigosBulto.ToList(),
+                Parcial = true
+            };
+            RecepcionPendiente abierta = Seleccionada;
+            ResultadoRecepcionReposicion resultado = null;
+            await Ocupado(async () =>
+            {
+                resultado = await _servicio.Terminar(Empresa, Almacen, abierta.Documento, terminar).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+            if (resultado == null)
+            {
+                // No ha entrado nada: Ocupado ya ha puesto el motivo y lo leído sigue ahí
+                return;
+            }
+            string texto = TextoResultadoParcial(abierta.Documento, resultado);
+            if (!resultado.Parcial && !resultado.YaEstabaTerminada)
+            {
+                // Lo leído era la reposición entera: queda recibida, como al terminar
+                Mensaje = texto;
+                Pendientes.Remove(abierta);
+                Seleccionada = null;
+                _recepcion = null;
+                Lineas.Clear();
+                CodigosBulto.Clear();
+                RefrescarBultos();
+                PuedeTerminar = false;
+                RefrescarRecibirEnParte();
+                return;
+            }
+            // Sigue pendiente con lo que queda: se vuelve a abrir (IdRecepcion nuevo y lo leído a cero) sin volver a pedir
+            // la etiqueta del bulto
+            List<string> bultos = CodigosBulto.ToList();
+            await RecargarTrasParcialAsync(abierta.Documento).ConfigureAwait(true);
+            if (Seleccionada != null)
+            {
+                foreach (string bulto in bultos.Where(b => !CodigosBulto.Contains(b)))
+                {
+                    CodigosBulto.Add(bulto);
+                }
+                RefrescarBultos();
+            }
+            Mensaje = texto;
+            PedirFocoEnLector?.Invoke();
+        }
+
+        private async Task RecargarTrasParcialAsync(string documento)
+        {
+            List<RecepcionPendiente> pendientes = null;
+            await Ocupado(async () =>
+            {
+                pendientes = await _servicio.LeerPendientes(Empresa, Almacen).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+            if (pendientes == null)
+            {
+                return;
+            }
+            Pendientes.Clear();
+            foreach (RecepcionPendiente pendiente in pendientes)
+            {
+                Pendientes.Add(pendiente);
+            }
+            RecepcionPendiente misma = Pendientes.FirstOrDefault(p => string.Equals(p.Documento?.Trim(), documento?.Trim(), StringComparison.OrdinalIgnoreCase));
+            Seleccionada = null;
+            _recepcion = null;
+            Lineas.Clear();
+            CodigosBulto.Clear();
+            PuedeTerminar = false;
+            RefrescarRecibirEnParte();
+            RefrescarBultos();
+            if (misma != null)
+            {
+                await ElegirAsync(misma).ConfigureAwait(true);
+            }
+        }
+
+        /// <summary>Lo que dice el servidor tras una parcial (o, con una API sin <see cref="ResultadoRecepcionReposicion.Mensaje"/>, se monta aquí).</summary>
+        internal static string TextoResultadoParcial(string documento, ResultadoRecepcionReposicion resultado)
+        {
+            if (resultado?.Parcial != true || !string.IsNullOrWhiteSpace(resultado.Mensaje) || resultado.YaEstabaTerminada)
+            {
+                return TextoResultado(documento, resultado);
+            }
+            var partes = new List<string> { $"Reposición {documento?.Trim()}: se ha dado de alta lo leído." };
+            string lineas = resultado.LineasPendientes == 1 ? "1 línea" : $"{resultado.LineasPendientes} líneas";
+            partes.Add($"Sigue pendiente el resto ({lineas}, {resultado.UnidadesPendientes} ud.).");
+            return string.Join(Environment.NewLine, partes);
         }
 
         internal string ResumenParaConfirmar()

@@ -20,8 +20,20 @@ namespace Nesto.Infrastructure.Models
         /// </summary>
         public bool EsPuntual { get; set; }
         public DateTime? Fecha { get; set; }
+        /// <summary>Lo que queda por recibir (en una recibida en parte, solo lo pendiente).</summary>
         public int Lineas { get; set; }
         public int Unidades { get; set; }
+
+        // NestoAPI#673: recibida por partes. False / null con una API anterior.
+
+        /// <summary>Ya se ha dado de alta una parte (lo leído) y el resto sigue pendiente.</summary>
+        public bool RecibidaEnParte { get; set; }
+        /// <summary>«Recibido en parte: 1 línea, 2 ud.». Null si no se ha recibido nada en parte.</summary>
+        public string TextoRecibidaEnParte { get; set; }
+        /// <summary>Lleva más de 2 días recibida en parte y sin terminar: hay que señalarla.</summary>
+        public bool AvisarRecibidaEnParte { get; set; }
+        /// <summary>El aviso tal cual («La reposición 80862 lleva más de 2 días recibida solo en parte…»). Null si no hay que avisar.</summary>
+        public string AvisoRecibidaEnParte { get; set; }
     }
 
     public class LineaRecepcionReposicion
@@ -84,6 +96,14 @@ namespace Nesto.Infrastructure.Models
         public bool ExigeEtiqueta { get; set; }
         /// <summary>Cuántos bultos lleva (0 si se envió sin bultos o con una API anterior).</summary>
         public int Bultos { get; set; }
+
+        /// <summary>
+        /// NestoAPI#673: se puede dar de alta solo lo leído y dejar el resto pendiente. False con una API anterior: entonces no se
+        /// ofrece (una API anterior no conoce <see cref="TerminarRecepcionReposicion.Parcial"/> y la terminaría entera).
+        /// </summary>
+        public bool AdmiteRecibirEnParte { get; set; }
+        /// <summary>NestoAPI#673: «Recibido en parte: 1 línea, 2 ud.» si ya se ha dado de alta una parte; null si no.</summary>
+        public string TextoRecibidaEnParte { get; set; }
     }
 
     public class LecturaRecepcionReposicion
@@ -101,6 +121,11 @@ namespace Nesto.Infrastructure.Models
         public string Dispositivo { get; set; }
         /// <summary>Nesto#530 (NestoAPI#645): las etiquetas de los bultos leídas al recibirla (R81010-1, R81010-2…).</summary>
         public List<string> CodigosBulto { get; set; } = new List<string>();
+        /// <summary>
+        /// NestoAPI#673: dar de alta solo lo leído (nada que no viniera ni más de lo enviado) y dejar el resto pendiente, sin
+        /// diferencias: se comparan al terminarla. IdRecepcion nuevo en cada parcial.
+        /// </summary>
+        public bool Parcial { get; set; }
     }
 
     public class DiferenciaRecepcionReposicion
@@ -118,6 +143,12 @@ namespace Nesto.Infrastructure.Models
     {
         public string Documento { get; set; }
         public bool YaEstabaTerminada { get; set; }
+        /// <summary>NestoAPI#673: se ha dado de alta solo lo leído y la reposición sigue pendiente con el resto.</summary>
+        public bool Parcial { get; set; }
+        /// <summary>NestoAPI#673: tras una parcial, los productos que siguen pendientes.</summary>
+        public int LineasPendientes { get; set; }
+        /// <summary>NestoAPI#673: tras una parcial, las unidades que siguen pendientes.</summary>
+        public int UnidadesPendientes { get; set; }
         /// <summary>Lo que no coincide con lo enviado: ha entrado lo leído.</summary>
         public List<DiferenciaRecepcionReposicion> Diferencias { get; set; } = new List<DiferenciaRecepcionReposicion>();
         /// <summary>A quién se ha informado de las diferencias (quien creó el traspaso).</summary>

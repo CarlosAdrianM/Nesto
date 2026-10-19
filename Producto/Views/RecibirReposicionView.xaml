@@ -48,6 +48,11 @@
                         <TextBlock>
                             <Run Text="{Binding Lineas, Mode=OneWay}" /><Run Text=" líneas · " /><Run Text="{Binding Unidades, Mode=OneWay}" /><Run Text=" uds" />
                         </TextBlock>
+                        <!-- NestoAPI#673: ya se ha dado de alta una parte; más de 2 días así, el aviso en negrita (sin colores fijos) -->
+                        <TextBlock Text="{Binding TextoRecibidaEnParte}" FontStyle="Italic"
+                                   Visibility="{Binding RecibidaEnParte, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <TextBlock Text="{Binding AvisoRecibidaEnParte}" FontWeight="Bold" TextWrapping="Wrap" MaxWidth="240"
+                                   Visibility="{Binding AvisarRecibidaEnParte, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -66,6 +71,8 @@
             <TextBlock Text="Lea la etiqueta del bulto (Rxxxxx-n) en el lector" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"
                        Visibility="{Binding EsperandoEtiqueta, Converter={StaticResource BooleanToVisibilityConverter}}" />
             <TextBlock Text="{Binding TextoBultos}" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <!-- NestoAPI#673: lo que ya se ha dado de alta de esta reposición -->
+            <TextBlock Text="{Binding TextoRecibidaEnParte}" FontStyle="Italic" VerticalAlignment="Center" Margin="0,0,12,0" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad. Si escribes el nombre, elige el producto en la lista: también suma una unidad. La etiqueta de un bulto (R81010-2) abre su reposición">
@@ -82,6 +89,10 @@
             </TextBox>
             <Button Content="Terminar" Command="{Binding TerminarCommand}" Padding="16,2" Margin="12,0,0,0"
                     ToolTip="Entra lo leído y se informa de las diferencias a quien hizo la reposición" />
+            <!-- NestoAPI#673: la clienta que viene a recoger lo que pidió el mismo día que llega la reposición -->
+            <Button Content="Dar de alta solo lo leído" Command="{Binding RecibirLoLeidoCommand}" Padding="12,2" Margin="12,0,0,0"
+                    Visibility="{Binding PuedeRecibirEnParte, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="Da de alta ya lo leído (nada que no viniera ni más de lo enviado). El resto de la reposición queda pendiente para recibirlo después: no cuenta como falta" />
             <!-- Sugerencia 564: lo que llega en papel, para comprobarlo a mano -->
             <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0"
                     ToolTip="Abre un PDF con lo que llega para comprobarlo a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />

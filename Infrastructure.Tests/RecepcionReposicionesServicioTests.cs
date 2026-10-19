@@ -116,6 +116,48 @@ namespace Infrastructure.Tests
             StringAssert.Contains(ex.Message, "tienda de destino");
         }
 
+        // NestoAPI#673: recibir por partes
+        [TestMethod]
+        public async Task Terminar_Parcial_MandaParcialYLeeLoQueQuedaPendiente()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Tipo\":\"REPO\",\"Documento\":\"80878\",\"Parcial\":true,\"LineasPendientes\":2,\"UnidadesPendientes\":4}"
+            };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            ResultadoRecepcionReposicion resultado = await servicio.Terminar("1", "ALC", "80878", new TerminarRecepcionReposicion
+            {
+                IdRecepcion = Guid.NewGuid(),
+                Parcial = true,
+                Lecturas = new List<LecturaRecepcionReposicion> { new LecturaRecepcionReposicion { Producto = "17404", Cantidad = 1 } }
+            });
+
+            Assert.IsTrue((bool)JObject.Parse(handler.Cuerpos[0])["Parcial"]);
+            Assert.IsTrue(resultado.Parcial);
+            Assert.AreEqual(2, resultado.LineasPendientes);
+            Assert.AreEqual(4, resultado.UnidadesPendientes);
+        }
+
+        [TestMethod]
+        public async Task LeerPendientes_TraeLoRecibidoEnParteYElAviso()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "[{\"Tipo\":\"REPO\",\"Documento\":\"80878\",\"RecibidaEnParte\":true," +
+                            "\"TextoRecibidaEnParte\":\"Recibido en parte: 1 línea, 2 ud.\",\"AvisarRecibidaEnParte\":true," +
+                            "\"AvisoRecibidaEnParte\":\"Lleva más de 2 días\"}]"
+            };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            RecepcionPendiente pendiente = (await servicio.LeerPendientes("1", "ALC")).Single();
+
+            Assert.IsTrue(pendiente.RecibidaEnParte);
+            Assert.AreEqual("Recibido en parte: 1 línea, 2 ud.", pendiente.TextoRecibidaEnParte);
+            Assert.IsTrue(pendiente.AvisarRecibidaEnParte);
+            Assert.AreEqual("Lleva más de 2 días", pendiente.AvisoRecibidaEnParte);
+        }
+
         // ---- Nesto#538: de qué producto es lo leído que no está en la reposición ----
 
         /// <summary>Contesta según el principio de la ruta pedida; lo que no conoce, 404.</summary>
