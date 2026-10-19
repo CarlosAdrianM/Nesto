@@ -73,6 +73,9 @@ Public Interface IAgenciaService
     ' La fecha la estampa el servidor (POST api/EnviosAgencias/{id}/RecibirRetorno) y se devuelve
     ' para reflejarla sin recargar. Lanza con el motivo del servidor si lo rechaza.
     Function RecibirRetorno(numeroEnvio As Integer) As Task(Of Date)
+    ' NestoAPI#676: da por cerrado un envío incidentado que la agencia nunca cerró (POST api/EnviosAgencias/{id}/DarPorCerrado,
+    ' motivo obligatorio). Lanza con el motivo del servidor si lo rechaza (ya no está incidentado, falta el motivo).
+    Function DarPorCerradoEnvio(numeroEnvio As Integer, motivo As String) As Task
     ' Nesto#415 / Nesto#340 (Agencias, slice A4.3): la agencia paga los reembolsos que cobró. El
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).

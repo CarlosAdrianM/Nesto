@@ -112,6 +112,7 @@ Public Class AgenciasViewModel
         GuardarEnvioPendienteCommand = New RelayCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
         AbrirEnlaceSeguimientoCommand = New RelayCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
+        DarPorCerradoCommand = New RelayCommand(AddressOf OnDarPorCerrado, AddressOf CanDarPorCerrado)
         cmdCargarRetrasados = New RelayCommand(AddressOf CargarRetrasados)
         cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
@@ -1051,6 +1052,7 @@ Public Class AgenciasViewModel
                 If Not IsNothing(cmdActualizarSeguimiento) Then
                     cmdActualizarSeguimiento.NotifyCanExecuteChanged()
                 End If
+                DarPorCerradoCommand?.NotifyCanExecuteChanged()
 
                 ' Nesto#418/#422: el menú contextual de copiar depende del envío seleccionado.
                 If Not IsNothing(CopiarNumeroPedidoCommand) Then
@@ -3366,6 +3368,54 @@ Public Class AgenciasViewModel
             Case 4 : Return "Devuelto"
             Case Else : Return $"Estado {estado}"
         End Select
+    End Function
+
+    ' NestoAPI#676 (Sugerencia 673, Aida): «Dar por cerrado» un envío incidentado que la agencia nunca cerró. Pide
+    ' el motivo, la API lo pasa a Entregado («cerrado a mano»), lo apunta en la historia del envío con el usuario y
+    ' el seguimiento automático ya no lo reabre. Aquí solo se quita de la lista de Incidentados.
+    Public Const ESTADO_INCIDENTADO As Short = 3
+    Public Property DarPorCerradoCommand As RelayCommand
+    Private Function CanDarPorCerrado() As Boolean
+        Return envioActual IsNot Nothing AndAlso envioActual.Estado = ESTADO_INCIDENTADO
+    End Function
+    Private Async Sub OnDarPorCerrado()
+        Await DarPorCerradoSeleccionado()
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#676: Friend para probar el flujo (motivo, cancelación, llamada, quitar de la lista) sin UI.
+    ''' </summary>
+    Friend Async Function DarPorCerradoSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse envio.Estado <> ESTADO_INCIDENTADO Then
+            Return
+        End If
+        Dim descripcion As String = If(envio.Pedido.HasValue, $"el envío del pedido {envio.Pedido}", $"el envío {envio.Numero}")
+        Dim motivo As String = _dialogService.GetText("Dar por cerrado",
+            $"¿Por qué da por cerrado {descripcion}?" & vbCr &
+            "Saldrá de Incidentados y el seguimiento automático no lo volverá a abrir. El motivo queda en la historia del envío.")
+        If motivo Is Nothing Then
+            Return ' cancelado
+        End If
+        If String.IsNullOrWhiteSpace(motivo) Then
+            _dialogService.ShowError("Indique el motivo por el que da por cerrado el envío.")
+            Return
+        End If
+
+        Try
+            EstaOcupado = True
+            Await _servicio.DarPorCerradoEnvio(envio.Numero, motivo.Trim())
+            Dim unused = listaIncidentados?.Remove(envio)
+            If envioActual Is envio Then
+                envioActual = listaIncidentados?.FirstOrDefault()
+            End If
+            _dialogService.ShowNotification("Dar por cerrado", $"Se ha dado por cerrado {descripcion}.")
+        Catch ex As Exception
+            Dim unused2 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.DarPorCerradoSeleccionado")
+            _dialogService.ShowError($"No se ha podido dar por cerrado {descripcion}:" & vbCr & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
     End Function
 #End Region
 

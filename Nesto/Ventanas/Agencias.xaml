@@ -619,6 +619,9 @@
                                 ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haz doble clic en la fila)"/>
                         <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático"/>
+                        <!-- NestoAPI#676: para los incidentados que la agencia nunca cerró. Pide el motivo. -->
+                        <Button Content="Dar por cerrado" MinWidth="120" Margin="3" Command="{Binding DarPorCerradoCommand}"
+                                ToolTip="Da por cerrado el envío seleccionado aunque la agencia no lo haya cerrado. Se le pedirá el motivo, que queda en la historia del envío."/>
                     </StackPanel>
                     <DataGrid ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                         <i:Interaction.Triggers>

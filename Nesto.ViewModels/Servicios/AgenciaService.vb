@@ -920,6 +920,36 @@ Public Class AgenciaService
     End Function
 
     ''' <summary>
+    ''' NestoAPI#676: da por cerrado un envío incidentado que la agencia nunca cerró. El servidor lo pasa a Entregado
+    ''' («cerrado a mano»), lo apunta en la historia con el usuario del token y el motivo. Si lo rechaza, lanza con SU texto.
+    ''' </summary>
+    Public Async Function DarPorCerradoEnvio(numeroEnvio As Integer, motivo As String) As Task Implements IAgenciaService.DarPorCerradoEnvio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(CuerpoDarPorCerrado(motivo), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaDarPorCerrado(numeroEnvio), content)
+
+            If Not response.IsSuccessStatusCode Then
+                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                Throw New Exception($"NestoAPI no ha dado por cerrado el envío ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#676: ruta y cuerpo aparte para fijar en un test el contrato con el endpoint.</summary>
+    Friend Shared Function RutaDarPorCerrado(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/DarPorCerrado"
+    End Function
+
+    Friend Shared Function CuerpoDarPorCerrado(motivo As String) As String
+        Return JsonConvert.SerializeObject(New With {.Motivo = motivo})
+    End Function
+
+    ''' <summary>
     ''' Nesto#415 / Nesto#340 (Agencias, slice A4.3): el pago de reembolsos lo contabiliza el
     ''' servidor (POST EnviosAgencias/PagarReembolsos) con el usuario del JWT; antes lo hacía
     ''' AgenciasViewModel.OnContabilizarReembolso por Entity Framework. Si el servidor rechaza
