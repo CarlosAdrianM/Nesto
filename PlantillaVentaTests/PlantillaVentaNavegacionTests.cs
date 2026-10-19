@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -25,7 +25,7 @@ namespace PlantillaVentaTests
         {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), _navegacion, configuracion,
+            return new PlantillaVentaViewModel(A.Fake<IAbridorPedidos>(), _navegacion, configuracion,
                 A.Fake<IPlantillaVentaService>(), new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(),
                 A.Fake<IBorradorPlantillaVentaService>(), A.Fake<IServicioAutenticacion>());
         }

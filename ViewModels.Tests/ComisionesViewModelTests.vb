@@ -3,8 +3,7 @@ Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.ViewModels
-Imports Unity
-Imports Unity.Resolution
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' ELMAH 21/08/26 (MariaJose): "A Task's exception(s) were not observed... (Object reference not
@@ -38,17 +37,13 @@ Public Class ComisionesViewModelTests
         End If
     End Sub
 
-    Private Shared Function CrearViewModel() As ComisionesViewModel
-        Dim container = A.Fake(Of IUnityContainer)()
+    Private Shared Function CrearViewModel(Optional abridorPedidos As IAbridorPedidos = Nothing) As ComisionesViewModel
         Dim configuracion = A.Fake(Of IConfiguracion)()
         Dim dialogService = A.Fake(Of IServicioDialogos)()
 
-        A.CallTo(Function() container.Resolve(GetType(IServicioAutenticacion), A(Of String).Ignored, A(Of ResolverOverride()).Ignored)).
-            Returns(A.Fake(Of IServicioAutenticacion)())
-        A.CallTo(Function() container.Resolve(GetType(IClienteApiFactory), A(Of String).Ignored, A(Of ResolverOverride()).Ignored)).
-            Returns(A.Fake(Of IClienteApiFactory)())
-
-        Return New ComisionesViewModel(container, configuracion, dialogService)
+        ' Nesto#490 (4C.5, tramo 3a): la autenticación y la factoría llegan por el constructor, no del IUnityContainer
+        Return New ComisionesViewModel(If(abridorPedidos, A.Fake(Of IAbridorPedidos)()), configuracion, dialogService,
+                                       A.Fake(Of IServicioAutenticacion)(), A.Fake(Of IClienteApiFactory)())
     End Function
 
     ''' <summary>
@@ -78,6 +73,22 @@ Public Class ComisionesViewModelTests
                       vm.IncluirAlbaranes = False
 
                       Assert.IsNull(vm.ComisionAnualResumenActual)
+                  End Sub)
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#490 (4C.5, tramo 3a): el doble clic en un pedido del detalle de comisiones lo abre con IAbridorPedidos
+    ''' (antes, PedidoVentaViewModel.CargarPedido con el IUnityContainer).
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ComisionesViewModel_AbrirPedido_LoAbreConElAbridorDePedidos()
+        EnHiloSta(Sub()
+                      Dim abridor = A.Fake(Of IAbridorPedidos)()
+                      Dim vm = CrearViewModel(abridor)
+
+                      vm.cmdAbrirPedido.Execute(New With {.Empresa = "1", .Numero = 926125})
+
+                      A.CallTo(Sub() abridor.Abrir("1", 926125)).MustHaveHappenedOnceExactly()
                   End Sub)
     End Sub
 

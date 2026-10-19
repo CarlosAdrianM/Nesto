@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -21,7 +21,7 @@ namespace PedidoVentaTests
         {
             IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
             var vm = new DetallePedidoViewModel(navegacion, A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
             ParametrosNavegacion recibidos = null;
             A.CallTo(() => navegacion.RequestNavigate("MainRegion", "ProductoView", A<ParametrosNavegacion>._))
                 .Invokes((string _, string _, ParametrosNavegacion p) => recibidos = p);

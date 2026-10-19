@@ -17,7 +17,6 @@ Imports System.Windows
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Unity
 Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
@@ -25,7 +24,8 @@ Public Class PlantillaVentaViewModel
     Implements IReceptorNavegacionPestanaNueva, ITabCloseConfirmation
 
     Public Property configuracion As IConfiguracion
-    Private ReadOnly container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3a): el contenedor solo servía para abrir el pedido recién creado
+    Private ReadOnly abridorPedidos As ControlesUsuario.Dialogs.IAbridorPedidos
     Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly servicioPedidosVenta As IPedidoVentaService
@@ -72,9 +72,9 @@ Public Class PlantillaVentaViewModel
     ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
-    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IServicioDialogos, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(abridorPedidos As ControlesUsuario.Dialogs.IAbridorPedidos, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPlantillaVentaService, messenger As IMessenger, dialogService As IServicioDialogos, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
-        Me.container = container
+        Me.abridorPedidos = abridorPedidos
         Me.navegacion = navegacion
         Me.servicio = servicio
         Me.messenger = messenger
@@ -3982,7 +3982,7 @@ Public Class PlantillaVentaViewModel
             navegacion.CerrarVistaActiva("MainRegion")
 
             ' Abrimos el pedido
-            PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
+            abridorPedidos.Abrir(clienteSeleccionado.empresa, numPedido)
         Catch ex As ModoServicioNoPermitidoException
             ' NestoAPI#518: el stock cambió y el modo ya no vale; se enseña el mensaje y se preselecciona el que sí.
             dialogService.ShowError(ex.Message)

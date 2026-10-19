@@ -12,7 +12,7 @@ using Nesto.Modulos.PlantillaVenta;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -43,7 +43,7 @@ namespace PlantillaVentaTests
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
             A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(acepta);
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
-            var vm = new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IServicioNavegacion>(), configuracion, servicio,
+            var vm = new PlantillaVentaViewModel(A.Fake<IAbridorPedidos>(), A.Fake<IServicioNavegacion>(), configuracion, servicio,
                 new WeakReferenceMessenger(), dialogos, A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();

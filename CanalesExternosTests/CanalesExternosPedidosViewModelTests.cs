@@ -1,3 +1,4 @@
+using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -5,7 +6,6 @@ using Nesto.Modulos.CanalesExternos;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.ViewModels;
 using Nesto.Modulos.PedidoVenta;
-using Unity;
 
 namespace CanalesExternosTests
 {
@@ -18,13 +18,13 @@ namespace CanalesExternosTests
     [TestClass]
     public class CanalesExternosPedidosViewModelTests
     {
-        private static CanalesExternosPedidosViewModel CrearViewModel()
+        private static CanalesExternosPedidosViewModel CrearViewModel(IAbridorPedidos abridorPedidos = null)
         {
             return new CanalesExternosPedidosViewModel(
                 A.Fake<IConfiguracion>(),
                 A.Fake<IServicioDialogos>(),
                 A.Fake<IPedidoVentaService>(),
-                A.Fake<IUnityContainer>(),
+                abridorPedidos ?? A.Fake<IAbridorPedidos>(),
                 A.Fake<IFacturasAmazonService>(),
                 A.Fake<IClientesPorTelefonoService>());
         }
@@ -68,6 +68,24 @@ namespace CanalesExternosTests
             var vm = CrearViewModel();
 
             Assert.AreEqual("Miravia", System.Linq.Enumerable.First(vm.Factory).Key);
+        }
+
+        [TestMethod]
+        public void AbrirPedidoNesto_AbreElPedidoAsignadoConElAbridorDePedidos()
+        {
+            // Nesto#490 (4C.5, tramo 3a): antes, PedidoVentaViewModel.CargarPedido con el IUnityContainer
+            var abridor = A.Fake<IAbridorPedidos>();
+            var vm = CrearViewModel(abridor);
+            var pedidoExterno = new PedidoCanalExterno
+            {
+                PedidoNestoId = 987654,
+                Pedido = new Nesto.Models.PedidoVentaDTO { empresa = "3" }
+            };
+
+            Assert.IsTrue(vm.AbrirPedidoNestoCommand.CanExecute(pedidoExterno));
+            vm.AbrirPedidoNestoCommand.Execute(pedidoExterno);
+
+            A.CallTo(() => abridor.Abrir("3", 987654)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

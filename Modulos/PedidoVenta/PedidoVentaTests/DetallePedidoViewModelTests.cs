@@ -9,7 +9,7 @@ using ControlesUsuario.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -25,7 +25,7 @@ namespace PedidoVentaTests
             // la aplicación entera (ELMAH 17/08/26, usuario Santiago).
             DetallePedidoViewModel vm = new DetallePedidoViewModel(
                 A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(),
-                new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(),
+                new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(),
                 A.Fake<IServicioAutenticacion>());
 
             await vm.ModificarPedidoAsync(); // vm.pedido es null: no debe lanzar
@@ -44,7 +44,7 @@ namespace PedidoVentaTests
 
             DetallePedidoViewModel vm = new DetallePedidoViewModel(
                 A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
-                new WeakReferenceMessenger(), dialogService, A.Fake<IUnityContainer>(),
+                new WeakReferenceMessenger(), dialogService, A.Fake<IAbridorPedidos>(),
                 A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(new PedidoVentaDTO());
             vm.ListaEnlacesSeguimiento = new List<PedidoVentaModel.EnvioAgenciaDTO>
@@ -105,8 +105,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
             PedidoVentaDTO pedido = new PedidoVentaDTO();
             LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO() { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -131,8 +131,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
             PedidoVentaDTO pedido = new PedidoVentaDTO();
             LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -158,8 +158,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
             PedidoVentaWrapper pedido = new PedidoVentaWrapper(new PedidoVentaDTO());
             LineaPedidoVentaWrapper lineaFake = new LineaPedidoVentaWrapper { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -187,8 +187,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular que ya existe un pedido
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -218,8 +218,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular que ya existe un pedido
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -249,13 +249,13 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
 
             // Mockear la configuración para devolver un vendedor por defecto
             A.CallTo(() => configuracion.leerParametro("1", A<string>._)).Returns(System.Threading.Tasks.Task.FromResult("VEN01"));
             A.CallTo(() => configuracion.usuario).Returns("TEST_USER");
 
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Crear un ResumenPedido para un pedido nuevo (numero = 0)
             var resumenPedido = new PedidoVentaModel.ResumenPedido { empresa = "1", numero = 0 };
@@ -294,8 +294,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido NUEVO (numero = 0)
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -338,8 +338,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido EXISTENTE (numero > 0) con CCC ya establecido
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -382,8 +382,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Test 1: Pedido nuevo (numero = 0)
             PedidoVentaDTO pedidoNuevo = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -419,8 +419,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido NUEVO
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -464,8 +464,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido EXISTENTE con datos originales
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -522,8 +522,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido NO es presupuesto, con línea en estado -1 (pendiente) y sin picking
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -551,8 +551,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido NO es presupuesto, con línea en estado 1 (en curso) y sin picking
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -580,8 +580,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido YA es presupuesto (todas las líneas en estado -3)
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -609,8 +609,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido con líneas pendientes pero CON picking asignado
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -640,8 +640,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido con líneas en estado albarán (2) - no se pueden pasar a presupuesto
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -669,8 +669,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             // Pedido con mezcla de líneas: una válida y una albaraneada
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -715,8 +715,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
             pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 1, estado = -1 });
@@ -757,8 +757,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
 
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
             pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 1, estado = 2, picking = 0 });
@@ -783,8 +783,8 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             IServicioDialogos dialogService = A.Fake<IServicioDialogos>();
-            IUnityContainer container = A.Fake<IUnityContainer>();
-            return new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, A.Fake<IServicioAutenticacion>());
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
+            return new DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, A.Fake<IServicioAutenticacion>());
         }
 
         [TestMethod]

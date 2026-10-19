@@ -14,7 +14,7 @@ using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace CajasTests
 {
@@ -74,7 +74,7 @@ namespace CajasTests
             A.CallTo(() => bancosService.CrearPunteo(A<int?>._, A<int?>._, A<decimal>._, A<string>._, A<int?>._)).Returns(1);
 
             var sut = new BancosViewModel(bancosService, contabilidadService, A.Fake<IConfiguracion>(), A.Fake<IServicioDialogos>(),
-                A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
+                A.Fake<IPedidoCompraService>(), A.Fake<IAbridorPedidos>(), A.Fake<IRecursosHumanosService>());
             var banco = A.Fake<IBancoConciliacion>();
             A.CallTo(() => banco.Banco).Returns(new BancoDTO { Codigo = "TEST01" });
             sut.ListaBancos = [banco];

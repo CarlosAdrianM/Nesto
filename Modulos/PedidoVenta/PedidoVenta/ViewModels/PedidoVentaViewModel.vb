@@ -68,9 +68,11 @@ Public Class PedidoVentaViewModel
 
 #End Region
 
-    Public Shared Sub CargarPedido(empresa As String, pedido As Integer, container As IUnityContainer)
-        Dim view = container.Resolve(Of PedidoVentaView)
-        Dim navegacion = container.Resolve(Of IServicioNavegacion)
+    ' Nesto#490 (4C.5, tramo 3a): recibe el resolutor propio, no el IUnityContainer. Ya no lo llama nadie más que
+    ' AbridorPedidos (IAbridorPedidos): las pantallas que abren un pedido reciben el abridor por el constructor.
+    Public Shared Sub CargarPedido(empresa As String, pedido As Integer, resolutor As IResolutorNesto)
+        Dim view = resolutor.Resolver(Of PedidoVentaView)()
+        Dim navegacion = resolutor.Resolver(Of IServicioNavegacion)()
         If Not IsNothing(view) Then
             ' El pedido inicial lo lee la vista al cargarse (Loaded), que llega después de activarla: da igual ponerlo antes
             view.DataContext.empresaInicial = empresa

@@ -2,7 +2,6 @@
 Imports CommunityToolkit.Mvvm.Input
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
-Imports Unity
 
 ''' <summary>
 ''' ViewModel para mostrar los errores de facturación de rutas
@@ -10,12 +9,13 @@ Imports Unity
 Public Class ErroresFacturacionRutasPopupViewModel
     Inherits DialogoNestoBase
 
-    Private ReadOnly container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3a): el contenedor solo servía para abrir el pedido con error
+    Private ReadOnly abridorPedidos As IAbridorPedidos
 
 #Region "Constructor"
 
-    Public Sub New(container As IUnityContainer)
-        Me.container = container
+    Public Sub New(abridorPedidos As IAbridorPedidos)
+        Me.abridorPedidos = abridorPedidos
         _errores = New ObservableCollection(Of PedidoConErrorDTO)()
         _cmdAbrirPedido = New RelayCommand(Of PedidoConErrorDTO)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
         Title = "Errores en Facturación de Rutas"
@@ -71,7 +71,7 @@ Public Class ErroresFacturacionRutasPopupViewModel
     Private Sub OnAbrirPedido(pedidoError As PedidoConErrorDTO)
         System.Diagnostics.Debug.WriteLine($"=== OnAbrirPedido EJECUTADO ===")
         System.Diagnostics.Debug.WriteLine($"PedidoError: {If(pedidoError Is Nothing, "Nothing", $"Pedido {pedidoError.NumeroPedido}, Empresa {pedidoError.Empresa}")}")
-        System.Diagnostics.Debug.WriteLine($"Container: {If(container Is Nothing, "Nothing", "OK")}")
+        System.Diagnostics.Debug.WriteLine($"AbridorPedidos: {If(abridorPedidos Is Nothing, "Nothing", "OK")}")
 
         If IsNothing(pedidoError) OrElse String.IsNullOrWhiteSpace(pedidoError.Empresa) Then
             System.Diagnostics.Debug.WriteLine("ERROR: pedidoError es Nothing o Empresa está vacía")
@@ -79,9 +79,9 @@ Public Class ErroresFacturacionRutasPopupViewModel
         End If
 
         Try
-            System.Diagnostics.Debug.WriteLine($"Llamando a PedidoVentaViewModel.CargarPedido('{pedidoError.Empresa}', {pedidoError.NumeroPedido})")
+            System.Diagnostics.Debug.WriteLine($"Abriendo el pedido ('{pedidoError.Empresa}', {pedidoError.NumeroPedido})")
             ' Abrir el pedido - la ventana de errores se mantiene abierta para poder revisar otros errores
-            PedidoVentaViewModel.CargarPedido(pedidoError.Empresa, pedidoError.NumeroPedido, container)
+            abridorPedidos.Abrir(pedidoError.Empresa, pedidoError.NumeroPedido)
             System.Diagnostics.Debug.WriteLine("CargarPedido ejecutado sin excepciones")
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"EXCEPCIÓN al abrir pedido {pedidoError.NumeroPedido}: {ex.Message}")

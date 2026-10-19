@@ -155,11 +155,13 @@ namespace PedidoVentaTests
                 var contenedor = A.Fake<IUnityContainer>();
                 var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
-                A.CallTo(() => contenedor.Resolve(typeof(PedidoVentaView), A<string>._, A<ResolverOverride[]>._)).Returns(vista);
-                A.CallTo(() => contenedor.Resolve(typeof(IServicioNavegacion), A<string>._, A<ResolverOverride[]>._)).Returns(new ServicioNavegacionPrism(regionManager));
+                // Nesto#490 (4C.5, tramo 3a): CargarPedido saca la vista y la navegación del resolutor propio, no del IUnityContainer
+                var resolutor = A.Fake<IResolutorNesto>();
+                A.CallTo(() => resolutor.Resolver<PedidoVentaView>()).Returns(vista);
+                A.CallTo(() => resolutor.Resolver<IServicioNavegacion>()).Returns(new ServicioNavegacionPrism(regionManager));
                 A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
 
-                PedidoVentaViewModel.CargarPedido("3", 98765, contenedor);
+                PedidoVentaViewModel.CargarPedido("3", 98765, resolutor);
 
                 A.CallTo(() => principal.Add(vista, null, true)).MustHaveHappenedOnceExactly()
                     .Then(A.CallTo(() => principal.Activate(vista)).MustHaveHappenedOnceExactly());

@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -23,11 +23,11 @@ namespace PlantillaVentaTests
         //[TestMethod]
         //public void PlantillaVenta_CargarClientes_SiEsUnClienteDeEstado5NoPasaALosProductos()
         //{
-        //    IUnityContainer container = A.Fake<IUnityContainer>();
+        //    IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
         //    IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
         //    IConfiguracion configuracion = A.Fake<IConfiguracion>();
         //    IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
-        //    PlantillaVentaViewModel viewModel = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio);
+        //    PlantillaVentaViewModel viewModel = new PlantillaVentaViewModel(abridorPedidos, regionManager, configuracion, servicio);
         //    ClienteJson cliente = new ClienteJson
         //    {
         //        estado = 5
@@ -47,7 +47,7 @@ namespace PlantillaVentaTests
         [TestMethod]
         public void PlantillaVenta_BaseImponible_RedondeaLosDecimales()
         {
-            IUnityContainer container = A.Fake<IUnityContainer>();
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
             IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
@@ -56,7 +56,7 @@ namespace PlantillaVentaTests
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(abridorPedidos, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -73,7 +73,7 @@ namespace PlantillaVentaTests
         [TestMethod]
         public void PlantillaVenta_BaseImponiblePortes_RedondeaLosDecimales()
         {
-            IUnityContainer container = A.Fake<IUnityContainer>();
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
             IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
@@ -82,7 +82,7 @@ namespace PlantillaVentaTests
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(abridorPedidos, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -101,7 +101,7 @@ namespace PlantillaVentaTests
         private (PlantillaVentaViewModel ViewModel, IServicioDialogos DialogService) CrearViewModelConMocks(
             HashSet<string> productosBonificablesIds = null)
         {
-            IUnityContainer container = A.Fake<IUnityContainer>();
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
             IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicioMock = A.Fake<IPlantillaVentaService>();
@@ -121,7 +121,7 @@ namespace PlantillaVentaTests
             }
             A.CallTo(() => servicioMock.CargarProductosBonificablesIds()).Returns(Task.FromResult(productosBonificablesIds));
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, messenger, dialogServiceMock, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            var vm = new PlantillaVentaViewModel(abridorPedidos, regionManager, configuracion, servicioMock, messenger, dialogServiceMock, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             return (vm, dialogServiceMock);

@@ -8,7 +8,6 @@ using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using Unity;
 
 namespace CajasTests
 {
@@ -76,9 +75,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Selección válida (regla Stripe, comisión estándar exacta): sin candado el botón se activa
             decimal comision = Math.Round((39.95m * 0.015m) + 0.25m, 2, MidpointRounding.AwayFromZero);
@@ -111,7 +110,7 @@ namespace CajasTests
         public void RegularizarDiferencia_ElUltimoAvisoAlBotonLlegaConElDescuadreYaRecalculado()
         {
             var sut = new BancosViewModel(A.Fake<IBancosService>(), A.Fake<IContabilidadService>(), A.Fake<IConfiguracion>(),
-                A.Fake<IServicioDialogos>(), A.Fake<IPedidoCompraService>(), A.Fake<IUnityContainer>(), A.Fake<IRecursosHumanosService>());
+                A.Fake<IServicioDialogos>(), A.Fake<IPedidoCompraService>(), A.Fake<IAbridorPedidos>(), A.Fake<IRecursosHumanosService>());
             bool? canEnElUltimoAviso = null;
             sut.RegularizarDiferenciaCommand.CanExecuteChanged += (s, e) => canEnElUltimoAviso = sut.RegularizarDiferenciaCommand.CanExecute(null);
 
@@ -131,9 +130,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
             
             sut.ContenidoCuaderno43 = new ContenidoCuaderno43()
             {
@@ -156,9 +155,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             sut.ContenidoCuaderno43 = new ContenidoCuaderno43()
             {
@@ -182,9 +181,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             IList<ApunteBancarioWrapper> apuntesBancoSeleccionados = new List<ApunteBancarioWrapper> {
                 new ApunteBancarioWrapper(
@@ -218,9 +217,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             IList<ApunteBancarioWrapper> apuntesBancoSeleccionados = new List<ApunteBancarioWrapper> {
                 new ApunteBancarioWrapper(
@@ -263,10 +262,10 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 100, "*", null)).Returns(3);
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -309,9 +308,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(null, 1, 100, "*", 1)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 100, "*", 1)).Returns(4);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteContabilidad1 = new ContabilidadDTO()
             {
@@ -352,9 +351,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(null, 1, 100, "*", 2)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 250, "*", 2)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(null, 3, 150, "*", 2)).Returns(5);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteContabilidad1 = new ContabilidadDTO()
             {
@@ -401,9 +400,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 30, "*", null)).Returns(5);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -453,9 +452,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, -30, "*", null)).Returns(5);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -505,9 +504,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -170, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 70, "*", null)).Returns(5);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -557,9 +556,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -1, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 11, "*", null)).Returns(5);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -610,9 +609,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 60, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 4, 10, "*", null)).Returns(5);
             A.CallTo(() => _bancosService.CrearPunteo(2, 4, 30, "*", null)).Returns(6);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -668,9 +667,9 @@ namespace CajasTests
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             sut.ApuntesBanco = new ObservableCollection<ApunteBancarioWrapper>();
             sut.ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>();
@@ -694,9 +693,9 @@ namespace CajasTests
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             sut.ApuntesBanco = new ObservableCollection<ApunteBancarioWrapper>();
             sut.ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>()
@@ -733,9 +732,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 4, A<decimal>._, "*", null)).Returns(5);
             A.CallTo(() => _bancosService.CrearPunteo(2, 3, A<decimal>._, "*", null)).Returns(6);
             A.CallTo(() => _bancosService.CrearPunteo(2, 4, A<decimal>._, "*", null)).Returns(7);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -795,9 +794,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -842,9 +841,9 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -888,9 +887,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -942,9 +941,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(3, 4, A<decimal>._, "*", null)).Returns(4);
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -1003,9 +1002,9 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(true);
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -1049,12 +1048,12 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
                 .Returns(true);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             bool resultado = sut.EsUsuarioAdministracion;
@@ -1072,12 +1071,12 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
                 .Returns(false);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             bool resultado = sut.EsUsuarioAdministracion;
@@ -1099,12 +1098,12 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
                 .Returns(false);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             bool canExecute = sut.DeshacerConciliacionAnteriorCommand.CanExecute(null);
@@ -1122,12 +1121,12 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
                 .Returns(true);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             bool canExecute = sut.DeshacerConciliacionAnteriorCommand.CanExecute(null);
@@ -1146,7 +1145,7 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
@@ -1164,7 +1163,7 @@ namespace CajasTests
                     new ConciliacionEliminadaDTO { Id = 1, ApunteContabilidadId = apunteContabilidadId, ImportePunteado = 100m }
                 }));
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             sut.DeshacerConciliacionAnteriorCommand.Execute(null);
@@ -1184,7 +1183,7 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
@@ -1196,7 +1195,7 @@ namespace CajasTests
             // Simular cancelación de confirmación
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(false);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             sut.DeshacerConciliacionAnteriorCommand.Execute(null);
@@ -1217,7 +1216,7 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
@@ -1232,7 +1231,7 @@ namespace CajasTests
             A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
                 .Returns(Task.FromResult(new List<ConciliacionEliminadaDTO>()));
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
             bool notificacionMostrada = false;
             A.CallTo(() => _dialogService.ShowNotification(A<string>._))
                 .Invokes(() => notificacionMostrada = true);
@@ -1254,7 +1253,7 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
@@ -1263,7 +1262,7 @@ namespace CajasTests
             // Simular GetText con texto no numérico
             A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns("texto_no_valido");
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             sut.DeshacerConciliacionAnteriorCommand.Execute(null);
@@ -1282,7 +1281,7 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
@@ -1291,7 +1290,7 @@ namespace CajasTests
             // Simular cancelación del input
             A.CallTo(() => _dialogService.GetText(A<string>._, A<string>._)).Returns(null);
 
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             // Act
             sut.DeshacerConciliacionAnteriorCommand.Execute(null);
@@ -1314,9 +1313,9 @@ namespace CajasTests
             var _configuracion = A.Fake<IConfiguracion>();
             var _dialogService = A.Fake<IServicioDialogos>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
-            var _container = A.Fake<IUnityContainer>();
+            var _abridorPedidos = A.Fake<IAbridorPedidos>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _abridorPedidos, _recursosHumanosService);
 
             var bancoFake = A.Fake<IBancoConciliacion>();
             A.CallTo(() => bancoFake.Banco).Returns(new BancoDTO { Codigo = "TEST01" });

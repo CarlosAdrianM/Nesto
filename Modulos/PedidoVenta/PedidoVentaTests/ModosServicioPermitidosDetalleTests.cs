@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -145,7 +145,7 @@ namespace PedidoVentaTests
 
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService = null) => new DetallePedidoViewModel(
             A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-            dialogService ?? A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+            dialogService ?? A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
 
         [TestMethod]
         public async Task Detalle_AlAbrirUnPedidoGrabado_DeshabilitaLasOpcionesPeroNoCambiaElModo()

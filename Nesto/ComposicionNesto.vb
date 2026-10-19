@@ -119,8 +119,10 @@ Public NotInheritable Class ComposicionNesto
         registro.Singleton(Of IServicioAdjuntosNovedades)(Function(r) New ServicioAdjuntosNovedades(r.Resolver(Of IClienteApiFactory)()))
         ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
         registro.Transitorio(Of IAbridorNovedades, AbridorNovedades)()
-        ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno
-        registro.Transitorio(Of IAbridorPedidos, AbridorPedidos)()
+        ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno.
+        ' Nesto#490 (4C.5, tramo 3a): y todas las pantallas que abren un pedido, en lugar del IUnityContainer. No guarda
+        ' estado: uno para toda la aplicación, con el resolutor del propio contenedor.
+        registro.Singleton(Of IAbridorPedidos)(Function(r) New AbridorPedidos(r))
 
         ' Nesto#477: buzón de notificaciones (campana de la cinta)
         registro.Singleton(Of IBuzonNotificacionesService)(Function(r) New BuzonNotificacionesService(r.Resolver(Of IClienteApiFactory)()))

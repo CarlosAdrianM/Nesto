@@ -8,7 +8,7 @@ using Nesto.Modulos.PlantillaVenta;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -30,7 +30,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => _servicio.CargarPedidoParaPlantilla(A<string>._, A<int>._)).Returns(Task.FromResult<PedidoParaPlantillaModel>(null));
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IServicioNavegacion>(), configuracion, _servicio,
+            return new PlantillaVentaViewModel(A.Fake<IAbridorPedidos>(), A.Fake<IServicioNavegacion>(), configuracion, _servicio,
                 new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(),
                 A.Fake<IBorradorPlantillaVentaService>(), A.Fake<IServicioAutenticacion>());
         }

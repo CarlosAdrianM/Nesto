@@ -7,7 +7,7 @@ using Nesto.Modulos.PedidoVenta;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -31,7 +31,7 @@ namespace PedidoVentaTests
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogos, PedidoVentaDTO pedido)
         {
             var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-                dialogos, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                dialogos, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(pedido);
             return vm;
         }

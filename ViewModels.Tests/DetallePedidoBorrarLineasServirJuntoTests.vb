@@ -6,7 +6,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' Nesto#452: cuando el servidor deniega desmarcar "servir junto" porque hay líneas (muestras MMP,
@@ -62,7 +62,7 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
 
     Private Function CrearViewModelConPedido(ParamArray lineas() As LineaPedidoVentaWrapper) As DetallePedidoViewModel
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
-                                            New WeakReferenceMessenger(), dialogService, A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
+                                            New WeakReferenceMessenger(), dialogService, A.Fake(Of IAbridorPedidos), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = servicioServirJunto
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687, .servirJunto = False})
         For Each l In lineas

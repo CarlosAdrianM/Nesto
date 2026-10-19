@@ -5,7 +5,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' Nesto#476: el selector de modo de servicio de DetallePedido sustituye a la casilla «Servir junto».
@@ -62,7 +62,7 @@ Public Class DetallePedidoModoServicioTests
 
     Private Shared Function CrearViewModel(servicio As IServirJuntoService, pedido As PedidoVentaDTO) As DetallePedidoViewModel
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
-                                            New WeakReferenceMessenger(), A.Fake(Of IServicioDialogos), A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
+                                            New WeakReferenceMessenger(), A.Fake(Of IServicioDialogos), A.Fake(Of IAbridorPedidos), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = servicio
         vm.pedido = New PedidoVentaWrapper(pedido)
         vm.pedido.Lineas.Add(New LineaPedidoVentaWrapper() With {.tipoLinea = 1, .Producto = "12345", .texto = "CHAMPU", .Cantidad = 1, .estado = -1, .Almacen = "ALG"})

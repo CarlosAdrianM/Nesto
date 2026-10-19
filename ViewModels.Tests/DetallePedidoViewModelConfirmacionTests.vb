@@ -4,7 +4,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' Tests del wrapper ConfirmarSiPlazoNoPermitido en DetallePedidoViewModel (Issue #254).
@@ -59,7 +59,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
     Private servicio As IPedidoVentaService
     Private messenger As IMessenger
     Private dialogService As IServicioDialogos
-    Private container As IUnityContainer
+    Private abridorPedidos As IAbridorPedidos
     Private servicioAutenticacion As IServicioAutenticacion
 
     <TestInitialize()>
@@ -69,12 +69,12 @@ Public Class DetallePedidoViewModelConfirmacionTests
         servicio = A.Fake(Of IPedidoVentaService)
         messenger = New WeakReferenceMessenger()
         dialogService = A.Fake(Of IServicioDialogos)
-        container = A.Fake(Of IUnityContainer)
+        abridorPedidos = A.Fake(Of IAbridorPedidos)
         servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub
 
     Private Function CrearViewModel() As DetallePedidoViewModel
-        Return New DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, container, servicioAutenticacion)
+        Return New DetallePedidoViewModel(navegacion, configuracion, servicio, messenger, dialogService, abridorPedidos, servicioAutenticacion)
     End Function
 
     ''' <summary>

@@ -6,7 +6,7 @@ using Nesto.Modulos.PedidoVenta;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -27,7 +27,7 @@ namespace PedidoVentaTests
             servicio = A.Fake<IPedidoVentaService>();
             dialogos = A.Fake<IServicioDialogos>();
             vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-                dialogos, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                dialogos, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
         }
 
         private void NotasSinFecha(params int[] numeros)

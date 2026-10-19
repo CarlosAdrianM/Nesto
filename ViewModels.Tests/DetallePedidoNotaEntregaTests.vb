@@ -7,7 +7,7 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports CommunityToolkit.Mvvm.Messaging
 Imports System.Threading.Tasks
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' ELMAH 01-02/10/26 (Andre): «Crear albarán» sobre una nota de entrega daba «El pedido es nota de entrega»
@@ -28,7 +28,7 @@ Public Class DetallePedidoNotaEntregaTests
         dialogService = A.Fake(Of IServicioDialogos)
         facturacion = A.Fake(Of IServicioFacturacionRutas)
         vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), servicio, New WeakReferenceMessenger(),
-                                        dialogService, A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
+                                        dialogService, A.Fake(Of IAbridorPedidos), A.Fake(Of IServicioAutenticacion))
         vm.Facturador = New FacturadorPedido(facturacion, A.Fake(Of IServicioImpresionDocumentos), dialogService)
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 927519, .notaEntrega = True})
         A.CallTo(Function() facturacion.FacturarPedido(A(Of String).Ignored, A(Of Integer).Ignored)).

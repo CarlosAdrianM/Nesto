@@ -8,7 +8,7 @@ using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 
 namespace PedidoVentaTests
@@ -34,7 +34,7 @@ namespace PedidoVentaTests
         private DetallePedidoViewModel CrearDetalle()
         {
             return new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), _servicio,
-                _messenger, A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                _messenger, A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
         }
 
         private ListaPedidosVentaViewModel CrearLista()

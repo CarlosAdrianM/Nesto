@@ -14,7 +14,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -27,7 +27,7 @@ namespace PlantillaVentaTests
     {
         private PlantillaVentaViewModel CrearViewModel(bool conProductosBonificables = true)
         {
-            IUnityContainer container = A.Fake<IUnityContainer>();
+            IAbridorPedidos abridorPedidos = A.Fake<IAbridorPedidos>();
             IServicioNavegacion regionManager = A.Fake<IServicioNavegacion>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
@@ -39,7 +39,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
+            var vm = new PlantillaVentaViewModel(abridorPedidos, regionManager, configuracion, servicio, messenger, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             // Configurar productos bonificables usando reflexión (campo privado _productosBonificablesIds)

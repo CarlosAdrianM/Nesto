@@ -5,7 +5,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -29,7 +29,7 @@ namespace PedidoVentaTests
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns(Task.FromResult("ALG"));
             _servicio = A.Fake<IPedidoVentaService>();
             _vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio, new WeakReferenceMessenger(),
-                A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
         }
 
         [TestMethod]

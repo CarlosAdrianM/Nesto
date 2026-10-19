@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -207,9 +207,9 @@ namespace PedidoVentaTests
             Lineas = new List<LineaPedidoVentaDTO> { new LineaPedidoVentaDTO { id = 1, Producto = "38093", Cantidad = 2, almacen = "ALG", tipoLinea = 1 } }
         };
 
-        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService = null) => new DetallePedidoViewModel(
+        private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService = null, IAbridorPedidos abridorPedidos = null) => new DetallePedidoViewModel(
             A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-            dialogService ?? A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+            dialogService ?? A.Fake<IServicioDialogos>(), abridorPedidos ?? A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
 
         [TestMethod]
         public async Task Detalle_PedidoGrabadoCuyoModoYaNoVale_PasaAlSugeridoYAvisa_PorqueGuardarDariaUn400()
@@ -316,6 +316,21 @@ namespace PedidoVentaTests
             Assert.IsTrue(vm.HayLineasARecoger);
             Assert.AreEqual(2, vm.pedido.Lineas[0].recoger);
             Assert.IsTrue(vm.pedido.Lineas[0].yaFacturado);
+        }
+
+        [TestMethod]
+        public void Detalle_NotaDeEntrega_AbrirPedidoOrigen_LoAbreConElAbridorDePedidos()
+        {
+            // Nesto#490 (4C.5, tramo 3a): antes, PedidoVentaViewModel.CargarPedido con el IUnityContainer
+            var abridor = A.Fake<IAbridorPedidos>();
+            DetallePedidoViewModel vm = Vm(A.Fake<IPedidoVentaService>(), abridorPedidos: abridor);
+            PedidoVentaDTO nota = Pedido(926969, ModosFacturacion.POR_ENTREGAS, notaEntrega: true);
+            nota.pedidoOrigen = 926346;
+            vm.pedido = new PedidoVentaWrapper(nota);
+
+            vm.AbrirPedidoOrigenCommand.Execute(null);
+
+            A.CallTo(() => abridor.Abrir("1", 926346)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

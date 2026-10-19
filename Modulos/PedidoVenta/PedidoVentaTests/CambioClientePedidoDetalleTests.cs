@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -43,7 +43,7 @@ namespace PedidoVentaTests
         private static DetallePedidoViewModel Vm(IPedidoVentaService servicio, IServicioDialogos dialogService, PedidoVentaDTO pedido = null)
         {
             var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-                dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                dialogService, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(pedido ?? Pedido());
             return vm;
         }
@@ -81,7 +81,7 @@ namespace PedidoVentaTests
             A.CallTo(() => configuracion.UsuarioEnGrupo(A<string>._)).ReturnsLazily((string g) => g == grupo);
 
             var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), configuracion, A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioDialogos>(), A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                A.Fake<IServicioDialogos>(), A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
 
             Assert.AreEqual(puede, vm.EsGrupoQuePuedeFacturar);
         }

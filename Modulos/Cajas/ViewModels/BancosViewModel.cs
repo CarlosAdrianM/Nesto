@@ -25,7 +25,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Input;
-using Unity;
 
 namespace Nesto.Modulos.Cajas.ViewModels
 {
@@ -37,19 +36,20 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IServicioDialogos _dialogService;
         private readonly IPedidoCompraService _pedidoCompraService;
         private readonly List<IReglaContabilizacion> _reglasContabilizacion;
-        private readonly IUnityContainer _container;
+        // Nesto#490 (4C.5, tramo 3a): el contenedor solo servía para abrir el pedido del prepago
+        private readonly IAbridorPedidos _abridorPedidos;
         private readonly IRecursosHumanosService _recursosHumanosService;
 
         private const string SIMBOLO_PUNTEO_CONCILIACION = "*";
 
-        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container, IRecursosHumanosService recursosHumanosService)
+        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoCompraService pedidoCompraService, IAbridorPedidos abridorPedidos, IRecursosHumanosService recursosHumanosService)
         {
             _bancosService = bancosService;
             _contabilidadService = contabilidadService;
             _configuracion = configuracion;
             _dialogService = dialogService;
             _pedidoCompraService = pedidoCompraService;
-            _container = container;
+            _abridorPedidos = abridorPedidos;
             _recursosHumanosService = recursosHumanosService;
 
             ApuntesContabilidad = [];
@@ -506,7 +506,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand AbrirPedidoCommand { get; private set; }
         private void OnAbrirPedido(PrepagoDTO prepago)
         {
-            PedidoVentaViewModel.CargarPedido(BancoSeleccionado.Banco.Empresa, prepago.Pedido, _container);
+            _abridorPedidos.Abrir(BancoSeleccionado.Banco.Empresa, prepago.Pedido);
         }
 
 

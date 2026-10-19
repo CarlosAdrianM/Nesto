@@ -6,7 +6,6 @@ Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Modulos.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
-Imports Unity
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
@@ -17,7 +16,9 @@ Imports Application = System.Windows.Application
 Public Class ComisionesViewModel
     Inherits ObservableObject
 
-    Private container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3a): sin IUnityContainer. Abrir el pedido va por IAbridorPedidos y la autenticación y la
+    ' factoría de HttpClient, que se le pedían al contenedor, llegan por el constructor.
+    Private ReadOnly abridorPedidos As IAbridorPedidos
     Private configuracion As IConfiguracion
     Private ReadOnly _dialogService As IServicioDialogos
     Public ReadOnly Property DialogService As IServicioDialogos
@@ -33,16 +34,15 @@ Public Class ComisionesViewModel
     Private mesAnteriorAnnoPasado As String
     Private ReadOnly Property _servicio As ComisionesService
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
-    Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IServicioDialogos)
+    Public Sub New(abridorPedidos As IAbridorPedidos, configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioAutenticacion As IServicioAutenticacion, clienteApiFactory As IClienteApiFactory)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
-        Me.container = container
+        Me.abridorPedidos = abridorPedidos
         Me.configuracion = configuracion
         _dialogService = dialogService
-        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _servicio = New ComisionesService(configuracion, servicioAutenticacion)
-        _clienteApiFactory = container.Resolve(Of IClienteApiFactory)()
+        _clienteApiFactory = clienteApiFactory
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
@@ -389,7 +389,7 @@ Public Class ComisionesViewModel
         If IsNothing(arg) Then
             Return
         End If
-        PedidoVentaViewModel.CargarPedido(arg.Empresa, arg.Numero, container)
+        abridorPedidos.Abrir(arg.Empresa, arg.Numero)
     End Sub
 
 #End Region

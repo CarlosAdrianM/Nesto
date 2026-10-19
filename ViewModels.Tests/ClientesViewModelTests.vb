@@ -244,6 +244,28 @@ Public Class ClientesViewModelTests
         vm.CargarPedidoCommand.Execute("NewItemPlaceholder")
     End Sub
 
+    ' Nesto#490 (4C.5, tramo 3a): abrir un pedido (doble clic en la pestaña Pedidos, o desde las deudas) va por
+    ' IAbridorPedidos; antes, PedidoVentaViewModel.CargarPedido con el IUnityContainer.
+    <TestMethod()>
+    Public Sub CargarPedidoCommand_ConResumenPedido_LoAbreConElAbridorDePedidos()
+        Dim abridor = A.Fake(Of ControlesUsuario.Dialogs.IAbridorPedidos)()
+        Dim vm = New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
+
+        vm.CargarPedidoCommand.Execute(New PedidoVentaModel.ResumenPedido With {.numero = 926123})
+
+        A.CallTo(Sub() abridor.Abrir(A(Of String).Ignored, 926123)).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub AbrirPedidoAction_LoAbreConElAbridorDePedidos()
+        Dim abridor = A.Fake(Of ControlesUsuario.Dialogs.IAbridorPedidos)()
+        Dim vm = New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
+
+        vm.AbrirPedidoAction.Invoke("3", 926124)
+
+        A.CallTo(Sub() abridor.Abrir("3", 926124)).MustHaveHappenedOnceExactly()
+    End Sub
+
     ' Incidente 13/10/26 (Laura Magán): con la cuenta del cliente anterior todavía activa y el
     ' contacto a Nothing, rutaMandato hacía contactoActual.Trim y CanVerMandato lanzaba NRE en cada
     ' RequerySuggested (174 errores en ELMAH en 7 minutos, Nesto imposible de cerrar).

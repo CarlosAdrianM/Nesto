@@ -13,8 +13,8 @@ using Nesto.Modulos.CanalesExternos.Interfaces;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
-using Unity;
 using RelayCommand = CommunityToolkit.Mvvm.Input.RelayCommand;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
@@ -31,16 +31,17 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private ColeccionFiltrable _listaPedidos;
         
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
-        private readonly IUnityContainer _container;
+        // Nesto#490 (4C.5, tramo 3a): el contenedor solo servía para abrir el pedido de Nesto
+        private readonly IAbridorPedidos _abridorPedidos;
 
         private readonly IFacturasAmazonService _facturasAmazonService;
 
-        public CanalesExternosPedidosViewModel(IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
+        public CanalesExternosPedidosViewModel(IConfiguracion configuracion, IServicioDialogos dialogService, IPedidoVentaService pedidoVentaService, IAbridorPedidos abridorPedidos, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
         {
             Configuracion = configuracion;
             DialogService = dialogService;
             PedidoVentaService = pedidoVentaService;
-            _container = container;
+            _abridorPedidos = abridorPedidos;
             _facturasAmazonService = facturasAmazonService;
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion, clientesPorTelefonoService));
@@ -647,7 +648,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
         private void OnAbrirPedidoNesto(PedidoCanalExterno pedidoExterno)
         {
-            PedidoVentaViewModel.CargarPedido(pedidoExterno.Pedido.empresa, pedidoExterno.PedidoNestoId, _container);
+            _abridorPedidos.Abrir(pedidoExterno.Pedido.empresa, pedidoExterno.PedidoNestoId);
         }
 
         #endregion

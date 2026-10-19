@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -48,7 +48,7 @@ namespace PedidoVentaTests
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
             var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-                dialogos, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                dialogos, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
             vm.ServicioFechaEntregaAgencia = A.Fake<IServicioFechaEntregaAgencia>();
             IServicioChequesRegalo cheques = A.Fake<IServicioChequesRegalo>();
             A.CallTo(() => cheques.LeerDelCliente(A<string>._, A<string>._)).Returns(Task.FromResult(cheque));

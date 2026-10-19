@@ -22,7 +22,6 @@ Imports Nesto.Modulos.Rapports
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Unity
 
 Public Interface IOService
     Function OpenFileDialog(defaultPath As String) As String
@@ -38,7 +37,11 @@ Public Class ClientesViewModel
     ' Nesto#340 (1C.8): VM 100% sin EF — el DbContext se eliminó con el último resto
     ' (listaEmpresas por API + borrado del código muerto de FamiliasVendedor).
     Public Property configuracion As IConfiguracion
-    Private ReadOnly Property contenedor As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3a): sin IUnityContainer. Lo que se le pedía (abrir un pedido, el registro de errores y el
+    ' servicio de pedidos) llega por el constructor. Con el constructor de los tests los tres quedan a Nothing, igual que
+    ' antes el contenedor.
+    Private ReadOnly abridorPedidos As IAbridorPedidos
+    Private ReadOnly servicioErrores As IServicioRegistroErrores
     Private ReadOnly Property dialogService As IServicioDialogos
     Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
@@ -89,9 +92,11 @@ Public Class ClientesViewModel
         cargarDatos()
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(configuracion As IConfiguracion, abridorPedidos As IAbridorPedidos, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion, servicioErrores As IServicioRegistroErrores, servicioPedidos As IPedidoVentaService)
         Me.configuracion = configuracion
-        Me.contenedor = contenedor
+        Me.abridorPedidos = abridorPedidos
+        Me.servicioErrores = servicioErrores
+        _servicioPedidos = servicioPedidos
         Me.dialogService = dialogService
         Me.servicio = servicio
         Me.servicioRapports = servicioRapports
@@ -121,9 +126,10 @@ Public Class ClientesViewModel
     ' Nesto#340 (1C.8, slice 4): constructor para tests. Inyecta fakes, no toca EF (DbContext
     ' queda a Nothing) ni el contenedor de Prism, y no dispara cargarDatos. ListaClientesFiltrable
     ' queda a Nothing a propósito: el setter de clienteActivo no dispara las cargas HTTP en
-    ' cascada. Unity sigue eligiendo el constructor de 6 parámetros (el más largo).
-    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
+    ' cascada. Unity sigue eligiendo el constructor de 8 parámetros (el más largo).
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion, Optional abridorPedidos As IAbridorPedidos = Nothing)
         Me.configuracion = configuracion
+        Me.abridorPedidos = abridorPedidos
         Me.dialogService = dialogService
         Me.servicio = servicio
         Me.servicioRapports = servicioRapports
@@ -1203,7 +1209,6 @@ Public Class ClientesViewModel
             ' updating the entries…"). Mostramos la excepción MÁS INTERNA (el error real, accionable) y
             ' registramos la excepción completa en ELMAH vía /api/Errores para poder diagnosticarla.
             mensajeError = ExcepcionMasInterna(ex).Message
-            Dim servicioErrores = contenedor?.Resolve(Of IServicioRegistroErrores)()
             Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, "ClientesViewModel.Guardar (Nuevo Mandato / CCC)")
         Finally
             If _guardando Then
@@ -1580,12 +1585,12 @@ Public Class ClientesViewModel
         If pedido Is Nothing Then
             Return
         End If
-        PedidoVentaViewModel.CargarPedido(empresaActual, pedido.numero, contenedor)
+        abridorPedidos?.Abrir(empresaActual, pedido.numero)
     End Sub
 
     Public ReadOnly Property AbrirPedidoAction As Action(Of String, Integer)
         Get
-            Return Sub(empresa, numeroPedido) PedidoVentaViewModel.CargarPedido(empresa, numeroPedido, contenedor)
+            Return Sub(empresa, numeroPedido) abridorPedidos?.Abrir(empresa, numeroPedido)
         End Get
     End Property
 
@@ -1784,7 +1789,6 @@ Public Class ClientesViewModel
 
         If errorReclamacion IsNot Nothing Then
             Try
-                Dim servicioErrores = contenedor?.Resolve(Of IServicioRegistroErrores)()
                 If servicioErrores IsNot Nothing Then
                     Await servicioErrores.RegistrarErrorAsync(errorReclamacion, "ClientesViewModel.OnReclamarDeuda")
                 End If
@@ -1819,12 +1823,9 @@ Public Class ClientesViewModel
     ' total del pedido recién leído de la API y el correo y el móvil del cliente (los de la pestaña Deudas).
 
     Private _servicioPedidos As IPedidoVentaService
-    ''' <summary>Se resuelve del contenedor la primera vez; los tests lo asignan.</summary>
+    ''' <summary>Llega por el constructor; los tests lo asignan.</summary>
     Public Property ServicioPedidos As IPedidoVentaService
         Get
-            If _servicioPedidos Is Nothing AndAlso contenedor IsNot Nothing Then
-                _servicioPedidos = contenedor.Resolve(Of IPedidoVentaService)()
-            End If
             Return _servicioPedidos
         End Get
         Set(value As IPedidoVentaService)
@@ -2387,18 +2388,14 @@ Public Class ClientesViewModel
         ' nosotros no es peor que uno que revienta.
         If errorEmpresas IsNot Nothing Then
             Try
-                ' Los dos contenedores no son el mismo tipo (IUnityContainer vs
-                ' IContainerProvider de Prism), asi que no se pueden juntar en un If ternario.
-                ' Y hace falta el segundo: en el constructor sin parametros -que es justo el
-                ' camino que fallaba- 'contenedor' viene a Nothing.
-                Dim servicioErrores As IServicioRegistroErrores
-                If contenedor IsNot Nothing Then
-                    servicioErrores = contenedor.Resolve(Of IServicioRegistroErrores)()
-                Else
-                    servicioErrores = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
+                ' En el constructor sin parametros -que es justo el camino que fallaba- no llega
+                ' el registro de errores por el constructor: se pide al contenedor.
+                Dim registroErrores As IServicioRegistroErrores = servicioErrores
+                If registroErrores Is Nothing Then
+                    registroErrores = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
                 End If
-                If servicioErrores IsNot Nothing Then
-                    Await servicioErrores.RegistrarErrorAsync(errorEmpresas, "ClientesViewModel.cargarDatos (empresas)")
+                If registroErrores IsNot Nothing Then
+                    Await registroErrores.RegistrarErrorAsync(errorEmpresas, "ClientesViewModel.cargarDatos (empresas)")
                 End If
             Catch
                 ' El registro de errores nunca debe empeorar lo que ya ha fallado.

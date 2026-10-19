@@ -12,7 +12,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -51,7 +51,7 @@ namespace PedidoVentaTests
         {
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new ModoConPickingException(MOTIVO));
             var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
-                dialogService, A.Fake<IUnityContainer>(), A.Fake<IServicioAutenticacion>());
+                dialogService, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
             vm.pedido = new PedidoVentaWrapper(Pedido(926879, ModosServicio.SEGUN_VAYA_ENTRANDO));
             vm.MarcarComoGuardado();
             vm.pedido.ModoServicio = ModosServicio.TODO_JUNTO; // el cambio del usuario

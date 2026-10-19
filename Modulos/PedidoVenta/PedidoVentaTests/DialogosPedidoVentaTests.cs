@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Messaging;
+using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -109,7 +110,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void ErroresFacturacion_RecibeLosErroresYCerrarDevuelveOK()
         {
-            var vm = new ErroresFacturacionRutasPopupViewModel(A.Fake<IUnityContainer>());
+            var vm = new ErroresFacturacionRutasPopupViewModel(A.Fake<IAbridorPedidos>());
             IDialogoNesto dialogo = vm;
             ResultadoDialogo resultado = null;
             dialogo.RequestClose += r => resultado = r;
@@ -120,6 +121,23 @@ namespace PedidoVentaTests
             Assert.AreEqual("Errores en Facturación de Rutas", dialogo.Title);
             Assert.AreEqual(2, vm.NumeroErrores);
             Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
+        }
+
+        [TestMethod]
+        public void ErroresFacturacion_AbrirPedido_LoAbreConElAbridorDePedidosYNoCierraLaVentana()
+        {
+            // Nesto#490 (4C.5, tramo 3a): antes, PedidoVentaViewModel.CargarPedido con el IUnityContainer
+            var abridor = A.Fake<IAbridorPedidos>();
+            var vm = new ErroresFacturacionRutasPopupViewModel(abridor);
+            IDialogoNesto dialogo = vm;
+            bool cerrado = false;
+            dialogo.RequestClose += _ => cerrado = true;
+            dialogo.OnDialogOpened(new ParametrosDialogo { { "errores", DosErrores() } });
+
+            vm.cmdAbrirPedido.Execute(vm.Errores[1]);
+
+            A.CallTo(() => abridor.Abrir("1", 901002)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(cerrado);
         }
 
         #endregion

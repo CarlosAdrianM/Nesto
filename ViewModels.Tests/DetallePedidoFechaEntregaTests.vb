@@ -5,7 +5,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 ''' <summary>
 ''' Nesto#481 (NestoAPI#508, pedido 926673 del 22/09/26): la fecha de entrega de cabecera solo se
@@ -74,7 +74,7 @@ Public Class DetallePedidoFechaEntregaTests
 
     Private Shared Function CrearViewModel(dialogo As IServicioDialogos) As DetallePedidoViewModel
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
-                                            New WeakReferenceMessenger(), dialogo, A.Fake(Of IUnityContainer), A.Fake(Of IServicioAutenticacion))
+                                            New WeakReferenceMessenger(), dialogo, A.Fake(Of IAbridorPedidos), A.Fake(Of IServicioAutenticacion))
         vm.ServicioServirJunto = A.Fake(Of IServirJuntoService)
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 926673, .servirJunto = False, .modoServicio = 3})
         Return vm

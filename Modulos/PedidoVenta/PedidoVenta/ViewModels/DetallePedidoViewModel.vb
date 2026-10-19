@@ -17,7 +17,6 @@ Imports CommunityToolkit.Mvvm.Messaging
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports System.Windows
 Imports System.Windows.Media
-Imports Unity
 Imports Newtonsoft.Json
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
@@ -31,7 +30,8 @@ Public Class DetallePedidoViewModel
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly messenger As IMessenger
     Private ReadOnly dialogService As IServicioDialogos
-    Private ReadOnly container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3a): el contenedor solo servía para abrir el pedido de origen de la nota de entrega
+    Private ReadOnly abridorPedidos As IAbridorPedidos
 
     Private ivaOriginal As String
 
@@ -81,13 +81,13 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, abridorPedidos As IAbridorPedidos, servicioAutenticacion As IServicioAutenticacion)
         Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.messenger = messenger
         Me.dialogService = dialogService
-        Me.container = container
+        Me.abridorPedidos = abridorPedidos
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
@@ -3503,10 +3503,10 @@ Public Class DetallePedidoViewModel
     End Property
 
     Private Sub OnAbrirPedidoOrigen()
-        If Not HayPedidoOrigen OrElse container Is Nothing Then
+        If Not HayPedidoOrigen OrElse abridorPedidos Is Nothing Then
             Return
         End If
-        PedidoVentaViewModel.CargarPedido(pedido.empresa, pedido.pedidoOrigen.Value, container)
+        abridorPedidos.Abrir(pedido.empresa, pedido.pedidoOrigen.Value)
     End Sub
 
 #Region "Nesto#496 / NestoAPI#519: cambiar el cliente del pedido"

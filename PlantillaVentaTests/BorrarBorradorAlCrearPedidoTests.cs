@@ -10,7 +10,7 @@ using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Prism.Regions;
-using Unity;
+using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests
 {
@@ -49,7 +49,7 @@ namespace PlantillaVentaTests
             IMessenger messenger = new WeakReferenceMessenger();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
-            return new PlantillaVentaViewModel(A.Fake<IUnityContainer>(), A.Fake<IServicioNavegacion>(), configuracion,
+            return new PlantillaVentaViewModel(A.Fake<IAbridorPedidos>(), A.Fake<IServicioNavegacion>(), configuracion,
                 A.Fake<IPlantillaVentaService>(), messenger, _dialogService, A.Fake<IPedidoVentaService>(),
                 _servicioBorradores, A.Fake<IServicioAutenticacion>());
         }
