@@ -34,6 +34,13 @@ namespace Nesto.Infrastructure.Services
         /// </summary>
         /// <exception cref="RecepcionReposicionException">No hay ningún bulto con ese código (404), con el motivo de la API.</exception>
         Task<EtiquetaBultoReposicion> LeerBulto(string empresa, string codigo);
+        /// <summary>
+        /// Nesto#538: de qué producto es lo leído que no está en la reposición. Si es una referencia (tecleada), ese producto
+        /// (GET api/Productos); si no, los que tienen ese código de barras, principal o alternativo
+        /// (GET api/Productos/PorCodigoBarras). Vacía si no es de ninguno.
+        /// </summary>
+        /// <exception cref="RecepcionReposicionException">La API no ha contestado bien.</exception>
+        Task<List<ProductoCodigoRecepcion>> BuscarProductosPorCodigo(string empresa, string codigo);
     }
 
     public class ServicioRecepcionReposiciones : IServicioRecepcionReposiciones
@@ -93,6 +100,51 @@ namespace Nesto.Infrastructure.Services
         public Task<EtiquetaBultoReposicion> LeerBulto(string empresa, string codigo)
             => LeerAsync<EtiquetaBultoReposicion>($"Reposiciones/Bultos/{Uri.EscapeDataString(codigo?.Trim() ?? string.Empty)}"
                 + "?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty));
+
+        public async Task<List<ProductoCodigoRecepcion>> BuscarProductosPorCodigo(string empresa, string codigo)
+        {
+            string limpio = codigo?.Trim() ?? string.Empty;
+            string empresaLimpia = Uri.EscapeDataString(empresa?.Trim() ?? string.Empty);
+            if (limpio.Length == 0)
+            {
+                return new List<ProductoCodigoRecepcion>();
+            }
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                // La referencia tecleada (44724 + Intro) es un producto aunque no tenga ese código de barras
+                HttpResponseMessage response = await client.GetAsync($"Productos?empresa={empresaLimpia}&id={Uri.EscapeDataString(limpio)}")
+                    .ConfigureAwait(false);
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    ProductoCodigoRecepcion producto = JsonConvert.DeserializeObject<ProductoCodigoRecepcion>(json);
+                    if (!string.IsNullOrWhiteSpace(producto?.Producto))
+                    {
+                        return new List<ProductoCodigoRecepcion>
+                        {
+                            new ProductoCodigoRecepcion { Producto = producto.Producto.Trim(), Nombre = producto.Nombre?.Trim() }
+                        };
+                    }
+                }
+                else if (response.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
+                }
+
+                response = await client.GetAsync($"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(limpio)}&empresa={empresaLimpia}")
+                    .ConfigureAwait(false);
+                json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
+                }
+                return (JsonConvert.DeserializeObject<List<ProductoCodigoRecepcion>>(json) ?? new List<ProductoCodigoRecepcion>())
+                    .Where(p => !string.IsNullOrWhiteSpace(p?.Producto))
+                    .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Select(g => new ProductoCodigoRecepcion { Producto = g.Key, Nombre = g.First().Nombre?.Trim() })
+                    .ToList();
+            }
+        }
 
         private async Task<T> LeerAsync<T>(string url) where T : class
         {

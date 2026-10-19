@@ -146,6 +146,16 @@ namespace Nesto.Infrastructure.Models
         public DateTime? FechaLectura { get; set; }
     }
 
+    /// <summary>
+    /// Nesto#538: un producto que tiene el código leído al recibir (su referencia, o GET api/Productos/PorCodigoBarras, que
+    /// mira el principal y los alternativos).
+    /// </summary>
+    public class ProductoCodigoRecepcion
+    {
+        public string Producto { get; set; }
+        public string Nombre { get; set; }
+    }
+
     /// <summary>La API no ha aceptado la petición: el motivo que da (sin permiso, ya terminada…).</summary>
     public class RecepcionReposicionException : Exception
     {

@@ -59,6 +59,9 @@ namespace Producto.Tests
                     return Task.FromResult(new ResultadoRecepcionReposicion { Documento = "80878" });
                 });
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
+            // Nesto#538: lo que no está en la reposición se busca en la API; 55555 es un producto que no venía
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "55555"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "55555", Nombre = "Crema de manos" } });
             _sonidos = A.Fake<ISonidosLector>();
             _abiertos.Clear();
             _focosEnLector = 0;
@@ -172,6 +175,135 @@ namespace Producto.Tests
             Assert.IsTrue(ajena.NoVenia);
             Assert.AreEqual(1, ajena.Leido);
             StringAssert.Contains(_vm.Mensaje, "no venía");
+        }
+
+        // ---- Nesto#538: lo leído que no está en la reposición se busca en la API ----
+
+        private async Task LeerAsync(string codigo)
+        {
+            _vm.LeerCommand.Execute(codigo);
+            await _vm.LecturaProductoEnCurso;
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeUnProductoQueNoVenia_SeApuntaConSuReferenciaYSuNombre()
+        {
+            // Novedades 624: se leyó 8437020512176 (del 44724) y se apuntó «8437020512176»; la API lo rechazó al terminar
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8437020512176"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "44724", Nombre = "SERUM LEVEL LASH" } });
+            await AbiertaAsync();
+
+            await LeerAsync("8437020512176");
+            await LeerAsync("8437020512176");
+            await LeerAsync("44724");
+
+            LineaRecibirReposicion ajena = _vm.Lineas.Single(l => l.NoVenia);
+            Assert.AreEqual("44724", ajena.Producto);
+            Assert.AreEqual("SERUM LEVEL LASH (no venía en la reposición)", ajena.Descripcion);
+            Assert.AreEqual(3, ajena.Leido, "Las lecturas siguientes del código o de la referencia suman en la misma línea");
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, A<string>._)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(_vm.Mensaje, "no venía");
+            await _vm.TerminarCommand.ExecuteAsync(null);
+            Assert.AreEqual(3, _terminada!.Lecturas.Single(l => l.Producto == "44724").Cantidad);
+            Assert.IsFalse(_terminada.Lecturas.Any(l => l.Producto == "8437020512176"));
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoQueNoEsDeNingunProducto_AvisaYNoLoApunta()
+        {
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "999"))
+                .Returns(new List<ProductoCodigoRecepcion>());
+            await AbiertaAsync();
+            _focosEnLector = 0;
+
+            await LeerAsync("999");
+
+            Assert.AreEqual(3, _vm.Lineas.Count);
+            Assert.IsFalse(_vm.Lineas.Any(l => l.NoVenia));
+            Assert.AreEqual("El código 999 no es de ningún producto.", _vm.Mensaje);
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _focosEnLector);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoQueNoConstabaDeUnProductoQueVenia_SumaEnSuLinea()
+        {
+            // Un código alternativo que la reposición no traía en la lista del producto
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8455"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "17404 ", Nombre = "Cera" } });
+            await AbiertaAsync();
+
+            await LeerAsync("8455");
+            await LeerAsync("8455");
+
+            Assert.AreEqual(2, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+            Assert.IsFalse(_vm.Lineas.Any(l => l.NoVenia));
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8455")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Leer_UnaReferenciaTecleadaQueNoVenia_SeApuntaConEsaReferencia()
+        {
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "44724"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "44724", Nombre = "SERUM LEVEL LASH" } });
+            await AbiertaAsync();
+
+            _vm.Lectura = "44724";
+            _vm.LeerLecturaCommand.Execute(null);
+            await _vm.LecturaProductoEnCurso;
+            await LeerAsync("44724");
+
+            LineaRecibirReposicion ajena = _vm.Lineas.Single(l => l.NoVenia);
+            Assert.AreEqual("44724", ajena.Producto);
+            Assert.AreEqual(2, ajena.Leido);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeVariosProductosQueNoVenian_PideTeclearloYNoLoApunta()
+        {
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8400"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "50001" }, new() { Producto = "50002" } });
+            await AbiertaAsync();
+
+            await LeerAsync("8400");
+
+            Assert.AreEqual(3, _vm.Lineas.Count);
+            StringAssert.Contains(_vm.Mensaje, "varios productos");
+        }
+
+        [TestMethod]
+        public async Task Leer_SiLaApiNoContesta_AvisaYNoLoApunta()
+        {
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8437020512176"))
+                .ThrowsAsync(new HttpRequestException("Sin red"));
+            await AbiertaAsync();
+
+            await LeerAsync("8437020512176");
+
+            Assert.AreEqual(3, _vm.Lineas.Count);
+            StringAssert.Contains(_vm.Mensaje, "No se ha podido comprobar de qué producto es el código 8437020512176");
+            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Leer_DosLecturasSeguidasMientrasSePregunta_UnaSolaLinea()
+        {
+            // El lector manda las lecturas seguidas: la segunda llega antes de que conteste la API a la primera
+            var respuestaPrimera = new TaskCompletionSource<List<ProductoCodigoRecepcion>>();
+            var respuestaSegunda = new TaskCompletionSource<List<ProductoCodigoRecepcion>>();
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8437020512176"))
+                .ReturnsNextFromSequence(respuestaPrimera.Task, respuestaSegunda.Task);
+            await AbiertaAsync();
+
+            _vm.LeerCommand.Execute("8437020512176");
+            Task primera = _vm.LecturaProductoEnCurso;
+            _vm.LeerCommand.Execute("8437020512176");
+            Task segunda = _vm.LecturaProductoEnCurso;
+            respuestaPrimera.SetResult(new List<ProductoCodigoRecepcion> { new() { Producto = "44724", Nombre = "SERUM LEVEL LASH" } });
+            respuestaSegunda.SetResult(new List<ProductoCodigoRecepcion> { new() { Producto = "44724", Nombre = "SERUM LEVEL LASH" } });
+            await Task.WhenAll(primera, segunda);
+
+            Assert.AreEqual(2, _vm.Lineas.Single(l => l.NoVenia).Leido);
         }
 
         [TestMethod]

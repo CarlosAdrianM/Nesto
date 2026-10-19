@@ -517,10 +517,79 @@ namespace Nesto.Modules.Producto.ViewModels
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();
             if (candidatas.Count > 1)
             {
-                LecturaFallida($"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.");
+                LecturaFallida(TextoCodigoCompartido(codigo));
                 return;
             }
-            SumarUnaUnidad(candidatas.FirstOrDefault(), codigo, null);
+            // Nesto#538: lo que no venía y ya está apuntado (por su referencia o por un código ya leído) suma sin preguntar
+            LineaRecibirReposicion linea = candidatas.FirstOrDefault() ?? Lineas.FirstOrDefault(l => l.NoVenia && l.TieneCodigo(codigo));
+            if (linea != null)
+            {
+                SumarUnaUnidad(linea, codigo, null);
+                return;
+            }
+            LecturaProductoEnCurso = LeerCodigoQueNoEstaAsync(codigo);
+        }
+
+        private static string TextoCodigoCompartido(string codigo)
+            => $"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.";
+
+        /// <summary>La búsqueda en la API del último código que no estaba en la reposición (los tests la esperan).</summary>
+        internal Task LecturaProductoEnCurso { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// Nesto#538: lo leído no es de ninguna línea. Antes se apuntaba «no venía» con el código leído como producto (un EAN) y
+        /// la API lo rechazaba al terminar. Ahora se pregunta a la API de qué producto es: si es de uno de la reposición (un
+        /// código que aquí no constaba), suma en su línea; si es de otro, se apunta aparte con su referencia y su nombre; si no
+        /// es de ninguno, o de varios, o la API no contesta, se avisa y no se apunta nada.
+        /// </summary>
+        private async Task LeerCodigoQueNoEstaAsync(string codigo)
+        {
+            RecepcionPendiente abierta = Seleccionada;
+            List<ProductoCodigoRecepcion> productos;
+            try
+            {
+                productos = await _servicio.BuscarProductosPorCodigo(Empresa, codigo).ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+                // Sin red o la API falla: no se apunta nada que luego no pueda entrar
+                if (Seleccionada == abierta)
+                {
+                    LecturaFallida($"No se ha podido comprobar de qué producto es el código {codigo}: no se ha apuntado. Vuelva a leerlo.");
+                }
+                return;
+            }
+            if (Seleccionada != abierta)
+            {
+                // Mientras se preguntaba, se ha terminado o cambiado de reposición: lo leído era de la otra
+                return;
+            }
+            List<ProductoCodigoRecepcion> distintos = (productos ?? new List<ProductoCodigoRecepcion>())
+                .Where(p => !string.IsNullOrWhiteSpace(p?.Producto))
+                .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+            if (distintos.Count == 0)
+            {
+                LecturaFallida($"El código {codigo} no es de ningún producto.");
+                return;
+            }
+            if (distintos.Count > 1)
+            {
+                LecturaFallida(TextoCodigoCompartido(codigo));
+                return;
+            }
+            string referencia = distintos[0].Producto.Trim();
+            // Se busca otra vez: mientras se preguntaba, otra lectura del mismo producto ha podido apuntarlo
+            LineaRecibirReposicion linea = Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase))
+                ?? Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase));
+            if (linea != null && !linea.TieneCodigo(codigo))
+            {
+                // Las siguientes lecturas de este código ya no preguntan
+                linea.CodigosBarras ??= new List<string>();
+                linea.CodigosBarras.Add(codigo);
+            }
+            SumarUnaUnidad(linea, referencia, distintos[0].Nombre, codigo);
         }
 
         /// <summary>
@@ -549,24 +618,34 @@ namespace Nesto.Modules.Producto.ViewModels
                 referencia, nombre);
         }
 
-        /// <summary>Suma una unidad a la línea; sin línea, a la de lo que no venía con ese código (o a una nueva).</summary>
-        private void SumarUnaUnidad(LineaRecibirReposicion linea, string codigo, string nombre)
+        /// <summary>
+        /// Suma una unidad a la línea; sin línea, a la de lo que no venía de esa referencia (o a una nueva).
+        /// </summary>
+        /// <param name="producto">La referencia del producto (siempre una que existe: la API no admite otra cosa al terminar).</param>
+        /// <param name="codigoLeido">Nesto#538: el código de barras leído, si no era la referencia; la línea nueva lo guarda.</param>
+        private void SumarUnaUnidad(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido = null)
         {
-            linea ??= Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, codigo, StringComparison.OrdinalIgnoreCase));
+            linea ??= Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, producto, StringComparison.OrdinalIgnoreCase));
             if (linea == null)
             {
                 // Entra lo leído, también lo que no venía (04/10): se apunta aparte y el servidor lo informa
                 string descripcion = string.IsNullOrWhiteSpace(nombre)
                     ? "(no venía en la reposición)"
                     : $"{nombre.Trim()} (no venía en la reposición)";
-                linea = new LineaRecibirReposicion { Producto = codigo, Descripcion = descripcion, NoVenia = true };
+                linea = new LineaRecibirReposicion { Producto = producto, Descripcion = descripcion, NoVenia = true };
+                if (!string.IsNullOrWhiteSpace(codigoLeido) && !linea.TieneCodigo(codigoLeido))
+                {
+                    linea.CodigosBarras.Add(codigoLeido);
+                }
                 Lineas.Add(linea);
             }
             bool yaEstabaCompleta = !linea.NoVenia && linea.Leido >= linea.Enviado;
             linea.Leido++;
             if (linea.NoVenia)
             {
-                LecturaFallida($"El código {codigo} no venía en esta reposición: se apunta aparte.");
+                LecturaFallida(string.IsNullOrWhiteSpace(codigoLeido) || string.Equals(codigoLeido, linea.Producto, StringComparison.OrdinalIgnoreCase)
+                    ? $"El código {producto} no venía en esta reposición: se apunta aparte."
+                    : $"El código {codigoLeido} es de {linea.Producto}, que no venía en esta reposición: se apunta aparte.");
             }
             else if (yaEstabaCompleta)
             {
