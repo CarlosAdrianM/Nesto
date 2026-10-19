@@ -531,7 +531,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         private static string TextoCodigoCompartido(string codigo)
-            => $"El código {codigo} lo comparten varios productos: escribe la cantidad en la columna «Leído» del que es.";
+            => $"El código {codigo} lo comparten varios productos: escriba la cantidad en la columna «Leído» del que es.";
 
         /// <summary>La búsqueda en la API del último código que no estaba en la reposición (los tests la esperan).</summary>
         internal Task LecturaProductoEnCurso { get; private set; } = Task.CompletedTask;
