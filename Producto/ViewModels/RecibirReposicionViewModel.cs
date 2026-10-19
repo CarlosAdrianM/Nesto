@@ -401,10 +401,33 @@ namespace Nesto.Modules.Producto.ViewModels
 
         // ---------------------------------------------------------------- Nesto#530 (NestoAPI#645): etiquetas de los bultos
 
-        /// <summary>«R81010-2»: la etiqueta de un bulto (R, el traspaso, guion y el número de bulto).</summary>
-        private static readonly Regex _patronEtiqueta = new Regex(@"^R\d+-\d+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        /// <summary>
+        /// «R81010-2»: la etiqueta de un bulto (R, el traspaso, un separador y el número de bulto). NestoAPI#675: el separador
+        /// puede ser cualquiera que no sea cifra ni letra; la pistola con teclado americano en un Windows español manda
+        /// «R81029'1» (o «?», «_», «/»…) en vez de «R81029-1».
+        /// </summary>
+        private static readonly Regex _patronEtiqueta = new Regex(@"^R([0-9]+)[^\p{L}\p{N}]+([0-9]+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        internal static bool EsEtiquetaBulto(string codigo) => !string.IsNullOrWhiteSpace(codigo) && _patronEtiqueta.IsMatch(codigo.Trim());
+        internal static bool EsEtiquetaBulto(string codigo) => NormalizarEtiquetaBulto(codigo) != null;
+
+        /// <summary>
+        /// NestoAPI#675: la etiqueta leída, siempre como «R{traspaso}-{bulto}» («r81029'1 » → «R81029-1»), que es como la
+        /// guarda y la busca la API. Null si lo leído no es una etiqueta de bulto (un código de producto, una referencia…).
+        /// </summary>
+        internal static string NormalizarEtiquetaBulto(string codigo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                return null;
+            }
+            Match encontrado = _patronEtiqueta.Match(codigo.Trim());
+            return encontrado.Success
+                && int.TryParse(encontrado.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int traspaso)
+                && int.TryParse(encontrado.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int bulto)
+                && traspaso > 0 && bulto > 0
+                ? string.Format(CultureInfo.InvariantCulture, "R{0}-{1}", traspaso, bulto)
+                : null;
+        }
 
         internal static string TextoLeaEtiqueta(string documento)
             => $"Lea la etiqueta del bulto (R{documento}-n) antes de leer los productos.";
@@ -454,7 +477,7 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         internal async Task LeerEtiquetaAsync(string codigo)
         {
-            codigo = codigo.Trim().ToUpperInvariant();
+            codigo = NormalizarEtiquetaBulto(codigo) ?? codigo.Trim().ToUpperInvariant();
             EtiquetaBultoReposicion etiqueta = null;
             Mensaje = null;
             await Ocupado(async () =>
@@ -512,10 +535,11 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
-            if (EsEtiquetaBulto(codigo))
+            string etiqueta = NormalizarEtiquetaBulto(codigo);
+            if (etiqueta != null)
             {
-                // Nesto#530: la etiqueta de un bulto (también sin ninguna abierta: abre su reposición)
-                LecturaEtiquetaEnCurso = LeerEtiquetaAsync(codigo);
+                // Nesto#530: la etiqueta de un bulto (también sin ninguna abierta: abre su reposición); NestoAPI#675: normalizada
+                LecturaEtiquetaEnCurso = LeerEtiquetaAsync(etiqueta);
                 return;
             }
             if (Seleccionada == null)

@@ -235,5 +235,53 @@ namespace Producto.Tests
             Assert.IsFalse(RecibirReposicionViewModel.EsEtiquetaBulto("R81010"));
             Assert.IsFalse(RecibirReposicionViewModel.EsEtiquetaBulto("17404"));
         }
+
+        // NestoAPI#675: la pistola con teclado americano en un Windows español manda «R81029'1»
+        [TestMethod]
+        [DataRow("R81029-1", "R81029-1")]
+        [DataRow("R81029'1", "R81029-1")]
+        [DataRow("r81029?1", "R81029-1")]
+        [DataRow(" R81029-1 ", "R81029-1")]
+        [DataRow("R81029_1", "R81029-1")]
+        [DataRow("R81029/1", "R81029-1")]
+        [DataRow("R081029'01", "R81029-1")]
+        public void NormalizarEtiquetaBulto_CualquierSeparador_SiempreConGuion(string leido, string esperado)
+        {
+            Assert.IsTrue(RecibirReposicionViewModel.EsEtiquetaBulto(leido));
+            Assert.AreEqual(esperado, RecibirReposicionViewModel.NormalizarEtiquetaBulto(leido));
+        }
+
+        [TestMethod]
+        [DataRow("8437017509999")]
+        [DataRow("17404")]
+        [DataRow("8411")]
+        [DataRow("R81029")]
+        [DataRow("R810291")]
+        [DataRow("R81029A1")]
+        [DataRow("RE81029-1")]
+        [DataRow("AB-1234")]
+        [DataRow("R81029-")]
+        [DataRow("R81029-0")]
+        [DataRow("")]
+        [DataRow(null)]
+        public void NormalizarEtiquetaBulto_UnProductoOUnaReferencia_NoEsEtiqueta(string? leido)
+        {
+            Assert.IsFalse(RecibirReposicionViewModel.EsEtiquetaBulto(leido));
+            Assert.IsNull(RecibirReposicionViewModel.NormalizarEtiquetaBulto(leido));
+        }
+
+        [TestMethod]
+        public async Task LeerEtiqueta_ConApostrofo_LaPideALaApiConGuionYLaApunta()
+        {
+            await AbrirAsync();
+
+            await LeerAsync("R81010'1");
+            await LeerAsync("8411");
+            await _vm.TerminarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.LeerBulto("1", "R81010-1")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.LeerBulto(A<string>._, "R81010'1")).MustNotHaveHappened();
+            CollectionAssert.AreEqual(new[] { "R81010-1" }, _terminada!.CodigosBulto);
+        }
     }
 }
