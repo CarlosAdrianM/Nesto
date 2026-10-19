@@ -17,6 +17,9 @@ namespace Nesto.Infrastructure.Shared
             public const int ESTADO_ENTREGADO_ENVIO = 2;
             public const int ESTADO_INCIDENTADO_ENVIO = 3;
             public const int ESTADO_DEVUELTO_ENVIO = 4; // devuelto a origen (fallo terminal de entrega)
+            // NestoAPI#676: un incidentado que la agencia nunca cerró y que una persona dio por cerrado. Terminado sin
+            // confirmación de la agencia (no es Entregado). Espejo de Constantes.Agencias.ESTADO_CERRADO_A_MANO.
+            public const int ESTADO_CERRADO_A_MANO_ENVIO = 5;
             public const short ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
             public const decimal REEMBOLSO_NO_COBRAR = -1M; // Sentinel: no cobrar reembolso
         }

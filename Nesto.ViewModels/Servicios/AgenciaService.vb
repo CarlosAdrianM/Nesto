@@ -184,7 +184,8 @@ Public Class AgenciaService
     End Function
 
     ' >= TRAMITADO server-side para incluir también Entregado (2) e Incidentado (3) en la pestaña
-    ' de tramitados (#387): se distinguen por la columna Estado coloreada.
+    ' de tramitados (#387): se distinguen por la columna Estado coloreada. NestoAPI#676: el servidor deja
+    ' fuera los cerrados a mano (5), que ya no están vivos.
     Public Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitados
         Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
             $"EnviosAgencias/Tramitados?empresa={Uri.EscapeDataString(empresa?.Trim())}&agencia={agencia}&fecha={fechaFiltro:yyyy-MM-dd}"))

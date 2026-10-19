@@ -406,6 +406,11 @@
                                                                     <Setter Property="Text" Value="Devuelto"/>
                                                                     <Setter Property="Foreground" Value="Red"/>
                                                                 </DataTrigger>
+                                                                <!-- NestoAPI#676: terminado sin confirmación de la agencia -->
+                                                                <DataTrigger Binding="{Binding Estado}" Value="5">
+                                                                    <Setter Property="Text" Value="Cerrado a mano"/>
+                                                                    <Setter Property="Foreground" Value="SlateGray"/>
+                                                                </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </TextBlock.Style>

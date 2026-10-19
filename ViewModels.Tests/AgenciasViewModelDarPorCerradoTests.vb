@@ -127,4 +127,27 @@ Public Class AgenciasViewModelDarPorCerradoTests
         Dim cuerpo = JObject.Parse(AgenciaService.CuerpoDarPorCerrado("El cliente lo tiene"))
         Assert.AreEqual("El cliente lo tiene", CStr(cuerpo("Motivo")), "Mismo nombre que DarPorCerradoEnvioDTO.Motivo en NestoAPI")
     End Sub
+
+    <TestMethod()>
+    Public Sub EstadoCerradoAMano_EsElCincoComoEnLaApi()
+        ' Espejo de Constantes.Agencias.ESTADO_CERRADO_A_MANO de NestoAPI: las rejillas lo pintan por número.
+        Assert.AreEqual(5, Constantes.Agencias.ESTADO_CERRADO_A_MANO_ENVIO)
+        Assert.AreEqual(CShort(3), AgenciasViewModel.ESTADO_INCIDENTADO)
+    End Sub
+
+    <TestMethod()>
+    Public Sub NombreEstado_CerradoAMano_NoDiceEntregado()
+        Assert.AreEqual("Cerrado a mano", AgenciasViewModel.NombreEstado(CShort(5)))
+        Assert.AreEqual("Entregado", AgenciasViewModel.NombreEstado(CShort(2)))
+        Assert.AreEqual("Devuelto", AgenciasViewModel.NombreEstado(CShort(4)))
+    End Sub
+
+    <TestMethod()>
+    Public Async Function DarPorCerrado_AvisaDeQueSaleDeIncidentados() As Task
+        ElUsuarioEscribe(Nothing)
+
+        Await viewModel.DarPorCerradoSeleccionado()
+
+        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).That.Contains("Saldrá de Incidentados"))).MustHaveHappenedOnceExactly()
+    End Function
 End Class

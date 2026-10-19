@@ -502,7 +502,8 @@
                         <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
-                                <!-- #387: Estado coloreado: Tramitado (azul) / Entregado (verde) / Incidentado (rojo). -->
+                                <!-- #387: Estado coloreado: Tramitado (azul) / Entregado (verde) / Incidentado (naranja) / Devuelto (rojo).
+                                     NestoAPI#676: Cerrado a mano (gris pizarra): terminado sin confirmación de la agencia. -->
                                 <DataGridTemplateColumn Header="Estado" Width="Auto">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -523,6 +524,10 @@
                                                             <DataTrigger Binding="{Binding Estado}" Value="4">
                                                                 <Setter Property="Text" Value="Devuelto"/>
                                                                 <Setter Property="Foreground" Value="Red"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="5">
+                                                                <Setter Property="Text" Value="Cerrado a mano"/>
+                                                                <Setter Property="Foreground" Value="SlateGray"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>

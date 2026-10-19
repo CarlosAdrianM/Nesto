@@ -3359,21 +3359,22 @@ Public Class AgenciasViewModel
             EstaOcupado = False
         End Try
     End Sub
-    Private Shared Function NombreEstado(estado As Short) As String
+    Friend Shared Function NombreEstado(estado As Short) As String
         Select Case estado
             Case 0 : Return "En curso"
             Case 1 : Return "Tramitado"
             Case 2 : Return "Entregado"
             Case 3 : Return "Incidentado"
             Case 4 : Return "Devuelto"
+            Case Constantes.Agencias.ESTADO_CERRADO_A_MANO_ENVIO : Return "Cerrado a mano" ' NestoAPI#676
             Case Else : Return $"Estado {estado}"
         End Select
     End Function
 
     ' NestoAPI#676 (Sugerencia 673, Aida): «Dar por cerrado» un envío incidentado que la agencia nunca cerró. Pide
-    ' el motivo, la API lo pasa a Entregado («cerrado a mano»), lo apunta en la historia del envío con el usuario y
-    ' el seguimiento automático ya no lo reabre. Aquí solo se quita de la lista de Incidentados.
-    Public Const ESTADO_INCIDENTADO As Short = 3
+    ' el motivo, la API lo pasa a su estado propio «Cerrado a mano» (5), lo apunta en la historia del envío con el
+    ' usuario y el seguimiento automático ya no lo reabre. Aquí solo se quita de la lista de Incidentados.
+    Public Const ESTADO_INCIDENTADO As Short = Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO
     Public Property DarPorCerradoCommand As RelayCommand
     Private Function CanDarPorCerrado() As Boolean
         Return envioActual IsNot Nothing AndAlso envioActual.Estado = ESTADO_INCIDENTADO
