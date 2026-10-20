@@ -99,6 +99,9 @@ Public Class PedidoVentaDTO
     ' Issue #159: el vendedor puede marcar que no se cobre la comisión por contra reembolso.
     ' El backend ignora este flag a partir de 2026-09-01.
     Public Property NoCobrarComisionReembolso As Boolean
+    ''' <summary>Nesto#537 / NestoAPI#670: la sesión de «Puede ofrecer» de la plantilla. Al crear o modificar el pedido, la API
+    ''' la enlaza con él y apunta qué sugerencias entraron. Nothing fuera de la plantilla.</summary>
+    Public Property IdSesionSugerencias As Guid?
 
     Public ReadOnly Property Bruto As Decimal
         Get

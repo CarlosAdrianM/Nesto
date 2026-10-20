@@ -243,6 +243,7 @@
                         <Grid Grid.Row="0" Grid.RowSpan="3" Grid.Column="0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Botones de búsqueda -->
@@ -305,10 +306,62 @@
                                     <AccessText>Mostrar solo con _Stock</AccessText>
                                 </Button>
                             </Grid>
+                            <!-- Nesto#537 (épica NestoAPI#669): «Puede ofrecer», una franja de una línea, plegable, con 3 fichas
+                                 (4 como máximo). Todo lo decide la API; sin sugerencias (o si la API falla) no se ve nada.
+                                 Colores del sistema (modo claro y oscuro). Alt+O pliega o despliega. -->
+                            <Border Grid.Row="1" Margin="0,3,0,0" Padding="3,2" BorderThickness="1" CornerRadius="3"
+                                    Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                                    BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                                    TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                                    Visibility="{Binding HaySugerenciasProductos, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DockPanel LastChildFill="True">
+                                    <Button DockPanel.Dock="Left" VerticalAlignment="Center" Padding="2,0" Margin="0,0,2,0"
+                                            Background="Transparent" BorderThickness="0"
+                                            Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                                            Command="{Binding PlegarSugerenciasProductosCommand}"
+                                            ToolTip="Productos que puede ofrecer a este cliente. Pulse para plegar o desplegar (Alt+O); se recuerda para su usuario.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding TextoPlegarSugerenciasProductos}" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="💡" FontFamily="Segoe UI Emoji" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                            <AccessText Text="Puede _ofrecer:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <ItemsControl ItemsSource="{Binding SugerenciasProductos}" Focusable="False" VerticalAlignment="Center"
+                                                  Visibility="{Binding SugerenciasProductosDesplegadas, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="3,0,0,0" Padding="5,1,2,1" BorderThickness="1" CornerRadius="9"
+                                                        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                                                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                                                        TextElement.Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                                                        ToolTip="{Binding Ayuda}">
+                                                    <DockPanel LastChildFill="True">
+                                                        <TextBlock DockPanel.Dock="Left" Text="{Binding Icono}" FontFamily="Segoe UI Emoji" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                                        <Button DockPanel.Dock="Right" Content="✗" MinWidth="20" Padding="3,0" Margin="2,0,0,0" VerticalAlignment="Center"
+                                                                Command="{Binding DataContext.RechazarSugerenciaProductoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip="No le interesa (no se le vuelve a sugerir en un tiempo y sale otra en su lugar)"/>
+                                                        <Button DockPanel.Dock="Right" Content="✓" MinWidth="20" Padding="3,0" Margin="3,0,0,0" VerticalAlignment="Center"
+                                                                Command="{Binding DataContext.AnadirSugerenciaProductoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip="Añadir al pedido (1 unidad; luego puede cambiar la cantidad)"/>
+                                                        <TextBlock Text="{Binding NombreCorto}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DockPanel>
+                            </Border>
                             <!-- Control reutilizable SelectorLineasPlantillaVenta con BarraFiltro integrada -->
                             <controls:SelectorLineasPlantillaVenta
                                 x:Name="lstProductos"
-                                Grid.Row="1"
+                                Grid.Row="2"
                                 ListaFiltrable="{Binding ListaFiltrableProductos}"
                                 SelectedItem="{Binding ListaFiltrableProductos.ElementoSeleccionado, Mode=TwoWay}"
                                 ActualizarProductoCommand="{Binding cmdActualizarProductosPedido}"

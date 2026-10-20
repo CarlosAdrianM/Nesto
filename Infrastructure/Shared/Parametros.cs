@@ -66,6 +66,9 @@
             // desplegado al seleccionar un cliente; cualquier otro valor (o ausencia) = colapsado.
             public const string SelectorClienteContactosExpandidos = "SelectorClienteContactosExpandidos";
             public const string SerieFacturacionDefecto = "SerieFacturaciónDefecto";
+            // Nesto#537: "1" = la franja «Puede ofrecer» de la plantilla de venta sale plegada; cualquier otro valor, sin
+            // fila o si no se puede leer = desplegada. La guarda la propia plantilla al plegarla o desplegarla.
+            public const string SugerenciasPlantillaPlegadas = "SugerenciasPlantillaPlegadas";
             public const string UltimaVersionNovedades = "UltimaVersionNovedades";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
