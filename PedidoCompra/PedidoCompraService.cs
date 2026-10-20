@@ -216,6 +216,13 @@ namespace Nesto.Modulos.PedidoCompra
                     else
                     {
                         string textoError = await response.Content.ReadAsStringAsync();
+                        // NestoAPI#668: compras cerradas con fecha propuesta. No se ha creado nada y
+                        // quien llama puede ofrecer reenviar con FechaFactura.
+                        FechaCompraNoPermitidaException fechaNoPermitida = FechaCompraNoPermitidaException.DesdeRespuesta((int)response.StatusCode, textoError);
+                        if (fechaNoPermitida != null)
+                        {
+                            throw fechaNoPermitida;
+                        }
                         JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
 
                         string errorMostrar = $"No se ha podido crear la factura o el albarán\n";
@@ -239,7 +246,7 @@ namespace Nesto.Modulos.PedidoCompra
 
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not FechaCompraNoPermitidaException)
                 {
                     throw new Exception("No se han podido crear el albarán y la factura de compras", ex);
                 }

@@ -8,6 +8,7 @@ using Nesto.Modulos.Cajas.Bancos;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
+using Nesto.Modulos.Cajas.Services;
 using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoVenta;
@@ -839,41 +840,20 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 string textoMensajeFinal;
                 if (respuesta.CrearFacturas)
                 {
-                    CrearFacturaCmpResponse response = new();
-                    int facturasCreadas = 0;
-                    int facturasYaExistian = 0; // NestoAPI#384: idempotencia al reintentar
-                    foreach (PreContabilidadDTO? linea in respuesta.Lineas.Where(r => r.TipoApunte == Constantes.TiposApunte.FACTURA && r.TipoCuenta == Constantes.TiposCuenta.PROVEEDOR))
-                    {
-                        PedidoCompraDTO pedido = CrearPedidoDesdePreContabilidad(linea);
-                        response = await _pedidoCompraService.CrearAlbaranYFactura(
-                            new CrearFacturaCmpRequest
-                            {
-                                Pedido = pedido,
-                                CrearPago = true,
-                                ContraPartidaPago = BancoSeleccionado.Banco.CuentaContable,
-                                Documento = respuesta.Documento
-                            }
-                        );
-                        if (!response.Exito)
-                        {
-                            // NestoAPI#384: el servidor es idempotente — al volver a pulsar el
-                            // botón, las ya contabilizadas se saltan y solo se crean las que faltan.
-                            throw new Exception($"No se ha podido crear la factura del documento {linea.Documento}. " +
-                                "Las anteriores quedaron contabilizadas: vuelva a pulsar el botón y se crearán " +
-                                "solo las que faltan (no se duplican).");
-                        }
-                        if (response.YaExistia)
-                        {
-                            facturasYaExistian++;
-                        }
-                        else
-                        {
-                            facturasCreadas++;
-                        }
-                    }
+                    // Nesto#536: si las compras están cerradas en la fecha del banco, se pregunta (una vez)
+                    // si se contabiliza la factura con la primera fecha permitida
+                    List<FacturaConciliacion> facturas = respuesta.Lineas
+                        .Where(r => r.TipoApunte == Constantes.TiposApunte.FACTURA && r.TipoCuenta == Constantes.TiposCuenta.PROVEEDOR)
+                        .Select(linea => new FacturaConciliacion(CrearPedidoDesdePreContabilidad(linea)!, linea.Documento))
+                        .ToList();
+                    var creador = new CreadorFacturasConciliacion(_pedidoCompraService, new ServicioDialogosEnHiloUi(_dialogService));
+                    ResultadoFacturasConciliacion resultadoFacturas = await creador.CrearFacturas(
+                        facturas, BancoSeleccionado.Banco.CuentaContable, respuesta.Documento);
+                    CrearFacturaCmpResponse response = resultadoFacturas.Ultima ?? new();
                     respuesta.Lineas = respuesta.Lineas.Where(l => l.TipoApunte != Constantes.TiposApunte.FACTURA).ToList();
-                    textoMensajeFinal = $"Facturas creadas: {facturasCreadas}" +
-                        (facturasYaExistian > 0 ? $" ({facturasYaExistian} ya estaban contabilizadas y no se han duplicado)" : string.Empty) +
+                    textoMensajeFinal = $"Facturas creadas: {resultadoFacturas.Creadas}" +
+                        (resultadoFacturas.YaExistian > 0 ? $" ({resultadoFacturas.YaExistian} ya estaban contabilizadas y no se han duplicado)" : string.Empty) +
+                        (resultadoFacturas.FechaFacturaAceptada.HasValue ? $"\nLas facturas con las compras cerradas van con fecha {resultadoFacturas.FechaFacturaAceptada:dd/MM/yyyy}; los pagos, con la fecha del banco" : string.Empty) +
                         $"\nÚltimo pedido: {response.Pedido}\nÚltima factura: {response.Factura}\nÚltimo asiento: {response.AsientoFactura}";
                 }
                 else
