@@ -54,6 +54,33 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerAvisoEmpaquetando_PideElPackingLigeroDelPedidoYDevuelveElAviso()
+        {
+            // NestoAPI#646: GET Almacen/Pedidos/{p}/Packing?ligero=true trae quién lo está empaquetando
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Picking\":99739,\"Entregas\":[{\"Cliente\":\"29606\",\"AvisoEmpaquetando\":\"Lo está empaquetando Pedro (hace 2 min).\"}]}"
+            };
+            var servicio = new ServicioBultosAriadna(new FactoriaFalsa(handler));
+
+            string aviso = await servicio.LeerAvisoEmpaquetando("1  ", 927646);
+
+            Assert.AreEqual("/api/Almacen/Pedidos/927646/Packing?ligero=true&empresa=1", handler.Urls[0]);
+            Assert.AreEqual("Lo está empaquetando Pedro (hace 2 min).", aviso);
+        }
+
+        [TestMethod]
+        public async Task LeerAvisoEmpaquetando_NadieOSinPickingOApiVieja_Null()
+        {
+            var handler = new HandlerFalso { Respuesta = "{\"Entregas\":[{\"Cliente\":\"29606\"}]}" };
+            var servicio = new ServicioBultosAriadna(new FactoriaFalsa(handler));
+            Assert.IsNull(await servicio.LeerAvisoEmpaquetando("1", 927646), "Sin el campo (API sin NestoAPI#646) o nadie");
+
+            handler.Codigo = HttpStatusCode.NotFound;
+            Assert.IsNull(await servicio.LeerAvisoEmpaquetando("1", 927646), "Sin picking en curso");
+        }
+
+        [TestMethod]
         public async Task EnlaceFoto_DevuelveLaUrlTemporal_YNullSiNoHayFoto()
         {
             var handler = new HandlerFalso { Respuesta = "{\"Url\":\"https://fotos.test/17.jpg?sig=x\",\"MinutosDeVigencia\":15}" };

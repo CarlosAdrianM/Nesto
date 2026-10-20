@@ -83,6 +83,31 @@ Public Class AgenciasViewModelBultosAriadnaTests
     End Sub
 
     <TestMethod()>
+    Public Sub ElegirPedido_QueEstanEmpaquetandoEnAriadna_AvisaSinBloquear()
+        ' NestoAPI#646: varias PDA en el mismo packing; puede que aún falten cajas
+        A.CallTo(Function() bultosAriadna.LeerAvisoEmpaquetando(A(Of String).Ignored, 927646)).
+            Returns(Task.FromResult("Lo está empaquetando Pedro (hace 2 min)."))
+
+        viewModel.numeroPedido = "927646"
+
+        A.CallTo(Sub() dialogService.ShowNotification("Packing en curso",
+            "Lo está empaquetando Pedro (hace 2 min). Puede que aún no estén todas las cajas: revise los bultos antes de hacer la etiqueta.")).
+            MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("empaquetando"))).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub ElegirPedido_NadieEmpaquetandoOFallaLaApi_NoAvisa()
+        A.CallTo(Function() bultosAriadna.LeerAvisoEmpaquetando(A(Of String).Ignored, 927646)).
+            ThrowsAsync(New Net.Http.HttpRequestException("sin red"))
+
+        viewModel.numeroPedido = "927646"
+
+        A.CallTo(Sub() dialogService.ShowNotification("Packing en curso", A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("sin red"))).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
     Public Sub ElegirPedido_SinBultosDeAriadna_TodoComoHoy()
         viewModel.numeroPedido = "927646"
 

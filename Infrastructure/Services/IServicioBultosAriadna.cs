@@ -20,5 +20,12 @@ namespace Nesto.Infrastructure.Services
         /// usa uno caducado. Null si el bulto no tiene foto; lanza si la API o la descarga fallan.
         /// </summary>
         Task<byte[]> DescargarFoto(int idBulto);
+
+        /// <summary>
+        /// NestoAPI#646: si alguien está empaquetando ahora mismo el pedido en Ariadna (lecturas o fotos de bulto de los últimos
+        /// minutos), el aviso de la API («Lo está empaquetando Pedro (hace 2 min).»); null si nadie, si el pedido no tiene
+        /// picking en curso o si la API aún no lo dice.
+        /// </summary>
+        Task<string> LeerAvisoEmpaquetando(string empresa, int pedido);
     }
 }

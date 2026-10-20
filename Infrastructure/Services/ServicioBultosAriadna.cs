@@ -75,6 +75,35 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
+        public async Task<string> LeerAvisoEmpaquetando(string empresa, int pedido)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = $"Almacen/Pedidos/{pedido}/Packing?ligero=true&empresa={Uri.EscapeDataString(empresa?.Trim() ?? string.Empty)}";
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                _ = response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                PackingDelPedido packing = JsonConvert.DeserializeObject<PackingDelPedido>(json);
+                string aviso = packing?.Entregas?.Select(e => e?.AvisoEmpaquetando).FirstOrDefault(a => !string.IsNullOrWhiteSpace(a));
+                return string.IsNullOrWhiteSpace(aviso) ? null : aviso.Trim();
+            }
+        }
+
+        /// <summary>Lo único que hace falta de GET Almacen/Pedidos/{pedido}/Packing: quién lo está empaquetando.</summary>
+        private sealed class PackingDelPedido
+        {
+            public List<EntregaDelPacking> Entregas { get; set; }
+        }
+
+        private sealed class EntregaDelPacking
+        {
+            public string AvisoEmpaquetando { get; set; }
+        }
+
         private sealed class EnlaceFotoBulto
         {
             public string Url { get; set; }

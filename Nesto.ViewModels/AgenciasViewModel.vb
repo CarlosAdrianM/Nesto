@@ -3378,6 +3378,28 @@ Public Class AgenciasViewModel
             BultosAriadna = New List(Of BultoAriadna)
             Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ProponerBultosAriadna")
         End Try
+        Await AvisarSiLoEstanEmpaquetandoAsync(empresa, pedido)
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#646: si alguien lo está empaquetando ahora mismo en Ariadna (varias PDA en el mismo packing), se avisa sin
+    ''' bloquear: puede que todavía falten cajas. Si la API falla o no lo dice, no se avisa de nada (queda en ELMAH).
+    ''' </summary>
+    Private Async Function AvisarSiLoEstanEmpaquetandoAsync(empresa As String, pedido As Integer) As Task
+        Try
+            Dim aviso As String = Await _servicioBultosAriadna.LeerAvisoEmpaquetando(empresa, pedido)
+            If String.IsNullOrWhiteSpace(aviso) OrElse IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedido Then
+                Return
+            End If
+            _dialogService.ShowNotification("Packing en curso", TextoAvisoEmpaquetando(aviso))
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AvisarSiLoEstanEmpaquetando")
+        End Try
+    End Function
+
+    ''' <summary>NestoAPI#646: el aviso de la API y qué hacer con él.</summary>
+    Friend Shared Function TextoAvisoEmpaquetando(aviso As String) As String
+        Return $"{aviso.Trim()} Puede que aún no estén todas las cajas: revise los bultos antes de hacer la etiqueta."
     End Function
 
     Public Property CopiarNumeroPedidoCommand As RelayCommand
