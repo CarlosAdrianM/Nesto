@@ -37,6 +37,19 @@ Public Class AgenciaServiceEnvioDesdePedidoTests
     End Sub
 
     <TestMethod()>
+    Public Sub Propuesta_AvisoEnlacePagoPendiente_SeLeeDeAvisosDetalle()
+        ' NestoAPI#679: GET api/EnviosAgencias/Propuesta (PreserveReferencesHandling: $id)
+        Dim cuerpo As String = "{""$id"":""1"",""Pedido"":928521,""Reembolso"":258.56,""AvisosDetalle"":[" &
+            "{""$id"":""2"",""Codigo"":""Prepagos"",""Texto"":""El pedido tiene..."",""Tipo"":""Elegir""}," &
+            "{""$id"":""3"",""Codigo"":""EnlacePagoPendiente"",""Texto"":""Este pedido tiene un enlace de pago pendiente de 252,94 €"",""Tipo"":""Confirmar""}]}"
+
+        Assert.AreEqual("Este pedido tiene un enlace de pago pendiente de 252,94 €", AgenciaService.TextoAvisoEnlacePagoPendiente(cuerpo))
+        Assert.IsNull(AgenciaService.TextoAvisoEnlacePagoPendiente("{""AvisosDetalle"":[]}"))
+        Assert.IsNull(AgenciaService.TextoAvisoEnlacePagoPendiente(""))
+        Assert.AreEqual("EnlacePagoPendiente", ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE, "CodigosAvisoPropuestaEnvio.ENLACE_PAGO_PENDIENTE")
+    End Sub
+
+    <TestMethod()>
     Public Sub Peticion_SinDecidirPrepagos_ViajaComoNull()
         Dim json As String = JsonConvert.SerializeObject(New CrearEnvioDesdePedidoDto With {.Empresa = "1", .Pedido = 927700, .Bultos = 2, .Peso = 3.5D})
 

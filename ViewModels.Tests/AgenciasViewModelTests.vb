@@ -1928,6 +1928,47 @@ Public Class AgenciaViewModelTests
         Assert.IsFalse(viewModel.HayAvisoPrepagos)
     End Sub
 
+    ' NestoAPI#679 (pedido 928521): salió contra reembolso con enlaces de pago sin pagar.
+
+    <TestMethod()>
+    Public Async Function EnlacePagoPendiente_ConReembolso_PreguntaConElTextoDelServidor() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        Const TEXTO As String = "Este pedido tiene un enlace de pago pendiente de 252,94 € (enviado el 16/10/2026): ¿seguro que sale contra reembolso?"
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Returns(Task.FromResult(TEXTO))
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
+
+        Dim seguir As Boolean = Await viewModel.ConfirmarEnlacesPagoPendientesAsync()
+
+        Assert.IsFalse(seguir, "el usuario dice que no")
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Enlace de pago pendiente", A(Of String).That.Contains(TEXTO))).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function EnlacePagoPendiente_SinReembolso_NiSeConsulta() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 0D
+
+        Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function EnlacePagoPendiente_SinAvisoOSiFallaLaConsulta_SigueSinPreguntar() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Returns(Task.FromResult(Of String)(Nothing))
+        Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Throws(New Exception("sin red"))
+        Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
     Private Function PedidoParaPrepagos() As PedidoAgenciaModel
         Dim cliente = New Clientes() With {.Empresa = "1", .Nº_Cliente = "1", .Contacto = "0", .Nombre = "CLIENTE", .Dirección = "C/ Uno, 1",
             .Población = "Algete", .Provincia = "Madrid", .CodPostal = "28110", .Teléfono = "911234567"}

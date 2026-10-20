@@ -736,6 +736,30 @@ Public Class AgenciasViewModel
         NotificarAvisoPrepagos()
     End Sub
 
+    ''' <summary>
+    ''' NestoAPI#679: en el camino de siempre (sin InsertarEnvioPorApi), el mismo aviso que pide confirmar DesdePedido: si el
+    ''' envío lleva reembolso y el pedido tiene enlaces de pago sin pagar, se pregunta. Lo dice la propuesta del servidor
+    ''' (GET EnviosAgencias/Propuesta). Best-effort: si no se puede leer, se sigue como hasta ahora y queda en ELMAH.
+    ''' False = el usuario no quiere seguir.
+    ''' </summary>
+    Friend Async Function ConfirmarEnlacesPagoPendientesAsync() As Task(Of Boolean)
+        If pedidoSeleccionado Is Nothing OrElse reembolso <= 0D Then
+            Return True
+        End If
+        Dim texto As String
+        Try
+            texto = Await _servicio.AvisoEnlacePagoPendiente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ConfirmarEnlacesPagoPendientes")
+            Return True
+        End Try
+        If String.IsNullOrWhiteSpace(texto) Then
+            Return True
+        End If
+        Return _dialogService.ShowConfirmationAnswer(TituloPendienteEnvio(ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE),
+            $"{texto}{vbCrLf}{vbCrLf}¿Desea continuar?")
+    End Function
+
     ''' <summary>NestoAPI#569 (y NestoAPI#595, cuando lo pide el servidor): ¿se descuentan los prepagos del reembolso?</summary>
     Private Function PreguntarDescontarPrepagos() As Boolean
         Dim quedaria As Decimal = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
@@ -2406,6 +2430,10 @@ Public Class AgenciasViewModel
             End If
             ' NestoAPI#569: antes del coste (depende del reembolso) y de crear la etiqueta
             DecidirPrepagosAntesDeInsertar()
+            ' NestoAPI#679 (pedido 928521): con un enlace de pago sin pagar, ¿seguro que sale contra reembolso?
+            If Not Await ConfirmarEnlacesPagoPendientesAsync() Then
+                Throw New Exception("Cancelado por el usuario")
+            End If
             ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
             ' para la zona del destino REAL. Puede corregir agenciaSeleccionada (a la más barata que sí
             ' cubra) o lanzar si NINGUNA agencia cubre la zona (lo captura el llamante y avisa).
@@ -2551,6 +2579,8 @@ Public Class AgenciasViewModel
                 Return "Ampliación"
             Case ContratoEnvioDesdePedido.AVISO_DIRECCION_PROPIA
                 Return "Envío a Nueva Visión"
+            Case ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE
+                Return "Enlace de pago pendiente"
             Case Else
                 Return "Envío"
         End Select

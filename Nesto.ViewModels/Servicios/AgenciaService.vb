@@ -1212,6 +1212,33 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#679: GET EnviosAgencias/Propuesta y, de sus AvisosDetalle, el texto del aviso «EnlacePagoPendiente»
+    ''' (enlaces de pago sin pagar en un pedido que sale contra reembolso). Nothing si no lo hay.
+    ''' </summary>
+    Public Async Function AvisoEnlacePagoPendiente(empresa As String, pedido As Integer) As Task(Of String) Implements IAgenciaService.AvisoEnlacePagoPendiente
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync($"EnviosAgencias/Propuesta?empresa={empresa.Trim}&pedido={pedido}")
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se ha podido leer la propuesta de envío del pedido ({CInt(response.StatusCode)})")
+            End If
+            Return TextoAvisoEnlacePagoPendiente(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#679: el texto del aviso «EnlacePagoPendiente» de la propuesta (JSON); Nothing si no lo trae.</summary>
+    Friend Shared Function TextoAvisoEnlacePagoPendiente(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Dim propuesta = JsonConvert.DeserializeObject(Of PropuestaEnvioAvisosDto)(cuerpo)
+        Dim aviso = propuesta?.AvisosDetalle?.FirstOrDefault(Function(a) a IsNot Nothing AndAlso a.Codigo = ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE)
+        Return If(String.IsNullOrWhiteSpace(aviso?.Texto), Nothing, aviso.Texto)
+    End Function
+
     Public Async Function EnviarCorreoConFacturaDelPedido(empresa As String, numeroPedido As Integer, destinatario As String, asunto As String, cuerpo As String) As Task(Of (Exito As Boolean, Mensaje As String)) Implements IAgenciaService.EnviarCorreoConFacturaDelPedido
         ' Nesto#359: Canteras necesita la factura adjunta para el DUA. Buscamos la primera
         ' línea del pedido con Nº_Factura informado (en pedidos parciales puede haber líneas

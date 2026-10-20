@@ -93,6 +93,11 @@ Public Class ResultadoEnvioDesdePedidoModel
     Public Property MensajeError As String
 End Class
 
+''' <summary>NestoAPI#679: de GET api/EnviosAgencias/Propuesta (PropuestaEnvioDTO del servidor) solo se leen los avisos.</summary>
+Public Class PropuestaEnvioAvisosDto
+    Public Property AvisosDetalle As New List(Of AvisoEnvioDesdePedidoDto)
+End Class
+
 ''' <summary>NestoAPI#595 (slice 2): los códigos y tipos del contrato con el servidor que Nesto necesita conocer.</summary>
 Public NotInheritable Class ContratoEnvioDesdePedido
     Public Const AVISO_SIN_PICKING As String = "SinPicking"
@@ -100,6 +105,8 @@ Public NotInheritable Class ContratoEnvioDesdePedido
     Public Const AVISO_DIRECCION_PROPIA As String = "DireccionPropia"
     Public Const AVISO_PREPAGOS As String = "Prepagos"
     Public Const AVISO_DIMENSIONES As String = "Dimensiones"
+    ''' <summary>NestoAPI#679: el pedido tiene enlaces de pago sin pagar y sale contra reembolso (Confirmar).</summary>
+    Public Const AVISO_ENLACE_PAGO_PENDIENTE As String = "EnlacePagoPendiente"
     Public Const TIPO_CONFIRMAR As String = "Confirmar"
     Public Const TIPO_ELEGIR As String = "Elegir"
     Public Const TIPO_DATO As String = "Dato"

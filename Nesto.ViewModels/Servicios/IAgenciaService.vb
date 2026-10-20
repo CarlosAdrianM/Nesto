@@ -94,6 +94,10 @@ Public Interface IAgenciaService
     ' NestoAPI#569: lo que el cliente ya ha pagado por adelantado en el pedido (prepagos sin facturar).
     ' El reembolso NO lo descuenta: Agencias avisa y decide quien hace la etiqueta.
     Function ImportePrepagosPendientes(empresa As String, pedido As Integer) As Task(Of Decimal)
+    ' NestoAPI#679: el aviso de la propuesta del servidor (GET api/EnviosAgencias/Propuesta) cuando el pedido tiene
+    ' enlaces de pago sin pagar y sale contra reembolso. Nothing si no hay aviso. Lo cobrado con enlaces ya va dentro de
+    ' ImportePrepagosPendientes.
+    Function AvisoEnlacePagoPendiente(empresa As String, pedido As Integer) As Task(Of String)
 
     ' Nesto#359: envía un correo (vía /api/Correos/Enviar) con el PDF de la factura del
     ' pedido adjunto. Lo usa AgenciaCanteras.LlamadaWebService para notificar recogidas a
