@@ -9,27 +9,35 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 Public Class MenuBarViewModel
     Inherits ObservableObject
 
-    Private ReadOnly _container As IUnityContainer
+    Private ReadOnly _resolutor As IResolutorNesto
     Private ReadOnly _navegacion As IServicioNavegacion
     Private ReadOnly _configuracion As IConfiguracion
     Private ReadOnly _servicioComisiones As ComisionesService
     Private ReadOnly _servicioInformes As IInformesService
+    Private ReadOnly _abridorNovedades As IAbridorNovedades
+    Private ReadOnly _servicioDialogos As IServicioDialogos
     Private _listaVendedoresEquipo As List(Of VendedorDTO)
     Private ReadOnly _viewTypes As New Dictionary(Of String, Type)
 
     ' Nesto#490 (4C.4): navega y abre pestañas con IServicioNavegacion, ya no con el IRegionManager de Prism
-    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
-        Me.New(container, navegacion, configuracion, servicioAutenticacion, New InformesService(configuracion, servicioAutenticacion))
+    ' Nesto#490 (4C.5, tramo 3c): sin IUnityContainer. Las ventanas por su tipo se crean con el resolutor propio
+    ' (IResolutorNesto), y Novedades y Parámetros llegan por sus interfaces (IAbridorNovedades, IServicioDialogos).
+    Public Sub New(resolutor As IResolutorNesto, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
+                   abridorNovedades As IAbridorNovedades, servicioDialogos As IServicioDialogos)
+        Me.New(resolutor, navegacion, configuracion, servicioAutenticacion, abridorNovedades, servicioDialogos, New InformesService(configuracion, servicioAutenticacion))
     End Sub
 
     ' Constructor para tests: permite inyectar un IInformesService mockeado.
-    Public Sub New(container As IUnityContainer, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion, servicioInformes As IInformesService)
-        _container = container
+    Public Sub New(resolutor As IResolutorNesto, navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
+                   abridorNovedades As IAbridorNovedades, servicioDialogos As IServicioDialogos, servicioInformes As IInformesService)
+        _resolutor = resolutor
+        _abridorNovedades = abridorNovedades
+        _servicioDialogos = servicioDialogos
         _navegacion = navegacion
         _configuracion = configuracion
         _servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
@@ -329,7 +337,7 @@ Public Class MenuBarViewModel
     ' Nesto#501: la misma apertura que el botón junto a la campana y el aviso de versión nueva.
     Private Async Sub OnNovedades()
         Try
-            Await _container.Resolve(Of ControlesUsuario.Dialogs.IAbridorNovedades)().Abrir()
+            Await _abridorNovedades.Abrir()
         Catch ex As Exception
             ' Consultar las novedades nunca debe tirar la aplicación
         End Try
@@ -362,11 +370,10 @@ Public Class MenuBarViewModel
         ' Caso real 20/08/26: ya no es un MessageBox de solo lectura — la ventana muestra además
         ' los parámetros que el SERVIDOR declare editables para este usuario (p. ej. Tienda
         ' Online puede cambiarse el almacén de pedidos entre AMZ y ALG), con combo y validación.
-        Dim dialogService = _container.Resolve(Of IServicioDialogos)()
         Dim parametrosDialogo As New ParametrosDialogo From {
             {"informacion", textoMensaje}
         }
-        dialogService.ShowDialog("ParametrosUsuarioDialog", parametrosDialogo, Sub(r)
+        _servicioDialogos.ShowDialog("ParametrosUsuarioDialog", parametrosDialogo, Sub(r)
                                                                               End Sub)
     End Sub
 
@@ -454,7 +461,7 @@ Public Class MenuBarViewModel
         End If
 
         ' Una pestaña nueva cada vez (Clientes, Clientes2…): el nombre único lo pone el servicio
-        Dim vista = _container.Resolve(viewType)
+        Dim vista = _resolutor.Resolver(viewType)
         _navegacion.AbrirVistaNueva("MainRegion", vista, vista.ToString())
     End Sub
 

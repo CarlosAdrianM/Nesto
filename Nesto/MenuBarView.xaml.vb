@@ -1,7 +1,7 @@
 ﻿Imports Nesto.ViewModels
 Imports Prism.Modularity
 Imports Prism.Ioc
-Imports Unity
+Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
@@ -52,13 +52,15 @@ Public Class MenuBarView
     End Sub
 
     Public Sub Inicializar(resolutor As IResolutorNesto) Implements IModuloNesto.Inicializar
-        ' MenuBarViewModel todavía recibe el IUnityContainer (se va en el tramo 3 de 4C.5)
-        Dim container = resolutor.Resolver(Of IUnityContainer)()
+        ' Nesto#490 (4C.5, tramo 3c): sin IUnityContainer. Las ventanas de VentanasPorNombre se crean con el resolutor propio
+        ' (el mismo que recibe el módulo) y Novedades y Parámetros llegan por sus interfaces.
         Dim navegacion = resolutor.Resolver(Of IServicioNavegacion)()
         Dim configuracion = resolutor.Resolver(Of IConfiguracion)()
         Dim servicioAutenticacion = resolutor.Resolver(Of IServicioAutenticacion)()
+        Dim abridorNovedades = resolutor.Resolver(Of IAbridorNovedades)()
+        Dim servicioDialogos = resolutor.Resolver(Of IServicioDialogos)()
 
-        Dim viewModel As New MenuBarViewModel(container, navegacion, configuracion, servicioAutenticacion)
+        Dim viewModel As New MenuBarViewModel(resolutor, navegacion, configuracion, servicioAutenticacion, abridorNovedades, servicioDialogos)
         For Each ventana In VentanasPorNombre
             viewModel.RegistrarTipoVista(ventana.Key, ventana.Value)
         Next

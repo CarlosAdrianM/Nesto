@@ -5,26 +5,31 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.ViewModels
 Imports System.Windows
-Imports Unity
+Imports ControlesUsuario.Dialogs
 
 <TestClass()>
 Public Class MenuBarViewModelTests
 
-    Private _container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3c): el resolutor propio, el abridor de novedades y los diálogos en lugar del IUnityContainer
+    Private _resolutor As IResolutorNesto
+    Private _abridorNovedades As IAbridorNovedades
+    Private _servicioDialogos As IServicioDialogos
     Private _navegacion As IServicioNavegacion
     Private _configuracion As IConfiguracion
     Private _servicioAutenticacion As IServicioAutenticacion
 
     <TestInitialize()>
     Public Sub Initialize()
-        _container = A.Fake(Of IUnityContainer)
+        _resolutor = A.Fake(Of IResolutorNesto)
+        _abridorNovedades = A.Fake(Of IAbridorNovedades)
+        _servicioDialogos = A.Fake(Of IServicioDialogos)
         _navegacion = A.Fake(Of IServicioNavegacion)
         _configuracion = A.Fake(Of IConfiguracion)
         _servicioAutenticacion = A.Fake(Of IServicioAutenticacion)
     End Sub
 
     Private Function CrearViewModel() As MenuBarViewModel
-        Return New MenuBarViewModel(_container, _navegacion, _configuracion, _servicioAutenticacion)
+        Return New MenuBarViewModel(_resolutor, _navegacion, _configuracion, _servicioAutenticacion, _abridorNovedades, _servicioDialogos)
     End Function
 
 #Region "Inicializacion de Commands"
@@ -266,7 +271,7 @@ Public Class MenuBarViewModelTests
     Public Sub MenuBarViewModel_NavegarAVistaRegistrada_ActivaVistaEnRegion()
         ' Nesto#490 (4C.4): la pestaña nueva se abre con IServicioNavegacion (nombre único y activarla)
         Dim vista As New Object()
-        A.CallTo(Function() _container.Resolve(GetType(Object), A(Of String).Ignored, A(Of Unity.Resolution.ResolverOverride()).Ignored)).Returns(vista)
+        A.CallTo(Function() _resolutor.Resolver(GetType(Object))).Returns(vista)
 
         Dim vm = CrearViewModel()
         vm.RegistrarTipoVista("Clientes", GetType(Object))
@@ -274,6 +279,26 @@ Public Class MenuBarViewModelTests
         vm.ClientesFichaCommand.Execute(Nothing)
 
         A.CallTo(Sub() _navegacion.AbrirVistaNueva("MainRegion", vista, vista.ToString())).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub MenuBarViewModel_NovedadesCommand_AbreNovedadesConElAbridor()
+        ' Nesto#490 (4C.5, tramo 3c): el abridor llega por el constructor, no se le pide al contenedor
+        Dim vm = CrearViewModel()
+
+        vm.NovedadesCommand.Execute(Nothing)
+
+        A.CallTo(Function() _abridorNovedades.Abrir(A(Of String).Ignored)).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub MenuBarViewModel_ParametrosCommand_AbreElDialogoDeParametrosConElServicioDeDialogos()
+        ' Nesto#490 (4C.5, tramo 3c): el servicio de diálogos llega por el constructor, no se le pide al contenedor
+        Dim vm = CrearViewModel()
+
+        vm.ParametrosCommand.Execute(Nothing)
+
+        A.CallTo(Sub() _servicioDialogos.ShowDialog("ParametrosUsuarioDialog", A(Of ParametrosDialogo).That.Matches(Function(p) p.ContainsKey("informacion")), A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
 
 #End Region
@@ -316,7 +341,7 @@ Public Class MenuBarViewModelTests
 #Region "Informes Picking / Packing (RDLC -> QuestPDF, Nesto#340)"
 
     Private Function CrearViewModelConInformes(servicioInformes As IInformesService) As MenuBarViewModel
-        Return New MenuBarViewModel(_container, _navegacion, _configuracion, _servicioAutenticacion, servicioInformes)
+        Return New MenuBarViewModel(_resolutor, _navegacion, _configuracion, _servicioAutenticacion, _abridorNovedades, _servicioDialogos, servicioInformes)
     End Function
 
     <TestMethod()>
