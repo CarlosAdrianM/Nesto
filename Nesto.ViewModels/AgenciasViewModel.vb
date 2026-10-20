@@ -126,7 +126,8 @@ Public Class AgenciasViewModel
         factory.Add("ASM", Function() New AgenciaASM())
         'factory.Add("OnTime", Function() New AgenciaOnTime())
         'factory.Add("Glovo", Function() New AgenciaGlovo())
-        factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
+        ' NestoAPI#595 (20/10/26): Correos Express eliminada por desuso (agencia 8; sus envíos históricos
+        ' siguen viéndose, con su enlace de seguimiento, pero ya no se crean, tramitan ni etiquetan).
         ' Nesto#443: Sending eliminada por desuso (agencia 10; sus envíos históricos siguen viéndose)
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
         factory.Add("Innovatrans", Function() New AgenciaInnovatrans()) ' registrar al imprimir (DataTrans, server-side)
@@ -178,20 +179,8 @@ Public Class AgenciasViewModel
         agenciasVM.EnvioPendienteSeleccionado.Reembolso = etiqueta.Reembolso
 
         ' Esto hay que refactorizarlo para llevar la lógica a cada agencia
-        If agenciasVM.EnvioPendienteSeleccionado.Agencia = 8 Then 'CEX
-            Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
-            If Not IsNothing(pais) Then
-                agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
-            End If
-            agenciasVM.EnvioPendienteSeleccionado.Horario = 0
-            If etiqueta.PaisISO = "ES" Then
-                agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
-            ElseIf etiqueta.PaisISO = "PT" Then
-                agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
-            Else
-                agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
-            End If
-        ElseIf agenciasVM.EnvioPendienteSeleccionado.Agencia = 1 Then ' GLS
+        ' NestoAPI#595 (20/10/26): la rama de Correos Express (agencia 8) se fue con la agencia.
+        If agenciasVM.EnvioPendienteSeleccionado.Agencia = 1 Then ' GLS
             agenciasVM.EnvioPendienteSeleccionado.Servicio = 96 'BusinessParcel
             agenciasVM.EnvioPendienteSeleccionado.Horario = 18
         Else
@@ -1102,14 +1091,32 @@ Public Class AgenciasViewModel
     ''' defensivas: cualquier fallo devuelve cadena vacía (botón desactivado) sin romper el setter.
     ''' </summary>
     Public Shared Function CalcularEnlaceSeguimiento(envio As EnviosAgencia, agencia As IAgencia) As String
-        If envio Is Nothing OrElse agencia Is Nothing Then
+        If envio Is Nothing Then
             Return String.Empty
+        End If
+        If agencia Is Nothing Then
+            Return EnlaceSeguimientoAgenciaRetirada(envio)
         End If
         Try
             Return If(agencia.EnlaceSeguimiento(envio), String.Empty)
         Catch
             Return String.Empty
         End Try
+    End Function
+
+    ''' <summary>NestoAPI#595 (20/10/26): Correos Express (agencia 8) ya no tiene clase en Nesto.</summary>
+    Public Const AGENCIA_CORREOS_EXPRESS_RETIRADA As Integer = 8
+
+    ''' <summary>
+    ''' NestoAPI#595 (20/10/26): el enlace de seguimiento de los envíos antiguos de una agencia que ya no
+    ''' tiene clase en Nesto. Solo Correos Express (el mismo enlace que daba AgenciaCorreosExpress); el
+    ''' resto, vacío, como hasta ahora.
+    ''' </summary>
+    Public Shared Function EnlaceSeguimientoAgenciaRetirada(envio As EnviosAgencia) As String
+        If envio Is Nothing OrElse envio.Agencia <> AGENCIA_CORREOS_EXPRESS_RETIRADA OrElse String.IsNullOrWhiteSpace(envio.CodigoBarras) Then
+            Return String.Empty
+        End If
+        Return "https://s.correosexpress.com/c?n=" + envio.CodigoBarras.Trim()
     End Function
 
     ' Nesto#407: resuelve la IAgencia del ENVÍO (no la seleccionada) a partir de su fila de

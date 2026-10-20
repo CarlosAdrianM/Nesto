@@ -129,6 +129,21 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(envio, Nothing))
     End Sub
 
+    ' NestoAPI#595 (20/10/26): Correos Express ya no tiene clase, pero sus envíos antiguos conservan el enlace.
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_EnvioAntiguoDeCorreosExpress_ConservaElEnlace()
+        Dim envio As New EnviosAgencia With {.Agencia = 8, .CodigoBarras = "9312340002469982 "}
+
+        Assert.AreEqual("https://s.correosexpress.com/c?n=9312340002469982", AgenciasViewModel.CalcularEnlaceSeguimiento(envio, Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_EnvioAntiguoDeCorreosExpressSinCodigo_DevuelveVacio()
+        Dim envio As New EnviosAgencia With {.Agencia = 8, .CodigoBarras = Nothing}
+
+        Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(envio, Nothing))
+    End Sub
+
     <TestMethod()>
     Public Sub CalcularEnlaceSeguimiento_SinEnvio_DevuelveVacio()
         Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(Nothing, A.Fake(Of IAgencia)()))
@@ -390,7 +405,7 @@ Public Class AgenciaViewModelTests
 
         viewModel.numeroPedido = 12345
 
-        Assert.AreEqual(Constantes.Agencias.AGENCIA_REEMBOLSOS, viewModel.agenciaSeleccionada.Nombre)
+        Assert.AreEqual("Canteras", viewModel.agenciaSeleccionada.Nombre)
     End Sub
 
     <TestMethod>
@@ -556,9 +571,9 @@ Public Class AgenciaViewModelTests
 
         viewModel.InsertarEnvioPendienteCommand.Execute(Nothing)
 
-        Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.ServicioId)
-        Assert.AreEqual(New AgenciaCorreosExpress().HorarioDefecto, viewModel.horarioActual.id)
-        Assert.AreEqual(New AgenciaCorreosExpress().paisDefecto, viewModel.paisActual.Id)
+        Assert.AreEqual(New AgenciaASM().ServicioDefecto(), viewModel.servicioActual.ServicioId)
+        Assert.AreEqual(New AgenciaASM().HorarioDefecto, viewModel.horarioActual.id)
+        Assert.AreEqual(New AgenciaASM().paisDefecto, viewModel.paisActual.Id)
     End Sub
 
     <TestMethod>
@@ -711,7 +726,7 @@ Public Class AgenciaViewModelTests
             .Empresa = "1",
             .Numero = 8,
             .Ruta = "XXX",
-            .Nombre = "Correos Express"
+            .Nombre = "Canteras"
         }
         viewModel.listaAgencias.Add(agencia2)
         viewModel.PestannaNombre = Pestannas.PENDIENTES
@@ -733,40 +748,6 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(0, viewModel.listaEnviosPedido.Count)
     End Sub
 
-
-    <TestMethod>
-    Public Sub AgenciaViewModel_AlCambiarDeAgencia_ActualizaElPais()
-        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
-        Dim empresa = A.Fake(Of Empresas)
-        empresa.Número = "1"
-        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
-            empresa
-        }
-        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
-        Dim agencia1 = A.Fake(Of AgenciasTransporte)
-        agencia1.Empresa = "1"
-        agencia1.Numero = 1
-        agencia1.Nombre = "ASM"
-        agencia1.Ruta = "YYY"
-        Dim agencia2 = A.Fake(Of AgenciasTransporte)
-        agencia2.Empresa = "1"
-        agencia2.Numero = 2
-        agencia2.Nombre = "Correos Express"
-        agencia2.Ruta = "XXX"
-        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
-        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
-        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.PestannaNombre = Pestannas.PEDIDOS
-        viewModel.cmdCargarDatos.Execute(Nothing)
-
-        viewModel.agenciaSeleccionada = agencia1
-        Assert.IsNotNull(viewModel.paisActual)
-        Assert.AreEqual(34, viewModel.paisActual.Id)
-
-        viewModel.agenciaSeleccionada = agencia2
-        Assert.IsNotNull(viewModel.paisActual)
-        Assert.AreEqual(724, viewModel.paisActual.Id)
-    End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_AlCambiarDeAgenciaEnPestannaEnCurso_CambiaElEnvioActual()
@@ -808,14 +789,14 @@ Public Class AgenciaViewModelTests
         Dim agencia2 = A.Fake(Of AgenciasTransporte)
         agencia2.Empresa = "1"
         agencia2.Numero = 2
-        agencia2.Nombre = "Correos Express"
+        agencia2.Nombre = "Canteras"
         agencia2.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
         Dim envio1 = A.Fake(Of EnviosAgencia)
         envio1.Pais = 34 ' España
         Dim envio2 = A.Fake(Of EnviosAgencia)
-        envio2.Pais = 724 ' España
+        envio2.Pais = 34 ' España
         A.CallTo(Function() servicio.CargarListaEnvios(1)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio1})
         A.CallTo(Function() servicio.CargarListaEnvios(2)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio2})
 
@@ -868,7 +849,7 @@ Public Class AgenciaViewModelTests
         Dim cex1 = A.Fake(Of AgenciasTransporte)
         cex1.Empresa = "1  "
         cex1.Numero = 8
-        cex1.Nombre = "Correos Express"
+        cex1.Nombre = "Canteras"
         Dim asm3 = A.Fake(Of AgenciasTransporte)
         asm3.Empresa = "3  "
         asm3.Numero = 5
@@ -1325,7 +1306,7 @@ Public Class AgenciaViewModelTests
             .Empresa = "1",
             .Numero = 2,
             .Ruta = "XXX",
-            .Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS
+            .Nombre = "Canteras" ' NestoAPI#595: antes Correos Express (AGENCIA_REEMBOLSOS), que ya no tiene clase
         }
         Dim agencia2 = New AgenciasTransporte With {
             .Empresa = "1",
@@ -1418,25 +1399,6 @@ Public Class AgenciaViewModelTests
     End Sub
 
 
-    <TestMethod>
-    Public Sub AgenciaCorreosExpress_CalcularDigitoControl_LoCalculaCon15Cifras()
-        Dim correosExpress = New AgenciaCorreosExpress
-        Dim posiciones = {6, 3, 2, 2, 1, 8, 0, 0, 0, 0, 0, 0, 6, 2, 6}
-        Dim digitoControl = correosExpress.CalcularDigitoControl(posiciones)
-
-        Assert.AreEqual(2, digitoControl)
-    End Sub
-
-    <TestMethod>
-    Public Sub AgenciaCorreosExpress_CalcularDigitoControl_LoCalculaCon22Cifras()
-        Dim correosExpress = New AgenciaCorreosExpress
-        Dim posiciones = {6, 1, 0, 1, 8, 0, 1, 3, 0, 9, 2, 6, 1, 6, 3, 0, 1, 1, 5, 0, 0, 1}
-
-        Dim digitoControl = correosExpress.CalcularDigitoControl(posiciones)
-
-        Assert.AreEqual(9, digitoControl)
-    End Sub
-
     '<TestMethod>
     'Public Sub AgenciaCorreosExpress_CalcularCodigoBarras_CalculaBien()
     '    viewModel = New AgenciasViewModel(servicio, configuracion, dialogService)
@@ -1451,26 +1413,6 @@ Public Class AgenciaViewModelTests
 
     '    Assert.AreEqual("6322180000006262", codigoBarras)
     'End Sub
-
-    <TestMethod>
-    Public Sub AgenciaCorreosExpress_CalcularCodigoBarrasBulto_CalculaBien()
-        Dim correosExpress = New AgenciaCorreosExpress
-        Dim codigoBarrasEnvio = "6101801309261631"
-
-        Dim codigoBarrasBulto = correosExpress.CalcularCodigoBarrasBulto(codigoBarrasEnvio, 1, "15001")
-
-        Assert.AreEqual("61018013092616301150019", codigoBarrasBulto)
-    End Sub
-
-    <TestMethod>
-    Public Sub AgenciaCorreosExpress_CalcularCodigoBarrasRetorno_CalculaBien()
-        Dim correosExpress = New AgenciaCorreosExpress
-        Dim codigoBarrasEnvio = "5408522919307535"
-
-        Dim codigoBarrasRetorno = correosExpress.CalcularCodigoBarrasRetorno(codigoBarrasEnvio)
-
-        Assert.AreEqual("5208522919307544", codigoBarrasRetorno)
-    End Sub
 
     ' Nesto#359: tests mínimos de AgenciaCanteras. La factory de AgenciasViewModel la invoca
     ' al seleccionar la agencia, así que como mínimo debe construirse sin crashear, devolver
@@ -1627,14 +1569,6 @@ Public Class AgenciaViewModelTests
             "Canteras debe permitir edición manual del nº de envío (llega por correo después de tramitar).")
     End Sub
 
-    <TestMethod>
-    Public Sub AgenciaCorreosExpress_PermiteEditarCodigoBarras_DevuelveFalse()
-        Dim cex = New AgenciaCorreosExpress()
-
-        Assert.IsFalse(cex.PermiteEditarCodigoBarras,
-            "CEX calcula el CodigoBarras automáticamente al tramitar; pisarlo a mano rompería el tracking.")
-    End Sub
-
     ' Nesto#359: cmdPegarCodigoBarras. Solo habilitado si la agencia lo permite Y el
     ' CodigoBarras está vacío (para no sobreescribir tramitados/asignados). Ejecutarlo
     ' debe asignar el texto introducido y llamar a _servicio.Modificar.
@@ -1651,7 +1585,7 @@ Public Class AgenciaViewModelTests
     <TestMethod>
     Public Sub cmdPegarCodigoBarras_AgenciaNoPermite_CanExecuteFalse()
         viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
-        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Correos Express"}
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "ASM"}
         viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
 
         Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(Nothing))

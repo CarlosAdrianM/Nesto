@@ -39,17 +39,6 @@ Public Class AgenciaCodigoBarrasTests
     End Sub
 
     <TestMethod()>
-    Public Sub CorreosExpress_ComponeServicioPrefijoNumeroYDigitoDeControl()
-        Dim agencia = New AgenciaCorreosExpress()
-
-        Dim codigo = agencia.calcularCodigoBarras(CrearEnvio(5, servicio:=63), CrearAgencia("1234"))
-
-        Assert.AreEqual(16, codigo.Length)
-        Assert.IsTrue(codigo.StartsWith("631234000000005"), "Servicio (2) + prefijo etiquetador (4) + número D9")
-        Assert.IsTrue(Char.IsDigit(codigo(15)), "El último carácter es el dígito de control")
-    End Sub
-
-    <TestMethod()>
     Public Sub Innovatrans_NoCalculaCodigoEnLocal()
         ' El albarán lo asigna la plataforma al tramitar
         Dim agencia = New AgenciaInnovatrans()

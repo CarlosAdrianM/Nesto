@@ -14,11 +14,6 @@ Public Class AgenciaDimensionesBultosTests
     End Sub
 
     <TestMethod()>
-    Public Sub CorreosExpress_NoExigeDimensionesBultos()
-        Assert.IsFalse(New AgenciaCorreosExpress().DimensionesBultosObligatorias)
-    End Sub
-
-    <TestMethod()>
     Public Sub ComponerCuerpoCorreo_ConDimensiones_IncluyeMedidasBultosYPeso()
         Dim envio As New EnviosAgencia With {
             .Cliente = "15191",
