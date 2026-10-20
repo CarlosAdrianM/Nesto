@@ -11,7 +11,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using Unity;
 
 namespace RapportsTests
 {
@@ -240,7 +239,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
             return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
-                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         private static RapportService CrearServicio(HttpMessageHandler handler)

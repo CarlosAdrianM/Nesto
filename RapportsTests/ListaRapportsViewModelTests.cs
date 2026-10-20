@@ -7,7 +7,6 @@ using Prism.Regions;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using Unity;
 
 namespace RapportsTests
 {
@@ -21,7 +20,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel()
         {
             return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
-                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]
@@ -66,7 +65,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
             return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
-                A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         [TestMethod]

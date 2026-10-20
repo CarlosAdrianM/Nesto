@@ -3,7 +3,6 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Rapports;
-using Unity;
 
 namespace RapportsTests
 {
@@ -20,7 +19,7 @@ namespace RapportsTests
         public void Inicializar() => _navegacion = A.Fake<IServicioNavegacion>();
 
         private ListaRapportsViewModel Nuevo() => new ListaRapportsViewModel(_navegacion, A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
-            A.Fake<IUnityContainer>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+            A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
 
         [TestMethod]
         public void AbrirModulo_NavegaALaListaDeRapports()

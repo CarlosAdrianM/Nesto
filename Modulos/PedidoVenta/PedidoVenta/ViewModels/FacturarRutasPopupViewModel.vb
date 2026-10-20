@@ -6,7 +6,6 @@ Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
-Imports Unity
 
 ''' <summary>
 ''' ViewModel para el popup de facturación de rutas
@@ -18,18 +17,16 @@ Public Class FacturarRutasPopupViewModel
     Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly servicioFacturacion As IServicioFacturacionRutas
     Private ReadOnly servicioImpresion As IServicioImpresionDocumentos
-    Private ReadOnly container As IUnityContainer
 
 #Region "Constructor"
 
-    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, container As IUnityContainer)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos)
         System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel.New() EJECUTADO ===")
 
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         Me.servicioFacturacion = servicioFacturacion
         Me.servicioImpresion = servicioImpresion
-        Me.container = container
 
         ' Inicializar comandos
         VerResumenCommand = New RelayCommand(AddressOf VerResumen, AddressOf CanVerResumen)

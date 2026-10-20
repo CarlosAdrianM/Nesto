@@ -10,7 +10,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Unity;
 using idDescripcion = Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO.idDescripcion;
 
 namespace RapportsTests
@@ -86,7 +85,7 @@ namespace RapportsTests
         private ListaRapportsViewModel Abrir()
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                A.Fake<IUnityContainer>(), _dialogos, new WeakReferenceMessenger())
+                _dialogos, new WeakReferenceMessenger())
             {
                 AbrirConElSistema = ruta => _abiertos.Add(ruta)
             };

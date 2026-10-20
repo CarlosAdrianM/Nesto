@@ -10,7 +10,6 @@ using Nesto.Modulos.PedidoVenta.Models.Facturas;
 using Nesto.Modulos.PedidoVenta.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Unity;
 
 namespace PedidoVentaTests
 {
@@ -67,7 +66,7 @@ namespace PedidoVentaTests
                 new() { Id = "AGENCIA" }
             }));
             return new FacturarRutasPopupViewModel(A.Fake<IConfiguracion>(), A.Fake<IServicioDialogos>(), servicio,
-                A.Fake<IServicioImpresionDocumentos>(), A.Fake<IUnityContainer>());
+                A.Fake<IServicioImpresionDocumentos>());
         }
 
         [TestMethod]

@@ -7,7 +7,6 @@ Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
-Imports Unity
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBasico
@@ -16,7 +15,6 @@ Public Class ListaRapportsViewModel
     Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
-    Private ReadOnly container As IUnityContainer
     Private ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _messenger As IMessenger
     Private ReadOnly _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
@@ -24,11 +22,10 @@ Public Class ListaRapportsViewModel
 
 
 
-    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IServicioDialogos, messenger As IMessenger)
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger)
         Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
-        Me.container = container
         _dialogService = dialogService
         _messenger = messenger
 

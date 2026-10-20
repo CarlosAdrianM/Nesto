@@ -3,13 +3,11 @@ Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Data
 Imports System.Windows.Media.Imaging
-Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports System.Net.Http
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json
 Imports Nesto.Contratos
-Imports Unity
 Imports System.ComponentModel
 Imports System.Data
 Imports Nesto.Infrastructure.Shared
@@ -91,6 +89,8 @@ End Class
 Public Class MainViewModel
     Inherits ObservableObject
 
+    ' Nesto#490 (4C.5, tramo 3b): fuera el constructor que recibía el IUnityContainer y lo guardaba sin usarlo. Nadie pide
+    ' este ViewModel al contenedor: todos lo crean con New.
     Public Sub New()
 
     End Sub
@@ -126,16 +126,6 @@ Public Class MainViewModel
             OnPropertyChanged("mostrarFechas")
         End Set
     End Property
-
-    Private ReadOnly container As IUnityContainer
-
-    Public Sub New(container As IUnityContainer)
-        Dim parametros = New Parametros
-        CargarVendedor()
-        Me.container = container
-        'cmdCerrarVentana = New RelayCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
-        Titulo = "Sin Título"
-    End Sub
 
     Public Async Function CargarVendedor() As Task
         Vendedor = Await leerParametro("1", Parametros.Claves.Vendedor)
