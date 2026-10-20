@@ -728,15 +728,21 @@ Public Class AgenciasViewModel
     Friend Sub DecidirPrepagosAntesDeInsertar()
         If Not HayAvisoPrepagos Then Return
         Dim quedaria As Decimal = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
-        Dim descontar As Boolean = _dialogService.ShowConfirmationAnswer("Prepago del pedido",
-            $"El pedido tiene {prepagosPendientes:C} ya pagados por adelantado y la etiqueta lleva {reembolso:C} de reembolso.{Environment.NewLine}{Environment.NewLine}" &
-            $"¿Descontar los {prepagosPendientes:C} del reembolso? Quedaría en {quedaria:C}.")
+        Dim descontar As Boolean = PreguntarDescontarPrepagos()
         _prepagosDecididos = True
         If descontar Then
             reembolso = quedaria
         End If
         NotificarAvisoPrepagos()
     End Sub
+
+    ''' <summary>NestoAPI#569 (y NestoAPI#595, cuando lo pide el servidor): ¿se descuentan los prepagos del reembolso?</summary>
+    Private Function PreguntarDescontarPrepagos() As Boolean
+        Dim quedaria As Decimal = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
+        Return _dialogService.ShowConfirmationAnswer("Prepago del pedido",
+            $"El pedido tiene {prepagosPendientes:C} ya pagados por adelantado y la etiqueta lleva {reembolso:C} de reembolso.{Environment.NewLine}{Environment.NewLine}" &
+            $"¿Descontar los {prepagosPendientes:C} del reembolso? Quedaría en {quedaria:C}.")
+    End Function
 
     Private Sub NotificarAvisoPrepagos()
         OnPropertyChanged(NameOf(HayAvisoPrepagos))
@@ -2147,7 +2153,8 @@ Public Class AgenciasViewModel
             ' bultos en el aviso de recogida. Las pide aquí, al imprimir la etiqueta, el operario que
             ' ha preparado el pedido (es quien mejor las conoce) y se guardan en el envío, de donde
             ' las leerá el correo de tramitación (que puede tramitar otra persona que no vio los bultos).
-            If agenciaDelEnvio.DimensionesBultosObligatorias Then
+            ' NestoAPI#595: si el envío lo creó el servidor, las dimensiones ya se pidieron y van en las observaciones.
+            If agenciaDelEnvio.DimensionesBultosObligatorias AndAlso Not _enviosConDimensionesDelServidor.Contains(envioActual.Numero) Then
                 Dim dimensiones As String = _dialogService.GetText(
                     "Dimensiones de los bultos",
                     "Indica las dimensiones de los bultos en formato AnchoxAltoxLargo (ej. 30x20x15):")
@@ -2387,6 +2394,16 @@ Public Class AgenciasViewModel
             If Peso <= 0D Then
                 Throw New Exception("Indica el peso del envío antes de imprimir: es necesario para elegir la agencia más barata y para tramitar con la agencia.")
             End If
+            ' NestoAPI#595 (slice 2): con el parámetro InsertarEnvioPorApi = "API" el envío lo crea el servidor (propuesta,
+            ' confirmaciones, prepagos, coste, plaza, código de barras y aviso al cliente). La red de cobertura se queda
+            ' aquí porque cambia la agencia de la pantalla avisando, como siempre. Si el servidor no lo hace (etiqueta de
+            ' recogida, agencia que no soporta), se sigue por el camino de siempre.
+            If Await InsertarEnvioPorApiActivo() Then
+                Await AsegurarCoberturaDestinoAsync()
+                If Await InsertarRegistroPorApi(PeticionEnvioDesdePedido()) Then
+                    Return
+                End If
+            End If
             ' NestoAPI#569: antes del coste (depende del reembolso) y de crear la etiqueta
             DecidirPrepagosAntesDeInsertar()
             ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
@@ -2402,6 +2419,183 @@ Public Class AgenciasViewModel
             cmdInsertar.NotifyCanExecuteChanged()
         End Try
     End Function
+
+    ' ===== NestoAPI#595 (slice 2): el envío lo crea el servidor (POST api/EnviosAgencias/DesdePedido) =====
+
+    ''' <summary>Envíos cuyas dimensiones (Canteras) ya se pidieron al crearlos en el servidor: al imprimir no se repiten.</summary>
+    Private ReadOnly _enviosConDimensionesDelServidor As New HashSet(Of Integer)
+
+    ''' <summary>NestoAPI#595: lo que InsertarRegistro deja en imprimirEtiqueta (False en una ampliación con los mismos bultos).</summary>
+    Friend ReadOnly Property HayQueImprimirEtiqueta As Boolean
+        Get
+            Return imprimirEtiqueta
+        End Get
+    End Property
+
+    Friend Async Function InsertarEnvioPorApiActivo() As Task(Of Boolean)
+        Try
+            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.InsertarEnvioPorApi)
+            Return String.Equals(valor?.Trim(), "API", StringComparison.OrdinalIgnoreCase)
+        Catch
+            ' Si no se puede leer el parámetro, el camino seguro es el de siempre.
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#595: TODOS los valores de la pantalla (decisión de Carlos, 20/10/26). Si los prepagos ya se decidieron en
+    ''' la pantalla (botón «Descontar»), el reembolso ya lo refleja: se manda «no descontar» para que no se pregunte otra vez.
+    ''' </summary>
+    Friend Function PeticionEnvioDesdePedido() As CrearEnvioDesdePedidoDto
+        Return New CrearEnvioDesdePedidoDto With {
+            .Empresa = pedidoSeleccionado?.Empresa?.Trim(),
+            .Pedido = If(pedidoSeleccionado?.Número, 0),
+            .Bultos = CShort(Math.Max(0, Math.Min(bultos, Short.MaxValue))),
+            .Peso = Peso,
+            .DescontarPrepagos = If(_prepagosDecididos, CType(False, Boolean?), Nothing),
+            .EtiquetaRecogida = servicioActual IsNot Nothing AndAlso agenciaEspecifica IsNot Nothing AndAlso
+                                servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno,
+            .Cambios = New CambiosEnvioDesdePedidoDto With {
+                .Agencia = agenciaSeleccionada?.Numero,
+                .Servicio = If(servicioActual Is Nothing, CType(Nothing, Short?), CShort(servicioActual.ServicioId)),
+                .Horario = CShort(horarioActual.id),
+                .Retorno = CShort(retornoActual.id),
+                .Reembolso = reembolso,
+                .Nombre = nombreEnvio,
+                .Direccion = direccionEnvio,
+                .CodPostal = codPostalEnvio,
+                .Poblacion = poblacionEnvio,
+                .Provincia = provinciaEnvio,
+                .Pais = paisActual?.Id,
+                .Telefono = telefonoEnvio,
+                .Movil = movilEnvio,
+                .Email = correoEnvio,
+                .Atencion = attEnvio,
+                .Observaciones = observacionesEnvio
+            }
+        }
+    End Function
+
+    Private Const MAXIMO_RONDAS_ENVIO_DESDE_PEDIDO As Integer = 6
+
+    ''' <summary>
+    ''' NestoAPI#595: pide al servidor que cree el envío. Con un 409 pregunta cada pendiente con el diálogo de siempre
+    ''' (confirmar, sí/no de los prepagos, las dimensiones de Canteras) y repite con las respuestas. Con el 200 deja el
+    ''' envío en las listas y en imprimirEtiqueta lo que diga el servidor. Devuelve False si hay que seguir por el camino
+    ''' de siempre (etiqueta de recogida o agencia que el servidor no soporta). Lanza si el usuario cancela o el servidor
+    ''' rechaza, como InsertarRegistro.
+    ''' </summary>
+    Friend Async Function InsertarRegistroPorApi(peticion As CrearEnvioDesdePedidoDto) As Task(Of Boolean)
+        Dim direccionPropiaConfirmada As Boolean = False
+        For ronda As Integer = 1 To MAXIMO_RONDAS_ENVIO_DESDE_PEDIDO
+            Dim resultado As ResultadoEnvioDesdePedidoModel = Await _servicio.CrearEnvioDesdePedido(peticion)
+            Select Case resultado.Estado
+                Case EstadoEnvioDesdePedido.Creado
+                    AplicarEnvioCreadoPorApi(resultado.Creado, direccionPropiaConfirmada, Not String.IsNullOrWhiteSpace(peticion.Dimensiones))
+                    Return True
+                Case EstadoEnvioDesdePedido.Rechazado
+                    If resultado.CodigoError = ContratoEnvioDesdePedido.ERROR_ETIQUETA_RECOGIDA OrElse
+                       resultado.CodigoError = ContratoEnvioDesdePedido.ERROR_AGENCIA_NO_SOPORTADA Then
+                        Return False
+                    End If
+                    Throw New Exception(resultado.MensajeError)
+                Case Else
+                    For Each pendiente As AvisoEnvioDesdePedidoDto In resultado.Pendientes
+                        If Not ResolverPendienteEnvio(pendiente, peticion) Then
+                            Throw New Exception("Cancelado por el usuario")
+                        End If
+                        If pendiente.Codigo = ContratoEnvioDesdePedido.AVISO_DIRECCION_PROPIA Then
+                            direccionPropiaConfirmada = True
+                        End If
+                    Next
+            End Select
+        Next
+        Throw New Exception("El servidor sigue pidiendo confirmaciones para este envío. No se ha grabado nada.")
+    End Function
+
+    ''' <summary>NestoAPI#595: pregunta un pendiente del 409 y apunta la respuesta en la petición. False = el usuario cancela.</summary>
+    Private Function ResolverPendienteEnvio(pendiente As AvisoEnvioDesdePedidoDto, peticion As CrearEnvioDesdePedidoDto) As Boolean
+        Select Case pendiente.Tipo
+            Case ContratoEnvioDesdePedido.TIPO_CONFIRMAR
+                If Not _dialogService.ShowConfirmationAnswer(TituloPendienteEnvio(pendiente.Codigo), $"{pendiente.Texto}{vbCrLf}{vbCrLf}¿Desea continuar?") Then
+                    Return False
+                End If
+                peticion.Confirmaciones.Add(pendiente.Codigo)
+                Return True
+            Case ContratoEnvioDesdePedido.TIPO_ELEGIR
+                ' NestoAPI#569: la misma pregunta que DecidirPrepagosAntesDeInsertar.
+                peticion.DescontarPrepagos = PreguntarDescontarPrepagos()
+                _prepagosDecididos = True
+                NotificarAvisoPrepagos()
+                Return True
+            Case ContratoEnvioDesdePedido.TIPO_DATO
+                Dim dimensiones As String = _dialogService.GetText("Dimensiones de los bultos",
+                    "Indique las dimensiones de los bultos en formato AnchoxAltoxLargo (por ejemplo, 30x20x15):")
+                If Not EsFormatoDimensionesValido(dimensiones) Then
+                    _dialogService.ShowError("Las dimensiones deben tener el formato número x número x número (por ejemplo, 30x20x15). No se ha guardado nada.")
+                    Return False
+                End If
+                peticion.Dimensiones = dimensiones.Trim()
+                Return True
+            Case Else
+                _dialogService.ShowError(pendiente.Texto)
+                Return False
+        End Select
+    End Function
+
+    Private Shared Function TituloPendienteEnvio(codigo As String) As String
+        Select Case codigo
+            Case ContratoEnvioDesdePedido.AVISO_SIN_PICKING
+                Return "Pedido Sin Picking"
+            Case ContratoEnvioDesdePedido.AVISO_AMPLIACION
+                Return "Ampliación"
+            Case ContratoEnvioDesdePedido.AVISO_DIRECCION_PROPIA
+                Return "Envío a Nueva Visión"
+            Case Else
+                Return "Envío"
+        End Select
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#595: el envío que ha grabado el servidor, en la pantalla como lo dejaba InsertarRegistro: envioActual, las
+    ''' listas (sustituyendo el que ya estuviera con ese número) e imprimirEtiqueta. La dirección propia y las dimensiones
+    ''' ya resueltas no se vuelven a preguntar al imprimir.
+    ''' </summary>
+    Private Sub AplicarEnvioCreadoPorApi(creado As EnvioDesdePedidoDto, direccionPropiaConfirmada As Boolean, conDimensiones As Boolean)
+        Dim envio As EnviosAgencia = creado.Envio
+        If direccionPropiaConfirmada Then
+            Dim unused = _enviosADireccionPropiaConfirmados.Add(envio.Numero)
+        End If
+        If conDimensiones Then
+            Dim unused = _enviosConDimensionesDelServidor.Add(envio.Numero)
+        End If
+        If creado.Origen = ContratoEnvioDesdePedido.ORIGEN_PENDIENTE_REUTILIZADO Then
+            ' Ya no es pendiente: lo que manda a partir de ahora es lo de la pantalla (como InsertarRegistro).
+            _envioPendienteDelPedido = Nothing
+        End If
+        If listaEnvios Is Nothing Then
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)
+        End If
+        If listaEnviosPedido Is Nothing Then
+            listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)
+        End If
+        SustituirOAnadir(listaEnvios, envio)
+        SustituirOAnadir(listaEnviosPedido, envio)
+        envioActual = envio
+        imprimirEtiqueta = creado.HayQueImprimir
+        If creado.Avisos IsNot Nothing AndAlso creado.Avisos.Count > 0 Then
+            _dialogService.ShowNotification("Envío", String.Join(Environment.NewLine, creado.Avisos))
+        End If
+    End Sub
+
+    Private Shared Sub SustituirOAnadir(lista As ObservableCollection(Of EnviosAgencia), envio As EnviosAgencia)
+        Dim anterior As EnviosAgencia = lista.FirstOrDefault(Function(e) e IsNot Nothing AndAlso e.Numero = envio.Numero)
+        If anterior Is Nothing Then
+            lista.Add(envio)
+        Else
+            lista(lista.IndexOf(anterior)) = envio
+        End If
+    End Sub
 
     ' NestoAPI#238: coste de la agencia REALMENTE usada (no la más barata) para guardarlo en
     ' EnviosAgencia.ImporteGasto al imprimir. Best-effort: si el servidor falla o no hay tarifa portada
