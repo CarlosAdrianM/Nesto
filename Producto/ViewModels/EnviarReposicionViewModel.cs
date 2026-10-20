@@ -872,16 +872,44 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             Mensaje = null;
             bool hecho = false;
+            int numeroOrden = linea.NumeroOrden;
+            string producto = linea.Producto;
+            int pedida = linea.Cantidad;
+            ReposicionEnPreparacion contestada = null;
             await Ocupado(async () =>
             {
-                ReposicionEnPreparacion reposicion = await _servicio.CambiarCantidad(Empresa, Almacen, linea.NumeroOrden, linea.Cantidad).ConfigureAwait(true);
-                Actualizar(reposicion);
+                contestada = await _servicio.CambiarCantidad(Empresa, Almacen, numeroOrden, pedida).ConfigureAwait(true);
+                Actualizar(contestada);
                 hecho = true;
             }).ConfigureAwait(true);
             if (!hecho)
             {
                 Restaurar(linea);
+                return;
             }
+            // Incidencia 687 (Paloma): se confirma lo que ha guardado el servidor, para que se vea que la bajada ha llegado
+            int guardada = contestada?.Lineas?.FirstOrDefault(l => l.NumeroOrden == numeroOrden)?.Cantidad ?? pedida;
+            Mensaje = TextoGuardado(producto, guardada);
+        }
+
+        internal static string TextoGuardado(string producto, int cantidad) => $"Guardado: {producto?.Trim()} → {cantidad}";
+
+        /// <summary>
+        /// Incidencia 687 (Paloma): al volver a la pestaña la pantalla se rehace con lo que tiene el servidor (la rejilla
+        /// pudo quedarse con una edición a medias o con datos de hace horas). No se recarga si hay algo en marcha (una
+        /// llamada sin contestar o una reposición puntual, que solo está en la pantalla y se perdería).
+        /// </summary>
+        public bool PuedeRecargarAlVolver => !EstaOcupado && !EnModoPuntual && !CambiarCantidadCommand.IsRunning;
+
+        /// <summary>La vista lo llama al volver a verse (y al cargarse). Devuelve si ha recargado.</summary>
+        public async Task<bool> RecargarAlVolverAsync()
+        {
+            if (!PuedeRecargarAlVolver)
+            {
+                return false;
+            }
+            await CargarCommand.ExecuteAsync(null).ConfigureAwait(true);
+            return true;
         }
 
         /// <summary>Lo que manda el lector (o se teclea): si el código está en la lista, el foco va a su cantidad.</summary>

@@ -169,6 +169,89 @@ namespace Producto.Tests
         }
 
         [TestMethod]
+        public async Task BajarCantidad_SiVaBien_ConfirmaLoGuardadoAbajo()
+        {
+            A.CallTo(() => _servicio.CambiarCantidad(A<string>._, "ALC", 101, 1)).Returns(Reposicion(cantidadCera: 1));
+            await _vm.CargarAsync();
+
+            await CambiarCantidadAsync(0, 1);
+
+            Assert.AreEqual("Guardado: 17404 → 1", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task BajarCantidad_SiElServidorNoLaAcepta_NoDiceGuardado()
+        {
+            A.CallTo(() => _servicio.CambiarCantidad(A<string>._, A<string>._, A<int>._, A<int>._)).Throws(new EnvioReposicionException("No."));
+            await _vm.CargarAsync();
+
+            await CambiarCantidadAsync(0, 1);
+
+            Assert.AreEqual("No.", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task CambiarCantidad_ALaMisma_NoLlamaNiDiceNada()
+        {
+            await _vm.CargarAsync();
+            _vm.Mensaje = null;
+
+            await _vm.CambiarCantidadCommand.ExecuteAsync(_vm.Lineas[0]);
+
+            A.CallTo(() => _servicio.CambiarCantidad(A<string>._, A<string>._, A<int>._, A<int>._)).MustNotHaveHappened();
+            Assert.IsNull(_vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task VolverALaPestana_ConUnaReposicionCargada_LaRecargaDelServidor()
+        {
+            await _vm.CargarAsync();
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion(cantidadCera: 1));
+
+            bool recargada = await _vm.RecargarAlVolverAsync();
+
+            Assert.IsTrue(recargada);
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).MustHaveHappenedTwiceExactly();
+            Assert.AreEqual(1, _vm.Lineas[0].Cantidad);
+            Assert.AreEqual(1, _vm.Lineas[0].Preparada);
+        }
+
+        [TestMethod]
+        public async Task VolverALaPestana_ConUnCambioDeCantidadSinContestar_NoRecarga()
+        {
+            var pendiente = new TaskCompletionSource<ReposicionEnPreparacion>();
+            A.CallTo(() => _servicio.CambiarCantidad(A<string>._, A<string>._, A<int>._, A<int>._)).Returns(pendiente.Task);
+            await _vm.CargarAsync();
+            _vm.Lineas[0].Cantidad = 1;
+            Assert.IsTrue(_vm.EstaOcupado);
+
+            bool recargada = await _vm.RecargarAlVolverAsync();
+
+            Assert.IsFalse(recargada);
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, A<string>._)).MustHaveHappenedOnceExactly();
+            pendiente.SetResult(Reposicion(cantidadCera: 1));
+            await _vm.CambiarCantidadCommand.ExecutionTask!;
+            Assert.AreEqual("Guardado: 17404 → 1", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task VolverALaPestana_ConUnaPuntualAMedias_NoRecargaYNoLaPierde()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            await _vm.CargarAsync();
+            _vm.EmpezarPuntualCommand.Execute(null);
+            Assert.IsTrue(_vm.EnModoPuntual);
+            // Mientras tanto ha llegado la del calendario: recargar dejaría la puntual sin mandar
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
+
+            bool recargada = await _vm.RecargarAlVolverAsync();
+
+            Assert.IsFalse(recargada);
+            Assert.IsTrue(_vm.EnModoPuntual);
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, A<string>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
         public async Task SubirCantidad_NoLlamaALaApiYVuelveALaPreparada()
         {
             await _vm.CargarAsync();

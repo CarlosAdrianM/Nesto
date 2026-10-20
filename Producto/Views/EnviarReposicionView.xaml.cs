@@ -24,7 +24,7 @@ namespace Nesto.Modules.Producto.Views
             {
                 if (DataContext is EnviarReposicionViewModel vm && vm.Lineas.Count == 0)
                 {
-                    await vm.CargarAsync();
+                    _ = await vm.RecargarAlVolverAsync();
                 }
             };
         }
@@ -122,12 +122,49 @@ namespace Nesto.Modules.Producto.Views
             vm.AbrirFichaProductoCommand.Execute(producto);
         }
 
-        private void AlCambiarVisibilidad(object sender, DependencyPropertyChangedEventArgs e)
+        private async void AlCambiarVisibilidad(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (_volverAlLectorAlVerse && e.NewValue is true)
+            if (e.NewValue is not true)
+            {
+                // Incidencia 687 (Paloma): al irse a otra pestaña no se deja ninguna celda a medio editar (se perdía al
+                // volver y las bajadas siguientes no llegaban al servidor)
+                TerminarEdicion(grdLineas);
+                TerminarEdicion(grdPuntual);
+                return;
+            }
+            if (_volverAlLectorAlVerse)
             {
                 _volverAlLectorAlVerse = false;
                 EnfocarLector();
+            }
+            // Incidencia 687: con una reposición cargada se rehace con lo que tiene el servidor (sin nada en marcha)
+            if (DataContext is EnviarReposicionViewModel vm && vm.HayReposicion)
+            {
+                _ = await vm.RecargarAlVolverAsync();
+            }
+        }
+
+        /// <summary>
+        /// Confirma lo que haya a medio escribir en la rejilla (en la de la reposición eso lo manda al servidor; en la de la
+        /// puntual se queda en la línea, que solo está en la pantalla). Si no se puede confirmar (lo tecleado no es un número),
+        /// se descarta solo esa edición: la línea se queda con la cantidad que tenía.
+        /// </summary>
+        private static void TerminarEdicion(DataGrid rejilla)
+        {
+            if (rejilla == null)
+            {
+                return;
+            }
+            try
+            {
+                if (!rejilla.CommitEdit(DataGridEditingUnit.Row, true))
+                {
+                    _ = rejilla.CancelEdit(DataGridEditingUnit.Row);
+                }
+            }
+            catch (System.InvalidOperationException)
+            {
+                // La rejilla ya no está en condiciones de editar (se está descargando): nada que confirmar
             }
         }
     }
