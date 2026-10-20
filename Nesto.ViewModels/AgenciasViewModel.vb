@@ -3770,6 +3770,22 @@ Public Class AgenciasViewModel
         Return (agenciaSeleccionada, agenciaEspecifica)
     End Function
 
+    ''' <summary>
+    ''' Nesto#539: si <paramref name="envio"/> es una ampliación (envío ya grabado) de una agencia gestionada por
+    ''' la API (CTT, Innovatrans) que ya está registrada en la agencia (tiene albarán), devuelve el aviso para el
+    ''' usuario; si la ampliación se permite, Nothing. Mismo criterio que la API en
+    ''' POST api/EnviosAgencias/DesdePedido (AmpliacionRegistrada). El resto de agencias, como siempre.
+    ''' </summary>
+    Public Shared Function MensajeAmpliacionRegistrada(envio As EnviosAgencia, agencia As IAgencia) As String
+        Dim agenciaApi = TryCast(agencia, AgenciaGestionadaPorApi)
+        If envio Is Nothing OrElse IsNothing(envio.Pedido) OrElse agenciaApi Is Nothing OrElse
+           String.IsNullOrWhiteSpace(envio.CodigoBarras) Then
+            Return Nothing
+        End If
+        Return $"El envío {envio.Numero} ya está registrado en {agenciaApi.NombreAgencia} (albarán {envio.CodigoBarras.Trim()}): " +
+            "para cambiar los bultos, anúlelo y vuelva a insertarlo."
+    End Function
+
     Public Sub InsertarRegistro(Optional ByVal conEtiquetaRecogida As Boolean = False, Optional ByVal importeGasto As Decimal = -1D)
         Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
         Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
@@ -3790,6 +3806,16 @@ Public Class AgenciasViewModel
         Dim efectiva = AgenciaEfectivaDelEnvio(envioActual)
         Dim agenciaTransporteInsercion As AgenciasTransporte = efectiva.Transporte
         Dim agenciaInsercion As IAgencia = efectiva.Agencia
+
+        ' Nesto#539: ampliar un envío de CTT o Innovatrans que YA está registrado en la agencia no se
+        ' permite (mismo criterio que la API, AmpliacionRegistrada): la agencia se quedaba con los bultos
+        ' de antes, se borraba el albarán y al imprimir se registraba otra expedición. Antes de tocar nada.
+        If Not estabaPendiente Then
+            Dim motivo As String = MensajeAmpliacionRegistrada(envioActual, agenciaInsercion)
+            If motivo IsNot Nothing Then
+                Throw New Exception(motivo)
+            End If
+        End If
 
         If estabaPendiente OrElse String.IsNullOrEmpty(envioActual?.Nemonico) Then
             ' NestoAPI#258 slice (b.2): el país se pasa como parámetro (antes ASM leía
@@ -3915,7 +3941,12 @@ Public Class AgenciasViewModel
                     listaEnviosPedido.Add(envioActual)
                 End If
 
-                envioActual.CodigoBarras = agenciaInsercion.calcularCodigoBarras(envioActual, agenciaTransporteInsercion)
+                ' Nesto#539: las agencias de plataforma devuelven "" (el albarán lo asigna la agencia al
+                ' registrar); con eso nunca se pisa un albarán que ya tenga el envío.
+                Dim codigoBarrasCalculado As String = agenciaInsercion.calcularCodigoBarras(envioActual, agenciaTransporteInsercion)
+                If Not String.IsNullOrEmpty(codigoBarrasCalculado) OrElse String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
+                    envioActual.CodigoBarras = codigoBarrasCalculado
+                End If
                 _servicio.Modificar(envioActual)
 
                 If conEtiquetaRecogida Then
