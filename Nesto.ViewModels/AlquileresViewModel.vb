@@ -14,7 +14,6 @@ Imports System.Text
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.Alquileres
-Imports Unity
 
 Public Class AlquileresViewModel
     Inherits ObservableObject
@@ -26,19 +25,20 @@ Public Class AlquileresViewModel
     ' Nesto#340 Fase 1C.3: dirty flag que sustituye a DbContext.ChangeTracker.HasChanges().
     Private _hayCambios As Boolean
 
-    Public Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, container As IUnityContainer)
+    ' Nesto#490 (4C.5, tramo 3b): la autenticación llega por el constructor, en vez de pedírsela al IUnityContainer.
+    Public Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Me.dialogService = dialogService
         Me.configuracion = configuracion
-        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _productosAlquilerService = New ProductosAlquilerService(configuracion, servicioAutenticacion)
         Inicializar()
     End Sub
 
-    ' Constructor para tests: permite inyectar un IProductosAlquilerService fake.
-    Public Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, productosAlquilerService As IProductosAlquilerService)
+    ' Constructor para tests: permite inyectar un IProductosAlquilerService fake. Es Friend (InternalsVisibleTo
+    ' "ViewModels.Tests") para que el contenedor no tenga que elegir entre dos constructores públicos de 3 parámetros.
+    Friend Sub New(dialogService As IServicioDialogos, configuracion As IConfiguracion, productosAlquilerService As IProductosAlquilerService)
         Me.dialogService = dialogService
         Me.configuracion = configuracion
         _productosAlquilerService = productosAlquilerService

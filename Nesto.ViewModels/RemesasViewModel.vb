@@ -15,7 +15,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
 Imports System.Collections.Specialized
-Imports Unity
 Imports ControlesUsuario.Dialogs
 
 Public Class RemesasViewModel
@@ -47,7 +46,10 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IServicioDialogos, container As IUnityContainer)
+    ' Nesto#490 (4C.5, tramo 3b): la autenticación, la navegación y el messenger llegan por el constructor, en vez de
+    ' pedírselos al IUnityContainer.
+    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IServicioDialogos,
+                   servicioAutenticacion As IServicioAutenticacion, navegacion As IServicioNavegacion, messenger As IMessenger)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -55,14 +57,13 @@ Public Class RemesasViewModel
         Me.InteractiveBrowserCredential = interactiveBrowserCredential
         Me.configuracion = configuracion
         Me.dialogService = dialogService
-        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _remesasService = New RemesasService(configuracion, servicioAutenticacion)
-        _navegacion = container.Resolve(Of IServicioNavegacion)()
+        _navegacion = navegacion
         ' Nesto#419: escuchar las liquidaciones del Extracto de Cliente para actualizar en sitio
         ' los efectos afectados (suscripción débil por defecto; se limpia sola al cerrar la vista).
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator. Antes era ThreadOption.UIThread:
         ' el Messenger entrega en el hilo de quien envía, así que se encola en el de la UI.
-        SuscribirEfectosLiquidados(container.Resolve(Of IMessenger)())
+        SuscribirEfectosLiquidados(messenger)
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
         ' Nesto#340 Fase 1C.14 slices 2 y 4: el setter de empresaActual ya carga remesas e

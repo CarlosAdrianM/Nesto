@@ -12,7 +12,6 @@ Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.PlanesVentajas
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Unity
 
 Public Class PlanesVentajasViewModel
     Inherits ObservableObject
@@ -24,18 +23,19 @@ Public Class PlanesVentajasViewModel
     Private _isDirty As Boolean
     Private _suspenderDirty As Boolean
 
-    Public Sub New(configuracion As IConfiguracion, container As IUnityContainer)
+    ' Nesto#490 (4C.5, tramo 3b): la autenticación llega por el constructor, en vez de pedírsela al IUnityContainer.
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Me.configuracion = configuracion
         Titulo = "Planes de Ventajas"
-        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _servicio = New PlanesVentajasService(configuracion, servicioAutenticacion)
     End Sub
 
-    ' Constructor para tests: permite inyectar el servicio mockeado.
-    Public Sub New(configuracion As IConfiguracion, servicio As IPlanesVentajasService)
+    ' Constructor para tests: permite inyectar el servicio mockeado. Es Friend (InternalsVisibleTo "ViewModels.Tests")
+    ' para que el contenedor no tenga que elegir entre dos constructores públicos de 2 parámetros.
+    Friend Sub New(configuracion As IConfiguracion, servicio As IPlanesVentajasService)
         Me.configuracion = configuracion
         _servicio = servicio
         Titulo = "Planes de Ventajas"
