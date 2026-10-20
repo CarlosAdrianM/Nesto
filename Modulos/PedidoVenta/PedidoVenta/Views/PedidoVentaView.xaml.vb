@@ -1,28 +1,28 @@
 ﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Unity
 
 ' Nesto#490 (4C.4, 7.º tramo): la navegación de su ámbito (sus regiones de lista y detalle) le llega por
 ' IConAmbitoNavegacion al abrirla con AbrirVistaConAmbito, en vez del scopedRegionManager de Prism.
 Public Class PedidoVentaView
     Implements IConAmbitoNavegacion
 
-    Private ReadOnly container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3b): el resolutor propio, no el IUnityContainer, para crear la lista de su maestro-detalle
+    Private ReadOnly resolutor As IResolutorNesto
     Public Property NavegacionAmbito As IServicioNavegacion Implements IConAmbitoNavegacion.NavegacionAmbito
     Private cargado As Boolean = False
 
 
-    Public Sub New(container As IUnityContainer, viewModel As PedidoVentaViewModel)
+    Public Sub New(resolutor As IResolutorNesto, viewModel As PedidoVentaViewModel)
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
         DataContext = viewModel
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.container = container
+        Me.resolutor = resolutor
     End Sub
 
     Private Async Sub PedidoVentaView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         If Not cargado AndAlso NavegacionAmbito IsNot Nothing Then
-            Dim view As ListaPedidosVenta = container.Resolve(Of ListaPedidosVenta)
+            Dim view As ListaPedidosVenta = resolutor.Resolver(Of ListaPedidosVenta)()
             Dim viewModel As ListaPedidosVentaViewModel = CType(view.DataContext, ListaPedidosVentaViewModel)
             ' Add con su nombre y Activate, como antes (la región de un ContentControl ya activaba sola la primera vista,
             ' así que activarla antes de elegir el pedido no cambia nada). La lista recibe esta misma navegación

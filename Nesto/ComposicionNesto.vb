@@ -123,6 +123,10 @@ Public NotInheritable Class ComposicionNesto
         ' Nesto#490 (4C.5, tramo 3a): y todas las pantallas que abren un pedido, en lugar del IUnityContainer. No guarda
         ' estado: uno para toda la aplicación, con el resolutor del propio contenedor.
         registro.Singleton(Of IAbridorPedidos)(Function(r) New AbridorPedidos(r))
+        ' Nesto#490 (4C.5, tramo 3b): el resolutor propio para lo que crea vistas por su tipo, en lugar del IUnityContainer o
+        ' el IContainerProvider: PedidoVentaViewModel y PedidoCompraViewModel (la pestaña nueva) y sus vistas (la lista del
+        ' maestro-detalle). Es el del propio contenedor (con Prism, un ResolutorPrism sobre Unity; en el tramo 4, el de MS.DI).
+        registro.Singleton(Of IResolutorNesto)(Function(r) r)
 
         ' Nesto#477: buzón de notificaciones (campana de la cinta)
         registro.Singleton(Of IBuzonNotificacionesService)(Function(r) New BuzonNotificacionesService(r.Resolver(Of IClienteApiFactory)()))

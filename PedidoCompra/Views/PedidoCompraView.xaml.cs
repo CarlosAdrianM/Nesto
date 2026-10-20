@@ -1,5 +1,4 @@
 ﻿using Nesto.Infrastructure.Contracts;
-using Prism.Ioc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,14 +25,15 @@ namespace Nesto.Modulos.PedidoCompra.Views
     public partial class PedidoCompraView : UserControl, IConAmbitoNavegacion
     {
         public IServicioNavegacion NavegacionAmbito { get; set; }
-        public IContainerProvider ContainerProvider { get; }
+        // Nesto#490 (4C.5, tramo 3b): el resolutor propio, no el IContainerProvider, para crear la lista de su maestro-detalle
+        private IResolutorNesto Resolutor { get; }
 
         private bool Cargado = false;
-        public PedidoCompraView(IContainerProvider containerProvider, PedidoCompraViewModel viewModel)
+        public PedidoCompraView(IResolutorNesto resolutor, PedidoCompraViewModel viewModel)
         {
             InitializeComponent();
             DataContext = viewModel;
-            ContainerProvider = containerProvider;
+            Resolutor = resolutor;
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -41,7 +41,7 @@ namespace Nesto.Modulos.PedidoCompra.Views
             if (!Cargado && NavegacionAmbito != null)
             {
                 // La lista recibe esta misma navegación (IConAmbitoNavegacion) al entrar en la región: navega al detalle de esta pestaña
-                ListaPedidosCompraView view = ContainerProvider.Resolve<ListaPedidosCompraView>();
+                ListaPedidosCompraView view = Resolutor.Resolver<ListaPedidosCompraView>();
                 NavegacionAmbito.AbrirVistaNueva("ListaPedidosCompraRegion", view, "ListaPedidosCompraRegion");
                 Cargado = true;
             }

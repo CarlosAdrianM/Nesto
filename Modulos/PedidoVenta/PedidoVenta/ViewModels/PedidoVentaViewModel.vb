@@ -3,9 +3,7 @@ Imports System.Text
 Imports CommunityToolkit.Mvvm.Input
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
-Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
-Imports Unity
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
@@ -17,14 +15,15 @@ Public Class PedidoVentaViewModel
     Inherits ObservableObject
 
     Private ReadOnly navegacion As IServicioNavegacion
-    Private ReadOnly container As IUnityContainer
+    ' Nesto#490 (4C.5, tramo 3b): el resolutor propio, no el IUnityContainer, para crear la vista de cada pestaña nueva
+    Private ReadOnly resolutor As IResolutorNesto
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
 
-    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, resolutor As IResolutorNesto)
         Me.navegacion = navegacion
         Me.configuracion = configuracion
-        Me.container = container
+        Me.resolutor = resolutor
         Me.servicio = servicio
 
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
@@ -60,7 +59,7 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Sub OnAbrirModulo(arg As Object)
-        Dim view = Me.container.Resolve(Of PedidoVentaView)
+        Dim view = resolutor.Resolver(Of PedidoVentaView)()
         If Not IsNothing(view) Then
             Dim unused = navegacion.AbrirVistaConAmbito("MainRegion", view)
         End If

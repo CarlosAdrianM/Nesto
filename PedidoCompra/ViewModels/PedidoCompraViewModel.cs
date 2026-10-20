@@ -2,7 +2,6 @@
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.Views;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Ioc;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
@@ -24,14 +23,15 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     {
         private IServicioNavegacion Navegacion { get; }
         public IConfiguracion Configuracion { get; set; }
-        private IContainerProvider ContainerProvider { get; }
+        // Nesto#490 (4C.5, tramo 3b): el resolutor propio, no el IContainerProvider, para crear la vista de cada pestaña nueva
+        private IResolutorNesto Resolutor { get; }
         
 
-        public PedidoCompraViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IContainerProvider containerProvider)
+        public PedidoCompraViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IResolutorNesto resolutor)
         {
             Navegacion = navegacion;
             Configuracion = configuracion;
-            ContainerProvider = containerProvider;
+            Resolutor = resolutor;
 
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
 
@@ -43,7 +43,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public ICommand AbrirModuloCommand { get; private set; }
         private void OnAbrirModulo()
         {
-            var view = ContainerProvider.Resolve<PedidoCompraView>();
+            var view = Resolutor.Resolver<PedidoCompraView>();
             if (view != null)
             {
                 _ = Navegacion.AbrirVistaConAmbito("MainRegion", view);

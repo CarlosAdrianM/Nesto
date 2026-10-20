@@ -120,10 +120,10 @@ namespace PedidoCompraTests
                 var regionManager = A.Fake<IRegionManager>();
                 IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
                 var ambito = A.Fake<IRegionManager>();
-                var contenedor = A.Fake<IContainerProvider>();
+                var contenedor = A.Fake<IResolutorNesto>();
                 var vm = new PedidoCompraViewModel(new ServicioNavegacionPrism(regionManager), A.Fake<IConfiguracion>(), contenedor);
                 var vista = new PedidoCompraView(contenedor, vm);
-                A.CallTo(() => contenedor.Resolve(typeof(PedidoCompraView))).Returns(vista);
+                A.CallTo(() => contenedor.Resolver<PedidoCompraView>()).Returns(vista);
                 A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
 
                 vm.AbrirModuloCommand.Execute(null);
@@ -145,10 +145,10 @@ namespace PedidoCompraTests
                 var ambito = A.Fake<IRegionManager>();
                 IRegion regionLista = ConfigurarRegion(ambito, "ListaPedidosCompraRegion");
                 A.CallTo(() => regionLista.GetView(A<string>._)).Returns(null);
-                var contenedor = A.Fake<IContainerProvider>();
+                var contenedor = A.Fake<IResolutorNesto>();
                 var listaVm = CrearLista();
                 var lista = new ListaPedidosCompraView(listaVm);
-                A.CallTo(() => contenedor.Resolve(typeof(ListaPedidosCompraView))).Returns(lista);
+                A.CallTo(() => contenedor.Resolver<ListaPedidosCompraView>()).Returns(lista);
                 var vista = new PedidoCompraView(contenedor, new PedidoCompraViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), contenedor));
                 vista.NavegacionAmbito = new ServicioNavegacionPrism(ambito);
 

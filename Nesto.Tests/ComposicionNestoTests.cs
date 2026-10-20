@@ -34,13 +34,13 @@ namespace Nesto.Tests
         /// <summary>
         /// Lo que en este tramo todavía no registra ComposicionNesto y la prueba pone con fakes: la navegación (se registra
         /// en Application con el conmutador de regiones, se va con el tramo 4 de 4C.4) y los tipos de Prism/Unity que aún
-        /// se inyectan (se van con el tramo 3 de 4C.5).
+        /// se inyectan (se van con el tramo 3 de 4C.5). Desde el tramo 3b ya nadie recibe el IContainerProvider; el
+        /// IUnityContainer, solo MenuBarViewModel.
         /// </summary>
         private static readonly Type[] _deFueraDeLaComposicion =
         {
             typeof(IServicioNavegacion),
             typeof(Unity.IUnityContainer),
-            typeof(Prism.Ioc.IContainerProvider),
             typeof(Prism.Regions.IRegionManager),
         };
 
@@ -213,6 +213,50 @@ namespace Nesto.Tests
                 List<string> sinRegistrar = porSuTipo.Where(t => !esServicio.IsService(t)).Select(t => t.FullName).ToList();
 
                 Assert.AreEqual(0, sinRegistrar.Count, "Sin registrar: " + string.Join(", ", sinRegistrar));
+            });
+        }
+
+        [TestMethod]
+        public void LasClasesDelTramo3b_NoRecibenElContenedorDePrismNiDeUnity()
+        {
+            // Nesto#490 (4C.5, tramo 3b): ni lo guardan sin usarlo, ni le piden servicios, ni crean vistas con él
+            var clases = new[]
+            {
+                typeof(Nesto.Modulos.PedidoVenta.FacturarRutasPopupViewModel),
+                typeof(Nesto.Modulos.Rapports.ListaRapportsViewModel),
+                typeof(Nesto.ViewModels.MainViewModel),
+                typeof(Nesto.ViewModels.AlquileresViewModel),
+                typeof(Nesto.ViewModels.PlanesVentajasViewModel),
+                typeof(Nesto.ViewModels.RemesasViewModel),
+                typeof(Nesto.Modulos.PedidoVenta.PedidoVentaViewModel),
+                typeof(Nesto.Modulos.PedidoVenta.PedidoVentaView),
+                typeof(Nesto.Modulos.PedidoCompra.ViewModels.PedidoCompraViewModel),
+                typeof(Nesto.Modulos.PedidoCompra.Views.PedidoCompraView),
+            };
+
+            List<string> conContenedor = clases
+                .SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SelectMany(c => c.GetParameters())
+                    .Where(p => p.ParameterType == typeof(Unity.IUnityContainer)
+                                || typeof(Prism.Ioc.IContainerProvider).IsAssignableFrom(p.ParameterType))
+                    .Select(p => $"{t.Name} ({p.Name})"))
+                .ToList();
+
+            Assert.AreEqual(0, conContenedor.Count, "Reciben el contenedor: " + string.Join(", ", conContenedor));
+        }
+
+        [TestMethod]
+        public void ElResolutorPropio_SeResuelveYEsElDelContenedor()
+        {
+            EjecutarEnSTA(() =>
+            {
+                Composicion composicion = Montar();
+
+                IResolutorNesto resolutor = composicion.Resolutor.Resolver<IResolutorNesto>();
+
+                Assert.IsNotNull(resolutor);
+                // Lo que se pide con él sale del mismo contenedor (los singletons son los mismos)
+                Assert.AreSame(composicion.Resolutor.Resolver<IServicioCinta>(), resolutor.Resolver<IServicioCinta>());
             });
         }
 

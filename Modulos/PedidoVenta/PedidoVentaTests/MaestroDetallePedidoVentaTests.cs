@@ -12,8 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Windows;
-using Unity;
-using Unity.Resolution;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 
 namespace PedidoVentaTests
@@ -130,10 +128,10 @@ namespace PedidoVentaTests
                 var regionManager = A.Fake<IRegionManager>();
                 IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
                 var ambito = A.Fake<IRegionManager>();
-                var contenedor = A.Fake<IUnityContainer>();
+                var contenedor = A.Fake<IResolutorNesto>();
                 var vm = new PedidoVentaViewModel(new ServicioNavegacionPrism(regionManager), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
-                A.CallTo(() => contenedor.Resolve(typeof(PedidoVentaView), A<string>._, A<ResolverOverride[]>._)).Returns(vista);
+                A.CallTo(() => contenedor.Resolver<PedidoVentaView>()).Returns(vista);
                 A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
 
                 vm.cmdAbrirModulo.Execute(null);
@@ -152,7 +150,7 @@ namespace PedidoVentaTests
                 var regionManager = A.Fake<IRegionManager>();
                 IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
                 var ambito = A.Fake<IRegionManager>();
-                var contenedor = A.Fake<IUnityContainer>();
+                var contenedor = A.Fake<IResolutorNesto>();
                 var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
                 // Nesto#490 (4C.5, tramo 3a): CargarPedido saca la vista y la navegación del resolutor propio, no del IUnityContainer
@@ -182,10 +180,10 @@ namespace PedidoVentaTests
                 NavigationParameters recibidos = null;
                 A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", A<NavigationParameters>._))
                     .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
-                var contenedor = A.Fake<IUnityContainer>();
+                var contenedor = A.Fake<IResolutorNesto>();
                 var listaVm = CrearLista(A.Fake<IRegionManager>());
                 var lista = new ListaPedidosVenta(listaVm);
-                A.CallTo(() => contenedor.Resolve(typeof(ListaPedidosVenta), A<string>._, A<ResolverOverride[]>._)).Returns(lista);
+                A.CallTo(() => contenedor.Resolver<ListaPedidosVenta>()).Returns(lista);
                 var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor)
                 {
                     empresaInicial = "3",
