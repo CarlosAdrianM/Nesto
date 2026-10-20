@@ -33,6 +33,10 @@
             public const string ImpresoraAgenciaGLS = "ImpresoraAgenciaGLS";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
+            // NestoAPI#595 (slice 2): "API" = «Insertar» de Agencias crea el envío en el servidor (POST
+            // api/EnviosAgencias/DesdePedido). Cualquier otro valor, sin fila o si no se puede leer = el camino de
+            // siempre (InsertarRegistro). Script: NestoAPI Scripts/Nesto595_ParametroInsertarEnvioPorApi.sql.
+            public const string InsertarEnvioPorApi = "InsertarEnvioPorApi";
             // Nesto#340 (retirada de flags 20/08 y 21/08/26): MotorPdfExtractoContable, MotorPdfPedidoCompra,
             // MotorPdfPicking y MotorPdfEtiquetasTienda se retiraron — llevaban semanas al 100% en QuestPDF (defecto
             // incluido) y el camino RDLC era código muerto.

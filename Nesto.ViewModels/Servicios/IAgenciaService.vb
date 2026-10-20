@@ -80,6 +80,10 @@ Public Interface IAgenciaService
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).
     Function PagarReembolsos(datos As PagoReembolsosDto) As Task(Of ResultadoPagoReembolsosDto)
+    ' NestoAPI#595 (slice 2): el servidor crea el envío del pedido con los valores de la pantalla (POST
+    ' api/EnviosAgencias/DesdePedido). Con un 409 devuelve lo que hay que preguntar; con un 400/404, el motivo. Solo
+    ' detrás del parámetro de usuario InsertarEnvioPorApi = "API".
+    Function CrearEnvioDesdePedido(peticion As CrearEnvioDesdePedidoDto) As Task(Of ResultadoEnvioDesdePedidoModel)
     ' Nesto#340 (Agencias, slice A4.4): reembolso/retorno/estado/fecha de un envío tramitado (y rehusar),
     ' con historia y contabilización en el servidor. Lanza con el motivo del servidor si lo rechaza.
     Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto)

@@ -978,6 +978,64 @@ Public Class AgenciaService
     Friend Const RUTA_PAGAR_REEMBOLSOS As String = "EnviosAgencias/PagarReembolsos"
 
     ''' <summary>
+    ''' NestoAPI#595 (slice 2): el servidor crea el envío del pedido (POST api/EnviosAgencias/DesdePedido). No lanza por
+    ''' los códigos del contrato: 200 = Creado, 409 = ConPendientes (lo que hay que preguntar), 400/404 = Rechazado con el
+    ''' código y el motivo del servidor. Cualquier otro código (500, 401...) lanza con el cuerpo, como el resto del servicio.
+    ''' </summary>
+    Public Async Function CrearEnvioDesdePedido(peticion As CrearEnvioDesdePedidoDto) As Task(Of ResultadoEnvioDesdePedidoModel) Implements IAgenciaService.CrearEnvioDesdePedido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RUTA_ENVIO_DESDE_PEDIDO, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            Return InterpretarRespuestaEnvioDesdePedido(CInt(response.StatusCode), cuerpo)
+        End Using
+    End Function
+
+    Friend Const RUTA_ENVIO_DESDE_PEDIDO As String = "EnviosAgencias/DesdePedido"
+
+    ''' <summary>NestoAPI#595 (slice 2): la respuesta de DesdePedido según su código HTTP. Aparte para probarla sin servidor.</summary>
+    Friend Shared Function InterpretarRespuestaEnvioDesdePedido(codigoHttp As Integer, cuerpo As String) As ResultadoEnvioDesdePedidoModel
+        Select Case codigoHttp
+            Case 200
+                Return New ResultadoEnvioDesdePedidoModel With {
+                    .Estado = EstadoEnvioDesdePedido.Creado,
+                    .Creado = JsonConvert.DeserializeObject(Of EnvioDesdePedidoDto)(cuerpo)
+                }
+            Case 409
+                Dim conflicto = JsonConvert.DeserializeObject(Of ConflictoEnvioDesdePedidoDto)(cuerpo)
+                Return New ResultadoEnvioDesdePedidoModel With {
+                    .Estado = EstadoEnvioDesdePedido.ConPendientes,
+                    .Pendientes = If(conflicto?.Pendientes, New List(Of AvisoEnvioDesdePedidoDto))
+                }
+            Case 400
+                Dim errorServidor As ErrorEnvioDesdePedidoDto = Nothing
+                Try
+                    errorServidor = JsonConvert.DeserializeObject(Of ErrorEnvioDesdePedidoDto)(cuerpo)
+                Catch
+                    ' Un 400 de Web API (modelo inválido) no trae el contrato: se enseña el cuerpo tal cual.
+                End Try
+                Return New ResultadoEnvioDesdePedidoModel With {
+                    .Estado = EstadoEnvioDesdePedido.Rechazado,
+                    .CodigoError = errorServidor?.Codigo,
+                    .MensajeError = If(String.IsNullOrWhiteSpace(errorServidor?.Message), cuerpo, errorServidor.Message)
+                }
+            Case 404
+                Return New ResultadoEnvioDesdePedidoModel With {
+                    .Estado = EstadoEnvioDesdePedido.Rechazado,
+                    .CodigoError = ContratoEnvioDesdePedido.ERROR_NO_ENCONTRADO,
+                    .MensajeError = "El servidor no encuentra el pedido."
+                }
+            Case Else
+                Throw New Exception($"NestoAPI rechazó el envío del pedido ({codigoHttp}): {cuerpo}")
+        End Select
+    End Function
+
+    ''' <summary>
     ''' Nesto#340 (Agencias, slice A4.4): la modificación de un envío tramitado la hace el servidor
     ''' (POST EnviosAgencias/{n}/ModificarDatos); antes eran modificarEnvio +
     ''' contabilizarModificacionReembolso del ViewModel por Entity Framework.
