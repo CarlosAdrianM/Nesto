@@ -20,8 +20,8 @@ namespace Nesto.Infrastructure.Services
         Task<SugerenciasProductosDTO> Calcular(CalcularSugerenciasProductosDTO peticion);
 
         /// <summary>
-        /// POST api/SugerenciasProductos/{idSugerencia}/Respuesta («Anadido» o «NoLeInteresa»). Con «NoLeInteresa» trae la
-        /// sustituta. Null si no se puede.
+        /// POST api/SugerenciasProductos/{idSugerencia}/Respuesta («Anadido», «NoLeInteresa» o «DescartadoVendedor»). Con las dos
+        /// últimas trae la sustituta. Null si no se puede.
         /// </summary>
         Task<ResultadoRespuestaSugerenciaProductoDTO> Responder(int idSugerencia, string respuesta, List<ProductoCarritoSugerenciaDTO> productos);
     }

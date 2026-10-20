@@ -119,6 +119,7 @@ Public Class PlantillaVentaViewModel
         ' Nesto#537: las fichas de «Puede ofrecer»
         AnadirSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnAnadirSugerenciaProducto)
         RechazarSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnRechazarSugerenciaProducto)
+        QuitarSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnQuitarSugerenciaProducto)
         PlegarSugerenciasProductosCommand = New RelayCommand(Sub() SugerenciasProductosPlegadas = Not SugerenciasProductosPlegadas)
 
         ' Issue #286: Borradores de PlantillaVenta
@@ -4464,6 +4465,8 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property AnadirSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
     Public ReadOnly Property RechazarSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
+    ''' <summary>«🚫 Quitar»: no se lo ofrezco (sé que no lo quiere o no se lo puedo vender). Sale otra en su lugar.</summary>
+    Public ReadOnly Property QuitarSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
     Public ReadOnly Property PlegarSugerenciasProductosCommand As RelayCommand
 
     Private _sugerenciasProductosPlegadas As Boolean
@@ -4655,6 +4658,14 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
+    Private Async Sub OnQuitarSugerenciaProducto(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO)
+        Try
+            Await QuitarSugerenciaProductoAsync(sugerencia)
+        Catch ex As Exception
+            ' Es una ayuda: si falla, la ficha se queda y no se molesta al vendedor
+        End Try
+    End Sub
+
     ''' <summary>
     ''' «✓ Añadir»: el producto entra en el pedido con 1 unidad (editable como cualquier línea), por la misma ruta que si lo
     ''' tecleara el vendedor (precio, stock y sustituciones igual). La ficha sale del panel, se apunta «Anadido» y, como el
@@ -4688,12 +4699,26 @@ Public Class PlantillaVentaViewModel
     ''' «✗ No le interesa»: se apunta el rechazo y la sustituta que manda la API ocupa el mismo hueco. Si no hay sustituta
     ''' (o la API no contesta), la ficha simplemente se va.
     ''' </summary>
-    Friend Async Function RechazarSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
+    Friend Function RechazarSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
+        Return SustituirSugerenciaProductoAsync(sugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.NO_LE_INTERESA)
+    End Function
+
+    ''' <summary>
+    ''' «🚫 Quitar» (no se lo ofrezco: sé que no lo quiere o no se lo puedo vender): igual que «✗ No le interesa» en pantalla
+    ''' (sale otra en su hueco y no se le vuelve a sugerir a este cliente en 60 días), pero la API lo registra aparte
+    ''' («DescartadoVendedor»): no es un rechazo del cliente.
+    ''' </summary>
+    Friend Function QuitarSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
+        Return SustituirSugerenciaProductoAsync(sugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR)
+    End Function
+
+    ''' <summary>La ficha se va y, si la API manda sustituta (y vale), esta ocupa el mismo hueco.</summary>
+    Private Async Function SustituirSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO, respuesta As String) As Task
         If sugerencia Is Nothing OrElse Not _respuestasSugerenciasEnCurso.Add(sugerencia.IdSugerencia) Then
             Return
         End If
         Try
-            Dim resultado = Await ResponderSugerenciaProductoAsync(sugerencia.IdSugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.NO_LE_INTERESA).ConfigureAwait(True)
+            Dim resultado = Await ResponderSugerenciaProductoAsync(sugerencia.IdSugerencia, respuesta).ConfigureAwait(True)
             Dim indice As Integer = _sugerenciasProductos.IndexOf(sugerencia)
             If indice < 0 Then
                 Return ' mientras tanto se ha recalculado el panel

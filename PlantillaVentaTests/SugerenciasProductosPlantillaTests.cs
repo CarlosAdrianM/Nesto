@@ -469,6 +469,83 @@ namespace PlantillaVentaTests
 
         #endregion
 
+        #region Quitar (Nesto#537, segunda vuelta)
+
+        [TestMethod]
+        public async Task Quitar_ApuntaDescartadoVendedor_NoNoLeInteresa_YLaSustitutaOcupaSuHueco()
+        {
+            var (vm, sugerencias, _, dialogos) = CrearViewModel();
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
+                .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1), Ficha(11, "39000", 2), Ficha(12, "40000", 3))));
+            await vm.RefrescarSugerenciasProductos();
+            A.CallTo(() => sugerencias.Responder(10, RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR, A<List<ProductoCarritoSugerenciaDTO>>._))
+                .Returns(Task.FromResult(new ResultadoRespuestaSugerenciaProductoDTO
+                {
+                    IdSugerencia = 10,
+                    Respuesta = RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR,
+                    Sustituta = Ficha(13, "41000", 1, MotivosSugerenciaProducto.PARECIDOS)
+                }));
+
+            await vm.QuitarSugerenciaProductoAsync(vm.SugerenciasProductos[0]);
+
+            CollectionAssert.AreEqual(new[] { "41000", "39000", "40000" }, vm.SugerenciasProductos.Select(s => s.Producto).ToArray());
+            A.CallTo(() => sugerencias.Responder(10, RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR, A<List<ProductoCarritoSugerenciaDTO>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => sugerencias.Responder(A<int>._, RespuestasSugerenciaProducto.NO_LE_INTERESA, A<List<ProductoCarritoSugerenciaDTO>>._)).MustNotHaveHappened();
+            Assert.AreEqual(0, vm.listaProductosPedido.Count, "Quitar no mete nada en el pedido");
+            A.CallTo(dialogos).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Quitar_ConElBotonYLaApiCaida_LaFichaSeVaSinDialogo()
+        {
+            var (vm, sugerencias, _, dialogos) = CrearViewModel();
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1), Ficha(11, "39000", 2))));
+            await vm.RefrescarSugerenciasProductos();
+            A.CallTo(() => sugerencias.Responder(A<int>._, A<string>._, A<List<ProductoCarritoSugerenciaDTO>>._))
+                .Returns(Task.FromResult<ResultadoRespuestaSugerenciaProductoDTO>(null));
+
+            Assert.IsTrue(vm.QuitarSugerenciaProductoCommand.CanExecute(vm.SugerenciasProductos[1]));
+            vm.QuitarSugerenciaProductoCommand.Execute(vm.SugerenciasProductos[1]);
+            await Task.Yield();
+
+            CollectionAssert.AreEqual(new[] { "38000" }, vm.SugerenciasProductos.Select(s => s.Producto).ToArray());
+            A.CallTo(() => sugerencias.Responder(11, RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR, A<List<ProductoCarritoSugerenciaDTO>>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(dialogos).MustNotHaveHappened();
+        }
+
+        #endregion
+
+        #region Tarjetas (Nesto#537, segunda vuelta)
+
+        [TestMethod]
+        public async Task Tarjetas_LlevanLaFotoElNombreConTamanoYLaFamiliaQueMandaLaApi()
+        {
+            var (vm, sugerencias, _, _) = CrearViewModel();
+            SugerenciaProductoDTO conFoto = Ficha(10, "38000", 1);
+            conFoto.Nombre = "Crema Reafirmante";
+            conFoto.UrlFoto = "https://tienda/38000.jpg";
+            conFoto.Tamano = 500;
+            conFoto.UnidadMedida = "ml";
+            conFoto.Familia = "Lisap Milano";
+            conFoto.NombreConTamano = "Crema Reafirmante 500 ml";
+            SugerenciaProductoDTO sinFoto = Ficha(11, "39000", 2, MotivosSugerenciaProducto.LE_TOCA);
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).Returns(Task.FromResult(Respuesta(conFoto, sinFoto)));
+
+            await vm.RefrescarSugerenciasProductos();
+
+            SugerenciaProductoDTO primera = vm.SugerenciasProductos[0];
+            Assert.IsTrue(primera.TieneFoto);
+            Assert.AreEqual("https://tienda/38000.jpg", primera.UrlFoto);
+            Assert.AreEqual("Crema Reafirmante 500 ml", primera.NombreMostrar);
+            Assert.AreEqual("38000 · Lisap Milano", primera.ProductoYFamilia);
+            SugerenciaProductoDTO segunda = vm.SugerenciasProductos[1];
+            Assert.IsFalse(segunda.TieneFoto, "Sin foto, la tarjeta enseña el icono del motivo");
+            Assert.AreEqual("🔁", segunda.Icono);
+            Assert.AreEqual("PRODUCTO 39000", segunda.NombreMostrar);
+        }
+
+        #endregion
+
         #region Plegar
 
         [TestMethod]
