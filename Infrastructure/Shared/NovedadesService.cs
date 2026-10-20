@@ -110,6 +110,22 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<NovedadUsuario>(json);
         }
 
+        public async Task<NovedadUsuario> SugerirPrivada(string texto, byte[] imagenPng)
+        {
+            // Nesto#532 (NestoAPI#650): el mismo POST con "Privada": true
+            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            var cuerpo = new
+            {
+                Texto = texto,
+                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
+                ImagenTipo = conImagen ? "image/png" : null,
+                VersionCliente = VersionNesto(),
+                Privada = true
+            };
+            string json = await Enviar(HttpMethod.Post, "Novedades/Sugerencias", cuerpo, "enviar la sugerencia").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<NovedadUsuario>(json);
+        }
+
         public async Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, byte[] imagenPng, string pantalla)
         {
             // NestoAPI#558: el mismo POST que las sugerencias, marcado como incidencia y con la pantalla abierta

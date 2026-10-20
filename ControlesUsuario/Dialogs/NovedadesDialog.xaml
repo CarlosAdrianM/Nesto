@@ -130,11 +130,17 @@
                         <Button Content="Quitar imagen" Command="{Binding QuitarImagenSugerenciaCommand}" Margin="8,0,0,0"
                                 VerticalAlignment="Top" Padding="6,1" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                    <DockPanel Margin="0,6,0,0">
+                        <!-- Nesto#532 (NestoAPI#650): desmarcada por defecto; al enviar se recomienda dejarla pública -->
+                        <CheckBox DockPanel.Dock="Left" Content="Privada" IsChecked="{Binding SugerenciaPrivada}" VerticalAlignment="Center"
+                                  ToolTip="Solo la verían usted, Dirección e Informática. Le recomendamos dejarla pública."
+                                  Visibility="{Binding PuedeSerPrivada, Converter={StaticResource BoolAVisible}}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Pegar imagen" Command="{Binding PegarImagenSugerenciaCommand}" Padding="8,2" Margin="0,0,6,0"
                                 ToolTip="Adjunta la imagen que tengas copiada (por ejemplo, un recorte de pantalla)" />
                         <Button Content="{Binding TextoBotonEnviarFormulario}" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
                     </StackPanel>
+                    </DockPanel>
                 </StackPanel>
             </Border>
         </StackPanel>
@@ -186,6 +192,9 @@
                                      la descripción (ampliada, nuestra) solo si la hay. -->
                                 <TextBlock Text="{Binding SugeridaPor}" FontSize="11" Foreground="#777777" Margin="0,3,0,0"
                                            Visibility="{Binding EsSugerencia, Converter={StaticResource BoolAVisible}}" />
+                                <!-- Nesto#532 (NestoAPI#650): la privada, con su candado (solo la reciben su autor y Dirección / Informática) -->
+                                <TextBlock Text="{Binding TextoPrivada}" FontSize="11" Foreground="#8A5A00" Margin="0,2,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding EsPrivada, Converter={StaticResource BoolAVisible}}" />
                                 <Border BorderBrush="#C9D9EC" BorderThickness="3,0,0,0" Padding="6,0,0,0" Margin="0,4,0,0"
                                         Visibility="{Binding TieneTextoOriginal, Converter={StaticResource BoolAVisible}}">
                                     <TextBlock local:TextoConMenciones.Texto="{Binding TextoOriginal}" TextWrapping="Wrap" FontStyle="Italic" Foreground="#333333" />
@@ -252,7 +261,8 @@
                                 <!-- NestoAPI#520: feedback. Solo si la API trae los contadores (si no, la ventana como siempre). -->
                                 <StackPanel Visibility="{Binding TieneFeedback, Converter={StaticResource BoolAVisible}}" Margin="0,6,0,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Command="{Binding MeGustaCommand}" ToolTip="Me gusta (pulsa otra vez para quitarlo)">
+                                        <Button Command="{Binding MeGustaCommand}" ToolTip="Me gusta (pulsa otra vez para quitarlo)"
+                                                Visibility="{Binding PuedeVotar, Converter={StaticResource BoolAVisible}}">
                                             <Button.Style>
                                                 <Style TargetType="Button" BasedOn="{StaticResource BotonVoto}">
                                                     <Style.Triggers>
@@ -268,7 +278,8 @@
                                                 <TextBlock Text="{Binding VotosPositivos}" Margin="4,0,0,0" />
                                             </StackPanel>
                                         </Button>
-                                        <Button Command="{Binding NoMeGustaCommand}" ToolTip="No me gusta (pulsa otra vez para quitarlo)">
+                                        <Button Command="{Binding NoMeGustaCommand}" ToolTip="No me gusta (pulsa otra vez para quitarlo)"
+                                                Visibility="{Binding PuedeVotar, Converter={StaticResource BoolAVisible}}">
                                             <Button.Style>
                                                 <Style TargetType="Button" BasedOn="{StaticResource BotonVoto}">
                                                     <Style.Triggers>

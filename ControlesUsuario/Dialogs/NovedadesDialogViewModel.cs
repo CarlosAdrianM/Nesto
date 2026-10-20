@@ -472,6 +472,7 @@ namespace ControlesUsuario.Dialogs
                 {
                     OnPropertyChanged(nameof(TextoAyudaFormulario));
                     OnPropertyChanged(nameof(TextoBotonEnviarFormulario));
+                    OnPropertyChanged(nameof(PuedeSerPrivada));
                 }
                 ListaDeIncidencias = value;
             }
@@ -482,6 +483,27 @@ namespace ControlesUsuario.Dialogs
             : "¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):";
 
         public string TextoBotonEnviarFormulario => FormularioEsIncidencia ? "Enviar aviso" : "Enviar sugerencia";
+
+        // ---- Nesto#532 (NestoAPI#650): sugerencias privadas ----
+
+        /// <summary>El texto de NestoAPI#650: se pregunta antes de enviar una privada, para desanimarlo.</summary>
+        internal const string AVISO_SUGERENCIA_PRIVADA =
+            "Le recomendamos que la sugerencia sea pública: así otros compañeros pueden aprender de ella y de las respuestas, " +
+            "y pueden apoyarla con «Me gusta». Las privadas solo las vemos usted y nosotros, no se pueden votar y tienen " +
+            "menos prioridad. ¿Quiere enviarla como privada?";
+        internal const string MENSAJE_PRIVADA_ENVIADA =
+            "¡Gracias! Su sugerencia privada ya está en la lista: solo la vemos usted y nosotros.";
+        internal const string MENSAJE_PRIVADA_NO_ADMITIDA =
+            "Su sugerencia se ha enviado, pero como pública: el servidor todavía no admite sugerencias privadas.";
+        internal const string MENSAJE_PRIVADA_DESMARCADA =
+            "Se ha desmarcado «Privada». Pulse «Enviar sugerencia» para enviarla como pública.";
+
+        /// <summary>La casilla solo está en las sugerencias, no en los avisos de «Algo no funciona».</summary>
+        public bool PuedeSerPrivada => !FormularioEsIncidencia;
+
+        private bool _sugerenciaPrivada;
+        /// <summary>La casilla «Privada» del cuadro (desmarcada por defecto).</summary>
+        public bool SugerenciaPrivada { get => _sugerenciaPrivada; set => SetProperty(ref _sugerenciaPrivada, value); }
 
         private string _textoSugerencia;
         public string TextoSugerencia
@@ -596,6 +618,14 @@ namespace ControlesUsuario.Dialogs
                 MensajeSugerencias = "La imagen supera los 2 MB: quítala o haz un recorte más pequeño.";
                 return;
             }
+            bool privada = SugerenciaPrivada && PuedeSerPrivada;
+            if (privada && !_preguntar(AVISO_SUGERENCIA_PRIVADA))
+            {
+                // Nesto#532: con «No» no se envía nada; se le deja lista para enviarla como pública
+                SugerenciaPrivada = false;
+                MensajeSugerencias = MENSAJE_PRIVADA_DESMARCADA;
+                return;
+            }
             EnviandoSugerencia = true;
             MensajeSugerencias = null;
             try
@@ -604,9 +634,12 @@ namespace ControlesUsuario.Dialogs
                 bool incidencia = FormularioEsIncidencia;
                 NovedadUsuario creada = incidencia
                     ? await _servicio.AvisarAlgoNoFunciona(TextoSugerencia.Trim(), imagen, _pantalla)
-                    : await _servicio.Sugerir(TextoSugerencia.Trim(), imagen);
+                    : privada
+                        ? await _servicio.SugerirPrivada(TextoSugerencia.Trim(), imagen)
+                        : await _servicio.Sugerir(TextoSugerencia.Trim(), imagen);
                 TextoSugerencia = null;
                 ImagenSugerencia = null;
+                SugerenciaPrivada = false;
                 FormularioSugerenciaAbierto = false;
                 ListaDeIncidencias = incidencia;
                 if (!EnSugerencias || _sugerencias == null)
@@ -633,7 +666,10 @@ namespace ControlesUsuario.Dialogs
                 Destacar(item);
                 MensajeSugerencias = incidencia
                     ? "¡Gracias por avisar! Lo revisaremos y te diremos en qué versión queda arreglado."
-                    : "¡Gracias! Tu sugerencia ya está en la lista: los demás pueden votarla y comentarla.";
+                    : privada
+                        // Nesto#532: una API que aún no conoce las privadas ignora la casilla y la crea pública
+                        ? (creada.Privada ? MENSAJE_PRIVADA_ENVIADA : MENSAJE_PRIVADA_NO_ADMITIDA)
+                        : "¡Gracias! Tu sugerencia ya está en la lista: los demás pueden votarla y comentarla.";
             }
             catch (Exception ex)
             {

@@ -83,6 +83,24 @@ namespace Infrastructure.Tests
             Assert.AreEqual(60, creada.Id);
         }
 
+        // Nesto#532 (NestoAPI#650): la privada es el mismo POST con "Privada": true; la normal no lo manda.
+        [TestMethod]
+        public async Task SugerirPrivada_MandaElMismoCuerpoConPrivada()
+        {
+            handler.Respuesta = "{\"Id\":61,\"Titulo\":\"Duplicar\",\"Privada\":true}";
+
+            NovedadUsuario creada = await servicio.SugerirPrivada("Duplicar", null);
+            _ = await servicio.Sugerir("Otra", null);
+
+            Assert.AreEqual("/api/Novedades/Sugerencias", handler.Peticiones[0].Url);
+            JObject cuerpo = JObject.Parse(handler.Peticiones[0].Cuerpo);
+            Assert.AreEqual("Duplicar", (string)cuerpo["Texto"]);
+            Assert.IsTrue((bool)cuerpo["Privada"]);
+            StringAssert.StartsWith((string)cuerpo["VersionCliente"], "Nesto");
+            Assert.IsTrue(creada.Privada);
+            Assert.IsNull(JObject.Parse(handler.Peticiones[1].Cuerpo)["Privada"], "Sin casilla, como siempre");
+        }
+
         // NestoAPI#558: «Algo no funciona» es el mismo POST, marcado como incidencia y con la pantalla.
         [TestMethod]
         public async Task AvisarAlgoNoFunciona_MandaElMismoCuerpoConEsIncidenciaYPantalla()

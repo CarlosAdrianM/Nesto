@@ -56,6 +56,12 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public List<string> Perfiles { get; set; }
 
+        /// <summary>
+        /// Nesto#532 (NestoAPI#650): solo la ven quien la envió y Dirección / Informática; no admite «Me gusta».
+        /// false si la API todavía no lo conoce.
+        /// </summary>
+        public bool Privada { get; set; }
+
         /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
         public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
     }
@@ -170,6 +176,11 @@ namespace Nesto.Infrastructure.Contracts
         Task<List<NovedadUsuario>> LeerSugerencias();
         /// <summary>Crea una sugerencia; <paramref name="imagenPng"/> es opcional (captura en PNG).</summary>
         Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng);
+        /// <summary>
+        /// Nesto#532 (NestoAPI#650): como <see cref="Sugerir"/>, pero privada (solo la ven quien la envía y
+        /// Dirección / Informática). Lanza con el mensaje de la API (p. ej. si aún no admite privadas).
+        /// </summary>
+        Task<NovedadUsuario> SugerirPrivada(string texto, byte[] imagenPng);
         /// <summary>
         /// NestoAPI#558: «Algo no funciona». Mismo formulario que <see cref="Sugerir"/>, pero la API lo guarda
         /// como incidencia y le añade el contexto (versión, <paramref name="pantalla"/> y errores de ELMAH).

@@ -293,6 +293,16 @@ namespace ControlesUsuario.Dialogs
         }
         public bool TieneImagenNovedad => _novedad.TieneImagen;
 
+        // ---- Nesto#532 (NestoAPI#650): sugerencias privadas ----
+        internal const string TEXTO_PRIVADA = "🔒 Privada: solo la ven quien la envió, Dirección e Informática";
+        internal const string TEXTO_PRIVADA_SIN_VOTOS = "Las sugerencias privadas no admiten «Me gusta».";
+
+        /// <summary>Solo la ven quien la envió y Dirección / Informática (la API no se la manda a nadie más).</summary>
+        public bool EsPrivada => _novedad.Privada;
+        public string TextoPrivada => EsPrivada ? TEXTO_PRIVADA : null;
+        /// <summary>Los botones de voto: en una privada no se enseñan (la API no admite «Me gusta»).</summary>
+        public bool PuedeVotar => !EsPrivada;
+
         private byte[] _imagenNovedad;
         /// <summary>La captura de la sugerencia (se pide al enseñar la página de sugerencias).</summary>
         public byte[] ImagenNovedad { get => _imagenNovedad; internal set => SetProperty(ref _imagenNovedad, value); }
@@ -360,6 +370,12 @@ namespace ControlesUsuario.Dialogs
             }
             short? anterior = MiVoto;
             short? nuevo = anterior == voto ? (short?)null : voto;
+            if (EsPrivada && nuevo.HasValue)
+            {
+                // Nesto#532: la API no admite «Me gusta» en las privadas (quitar un voto antiguo, sí)
+                Mensaje = TEXTO_PRIVADA_SIN_VOTOS;
+                return;
+            }
             AplicarVoto(anterior, nuevo);
             Mensaje = null;
             try
