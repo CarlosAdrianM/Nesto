@@ -33,14 +33,12 @@ namespace Nesto.Tests
     {
         /// <summary>
         /// Lo que en este tramo todavía no registra ComposicionNesto y la prueba pone con fakes: la navegación (se registra
-        /// en Application con el conmutador de regiones, se va con el tramo 4 de 4C.4) y los tipos de Prism/Unity que aún
-        /// se inyectan (se van con el tramo 3 de 4C.5). Desde el tramo 3b ya nadie recibe el IContainerProvider; el
-        /// IUnityContainer, solo MenuBarViewModel.
+        /// en Application con el conmutador de regiones, se va con el tramo 4 de 4C.4, junto con el IRegionManager de
+        /// Prism). Desde el tramo 3c de 4C.5 ya nadie recibe el IUnityContainer ni el IContainerProvider: no hay fake.
         /// </summary>
         private static readonly Type[] _deFueraDeLaComposicion =
         {
             typeof(IServicioNavegacion),
-            typeof(Unity.IUnityContainer),
             typeof(Prism.Regions.IRegionManager),
         };
 
@@ -217,9 +215,11 @@ namespace Nesto.Tests
         }
 
         [TestMethod]
-        public void LasClasesDelTramo3b_NoRecibenElContenedorDePrismNiDeUnity()
+        public void LasClasesDelTramo3_NoRecibenElContenedorDePrismNiDeUnity()
         {
-            // Nesto#490 (4C.5, tramo 3b): ni lo guardan sin usarlo, ni le piden servicios, ni crean vistas con él
+            // Nesto#490 (4C.5, tramo 3b): ni lo guardan sin usarlo, ni le piden servicios, ni crean vistas con él.
+            // Tramo 3c: tampoco el menú de lo viejo (MenuBarView crea su MenuBarViewModel con New y ya no le pasa el
+            // IUnityContainer, sino el resolutor propio, el abridor de novedades y el servicio de diálogos).
             var clases = new[]
             {
                 typeof(Nesto.Modulos.PedidoVenta.FacturarRutasPopupViewModel),
@@ -232,6 +232,8 @@ namespace Nesto.Tests
                 typeof(Nesto.Modulos.PedidoVenta.PedidoVentaView),
                 typeof(Nesto.Modulos.PedidoCompra.ViewModels.PedidoCompraViewModel),
                 typeof(Nesto.Modulos.PedidoCompra.Views.PedidoCompraView),
+                typeof(Nesto.ViewModels.MenuBarViewModel),
+                typeof(MenuBarView),
             };
 
             List<string> conContenedor = clases
