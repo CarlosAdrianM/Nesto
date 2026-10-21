@@ -47,6 +47,11 @@ namespace Nesto.Infrastructure.Models
         public DateTime? FechaCanje { get; set; }
         /// <summary>«Cheque regalo 50 € (campaña CHEQUE50_OCT_2026)»: el texto que pondrá la API en la línea.</summary>
         public string TextoLinea { get; set; }
+        /// <summary>
+        /// NestoAPI#593 (Ganavisiones): cuánto baja la base bonificable de Ganavisiones si el cheque va en el pedido (la API lo calcula
+        /// con el grupo del producto del cheque, igual que al grabar). Null = API anterior a #695.
+        /// </summary>
+        public decimal? RestaDeLaBaseGanavisiones { get; set; }
     }
 
     /// <summary>
@@ -110,6 +115,20 @@ namespace Nesto.Infrastructure.Models
             }
             return $"Faltan {falta.ToString("N2", Espanol)} € de producto computable para superar los {Euros(cheque.MinimoCanje)} " +
                 $"(lleva {baseComputable.ToString("N2", Espanol)} €). Es aproximado: al guardar manda lo que diga el servidor.";
+        }
+
+        /// <summary>
+        /// NestoAPI#593 (Ganavisiones): lo que resta el cheque de la base bonificable de Ganavisiones. Manda la API
+        /// (<see cref="ChequeRegaloClienteDTO.RestaDeLaBaseGanavisiones"/>); si es anterior a #695 y no lo dice, el importe
+        /// entero, porque la línea del cheque es de cosmética y al grabar resta (pedido 929066: 718,85 − 50 = 66, no 71).
+        /// </summary>
+        public static decimal RestaDeLaBaseGanavisiones(ChequeRegaloClienteDTO cheque)
+        {
+            if (cheque == null)
+            {
+                return 0;
+            }
+            return Math.Max(0, cheque.RestaDeLaBaseGanavisiones ?? cheque.Importe);
         }
 
         /// <summary>«Usar el cheque regalo de 50 €»</summary>

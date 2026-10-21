@@ -536,15 +536,41 @@ Public Class PlantillaVentaViewModel
     ''' <summary>
     ''' Base imponible de las lineas del pedido cuyos productos pertenecen a grupos bonificables (COS y ACC).
     ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' NestoAPI#593 (Ganavisiones): menos lo que resta el cheque regalo si se usa. Al grabar, la línea del cheque (COS, −50) cuenta en la
+    ''' base (ValidadorGanavisiones); aquí no estaba en la lista de productos y Javi vio 71 Ganavisiones en vez de 66.
     ''' </summary>
     Public ReadOnly Property BaseImponibleBonificable As Decimal
         Get
             If IsNothing(listaProductosPedido) OrElse listaProductosPedido.Count = 0 Then
                 Return 0
             End If
-            Return listaProductosPedido _
+            Dim baseProductos As Decimal = listaProductosPedido _
                 .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso _gruposBonificables.Contains(l.grupo.Trim().ToUpper())) _
                 .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
+            Return Math.Max(0D, baseProductos - RestaChequeRegaloBaseBonificable)
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#593 (Ganavisiones): lo que resta el cheque regalo de la base bonificable (0 si no se usa).</summary>
+    Public ReadOnly Property RestaChequeRegaloBaseBonificable As Decimal
+        Get
+            If ImporteChequeRegaloAplicado <= 0 Then
+                Return 0D
+            End If
+            Return Nesto.Infrastructure.Models.ReglasChequeRegalo.RestaDeLaBaseGanavisiones(ChequeRegalo.Cheque)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' NestoAPI#593 (Ganavisiones): la frase cuando los regalos elegidos piden más Ganavisiones de los que da el pedido (p. ej. porque
+    ''' se ha marcado el cheque regalo en Finalizar después de elegirlos).
+    ''' </summary>
+    Public ReadOnly Property MensajeGanavisionesExcedidos As String
+        Get
+            Dim cheque As String = If(RestaChequeRegaloBaseBonificable > 0,
+                $" (el cheque regalo resta {RestaChequeRegaloBaseBonificable:N2} € de la base bonificable)", String.Empty)
+            Return $"Los regalos elegidos suman {GanavisionesUsados} Ganavisiones y el pedido solo da {GanavisionesDisponibles}{cheque}. " &
+                "Vuelva a la página de Ganavisiones y quite algún regalo, o amplíe el pedido."
         End Get
     End Property
 
@@ -3826,6 +3852,13 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        ' NestoAPI#593 (Ganavisiones): si los regalos no caben en los Ganavisiones del pedido, el servidor lo rechazaría con un
+        ' «descuento no autorizado» que no explica nada; se avisa aquí con los números.
+        If GanavisionesExcedidos Then
+            dialogService.ShowError(MensajeGanavisionesExcedidos)
+            Return
+        End If
+
         delegacionUsuario = Await leerParametro(Parametros.Claves.DelegacionDefecto)
 
         If formaVentaSeleccionada = 1 Then
@@ -4913,6 +4946,10 @@ Public Class PlantillaVentaViewModel
             End If
             If SetProperty(_usarChequeRegalo, value) Then
                 NotificarTotalesChequeRegalo()
+                ' NestoAPI#593 (Ganavisiones): con el cheque la base bonificable baja; si ya había regalos elegidos, puede que no quepan
+                If value AndAlso GanavisionesExcedidos Then
+                    dialogService.ShowError(MensajeGanavisionesExcedidos)
+                End If
             End If
         End Set
     End Property
@@ -5001,6 +5038,12 @@ Public Class PlantillaVentaViewModel
 
     Private Sub NotificarTotalesChequeRegalo()
         OnPropertyChanged(NameOf(ImporteChequeRegaloAplicado))
+        ' NestoAPI#593 (Ganavisiones): el cheque también mueve la base bonificable y los Ganavisiones
+        OnPropertyChanged(NameOf(RestaChequeRegaloBaseBonificable))
+        OnPropertyChanged(NameOf(BaseImponibleBonificable))
+        OnPropertyChanged(NameOf(GanavisionesDisponibles))
+        OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
+        ActualizarIndicadoresGanavisiones()
         OnPropertyChanged(NameOf(baseImponiblePedido))
         OnPropertyChanged(NameOf(totalPedido))
         OnPropertyChanged(NameOf(TotalPedidoPlazosPago))

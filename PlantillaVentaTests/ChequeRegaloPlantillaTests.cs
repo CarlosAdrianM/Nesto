@@ -46,13 +46,13 @@ namespace PlantillaVentaTests
             TextoLinea = "Cheque regalo 50 € (campaña CHEQUE50_OCT_2026)"
         };
 
-        private static (PlantillaVentaViewModel vm, IServicioChequesRegalo cheques) CrearViewModel(ChequeRegaloClienteDTO cheque)
+        private static (PlantillaVentaViewModel vm, IServicioChequesRegalo cheques) CrearViewModel(ChequeRegaloClienteDTO cheque, IServicioDialogos dialogos = null)
         {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.servidorAPI).Returns("http://127.0.0.1:9/api/");
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
             var vm = new PlantillaVentaViewModel(A.Fake<IAbridorPedidos>(), A.Fake<IServicioNavegacion>(), configuracion, A.Fake<IPlantillaVentaService>(),
-                new WeakReferenceMessenger(), A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
+                new WeakReferenceMessenger(), dialogos ?? A.Fake<IServicioDialogos>(), A.Fake<IPedidoVentaService>(), A.Fake<IBorradorPlantillaVentaService>(),
                 A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm._clienteSeleccionado = new ClienteJson { empresa = "1", cliente = "15191", contacto = "0", iva = "G21", cifNif = "12345678A" };
@@ -225,6 +225,82 @@ namespace PlantillaVentaTests
             vm.AnadirLineaChequeRegalo(pedido);
 
             Assert.AreEqual(1, pedido.Lineas.Count(l => l.Producto.Trim() == "CHEQUE50_OCT26"), "La tecleada va tal cual (la normaliza el servidor) y no se añade otra");
+        }
+
+        // ------------------------------------------------------------------ NestoAPI#593 (Ganavisiones)
+        // Pedido 929066 (Javi, 21/10/26): 699,35 € de COS + 19,50 € de ACC = 718,85 € con el cheque de 50 € marcado. La
+        // plantilla le enseñó 71 Ganavisiones (no restaba el cheque), cogió 20 + 49 = 69 y al grabar la API, que sí cuenta
+        // la línea del cheque (COS, −50), dio 66 y rechazó el pedido. Lo correcto es 66.
+
+        private static void LineasDeJavi(PlantillaVentaViewModel vm)
+        {
+            Linea(vm, "45959", 1, 699.35M, "PACK EPIGENETICA SKINCARE", "COS");
+            Linea(vm, "40361", 1, 19.50M, "QUITACUTICULAS CUTICLE REMOVER", "ACC");
+        }
+
+        [TestMethod]
+        public async Task Ganavisiones_ConElChequeMarcado_LaBaseBonificableRestaElCheque_66Y_No71()
+        {
+            var (vm, _) = CrearViewModel(Cheque());
+            LineasDeJavi(vm);
+            await vm.CargarChequeRegaloAsync();
+            Assert.AreEqual(718.85M, vm.BaseImponibleBonificable, "sin cheque");
+            Assert.AreEqual(71, vm.GanavisionesDisponibles, "sin cheque");
+
+            vm.UsarChequeRegalo = true;
+
+            Assert.AreEqual(668.85M, vm.BaseImponibleBonificable);
+            Assert.AreEqual(66, vm.GanavisionesDisponibles);
+
+            vm.UsarChequeRegalo = false;
+            Assert.AreEqual(71, vm.GanavisionesDisponibles, "al desmarcarlo vuelve");
+        }
+
+        [TestMethod]
+        public async Task Ganavisiones_ManaLaApi_SiDiceQueElChequeNoRestaDeLaBase_NoResta()
+        {
+            ChequeRegaloClienteDTO cheque = Cheque();
+            cheque.RestaDeLaBaseGanavisiones = 0M; // p. ej. un cheque de un grupo que no genera Ganavisiones
+            var (vm, _) = CrearViewModel(cheque);
+            LineasDeJavi(vm);
+            await vm.CargarChequeRegaloAsync();
+
+            vm.UsarChequeRegalo = true;
+
+            Assert.AreEqual(71, vm.GanavisionesDisponibles);
+        }
+
+        [TestMethod]
+        public void Ganavisiones_RestaDeLaBase_SinElCampoDeLaApiEsElImporte()
+        {
+            ChequeRegaloClienteDTO cheque = Cheque();
+            Assert.IsNull(cheque.RestaDeLaBaseGanavisiones);
+            Assert.AreEqual(50M, ReglasChequeRegalo.RestaDeLaBaseGanavisiones(cheque), "API anterior: la línea del cheque es COS y resta");
+            cheque.RestaDeLaBaseGanavisiones = 50M;
+            Assert.AreEqual(50M, ReglasChequeRegalo.RestaDeLaBaseGanavisiones(cheque));
+            Assert.AreEqual(0M, ReglasChequeRegalo.RestaDeLaBaseGanavisiones(null));
+        }
+
+        [TestMethod]
+        public async Task Ganavisiones_MarcarElChequeConRegalosQueYaNoCaben_AvisaConLosNumeros()
+        {
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            var (vm, _) = CrearViewModel(Cheque(), dialogos);
+            LineasDeJavi(vm);
+            await vm.CargarChequeRegaloAsync();
+            vm.ListaProductosBonificables = new ObservableCollection<LineaRegalo>
+            {
+                new LineaRegalo { producto = "44243", texto = "FUNDIDOR DE CERA", ganavisiones = 20, cantidad = 1 },
+                new LineaRegalo { producto = "44357", texto = "LAMPARA LED", ganavisiones = 49, cantidad = 1 }
+            };
+            Assert.IsFalse(vm.GanavisionesExcedidos, "69 de 71 sin cheque");
+
+            vm.UsarChequeRegalo = true;
+
+            Assert.IsTrue(vm.GanavisionesExcedidos, "69 de 66 con cheque");
+            Assert.IsFalse(vm.PuedePasarDePaginaRegalos);
+            A.CallTo(() => dialogos.ShowError(A<string>.That.Matches(m => m.Contains("suman 69") && m.Contains("solo da 66") && m.Contains("50,00"))))
+                .MustHaveHappenedOnceExactly();
         }
     }
 }
