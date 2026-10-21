@@ -494,6 +494,38 @@ Public Class PlantillaVentaService
     End Function
 
     ''' <summary>
+    ''' NestoAPI#688: POST api/PedidosVenta/OpcionesModos, una sola pregunta en vez de dos. Si la API todavía no lo tiene
+    ''' (404), se pregunta como antes a ModoServicioSugerido (solo con líneas) y ModoFacturacionSugerido y se monta la
+    ''' misma respuesta sin casilla. Nothing ante cualquier otro fallo: es una ayuda y el servidor valida al guardar.
+    ''' </summary>
+    Public Async Function OpcionesModos(pedido As PedidoVentaDTO) As Task(Of OpcionesModosDTO) Implements IPlantillaVentaService.OpcionesModos
+        Dim apiAnterior As Boolean = False
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/OpcionesModos", content).ConfigureAwait(False)
+                If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                    apiAnterior = True
+                ElseIf Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                Else
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                    Return JsonConvert.DeserializeObject(Of OpcionesModosDTO)(cadenaJson)
+                End If
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+        If Not apiAnterior Then
+            Return Nothing
+        End If
+        Dim tareaServicio As Task(Of ModoServicioSugeridoDTO) = If(pedido?.Lineas IsNot Nothing AndAlso pedido.Lineas.Any(),
+            ModoServicioSugerido(pedido), Task.FromResult(Of ModoServicioSugeridoDTO)(Nothing))
+        Dim tareaFacturacion As Task(Of ModoFacturacionSugeridoDTO) = ModoFacturacionSugerido(pedido)
+        Return OpcionesModosDTO.DesdeApiAnterior(Await tareaServicio.ConfigureAwait(False), Await tareaFacturacion.ConfigureAwait(False))
+    End Function
+
+    ''' <summary>
     ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando. Lista
     ''' vacia ante cualquier fallo: el pedido se tiene que poder guardar igual.
     ''' </summary>

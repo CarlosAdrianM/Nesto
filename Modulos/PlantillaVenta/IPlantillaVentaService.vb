@@ -43,6 +43,13 @@ Public Interface IPlantillaVentaService
     Function ModoFacturacionSugerido(pedido As PedidoVentaDTO) As Task(Of ModoFacturacionSugeridoDTO)
 
     ''' <summary>
+    ''' NestoAPI#688: la regla única de combinaciones (POST api/PedidosVenta/OpcionesModos): modo de servicio, modo de
+    ''' facturación (y si se enseña) y la casilla «Servir lo pendiente en cuanto haya stock», en una sola pregunta. Con
+    ''' una API anterior (404) se monta con ModoServicioSugerido y ModoFacturacionSugerido (EsApiAnterior). Nothing si falla.
+    ''' </summary>
+    Function OpcionesModos(pedido As PedidoVentaDTO) As Task(Of OpcionesModosDTO)
+
+    ''' <summary>
     ''' Nesto#465 / NestoAPI#457: las ofertas que el pedido podria aplicar y no esta aplicando
     ''' (POST api/PedidosVenta/OfertasSugeridas). Lista vacia si la API falla: esto es una ayuda,
     ''' nunca un bloqueo para guardar el pedido.

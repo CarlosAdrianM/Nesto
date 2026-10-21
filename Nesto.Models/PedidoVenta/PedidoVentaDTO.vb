@@ -86,6 +86,9 @@ Public Class PedidoVentaDTO
     ''' <summary>Nesto#493 / NestoAPI#542: modo de facturación (ver ModosFacturacion). Nothing = no se manda
     ''' y el servidor lo deriva de mantenerJunto sobre el guardado. Al leer siempre viene con valor.</summary>
     Public Property modoFacturacion() As Byte?
+    ''' <summary>NestoAPI#688: «Servir lo pendiente en cuanto haya stock» (solo con facturación «Todo ahora»).
+    ''' Nothing = no se manda (como hasta ahora); Nesto solo lo informa si el usuario tocó la casilla o cambió el modo.</summary>
+    Public Property servirPendienteAlHaberStock() As Boolean?
     ''' <summary>NestoAPI#542 (solo lectura): en una nota de entrega creada por la API con lo pendiente de un
     ''' pedido facturado entero, el número de ese pedido.</summary>
     Public Property pedidoOrigen() As Integer?
