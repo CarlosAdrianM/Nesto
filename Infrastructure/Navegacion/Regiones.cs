@@ -1,4 +1,3 @@
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,17 +11,10 @@ namespace Nesto.Infrastructure.Navegacion
 {
     /// <summary>
     /// Nesto#490 (4C.4, tramo 3): la propiedad adjunta con la que el XAML declara una región, en lugar de
-    /// <c>prism:RegionManager.RegionName</c>: <c>nav:Regiones.Nombre="MainRegion"</c>.
-    /// <list type="bullet">
-    /// <item><b>Piloto apagado</b> (<see cref="Propias"/> = false, lo de siempre): solo pasa el nombre a
-    /// <c>RegionManager.RegionName</c>, y Prism hace con el control exactamente lo mismo que si el XAML lo dijera.</item>
-    /// <item><b>Piloto encendido</b> (parámetro <c>RegionesPropias</c> = "1"): Prism no se entera, y la región se registra
-    /// en el <see cref="GestorRegiones"/> que encuentre subiendo por el árbol desde el control (el colgado del shell o de la
-    /// vista de una región, <see cref="GestorRegiones.GestorProperty"/>).</item>
-    /// </list>
-    /// No pueden ir las dos juntas en el mismo control: Prism adaptaría el control también (y su ContentControlRegionAdapter
-    /// lanza si la región propia ya le ha puesto contenido), y registraría ListaPedidosRegion de cada pestaña en el gestor
-    /// del shell (la segunda pestaña lanzaría por nombre repetido).
+    /// <c>prism:RegionManager.RegionName</c>: <c>nav:Regiones.Nombre="MainRegion"</c>. La región se registra en el
+    /// <see cref="GestorRegiones"/> que encuentre subiendo por el árbol desde el control (el colgado del shell o de la vista
+    /// de una región, <see cref="GestorRegiones.GestorProperty"/>). Desde el tramo 4 ya no hay piloto ni reenvío a Prism:
+    /// es la única forma de declarar una región en Nesto.
     ///
     /// La creación es diferida, como el <c>DelayedRegionCreationBehavior</c> y el <c>RegionManagerRegistrationBehavior</c>
     /// de Prism: el control se queda pendiente hasta que se encuentra su gestor, y se vuelve a intentar al cargarse
@@ -54,12 +46,6 @@ namespace Nesto.Infrastructure.Navegacion
         [ThreadStatic]
         private static bool _actualizando;
 
-        /// <summary>
-        /// El piloto: true = región propia; false (por defecto) = Prism. Se fija una vez, antes de crear la ventana principal
-        /// (<see cref="ConmutadorRegiones.AntesDeCrearShell"/>): solo cuenta para los controles que se crean después.
-        /// </summary>
-        public static bool Propias { get; set; }
-
         /// <summary>Nombre de la región y error de un registro que ha fallado (por defecto, a la traza).</summary>
         public static Action<string, Exception> AlFallarRegistro { get; set; }
 
@@ -85,12 +71,6 @@ namespace Nesto.Infrastructure.Navegacion
         private static void AlCambiarNombre(DependencyObject control, DependencyPropertyChangedEventArgs e)
         {
             string nombre = (string)e.NewValue;
-            if (!Propias)
-            {
-                // Piloto apagado: lo de siempre, por Prism
-                RegionManager.SetRegionName(control, nombre);
-                return;
-            }
             if (string.IsNullOrEmpty(nombre) || DesignerProperties.GetIsInDesignMode(control))
             {
                 return;

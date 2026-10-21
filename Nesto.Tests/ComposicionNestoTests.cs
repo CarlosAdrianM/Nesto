@@ -31,17 +31,6 @@ namespace Nesto.Tests
     [TestClass]
     public class ComposicionNestoTests
     {
-        /// <summary>
-        /// Lo que en este tramo todavía no registra ComposicionNesto y la prueba pone con fakes: la navegación (se registra
-        /// en Application con el conmutador de regiones, se va con el tramo 4 de 4C.4, junto con el IRegionManager de
-        /// Prism). Desde el tramo 3c de 4C.5 ya nadie recibe el IUnityContainer ni el IContainerProvider: no hay fake.
-        /// </summary>
-        private static readonly Type[] _deFueraDeLaComposicion =
-        {
-            typeof(IServicioNavegacion),
-            typeof(Prism.Regions.IRegionManager),
-        };
-
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
@@ -85,10 +74,8 @@ namespace Nesto.Tests
                 composicion.Modulos.Add(modulo);
             }
 
-            foreach (Type tipo in _deFueraDeLaComposicion)
-            {
-                contenedor.Instancia(tipo, CrearFake(tipo));
-            }
+            // Nesto#490 (4C.4, tramo 4): la navegación (la región propia) ya la registra ComposicionNesto; no queda ningún fake
+            // de lo que se registraba fuera (ni el IRegionManager de Prism)
             // Al final, sin red: la configuración, el cliente de la API y la autenticación son fakes
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             _ = A.CallTo(() => configuracion.servidorAPI).Returns("http://localhost/NestoAPI-pruebas/");
@@ -263,6 +250,23 @@ namespace Nesto.Tests
         }
 
         [TestMethod]
+        public void LaNavegacion_EsLaRegionPropiaSobreElGestorDelShell()
+        {
+            // Nesto#490 (4C.4, tramo 4): sin Prism.Regions ni el piloto; la registra ComposicionNesto y sirve igual sobre MS.DI
+            EjecutarEnSTA(() =>
+            {
+                Composicion composicion = Montar();
+
+                IServicioNavegacion navegacion = composicion.Resolutor.Resolver<IServicioNavegacion>();
+                var regiones = composicion.Resolutor.Resolver<Nesto.Infrastructure.Navegacion.RegionesDelShell>();
+
+                Assert.IsInstanceOfType(navegacion, typeof(Nesto.Infrastructure.Navegacion.ServicioNavegacionNesto));
+                Assert.AreSame(regiones.GestorShell, ((Nesto.Infrastructure.Navegacion.ServicioNavegacionNesto)navegacion).Gestor);
+                Assert.AreSame(navegacion, composicion.Resolutor.Resolver<IServicioNavegacion>(), "Una sola para toda la aplicación");
+            });
+        }
+
+        [TestMethod]
         public void LosModulos_SeResuelvenPorElTipoDelCatalogo()
         {
             EjecutarEnSTA(() =>
@@ -353,9 +357,6 @@ namespace Nesto.Tests
 
         private static Type ImplementacionDe(IServiceCollection servicios, Type servicio)
             => servicios.LastOrDefault(r => !r.IsKeyedService && r.ServiceType == servicio)?.ImplementationType;
-
-        private static object CrearFake(Type tipo)
-            => typeof(A).GetMethod(nameof(A.Fake), Type.EmptyTypes).MakeGenericMethod(tipo).Invoke(null, null);
 
         private static void EjecutarEnSTA(Action accion)
         {

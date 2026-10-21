@@ -34,8 +34,7 @@ Imports Nesto.ViewModels
 ''' Nesto#490 (4C.5): todo lo que registra la aplicación (lo que antes estaba en Application.RegisterTypes), sobre
 ''' <see cref="IRegistroNesto"/> y sin tipos de Prism. Hoy lo llama Application con un RegistroPrism; la prueba sombra
 ''' (Nesto.Tests) lo monta, con los módulos de <see cref="Modulos"/>, sobre Microsoft.Extensions.DependencyInjection.
-''' Lo de las regiones y la navegación (conmutador del piloto, IServicioNavegacion, el cargador de vistas de Prism) se
-''' queda aparte en Application: se va con el tramo 4 de 4C.4.
+''' Desde el tramo 4 de 4C.4 también registra las regiones y la navegación (la región propia, sin Prism.Regions).
 ''' </summary>
 Public NotInheritable Class ComposicionNesto
 
@@ -127,6 +126,15 @@ Public NotInheritable Class ComposicionNesto
         ' el IContainerProvider: PedidoVentaViewModel y PedidoCompraViewModel (la pestaña nueva) y sus vistas (la lista del
         ' maestro-detalle). Es el del propio contenedor (con Prism, un ResolutorPrism sobre Unity; en el tramo 4, el de MS.DI).
         registro.Singleton(Of IResolutorNesto)(Function(r) r)
+        ' Nesto#490 (4C.4, tramo 4): la región propia para todos, sin Prism.Regions ni el piloto RegionesPropias. Las
+        ' regiones del shell (Application.CreateShell cuelga su gestor de MainWindow) y la navegación sobre ellas, que crea
+        ' las vistas por el nombre con que se registran (Vista(Of XView)("XView")). Los registros de región y las
+        ' navegaciones que fallan van a la traza y a ELMAH.
+        registro.Singleton(Of Nesto.Infrastructure.Navegacion.RegionesDelShell)(
+            Function(r) New Nesto.Infrastructure.Navegacion.RegionesDelShell(
+                Sub(ex, contexto) r.Resolver(Of IServicioRegistroErrores)().RegistrarErrorAsync(ex, contexto)))
+        registro.Singleton(Of IServicioNavegacion)(
+            Function(r) r.Resolver(Of Nesto.Infrastructure.Navegacion.RegionesDelShell)().CrearNavegacion(AddressOf r.ResolverVista))
 
         ' Nesto#477: buzón de notificaciones (campana de la cinta)
         registro.Singleton(Of IBuzonNotificacionesService)(Function(r) New BuzonNotificacionesService(r.Resolver(Of IClienteApiFactory)()))

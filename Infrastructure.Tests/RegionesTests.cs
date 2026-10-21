@@ -1,10 +1,6 @@
-using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
-using Prism.Ioc;
-using Prism.Regions;
-using Prism.Regions.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -14,13 +10,13 @@ using System.Windows.Controls;
 namespace Nesto.Infrastructure.Tests
 {
     /// <summary>
-    /// Nesto#490 (4C.4, tramo 3): el piloto de la región propia. El conmutador (parámetro <c>RegionesPropias</c>) y la
-    /// propiedad adjunta <see cref="Regiones.NombreProperty"/>, que con el piloto apagado deja todo a Prism y con el piloto
-    /// encendido registra las regiones del XAML de forma diferida, como Prism: al cargarse el control o cuando alguien busca
-    /// una región que todavía no está.
+    /// Nesto#490 (4C.4): la propiedad adjunta <see cref="Regiones.NombreProperty"/>, que registra las regiones del XAML de
+    /// forma diferida, como Prism (al cargarse el control o cuando alguien busca una región que todavía no está), y
+    /// <see cref="RegionesDelShell"/>, que monta las del shell y la navegación. Eran las pruebas del piloto (tramo 3,
+    /// <c>RegionesPilotoTests</c>); en el tramo 4 se quitan el piloto y Prism, y quedan las del piloto encendido.
     /// </summary>
     [TestClass]
-    public class RegionesPilotoTests
+    public class RegionesTests
     {
         // Las vistas se buscan por el nombre de su tipo, como en Nesto
         private sealed class VistaMaestra : Grid { }
@@ -31,7 +27,6 @@ namespace Nesto.Infrastructure.Tests
         [TestCleanup]
         public void Limpiar()
         {
-            Regiones.Propias = false;
             Regiones.AlFallarRegistro = null;
         }
 
@@ -51,84 +46,46 @@ namespace Nesto.Infrastructure.Tests
             }
         }
 
-        private static IServicioNavegacion NavegacionPrism() => A.Fake<IServicioNavegacion>();
-
-        #region Conmutador
+        #region Regiones del shell
 
         [TestMethod]
-        public void Conmutador_SinParametro_Prism()
+        public void RegionesDelShell_LaNavegacionEsLaPropiaSobreElGestorDelShell()
         {
-            IServicioNavegacion prism = NavegacionPrism();
-            var conmutador = new ConmutadorRegiones(() => string.Empty);
+            var regiones = new RegionesDelShell();
 
-            Assert.AreSame(prism, conmutador.CrearNavegacion(() => prism, _ => null));
-            Assert.IsFalse(conmutador.RegionesPropias);
-        }
-
-        [TestMethod]
-        public void Conmutador_ConOtroValor_Prism()
-        {
-            IServicioNavegacion prism = NavegacionPrism();
-
-            Assert.AreSame(prism, new ConmutadorRegiones(() => "0").CrearNavegacion(() => prism, _ => null));
-            Assert.AreSame(prism, new ConmutadorRegiones(() => null).CrearNavegacion(() => prism, _ => null));
-        }
-
-        [TestMethod]
-        public void Conmutador_ConUno_RegionPropiaSobreElGestorDelShell()
-        {
-            int lecturas = 0;
-            var conmutador = new ConmutadorRegiones(() => { lecturas++; return "1"; });
-            bool prismCreado = false;
-
-            IServicioNavegacion navegacion = conmutador.CrearNavegacion(() => { prismCreado = true; return NavegacionPrism(); }, _ => null);
+            IServicioNavegacion navegacion = regiones.CrearNavegacion(_ => null);
 
             Assert.IsInstanceOfType(navegacion, typeof(ServicioNavegacionNesto));
-            Assert.AreSame(conmutador.GestorShell, ((ServicioNavegacionNesto)navegacion).Gestor);
-            Assert.IsFalse(prismCreado);
-            Assert.IsTrue(conmutador.RegionesPropias);
-            Assert.AreEqual(1, lecturas, "El parámetro se lee una sola vez");
+            Assert.AreSame(regiones.GestorShell, ((ServicioNavegacionNesto)navegacion).Gestor);
         }
 
         [TestMethod]
-        public void Conmutador_SiNoSePuedeLeerElParametro_Prism()
-        {
-            IServicioNavegacion prism = NavegacionPrism();
-            var conmutador = new ConmutadorRegiones(() => throw new Exception("Sin conexión"));
-
-            Assert.AreSame(prism, conmutador.CrearNavegacion(() => prism, _ => null));
-        }
-
-        [TestMethod]
-        public void Conmutador_EnciendeOApagaLaPropiedadAdjuntaYCuelgaElGestorDelShellSoloConElPiloto()
+        public void RegionesDelShell_AlCrearElShell_CuelgaElGestorDeLaVentanaYMainRegionSeRegistraEnEl()
         {
             EnSta(() =>
             {
-                var encendido = new ConmutadorRegiones(() => "1");
-                var ventanaPiloto = new Grid();
-                encendido.AntesDeCrearShell();
-                encendido.AlCrearShell(ventanaPiloto);
-                Assert.IsTrue(Regiones.Propias);
-                Assert.AreSame(encendido.GestorShell, GestorRegiones.GetGestor(ventanaPiloto));
-
-                var apagado = new ConmutadorRegiones(() => throw new Exception("Sin conexión"));
+                var regiones = new RegionesDelShell();
                 var ventana = new Grid();
-                apagado.AntesDeCrearShell();
-                apagado.AlCrearShell(ventana);
-                Assert.IsFalse(Regiones.Propias);
-                Assert.IsNull(GestorRegiones.GetGestor(ventana));
+                var pestanas = new TabControl();
+                Regiones.SetNombre(pestanas, "MainRegion");
+                _ = ventana.Children.Add(pestanas);
+
+                regiones.AlCrearShell(ventana);
+
+                Assert.AreSame(regiones.GestorShell, GestorRegiones.GetGestor(ventana));
+                Assert.IsInstanceOfType(regiones.GestorShell.Region("MainRegion"), typeof(RegionPestanas));
             });
         }
 
         [TestMethod]
-        public void Conmutador_UnaNavegacionFallidaConLaRegionPropia_VaAlRegistroDeErrores()
+        public void RegionesDelShell_UnaNavegacionFallida_VaAlRegistroDeErrores()
         {
             EnSta(() =>
             {
                 var errores = new List<(Exception error, string contexto)>();
-                var conmutador = new ConmutadorRegiones(() => "1", (ex, contexto) => errores.Add((ex, contexto)));
-                conmutador.GestorShell.Registrar("MainRegion", new TabControl());
-                IServicioNavegacion navegacion = conmutador.CrearNavegacion(NavegacionPrism,
+                var regiones = new RegionesDelShell((ex, contexto) => errores.Add((ex, contexto)));
+                regiones.GestorShell.Registrar("MainRegion", new TabControl());
+                IServicioNavegacion navegacion = regiones.CrearNavegacion(
                     nombre => throw new InvalidOperationException($"{nombre} no está registrada"));
 
                 navegacion.RequestNavigate("MainRegion", "VistaQueNoExiste");
@@ -141,15 +98,38 @@ namespace Nesto.Infrastructure.Tests
         }
 
         [TestMethod]
-        public void Conmutador_SiElRegistroDeErroresFalla_LaNavegacionNoLanza()
+        public void RegionesDelShell_SiElRegistroDeErroresFalla_LaNavegacionNoLanza()
         {
             EnSta(() =>
             {
-                var conmutador = new ConmutadorRegiones(() => "1", (ex, contexto) => throw new Exception("Sin servidor"));
-                conmutador.GestorShell.Registrar("MainRegion", new TabControl());
-                IServicioNavegacion navegacion = conmutador.CrearNavegacion(NavegacionPrism, nombre => throw new InvalidOperationException());
+                var regiones = new RegionesDelShell((ex, contexto) => throw new Exception("Sin servidor"));
+                regiones.GestorShell.Registrar("MainRegion", new TabControl());
+                IServicioNavegacion navegacion = regiones.CrearNavegacion(nombre => throw new InvalidOperationException());
 
                 navegacion.RequestNavigate("MainRegion", "VistaQueNoExiste");
+            });
+        }
+
+        [TestMethod]
+        public void RegionesDelShell_UnRegistroDeRegionQueFalla_VaAlRegistroDeErrores()
+        {
+            EnSta(() =>
+            {
+                var errores = new List<string>();
+                var regiones = new RegionesDelShell((ex, contexto) => errores.Add(contexto));
+                var ventana = new Grid();
+                regiones.AlCrearShell(ventana);
+                // Dos regiones con el mismo nombre en el mismo gestor: la segunda no se puede registrar
+                var uno = new ContentControl();
+                var otro = new ContentControl();
+                Regiones.SetNombre(uno, "RegionRepetida");
+                Regiones.SetNombre(otro, "RegionRepetida");
+                _ = ventana.Children.Add(uno);
+                _ = ventana.Children.Add(otro);
+
+                _ = regiones.GestorShell.Region("RegionRepetida");
+
+                CollectionAssert.AreEqual(new[] { "Regiones: registro de la región RegionRepetida" }, errores);
             });
         }
 
@@ -158,68 +138,23 @@ namespace Nesto.Infrastructure.Tests
         #region Propiedad adjunta
 
         [TestMethod]
-        public void PilotoApagado_LaAdjuntaPasaElNombreAPrismYNoRegistraNada()
-        {
-            int creacionesPrism = 0;
-            var contenedor = A.Fake<IContainerExtension>();
-            A.CallTo(() => contenedor.Resolve(typeof(DelayedRegionCreationBehavior)))
-                .ReturnsLazily(() =>
-                {
-                    creacionesPrism++;
-                    // Como en Nesto: el ContentControl con el adaptador de Prism
-                    var mapeos = new RegionAdapterMappings();
-                    mapeos.RegisterMapping(typeof(ContentControl), new ContentControlRegionAdapter(new RegionBehaviorFactory(contenedor)));
-                    return new DelayedRegionCreationBehavior(mapeos);
-                });
-            ContainerLocator.SetContainerExtension(() => contenedor);
-            try
-            {
-                EnSta(() =>
-                {
-                    var gestor = new GestorRegiones();
-                    var raiz = new Grid();
-                    GestorRegiones.SetGestor(raiz, gestor);
-                    var control = new ContentControl();
-                    _ = raiz.Children.Add(control);
-
-                    Regiones.SetNombre(control, "DetalleRegion");
-                    control.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
-
-                    Assert.AreEqual("DetalleRegion", RegionManager.GetRegionName(control), "Lo mismo que prism:RegionManager.RegionName");
-                    Assert.AreEqual(1, creacionesPrism, "Prism crea su región diferida, como siempre");
-                    Assert.AreEqual("DetalleRegion", RegionManager.GetObservableRegion(control).Value?.Name, "Y al cargarse el control, la región es de Prism");
-                    Assert.IsNull(gestor.Region("DetalleRegion"), "La región propia no se entera");
-                    Assert.AreEqual(0, Regiones.Pendientes(c => ReferenceEquals(c, control)));
-                    Assert.IsNull(control.Content);
-                });
-            }
-            finally
-            {
-                ContainerLocator.ResetContainer();
-            }
-        }
-
-        [TestMethod]
-        public void PilotoEncendido_PrismNoSeEntera()
+        public void LaAdjunta_DejaElControlPendienteHastaEncontrarSuGestor()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var control = new ContentControl();
 
                 Regiones.SetNombre(control, "DetalleRegion");
 
-                Assert.IsNull(RegionManager.GetRegionName(control));
                 Assert.AreEqual(1, Regiones.Pendientes(c => ReferenceEquals(c, control)));
             });
         }
 
         [TestMethod]
-        public void PilotoEncendido_SinGestorEnElArbol_SeQuedaPendienteHastaQueLoEncuentraAlCargarse()
+        public void LaAdjunta_SinGestorEnElArbol_SeQuedaPendienteHastaQueLoEncuentraAlCargarse()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var gestor = new GestorRegiones();
                 var raiz = new Grid();
                 var control = new ContentControl();
@@ -237,11 +172,10 @@ namespace Nesto.Infrastructure.Tests
         }
 
         [TestMethod]
-        public void PilotoEncendido_AlCargarseElControl_SeRegistraEnElGestorDeArriba()
+        public void LaAdjunta_AlCargarseElControl_SeRegistraEnElGestorDeArriba()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var gestor = new GestorRegiones();
                 var raiz = new Grid();
                 GestorRegiones.SetGestor(raiz, gestor);
@@ -260,11 +194,10 @@ namespace Nesto.Infrastructure.Tests
         // su región de dentro antes de que el ContentControl de esa región haya recibido el suyo. Dos pestañas iguales, cada
         // una con sus regiones del mismo nombre.
         [TestMethod]
-        public void PilotoEncendido_MaestroDetalle_LaRegionDeDentroSeEncuentraAntesDeSuLoaded()
+        public void LaAdjunta_MaestroDetalle_LaRegionDeDentroSeEncuentraAntesDeSuLoaded()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var gestorShell = new GestorRegiones();
                 var ventana = new Grid();
                 GestorRegiones.SetGestor(ventana, gestorShell);
@@ -307,11 +240,10 @@ namespace Nesto.Infrastructure.Tests
         // ListaRapportsView: entra en MainRegion sin ámbito propio, y su RapportDetailRegion es del gestor del shell. Al cerrarla
         // y volver a abrir Rapports, la región es la de la pestaña nueva (como Prism, que la saca del gestor al no encontrarlo).
         [TestMethod]
-        public void PilotoEncendido_RegionDeUnaVistaSinAmbito_EsDelShellYAlCerrarlaDejaSitioALaNueva()
+        public void LaAdjunta_RegionDeUnaVistaSinAmbito_EsDelShellYAlCerrarlaDejaSitioALaNueva()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var gestorShell = new GestorRegiones();
                 var ventana = new Grid();
                 GestorRegiones.SetGestor(ventana, gestorShell);
@@ -350,11 +282,10 @@ namespace Nesto.Infrastructure.Tests
         }
 
         [TestMethod]
-        public void PilotoEncendido_UnRegistroQueFalla_AvisaYNoRompeLaBusqueda()
+        public void LaAdjunta_UnRegistroQueFalla_AvisaYNoRompeLaBusqueda()
         {
             EnSta(() =>
             {
-                Regiones.Propias = true;
                 var avisos = new List<string>();
                 Regiones.AlFallarRegistro = (nombre, error) => avisos.Add(nombre);
                 var gestor = new GestorRegiones();
