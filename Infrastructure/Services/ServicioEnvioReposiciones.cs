@@ -74,6 +74,17 @@ namespace Nesto.Infrastructure.Services
         Task<BultosReposicion> CrearBultos(string empresa, string traspaso, int bultos);
         /// <summary>Nesto#530: vuelve a imprimir las etiquetas de los bultos ya creados (POST api/Reposiciones/{traspaso}/Bultos/Reimprimir).</summary>
         Task<BultosReposicion> ReimprimirBultos(string empresa, string traspaso);
+        /// <summary>
+        /// NestoAPI#685: las reposiciones que han salido del origen y aún no se han recibido (GET api/Reposiciones/Enviadas),
+        /// la más reciente primero. Vacía si no hay ninguna o si la API todavía no lo tiene (404).
+        /// </summary>
+        Task<List<ReposicionEnviada>> LeerEnviadas(string empresa, string origen);
+        /// <summary>
+        /// NestoAPI#685: el impreso de una reposición ya enviada, con el formato del de preparar (GET
+        /// api/Reposiciones/Enviada/{traspaso}/Pdf).
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">Ya no está pendiente de recibir (404) o la API no lo ha generado.</exception>
+        Task<byte[]> DescargarImpresoEnviada(string empresa, string origen, int traspaso);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -163,19 +174,8 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
-        public async Task<byte[]> DescargarListadoPdf(string empresa, string origen)
-        {
-            using (HttpClient client = _clienteApiFactory.Crear())
-            {
-                HttpResponseMessage response = await client.GetAsync("Reposiciones/EnPreparacion/Pdf" + Consulta(empresa, origen)).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new EnvioReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode), (int)response.StatusCode);
-                }
-                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-            }
-        }
+        public Task<byte[]> DescargarListadoPdf(string empresa, string origen)
+            => DescargarPdf("Reposiciones/EnPreparacion/Pdf" + Consulta(empresa, origen));
 
         public async Task<List<ProductoReposicionPuntual>> BuscarProductoPuntual(string empresa, string origen, string codigo)
         {
@@ -213,6 +213,37 @@ namespace Nesto.Infrastructure.Services
 
         public Task<BultosReposicion> ReimprimirBultos(string empresa, string traspaso)
             => Enviar<BultosReposicion>(HttpMethod.Post, $"Reposiciones/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/Bultos/Reimprimir" + ConsultaEmpresa(empresa), null);
+
+        public async Task<List<ReposicionEnviada>> LeerEnviadas(string empresa, string origen)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/Enviadas" + Consulta(empresa, origen)).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // La API todavía no tiene #685: no se enseña la lista
+                    return new List<ReposicionEnviada>();
+                }
+                return await Leer<List<ReposicionEnviada>>(response).ConfigureAwait(false) ?? new List<ReposicionEnviada>();
+            }
+        }
+
+        public Task<byte[]> DescargarImpresoEnviada(string empresa, string origen, int traspaso)
+            => DescargarPdf($"Reposiciones/Enviada/{traspaso}/Pdf" + Consulta(empresa, origen));
+
+        private async Task<byte[]> DescargarPdf(string url)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new EnvioReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode), (int)response.StatusCode);
+                }
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+            }
+        }
 
         private static string ConsultaEmpresa(string empresa)
             => "?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty);

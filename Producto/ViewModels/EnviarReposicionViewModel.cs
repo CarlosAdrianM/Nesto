@@ -159,6 +159,8 @@ namespace Nesto.Modules.Producto.ViewModels
             QuitarLineaPuntualCommand = new RelayCommand<LineaPuntualReposicion>(QuitarLineaPuntual, l => l != null && EnModoPuntual && !EstaOcupado);
             MarcarRecogidaCommand = new AsyncRelayCommand(MarcarRecogidaAsync, () => MostrarBotonRecogida && !EstaOcupado);
             ReimprimirEtiquetasCommand = new AsyncRelayCommand(ReimprimirEtiquetasAsync, () => PuedeReimprimirEtiquetas && !EstaOcupado);
+            ReimprimirBultosEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirBultosEnviadaAsync, e => e != null && !EstaOcupado);
+            ReimprimirImpresoEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirImpresoEnviadaAsync, e => e != null && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -630,6 +632,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
                 await PedirBultosEImprimirAsync(enviada.NumTraspaso).ConfigureAwait(true);
+                // NestoAPI#685: ya sale en las enviadas sin recibir
+                await LeerEnviadas().ConfigureAwait(true);
                 return;
             }
             if (EnModoPuntual)
@@ -719,6 +723,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 _origenValido = false;
                 AvisoAutomatica = null;
+                PonerEnviadas(null);
                 string almacen = (await _configuracion.leerParametro(Empresa, Parametros.Claves.AlmacenPedidoVta).ConfigureAwait(true))?.Trim();
                 if (string.IsNullOrWhiteSpace(almacen))
                 {
@@ -735,6 +740,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
                 await LeerEstadoPuntual().ConfigureAwait(true);
                 await LeerAvisosAutomatica().ConfigureAwait(true);
+                await LeerEnviadas().ConfigureAwait(true);
                 ReposicionEnPreparacion reposicion = await _servicio.LeerEnPreparacion(Empresa, Almacen).ConfigureAwait(true);
                 Ensenar(reposicion);
                 if (HayReposicion && EnModoPuntual)
@@ -1015,6 +1021,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
                 await PedirBultosEImprimirAsync(terminada.NumTraspaso).ConfigureAwait(true);
+                // NestoAPI#685: ya sale en las enviadas sin recibir
+                await LeerEnviadas().ConfigureAwait(true);
             }
         }
 
@@ -1142,6 +1150,96 @@ namespace Nesto.Modules.Producto.ViewModels
             ReimprimirEtiquetasCommand?.NotifyCanExecuteChanged();
         }
 
+        // ---------------------------------------------------------------- NestoAPI#685: reimprimir las enviadas sin recibir
+
+        /// <summary>
+        /// NestoAPI#685: las reposiciones que han salido de la tienda y aún no se han recibido (la más reciente primero). De cada
+        /// una se pueden reimprimir los bultos y el impreso en cualquier momento, no solo justo después de enviarla.
+        /// </summary>
+        public ObservableCollection<ReposicionEnviada> Enviadas { get; } = new ObservableCollection<ReposicionEnviada>();
+
+        /// <summary>Se ve la lista: en una tienda, fuera de la puntual y con alguna enviada sin recibir.</summary>
+        public bool HayEnviadas => _origenValido && !EnModoPuntual && Enviadas.Count > 0;
+
+        /// <summary>Reimprime las etiquetas de los bultos; si se mandó sin bultos, pregunta cuántos lleva y las hace.</summary>
+        public IAsyncRelayCommand<ReposicionEnviada> ReimprimirBultosEnviadaCommand { get; }
+
+        /// <summary>Abre el impreso de la reposición (el mismo papel que el de preparar) para volver a imprimirlo.</summary>
+        public IAsyncRelayCommand<ReposicionEnviada> ReimprimirImpresoEnviadaCommand { get; }
+
+        private async Task LeerEnviadas()
+        {
+            List<ReposicionEnviada> enviadas;
+            try
+            {
+                enviadas = await _servicio.LeerEnviadas(Empresa, Almacen).ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+                // Solo es para reimprimir: si no se puede leer, no se enseña la lista
+                enviadas = null;
+            }
+            PonerEnviadas(enviadas);
+        }
+
+        private void PonerEnviadas(IEnumerable<ReposicionEnviada> enviadas)
+        {
+            Enviadas.Clear();
+            foreach (ReposicionEnviada enviada in (enviadas ?? Enumerable.Empty<ReposicionEnviada>()).Where(e => e != null).OrderByDescending(e => e.Traspaso))
+            {
+                Enviadas.Add(enviada);
+            }
+            OnPropertyChanged(nameof(HayEnviadas));
+        }
+
+        internal async Task ReimprimirBultosEnviadaAsync(ReposicionEnviada enviada)
+        {
+            if (enviada == null)
+            {
+                return;
+            }
+            Mensaje = null;
+            if (enviada.Bultos > 0)
+            {
+                string traspaso = enviada.Traspaso.ToString(CultureInfo.InvariantCulture);
+                Mensaje = await ImprimirEtiquetasAsync(traspaso, () => _servicio.ReimprimirBultos(Empresa, traspaso)).ConfigureAwait(true);
+            }
+            else
+            {
+                // Se mandó sin bultos (se canceló la pregunta): se hacen ahora
+                await PedirBultosEImprimirAsync(enviada.Traspaso).ConfigureAwait(true);
+            }
+            await LeerEnviadas().ConfigureAwait(true);
+        }
+
+        internal async Task ReimprimirImpresoEnviadaAsync(ReposicionEnviada enviada)
+        {
+            if (enviada == null)
+            {
+                return;
+            }
+            Mensaje = null;
+            bool fallo = true;
+            await Ocupado(async () =>
+            {
+                byte[] pdf = await _servicio.DescargarImpresoEnviada(Empresa, Almacen, enviada.Traspaso).ConfigureAwait(true);
+                fallo = false;
+                string error = AbridorFicheros.GuardarYAbrir(pdf, $"Reposicion_{Almacen}_{enviada.Traspaso}", _abrirFichero);
+                if (error != null)
+                {
+                    Mensaje = error;
+                    _dialogos.ShowError(error);
+                }
+            }).ConfigureAwait(true);
+            if (fallo)
+            {
+                // Puede que la hayan recibido mientras tanto: la lista se pone al día sin perder el motivo
+                string motivo = Mensaje;
+                await LeerEnviadas().ConfigureAwait(true);
+                Mensaje = motivo;
+            }
+        }
+
         internal string TextoConfirmacion()
             => $"Se mandan {Unidades} unidades de {Productos} productos a Algete. ¿Terminar?";
 
@@ -1263,6 +1361,9 @@ namespace Nesto.Modules.Producto.ViewModels
             QuitarLineaPuntualCommand?.NotifyCanExecuteChanged();
             MarcarRecogidaCommand?.NotifyCanExecuteChanged();
             ReimprimirEtiquetasCommand?.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HayEnviadas));
+            ReimprimirBultosEnviadaCommand?.NotifyCanExecuteChanged();
+            ReimprimirImpresoEnviadaCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>

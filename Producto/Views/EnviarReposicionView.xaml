@@ -23,6 +23,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Margin="0,0,0,8">
@@ -183,6 +184,43 @@
                     ToolTip="Se pone número de traspaso, sale de la tienda y queda pendiente de recibir en Algete" />
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+        <!-- NestoAPI#685: las que han salido de la tienda y aún no se han recibido, para reimprimir los bultos y el impreso en
+             cualquier momento (no solo justo después de enviarla). Sin colores fijos: modo claro y oscuro -->
+        <Border Grid.Row="4" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                Padding="0,8,0,0" Margin="0,12,0,0"
+                Visibility="{Binding HayEnviadas, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="Enviadas, pendientes de recibir" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <DataGrid ItemsSource="{Binding Enviadas}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          IsReadOnly="True" HeadersVisibility="Column" MaxHeight="180">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Traspaso" Binding="{Binding Traspaso}" />
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}" />
+                        <DataGridTextColumn Header="Destino" Binding="{Binding NombreDestino}" />
+                        <DataGridTextColumn Header="Productos" Binding="{Binding Lineas}" />
+                        <DataGridTextColumn Header="Unidades" Binding="{Binding Unidades}" />
+                        <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" />
+                        <DataGridTemplateColumn Header="">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Reimprimir bultos" Padding="8,0" Focusable="False"
+                                                Command="{Binding DataContext.ReimprimirBultosEnviadaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Vuelve a imprimir las etiquetas de los bultos en su impresora de etiquetas. Si se mandó sin bultos, pregunta cuántos lleva y las imprime." />
+                                        <Button Content="Reimprimir impreso" Padding="8,0" Margin="6,0,0,0" Focusable="False"
+                                                Command="{Binding DataContext.ReimprimirImpresoEnviadaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Abre el PDF de la reposición (el mismo papel que se imprime para prepararla) para volver a imprimirlo" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="5" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
     </Grid>
 </UserControl>

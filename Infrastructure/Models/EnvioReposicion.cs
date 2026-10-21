@@ -188,6 +188,25 @@ namespace Nesto.Infrastructure.Models
         public List<string> Avisos { get; set; } = new List<string>();
     }
 
+    /// <summary>
+    /// NestoAPI#685: una reposición que ha salido de la tienda y aún no se ha recibido en el destino (GET
+    /// api/Reposiciones/Enviadas). Con ella se reimprimen los bultos y el impreso cuando haga falta.
+    /// </summary>
+    public class ReposicionEnviada
+    {
+        public int Traspaso { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        /// <summary>«Algete».</summary>
+        public string NombreDestino { get; set; }
+        public DateTime? Fecha { get; set; }
+        public string Usuario { get; set; }
+        public int Lineas { get; set; }
+        public int Unidades { get; set; }
+        /// <summary>Cuántas etiquetas de bulto tiene; 0 si se mandó sin bultos.</summary>
+        public int Bultos { get; set; }
+    }
+
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>
     public class EnvioReposicionException : Exception
     {
