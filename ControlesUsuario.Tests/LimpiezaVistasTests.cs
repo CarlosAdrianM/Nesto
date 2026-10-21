@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Navegacion;
 using Nesto.Infrastructure.Shared;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -8,26 +8,32 @@ using System.Windows.Controls;
 
 namespace ControlesUsuario.Tests
 {
+    /// <summary>
+    /// La limpieza de la vista que sale de una región (Nesto#364, fugas de memoria) y su blindaje contra los async void
+    /// (29/05/26). Eran las pruebas del <c>LimpiarVistaAlQuitarRegionBehavior</c> de Prism; desde Nesto#490 (4C.4, tramo 4)
+    /// la hace la región propia (<see cref="RegionNesto"/>, con <see cref="LimpiezaVistas"/>), y se comprueba lo mismo.
+    /// </summary>
     [TestClass]
-    public class LimpiarVistaAlQuitarRegionBehaviorTests
+    public class LimpiezaVistasTests
     {
+        // Una región de una sola vista (como DetallePedidoRegion), propia de Nesto
+        private static RegionNesto CrearRegion() => new GestorRegiones().Registrar("DetalleRegion", new ContentControl());
+
         // Fuga de memoria: al quitar una vista de una región hay que limpiar su DataContext
         // para que WPF desmonte los BindingExpression que, si no, la mantienen viva.
         [TestMethod]
-        public void Behavior_AlQuitarVistaDeLaRegion_LimpiaElDataContext()
+        public void Region_AlQuitarVista_LimpiaElDataContext()
         {
             EjecutarEnSTA(() =>
             {
-                IRegion region = new Region();
-                var behavior = new LimpiarVistaAlQuitarRegionBehavior { Region = region };
-                behavior.Attach();
+                RegionNesto region = CrearRegion();
 
                 var vista = new ContentControl { DataContext = new object() };
-                region.Add(vista);
+                region.Anadir(vista);
                 Assert.IsNotNull(vista.DataContext, "Precondición: la vista tiene DataContext al añadirse");
 
                 // Act
-                region.Remove(vista);
+                region.Quitar(vista);
 
                 // Assert
                 Assert.IsNull(vista.DataContext, "Al quitar la vista de la región su DataContext debe quedar a null");
@@ -36,33 +42,31 @@ namespace ControlesUsuario.Tests
 
         // No debe fallar si lo que se quita no es un FrameworkElement (no tiene DataContext).
         [TestMethod]
-        public void Behavior_AlQuitarVistaQueNoEsFrameworkElement_NoLanza()
+        public void Region_AlQuitarVistaQueNoEsFrameworkElement_NoLanza()
         {
             EjecutarEnSTA(() =>
             {
-                IRegion region = new Region();
-                var behavior = new LimpiarVistaAlQuitarRegionBehavior { Region = region };
-                behavior.Attach();
+                RegionNesto region = CrearRegion();
 
                 var vistaNoVisual = new object();
-                region.Add(vistaNoVisual);
+                region.Anadir(vistaNoVisual);
 
                 // Act + Assert: no debe lanzar
-                region.Remove(vistaNoVisual);
+                region.Quitar(vistaNoVisual);
             });
         }
 
         // Blindaje: una vista cuyo callback de teardown es 'async void' y lanza (un control no
-        // null-safe, como eran los selectores) NO debe tumbar la app. El behavior instala durante el
+        // null-safe, como eran los selectores) NO debe tumbar la app. LimpiezaVistas instala durante el
         // nulling del DataContext un SynchronizationContext que envuelve al real y neutraliza el
         // relanzamiento que AsyncVoidMethodBuilder.SetException postea.
         //
         // Se usa un contexto "real" asíncrono (encola y se drena después), igual que el Dispatcher:
-        // así, sin el blindaje, la excepción NO la atrapa el try/catch del behavior (se postea para
+        // así, sin el blindaje, la excepción NO la atrapa el try/catch de LimpiezaVistas (se postea para
         // más tarde) y revienta al drenar; con el blindaje, el delegate posteado va envuelto en
         // try/catch y drenar no lanza.
         [TestMethod]
-        public void Behavior_VistaConAsyncVoidQueFallaEnTeardown_NoTumbaLaApp()
+        public void Region_VistaConAsyncVoidQueFallaEnTeardown_NoTumbaLaApp()
         {
             EjecutarEnSTA(() =>
             {
@@ -71,18 +75,16 @@ namespace ControlesUsuario.Tests
                 SynchronizationContext.SetSynchronizationContext(contextoReal);
                 try
                 {
-                    IRegion region = new Region();
-                    var behavior = new LimpiarVistaAlQuitarRegionBehavior { Region = region };
-                    behavior.Attach();
+                    RegionNesto region = CrearRegion();
 
                     var vista = new ControlQueFallaEnTeardown { DataContext = new object() };
-                    region.Add(vista);
+                    region.Anadir(vista);
 
-                    // Act: al quitar la vista, el behavior pone DataContext=null -> dispara el async void que lanza.
-                    region.Remove(vista);
+                    // Act: al quitar la vista, la región pone DataContext=null -> dispara el async void que lanza.
+                    region.Quitar(vista);
 
                     // El relanzamiento quedó posteado (como en el Dispatcher real). Drenarlo NO debe
-                    // lanzar: el blindaje del behavior lo envolvió en try/catch.
+                    // lanzar: el blindaje de LimpiezaVistas lo envolvió en try/catch.
                     contextoReal.Drenar();
 
                     Assert.IsNull(vista.DataContext, "El DataContext debe quedar a null (fix de fuga intacto)");
@@ -94,8 +96,15 @@ namespace ControlesUsuario.Tests
             });
         }
 
+        [TestMethod]
+        public void Liberar_ConNullOAlgoQueNoEsFrameworkElement_NoLanza()
+        {
+            LimpiezaVistas.Liberar(null);
+            LimpiezaVistas.Liberar(new object());
+        }
+
         // ContentControl que reproduce el patrón roto de los selectores: al revertir su DataContext a
-        // null (lo que hace el behavior en el teardown) lanza desde un método 'async void'.
+        // null (lo que hace la región en el teardown) lanza desde un método 'async void'.
         private sealed class ControlQueFallaEnTeardown : ContentControl
         {
             public ControlQueFallaEnTeardown()

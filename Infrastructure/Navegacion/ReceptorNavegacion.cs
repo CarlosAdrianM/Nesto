@@ -1,5 +1,4 @@
 using Nesto.Infrastructure.Contracts;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -7,28 +6,11 @@ using System.Windows;
 namespace Nesto.Infrastructure.Navegacion
 {
     /// <summary>
-    /// Nesto#490 (4C.4): entrega cada navegación terminada a la vista de destino (o a su DataContext) que
-    /// implemente <see cref="IReceptorNavegacion"/>. Así los ViewModels reciben la navegación sin depender de
-    /// Prism; cuando Nesto deje Prism, quien navegue llamará a <see cref="ReceptorNavegacion.Entregar"/> igual.
-    /// Registrado de forma global en <c>Application.ConfigureDefaultRegionBehaviors</c>.
+    /// Nesto#490 (4C.4): entrega cada navegación terminada a la vista de destino (o a su DataContext) que implemente
+    /// <see cref="IReceptorNavegacion"/>, y decide qué vista abierta se reutiliza. Era la parte pura del
+    /// <c>ReceptorNavegacionRegionBehavior</c> y del <c>CargadorVistasNavegacion</c> de Prism; desde el tramo 4 solo la usa
+    /// la región propia (<see cref="ServicioNavegacionNesto"/>).
     /// </summary>
-    public class ReceptorNavegacionRegionBehavior : RegionBehavior
-    {
-        public const string BehaviorKey = "ReceptorNavegacion";
-
-        protected override void OnAttach()
-        {
-            Region.NavigationService.Navigated += AlNavegar;
-        }
-
-        private void AlNavegar(object sender, RegionNavigationEventArgs e)
-        {
-            ReceptorNavegacion.Entregar(Region.ActiveViews, Region.Views, e?.Uri?.OriginalString,
-                ServicioNavegacionPrism.DesdeParametrosPrism(e?.NavigationContext?.Parameters));
-        }
-    }
-
-    /// <summary>La parte pura (sin Prism) de <see cref="ReceptorNavegacionRegionBehavior"/>, para poder probarla.</summary>
     public static class ReceptorNavegacion
     {
         /// <summary>
@@ -52,7 +34,7 @@ namespace Nesto.Infrastructure.Navegacion
 
         /// <summary>
         /// Si la vista (o su DataContext) pide una vista nueva en cada navegación
-        /// (<see cref="IReceptorNavegacionPestanaNueva"/>): entonces no se reutiliza (ver <see cref="CargadorVistasNavegacion"/>).
+        /// (<see cref="IReceptorNavegacionPestanaNueva"/>): entonces no se reutiliza (ver <see cref="ServicioNavegacionNesto"/>).
         /// </summary>
         public static bool QuierePestanaNueva(object vista)
         {
@@ -62,8 +44,7 @@ namespace Nesto.Infrastructure.Navegacion
 
         /// <summary>
         /// Nesto#490 (7.º tramo): entrega la navegación de un ámbito a la vista y a su DataContext que sean
-        /// <see cref="IConAmbitoNavegacion"/>, a cada uno si lo pide. Lo usan las dos implementaciones de
-        /// <see cref="IServicioNavegacion"/> (la de Prism y la propia).
+        /// <see cref="IConAmbitoNavegacion"/>, a cada uno si lo pide.
         /// </summary>
         internal static void EntregarAmbito(object vista, IServicioNavegacion navegacion)
         {

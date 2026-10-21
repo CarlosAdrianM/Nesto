@@ -15,8 +15,8 @@ namespace Nesto.Infrastructure.Shared
     ///
     /// Nesto#490 (4C.4, 6.º tramo): ya no implementa <c>Prism.Regions.INavigationAware</c> (con
     /// <c>IsNavigationTarget = false</c> y <c>OnNavigatedFrom</c> vacío) sino <see cref="IReceptorNavegacionPestanaNueva"/>:
-    /// cada navegación a una de sus vistas sigue abriendo una pestaña nueva (lo hace cumplir
-    /// <c>CargadorVistasNavegacion</c>) y <see cref="AlLlegar"/> sustituye a <c>OnNavigatedTo</c>. Quien quiera
+    /// cada navegación a una de sus vistas sigue abriendo una pestaña nueva (lo hace cumplir la región propia,
+    /// <c>ServicioNavegacionNesto</c>) y <see cref="AlLlegar"/> sustituye a <c>OnNavigatedTo</c>. Quien quiera
     /// reutilizar su pestaña hereda de <see cref="ViewModelBasico"/> e implementa <see cref="IReceptorNavegacion"/>.
     /// </summary>
     public class ViewModelBase : ViewModelBasico, IReceptorNavegacionPestanaNueva

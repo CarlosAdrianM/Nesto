@@ -3,8 +3,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
 using Nesto.Infrastructure.Shared;
-using Prism.Ioc;
-using Prism.Regions;
 using System;
 using System.Linq;
 using System.Threading;
@@ -13,12 +11,13 @@ using System.Windows.Controls;
 namespace Nesto.Infrastructure.Tests
 {
     /// <summary>
-    /// Nesto#490 (4C.4): <see cref="CargadorVistasNavegacion"/> reutiliza la vista abierta como Prism, salvo la de un
+    /// Nesto#490 (4C.4): la navegación reutiliza la vista abierta como Prism, salvo la de un
     /// <see cref="IReceptorNavegacionPestanaNueva"/>, que abre otra en cada navegación (lo que hacía
-    /// <c>IsNavigationTarget = false</c>).
+    /// <c>IsNavigationTarget = false</c>). Eran las pruebas del <c>CargadorVistasNavegacion</c> de Prism; desde el tramo 4
+    /// son de la región propia (<see cref="ServicioNavegacionNesto"/>), con las mismas comprobaciones.
     /// </summary>
     [TestClass]
-    public class CargadorVistasNavegacionTests
+    public class ReutilizacionVistasTests
     {
         private sealed class ViewModelReutiliza : IReceptorNavegacion
         {
@@ -30,7 +29,7 @@ namespace Nesto.Infrastructure.Tests
             public void AlLlegar(ParametrosNavegacion parametros) { }
         }
 
-        // Vista de mentira: Prism la busca en la región por el nombre de su tipo
+        // Vista de mentira: la navegación la busca en la región por el nombre de su tipo
         private sealed class VistaPrueba : Border { }
 
         private static void EnSta(Action accion)
@@ -50,33 +49,32 @@ namespace Nesto.Infrastructure.Tests
         }
 
         // Navega a «VistaPrueba» en una región con una vista ya abierta cuyo DataContext es el indicado
-        private static (Region region, object abierta, object cargada) Navegar(object dataContextAbierta)
+        private static (RegionNesto region, object abierta, object cargada) Navegar(object dataContextAbierta)
         {
-            var contenedor = A.Fake<IContainerExtension>();
-            A.CallTo(() => contenedor.Resolve(typeof(object), nameof(VistaPrueba))).ReturnsLazily(() => new VistaPrueba());
-            var region = new Region { Name = "MainRegion" };
+            var gestor = new GestorRegiones();
+            RegionNesto region = gestor.Registrar("MainRegion", new TabControl());
             var abierta = new VistaPrueba { DataContext = dataContextAbierta };
-            region.Add(abierta);
-            var cargador = new CargadorVistasNavegacion(contenedor);
+            region.Anadir(abierta);
+            var navegacion = new ServicioNavegacionNesto(gestor, nombre => nombre == nameof(VistaPrueba) ? new VistaPrueba() : null);
 
-            object cargada = cargador.LoadContent(region, new NavigationContext(null, new Uri(nameof(VistaPrueba), UriKind.Relative)));
-            return (region, abierta, cargada);
+            navegacion.RequestNavigate("MainRegion", nameof(VistaPrueba));
+            return (region, abierta, navegacion.VistaActiva("MainRegion"));
         }
 
         [TestMethod]
-        public void LoadContent_ConUnReceptorQueReutiliza_DevuelveLaVistaAbierta()
+        public void Navegar_ConUnReceptorQueReutiliza_ActivaLaVistaAbierta()
         {
             EnSta(() =>
             {
                 var (region, abierta, cargada) = Navegar(new ViewModelReutiliza());
 
                 Assert.AreSame(abierta, cargada);
-                Assert.AreEqual(1, region.Views.Count());
+                Assert.AreEqual(1, region.Vistas.Count);
             });
         }
 
         [TestMethod]
-        public void LoadContent_ConUnReceptorPestanaNueva_AbreOtraVista()
+        public void Navegar_ConUnReceptorPestanaNueva_AbreOtraVista()
         {
             EnSta(() =>
             {
@@ -84,7 +82,7 @@ namespace Nesto.Infrastructure.Tests
 
                 Assert.IsNotNull(cargada);
                 Assert.AreNotSame(abierta, cargada);
-                Assert.AreEqual(2, region.Views.Count());
+                Assert.AreEqual(2, region.Vistas.Count);
             });
         }
 
@@ -101,13 +99,13 @@ namespace Nesto.Infrastructure.Tests
         [TestMethod]
         public void ViewModelBase_NoDependeDeLaNavegacionDePrismYPidePestanaNueva()
         {
-            Assert.IsFalse(typeof(INavigationAware).IsAssignableFrom(typeof(ViewModelBase)));
+            Assert.IsFalse(typeof(ViewModelBase).GetInterfaces().Any(i => i.Name == "INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ViewModelBase)));
             Assert.IsFalse(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(ViewModelBasico)));
         }
 
         [TestMethod]
-        public void LoadContent_ConUnaSubclaseDeViewModelBase_AbreOtraVista()
+        public void Navegar_ConUnaSubclaseDeViewModelBase_AbreOtraVista()
         {
             EnSta(() =>
             {
@@ -115,19 +113,19 @@ namespace Nesto.Infrastructure.Tests
 
                 Assert.IsNotNull(cargada);
                 Assert.AreNotSame(abierta, cargada);
-                Assert.AreEqual(2, region.Views.Count());
+                Assert.AreEqual(2, region.Vistas.Count);
             });
         }
 
         [TestMethod]
-        public void LoadContent_ConUnViewModelBasicoQueRecibeLaNavegacion_ReutilizaLaVista()
+        public void Navegar_ConUnViewModelBasicoQueRecibeLaNavegacion_ReutilizaLaVista()
         {
             EnSta(() =>
             {
                 var (region, abierta, cargada) = Navegar(new ViewModelBasicoReutiliza());
 
                 Assert.AreSame(abierta, cargada);
-                Assert.AreEqual(1, region.Views.Count());
+                Assert.AreEqual(1, region.Vistas.Count);
             });
         }
 

@@ -8,11 +8,12 @@ namespace Nesto.Infrastructure.Navegacion
 {
     /// <summary>
     /// Nesto#490 (4C.4, región propia): <see cref="IServicioNavegacion"/> sin Prism, sobre un <see cref="GestorRegiones"/>
-    /// propio. Hace lo mismo que <see cref="ServicioNavegacionPrism"/> con el IRegionManager de Prism y lo que Nesto le
-    /// añadía: el cargador de vistas (<see cref="CargadorVistasNavegacion"/>), la entrega de la navegación
-    /// (<see cref="ReceptorNavegacionRegionBehavior"/>) y, en la región, la limpieza al quitar
-    /// (<see cref="Shared.LimpiarVistaAlQuitarRegionBehavior"/>) y el aviso de activación (<see cref="IConActivacion"/>).
-    /// Las pruebas del shell (<c>ShellRegionPrincipalTests</c>) se ejecutan con las dos implementaciones.
+    /// propio. Hace lo mismo que hacía el IRegionManager de Prism (con <c>ServicioNavegacionPrism</c>) y lo que Nesto le
+    /// añadía: el cargador de vistas (<c>CargadorVistasNavegacion</c>), la entrega de la navegación
+    /// (<see cref="ReceptorNavegacion"/>, antes con <c>ReceptorNavegacionRegionBehavior</c>) y, en la región, la limpieza
+    /// al quitar (<see cref="Shared.LimpiezaVistas"/>) y el aviso de activación (<see cref="IConActivacion"/>). Las pruebas
+    /// del shell (<c>ShellRegionPrincipalTests</c>) se escribieron contra Prism y pasaron con las dos implementaciones
+    /// hasta el tramo 4, en que se quitó la de Prism.
     ///
     /// Una navegación (<see cref="RequestNavigate(string, string, ParametrosNavegacion)"/>), como la de Prism:
     /// <list type="number">
@@ -62,7 +63,7 @@ namespace Nesto.Infrastructure.Navegacion
                 string contrato = ReceptorNavegacion.Contrato(source)
                     ?? throw new ArgumentException("Falta la vista a la que navegar", nameof(source));
                 ParametrosNavegacion parametros = ConLosDeLaConsulta(parameters, source);
-                // Como CargadorVistasNavegacion: se reutiliza la primera abierta del mismo tipo, salvo las de pestaña nueva
+                // Como el cargador de vistas de Prism: se reutiliza la primera abierta del mismo tipo, salvo las de pestaña nueva
                 object vista = ReceptorNavegacion.VistasDelContrato(region.Vistas, contrato)
                     .FirstOrDefault(v => !ReceptorNavegacion.QuierePestanaNueva(v));
                 if (vista == null)

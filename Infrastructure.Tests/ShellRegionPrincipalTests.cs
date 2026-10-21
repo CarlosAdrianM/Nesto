@@ -1,12 +1,7 @@
-using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
 using Nesto.Infrastructure.Shared;
-using Prism;
-using Prism.Ioc;
-using Prism.Regions;
-using Prism.Regions.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,27 +12,18 @@ using System.Windows.Controls;
 namespace Nesto.Infrastructure.Tests
 {
     /// <summary>
-    /// Nesto#490 (4C.4, shell): fijan cómo se comporta HOY la región principal del shell (el TabControl «MainRegion» de
-    /// MainWindow) antes de quitarle Prism. Se monta como en Nesto: un <see cref="TabControl"/> adaptado con el
-    /// <see cref="SelectorRegionAdapter"/> de Prism, con el cargador de vistas <see cref="CargadorVistasNavegacion"/> y los
-    /// dos comportamientos globales (<see cref="LimpiarVistaAlQuitarRegionBehavior"/> y
-    /// <see cref="ReceptorNavegacionRegionBehavior"/>), y se maneja con <see cref="ServicioNavegacionPrism"/>, como los
-    /// ViewModels. Cuando la región principal deje de ser de Prism, estas pruebas tienen que seguir pasando igual.
-    /// <para>
-    /// Desde el tramo de la región propia, cada prueba se ejecuta con las DOS implementaciones y las mismas
-    /// comprobaciones: <see cref="PRISM"/> (lo de arriba) y <see cref="NESTO"/> (el TabControl registrado en un
-    /// <see cref="GestorRegiones"/> y manejado con <see cref="ServicioNavegacionNesto"/>). Lo que en Prism se mira en el
-    /// IRegion (vistas activas, vista por nombre, gestor colgado de la vista) se mira con los ayudantes de <see cref="Shell"/>.
-    /// Se añaden las de los maestro-detalle con regiones de verdad (ContentControl dentro de la vista) y la de
-    /// <c>IActiveAware</c>/<see cref="IConActivacion"/>, que en Prism pone su comportamiento por defecto.
-    /// </para>
+    /// Nesto#490 (4C.4, shell): cómo se comporta la región principal del shell (el TabControl «MainRegion» de MainWindow).
+    /// Se escribieron contra Prism antes de quitárselo (un <see cref="TabControl"/> con el <c>SelectorRegionAdapter</c>, el
+    /// <c>CargadorVistasNavegacion</c>, los dos comportamientos globales y <c>ServicioNavegacionPrism</c>), y desde el tramo
+    /// de la región propia se ejecutaron con las DOS implementaciones y las mismas comprobaciones. En el tramo 4 se quita la
+    /// de Prism y queda la propia: el TabControl registrado en un <see cref="GestorRegiones"/> y manejado con
+    /// <see cref="ServicioNavegacionNesto"/>, como en Nesto (<see cref="RegionesDelShell"/>). Incluyen los maestro-detalle
+    /// con regiones de verdad (ContentControl dentro de la vista) y el aviso de activación (<see cref="IConActivacion"/>).
     /// </summary>
     [TestClass]
     public class ShellRegionPrincipalTests
     {
         private const string MAIN_REGION = "MainRegion";
-        private const string PRISM = "Prism";
-        private const string NESTO = "Nesto";
 
         // Una vista que reutiliza su pestaña (IReceptorNavegacion), como el Extracto de cliente o el 347
         private sealed class ReceptorQueReutiliza : IReceptorNavegacion
@@ -76,8 +62,8 @@ namespace Nesto.Infrastructure.Tests
         private sealed class VistaPestanaNueva : Border { }
         private sealed class VistaMaestra : Border { }
 
-        // Como ListaRapportsViewModel: Prism le dice si su pestaña es la activa (IActiveAware); la región propia, con IConActivacion
-        private sealed class ConActivacion : IActiveAware, IConActivacion
+        // Como ListaRapportsViewModel: la región le dice si su pestaña es la activa (IConActivacion, antes IActiveAware de Prism)
+        private sealed class ConActivacion : IConActivacion
         {
             private bool _isActive;
             public List<bool> Cambios { get; } = new List<bool>();
@@ -90,11 +76,9 @@ namespace Nesto.Infrastructure.Tests
                     {
                         _isActive = value;
                         Cambios.Add(value);
-                        IsActiveChanged?.Invoke(this, EventArgs.Empty);
                     }
                 }
             }
-            public event EventHandler IsActiveChanged;
         }
 
         private sealed class VistaDetalle : Border { }
@@ -105,12 +89,12 @@ namespace Nesto.Infrastructure.Tests
         {
             public TabControl Pestanas { get; set; }
             public IServicioNavegacion Navegacion { get; set; }
-            /// <summary>El gestor de regiones del shell (el IRegionManager de Prism o el GestorRegiones propio).</summary>
-            public object Gestor { get; set; }
+            /// <summary>El gestor de regiones del shell.</summary>
+            public GestorRegiones Gestor { get; set; }
             public Func<IEnumerable<object>> VistasActivas { get; set; }
             public Func<string, object> VistaPorNombre { get; set; }
-            /// <summary>El gestor de regiones colgado de la vista (RegionManager.GetRegionManager / GestorRegiones.GetGestor).</summary>
-            public Func<object, object> GestorDe { get; set; }
+            /// <summary>El gestor de regiones colgado de la vista (GestorRegiones.GetGestor).</summary>
+            public Func<object, GestorRegiones> GestorDe { get; set; }
             /// <summary>Registra una región de ContentControl en el gestor colgado de la vista, como haría su XAML.</summary>
             public Action<object, string, ContentControl> RegistrarRegionEnVista { get; set; }
         }
@@ -131,65 +115,10 @@ namespace Nesto.Infrastructure.Tests
             }
         }
 
-        private static Shell CrearShell(string implementacion, Dictionary<string, Func<object>> vistasRegistradas = null)
+        // La región propia: el TabControl registrado en un GestorRegiones y las vistas creadas por su nombre
+        private static Shell CrearShell(Dictionary<string, Func<object>> vistasRegistradas = null)
         {
             vistasRegistradas ??= new Dictionary<string, Func<object>>();
-            return implementacion switch
-            {
-                PRISM => CrearShellPrism(vistasRegistradas),
-                NESTO => CrearShellNesto(vistasRegistradas),
-                _ => throw new ArgumentOutOfRangeException(nameof(implementacion))
-            };
-        }
-
-        // Lo mismo que monta Prism en Nesto para el TabControl MainRegion (Application.ConfigureDefaultRegionBehaviors y
-        // el registro del cargador de vistas), con un contenedor de mentira que crea las vistas por su nombre. Lleva también
-        // el RegionActiveAwareBehavior, que en Nesto pone Prism por defecto en todas las regiones (IActiveAware).
-        private static Shell CrearShellPrism(Dictionary<string, Func<object>> vistasRegistradas)
-        {
-            var contenedor = A.Fake<IContainerExtension>();
-            A.CallTo(() => contenedor.Resolve(typeof(object), A<string>._))
-                .ReturnsLazily((Type _, string nombre) => vistasRegistradas[nombre]());
-            // Prism apunta cada navegación en el diario (Atrás/Adelante); Nesto no lo usa, pero sin esto la navegación falla
-            A.CallTo(() => contenedor.Resolve(typeof(IRegionNavigationJournalEntry)))
-                .ReturnsLazily(() => new RegionNavigationJournalEntry());
-
-            IRegion Preparar(IRegion region)
-            {
-                region.NavigationService = new RegionNavigationService(contenedor, new CargadorVistasNavegacion(contenedor), new RegionNavigationJournal())
-                {
-                    Region = region
-                };
-                region.Behaviors.Add(RegionActiveAwareBehavior.BehaviorKey, new RegionActiveAwareBehavior());
-                region.Behaviors.Add(LimpiarVistaAlQuitarRegionBehavior.BehaviorKey, new LimpiarVistaAlQuitarRegionBehavior());
-                region.Behaviors.Add(ReceptorNavegacionRegionBehavior.BehaviorKey, new ReceptorNavegacionRegionBehavior());
-                return region;
-            }
-
-            var pestanas = new TabControl();
-            var adaptador = new SelectorRegionAdapter(new RegionBehaviorFactory(contenedor));
-            IRegion principal = Preparar(adaptador.Initialize(pestanas, MAIN_REGION));
-            var gestor = new RegionManager();
-            gestor.Regions.Add(principal);
-            return new Shell
-            {
-                Pestanas = pestanas,
-                Navegacion = new ServicioNavegacionPrism(gestor),
-                Gestor = gestor,
-                VistasActivas = () => principal.ActiveViews.ToList(),
-                VistaPorNombre = nombre => principal.GetView(nombre),
-                GestorDe = vista => RegionManager.GetRegionManager((DependencyObject)vista),
-                RegistrarRegionEnVista = (vista, nombre, control) =>
-                {
-                    var adaptadorContenido = new ContentControlRegionAdapter(new RegionBehaviorFactory(contenedor));
-                    RegionManager.GetRegionManager((DependencyObject)vista).Regions.Add(Preparar(adaptadorContenido.Initialize(control, nombre)));
-                }
-            };
-        }
-
-        // La región propia: el mismo TabControl registrado en un GestorRegiones y las vistas creadas por su nombre
-        private static Shell CrearShellNesto(Dictionary<string, Func<object>> vistasRegistradas)
-        {
             var pestanas = new TabControl();
             var gestor = new GestorRegiones();
             RegionNesto principal = gestor.Registrar(MAIN_REGION, pestanas);
@@ -215,14 +144,12 @@ namespace Nesto.Infrastructure.Tests
 
         private static List<object> Pestanas(Shell shell) => shell.Pestanas.Items.Cast<object>().ToList();
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void Navegar_AUnaVistaRegistrada_AbreUnaPestanaYLaSelecciona(string implementacion)
+        [TestMethod]
+        public void Navegar_AUnaVistaRegistrada_AbreUnaPestanaYLaSelecciona()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza { DataContext = new ReceptorQueReutiliza() } }
                 });
@@ -237,15 +164,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void Navegar_DosVecesAUnReceptorQueReutiliza_UnaSolaPestanaQueRecibeLasDosNavegaciones(string implementacion)
+        [TestMethod]
+        public void Navegar_DosVecesAUnReceptorQueReutiliza_UnaSolaPestanaQueRecibeLasDosNavegaciones()
         {
             EnSta(() =>
             {
                 var receptor = new ReceptorQueReutiliza();
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza { DataContext = receptor } }
                 });
@@ -260,15 +185,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void Navegar_DosVecesAUnReceptorPestanaNueva_DosPestanasYLaSeleccionadaEsLaUltima(string implementacion)
+        [TestMethod]
+        public void Navegar_DosVecesAUnReceptorPestanaNueva_DosPestanasYLaSeleccionadaEsLaUltima()
         {
             EnSta(() =>
             {
                 var receptores = new List<ReceptorPestanaNueva>();
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaPestanaNueva), () =>
                         {
@@ -292,14 +215,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void Navegar_AUnaVistaQueYaEstabaAbierta_LaVuelveASeleccionar(string implementacion)
+        [TestMethod]
+        public void Navegar_AUnaVistaQueYaEstabaAbierta_LaVuelveASeleccionar()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza { DataContext = new ReceptorQueReutiliza() } },
                     { nameof(VistaPestanaNueva), () => new VistaPestanaNueva { DataContext = new ReceptorPestanaNueva() } }
@@ -317,14 +238,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void ElegirOtraPestana_LaConvierteEnLaVistaActiva(string implementacion)
+        [TestMethod]
+        public void ElegirOtraPestana_LaConvierteEnLaVistaActiva()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var primera = new Border();
                 var segunda = new Border();
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, primera, "Clientes");
@@ -339,14 +258,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void AbrirVistaNueva_DosVecesConElMismoNombre_DosPestanasNumeradasYSeleccionaLaUltima(string implementacion)
+        [TestMethod]
+        public void AbrirVistaNueva_DosVecesConElMismoNombre_DosPestanasNumeradasYSeleccionaLaUltima()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var primera = new Border();
                 var segunda = new Border();
 
@@ -360,14 +277,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void CerrarVistaActiva_QuitaLaPestanaSeleccionadaYLimpiaSuDataContext(string implementacion)
+        [TestMethod]
+        public void CerrarVistaActiva_QuitaLaPestanaSeleccionadaYLimpiaSuDataContext()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var primera = new Border { DataContext = new object() };
                 var segunda = new Border { DataContext = new object() };
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, primera, "Uno");
@@ -381,14 +296,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaXDeUnaPestana_LaQuitaYLimpiaSuDataContext(string implementacion)
+        [TestMethod]
+        public void LaXDeUnaPestana_LaQuitaYLimpiaSuDataContext()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var primera = new Border { DataContext = new object() };
                 var segunda = new Border { DataContext = new object() };
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, primera, "Uno");
@@ -403,14 +316,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaXDeUnaPestanaQuePideConfirmacion_SiDiceQueNo_NoLaQuita(string implementacion)
+        [TestMethod]
+        public void LaXDeUnaPestanaQuePideConfirmacion_SiDiceQueNo_NoLaQuita()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var confirmacion = new ConConfirmacion { Respuesta = false };
                 var vista = new Border { DataContext = confirmacion };
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, vista, "PlantillaVenta");
@@ -423,14 +334,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaXDeUnaPestanaQuePideConfirmacion_SiDiceQueSi_LaQuita(string implementacion)
+        [TestMethod]
+        public void LaXDeUnaPestanaQuePideConfirmacion_SiDiceQueSi_LaQuita()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var confirmacion = new ConConfirmacion { Respuesta = true };
                 var vista = new Border { DataContext = confirmacion };
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, vista, "PlantillaVenta");
@@ -443,14 +352,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaXDeUnaVistaQueYaNoEstaEnLaRegion_NoHaceNada(string implementacion)
+        [TestMethod]
+        public void LaXDeUnaVistaQueYaNoEstaEnLaRegion_NoHaceNada()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var abierta = new Border { DataContext = new object() };
                 shell.Navegacion.AbrirVistaNueva(MAIN_REGION, abierta, "Uno");
 
@@ -461,15 +368,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void AbrirVistaConAmbito_DosVeces_DosPestanasCadaUnaConSuPropiaNavegacion(string implementacion)
+        [TestMethod]
+        public void AbrirVistaConAmbito_DosVeces_DosPestanasCadaUnaConSuPropiaNavegacion()
         {
             // Los maestro-detalle (PedidoVenta, PedidoCompra): cada pestaña con sus regiones, aunque se llamen igual
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
                 var primerContexto = new ConAmbito();
                 var segundoContexto = new ConAmbito();
                 var primera = new VistaMaestra { DataContext = primerContexto };
@@ -494,14 +399,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void NavegarAUnaRegionQueNoExiste_NoAbreNadaNiLanza(string implementacion)
+        [TestMethod]
+        public void NavegarAUnaRegionQueNoExiste_NoAbreNadaNiLanza()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza() }
                 });
@@ -525,14 +428,12 @@ namespace Nesto.Infrastructure.Tests
             return (lista, detalle);
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void MaestroDetalle_DosPestanasConRegionesDelMismoNombre_CadaUnaNavegaASuDetalle(string implementacion)
+        [TestMethod]
+        public void MaestroDetalle_DosPestanasConRegionesDelMismoNombre_CadaUnaNavegaASuDetalle()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaDetalle), () => new VistaDetalle { DataContext = new ReceptorPestanaNueva() } }
                 });
@@ -559,15 +460,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void MaestroDetalle_LaListaEntraEnSuRegionYRecibeLaNavegacionDelAmbito(string implementacion)
+        [TestMethod]
+        public void MaestroDetalle_LaListaEntraEnSuRegionYRecibeLaNavegacionDelAmbito()
         {
             // Lo que hacen PedidoVentaView y PedidoCompraView al cargarse: AbrirVistaNueva de la lista en su región de lista
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaDetalle), () => new VistaDetalle { DataContext = new ReceptorPestanaNueva() } }
                 });
@@ -590,15 +489,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void MaestroDetalle_ElegirOtroElemento_QuitaElDetalleAnteriorYLimpiaSuDataContext(string implementacion)
+        [TestMethod]
+        public void MaestroDetalle_ElegirOtroElemento_QuitaElDetalleAnteriorYLimpiaSuDataContext()
         {
             // Lo que hacen las listas de pedidos y la de rapports: QuitarVistas del detalle y navegar a uno nuevo
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaDetalle), () => new VistaDetalle { DataContext = new ReceptorPestanaNueva() } }
                 });
@@ -621,16 +518,14 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void RegionDentroDeUnaVistaSinAmbitoPropio_EsDelShell(string implementacion)
+        [TestMethod]
+        public void RegionDentroDeUnaVistaSinAmbitoPropio_EsDelShell()
         {
             // ListaRapportsView entra en MainRegion por navegación (sin ámbito): su RapportDetailRegion es del gestor del
             // shell, y ListaRapportsViewModel navega a ella con la navegación de siempre
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza { DataContext = new ReceptorQueReutiliza() } },
                     { nameof(VistaDetalle), () => new VistaDetalle { DataContext = new ReceptorPestanaNueva() } }
@@ -652,16 +547,14 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void CambiarDePestana_AvisaAlViewModelDeSiSuPestanaEsLaActiva(string implementacion)
+        [TestMethod]
+        public void CambiarDePestana_AvisaAlViewModelDeSiSuPestanaEsLaActiva()
         {
             // ListaRapportsViewModel se da de alta en los mensajes de rapports solo mientras su pestaña está activa
             EnSta(() =>
             {
                 var activable = new ConActivacion();
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaConActivacion), () => new VistaConActivacion { DataContext = activable } }
                 });
@@ -681,15 +574,13 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void LaXDeLaPestanaActiva_LaQuitaYLimpiaSuDataContext(string implementacion)
+        [TestMethod]
+        public void LaXDeLaPestanaActiva_LaQuitaYLimpiaSuDataContext()
         {
             EnSta(() =>
             {
                 var activable = new ConActivacion();
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaConActivacion), () => new VistaConActivacion { DataContext = activable } }
                 });
@@ -700,25 +591,22 @@ namespace Nesto.Infrastructure.Tests
 
                 Assert.AreEqual(0, Pestanas(shell).Count);
                 Assert.IsNull(vista.DataContext);
-                // ÚNICA DIFERENCIA BUSCADA entre las dos implementaciones. Con Prism, al quitar la pestaña activa su
-                // DataContext se limpia antes de que el RegionActiveAwareBehavior desactive la vista, así que al ViewModel
-                // no le llega IsActive = false: ListaRapportsViewModel se queda dado de alta en los mensajes de rapports
-                // (con referencia débil) hasta que lo recoja el GC, y mientras tanto recarga su lista al guardar un rapport.
-                // La región propia la desactiva antes de limpiarla, como ya hacía Prism al cerrar con CerrarVistaActiva.
-                bool[] esperado = implementacion == PRISM ? new[] { true } : new[] { true, false };
-                CollectionAssert.AreEqual(esperado, activable.Cambios, string.Join(",", activable.Cambios));
+                // La única diferencia buscada con Prism (tramo 2 de la región propia). Con Prism, al quitar la pestaña activa
+                // su DataContext se limpiaba antes de que el RegionActiveAwareBehavior desactivara la vista, así que al
+                // ViewModel no le llegaba IsActive = false (ListaRapportsViewModel se quedaba dado de alta en los mensajes de
+                // rapports hasta que lo recogía el GC). La región propia la desactiva antes de limpiarla, como hacía Prism al
+                // cerrar con CerrarVistaActiva.
+                CollectionAssert.AreEqual(new[] { true, false }, activable.Cambios, string.Join(",", activable.Cambios));
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void NavegarAUnaVistaQueNoEstaRegistrada_NoAbreNadaNiLanza(string implementacion)
+        [TestMethod]
+        public void NavegarAUnaVistaQueNoEstaRegistrada_NoAbreNadaNiLanza()
         {
             // Como en Prism: la navegación que falla no sube a quien navega
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
 
                 shell.Navegacion.RequestNavigate(MAIN_REGION, "VistaQueNoExiste");
 
@@ -727,14 +615,12 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void AbrirOCerrarEnUnaRegionQueNoExiste_LanzaKeyNotFound(string implementacion)
+        [TestMethod]
+        public void AbrirOCerrarEnUnaRegionQueNoExiste_LanzaKeyNotFound()
         {
             EnSta(() =>
             {
-                var shell = CrearShell(implementacion);
+                var shell = CrearShell();
 
                 Assert.ThrowsException<KeyNotFoundException>(() => shell.Navegacion.AbrirVistaNueva("RegionQueNoExiste", new Border(), "Uno"));
                 Assert.ThrowsException<KeyNotFoundException>(() => shell.Navegacion.AbrirVistaConAmbito("RegionQueNoExiste", new Border()));
@@ -745,16 +631,14 @@ namespace Nesto.Infrastructure.Tests
             });
         }
 
-        [DataTestMethod]
-        [DataRow(PRISM)]
-        [DataRow(NESTO)]
-        public void NavegarConParametrosEnElDestino_LleganDelanteDeLosQueSePasan(string implementacion)
+        [TestMethod]
+        public void NavegarConParametrosEnElDestino_LleganDelanteDeLosQueSePasan()
         {
             // Nadie navega hoy con «Vista?clave=valor», pero Prism lo admite y la región propia también
             EnSta(() =>
             {
                 var receptor = new ReceptorQueReutiliza();
-                var shell = CrearShell(implementacion, new Dictionary<string, Func<object>>
+                var shell = CrearShell(new Dictionary<string, Func<object>>
                 {
                     { nameof(VistaReutiliza), () => new VistaReutiliza { DataContext = receptor } }
                 });

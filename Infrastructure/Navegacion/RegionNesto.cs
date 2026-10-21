@@ -19,8 +19,8 @@ namespace Nesto.Infrastructure.Navegacion
     /// <item>las vistas activas (en Nesto, una como mucho: la pestaña seleccionada o el contenido del ContentControl);</item>
     /// <item><see cref="IConActivacion"/> a la vista y a su DataContext al activarla y al desactivarla o quitarla (el
     /// <c>RegionActiveAwareBehavior</c> de Prism con <c>IActiveAware</c>);</item>
-    /// <item>la limpieza del DataContext al quitar la vista (<see cref="LimpiezaVistas"/>, lo mismo que
-    /// <see cref="LimpiarVistaAlQuitarRegionBehavior"/>, por las fugas de memoria);</item>
+    /// <item>la limpieza del DataContext al quitar la vista (<see cref="LimpiezaVistas"/>, lo mismo que hacía el
+    /// <c>LimpiarVistaAlQuitarRegionBehavior</c> en las regiones de Prism, por las fugas de memoria);</item>
     /// <item>el gestor de regiones colgado de la vista (<see cref="GestorRegiones.GestorProperty"/>), para que las regiones
     /// que declare dentro se registren en el suyo, como <c>RegionManager.RegionManagerProperty</c>.</item>
     /// </list>

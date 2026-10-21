@@ -4,14 +4,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Ioc;
-using Prism.Regions;
-using Prism.Regions.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 
 namespace PedidoVentaTests
@@ -21,25 +19,56 @@ namespace PedidoVentaTests
     /// cualquier pantalla) es una pestaña nueva con su propio ámbito de regiones; la lista va en ListaPedidosRegion de ese
     /// ámbito y, al elegir un pedido, se vacía DetallePedidoRegion y se navega a un detalle nuevo. «Modificar con
     /// plantilla» abre la plantilla en MainRegion. Escritas contra el IRegionManager de Prism ANTES de migrar (06a5ea04).
-    /// Al pasar a IServicioNavegacion e IConAmbitoNavegacion las comprobaciones son las mismas, sobre los mismos fakes de
-    /// Prism: solo cambia que a los ViewModels y a la vista se les da un ServicioNavegacionPrism sobre ellos.
+    /// Desde el tramo 4 de 4C.4 las comprobaciones son las mismas, pero con la región propia de verdad (un
+    /// <see cref="GestorRegiones"/> con MainRegion y <see cref="ServicioNavegacionNesto"/>, como en Nesto) en lugar de fakes
+    /// de Prism, y la vista real declara sus regiones en XAML con <c>nav:Regiones.Nombre</c>.
     /// </summary>
     [TestClass]
     public class MaestroDetallePedidoVentaTests
     {
-        // Las vistas reales declaran sus regiones en XAML y Prism, al leerlo, pide al ContainerLocator el comportamiento
-        // que las crea. Se pone uno de mentira solo durante la prueba (las regiones no llegan a crearse: se usan las de los fakes).
+        // Las vistas de destino de la navegación, con el nombre con que se registran (se buscan por el nombre del tipo)
+        private sealed class DetallePedidoView : Border, IReceptorNavegacion
+        {
+            public ParametrosNavegacion Recibidos { get; private set; }
+            public void AlLlegar(ParametrosNavegacion parametros) => Recibidos = parametros;
+        }
+
+        private sealed class PlantillaVentaView : Border, IReceptorNavegacion
+        {
+            public ParametrosNavegacion Recibidos { get; private set; }
+            public void AlLlegar(ParametrosNavegacion parametros) => Recibidos = parametros;
+        }
+
+        private sealed class Shell
+        {
+            public TabControl Pestanas { get; } = new TabControl();
+            public GestorRegiones Gestor { get; } = new GestorRegiones();
+            public ServicioNavegacionNesto Navegacion { get; set; }
+        }
+
+        private static object CrearVista(string nombre) => nombre switch
+        {
+            nameof(DetallePedidoView) => new DetallePedidoView(),
+            nameof(PlantillaVentaView) => new PlantillaVentaView(),
+            _ => throw new InvalidOperationException($"{nombre} no está registrada")
+        };
+
+        // Como RegionesDelShell en Nesto: MainRegion (el TabControl) en el gestor del shell y la navegación sobre él
+        private static Shell CrearShell()
+        {
+            var shell = new Shell();
+            _ = shell.Gestor.Registrar("MainRegion", shell.Pestanas);
+            shell.Navegacion = new ServicioNavegacionNesto(shell.Gestor, CrearVista,
+                (region, destino, error) => throw new AssertFailedException($"Falló la navegación a {destino} en {region}", error));
+            return shell;
+        }
+
         private static void EnSta(Action accion)
         {
             Exception error = null;
             var hilo = new Thread(() =>
             {
-                var contenedor = A.Fake<IContainerExtension>();
-                A.CallTo(() => contenedor.Resolve(typeof(DelayedRegionCreationBehavior)))
-                    .ReturnsLazily(() => new DelayedRegionCreationBehavior(new RegionAdapterMappings()));
-                ContainerLocator.SetContainerExtension(() => contenedor);
                 try { accion(); } catch (Exception ex) { error = ex; }
-                finally { ContainerLocator.ResetContainer(); }
             });
             hilo.SetApartmentState(ApartmentState.STA);
             hilo.Start();
@@ -50,74 +79,69 @@ namespace PedidoVentaTests
             }
         }
 
-        private static IRegion ConfigurarRegion(IRegionManager regionManager, string nombre, params object[] vistas)
-        {
-            var region = A.Fake<IRegion>();
-            var coleccion = A.Fake<IViewsCollection>();
-            A.CallTo(() => coleccion.GetEnumerator()).ReturnsLazily(() => new List<object>(vistas).GetEnumerator());
-            A.CallTo(() => region.Views).Returns(coleccion);
-            A.CallTo(() => region.GetView(A<string>._)).Returns(null);
-            A.CallTo(() => regionManager.Regions.ContainsRegionWithName(nombre)).Returns(true);
-            A.CallTo(() => regionManager.Regions[nombre]).Returns(region);
-            return region;
-        }
-
-        private static ListaPedidosVentaViewModel CrearLista(IRegionManager regionManager)
+        private static ListaPedidosVentaViewModel CrearLista(IServicioNavegacion navegacion)
         {
             return new ListaPedidosVentaViewModel(A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioDialogos>(), new ServicioNavegacionPrism(regionManager));
+                A.Fake<IServicioDialogos>(), navegacion);
         }
 
         [TestMethod]
         public void Lista_AlElegirUnPedido_QuitaLosDetallesAnterioresYNavegaAUnoNuevoConElResumen()
         {
-            var ambito = A.Fake<IRegionManager>();
-            var anterior = new object();
-            IRegion detalle = ConfigurarRegion(ambito, "DetallePedidoRegion", anterior);
-            NavigationParameters recibidos = null;
-            A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
-            var vm = CrearLista(A.Fake<IRegionManager>());
-            vm.NavegacionAmbito = new ServicioNavegacionPrism(ambito);
-            var resumen = new ResumenPedido { empresa = "1", numero = 12345, cliente = "15191" };
+            EnSta(() =>
+            {
+                var ambito = new GestorRegiones();
+                RegionNesto detalle = ambito.Registrar("DetallePedidoRegion", new ContentControl());
+                var anterior = new DetallePedidoView { DataContext = new object() };
+                detalle.Anadir(anterior);
+                var vm = CrearLista(A.Fake<IServicioNavegacion>());
+                vm.NavegacionAmbito = new ServicioNavegacionNesto(ambito, CrearVista);
+                var resumen = new ResumenPedido { empresa = "1", numero = 12345, cliente = "15191" };
 
-            vm.ListaPedidos.ElementoSeleccionado = resumen;
+                vm.ListaPedidos.ElementoSeleccionado = resumen;
 
-            A.CallTo(() => detalle.Remove(anterior)).MustHaveHappenedOnceExactly()
-                .Then(A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", A<NavigationParameters>._)).MustHaveHappenedOnceExactly());
-            Assert.IsNotNull(recibidos);
-            Assert.AreEqual(1, recibidos.Count);
-            Assert.AreSame(resumen, recibidos["resumenPedidoParameter"]);
+                var nuevo = (DetallePedidoView)detalle.Vistas.Single();
+                Assert.AreNotSame(anterior, nuevo, "El detalle anterior sale de la región (no se acumula)");
+                Assert.IsNull(anterior.DataContext, "Y se limpia su DataContext (fugas de memoria)");
+                Assert.IsTrue(detalle.EsActiva(nuevo));
+                Assert.IsNotNull(nuevo.Recibidos);
+                Assert.AreEqual(1, nuevo.Recibidos.Count);
+                Assert.AreSame(resumen, nuevo.Recibidos.GetValue<object>("resumenPedidoParameter"));
+            });
         }
 
         [TestMethod]
         public void Lista_ModificarConPlantilla_AbreLaPlantillaEnMainRegionConElPedido()
         {
-            var regionManager = A.Fake<IRegionManager>();
-            NavigationParameters recibidos = null;
-            A.CallTo(() => regionManager.RequestNavigate("MainRegion", "PlantillaVentaView", A<NavigationParameters>._))
-                .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
-            var vm = CrearLista(regionManager);
+            EnSta(() =>
+            {
+                Shell shell = CrearShell();
+                var vm = CrearLista(shell.Navegacion);
 
-            vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "3", numero = 98765 });
+                vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "3", numero = 98765 });
 
-            Assert.IsNotNull(recibidos);
-            Assert.AreEqual(2, recibidos.Count);
-            Assert.AreEqual(98765, recibidos["pedidoAModificar"]);
-            Assert.AreEqual("3", recibidos["empresaPedido"]);
+                var plantilla = (PlantillaVentaView)shell.Pestanas.SelectedItem;
+                Assert.IsNotNull(plantilla.Recibidos);
+                Assert.AreEqual(2, plantilla.Recibidos.Count);
+                Assert.AreEqual(98765, plantilla.Recibidos.GetValue<object>("pedidoAModificar"));
+                Assert.AreEqual("3", plantilla.Recibidos.GetValue<object>("empresaPedido"));
+            });
         }
 
         [TestMethod]
         public void Lista_ModificarConPlantilla_SinPedidoONuevo_NoNavega()
         {
-            var regionManager = A.Fake<IRegionManager>();
-            var vm = CrearLista(regionManager);
+            EnSta(() =>
+            {
+                Shell shell = CrearShell();
+                var vm = CrearLista(shell.Navegacion);
 
-            vm.ModificarConPlantillaCommand.Execute(null);
-            vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "1", numero = 0 });
-            vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "1", numero = 5, esNuevo = true });
+                vm.ModificarConPlantillaCommand.Execute(null);
+                vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "1", numero = 0 });
+                vm.ModificarConPlantillaCommand.Execute(new ResumenPedido { empresa = "1", numero = 5, esNuevo = true });
 
-            A.CallTo(regionManager).Where(c => c.Method.Name == "RequestNavigate").MustNotHaveHappened();
+                Assert.AreEqual(0, shell.Pestanas.Items.Count);
+            });
         }
 
         [TestMethod]
@@ -125,20 +149,26 @@ namespace PedidoVentaTests
         {
             EnSta(() =>
             {
-                var regionManager = A.Fake<IRegionManager>();
-                IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
-                var ambito = A.Fake<IRegionManager>();
+                Shell shell = CrearShell();
                 var contenedor = A.Fake<IResolutorNesto>();
-                var vm = new PedidoVentaViewModel(new ServicioNavegacionPrism(regionManager), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
-                var vista = new PedidoVentaView(contenedor, vm);
-                A.CallTo(() => contenedor.Resolver<PedidoVentaView>()).Returns(vista);
-                A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
+                var vm = new PedidoVentaViewModel(shell.Navegacion, A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
+                var vistas = new List<PedidoVentaView>();
+                A.CallTo(() => contenedor.Resolver<PedidoVentaView>()).ReturnsLazily(() =>
+                {
+                    var nueva = new PedidoVentaView(contenedor, vm);
+                    vistas.Add(nueva);
+                    return nueva;
+                });
 
                 vm.cmdAbrirModulo.Execute(null);
+                vm.cmdAbrirModulo.Execute(null);
 
-                A.CallTo(() => principal.Add(vista, null, true)).MustHaveHappenedOnceExactly()
-                    .Then(A.CallTo(() => principal.Activate(vista)).MustHaveHappenedOnceExactly());
-                ComprobarQueNavegaEnElAmbito(vista.NavegacionAmbito, ambito);
+                CollectionAssert.AreEqual(vistas, shell.Pestanas.Items.Cast<object>().ToList(), "Cada apertura es una pestaña nueva");
+                Assert.AreSame(vistas[1], shell.Pestanas.SelectedItem);
+                ComprobarQueNavegaEnSuAmbito(shell, vistas[0]);
+                ComprobarQueNavegaEnSuAmbito(shell, vistas[1]);
+                Assert.AreNotSame(((ServicioNavegacionNesto)vistas[0].NavegacionAmbito).Gestor,
+                    ((ServicioNavegacionNesto)vistas[1].NavegacionAmbito).Gestor, "Cada pestaña con sus regiones");
             });
         }
 
@@ -147,23 +177,19 @@ namespace PedidoVentaTests
         {
             EnSta(() =>
             {
-                var regionManager = A.Fake<IRegionManager>();
-                IRegion principal = ConfigurarRegion(regionManager, "MainRegion");
-                var ambito = A.Fake<IRegionManager>();
+                Shell shell = CrearShell();
                 var contenedor = A.Fake<IResolutorNesto>();
                 var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor);
                 var vista = new PedidoVentaView(contenedor, vm);
                 // Nesto#490 (4C.5, tramo 3a): CargarPedido saca la vista y la navegación del resolutor propio, no del IUnityContainer
                 var resolutor = A.Fake<IResolutorNesto>();
                 A.CallTo(() => resolutor.Resolver<PedidoVentaView>()).Returns(vista);
-                A.CallTo(() => resolutor.Resolver<IServicioNavegacion>()).Returns(new ServicioNavegacionPrism(regionManager));
-                A.CallTo(() => principal.Add(vista, null, true)).Returns(ambito);
+                A.CallTo(() => resolutor.Resolver<IServicioNavegacion>()).Returns(shell.Navegacion);
 
                 PedidoVentaViewModel.CargarPedido("3", 98765, resolutor);
 
-                A.CallTo(() => principal.Add(vista, null, true)).MustHaveHappenedOnceExactly()
-                    .Then(A.CallTo(() => principal.Activate(vista)).MustHaveHappenedOnceExactly());
-                ComprobarQueNavegaEnElAmbito(vista.NavegacionAmbito, ambito);
+                Assert.AreSame(vista, shell.Pestanas.SelectedItem);
+                ComprobarQueNavegaEnSuAmbito(shell, vista);
                 Assert.AreEqual("3", vm.empresaInicial);
                 Assert.AreEqual(98765, vm.pedidoInicial);
             });
@@ -174,14 +200,9 @@ namespace PedidoVentaTests
         {
             EnSta(() =>
             {
-                var ambito = A.Fake<IRegionManager>();
-                IRegion regionLista = ConfigurarRegion(ambito, "ListaPedidosRegion");
-                ConfigurarRegion(ambito, "DetallePedidoRegion");
-                NavigationParameters recibidos = null;
-                A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", A<NavigationParameters>._))
-                    .Invokes((string _, string _, NavigationParameters p) => recibidos = p);
+                Shell shell = CrearShell();
                 var contenedor = A.Fake<IResolutorNesto>();
-                var listaVm = CrearLista(A.Fake<IRegionManager>());
+                var listaVm = CrearLista(A.Fake<IServicioNavegacion>());
                 var lista = new ListaPedidosVenta(listaVm);
                 A.CallTo(() => contenedor.Resolver<ListaPedidosVenta>()).Returns(lista);
                 var vm = new PedidoVentaViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(), contenedor)
@@ -190,33 +211,44 @@ namespace PedidoVentaTests
                     pedidoInicial = 98765
                 };
                 var vista = new PedidoVentaView(contenedor, vm);
-                vista.NavegacionAmbito = new ServicioNavegacionPrism(ambito);
+                var ambito = (ServicioNavegacionNesto)shell.Navegacion.AbrirVistaConAmbito("MainRegion", vista);
 
+                // Las regiones del XAML (ContentControl con nav:Regiones.Nombre) todavía no han recibido su Loaded: se
+                // registran al buscarlas, como con Prism
                 vista.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, vista));
                 vista.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, vista));
 
-                A.CallTo(() => regionLista.Add(lista, "ListaPedidosVenta")).MustHaveHappenedOnceExactly();
-                A.CallTo(() => regionLista.Activate(lista)).MustHaveHappenedOnceExactly();
-                Assert.IsNotNull(listaVm.NavegacionAmbito);
+                RegionNesto regionLista = ambito.Gestor.Region("ListaPedidosRegion");
+                Assert.IsNotNull(regionLista, "ListaPedidosRegion es del ámbito de la pestaña");
+                CollectionAssert.AreEqual(new object[] { lista }, regionLista.Vistas.ToList(), "La lista entra una sola vez");
+                Assert.IsTrue(regionLista.EsActiva(lista));
+                Assert.IsFalse(shell.Gestor.Contiene("ListaPedidosRegion"), "Las regiones de la pestaña no se ven desde el shell");
+                Assert.AreSame(ambito, listaVm.NavegacionAmbito);
                 var elegido = (ResumenPedido)listaVm.ListaPedidos.ElementoSeleccionado;
                 Assert.AreEqual("3", elegido.empresa);
                 Assert.AreEqual(98765, elegido.numero);
                 // Y el detalle de esta pestaña carga ese pedido
-                Assert.IsNotNull(recibidos);
-                Assert.AreSame(elegido, recibidos["resumenPedidoParameter"]);
+                var detalle = (DetallePedidoView)ambito.Gestor.Region("DetallePedidoRegion").Vistas.Single();
+                Assert.IsNotNull(detalle.Recibidos);
+                Assert.AreSame(elegido, detalle.Recibidos.GetValue<object>("resumenPedidoParameter"));
             });
         }
 
-        // La navegación que recibe la vista es la de SU ámbito: lo que navega va al IRegionManager con ámbito
-        private static void ComprobarQueNavegaEnElAmbito(IServicioNavegacion navegacion, IRegionManager ambito)
+        // La navegación que recibe la vista es la de SU ámbito: un gestor de regiones propio, colgado de la vista, y distinto
+        // del del shell. Lo que navega va a las regiones de esa pestaña.
+        private static void ComprobarQueNavegaEnSuAmbito(Shell shell, PedidoVentaView vista)
         {
+            var navegacion = vista.NavegacionAmbito as ServicioNavegacionNesto;
             Assert.IsNotNull(navegacion);
-            navegacion.RequestNavigate("DetallePedidoRegion", "DetallePedidoView");
-            A.CallTo(() => ambito.RequestNavigate("DetallePedidoRegion", "DetallePedidoView")).MustHaveHappenedOnceExactly();
+            Assert.AreNotSame(shell.Gestor, navegacion.Gestor);
+            Assert.AreSame(navegacion.Gestor, GestorRegiones.GetGestor(vista));
+            navegacion.RequestNavigate("DetallePedidoRegion", nameof(DetallePedidoView));
+            Assert.IsInstanceOfType(navegacion.Gestor.Region("DetallePedidoRegion").Vistas.Single(), typeof(DetallePedidoView));
+            Assert.IsNull(shell.Gestor.Region("DetallePedidoRegion"));
         }
 
         [TestMethod]
-        public void MaestroDetalle_NoUsaElRegionManagerDePrism()
+        public void MaestroDetalle_NoUsaLasRegionesDePrism()
         {
             // Nesto#490 (4C.4, 7.º tramo): ni el ViewModel del módulo, ni la lista, ni las dos vistas tienen ya nada de Prism.Regions
             foreach (var tipo in new[] { typeof(PedidoVentaViewModel), typeof(ListaPedidosVentaViewModel), typeof(PedidoVentaView), typeof(ListaPedidosVenta) })
@@ -224,7 +256,8 @@ namespace PedidoVentaTests
                 var conPrism = tipo.GetProperties().Select(p => p.PropertyType)
                     .Concat(tipo.GetConstructors().SelectMany(c => c.GetParameters()).Select(p => p.ParameterType))
                     .Concat(tipo.GetMethods().Where(m => m.DeclaringType == tipo).SelectMany(m => m.GetParameters()).Select(p => p.ParameterType))
-                    .Where(t => t.Namespace == "Prism.Regions");
+                    .Concat(tipo.GetInterfaces())
+                    .Where(t => t.Namespace?.StartsWith("Prism.Regions") ?? false);
                 Assert.IsFalse(conPrism.Any(), $"{tipo.Name} usa {string.Join(", ", conPrism.Select(t => t.Name))}");
             }
             Assert.IsTrue(typeof(IConAmbitoNavegacion).IsAssignableFrom(typeof(PedidoVentaView)));

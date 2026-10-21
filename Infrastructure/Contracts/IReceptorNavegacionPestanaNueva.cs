@@ -6,10 +6,9 @@ namespace Nesto.Infrastructure.Contracts
     /// Equivale a un <c>Prism.Regions.INavigationAware</c> con <c>IsNavigationTarget = false</c> y
     /// <c>OnNavigatedFrom</c> vacío.
     ///
-    /// Lo implementa el ViewModel (el DataContext de la vista) o la propia vista. Mientras Nesto siga sobre las
-    /// regiones de Prism, lo hace cumplir <c>Nesto.Infrastructure.Navegacion.CargadorVistasNavegacion</c> (el
-    /// cargador de vistas de la navegación: nunca reutiliza una vista así) y la navegación la entrega, como a
-    /// cualquier receptor, <c>ReceptorNavegacionRegionBehavior</c> a la vista recién abierta (la activa).
+    /// Lo implementa el ViewModel (el DataContext de la vista) o la propia vista. Lo hace cumplir la región propia
+    /// (<c>Nesto.Infrastructure.Navegacion.ServicioNavegacionNesto</c>: nunca reutiliza una vista así) y la navegación
+    /// la recibe, como cualquier receptor, la vista recién abierta (la activa).
     /// </summary>
     public interface IReceptorNavegacionPestanaNueva : IReceptorNavegacion
     {

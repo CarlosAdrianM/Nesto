@@ -1,7 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -118,18 +117,6 @@ namespace Nesto.Infrastructure.Tests
                 Assert.IsNull(ReceptorNavegacion.Entregar(new object[] { destino }, new object[] { destino }, "ExtractoClienteView", null));
                 Assert.IsNull(ReceptorNavegacion.Entregar(null, null, null, null));
             });
-        }
-
-        [TestMethod]
-        public void DesdeParametrosPrism_ConservaClavesYValores()
-        {
-            var prism = new NavigationParameters { { "cliente", "15191" }, { "numero", 5 } };
-
-            ParametrosNavegacion parametros = ServicioNavegacionPrism.DesdeParametrosPrism(prism);
-
-            Assert.AreEqual("15191", parametros.GetValue<string>("cliente"));
-            Assert.AreEqual(5, parametros.GetValue<int>("numero"));
-            Assert.AreEqual(0, ServicioNavegacionPrism.DesdeParametrosPrism(null).Count);
         }
     }
 }
