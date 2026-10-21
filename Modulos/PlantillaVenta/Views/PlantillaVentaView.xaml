@@ -589,8 +589,21 @@
                                                                    Visibility="{Binding TieneFoto, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                                         </Grid>
                                                     </Border>
-                                                    <DockPanel Grid.Column="1" LastChildFill="True">
-                                                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
+                                                    <!-- Novedad 714: los botones van en la misma fila que el motivo (a la derecha). En una fila
+                                                         aparte, con el nombre en dos líneas no cabía en los 84 de alto y el motivo quedaba
+                                                         cortado por la mitad detrás de los botones. -->
+                                                    <Grid Grid.Column="1" ClipToBounds="True">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock Grid.Row="0" Text="{Binding NombreMostrar}" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="32"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Grid.Row="1" Text="{Binding ProductoYFamilia}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                                                        <DockPanel Grid.Row="2" VerticalAlignment="Bottom" LastChildFill="True">
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="4,0,0,0">
                                                             <Button Content="✓" MinWidth="24" Padding="3,0" Margin="0,0,3,0"
                                                                     Command="{Binding DataContext.AnadirSugerenciaProductoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                                     CommandParameter="{Binding}"
@@ -606,17 +619,12 @@
                                                                 <TextBlock Text="🚫" FontFamily="Segoe UI Emoji"/>
                                                             </Button>
                                                         </StackPanel>
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding NombreMostrar}" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="32"
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding ProductoYFamilia}" FontSize="11" TextTrimming="CharacterEllipsis"
-                                                                       Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
-                                                            <TextBlock FontSize="11" TextTrimming="CharacterEllipsis">
-                                                                <Run Text="{Binding Icono, Mode=OneWay}" FontFamily="Segoe UI Emoji"/>
-                                                                <Run Text="{Binding Texto, Mode=OneWay}"/>
-                                                            </TextBlock>
-                                                        </StackPanel>
-                                                    </DockPanel>
+                                                        <TextBlock FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                                            <Run Text="{Binding Icono, Mode=OneWay}" FontFamily="Segoe UI Emoji"/>
+                                                            <Run Text="{Binding Texto, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        </DockPanel>
+                                                    </Grid>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
