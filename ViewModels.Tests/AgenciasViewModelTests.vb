@@ -1969,6 +1969,47 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
     End Function
 
+    ' NestoAPI#686 (pedido 928220): el primer envío de un contado con «Mantener junto» salió con reembolso 0 en silencio.
+
+    <TestMethod()>
+    Public Async Function ContadoMantenerJunto_SinReembolso_PreguntaConElTextoDelServidor() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 0D
+        Const TEXTO As String = "Este pedido es al contado y lleva «Mantener junto»: este envío sale sin reembolso"
+        A.CallTo(Function() servicio.AvisoContadoMantenerJunto("1", 12345)).Returns(Task.FromResult(TEXTO))
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
+
+        Dim seguir As Boolean = Await viewModel.ConfirmarContadoMantenerJuntoAsync()
+
+        Assert.IsFalse(seguir, "el usuario dice que no")
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Contado con «Mantener junto»", A(Of String).That.Contains(TEXTO))).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ContadoMantenerJunto_ConReembolso_NiSeConsulta() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 325.79D
+
+        Assert.IsTrue(Await viewModel.ConfirmarContadoMantenerJuntoAsync())
+        A.CallTo(Function() servicio.AvisoContadoMantenerJunto(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ContadoMantenerJunto_SinAvisoOSiFallaLaConsulta_SigueSinPreguntar() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 0D
+        A.CallTo(Function() servicio.AvisoContadoMantenerJunto("1", 12345)).Returns(Task.FromResult(Of String)(Nothing))
+        Assert.IsTrue(Await viewModel.ConfirmarContadoMantenerJuntoAsync())
+
+        A.CallTo(Function() servicio.AvisoContadoMantenerJunto("1", 12345)).Throws(New Exception("sin red"))
+        Assert.IsTrue(Await viewModel.ConfirmarContadoMantenerJuntoAsync())
+
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
     Private Function PedidoParaPrepagos() As PedidoAgenciaModel
         Dim cliente = New Clientes() With {.Empresa = "1", .Nº_Cliente = "1", .Contacto = "0", .Nombre = "CLIENTE", .Dirección = "C/ Uno, 1",
             .Población = "Algete", .Provincia = "Madrid", .CodPostal = "28110", .Teléfono = "911234567"}

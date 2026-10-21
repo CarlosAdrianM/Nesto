@@ -1229,6 +1229,33 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#686: GET PedidosVenta/AvisoReembolso, el aviso cuando el pedido es al contado con «Mantener junto» y le quedan
+    ''' líneas pendientes (el envío sale sin reembolso). Más ligero que la propuesta entera, porque se pregunta en cada envío
+    ''' sin reembolso. Nothing si no hay aviso.
+    ''' </summary>
+    Public Async Function AvisoContadoMantenerJunto(empresa As String, pedido As Integer) As Task(Of String) Implements IAgenciaService.AvisoContadoMantenerJunto
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/AvisoReembolso?empresa={empresa.Trim}&pedido={pedido}")
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se ha podido comprobar el reembolso del pedido ({CInt(response.StatusCode)})")
+            End If
+            Return TextoAvisoReembolso(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#686: el cuerpo de GET PedidosVenta/AvisoReembolso (una cadena JSON); Nothing si viene vacía.</summary>
+    Friend Shared Function TextoAvisoReembolso(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Dim texto As String = JsonConvert.DeserializeObject(Of String)(cuerpo)
+        Return If(String.IsNullOrWhiteSpace(texto), Nothing, texto)
+    End Function
+
     ''' <summary>NestoAPI#679: el texto del aviso «EnlacePagoPendiente» de la propuesta (JSON); Nothing si no lo trae.</summary>
     Friend Shared Function TextoAvisoEnlacePagoPendiente(cuerpo As String) As String
         If String.IsNullOrWhiteSpace(cuerpo) Then

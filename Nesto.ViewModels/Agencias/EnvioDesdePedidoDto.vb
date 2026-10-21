@@ -107,6 +107,8 @@ Public NotInheritable Class ContratoEnvioDesdePedido
     Public Const AVISO_DIMENSIONES As String = "Dimensiones"
     ''' <summary>NestoAPI#679: el pedido tiene enlaces de pago sin pagar y sale contra reembolso (Confirmar).</summary>
     Public Const AVISO_ENLACE_PAGO_PENDIENTE As String = "EnlacePagoPendiente"
+    ''' <summary>NestoAPI#686: al contado con «Mantener junto» y líneas pendientes, el envío sale sin reembolso (Confirmar).</summary>
+    Public Const AVISO_CONTADO_MANTENER_JUNTO As String = "ContadoMantenerJunto"
     Public Const TIPO_CONFIRMAR As String = "Confirmar"
     Public Const TIPO_ELEGIR As String = "Elegir"
     Public Const TIPO_DATO As String = "Dato"

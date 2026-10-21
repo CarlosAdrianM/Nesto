@@ -760,6 +760,30 @@ Public Class AgenciasViewModel
             $"{texto}{vbCrLf}{vbCrLf}¿Desea continuar?")
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#686 (pedido 928220): en el camino de siempre, si el envío sale SIN reembolso porque el pedido es al contado con
+    ''' «Mantener junto» y aún le quedan líneas pendientes, se pregunta (antes salía en silencio y lo de ese envío se quedaba
+    ''' sin cobrar). Lo dice GET PedidosVenta/AvisoReembolso, que además lo deja en ELMAH. Best-effort: si no se puede leer,
+    ''' se sigue como hasta ahora y queda en ELMAH. False = el usuario no quiere seguir.
+    ''' </summary>
+    Friend Async Function ConfirmarContadoMantenerJuntoAsync() As Task(Of Boolean)
+        If pedidoSeleccionado Is Nothing OrElse reembolso > 0D Then
+            Return True
+        End If
+        Dim texto As String
+        Try
+            texto = Await _servicio.AvisoContadoMantenerJunto(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ConfirmarContadoMantenerJunto")
+            Return True
+        End Try
+        If String.IsNullOrWhiteSpace(texto) Then
+            Return True
+        End If
+        Return _dialogService.ShowConfirmationAnswer(TituloPendienteEnvio(ContratoEnvioDesdePedido.AVISO_CONTADO_MANTENER_JUNTO),
+            $"{texto}{vbCrLf}{vbCrLf}¿Desea continuar?")
+    End Function
+
     ''' <summary>NestoAPI#569 (y NestoAPI#595, cuando lo pide el servidor): ¿se descuentan los prepagos del reembolso?</summary>
     Private Function PreguntarDescontarPrepagos() As Boolean
         Dim quedaria As Decimal = ReembolsoDescontandoPrepagos(reembolso, prepagosPendientes)
@@ -2434,6 +2458,10 @@ Public Class AgenciasViewModel
             If Not Await ConfirmarEnlacesPagoPendientesAsync() Then
                 Throw New Exception("Cancelado por el usuario")
             End If
+            ' NestoAPI#686 (pedido 928220): al contado con «Mantener junto» y líneas pendientes sale sin reembolso: se pregunta
+            If Not Await ConfirmarContadoMantenerJuntoAsync() Then
+                Throw New Exception("Cancelado por el usuario")
+            End If
             ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
             ' para la zona del destino REAL. Puede corregir agenciaSeleccionada (a la más barata que sí
             ' cubra) o lanzar si NINGUNA agencia cubre la zona (lo captura el llamante y avisa).
@@ -2581,6 +2609,8 @@ Public Class AgenciasViewModel
                 Return "Envío a Nueva Visión"
             Case ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE
                 Return "Enlace de pago pendiente"
+            Case ContratoEnvioDesdePedido.AVISO_CONTADO_MANTENER_JUNTO
+                Return "Contado con «Mantener junto»"
             Case Else
                 Return "Envío"
         End Select

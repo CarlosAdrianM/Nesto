@@ -50,6 +50,15 @@ Public Class AgenciaServiceEnvioDesdePedidoTests
     End Sub
 
     <TestMethod()>
+    Public Sub AvisoReembolso_LaCadenaDelServidor_YVaciaEsNothing()
+        ' NestoAPI#686: GET api/PedidosVenta/AvisoReembolso devuelve una cadena JSON (vacía si no hay aviso).
+        Assert.AreEqual("Este pedido es al contado y lleva «Mantener junto»", AgenciaService.TextoAvisoReembolso("""Este pedido es al contado y lleva «Mantener junto»"""))
+        Assert.IsNull(AgenciaService.TextoAvisoReembolso(""""""))
+        Assert.IsNull(AgenciaService.TextoAvisoReembolso(""))
+        Assert.AreEqual("ContadoMantenerJunto", ContratoEnvioDesdePedido.AVISO_CONTADO_MANTENER_JUNTO, "CodigosAvisoPropuestaEnvio.CONTADO_MANTENER_JUNTO")
+    End Sub
+
+    <TestMethod()>
     Public Sub Peticion_SinDecidirPrepagos_ViajaComoNull()
         Dim json As String = JsonConvert.SerializeObject(New CrearEnvioDesdePedidoDto With {.Empresa = "1", .Pedido = 927700, .Bultos = 2, .Peso = 3.5D})
 

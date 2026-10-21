@@ -98,6 +98,9 @@ Public Interface IAgenciaService
     ' enlaces de pago sin pagar y sale contra reembolso. Nothing si no hay aviso. Lo cobrado con enlaces ya va dentro de
     ' ImportePrepagosPendientes.
     Function AvisoEnlacePagoPendiente(empresa As String, pedido As Integer) As Task(Of String)
+    ' NestoAPI#686: el aviso de la propuesta cuando el pedido es al contado con «Mantener junto» y le quedan líneas
+    ' pendientes (el envío sale sin reembolso). Nothing si no hay aviso.
+    Function AvisoContadoMantenerJunto(empresa As String, pedido As Integer) As Task(Of String)
 
     ' Nesto#359: envía un correo (vía /api/Correos/Enviar) con el PDF de la factura del
     ' pedido adjunto. Lo usa AgenciaCanteras.LlamadaWebService para notificar recogidas a
