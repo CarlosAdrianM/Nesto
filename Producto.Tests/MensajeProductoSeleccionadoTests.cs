@@ -6,7 +6,6 @@ using Nesto.Infrastructure.Events;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 

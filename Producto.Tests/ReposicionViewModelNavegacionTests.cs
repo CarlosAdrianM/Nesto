@@ -13,7 +13,7 @@ namespace Producto.Tests
         [TestMethod]
         public void NoDependeDeLaNavegacionDePrism()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ReposicionViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(ReposicionViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
         }
     }
 }

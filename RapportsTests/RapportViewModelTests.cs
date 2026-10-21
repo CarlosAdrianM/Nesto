@@ -4,7 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Rapports;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System.Threading.Tasks;
 
 namespace RapportsTests

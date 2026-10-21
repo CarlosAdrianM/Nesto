@@ -26,7 +26,7 @@ namespace CajasTests
         public void RecibenLaNavegacionSinPrism(Type viewModel)
         {
             Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(viewModel));
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(viewModel));
+            Assert.IsFalse(System.Linq.Enumerable.Any(viewModel.GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
         }
         // Nesto#490 (4C.4, 6.º tramo): Cajas y Bancos heredan de ViewModelBase, que ya no implementa INavigationAware
         // (IsNavigationTarget = false) sino IReceptorNavegacionPestanaNueva: siguen abriendo una pestaña nueva cada vez.
@@ -36,7 +36,7 @@ namespace CajasTests
         public void AbrenPestanaNuevaSinPrism(Type viewModel)
         {
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(viewModel));
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(viewModel));
+            Assert.IsFalse(System.Linq.Enumerable.Any(viewModel.GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
         }
 
         [TestMethod]

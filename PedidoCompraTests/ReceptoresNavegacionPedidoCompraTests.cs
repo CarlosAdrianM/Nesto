@@ -32,7 +32,7 @@ namespace PedidoCompraTests
         [TestMethod]
         public void DetallePedidoCompra_NoDependeDeLaNavegacionDePrismYAbreVistaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(DetallePedidoCompraViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(DetallePedidoCompraViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(DetallePedidoCompraViewModel)));
         }
 
@@ -40,7 +40,7 @@ namespace PedidoCompraTests
         public void PedidoCompra_NoDependeDeLaNavegacionDePrism()
         {
             // Nesto#490 (4C.4, 6.º tramo): implementaba INavigationAware vacío y nadie navega a PedidoCompraView
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(PedidoCompraViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(PedidoCompraViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsFalse(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(PedidoCompraViewModel)));
         }
 

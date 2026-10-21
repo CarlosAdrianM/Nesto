@@ -8,7 +8,6 @@ using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using ControlesUsuario.Dialogs;
 
 namespace PlantillaVentaTests

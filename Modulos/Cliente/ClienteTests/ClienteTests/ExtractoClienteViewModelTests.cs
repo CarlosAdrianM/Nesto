@@ -223,9 +223,9 @@ namespace ClienteTests
         public void Navegacion_SeRecibeSinPrism_YEl347Tambien()
         {
             // Nesto#490 (4C.4): sin INavigationAware, Prism reutiliza la pestaña abierta (lo que hacía IsNavigationTarget = true)
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ExtractoClienteViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(ExtractoClienteViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(Modelo347ViewModel)));
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(Modelo347ViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(Modelo347ViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
         }
 
         [TestMethod]

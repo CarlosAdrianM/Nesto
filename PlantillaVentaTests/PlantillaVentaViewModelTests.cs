@@ -7,7 +7,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System;
 using System.Collections.Generic;
 using System.Linq;

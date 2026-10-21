@@ -46,7 +46,7 @@ namespace PlantillaVentaTests
         [TestMethod]
         public void Plantilla_NoDependeDeLaNavegacionDePrismYAbrePestanaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(PlantillaVentaViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(PlantillaVentaViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(PlantillaVentaViewModel)));
             Assert.IsTrue(typeof(ITabCloseConfirmation).IsAssignableFrom(typeof(PlantillaVentaViewModel)));
         }

@@ -28,7 +28,7 @@ namespace Producto.Tests
         [TestMethod]
         public void Videos_NoDependeDeLaNavegacionDePrismYAbrePestanaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(VideosViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(VideosViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(VideosViewModel)));
         }
 
@@ -48,7 +48,7 @@ namespace Producto.Tests
         [TestMethod]
         public void Producto_NoDependeDeLaNavegacionDePrismYAbrePestanaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ProductoViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(ProductoViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ProductoViewModel)));
         }
 

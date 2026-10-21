@@ -4,7 +4,6 @@ using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System.Windows.Controls;
 
 namespace Producto.Tests

@@ -18,7 +18,7 @@ namespace RapportsTests
         [TestMethod]
         public void Rapport_NoDependeDeLaNavegacionDePrismYAbreVistaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(RapportViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(RapportViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(RapportViewModel)));
         }
 
@@ -27,7 +27,7 @@ namespace RapportsTests
         {
             // Nesto#490 (4C.4, 6.º tramo): antes IsNavigationTarget = True. Hereda de ViewModelBasico, no de ViewModelBase
             // (que abre pestaña nueva), e implementa IReceptorNavegacion: Prism reutiliza la pestaña abierta.
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(ListaRapportsViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(ListaRapportsViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(ListaRapportsViewModel)));
             Assert.IsFalse(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(ListaRapportsViewModel)));
         }

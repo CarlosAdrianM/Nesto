@@ -29,7 +29,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearCliente_NoDependeDeLaNavegacionDePrismYReutilizaLaPestana()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(CrearClienteViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(CrearClienteViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacion).IsAssignableFrom(typeof(CrearClienteViewModel)));
             Assert.IsFalse(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(CrearClienteViewModel)));
         }

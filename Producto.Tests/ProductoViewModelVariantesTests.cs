@@ -5,7 +5,6 @@ using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using Nesto.Modules.Producto;
 using CommunityToolkit.Mvvm.Messaging;
-using Prism.Regions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;

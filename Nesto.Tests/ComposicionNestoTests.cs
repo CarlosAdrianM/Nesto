@@ -235,6 +235,64 @@ namespace Nesto.Tests
         }
 
         [TestMethod]
+        public void NingunTipoDeNesto_DependeDeLasRegionesDePrism()
+        {
+            // Nesto#490 (4C.4, tramo 4): ni vistas, ni ViewModels, ni la infraestructura heredan, implementan, guardan o
+            // reciben nada de Prism.Regions (IRegionManager, IActiveAware no es de Regions pero también se fue). Es lo que
+            // permite quitar Prism en el tramo 4 de 4C.5 sin tocar las regiones. Se miran el exe y todos los ensamblados de
+            // Nesto (los que referencian Infrastructure).
+            var ensamblados = new Dictionary<string, Assembly>();
+            var pendientes = new Queue<Assembly>(new[] { typeof(MenuBarView).Assembly });
+            while (pendientes.Count > 0)
+            {
+                Assembly actual = pendientes.Dequeue();
+                if (!ensamblados.TryAdd(actual.GetName().Name, actual))
+                {
+                    continue;
+                }
+                foreach (AssemblyName referencia in actual.GetReferencedAssemblies())
+                {
+                    if (ensamblados.ContainsKey(referencia.Name))
+                    {
+                        continue;
+                    }
+                    Assembly cargado;
+                    try { cargado = Assembly.Load(referencia); } catch { continue; }
+                    bool esDeNesto = cargado.GetName().Name == "Infrastructure"
+                        || cargado.GetReferencedAssemblies().Any(r => r.Name == "Infrastructure");
+                    if (esDeNesto)
+                    {
+                        pendientes.Enqueue(cargado);
+                    }
+                }
+            }
+            Assert.IsTrue(ensamblados.ContainsKey("Infrastructure") && ensamblados.Count > 10,
+                "Se tienen que mirar todos los ensamblados de Nesto: " + string.Join(", ", ensamblados.Keys));
+
+            static bool EsDeRegiones(Type t) => t != null && ((t.Namespace?.StartsWith("Prism.Regions") ?? false) || t.FullName == "Prism.IActiveAware");
+            const BindingFlags todo = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+            var conRegiones = new List<string>();
+            foreach (Assembly ensamblado in ensamblados.Values)
+            {
+                Type[] tipos;
+                try { tipos = ensamblado.GetTypes(); }
+                catch (ReflectionTypeLoadException ex) { tipos = ex.Types.Where(t => t != null).ToArray(); }
+                foreach (Type tipo in tipos)
+                {
+                    IEnumerable<Type> usados = new[] { tipo.BaseType }
+                        .Concat(tipo.GetInterfaces())
+                        .Concat(tipo.GetFields(todo).Select(f => f.FieldType))
+                        .Concat(tipo.GetProperties(todo).Select(p => p.PropertyType))
+                        .Concat(tipo.GetConstructors(todo).SelectMany(c => c.GetParameters()).Select(p => p.ParameterType))
+                        .Concat(tipo.GetMethods(todo).SelectMany(m => m.GetParameters().Select(p => p.ParameterType).Append(m.ReturnType)));
+                    conRegiones.AddRange(usados.Where(EsDeRegiones).Distinct().Select(t => $"{tipo.FullName} → {t.Name}"));
+                }
+            }
+
+            Assert.AreEqual(0, conRegiones.Count, "Usan Prism.Regions: " + string.Join("; ", conRegiones));
+        }
+
+        [TestMethod]
         public void ElResolutorPropio_SeResuelveYEsElDelContenedor()
         {
             EjecutarEnSTA(() =>

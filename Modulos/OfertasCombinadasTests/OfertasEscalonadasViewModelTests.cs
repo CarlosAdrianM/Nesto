@@ -6,7 +6,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Nesto.Modulos.OfertasCombinadas.ViewModels;
-using Prism.Regions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;

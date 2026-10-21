@@ -35,7 +35,7 @@ namespace PedidoVentaTests
         [TestMethod]
         public void DetallePedido_NoDependeDeLaNavegacionDePrismYAbreVistaNueva()
         {
-            Assert.IsFalse(typeof(Prism.Regions.INavigationAware).IsAssignableFrom(typeof(DetallePedidoViewModel)));
+            Assert.IsFalse(System.Linq.Enumerable.Any(typeof(DetallePedidoViewModel).GetInterfaces(), i => i.FullName == "Prism.Regions.INavigationAware"));
             Assert.IsTrue(typeof(IReceptorNavegacionPestanaNueva).IsAssignableFrom(typeof(DetallePedidoViewModel)));
         }
 
