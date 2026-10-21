@@ -280,6 +280,36 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
+        public async Task Detalle_928220ContadoConMantenerJunto_PasaAPorEntregasYAvisa_YCambiarLaFormaDePagoVuelveAPreguntar()
+        {
+            // NestoAPI#686 (pedido 928220, EFC/CONTADO con «Mantener junto»): la API ya no deja «al completar» al contado.
+            // Al abrir el pedido se pasa a «por entregas» y se avisa con el motivo de la API.
+            const string MOTIVO = "Un pedido al contado no puede llevar «Mantener junto»: se cobra en cada entrega.";
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            ModoFacturacionSugeridoDTO sugerencia = Sugerencia(ModosFacturacion.POR_ENTREGAS, ModosFacturacion.POR_ENTREGAS, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES);
+            sugerencia.Modos.Single(m => m.Modo == ModosFacturacion.AL_COMPLETAR).Motivo = MOTIVO;
+            sugerencia.Motivo = MOTIVO;
+            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(sugerencia);
+            DetallePedidoViewModel vm = Vm(servicio);
+            PedidoVentaDTO pedido = Pedido(928220, ModosFacturacion.AL_COMPLETAR);
+            pedido.formaPago = "EFC";
+            pedido.plazosPago = "CONTADO";
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            await vm.RefrescarModosFacturacionPermitidos();
+
+            Assert.AreEqual(ModosFacturacion.POR_ENTREGAS, vm.pedido.ModoFacturacion);
+            Assert.IsFalse(vm.pedido.mantenerJunto);
+            Assert.IsTrue(vm.HayAvisoModoFacturacion);
+            StringAssert.Contains(vm.AvisoModoFacturacion, "se cobra en cada entrega");
+
+            int antes = vm.PeticionesModosFacturacionEnviadas;
+            vm.pedido.formaPago = "TRN";
+            await vm.RefrescarModosFacturacionPermitidos();
+            Assert.AreEqual(antes + 1, vm.PeticionesModosFacturacionEnviadas, "La forma de pago decide si es contra reembolso");
+        }
+
+        [TestMethod]
         public async Task Detalle_MontarLineas_NoVuelveAPreguntar_CambiarPlazosSi()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();

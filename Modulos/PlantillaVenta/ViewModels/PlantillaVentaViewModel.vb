@@ -1023,7 +1023,8 @@ Public Class PlantillaVentaViewModel
             Return String.Empty
         End If
         Return String.Join("|", pedido.empresa, pedido.numero, pedido.cliente, pedido.contacto, pedido.contactoCobro,
-                           pedido.plazosPago, pedido.periodoFacturacion, pedido.notaEntrega, pedido.mantenerJunto, pedido.modoFacturacion)
+                           pedido.plazosPago, pedido.periodoFacturacion, pedido.notaEntrega, pedido.mantenerJunto, pedido.modoFacturacion,
+                           pedido.formaPago, pedido.ccc) ' NestoAPI#686: al contado no hay «al completar»
     End Function
 
     Private Async Function PedirModoFacturacionAlServidor(pedido As PedidoVentaDTO) As Task
@@ -2283,6 +2284,7 @@ Public Class PlantillaVentaViewModel
             If Estado.Ccc <> value Then
                 Estado.Ccc = value
                 OnPropertyChanged()
+                PedirModoFacturacionConDebounce() ' NestoAPI#686: con CCC no es contra reembolso
             End If
         End Set
     End Property
@@ -2432,6 +2434,7 @@ Public Class PlantillaVentaViewModel
             ' Issue #159: al cambiar forma de pago puede activar/desactivar EsContraReembolso,
             ' lo que cambia el importe de comisión y la visibilidad de la casilla.
             CargarInfoPortesConDebounce()
+            PedirModoFacturacionConDebounce() ' NestoAPI#686: al contado contra reembolso no hay «al completar»
         End Set
     End Property
 

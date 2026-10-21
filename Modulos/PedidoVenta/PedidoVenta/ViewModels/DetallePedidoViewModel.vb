@@ -3262,8 +3262,11 @@ Public Class DetallePedidoViewModel
 
         ' Nesto#493: los modos de facturación permitidos dependen del cliente, sus plazos y el periodo
         ' (no del stock ni de las líneas): solo se vuelve a preguntar cuando cambia alguno de esos.
+        ' NestoAPI#686: y de la forma de pago y el CCC (al contado contra reembolso no hay «al completar»).
         If e.PropertyName = NameOf(pedido.plazosPago) OrElse
            e.PropertyName = NameOf(pedido.periodoFacturacion) OrElse
+           e.PropertyName = NameOf(pedido.formaPago) OrElse
+           e.PropertyName = NameOf(pedido.ccc) OrElse
            e.PropertyName = NameOf(pedido.contactoCobro) OrElse
            e.PropertyName = NameOf(pedido.contacto) OrElse
            e.PropertyName = NameOf(pedido.cliente) OrElse
@@ -3672,7 +3675,8 @@ Public Class DetallePedidoViewModel
             Return String.Empty
         End If
         Return String.Join("|", modelo.empresa, modelo.numero, modelo.cliente, modelo.contacto, modelo.contactoCobro,
-                           modelo.plazosPago, modelo.periodoFacturacion, modelo.notaEntrega, modelo.mantenerJunto, modelo.modoFacturacion)
+                           modelo.plazosPago, modelo.periodoFacturacion, modelo.notaEntrega, modelo.mantenerJunto, modelo.modoFacturacion,
+                           modelo.formaPago, modelo.ccc) ' NestoAPI#686: al contado no hay «al completar»
     End Function
 
     Private Async Function PedirModosFacturacionAlServidor(modelo As PedidoVentaDTO) As Task

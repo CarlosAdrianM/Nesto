@@ -225,5 +225,18 @@ namespace PlantillaVentaTests
             Assert.AreEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(a), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(b), "Montar líneas no vuelve a preguntar");
             Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(a), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(c), "Cambiar los plazos sí");
         }
+
+        [TestMethod]
+        public void Huella_CambiarLaFormaDePagoOElCcc_VuelveAPreguntar()
+        {
+            // NestoAPI#686 (pedido 928220): al contado contra reembolso la API no deja «al completar». Pasar de transferencia a
+            // efectivo con los mismos plazos tiene que volver a preguntar, o el pedido se guardaría con «Mantener junto» (400).
+            var transferencia = new PedidoVentaDTO { empresa = "1", cliente = "36915", contacto = "0", plazosPago = "CONTADO", periodoFacturacion = "NRM", formaPago = "TRN" };
+            var efectivo = new PedidoVentaDTO { empresa = "1", cliente = "36915", contacto = "0", plazosPago = "CONTADO", periodoFacturacion = "NRM", formaPago = "EFC" };
+            var conCcc = new PedidoVentaDTO { empresa = "1", cliente = "36915", contacto = "0", plazosPago = "CONTADO", periodoFacturacion = "NRM", formaPago = "EFC", ccc = "1" };
+
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(transferencia), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(efectivo));
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(efectivo), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(conCcc));
+        }
     }
 }
