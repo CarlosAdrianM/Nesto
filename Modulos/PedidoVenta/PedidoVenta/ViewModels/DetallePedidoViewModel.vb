@@ -87,6 +87,7 @@ Public Class DetallePedidoViewModel
         Me.servicio = servicio
         Me.messenger = messenger
         Me.dialogService = dialogService
+        AddHandler ServirPendienteAlHaberStock.CambiadaPorElUsuario, AddressOf OnServirPendienteCambiadaPorElUsuario ' NestoAPI#688
         Me.abridorPedidos = abridorPedidos
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
@@ -3281,6 +3282,12 @@ Public Class DetallePedidoViewModel
                 AvisoModoFacturacion = Nothing
             End If
             ServirPendienteAlHaberStock.ModoFacturacionCambiado() ' NestoAPI#688: al elegir «Todo ahora», marcada por defecto
+            ' NestoAPI#688: un «false» heredado (pedido «Todo ahora» antiguo, columna NULL) no puede viajar en la pregunta
+            ' al volver a «Todo ahora»: con otro modo se pregunta con null y la API propone marcada; con el cargado, lo guardado.
+            If pedido.Model IsNot Nothing Then
+                pedido.Model.servirPendienteAlHaberStock = If(Nullable.Equals(_modoFacturacionAlCargar, CType(pedido.ModoFacturacion, Byte?)),
+                    _servirPendienteAlCargar, Nothing)
+            End If
             OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
             _peticionesModosFacturacion.Programar() ' NestoAPI#688: la casilla solo se enseña con «Todo ahora»
         End If
@@ -3420,19 +3427,49 @@ Public Class DetallePedidoViewModel
     ''' de entrega se puede cambiar mientras no tenga picking (lo valida la API al guardar).</summary>
     Public ReadOnly Property ServirPendienteAlHaberStock As New CasillaServirPendiente()
     Private _modoFacturacionAlCargar As Byte?
+    Private _servirPendienteAlCargar As Boolean?
 
     ''' <summary>
-    ''' NestoAPI#688: lo que viaja en servirPendienteAlHaberStock: el valor de la casilla si se enseña y el usuario la
-    ''' tocó o cambió el modo de facturación (o el pedido es nuevo); si no, Nothing y el servidor no toca nada.
+    ''' NestoAPI#688: lo que viaja en servirPendienteAlHaberStock al guardar: el valor de la casilla solo si se enseña y el
+    ''' usuario la tocó. Si no, Nothing: el servidor no toca lo guardado y, al pasar a «Todo ahora», pone marcada por
+    ''' defecto (así no viaja un «false» heredado). En una nota nunca: la casilla va por su endpoint, no por el PUT.
     ''' </summary>
     Friend Sub PrepararServirPendienteParaGuardar()
         If pedido?.Model Is Nothing Then
             Return
         End If
-        Dim modoCambiado As Boolean = pedido.numero = 0 OrElse
-            Not Nullable.Equals(_modoFacturacionAlCargar, CType(pedido.ModoFacturacion, Byte?))
-        pedido.Model.servirPendienteAlHaberStock = ServirPendienteAlHaberStock.ValorParaGuardar(modoCambiado)
+        pedido.Model.servirPendienteAlHaberStock = If(EsNotaEntrega, Nothing,
+            ServirPendienteAlHaberStock.ValorParaGuardar(modoFacturacionCambiado:=False))
     End Sub
+
+    ''' <summary>Las llamadas al endpoint de la nota (para los tests).</summary>
+    Friend Property CambioServirPendienteNotaEnCurso As Task = Task.CompletedTask
+
+    ''' <summary>
+    ''' NestoAPI#688 (decisión 9): en una nota de entrega grabada, la casilla se cambia al momento con su propio endpoint
+    ''' (marcar = sale en cuanto haya stock; desmarcar = vuelve a esperar). Si la API lo rechaza (con picking, BD sin
+    ''' preparar...), se enseña su mensaje tal cual y la casilla vuelve a como estaba.
+    ''' </summary>
+    Private Sub OnServirPendienteCambiadaPorElUsuario(sender As Object, valor As Boolean)
+        If Not EsNotaEntrega OrElse pedido.numero = 0 Then
+            Return
+        End If
+        CambioServirPendienteNotaEnCurso = CambiarServirPendienteNotaAsync(valor)
+    End Sub
+
+    Private Async Function CambiarServirPendienteNotaAsync(valor As Boolean) As Task
+        Try
+            Await servicio.CambiarServirPendienteNota(pedido.empresa, pedido.numero, valor, configuracion?.usuario).ConfigureAwait(True)
+            If pedido?.Model IsNot Nothing Then
+                pedido.Model.servirPendienteAlHaberStock = valor
+            End If
+            _servirPendienteAlCargar = valor
+            ServirPendienteAlHaberStock.Revertir(valor) ' ya está guardado: deja de contar como tocada
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            ServirPendienteAlHaberStock.Revertir(Not valor)
+        End Try
+    End Function
 
     ''' <summary>Una nota de entrega no se factura: el combo se queda deshabilitado.</summary>
     Public ReadOnly Property PuedeElegirModoFacturacion As Boolean
@@ -3646,6 +3683,7 @@ Public Class DetallePedidoViewModel
         _selectorModosFacturacion.Aplicar(Nothing)
         FacturacionVisible = True
         _modoFacturacionAlCargar = pedido?.ModoFacturacion
+        _servirPendienteAlCargar = pedido?.Model?.servirPendienteAlHaberStock
         ServirPendienteAlHaberStock.Reiniciar(pedido?.Model?.servirPendienteAlHaberStock) ' NestoAPI#688
         _peticionesModosFacturacion.OlvidarHuella()
         _peticionesModosFacturacion.Programar()

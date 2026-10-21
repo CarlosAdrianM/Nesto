@@ -45,6 +45,10 @@ Public Interface IPedidoVentaService
     ''' <summary>NestoAPI#688: la regla única de combinaciones (POST api/PedidosVenta/OpcionesModos). Con una API anterior
     ''' (404) se monta con los dos endpoints viejos (EsApiAnterior). Nothing si la API falla.</summary>
     Function OpcionesModos(pedido As PedidoVentaDTO) As Task(Of OpcionesModosDTO)
+    ''' <summary>NestoAPI#688: marca o desmarca «Servir lo pendiente en cuanto haya stock» en una nota de entrega
+    ''' (POST api/PedidosVenta/{empresa}/{nota}/ServirPendienteAlHaberStock). Si la API lo rechaza (con picking, sin
+    ''' preparar la BD...), lanza una excepción con su mensaje tal cual.</summary>
+    Function CambiarServirPendienteNota(empresa As String, nota As Integer, valor As Boolean, usuario As String) As Task
     ''' <summary>Nesto#489 / NestoAPI#533: pide a almacén el cambio de modo de un pedido con picking. Devuelve el texto
     ''' de la API para enseñarlo; si la API lo rechaza, lanza una excepción con su mensaje.</summary>
     Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String)

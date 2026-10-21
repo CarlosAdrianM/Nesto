@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +32,8 @@ namespace PedidoVentaTests
         {
             private readonly Dictionary<string, (HttpStatusCode codigo, string cuerpo)> _respuestas;
             public List<string> Pedidas { get; } = new List<string>();
+            public List<string> Rutas { get; } = new List<string>();
+            public List<string> Cuerpos { get; } = new List<string>();
 
             public RespuestasPorRuta(Dictionary<string, (HttpStatusCode, string)> respuestas) => _respuestas = respuestas;
 
@@ -38,6 +41,8 @@ namespace PedidoVentaTests
             {
                 string ruta = request.RequestUri.AbsolutePath.Split('/').Last();
                 Pedidas.Add(ruta);
+                Rutas.Add(request.RequestUri.AbsolutePath);
+                Cuerpos.Add(request.Content?.ReadAsStringAsync().Result);
                 (HttpStatusCode codigo, string cuerpo) = _respuestas.TryGetValue(ruta, out var r) ? r : (HttpStatusCode.NotFound, "");
                 return Task.FromResult(new HttpResponseMessage(codigo) { Content = new StringContent(cuerpo) });
             }
@@ -51,7 +56,9 @@ namespace PedidoVentaTests
             {
                 BaseAddress = new Uri("https://api.nuevavision.es/api/")
             });
-            return (new PedidoVentaService(A.Fake<IConfiguracion>(), A.Fake<IServicioAutenticacion>(), factory), handler);
+            IServicioAutenticacion autenticacion = A.Fake<IServicioAutenticacion>();
+            A.CallTo(() => autenticacion.ConfigurarAutorizacion(A<HttpClient>._)).Returns(Task.FromResult(true));
+            return (new PedidoVentaService(A.Fake<IConfiguracion>(), autenticacion, factory), handler);
         }
 
         private const string JSON_OPCIONES_TODO_JUNTO_TODO_AHORA =
@@ -124,6 +131,35 @@ namespace PedidoVentaTests
 
             Assert.IsNull(await servicio.OpcionesModos(Pedido(926700, ModosFacturacion.POR_ENTREGAS)));
             CollectionAssert.AreEqual(new[] { "OpcionesModos" }, handler.Pedidas);
+        }
+
+        [TestMethod]
+        public async Task Servicio_CasillaDeLaNota_VaASuEndpointConValorYUsuario()
+        {
+            var (servicio, handler) = Servicio(new Dictionary<string, (HttpStatusCode, string)>
+            {
+                ["ServirPendienteAlHaberStock"] = (HttpStatusCode.OK, "")
+            });
+
+            await servicio.CambiarServirPendienteNota("1  ", 926800, true, "NUEVAVISION\\Carlos");
+
+            Assert.AreEqual("/api/PedidosVenta/1/926800/ServirPendienteAlHaberStock", handler.Rutas.Single());
+            var cuerpo = Newtonsoft.Json.Linq.JObject.Parse(handler.Cuerpos.Single());
+            Assert.IsTrue(cuerpo["Valor"].Value<bool>());
+            Assert.AreEqual("NUEVAVISION\\Carlos", cuerpo["Usuario"].Value<string>());
+        }
+
+        [TestMethod]
+        public async Task Servicio_CasillaDeLaNota_UnRechazoSeLanzaConElMensajeDeLaApi()
+        {
+            var (servicio, _) = Servicio(new Dictionary<string, (HttpStatusCode, string)>
+            {
+                ["ServirPendienteAlHaberStock"] = (HttpStatusCode.BadRequest, "{\"Message\":\"La nota ya tiene picking.\"}")
+            });
+
+            Exception ex = await Assert.ThrowsExceptionAsync<Exception>(() => servicio.CambiarServirPendienteNota("1", 926800, false, "Carlos"));
+
+            StringAssert.Contains(ex.Message, "La nota ya tiene picking.");
         }
 
         // ---------- El ViewModel ----------
@@ -235,9 +271,11 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public async Task Detalle_AlElegirTodoAhora_MarcadaPorDefecto_YViajaPorqueCambioElModo()
+        public async Task Detalle_AlElegirTodoAhora_MarcadaPorDefecto_YSinTocarlaSeMandaNullParaQueLaApiPongaTrue()
         {
-            var (vm, servicio) = VmCon(Pedido(926700, ModosFacturacion.POR_ENTREGAS), Opciones(ModosFacturacion.POR_ENTREGAS));
+            // Un «false» heredado (columna NULL de un «Todo ahora» antiguo, o lo que trajo el GET) no puede viajar: ni en la
+            // pregunta ni al guardar. Con null la API pone marcada por defecto (decisión 12).
+            var (vm, servicio) = VmCon(Pedido(926700, ModosFacturacion.POR_ENTREGAS, servirPendiente: false), Opciones(ModosFacturacion.POR_ENTREGAS));
             await vm.RefrescarOpcionesModos();
             Assert.IsFalse(vm.ServirPendienteAlHaberStock.Visible, "Por entregas: sin casilla");
 
@@ -246,10 +284,25 @@ namespace PedidoVentaTests
             vm.pedido.ModoFacturacion = ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES;
             await vm.RefrescarOpcionesModos();
 
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>.That.Matches(p =>
+                p.modoFacturacion == ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES && p.servirPendienteAlHaberStock == null))).MustHaveHappened();
             Assert.IsTrue(vm.ServirPendienteAlHaberStock.Visible);
             Assert.IsTrue(vm.ServirPendienteAlHaberStock.Valor);
             vm.PrepararServirPendienteParaGuardar();
-            Assert.AreEqual(true, vm.pedido.Model.servirPendienteAlHaberStock, "Cambió el modo: se manda aunque no la haya tocado");
+            Assert.IsNull(vm.pedido.Model.servirPendienteAlHaberStock, "Sin tocarla se manda null y la API pone marcada");
+        }
+
+        [TestMethod]
+        public async Task Detalle_VolverAlModoCargado_LaPreguntaLlevaOtraVezLoGuardado()
+        {
+            var (vm, servicio) = VmCon(Pedido(926700, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, servirPendiente: false),
+                Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: false));
+
+            vm.pedido.ModoFacturacion = ModosFacturacion.POR_ENTREGAS;
+            Assert.IsNull(vm.pedido.Model.servirPendienteAlHaberStock);
+            vm.pedido.ModoFacturacion = ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES;
+
+            Assert.AreEqual(false, vm.pedido.Model.servirPendienteAlHaberStock, "Es su modo de siempre: manda lo guardado");
         }
 
         [TestMethod]
@@ -285,30 +338,76 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public async Task Detalle_PedidoNuevoConTodoAhora_LaCasillaViajaSiempreQueSeEnsena()
+        public async Task Detalle_PedidoNuevoConTodoAhora_SinTocarNull_YDesmarcadaFalse()
         {
             var (vm, _) = VmCon(Pedido(0, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES),
                 Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: true));
 
             await vm.RefrescarOpcionesModos();
             vm.PrepararServirPendienteParaGuardar();
-
-            Assert.AreEqual(true, vm.pedido.Model.servirPendienteAlHaberStock);
-        }
-
-        [TestMethod]
-        public async Task Detalle_NotaDeEntrega_LaCasillaSePuedeDesmarcar_YViaja()
-        {
-            // Decisión 9: en la nota se puede cambiar mientras no tenga picking (lo valida la API al guardar).
-            PedidoVentaDTO nota = Pedido(926800, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, servirPendiente: true);
-            nota.notaEntrega = true;
-            var (vm, _) = VmCon(nota, Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: true));
-            await vm.RefrescarOpcionesModos();
+            Assert.IsNull(vm.pedido.Model.servirPendienteAlHaberStock, "La API pone marcada por defecto");
 
             vm.ServirPendienteAlHaberStock.Valor = false;
             vm.PrepararServirPendienteParaGuardar();
-
             Assert.AreEqual(false, vm.pedido.Model.servirPendienteAlHaberStock);
+        }
+
+        private static PedidoVentaDTO Nota()
+        {
+            PedidoVentaDTO nota = Pedido(926800, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, servirPendiente: true);
+            nota.notaEntrega = true;
+            return nota;
+        }
+
+        [TestMethod]
+        public async Task Detalle_NotaDeEntrega_CambiarLaCasilla_VaAlMomentoASuEndpoint_YNoPorElPut()
+        {
+            // Decisión 9: en la nota se puede cambiar mientras no tenga picking. La API no deja modificar una nota por el
+            // PUT, así que va a POST api/PedidosVenta/{empresa}/{nota}/ServirPendienteAlHaberStock.
+            var (vm, servicio) = VmCon(Nota(), Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: true));
+            await vm.RefrescarOpcionesModos();
+
+            vm.ServirPendienteAlHaberStock.Valor = false;
+            await vm.CambioServirPendienteNotaEnCurso;
+
+            A.CallTo(() => servicio.CambiarServirPendienteNota("1", 926800, false, A<string>._)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.ServirPendienteAlHaberStock.Valor);
+            vm.PrepararServirPendienteParaGuardar();
+            Assert.IsNull(vm.pedido.Model.servirPendienteAlHaberStock, "En una nota la casilla nunca viaja en el PUT");
+        }
+
+        [TestMethod]
+        public async Task Detalle_NotaDeEntrega_SiLaApiLoRechaza_EnsenaSuMensajeTalCual_YLaCasillaVuelveAComoEstaba()
+        {
+            const string MENSAJE = "La nota 926800 ya tiene picking: no se puede cambiar.";
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._))
+                .Returns(Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: true));
+            A.CallTo(() => servicio.CambiarServirPendienteNota(A<string>._, A<int>._, A<bool>._, A<string>._)).ThrowsAsync(new Exception(MENSAJE));
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio, new WeakReferenceMessenger(),
+                dialogos, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
+            vm.pedido = new PedidoVentaWrapper(Nota());
+            await vm.RefrescarOpcionesModos();
+
+            vm.ServirPendienteAlHaberStock.Valor = false;
+            await vm.CambioServirPendienteNotaEnCurso;
+
+            A.CallTo(() => dialogos.ShowError(MENSAJE)).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(vm.ServirPendienteAlHaberStock.Valor, "Vuelve a como estaba");
+            Assert.IsFalse(vm.ServirPendienteAlHaberStock.Tocada);
+        }
+
+        [TestMethod]
+        public async Task Detalle_PedidoQueNoEsNota_CambiarLaCasilla_NoLlamaAlEndpointDeLaNota()
+        {
+            var (vm, servicio) = VmCon(Pedido(926700, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES),
+                Opciones(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, casillaVisible: true, valor: true));
+            await vm.RefrescarOpcionesModos();
+
+            vm.ServirPendienteAlHaberStock.Valor = false;
+
+            A.CallTo(() => servicio.CambiarServirPendienteNota(A<string>._, A<int>._, A<bool>._, A<string>._)).MustNotHaveHappened();
         }
     }
 }

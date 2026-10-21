@@ -32,6 +32,7 @@ Public Class CasillaServirPendiente
         Set(value As Boolean)
             If SetProperty(_valor, value) Then
                 Tocada = True
+                RaiseEvent CambiadaPorElUsuario(Me, value)
             End If
         End Set
     End Property
@@ -46,6 +47,16 @@ Public Class CasillaServirPendiente
             SetProperty(_motivo, value, NameOf(Ayuda))
         End Set
     End Property
+
+    ''' <summary>NestoAPI#688: el usuario la ha cambiado en pantalla (no salta con lo que propone la API). En la nota de
+    ''' entrega el cambio no espera a guardar: va a su propio endpoint.</summary>
+    Public Event CambiadaPorElUsuario(sender As Object, valor As Boolean)
+
+    ''' <summary>Deja el valor anterior sin contar como tocada (p. ej. si la API rechaza el cambio en la nota).</summary>
+    Public Sub Revertir(valorAnterior As Boolean)
+        PonerSinTocar(valorAnterior)
+        Tocada = False
+    End Sub
 
     ''' <summary>True si el usuario la ha cambiado desde que se eligió el modo de facturación actual.</summary>
     Public Property Tocada As Boolean

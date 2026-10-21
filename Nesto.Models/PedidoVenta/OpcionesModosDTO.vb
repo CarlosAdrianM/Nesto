@@ -38,6 +38,9 @@ Public Class OpcionesFacturacionDTO
     ''' Si la API no lo manda, se enseña (como antes).</summary>
     Public Property Visible As Boolean = True
 
+    ''' <summary>Por qué no se enseña (tooltip). Nothing si se enseña.</summary>
+    Public Property MotivoOculta As String
+
     ''' <summary>Nothing si no hay sugerencia; si no, la misma con el combo visible.</summary>
     Public Shared Function Desde(sugerencia As ModoFacturacionSugeridoDTO) As OpcionesFacturacionDTO
         If sugerencia Is Nothing Then
@@ -62,7 +65,8 @@ End Class
 Public Class OpcionServirPendienteDTO
     ''' <summary>Solo con facturación «Todo ahora» (modo 3).</summary>
     Public Property Visible As Boolean
-    ''' <summary>El valor que propone la API: el guardado o, al elegir «Todo ahora», marcada (decisión 12).</summary>
+    ''' <summary>El valor que propone la API: el guardado o, al elegir «Todo ahora», marcada (decisión 12). La API
+    ''' siempre lo manda; Boolean? solo para no confundir «no vino» con «desmarcada».</summary>
     Public Property Valor As Boolean?
     ''' <summary>Explicación para el tooltip (Nothing si no la hay).</summary>
     Public Property Motivo As String

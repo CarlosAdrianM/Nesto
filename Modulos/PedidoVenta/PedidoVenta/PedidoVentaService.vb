@@ -1044,6 +1044,27 @@ Public Class PedidoVentaService
         Return OpcionesModosDTO.DesdeApiAnterior(Await tareaServicio.ConfigureAwait(False), Await tareaFacturacion.ConfigureAwait(False))
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#688: la casilla de una nota de entrega no va por el PUT (la API no deja modificar una nota así): tiene
+    ''' su endpoint. Marcar = la nota sale en cuanto haya stock de todo; desmarcar = vuelve a esperar a que la pida el
+    ''' cliente. Solo sin picking: si no, 400 con el motivo, que se lanza tal cual para enseñarlo.
+    ''' </summary>
+    Public Async Function CambiarServirPendienteNota(empresa As String, nota As Integer, valor As Boolean, usuario As String) As Task Implements IPedidoVentaService.CambiarServirPendienteNota
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim cuerpo = New With {.Valor = valor, .Usuario = usuario}
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync($"PedidosVenta/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{nota}/ServirPendienteAlHaberStock", contenido)
+            If Not response.IsSuccessStatusCode Then
+                Dim body As String = Await response.Content.ReadAsStringAsync()
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido cambiar «Servir lo pendiente en cuanto haya stock» ({CInt(response.StatusCode)}).", mensaje))
+            End If
+        End Using
+    End Function
+
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
