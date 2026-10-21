@@ -4,13 +4,12 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.[Shared]
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
-Imports Prism
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.Messaging
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBasico
-    Implements IReceptorNavegacion, IActiveAware, IConActivacion
+    Implements IReceptorNavegacion, IConActivacion
 
     Private ReadOnly navegacion As IServicioNavegacion
     Public Property configuracion As IConfiguracion
@@ -191,17 +190,16 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
-    ' Implementación de IActiveAware (Prism) y de IConActivacion (la región propia, Nesto#490 4C.4): la misma propiedad,
-    ' para que se dé de alta en los mensajes de rapports mientras su pestaña está activa con cualquiera de las dos regiones.
+    ' IConActivacion (la región propia, Nesto#490 4C.4): se da de alta en los mensajes de rapports mientras su pestaña está
+    ' activa. Hasta el tramo 4 era también el IActiveAware de Prism (misma propiedad), con su evento IsActiveChanged.
     Private _isActive As Boolean
-    Public Property IsActive As Boolean Implements IActiveAware.IsActive, IConActivacion.IsActive
+    Public Property IsActive As Boolean Implements IConActivacion.IsActive
         Get
             Return _isActive
         End Get
         Set(value As Boolean)
             If _isActive <> value Then
                 _isActive = value
-                RaiseEvent IsActiveChanged(Me, EventArgs.Empty)
 
                 If _isActive Then
                     OnLoaded()
@@ -842,7 +840,6 @@ Public Class ListaRapportsViewModel
     End Sub
 
 
-    Public Event IsActiveChanged As EventHandler Implements IActiveAware.IsActiveChanged
 
     Private _cmdCrearRapport As RelayCommand(Of ClienteProbabilidadVenta)
     Public Property cmdCrearRapport As RelayCommand(Of ClienteProbabilidadVenta)

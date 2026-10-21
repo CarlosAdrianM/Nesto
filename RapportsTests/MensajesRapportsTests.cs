@@ -4,8 +4,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Rapports;
-using Prism;
-using Prism.Regions;
 using System.Collections.ObjectModel;
 using idDescripcion = Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO.idDescripcion;
 
@@ -82,12 +80,12 @@ namespace RapportsTests
         [TestMethod]
         public void ConLaRegionPropia_IConActivacion_DaDeAltaYDeBajaEnLosMensajes()
         {
-            // Nesto#490 (4C.4, tramo 3): la región propia avisa por IConActivacion, no por el IActiveAware de Prism
+            // Nesto#490 (4C.4): la región propia avisa por IConActivacion (desde el tramo 4, ya sin el IActiveAware de Prism)
             var (vm, nuevo) = ConRapportNuevo(CrearLista());
             IConActivacion activable = vm;
 
             activable.IsActive = true;
-            Assert.IsTrue(((IActiveAware)vm).IsActive, "Es la misma propiedad para las dos regiones");
+            Assert.IsTrue(vm.IsActive);
             activable.IsActive = false;
             _messenger.Send(new RapportNoGuardadoMensaje(nuevo));
             Assert.AreEqual(2, vm.listaRapports.Count, "Inactiva: no le llega");
@@ -95,6 +93,16 @@ namespace RapportsTests
             activable.IsActive = true;
             _messenger.Send(new RapportNoGuardadoMensaje(nuevo));
             Assert.AreEqual(1, vm.listaRapports.Count, "Activa: le llega");
+        }
+
+        [TestMethod]
+        public void ListaRapports_NoImplementaNingunaInterfazDePrism()
+        {
+            // Nesto#490 (4C.4, tramo 4): fuera el IActiveAware; la activación le llega solo por IConActivacion
+            var dePrism = System.Linq.Enumerable.Where(typeof(ListaRapportsViewModel).GetInterfaces(),
+                i => i.Namespace?.StartsWith("Prism") ?? false);
+            Assert.IsFalse(System.Linq.Enumerable.Any(dePrism), string.Join(", ", dePrism));
+            Assert.IsTrue(typeof(IConActivacion).IsAssignableFrom(typeof(ListaRapportsViewModel)));
         }
 
         [TestMethod]
