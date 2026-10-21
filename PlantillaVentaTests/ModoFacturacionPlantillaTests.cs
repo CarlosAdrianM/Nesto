@@ -214,15 +214,21 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void Huella_SoloCambiaConLoQueMiraLaApi()
+        public void Huella_LasLineasYElModoDeServicioVuelvenAPreguntar_PorqueVanEnLaMismaPregunta()
         {
-            var a = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM" };
-            var b = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM" };
-            b.Lineas.Add(new LineaPedidoVentaDTO { Producto = "38093", Cantidad = 2 });
-            var c = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "60", periodoFacturacion = "NRM" };
+            // NestoAPI#688: OpcionesModos contesta a la vez el modo de servicio (líneas y stock) y el de facturación, que
+            // ahora también depende del modo de servicio (con «Todo junto» no se enseña).
+            var a = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM", modoServicio = 3 };
+            var mismo = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM", modoServicio = 3 };
+            var conLineas = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM", modoServicio = 3 };
+            conLineas.Lineas.Add(new LineaPedidoVentaDTO { Producto = "38093", Cantidad = 2 });
+            var todoJunto = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "30", periodoFacturacion = "NRM", modoServicio = 1 };
+            var otrosPlazos = new PedidoVentaDTO { empresa = "1", cliente = "15191", contacto = "0", plazosPago = "60", periodoFacturacion = "NRM", modoServicio = 3 };
 
-            Assert.AreEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(a), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(b), "Montar líneas no vuelve a preguntar");
-            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(a), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(c), "Cambiar los plazos sí");
+            Assert.AreEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(a), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(mismo), "Con el pedido quieto no se vuelve a preguntar");
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(a), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(conLineas), "Las líneas cambian el modo de servicio");
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(a), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(todoJunto), "El modo de servicio decide si se enseña la facturación");
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(a), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(otrosPlazos), "Los plazos también");
         }
 
         [TestMethod]
@@ -234,8 +240,8 @@ namespace PlantillaVentaTests
             var efectivo = new PedidoVentaDTO { empresa = "1", cliente = "36915", contacto = "0", plazosPago = "CONTADO", periodoFacturacion = "NRM", formaPago = "EFC" };
             var conCcc = new PedidoVentaDTO { empresa = "1", cliente = "36915", contacto = "0", plazosPago = "CONTADO", periodoFacturacion = "NRM", formaPago = "EFC", ccc = "1" };
 
-            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(transferencia), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(efectivo));
-            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoModoFacturacion(efectivo), PlantillaVentaViewModel.HuellaPedidoModoFacturacion(conCcc));
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(transferencia), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(efectivo));
+            Assert.AreNotEqual(PlantillaVentaViewModel.HuellaPedidoOpcionesModos(efectivo), PlantillaVentaViewModel.HuellaPedidoOpcionesModos(conCcc));
         }
     }
 }

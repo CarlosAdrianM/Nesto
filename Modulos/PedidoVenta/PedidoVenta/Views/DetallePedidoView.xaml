@@ -333,7 +333,9 @@
                             <!-- Nesto#493 / NestoAPI#542: modo de facturación en vez de la casilla «Mantener junto». Los modos
                                  que no se pueden elegir (regla de plazos de la API) salen deshabilitados con su motivo; en una
                                  nota de entrega el combo entero está deshabilitado. -->
-                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                            <!-- NestoAPI#688: con «Todo junto» la API dice que la facturación no se enseña. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2"
+                                        Visibility="{Binding FacturacionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Text="Facturación:" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                 <ComboBox ItemsSource="{Binding OpcionesModoFacturacion}"
                                           DisplayMemberPath="Nombre"
@@ -357,6 +359,13 @@
                             <TextBlock Text="{Binding AvisoPortesTodoAhora}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontStyle="Italic" Foreground="#555555"
                                        Visibility="{Binding EsModoFacturacionTodoAhora, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- NestoAPI#688: «Servir lo pendiente en cuanto haya stock», solo cuando la API la enseña (facturación
+                                 «Todo ahora»). Bindea a la casilla del ViewModel, no a la dirección (lección de Nesto#449). -->
+                            <CheckBox Content="Servir lo pendiente en cuanto haya stock" Margin="3,0,3,4"
+                                      IsChecked="{Binding ServirPendienteAlHaberStock.Valor, Mode=TwoWay}"
+                                      ToolTip="{Binding ServirPendienteAlHaberStock.Ayuda}"
+                                      ToolTipService.ShowOnDisabled="True"
+                                      Visibility="{Binding ServirPendienteAlHaberStock.Visible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <!-- NestoAPI#606: qué día se entrega a la agencia (calculado ahora por la API) y, si no coincide, el
                                  que se prometió al crear el pedido. -->
                             <WrapPanel Margin="3,2,3,4"

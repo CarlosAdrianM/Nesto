@@ -38,6 +38,12 @@ namespace PedidoVentaTests
             }).ToList()
         };
 
+        /// <summary>NestoAPI#688: la respuesta de OpcionesModos con solo el bloque de facturación (visible).</summary>
+        private static OpcionesModosDTO ConFacturacion(ModoFacturacionSugeridoDTO sugerencia) => new OpcionesModosDTO
+        {
+            Facturacion = OpcionesFacturacionDTO.Desde(sugerencia)
+        };
+
         // ---------- El modelo ----------
 
         [TestMethod]
@@ -218,11 +224,11 @@ namespace PedidoVentaTests
             // informado (y Nesto lo manda siempre). Cambiar los plazos a unos que no son de la ficha deja «por
             // entregas» sin sentido: se pasa al que vale y se avisa, como hacía a escondidas el trigger.
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES)));
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosFacturacion.POR_ENTREGAS));
 
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             CollectionAssert.AreEqual(new[] { ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES },
                 vm.OpcionesModoFacturacion.Where(o => o.Habilitado).Select(o => o.Codigo).ToArray());
@@ -236,11 +242,11 @@ namespace PedidoVentaTests
         public async Task Detalle_PedidoGrabadoCuyoModoSigueValiendo_NoSeToca()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, 1, 2, 3));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(Sugerencia(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, 1, 2, 3)));
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES));
 
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.IsTrue(vm.OpcionesModoFacturacion.All(o => o.Habilitado));
             Assert.AreEqual(ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES, vm.pedido.ModoFacturacion);
@@ -251,12 +257,12 @@ namespace PedidoVentaTests
         public async Task Detalle_SiElModoQueEligioElUsuarioDejaDeValer_PasaAlSugeridoYAvisa()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES)));
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosFacturacion.AL_COMPLETAR));
 
             vm.pedido.ModoFacturacion = ModosFacturacion.POR_ENTREGAS; // elección del usuario
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.AreEqual(ModosFacturacion.AL_COMPLETAR, vm.pedido.ModoFacturacion);
             Assert.IsTrue(vm.pedido.mantenerJunto, "El bit sigue coherente con el modo");
@@ -269,11 +275,11 @@ namespace PedidoVentaTests
         public async Task Detalle_PedidoNuevoSinTocar_ElDefectoQueNoValeSeSustituyeSinAviso()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(Sugerencia(ModosFacturacion.AL_COMPLETAR, ModosFacturacion.AL_COMPLETAR, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES)));
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(0, ModosFacturacion.POR_ENTREGAS));
 
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.AreEqual(ModosFacturacion.AL_COMPLETAR, vm.pedido.ModoFacturacion);
             Assert.IsFalse(vm.HayAvisoModoFacturacion, "Es la preselección, como en la plantilla");
@@ -289,42 +295,46 @@ namespace PedidoVentaTests
             ModoFacturacionSugeridoDTO sugerencia = Sugerencia(ModosFacturacion.POR_ENTREGAS, ModosFacturacion.POR_ENTREGAS, ModosFacturacion.TODO_AHORA_Y_LO_PENDIENTE_DESPUES);
             sugerencia.Modos.Single(m => m.Modo == ModosFacturacion.AL_COMPLETAR).Motivo = MOTIVO;
             sugerencia.Motivo = MOTIVO;
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(sugerencia);
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(sugerencia));
             DetallePedidoViewModel vm = Vm(servicio);
             PedidoVentaDTO pedido = Pedido(928220, ModosFacturacion.AL_COMPLETAR);
             pedido.formaPago = "EFC";
             pedido.plazosPago = "CONTADO";
             vm.pedido = new PedidoVentaWrapper(pedido);
 
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.AreEqual(ModosFacturacion.POR_ENTREGAS, vm.pedido.ModoFacturacion);
             Assert.IsFalse(vm.pedido.mantenerJunto);
             Assert.IsTrue(vm.HayAvisoModoFacturacion);
             StringAssert.Contains(vm.AvisoModoFacturacion, "se cobra en cada entrega");
 
-            int antes = vm.PeticionesModosFacturacionEnviadas;
+            int antes = vm.PeticionesOpcionesModosEnviadas;
             vm.pedido.formaPago = "TRN";
-            await vm.RefrescarModosFacturacionPermitidos();
-            Assert.AreEqual(antes + 1, vm.PeticionesModosFacturacionEnviadas, "La forma de pago decide si es contra reembolso");
+            await vm.RefrescarOpcionesModos();
+            Assert.AreEqual(antes + 1, vm.PeticionesOpcionesModosEnviadas, "La forma de pago decide si es contra reembolso");
         }
 
         [TestMethod]
-        public async Task Detalle_MontarLineas_NoVuelveAPreguntar_CambiarPlazosSi()
+        public async Task Detalle_MontarLineas_VuelveAPreguntar_PorqueElModoDeServicioVaEnLaMismaPregunta_YConElPedidoQuietoNo()
         {
+            // NestoAPI#688: una sola pregunta (OpcionesModos) para los dos modos y la casilla: las líneas cambian el modo de
+            // servicio (stock), así que montar líneas sí vuelve a preguntar; con el pedido quieto, no (NestoAPI#517).
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosFacturacion.POR_ENTREGAS, 1, 2, 3));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(ConFacturacion(Sugerencia(ModosFacturacion.POR_ENTREGAS, 1, 2, 3)));
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosFacturacion.POR_ENTREGAS));
 
-            await vm.RefrescarModosFacturacionPermitidos();
+            await vm.RefrescarOpcionesModos();
             vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 2, Producto = "12345", Cantidad = 7, almacen = "ALG", tipoLinea = 1 });
-            await vm.RefrescarModosFacturacionPermitidos();
-            Assert.AreEqual(1, vm.PeticionesModosFacturacionEnviadas, "Las líneas no cambian los modos de facturación (NestoAPI#517)");
+            await vm.RefrescarOpcionesModos();
+            Assert.AreEqual(2, vm.PeticionesOpcionesModosEnviadas, "Las líneas van en la misma pregunta que el modo de servicio");
+            await vm.RefrescarOpcionesModos();
+            Assert.AreEqual(2, vm.PeticionesOpcionesModosEnviadas, "Con el pedido quieto no se vuelve a preguntar (NestoAPI#517)");
 
             vm.pedido.plazosPago = "60";
-            await vm.RefrescarModosFacturacionPermitidos();
-            Assert.AreEqual(2, vm.PeticionesModosFacturacionEnviadas);
+            await vm.RefrescarOpcionesModos();
+            Assert.AreEqual(3, vm.PeticionesOpcionesModosEnviadas);
         }
 
         [TestMethod]

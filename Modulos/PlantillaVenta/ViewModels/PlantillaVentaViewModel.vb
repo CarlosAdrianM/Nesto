@@ -900,19 +900,22 @@ Public Class PlantillaVentaViewModel
                 OnValidarServirJunto()
             End If
             PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606
+            PedirModoFacturacionConDebounce() ' NestoAPI#688: con «Todo junto» la facturación no se enseña
         End Set
     End Property
 
 
 #Region "Nesto#493 / NestoAPI#542: modo de facturación (combo «Facturación» en vez de la casilla «Mantener junto»)"
 
-    ' Mismo patrón que el modo de servicio, con su propio reloj y su propia huella: los modos de facturación
-    ' solo dependen del cliente, los plazos y el periodo (no del stock), así que montar líneas no pregunta.
+    ' NestoAPI#688: una sola pregunta (POST api/PedidosVenta/OpcionesModos) para el modo de servicio, el de facturación
+    ' (y si se enseña) y la casilla «Servir lo pendiente en cuanto haya stock». Antes eran dos (ModoServicioSugerido con
+    ' las ofertas y ModoFacturacionSugerido aparte); ahora las ofertas siguen en su reloj y esto va en el suyo, con la
+    ' huella del pedido entero (líneas, modos, forma de pago, CCC...). Con una API anterior el servicio monta lo de antes.
     Private ReadOnly _selectorModosFacturacion As New SelectorModosFacturacion()
     Private ReadOnly _peticionesModoFacturacion As New ProgramadorPeticionesConHuella(RETARDO_SUGERENCIAS_MS,
         Sub() Application.Current?.Dispatcher?.InvokeAsync(
             Async Function() As Task
-                Await RefrescarModoFacturacion()
+                Await RefrescarOpcionesModos()
             End Function))
     Private _modoFacturacionElegidoPorUsuario As Boolean
     Private _aplicandoSugerenciaModoFacturacion As Boolean
@@ -935,11 +938,16 @@ Public Class PlantillaVentaViewModel
                 _modoFacturacionElegidoPorUsuario = True
                 AvisoModoFacturacion = Nothing
             End If
+            Dim modoAnterior As Byte = ModoFacturacion
             Estado.ModoFacturacion = value
             Estado.MantenerJunto = ModosFacturacion.EsAlCompletar(value)
+            If modoAnterior <> value Then
+                ServirPendienteAlHaberStock.ModoFacturacionCambiado() ' NestoAPI#688: al elegir «Todo ahora», marcada por defecto
+            End If
             OnPropertyChanged(NameOf(ModoFacturacion))
             OnPropertyChanged(NameOf(EsModoFacturacionTodoAhora))
             PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606
+            PedirModoFacturacionConDebounce() ' NestoAPI#688: la casilla solo se enseña con «Todo ahora»
         End Set
     End Property
 
@@ -949,6 +957,21 @@ Public Class PlantillaVentaViewModel
             Return _selectorModosFacturacion.Opciones
         End Get
     End Property
+
+    Private _facturacionVisible As Boolean = True
+    ''' <summary>NestoAPI#688: con «Todo junto» la API dice que el combo «Facturación» no se enseña (decisión 6).
+    ''' Sin respuesta o con una API anterior, se enseña.</summary>
+    Public Property FacturacionVisible As Boolean
+        Get
+            Return _facturacionVisible
+        End Get
+        Private Set(value As Boolean)
+            SetProperty(_facturacionVisible, value)
+        End Set
+    End Property
+
+    ''' <summary>NestoAPI#688: la casilla «Servir lo pendiente en cuanto haya stock» (solo con «Todo ahora»).</summary>
+    Public ReadOnly Property ServirPendienteAlHaberStock As New CasillaServirPendiente()
 
     ''' <summary>Con «todo ahora» se enseña el aviso fijo de portes (Carlos, 25/09/26).</summary>
     Public ReadOnly Property EsModoFacturacionTodoAhora As Boolean
@@ -983,7 +1006,7 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>
-    Friend ReadOnly Property PeticionesModoFacturacionEnviadas As Integer
+    Friend ReadOnly Property PeticionesOpcionesModosEnviadas As Integer
         Get
             Return _peticionesModoFacturacion.PeticionesEnviadas
         End Get
@@ -1000,36 +1023,52 @@ Public Class PlantillaVentaViewModel
     End Sub
 
     ''' <summary>Friend para poder pedirlo a mano en los tests sin esperar al reloj.</summary>
-    Friend Function RefrescarModoFacturacion() As Task
+    Friend Function RefrescarOpcionesModos() As Task
         Return _peticionesModoFacturacion.EjecutarAsync(Of PedidoVentaDTO)(
-            AddressOf PedidoParaModoFacturacion, AddressOf HuellaPedidoModoFacturacion,
-            Sub() AplicarModosFacturacionPermitidos(Nothing), AddressOf PedirModoFacturacionAlServidor)
+            AddressOf PedidoParaModoFacturacion, AddressOf HuellaPedidoOpcionesModos,
+            Sub() AplicarOpcionesModos(Nothing, conLineas:=False), AddressOf PedirModoFacturacionAlServidor)
     End Function
 
-    ''' <summary>El pedido que se manda (no hacen falta líneas), con el número si se está modificando uno: así el
-    ''' servidor contesta con el modo que ya tiene guardado.</summary>
+    ''' <summary>El pedido que se manda (las líneas, si las hay: el modo de servicio mira su stock), con el número si se
+    ''' está modificando uno: así el servidor contesta con los modos que ya tiene guardados. La casilla no viaja en la
+    ''' pregunta: lo que el usuario haya tocado lo guarda la propia casilla y marcarla no vuelve a preguntar.</summary>
     Private Function PedidoParaModoFacturacion() As PedidoVentaDTO
         Dim pedido As PedidoVentaDTO = PrepararPedidoParaSugerencias()
         If pedido Is Nothing OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
             Return Nothing
         End If
         pedido.numero = If(NumeroPedidoEnEdicion, 0)
+        pedido.servirPendienteAlHaberStock = Nothing
         Return pedido
     End Function
 
-    ''' <summary>Solo lo que mira la API: así montar líneas no vuelve a preguntar.</summary>
-    Friend Shared Function HuellaPedidoModoFacturacion(pedido As PedidoVentaDTO) As String
-        If pedido Is Nothing Then
-            Return String.Empty
-        End If
-        Return String.Join("|", pedido.empresa, pedido.numero, pedido.cliente, pedido.contacto, pedido.contactoCobro,
-                           pedido.plazosPago, pedido.periodoFacturacion, pedido.notaEntrega, pedido.mantenerJunto, pedido.modoFacturacion,
-                           pedido.formaPago, pedido.ccc) ' NestoAPI#686: al contado no hay «al completar»
+    ''' <summary>
+    ''' NestoAPI#688: el pedido entero, porque en la misma pregunta va el modo de servicio (líneas y stock) y el de
+    ''' facturación (cliente, plazos, periodo, forma de pago y CCC, NestoAPI#686), que ahora depende también del modo de
+    ''' servicio. Con el pedido quieto no se vuelve a preguntar (NestoAPI#517).
+    ''' </summary>
+    Friend Shared Function HuellaPedidoOpcionesModos(pedido As PedidoVentaDTO) As String
+        Return HuellaPedidoSugerencias(pedido)
     End Function
 
     Private Async Function PedirModoFacturacionAlServidor(pedido As PedidoVentaDTO) As Task
-        AplicarSugerenciaModoFacturacion(Await servicio.ModoFacturacionSugerido(pedido).ConfigureAwait(True))
+        Dim conLineas As Boolean = pedido.Lineas IsNot Nothing AndAlso pedido.Lineas.Any()
+        AplicarOpcionesModos(Await servicio.OpcionesModos(pedido).ConfigureAwait(True), conLineas)
     End Function
+
+    ''' <summary>
+    ''' NestoAPI#688: refleja la respuesta de OpcionesModos. El modo de servicio solo si el pedido tenía líneas (sin
+    ''' líneas no hay stock que mirar: lo limpia el reloj de las ofertas, como antes); el de facturación y si se enseña;
+    ''' y la casilla. Nothing (la API falla) = todo habilitado, el combo visible y la casilla oculta.
+    ''' </summary>
+    Friend Sub AplicarOpcionesModos(opciones As OpcionesModosDTO, conLineas As Boolean)
+        If conLineas Then
+            AplicarSugerenciaModoServicio(opciones?.Servicio)
+        End If
+        AplicarSugerenciaModoFacturacion(opciones?.Facturacion)
+        FacturacionVisible = If(opciones?.Facturacion Is Nothing, True, opciones.Facturacion.Visible)
+        ServirPendienteAlHaberStock.Aplicar(opciones?.ServirPendienteAlHaberStock)
+    End Sub
 
     ''' <summary>Habilita/deshabilita las opciones con lo que manda la API (Nothing = todas).</summary>
     Friend Sub AplicarModosFacturacionPermitidos(sugerencia As ModoFacturacionSugeridoDTO)
@@ -1229,6 +1268,7 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Private Sub PedirSugerenciasConDebounce()
         _peticionesSugerencias.Programar() ' NestoAPI#517: un único temporizador que se reprograma
+        PedirModoFacturacionConDebounce() ' NestoAPI#688: el modo de servicio va en OpcionesModos
         PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606: lo que cambia las sugerencias cambia también la fecha
     End Sub
 
@@ -1317,12 +1357,9 @@ Public Class PlantillaVentaViewModel
 
 #End Region
 
+    ''' <summary>NestoAPI#688: el modo de servicio ya no se pregunta aquí sino en OpcionesModos (RefrescarOpcionesModos).</summary>
     Private Async Function PedirSugerenciasAlServidor(pedido As PedidoVentaDTO) As Task
-        Dim tareaModo As Task(Of ModoServicioSugeridoDTO) = servicio.ModoServicioSugerido(pedido)
-        Dim tareaOfertas As Task(Of List(Of SugerenciaOfertaDTO)) = servicio.OfertasSugeridas(pedido)
-
-        AplicarSugerenciaModoServicio(Await tareaModo.ConfigureAwait(True))
-        AplicarOfertasSugeridas(Await tareaOfertas.ConfigureAwait(True))
+        AplicarOfertasSugeridas(Await servicio.OfertasSugeridas(pedido).ConfigureAwait(True))
     End Function
 
     Private Sub LimpiarSugerencias()
@@ -1929,6 +1966,7 @@ Public Class PlantillaVentaViewModel
                 ' del «Mantener junto» de la ficha (como siempre) y lo completa el sugerido de la API.
                 Estado.ModoFacturacion = Nothing
                 _modoFacturacionElegidoPorUsuario = False
+                ServirPendienteAlHaberStock.Reiniciar() ' NestoAPI#688
                 ' Nesto#525: nada de cambiar en silencio. Si el usuario había elegido un modo y al cambiar de
                 ' contacto se pierde, se le dice (no se nombra el nuevo: la sugerencia lo puede recalcular).
                 AvisoModoServicio = If(habiaElegidoModo AndAlso modoAntesDelCambio <> modoInicial,
@@ -4302,6 +4340,9 @@ Public Class PlantillaVentaViewModel
         End If
         ' Nesto#476: el modo efectivo (coherente con servirJunto) es lo que viaja en el DTO y al borrador
         Estado.ModoServicio = ModoServicio
+        ' NestoAPI#688 (lección de Nesto#449: lo que se toca en pantalla tiene que llegar al Estado): la plantilla
+        ' monta el pedido entero, así que la casilla viaja siempre que se enseña.
+        Estado.ServirPendienteAlHaberStock = ServirPendienteAlHaberStock.ValorParaGuardar(modoFacturacionCambiado:=True)
     End Sub
 
     ''' <summary>

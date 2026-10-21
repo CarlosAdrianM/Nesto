@@ -1,4 +1,4 @@
-Imports Nesto.Models
+﻿Imports Nesto.Models
 Imports CommunityToolkit.Mvvm.ComponentModel
 
 ''' <summary>
@@ -99,6 +99,9 @@ Public Class PlantillaVentaState
     ''' rige el que deriva de MantenerJunto (el servidor lo deriva igual). Se manda en el DTO y va al borrador.
     ''' </summary>
     Public Property ModoFacturacion As Byte?
+
+    ''' <summary>NestoAPI#688: «Servir lo pendiente en cuanto haya stock». Nothing = no se manda.</summary>
+    Public Property ServirPendienteAlHaberStock As Boolean?
 #End Region
 
 #Region "Líneas de productos"
@@ -459,6 +462,7 @@ Public Class PlantillaVentaState
         ServirJunto = False
         ModoServicio = Nothing
         ModoFacturacion = Nothing
+        ServirPendienteAlHaberStock = Nothing
         LineasProducto = New List(Of LineaPlantillaVenta)
         LineasRegalo = New List(Of LineaRegalo)
         FormaVenta = 1
@@ -522,6 +526,7 @@ Public Class PlantillaVentaState
             .servirJunto = ServirJunto,
             .modoServicio = ModoServicio,
             .modoFacturacion = ModoFacturacion, ' Nesto#493: Nothing = que lo derive el servidor de mantenerJunto
+            .servirPendienteAlHaberStock = ServirPendienteAlHaberStock, ' NestoAPI#688
             .comentarioPicking = ComentarioPicking,
             .avisarConImporteAlCogerPicking = AvisarConImporteAlCogerPicking,
             .suPedido = SuPedido,

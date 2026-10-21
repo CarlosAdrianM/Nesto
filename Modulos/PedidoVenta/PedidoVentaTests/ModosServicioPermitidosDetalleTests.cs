@@ -151,11 +151,11 @@ namespace PedidoVentaTests
         public async Task Detalle_AlAbrirUnPedidoGrabado_DeshabilitaLasOpcionesPeroNoCambiaElModo()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(new OpcionesModosDTO { Servicio = Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO) });
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosServicio.TRAS_REPONER_DE_TIENDAS));
 
-            await vm.RefrescarModosPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             CollectionAssert.AreEqual(new[] { ModosServicio.TODO_JUNTO }, vm.OpcionesModoServicio.Where(o => o.Habilitado).Select(o => o.Codigo).ToArray());
             Assert.AreEqual(ModosServicio.TRAS_REPONER_DE_TIENDAS, vm.pedido.ModoServicio, "En un pedido grabado el modo no se toca solo: el servidor solo lo comprueba si cambia");
@@ -166,12 +166,12 @@ namespace PedidoVentaTests
         public async Task Detalle_SiElModoQueEligioElUsuarioDejaDeValer_PasaAlSugeridoYAvisa()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(new OpcionesModosDTO { Servicio = Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO) });
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosServicio.TRAS_REPONER_DE_TIENDAS));
 
             vm.pedido.ModoServicio = ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ; // elección del usuario
-            await vm.RefrescarModosPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.AreEqual(ModosServicio.TODO_JUNTO, vm.pedido.ModoServicio);
             Assert.IsTrue(vm.HayAvisoModoServicio);
@@ -182,11 +182,11 @@ namespace PedidoVentaTests
         public async Task Detalle_PedidoNuevoSinTocar_ElDefectoQueNoValeSeSustituyeSinAviso()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosServicio.SEGUN_VAYA_ENTRANDO, ModosServicio.SEGUN_VAYA_ENTRANDO));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(new OpcionesModosDTO { Servicio = Sugerencia(ModosServicio.SEGUN_VAYA_ENTRANDO, ModosServicio.SEGUN_VAYA_ENTRANDO) });
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(0, ModosServicio.TRAS_REPONER_DE_TIENDAS));
 
-            await vm.RefrescarModosPermitidos();
+            await vm.RefrescarOpcionesModos();
 
             Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.pedido.ModoServicio);
             Assert.IsFalse(vm.HayAvisoModoServicio, "Es la preselección, como en la plantilla");
@@ -196,15 +196,15 @@ namespace PedidoVentaTests
         public async Task Detalle_ConElPedidoQuieto_NoSeVuelveAPreguntar()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO, ModosServicio.SEGUN_VAYA_ENTRANDO));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(new OpcionesModosDTO { Servicio = Sugerencia(ModosServicio.TODO_JUNTO, ModosServicio.TODO_JUNTO, ModosServicio.SEGUN_VAYA_ENTRANDO) });
             DetallePedidoViewModel vm = Vm(servicio);
             vm.pedido = new PedidoVentaWrapper(Pedido(926700, ModosServicio.TODO_JUNTO));
 
-            await vm.RefrescarModosPermitidos();
-            await vm.RefrescarModosPermitidos();
-            await vm.RefrescarModosPermitidos();
+            await vm.RefrescarOpcionesModos();
+            await vm.RefrescarOpcionesModos();
+            await vm.RefrescarOpcionesModos();
 
-            Assert.AreEqual(1, vm.PeticionesModosEnviadas);
+            Assert.AreEqual(1, vm.PeticionesOpcionesModosEnviadas);
         }
 
         [TestMethod]

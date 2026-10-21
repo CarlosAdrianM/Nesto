@@ -273,7 +273,7 @@ namespace PlantillaVentaTests
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IMessenger messenger = new WeakReferenceMessenger();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).Returns(Sugerencia(modoQueSugiereElServidor));
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).Returns(new OpcionesModosDTO { Servicio = Sugerencia(modoQueSugiereElServidor) }); // NestoAPI#688
             A.CallTo(() => servicio.OfertasSugeridas(A<PedidoVentaDTO>._)).Returns(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
 
             var vm = new PlantillaVentaViewModel(abridorPedidos, A.Fake<IServicioNavegacion>(), configuracion, servicio,
@@ -281,6 +281,7 @@ namespace PlantillaVentaTests
                 A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm._clienteSeleccionado = new ClienteJson { empresa = "1", cliente = "15191", contacto = "0", iva = "G21", cifNif = "12345678A" };
+            vm.Estado.Cliente = "15191"; // NestoAPI#688: OpcionesModos necesita el cliente (el setter lo pone; el campo no)
             vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { contacto = "0", servirJunto = false };
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta { producto = "38093", cantidad = 5, precio = 10M });
             return (vm, servicio);
@@ -305,14 +306,34 @@ namespace PlantillaVentaTests
         public async System.Threading.Tasks.Task Sugerencias_AunqueElServidorCambieElModo_SeEstabilizan()
         {
             // Aplicar el modo sugerido cambia el pedido (una petición más para confirmarlo) y ahí se para.
+            // NestoAPI#688: el modo de servicio llega ahora en OpcionesModos, con su propio reloj.
             var (vm, servicio) = CrearViewModelConPedido(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ);
 
             for (int i = 0; i < 6; i++)
             {
+                await vm.RefrescarOpcionesModos();
                 await vm.RefrescarSugerencias();
             }
 
+            Assert.AreEqual(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ, vm.ModoServicio, "El modo sugerido se aplica");
+            Assert.IsTrue(vm.PeticionesOpcionesModosEnviadas <= 2, $"Se ha preguntado {vm.PeticionesOpcionesModosEnviadas} veces por los modos con el pedido quieto");
             Assert.IsTrue(vm.PeticionesSugerenciasEnviadas <= 2, $"Se han pedido {vm.PeticionesSugerenciasEnviadas} veces con el pedido quieto");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task OpcionesModos_UnaSolaPregunta_YaNoSeLlamaANingunEndpointViejo()
+        {
+            // NestoAPI#688: un POST (OpcionesModos) en vez de ModoServicioSugerido + ModoFacturacionSugerido. La
+            // compatibilidad con una API vieja (404) la resuelve el servicio, no el ViewModel.
+            var (vm, servicio) = CrearViewModelConPedido(ModosServicio.TRAS_REPONER_DE_TIENDAS);
+
+            await vm.RefrescarOpcionesModos();
+            await vm.RefrescarOpcionesModos();
+
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.ModoServicioSugerido(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.ModoFacturacionSugerido(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.OpcionesModos(A<PedidoVentaDTO>.That.Matches(p => p.Lineas.Any() && p.modoServicio.HasValue))).MustHaveHappened();
         }
 
         [TestMethod]
