@@ -61,6 +61,7 @@ namespace Nesto.Modulos.Cliente
             FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
             RecargarInscripcionesCommand = new AsyncRelayCommand(CargarInscripcionesAsync, () => Seleccionado?.Id > 0);
+            AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
         }
 
         public IConfiguracion Configuracion { get; }
@@ -290,6 +291,7 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
+            EventoModel conImagen = null;
             try
             {
                 EstaOcupado = true;
@@ -298,6 +300,12 @@ namespace Nesto.Modulos.Cliente
                 if (Seleccionado != null && Seleccionado.Id == _idEdicion)
                 {
                     Seleccionado.ImagenUrl = ImagenUrl;
+                    CopiarEstadoAnuncio(evento, Seleccionado);
+                }
+                if (evento != null && evento.Id == _idEdicion)
+                {
+                    PonerEstadoAnuncio(evento);
+                    conImagen = evento;
                 }
             }
             catch (Exception ex)
@@ -308,6 +316,8 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = false;
             }
+            // Nesto#545: al crear el evento aún no tiene imagen, así que lo normal es que se complete aquí.
+            await ProponerAnunciarAsync(conImagen);
         }
 
         public AsyncRelayCommand QuitarImagenCommand { get; }
@@ -327,6 +337,11 @@ namespace Nesto.Modulos.Cliente
                 if (Seleccionado != null && Seleccionado.Id == _idEdicion)
                 {
                     Seleccionado.ImagenUrl = null;
+                }
+                // Nesto#545: la API no devuelve el evento; sin imagen ya no está completo (lo exacto, al recargar).
+                if (QueFalta != null && !QueFalta.Contains(FALTA_IMAGEN))
+                {
+                    PonerQueFalta(new[] { FALTA_IMAGEN }.Concat(QueFalta).ToList());
                 }
             }
             catch (Exception ex)
@@ -414,6 +429,7 @@ namespace Nesto.Modulos.Cliente
             PlazasEdicion = null;
             LugarEdicion = null;
             DescripcionLargaEdicion = null;
+            PonerEstadoAnuncio(null);
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
             SubirImagenCommand.NotifyCanExecuteChanged();
@@ -443,6 +459,7 @@ namespace Nesto.Modulos.Cliente
             PonenteEdicion = evento.Ponente;
             ImporteSenalNoReembolsableEdicion = evento.ImporteSenalNoReembolsable;
             ImagenUrl = string.IsNullOrWhiteSpace(evento.ImagenUrl) ? null : evento.ImagenUrl.Trim();
+            PonerEstadoAnuncio(evento);
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
             SubirImagenCommand.NotifyCanExecuteChanged();
@@ -503,6 +520,7 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("Las plazas tienen que ser más de cero (o ninguna, si no hay límite).");
                 return;
             }
+            EventoModel guardadoParaAnunciar = null;
             try
             {
                 EstaOcupado = true;
@@ -528,7 +546,174 @@ namespace Nesto.Modulos.Cliente
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
                 Seleccionado = Eventos.FirstOrDefault(e => e.Id == guardado?.Id);
-                _dialogService.ShowNotification("Evento guardado", $"Guardado el evento «{guardado?.Titulo}» del {guardado?.Fecha:dd/MM/yyyy}.");
+                // Nesto#545: si con lo guardado ya está completo y no se ha anunciado, la pregunta hace de aviso de guardado.
+                guardadoParaAnunciar = guardado;
+                if (!HayQuePreguntarSiAnunciar(guardado))
+                {
+                    _dialogService.ShowNotification("Evento guardado", $"Guardado el evento «{guardado?.Titulo}» del {guardado?.Fecha:dd/MM/yyyy}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            await ProponerAnunciarAsync(guardadoParaAnunciar);
+        }
+
+        private static string Limpiar(string texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+
+        // ---------------- Nesto#545 (NestoAPI#692): anunciar el evento en las apps ----------------
+
+        /// <summary>Lo que dice la API cuando falta la imagen (se añade aquí al quitarla, porque BorrarImagen no devuelve el evento).</summary>
+        public const string FALTA_IMAGEN = "la imagen";
+
+        private List<string> _queFalta;
+        /// <summary>Lo que falta para anunciarlo (de la API); null con la API de antes o sin evento.</summary>
+        public List<string> QueFalta { get => _queFalta; private set => SetProperty(ref _queFalta, value); }
+
+        private bool _completo;
+        public bool Completo { get => _completo; private set => SetProperty(ref _completo, value); }
+
+        private DateTime? _anunciadoFecha;
+        public DateTime? AnunciadoFecha
+        {
+            get => _anunciadoFecha;
+            private set
+            {
+                if (SetProperty(ref _anunciadoFecha, value))
+                {
+                    OnPropertyChanged(nameof(PuedeAnunciarOtraVez));
+                    OnPropertyChanged(nameof(TextoUltimoAnuncio));
+                    AnunciarOtraVezCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _anunciadoUsuario;
+        public string AnunciadoUsuario
+        {
+            get => _anunciadoUsuario;
+            private set
+            {
+                if (SetProperty(ref _anunciadoUsuario, value))
+                {
+                    OnPropertyChanged(nameof(TextoUltimoAnuncio));
+                }
+            }
+        }
+
+        /// <summary>«Para anunciarlo en las apps falta: la imagen, el ponente.»; vacío si está completo (o con la API de antes).</summary>
+        public string TextoQueFalta => TextoFalta(Completo, QueFalta);
+
+        public bool HayQueFalta => !string.IsNullOrEmpty(TextoQueFalta);
+
+        public static string TextoFalta(bool completo, IEnumerable<string> queFalta)
+        {
+            List<string> partes = queFalta?.Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).ToList();
+            if (completo || partes == null || !partes.Any())
+            {
+                return string.Empty;
+            }
+            string lista = string.Join(", ", partes);
+            return $"Para anunciarlo en las apps falta: {lista}{(lista.EndsWith(".") ? string.Empty : ".")}";
+        }
+
+        /// <summary>«Anunciado el 22/10/2026 a las 10:15 por carlos»; vacío si no se ha anunciado.</summary>
+        public string TextoUltimoAnuncio => TextoAnuncio(AnunciadoFecha, AnunciadoUsuario);
+
+        public static string TextoAnuncio(DateTime? fecha, string usuario)
+        {
+            if (!fecha.HasValue)
+            {
+                return string.Empty;
+            }
+            string quien = string.IsNullOrWhiteSpace(usuario) ? string.Empty : $" por {usuario.Trim()}";
+            return $"Anunciado el {fecha.Value:dd/MM/yyyy} a las {fecha.Value:HH:mm}{quien}";
+        }
+
+        /// <summary>«Anunciar otra vez»: solo de un evento guardado que ya se anunció.</summary>
+        public bool PuedeAnunciarOtraVez => _idEdicion > 0 && AnunciadoFecha.HasValue;
+
+        private void PonerEstadoAnuncio(EventoModel evento)
+        {
+            Completo = evento?.Completo ?? false;
+            PonerQueFalta(evento?.QueFalta);
+            AnunciadoUsuario = evento?.AnunciadoUsuario;
+            AnunciadoFecha = evento?.AnunciadoFecha;
+            OnPropertyChanged(nameof(PuedeAnunciarOtraVez));
+            AnunciarOtraVezCommand?.NotifyCanExecuteChanged();
+        }
+
+        private void PonerQueFalta(List<string> queFalta)
+        {
+            QueFalta = queFalta;
+            if (queFalta != null && queFalta.Any(f => !string.IsNullOrWhiteSpace(f)))
+            {
+                Completo = false;
+            }
+            OnPropertyChanged(nameof(TextoQueFalta));
+            OnPropertyChanged(nameof(HayQueFalta));
+        }
+
+        private static void CopiarEstadoAnuncio(EventoModel origen, EventoModel destino)
+        {
+            if (origen == null || destino == null || origen.Id != destino.Id)
+            {
+                return;
+            }
+            destino.Completo = origen.Completo;
+            destino.QueFalta = origen.QueFalta;
+            destino.AnunciadoFecha = origen.AnunciadoFecha;
+            destino.AnunciadoUsuario = origen.AnunciadoUsuario;
+        }
+
+        /// <summary>Se pregunta si anunciarlo cuando está completo y no se ha anunciado nunca.</summary>
+        public static bool HayQuePreguntarSiAnunciar(EventoModel evento) =>
+            evento != null && evento.Id > 0 && evento.Completo && !evento.AnunciadoFecha.HasValue;
+
+        public const string TITULO_ANUNCIAR = "Anunciar el evento";
+        public const string PREGUNTA_ANUNCIAR = "El evento está completo. ¿Quiere anunciarlo en las apps?";
+
+        /// <summary>
+        /// Tras guardar o subir la imagen: si el evento ya está completo y no se ha anunciado, pregunta (con «No» por
+        /// defecto) y, con Sí, lo anuncia.
+        /// </summary>
+        private async Task ProponerAnunciarAsync(EventoModel evento)
+        {
+            if (!HayQuePreguntarSiAnunciar(evento)
+                || !_dialogService.ShowConfirmationAnswer(TITULO_ANUNCIAR, PREGUNTA_ANUNCIAR, porDefectoNo: true))
+            {
+                return;
+            }
+            await AnunciarAsync(evento.Id, otraVez: false, reclamo: null);
+        }
+
+        private async Task AnunciarAsync(int eventoId, bool otraVez, string reclamo)
+        {
+            try
+            {
+                EstaOcupado = true;
+                AnuncioEventoModel anuncio = await _servicio.Anunciar(eventoId, otraVez, reclamo);
+                if (anuncio != null)
+                {
+                    DateTime? fecha = anuncio.AnunciadoFecha ?? DateTime.Now;
+                    EventoModel enLista = Eventos.FirstOrDefault(e => e.Id == eventoId);
+                    if (enLista != null)
+                    {
+                        enLista.AnunciadoFecha = fecha;
+                        enLista.AnunciadoUsuario = anuncio.AnunciadoUsuario;
+                    }
+                    if (_idEdicion == eventoId)
+                    {
+                        AnunciadoUsuario = anuncio.AnunciadoUsuario;
+                        AnunciadoFecha = fecha;
+                    }
+                }
+                _dialogService.ShowNotification(TITULO_ANUNCIAR, anuncio?.TextoParaUsuario ?? "Anunciado.");
             }
             catch (Exception ex)
             {
@@ -540,7 +725,49 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        private static string Limpiar(string texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+        public AsyncRelayCommand AnunciarOtraVezCommand { get; }
+
+        /// <summary>
+        /// «Anunciar otra vez»: abre el diálogo con cuándo se anunció la última vez y los reclamos que propone la API, y
+        /// anuncia con el reclamo elegido o escrito (obligatorio, hasta 60 caracteres).
+        /// </summary>
+        public async Task AnunciarOtraVezAsync()
+        {
+            if (!PuedeAnunciarOtraVez)
+            {
+                return;
+            }
+            int eventoId = _idEdicion;
+            ResultadoDialogo resultado;
+            try
+            {
+                resultado = await _dialogService.ShowDialogAsync(AnunciarEventoDialogViewModel.NOMBRE, new ParametrosDialogo
+                {
+                    { AnunciarEventoDialogViewModel.PARAMETRO_EVENTO_ID, eventoId },
+                    { AnunciarEventoDialogViewModel.PARAMETRO_EVENTO, TituloEdicion?.Trim() },
+                    { AnunciarEventoDialogViewModel.PARAMETRO_ULTIMO_ANUNCIO, TextoUltimoAnuncio }
+                });
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                return;
+            }
+            if (resultado?.Result != ResultadoBoton.OK)
+            {
+                return;
+            }
+            string reclamo = resultado.Parameters != null && resultado.Parameters.ContainsKey(AnunciarEventoDialogViewModel.PARAMETRO_RECLAMO)
+                ? resultado.Parameters.GetValue<string>(AnunciarEventoDialogViewModel.PARAMETRO_RECLAMO)
+                : null;
+            string error = AnunciarEventoDialogViewModel.ValidarReclamo(reclamo);
+            if (error != null)
+            {
+                _dialogService.ShowError(error);
+                return;
+            }
+            await AnunciarAsync(eventoId, otraVez: true, reclamo: reclamo.Trim());
+        }
 
         public AsyncRelayCommand ComprobarProductoCommand { get; }
 

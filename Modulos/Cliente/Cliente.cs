@@ -33,6 +33,8 @@ namespace Nesto.Modulos.Cliente
             registro.RegistrarDialogo<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
             // Nesto#517: inscribir en un evento (desde el mantenimiento y desde la ficha del cliente)
             registro.RegistrarDialogo<InscribirEventoDialog, InscribirEventoDialogViewModel>(InscribirEventoDialogViewModel.NOMBRE);
+            // Nesto#545: «Anunciar otra vez» con el reclamo del aviso
+            registro.RegistrarDialogo<AnunciarEventoDialog, AnunciarEventoDialogViewModel>(AnunciarEventoDialogViewModel.NOMBRE);
             registro.RegistrarDialogo<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar

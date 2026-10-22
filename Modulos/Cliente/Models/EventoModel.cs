@@ -77,6 +77,22 @@ namespace Nesto.Modulos.Cliente.Models
         public List<string> Modalidades { get; set; }
         public bool ShouldSerializeModalidades() => false;
 
+        // Nesto#545 (NestoAPI#692): si el evento está completo para anunciarlo en las apps y cuándo se anunció. Solo lectura;
+        // la API de antes no los manda (Completo false y QueFalta null: no se pregunta ni se enseña nada).
+
+        /// <summary>Nesto#545: tiene todo lo que hace falta para anunciarlo en las apps. No se manda.</summary>
+        public bool Completo { get; set; }
+        public bool ShouldSerializeCompleto() => false;
+        /// <summary>Nesto#545: lo que falta para anunciarlo («la imagen», «el ponente»…); vacía si está completo. No se manda.</summary>
+        public List<string> QueFalta { get; set; }
+        public bool ShouldSerializeQueFalta() => false;
+        /// <summary>Nesto#545: cuándo se anunció en las apps la última vez (null = nunca). No se manda.</summary>
+        public DateTime? AnunciadoFecha { get; set; }
+        public bool ShouldSerializeAnunciadoFecha() => false;
+        /// <summary>Nesto#545: quién lo anunció la última vez. No se manda.</summary>
+        public string AnunciadoUsuario { get; set; }
+        public bool ShouldSerializeAnunciadoUsuario() => false;
+
         /// <summary>El de la API o, con la de antes, el de las dos señales a 0.</summary>
         [JsonIgnore]
         public bool EsGratuito => Gratuito || (ImporteSenal == 0 && ImporteSenalNoReembolsable == 0);
@@ -133,6 +149,52 @@ namespace Nesto.Modulos.Cliente.Models
                 case REINA: return "Reina";
                 case ALCOBENDAS: return "Alcobendas";
                 default: return almacen?.Trim() ?? string.Empty;
+            }
+        }
+    }
+
+    /// <summary>Nesto#545 (NestoAPI#692): cuerpo de POST api/Eventos/{id}/Anunciar.</summary>
+    public class AnunciarEventoModel
+    {
+        /// <summary>Máximo de caracteres del reclamo (lo vuelve a comprobar la API).</summary>
+        public const int LONGITUD_MAXIMA_RECLAMO = 60;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string Reclamo { get; set; }
+    }
+
+    /// <summary>Nesto#545 (NestoAPI#692): respuesta de POST api/Eventos/{id}/Anunciar.</summary>
+    public class AnuncioEventoModel
+    {
+        public int EventoId { get; set; }
+        public DateTime? AnunciadoFecha { get; set; }
+        public string AnunciadoUsuario { get; set; }
+        public string Reclamo { get; set; }
+        /// <summary>Fuera de horario: no sale ahora, sino a las <see cref="ProgramadoPara"/> (las 9:00).</summary>
+        public bool Encolado { get; set; }
+        public DateTime? ProgramadoPara { get; set; }
+        public int DispositivosNestoApp { get; set; }
+        public int DispositivosTiendas { get; set; }
+        public int Dispositivos { get; set; }
+        /// <summary>«Anunciado en 37 dispositivos (12 de NestoApp y 25 de la tienda online).»</summary>
+        public string Mensaje { get; set; }
+
+        /// <summary>El <see cref="Mensaje"/> de la API o, si no viene, uno hecho aquí.</summary>
+        [JsonIgnore]
+        public string TextoParaUsuario
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(Mensaje))
+                {
+                    return Mensaje.Trim();
+                }
+                if (Encolado)
+                {
+                    return $"Ahora no es buena hora para avisar: el anuncio saldrá a las {(ProgramadoPara ?? DateTime.Today.AddHours(9)):HH:mm}"
+                        + (ProgramadoPara.HasValue && ProgramadoPara.Value.Date != DateTime.Today ? $" del {ProgramadoPara.Value:dd/MM/yyyy}." : ".");
+                }
+                return $"Anunciado en {Dispositivos} dispositivos.";
             }
         }
     }

@@ -207,6 +207,27 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        // ---------------- Nesto#545 (NestoAPI#692) ----------------
+
+        public async Task<List<string>> LeerReclamos(int eventoId)
+        {
+            string body = await Enviar(c => c.GetAsync($"Eventos/{eventoId}/Reclamos"),
+                "No se pudieron cargar los reclamos para anunciar el evento", vacioSiApiVieja: true);
+            return Lista<string>(body);
+        }
+
+        public async Task<AnuncioEventoModel> Anunciar(int eventoId, bool otraVez, string reclamo)
+        {
+            string body = await Enviar(c => c.PostAsync(UrlAnunciar(eventoId, otraVez),
+                    Json(new AnunciarEventoModel { Reclamo = string.IsNullOrWhiteSpace(reclamo) ? null : reclamo.Trim() })),
+                "No se pudo anunciar el evento");
+            return JsonConvert.DeserializeObject<AnuncioEventoModel>(body);
+        }
+
+        /// <summary>«Eventos/12/Anunciar» o «Eventos/12/Anunciar?otraVez=true».</summary>
+        public static string UrlAnunciar(int eventoId, bool otraVez) =>
+            $"Eventos/{eventoId}/Anunciar" + (otraVez ? "?otraVez=true" : string.Empty);
+
         // ---------------- NestoAPI#615 ----------------
 
         public async Task<List<PropuestaSenalModel>> LeerPropuestas()

@@ -46,6 +46,16 @@ namespace Nesto.Modulos.Cliente
         Task<EventoModel> SubirImagen(int eventoId, string ruta);
         Task BorrarImagen(int eventoId);
 
+        // Nesto#545 (NestoAPI#692): anunciar el evento en las apps (push a NestoApp y a la tienda online).
+
+        /// <summary>Los reclamos que propone la API para volver a anunciar («¡Últimas plazas disponibles!»…).</summary>
+        Task<List<string>> LeerReclamos(int eventoId);
+        /// <summary>
+        /// POST api/Eventos/{id}/Anunciar; con <paramref name="otraVez"/>, «?otraVez=true» y el <paramref name="reclamo"/>
+        /// (obligatorio, hasta 60). Sin otraVez, la API devuelve 409 si ya se anunció.
+        /// </summary>
+        Task<AnuncioEventoModel> Anunciar(int eventoId, bool otraVez, string reclamo);
+
         // NestoAPI#615: señales propuestas (las confirma o descarta Administración).
 
         /// <summary>Los cobros a cuenta con sus eventos candidatos. Null con una API que no tiene las propuestas (404).</summary>
