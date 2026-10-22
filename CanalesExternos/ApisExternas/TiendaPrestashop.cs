@@ -47,6 +47,12 @@
         /// </summary>
         public bool CanjeaChequesRegalo { get; init; }
 
+        /// <summary>
+        /// Nesto#518 (NestoAPI#614): la tienda es espejo de los cupones de Nesto (reglas de carrito con el código del cupón,
+        /// EV-…/MN-…). Solo entonces se buscan esas reglas en los pedidos con descuento.
+        /// </summary>
+        public bool CanjeaCupones { get; init; }
+
         public static readonly TiendaPrestashop NuevaVision = new()
         {
             Nombre = "Nueva Visión",
@@ -56,7 +62,8 @@
             Serie = "NV",
             ConceptoPrepago = "Tienda Online",
             UsaTransportistaDeNestoAPI = true,
-            CanjeaChequesRegalo = true
+            CanjeaChequesRegalo = true,
+            CanjeaCupones = true
         };
 
         public static readonly TiendaPrestashop EvaVisnu = new()

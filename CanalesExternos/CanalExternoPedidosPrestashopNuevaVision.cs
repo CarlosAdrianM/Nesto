@@ -7,8 +7,8 @@ namespace Nesto.Modulos.CanalesExternos
     public sealed class CanalExternoPedidosPrestashopNuevaVision : CanalExternoPedidosPrestashop
     {
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesLookup,
-            Nesto.Infrastructure.Services.IServicioChequesRegalo chequesRegalo = null)
-            : base(configuracion, clientesLookup, TiendaPrestashop.NuevaVision, chequesRegalo)
+            Nesto.Infrastructure.Services.IServicioChequesRegalo chequesRegalo = null, Nesto.Infrastructure.Services.IServicioCupones cupones = null)
+            : base(configuracion, clientesLookup, TiendaPrestashop.NuevaVision, chequesRegalo, cupones)
         {
         }
     }

@@ -52,6 +52,9 @@ namespace ControlesUsuario.Dialogs
         public bool ShowConfirmationAnswer(string title, string message)
             => EnHiloUi(() => _interno.ShowConfirmationAnswer(title, message));
 
+        public bool ShowConfirmationAnswer(string title, string message, bool porDefectoNo)
+            => EnHiloUi(() => _interno.ShowConfirmationAnswer(title, message, porDefectoNo));
+
         public Task<bool> ShowConfirmationAsync(string message)
             => EnHiloUi(() => _interno.ShowConfirmationAsync(message));
 

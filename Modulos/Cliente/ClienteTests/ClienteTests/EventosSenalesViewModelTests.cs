@@ -42,12 +42,21 @@ namespace ClienteTests
         // ---------------- Mantenimiento de eventos ----------------
 
         [TestMethod]
-        public void PuedeMantener_SoloTiendaOnlineDireccionEInformatica()
+        public void PuedeMantener_SinGrupo_No()
         {
             Assert.IsFalse(MantenimientoEventosViewModel.PuedeMantener(configuracion));
-            EnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
-            Assert.IsFalse(MantenimientoEventosViewModel.PuedeMantener(configuracion), "Administración marca señales, no mantiene eventos");
-            EnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+        }
+
+        // Nesto#517 (NestoAPI#611, Carlos 14/10/26): cada tienda mantiene sus eventos, y Administración y Dirección todos.
+        [DataTestMethod]
+        [DataRow(Constantes.GruposSeguridad.TIENDA_ON_LINE)]
+        [DataRow(Constantes.GruposSeguridad.TIENDAS)]
+        [DataRow(Constantes.GruposSeguridad.ADMINISTRACION)]
+        [DataRow(Constantes.GruposSeguridad.DIRECCION)]
+        [DataRow(Constantes.GruposSeguridad.INFORMATICA)]
+        public void PuedeMantener_TiendasAdministracionDireccionYTiendaOnline(string grupo)
+        {
+            EnGrupo(grupo);
             Assert.IsTrue(MantenimientoEventosViewModel.PuedeMantener(configuracion));
         }
 
@@ -64,6 +73,7 @@ namespace ClienteTests
             vm.TituloEdicion = "  Masterclass Cloasma ";
             vm.FechaEdicion = new DateTime(2026, 10, 13, 10, 0, 0);
             vm.ImporteSenalEdicion = 50;
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             await vm.GuardarAsync();
 
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e =>
@@ -85,6 +95,7 @@ namespace ClienteTests
 
             vm.Seleccionado = vm.Eventos.Single();
             vm.ActivoEdicion = false;
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             await vm.GuardarAsync();
 
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e => e.Id == 3 && !e.Activo && e.Titulo == "Curso peelings")))

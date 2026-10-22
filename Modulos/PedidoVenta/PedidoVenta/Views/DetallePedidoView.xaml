@@ -930,6 +930,36 @@
                         <TextBlock Text="{Binding ChequeRegalo.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="700"/>
                     </DockPanel>
                 </Border>
+                <!-- Nesto#518 (NestoAPI#613): el cliente tiene un cupón que se puede usar y el pedido no lleva ninguno. El botón añade la
+                     línea con el código (−importe con el IVA incluido) y la manda el guardado normal; si no llega al mínimo, al
+                     guardar se enseña el mensaje de la API. Sin cupón (o con una API anterior) no se ve nada. -->
+                <Border Margin="5,2" Padding="8,4" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left"
+                        Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                        Visibility="{Binding MostrarAvisoCupon, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{Binding Cupon.TextoAnadir}" Command="{Binding AnadirCuponCommand}"
+                                Margin="8,0,0,0" Padding="8,1" VerticalAlignment="Center"
+                                ToolTip="Añade la línea del cupón al pedido; se aplica al guardar. Para quitarlo, use «Quitar el cupón» o borre la línea."/>
+                        <TextBlock Text="{Binding Cupon.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="700"/>
+                    </DockPanel>
+                </Border>
+                <!-- Nesto#518: el pedido lleva la línea de un cupón. Se puede quitar mientras no esté servida ni en picking; al
+                     guardar, el cupón vuelve a estar disponible (Activo). -->
+                <Border Margin="5,2" Padding="8,4" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left"
+                        Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                        Visibility="{Binding PedidoLlevaCupon, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Quitar el cupón" Command="{Binding QuitarCuponCommand}"
+                                Margin="8,0,0,0" Padding="8,1" VerticalAlignment="Center"
+                                Visibility="{Binding SePuedeQuitarCupon, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                ToolTip="Quita la línea del cupón; al guardar, el cupón vuelve a estar disponible para otro pedido."/>
+                        <TextBlock Text="{Binding TextoCuponAplicado}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="700"/>
+                    </DockPanel>
+                </Border>
                 <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
                      La línea de reembolso aparece ya en el DataGrid de líneas (la añade el backend
                      al guardar vía GestorPortes.GestionarLineasPortes). -->

@@ -34,6 +34,14 @@ Public Class LineaPedidoVentaDTO
     ' Se usa para determinar si se puede cambiar el almacén de la línea
     Public Property EsFicticio() As Boolean
 
+    ''' <summary>
+    ''' Nesto#518 (NestoAPI#613): para aplicar un cupón, la línea lleva su código (EV-2610-7K3Q). El producto, la cantidad (−1),
+    ''' el precio, el texto y el IVA los pone el servidor. Solo en escrituras: el GET no lo trae (el servidor sabe qué cupón
+    ''' tiene el pedido) y, si va vacío, no se manda.
+    ''' </summary>
+    <JsonProperty(NullValueHandling:=NullValueHandling.Ignore)>
+    Public Property CodigoCupon As String
+
     Public ReadOnly Property estaAlbaraneada() As Boolean
         Get
             Return estado >= 2

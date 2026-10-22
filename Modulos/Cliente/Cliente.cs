@@ -31,6 +31,8 @@ namespace Nesto.Modulos.Cliente
             registro.Vista<SenalesEventosView>("SenalesEventosView");
             registro.Transitorio<IEventosService, EventosService>();
             registro.RegistrarDialogo<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
+            // Nesto#517: inscribir en un evento (desde el mantenimiento y desde la ficha del cliente)
+            registro.RegistrarDialogo<InscribirEventoDialog, InscribirEventoDialogViewModel>(InscribirEventoDialogViewModel.NOMBRE);
             registro.RegistrarDialogo<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
@@ -43,6 +45,7 @@ namespace Nesto.Modulos.Cliente
             registro.Transitorio<MantenimientoCodigosPostalesViewModel>();
             registro.Transitorio<MantenimientoEventosViewModel>();
             registro.Transitorio<SenalesEventosViewModel>();
+            registro.Transitorio<InscripcionesClienteViewModel>(); // Nesto#517: pestaña Eventos de la ficha
         }
 
         public void Inicializar(IResolutorNesto resolutor)

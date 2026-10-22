@@ -71,6 +71,36 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         [TestMethod]
+        public void ShowConfirmationAnswer_PorDefectoNo_PasaElParametroAlDialogo()
+        {
+            ResponderCon(ResultadoBoton.Cancel);
+
+            Assert.IsFalse(_servicio.ShowConfirmationAnswer("Lista", "¿Desea guardar?", porDefectoNo: true));
+            Assert.IsTrue(_servicio.Parametros.GetValue<bool>(ControlesUsuario.Dialogs.ConfirmationDialogViewModel.PARAMETRO_POR_DEFECTO_NO));
+        }
+
+        [TestMethod]
+        public void ShowConfirmationAnswer_SinPorDefectoNo_NoPasaElParametro()
+        {
+            ResponderCon(ResultadoBoton.OK);
+
+            Assert.IsTrue(_servicio.ShowConfirmationAnswer("Guardar", "¿Seguro?"));
+            Assert.IsFalse(_servicio.Parametros.ContainsKey(ControlesUsuario.Dialogs.ConfirmationDialogViewModel.PARAMETRO_POR_DEFECTO_NO));
+        }
+
+        [TestMethod]
+        public void ConfirmationDialog_PorDefectoNo_ElBotonPorDefectoEsNo()
+        {
+            var vm = new ControlesUsuario.Dialogs.ConfirmationDialogViewModel();
+
+            vm.OnDialogOpened(new ParametrosDialogo { { "title", "Lista" }, { "message", "¿Desea guardar?" },
+                { ControlesUsuario.Dialogs.ConfirmationDialogViewModel.PARAMETRO_POR_DEFECTO_NO, true } });
+
+            Assert.IsTrue(vm.PorDefectoNo);
+            Assert.IsFalse(vm.PorDefectoSi);
+        }
+
+        [TestMethod]
         public async Task ShowConfirmationAsync_Aceptar_DevuelveTrue()
         {
             ResponderCon(ResultadoBoton.OK);

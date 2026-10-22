@@ -42,6 +42,12 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Confirmación modal: true solo si el usuario pulsa Aceptar.</summary>
         bool ShowConfirmationAnswer(string title, string message);
 
+        /// <summary>
+        /// Como <see cref="ShowConfirmationAnswer(string, string)"/>; con <paramref name="porDefectoNo"/> el botón por
+        /// defecto (Intro) es «No», para las confirmaciones con consecuencias que no se deshacen.
+        /// </summary>
+        bool ShowConfirmationAnswer(string title, string message, bool porDefectoNo);
+
         Task<bool> ShowConfirmationAsync(string message);
         Task<bool> ShowConfirmationAsync(string title, string message);
 

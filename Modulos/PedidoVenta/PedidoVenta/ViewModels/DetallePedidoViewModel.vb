@@ -98,6 +98,9 @@ Public Class DetallePedidoViewModel
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))) ' NestoAPI#581
         ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#593
         AnadirChequeRegaloCommand = New RelayCommand(AddressOf AnadirChequeRegalo, Function() MostrarAvisoChequeRegalo) ' NestoAPI#593
+        ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' Nesto#518
+        AnadirCuponCommand = New RelayCommand(AddressOf AnadirCupon, Function() MostrarAvisoCupon) ' Nesto#518
+        QuitarCuponCommand = New RelayCommand(AddressOf QuitarCupon, Function() SePuedeQuitarCupon) ' Nesto#518
         Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
@@ -602,6 +605,7 @@ Public Class DetallePedidoViewModel
                 ReiniciarModosFacturacionPermitidos() ' Nesto#493
                 Dim unusedFecha = CargarFechaEntregaAgenciaAsync() ' NestoAPI#606: sin esperar, la carga sigue
                 Dim unusedCheque = CargarChequeRegaloAsync() ' NestoAPI#593 (c5): sin esperar, la carga sigue
+                Dim unusedCupon = CargarCuponAsync() ' Nesto#518: sin esperar, la carga sigue
                 Dim unusedBultos = BultosPedido?.Cargar(_pedido.empresa, _pedido.numero) ' Nesto#522: sin esperar, no lanza
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
@@ -2703,6 +2707,7 @@ Public Class DetallePedidoViewModel
         If guardado Then
             Await CargarFechaEntregaAgenciaAsync()
             Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
+            Await CargarCuponAsync() ' Nesto#518: el cupón puede haber pasado a este pedido o haberse soltado
         End If
     End Function
 
@@ -2805,6 +2810,166 @@ Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(PedidoLlevaChequeRegalo))
         OnPropertyChanged(NameOf(MostrarAvisoChequeRegalo))
         AnadirChequeRegaloCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+#End Region
+
+#Region "Nesto#518 (NestoAPI#613): cupón de descuento"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioCupones As Nesto.Infrastructure.Services.IServicioCupones
+
+    ''' <summary>El cupón del cliente que se ofrece en este pedido, o el que ya lleva (nada si no tiene o si la API falla).</summary>
+    Public ReadOnly Property Cupon As New Nesto.Infrastructure.Models.CuponVista()
+
+    Private _versionCupon As Integer
+
+    Public Property AnadirCuponCommand As RelayCommand
+    Public Property QuitarCuponCommand As RelayCommand
+
+    ''' <summary>
+    ''' GET api/Clientes/{empresa}/{cliente}/Cupones?todos=true al abrir el pedido (o al ponerle cliente a uno nuevo) y después de
+    ''' guardarlo: todos, para reconocer el que ya está aplicado en este pedido. Si mientras tanto se abre otro pedido, la
+    ''' respuesta del anterior se descarta. Nunca lanza: es una ayuda.
+    ''' </summary>
+    Friend Async Function CargarCuponAsync() As Task
+        _versionCupon += 1
+        Dim version As Integer = _versionCupon
+        Dim servicio = ServicioCupones
+        Dim empresa As String = pedido?.empresa
+        Dim cliente As String = pedido?.cliente
+        Dim numero As Integer = If(pedido Is Nothing, 0, pedido.numero)
+        If servicio Is Nothing OrElse String.IsNullOrWhiteSpace(cliente) Then
+            Cupon.Limpiar()
+            NotificarCupon()
+            Return
+        End If
+        Dim cupones As List(Of Nesto.Infrastructure.Models.CuponDTO) = Nothing
+        Try
+            cupones = Await servicio.LeerDelCliente(empresa, cliente, True)
+        Catch ex As Exception
+            cupones = Nothing
+        End Try
+        If version <> _versionCupon Then
+            Return
+        End If
+        Cupon.Aplicar(Nesto.Infrastructure.Models.ReglasCupon.ElegirParaPedido(cupones, If(numero = 0, CType(Nothing, Integer?), numero)))
+        NotificarCupon()
+    End Function
+
+    ''' <summary>La línea del cupón del pedido (la del producto del cupón), o nada.</summary>
+    Friend ReadOnly Property LineaCupon As LineaPedidoVentaWrapper
+        Get
+            If pedido?.Lineas Is Nothing Then
+                Return Nothing
+            End If
+            Return pedido.Lineas.FirstOrDefault(Function(l) Nesto.Infrastructure.Models.ReglasCupon.EsLineaDeCupon(l.Producto, Cupon.Cupon))
+        End Get
+    End Property
+
+    ''' <summary>El pedido ya lleva una línea de cupón (de antes, puesta con el botón o de la tienda).</summary>
+    Public ReadOnly Property PedidoLlevaCupon As Boolean
+        Get
+            Return LineaCupon IsNot Nothing
+        End Get
+    End Property
+
+    ''' <summary>Cupón que se puede usar y el pedido sin línea de cupón: aviso con «Añadir el cupón».</summary>
+    Public ReadOnly Property MostrarAvisoCupon As Boolean
+        Get
+            Return Cupon.SePuedeUsar AndAlso Not PedidoLlevaCupon
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' La línea del cupón todavía se puede quitar: ni en albarán ni en factura ni con picking. Al guardar sin ella, el servidor
+    ''' devuelve el cupón a Activo.
+    ''' </summary>
+    Public ReadOnly Property SePuedeQuitarCupon As Boolean
+        Get
+            Dim linea = LineaCupon
+            ' El picking, del modelo: LineaPedidoVentaWrapper.picking no se rellena desde el modelo
+            Return linea IsNot Nothing AndAlso linea.estado <= 1 AndAlso linea.Model.picking = 0
+        End Get
+    End Property
+
+    ''' <summary>«El pedido lleva el cupón EV-2610-7K3Q de 50 €…» para la banda del cupón aplicado.</summary>
+    Public ReadOnly Property TextoCuponAplicado As String
+        Get
+            Dim linea = LineaCupon
+            If linea Is Nothing Then
+                Return Nothing
+            End If
+            Dim c = Cupon.Cupon
+            Dim queCupon As String = If(c IsNot Nothing AndAlso Nesto.Infrastructure.Models.ReglasCupon.EstaEnElPedido(c, pedido?.numero),
+                $"el cupón {c.Codigo?.Trim()} de {Nesto.Infrastructure.Models.ReglasCupon.Euros(c.Importe)} (IVA incluido)",
+                "un cupón de descuento")
+            If Not SePuedeQuitarCupon Then
+                Return $"El pedido lleva {queCupon}. La línea ya está servida o en picking: no se puede quitar."
+            End If
+            Return $"El pedido lleva {queCupon}. Si lo quita y guarda, el cupón vuelve a estar disponible para otro pedido."
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Añade la línea del cupón con su código (CodigoCupon) y deja que el guardado normal la mande. Va ya como la dejará el
+    ''' servidor (cantidad −1, base = importe / (1 + IVA + RE) con los porcentajes de la primera línea, sin descuentos) para que
+    ''' el total que se ve cuadre. Si no llega al mínimo, al guardar se enseña el mensaje de la API.
+    ''' </summary>
+    Friend Sub AnadirCupon()
+        Dim c = Cupon.Cupon
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse c Is Nothing OrElse Not MostrarAvisoCupon Then
+            Return
+        End If
+        Dim modelo As LineaPedidoVentaWrapper = pedido.Lineas.FirstOrDefault(
+            Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1 AndAlso Not String.IsNullOrWhiteSpace(l.Producto) AndAlso l.estado <= 1)
+        Dim porcentajeIva As Decimal = If(modelo IsNot Nothing AndAlso modelo.Model.PorcentajeIva > 0, modelo.Model.PorcentajeIva, 0.21D)
+        Dim porcentajeRecargo As Decimal = If(modelo IsNot Nothing, modelo.Model.PorcentajeRecargoEquivalencia, 0D)
+        Dim conIva As Boolean = Not String.IsNullOrWhiteSpace(pedido.iva)
+        Dim nueva As New LineaPedidoVentaDTO With {
+            .estado = If(pedido.EsPresupuesto, -3S, 1S),
+            .tipoLinea = 1,
+            .CodigoCupon = c.Codigo.Trim(),
+            .Producto = Nesto.Infrastructure.Models.ReglasCupon.ProductoDe(c),
+            .texto = Nesto.Infrastructure.Models.ReglasCupon.TextoLinea(c),
+            .Cantidad = -1,
+            .PrecioUnitario = Nesto.Infrastructure.Models.ReglasCupon.BaseLinea(c.Importe, conIva, porcentajeIva * 100D, porcentajeRecargo * 100D),
+            .DescuentoLinea = 0,
+            .DescuentoProducto = 0,
+            .AplicarDescuento = False,
+            .fechaEntrega = If(modelo IsNot Nothing, modelo.fechaEntrega, fechaEntrega),
+            .almacen = If(modelo?.Almacen, AlmacenUsuario),
+            .formaVenta = If(modelo?.formaVenta, FormaVentaUsuario),
+            .iva = modelo?.iva,
+            .PorcentajeIva = If(conIva, porcentajeIva, 0D),
+            .PorcentajeRecargoEquivalencia = If(conIva, porcentajeRecargo, 0D),
+            .Usuario = configuracion?.usuario,
+            .EsFicticio = True
+        }
+        pedido.Lineas.Add(New LineaPedidoVentaWrapper(nueva))
+        NotificarCupon()
+        OnActualizarTotales()
+    End Sub
+
+    ''' <summary>Quita la línea del cupón; al guardar, el servidor suelta el cupón (vuelve a Activo).</summary>
+    Friend Sub QuitarCupon()
+        Dim linea = LineaCupon
+        If linea Is Nothing OrElse Not SePuedeQuitarCupon Then
+            Return
+        End If
+        Dim unused = pedido.Lineas.Remove(linea)
+        NotificarCupon()
+        OnActualizarTotales()
+    End Sub
+
+    Private Sub NotificarCupon()
+        OnPropertyChanged(NameOf(Cupon))
+        OnPropertyChanged(NameOf(PedidoLlevaCupon))
+        OnPropertyChanged(NameOf(MostrarAvisoCupon))
+        OnPropertyChanged(NameOf(SePuedeQuitarCupon))
+        OnPropertyChanged(NameOf(TextoCuponAplicado))
+        AnadirCuponCommand?.NotifyCanExecuteChanged()
+        QuitarCuponCommand?.NotifyCanExecuteChanged()
     End Sub
 
 #End Region
@@ -3248,11 +3413,13 @@ Public Class DetallePedidoViewModel
            e.PropertyName = String.Empty Then
             ActualizarEtiquetaPortes()
             NotificarChequeRegalo() ' NestoAPI#593 (c5): si se quita (o se teclea) la línea del cheque, vuelve (o se va) el aviso
+            NotificarCupon() ' Nesto#518: lo mismo con la línea del cupón
         End If
 
         ' NestoAPI#593 (c5): pedido nuevo al que se le pone cliente (o se le cambia)
         If e.PropertyName = NameOf(pedido.cliente) Then
             Dim unusedCheque = CargarChequeRegaloAsync()
+            Dim unusedCupon = CargarCuponAsync() ' Nesto#518
         End If
 
         ' Nesto#484: cambian las líneas (cantidades, productos, altas y bajas) o su almacén: los modos permitidos
