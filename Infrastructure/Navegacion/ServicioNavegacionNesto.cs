@@ -158,6 +158,32 @@ namespace Nesto.Infrastructure.Navegacion
             return navegacionAmbito;
         }
 
+        // Nesto#544 (corte 2): la vista, o la que tenga ese ViewModel, si sigue en la región
+        public bool ActivarVista(string regionName, object vistaOViewModel)
+        {
+            try
+            {
+                RegionNesto region = _gestor.Region(regionName);
+                if (region == null || vistaOViewModel == null)
+                {
+                    return false;
+                }
+                object vista = region.Vistas.FirstOrDefault(v => ReferenceEquals(v, vistaOViewModel)
+                    || ReferenceEquals((v as System.Windows.FrameworkElement)?.DataContext, vistaOViewModel));
+                if (vista == null)
+                {
+                    return false;
+                }
+                region.Activar(vista);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ServicioNavegacionNesto] No se ha podido activar la vista en {regionName}: {ex.Message}");
+                return false;
+            }
+        }
+
         // Como Regions[nombre] de Prism: si no existe, KeyNotFoundException
         private RegionNesto RegionObligatoria(string regionName)
             => _gestor.Region(regionName) ?? throw new KeyNotFoundException($"No hay ninguna región llamada {regionName}");

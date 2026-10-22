@@ -79,6 +79,34 @@ namespace Nesto.Infrastructure.Tests
         }
 
         [TestMethod]
+        public void ActivarVista_PorSuViewModel_LaTraeAlFrente_YSiNoEstaDevuelveFalse()
+        {
+            // Nesto#544 (corte 2): la plantilla abierta de un cliente se trae al frente desde el rapport
+            EnSta(() =>
+            {
+                var (navegacion, gestor, _) = Crear();
+                object vmPrimera = new object();
+                object vmSegunda = new object();
+                var primera = new VistaPrueba { DataContext = vmPrimera };
+                var segunda = new VistaPrueba { DataContext = vmSegunda };
+                navegacion.AbrirVistaNueva("MainRegion", primera, "Plantilla");
+                navegacion.AbrirVistaNueva("MainRegion", segunda, "Plantilla");
+                RegionNesto region = gestor.Region("MainRegion");
+                Assert.IsTrue(region.EsActiva(segunda));
+
+                Assert.IsTrue(navegacion.ActivarVista("MainRegion", vmPrimera));
+                Assert.IsTrue(region.EsActiva(primera));
+                Assert.IsTrue(navegacion.ActivarVista("MainRegion", segunda), "También vale la vista");
+                Assert.IsTrue(region.EsActiva(segunda));
+
+                navegacion.CerrarVista("MainRegion", primera);
+                Assert.IsFalse(navegacion.ActivarVista("MainRegion", vmPrimera), "Una pestaña cerrada no se activa");
+                Assert.IsFalse(navegacion.ActivarVista("NoExiste", vmSegunda));
+                Assert.IsFalse(navegacion.ActivarVista("MainRegion", null));
+            });
+        }
+
+        [TestMethod]
         public void Constructor_SinGestorOSinCrearVista_Lanza()
         {
             _ = Assert.ThrowsException<ArgumentNullException>(() => new ServicioNavegacionNesto(null, _ => null));

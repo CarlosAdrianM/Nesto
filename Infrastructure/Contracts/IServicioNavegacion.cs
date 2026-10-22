@@ -55,6 +55,12 @@
         /// <see cref="IConAmbitoNavegacion"/>.
         /// </summary>
         IServicioNavegacion AbrirVistaConAmbito(string regionName, object vista);
+
+        /// <summary>
+        /// Nesto#544 (corte 2): trae al frente una vista que ya está en la región. Vale la vista o su ViewModel (su
+        /// DataContext). Devuelve false si no está (p. ej. una pestaña ya cerrada cuyo ViewModel sigue vivo). Nunca lanza.
+        /// </summary>
+        bool ActivarVista(string regionName, object vistaOViewModel);
     }
 
     /// <summary>
