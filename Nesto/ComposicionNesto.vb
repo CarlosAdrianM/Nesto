@@ -174,6 +174,9 @@ Public NotInheritable Class ComposicionNesto
         ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
         registro.Singleton(Of IServicioChequesRegalo)(Function(r) New ServicioChequesRegalo(r.Resolver(Of IClienteApiFactory)()))
 
+        ' Nesto#518 (NestoAPI#613): los cupones de descuento de los eventos (plantilla, pedido, ficha del cliente y CanalesExternos)
+        registro.Singleton(Of IServicioCupones)(Function(r) New ServicioCupones(r.Resolver(Of IClienteApiFactory)()))
+
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         registro.Singleton(Of IServicioFamiliasMantenimiento)(Function(r) New FamiliasMantenimientoService(r.Resolver(Of IClienteApiFactory)()))
 

@@ -53,7 +53,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService, avisoConfirmacionAmazon));
             // Nesto#533: el cheque regalo canjeado en la tienda (reglas NVCHEQUE-*) entra como la línea del cheque
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService,
-                Contenedor.Actual?.Resolver<Nesto.Infrastructure.Services.IServicioChequesRegalo>()));
+                Contenedor.Actual?.Resolver<Nesto.Infrastructure.Services.IServicioChequesRegalo>(),
+                Contenedor.Actual?.Resolver<Nesto.Infrastructure.Services.IServicioCupones>())); // Nesto#518
             // Nesto#520: la tienda de Eva Visnú (evavisnu.com), igual que la de Nueva Visión salvo la serie (EV)
             Factory.Add("PrestashopEV", new CanalExternoPedidosPrestashopEvaVisnu(configuracion, clientesPorTelefonoService));
             
