@@ -8,8 +8,7 @@
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" 
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-    xmlns:prism="http://prismlibrary.com/" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:cliente="clr-namespace:Nesto.Modulos.Cliente;assembly=Cliente">
+    xmlns:prism="http://prismlibrary.com/" xmlns:d="http://schemas.microsoft.com/expression/blend/2008">
 
 
     <UserControl.Resources>
