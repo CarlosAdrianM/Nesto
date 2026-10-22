@@ -7,6 +7,9 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="1000"
              Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
         <Grid Margin="10">
@@ -14,6 +17,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -86,6 +90,37 @@
                 <TextBlock Text="Total pendiente a favor: " FontWeight="Bold"/>
                 <TextBlock Text="{Binding TotalPendiente, StringFormat=c}" FontWeight="Bold"/>
             </StackPanel>
+
+            <!-- NestoAPI#615: cobros a cuenta que la API propone como señal; los confirma o descarta Administración -->
+            <Expander Grid.Row="4" Header="{Binding TituloPropuestas}" IsExpanded="True" Margin="0,8,0,0"
+                      Visibility="{Binding HayApiDePropuestas, Converter={StaticResource BoolAVisibilidad}}">
+                <DockPanel Margin="0,4,0,0">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0"
+                                Visibility="{Binding PuedeConfirmarPropuestas, Converter={StaticResource BoolAVisibilidad}}">
+                        <Button Content="Confirmar" Command="{Binding ConfirmarPropuestaCommand}" Padding="15,2" FontWeight="Bold"
+                                ToolTip="El cobro pasa a ser la señal del evento elegido, como si se marcara a mano en el extracto"/>
+                        <Button Content="Descartar" Command="{Binding DescartarPropuestaCommand}" Padding="15,2" Margin="10,0,0,0"
+                                ToolTip="No es la señal de ese evento: no se vuelve a proponer"/>
+                        <Button Content="Buscar ahora" Command="{Binding BuscarPropuestasCommand}" Padding="15,2" Margin="10,0,0,0"
+                                ToolTip="Busca en los cobros a cuenta de los últimos 15 días sin esperar al barrido de la mañana"/>
+                        <TextBlock Text="Si un cobro tiene varios eventos candidatos, elija la fila del evento correcto."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding Propuestas}" SelectedItem="{Binding PropuestaSeleccionada}" AutoGenerateColumns="False"
+                              CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto" MaxHeight="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding FechaApunte, StringFormat=dd/MM/yyyy}"/>
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}"/>
+                            <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}"/>
+                            <DataGridTextColumn Header="Concepto" Binding="{Binding ConceptoBanco}" Width="*"/>
+                            <DataGridTextColumn Header="Evento candidato" Binding="{Binding Evento}"/>
+                            <DataGridTextColumn Header="Señal" Binding="{Binding ImporteSenal, StringFormat=c}"/>
+                            <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="2*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Expander>
         </Grid>
     </xctk:BusyIndicator>
 </UserControl>

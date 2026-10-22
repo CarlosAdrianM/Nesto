@@ -39,5 +39,15 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Sube (o sustituye) la imagen del evento: PNG, JPEG, GIF o WebP hasta 10 MB. Devuelve el evento con su ImagenUrl.</summary>
         Task<EventoModel> SubirImagen(int eventoId, string ruta);
         Task BorrarImagen(int eventoId);
+
+        // NestoAPI#615: señales propuestas (las confirma o descarta Administración).
+
+        /// <summary>Los cobros a cuenta con sus eventos candidatos. Null con una API que no tiene las propuestas (404).</summary>
+        Task<List<PropuestaSenalModel>> LeerPropuestas();
+        /// <summary>Busca ahora en los cobros a cuenta de los últimos días (1 a 90). Null con una API que no las tiene.</summary>
+        Task<List<PropuestaSenalModel>> BuscarPropuestas(int? dias);
+        /// <summary>Marca la señal como a mano; las demás propuestas del cobro quedan descartadas.</summary>
+        Task<SenalEventoModel> ConfirmarPropuesta(int id);
+        Task DescartarPropuesta(int id);
     }
 }

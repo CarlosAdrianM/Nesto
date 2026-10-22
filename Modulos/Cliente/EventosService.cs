@@ -187,6 +187,34 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        // ---------------- NestoAPI#615 ----------------
+
+        public async Task<List<PropuestaSenalModel>> LeerPropuestas()
+        {
+            string body = await Enviar(c => c.GetAsync($"Eventos/Senales/Propuestas?empresa={Constantes.Empresas.EMPRESA_DEFECTO}"),
+                "No se pudieron cargar las señales propuestas", vacioSiApiVieja: true);
+            return body.Length == 0 ? null : Lista<PropuestaSenalModel>(body);
+        }
+
+        public async Task<List<PropuestaSenalModel>> BuscarPropuestas(int? dias)
+        {
+            string body = await Enviar(c => c.PostAsync("Eventos/Senales/Propuestas/Buscar",
+                    Json(new { Empresa = Constantes.Empresas.EMPRESA_DEFECTO, Dias = dias })),
+                "No se pudieron buscar las señales", vacioSiApiVieja: true);
+            return body.Length == 0 ? null : Lista<PropuestaSenalModel>(body);
+        }
+
+        public async Task<SenalEventoModel> ConfirmarPropuesta(int id)
+        {
+            string body = await Enviar(c => c.PostAsync($"Eventos/Senales/Propuestas/{id}/Confirmar", Json(new { })), "No se pudo confirmar la señal");
+            return JsonConvert.DeserializeObject<SenalEventoModel>(body);
+        }
+
+        public async Task DescartarPropuesta(int id)
+        {
+            _ = await Enviar(c => c.PostAsync($"Eventos/Senales/Propuestas/{id}/Descartar", Json(new { })), "No se pudo descartar la propuesta");
+        }
+
         private static List<T> Lista<T>(string body) =>
             string.IsNullOrWhiteSpace(body) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 
