@@ -5132,9 +5132,9 @@ Public Class PlantillaVentaViewModel
     Private _versionChequeRegalo As Integer
     Private _clienteChequeRegalo As String
 
-    Private Async Sub CargarChequeRegalo()
+    Private Async Sub CargarChequeRegalo(Optional forzar As Boolean = False)
         Try
-            Await CargarChequeRegaloAsync()
+            Await CargarChequeRegaloAsync(forzar)
         Catch ex As Exception
             ' Es una ayuda: si algo falla, no se enseña nada y el pedido sigue como siempre
         End Try
@@ -5143,11 +5143,13 @@ Public Class PlantillaVentaViewModel
     ''' <summary>
     ''' GET api/ChequesRegalo/Cliente al elegir el cliente, una vez por cliente. Con otro cliente se quita el cheque que
     ''' hubiera marcado. Si mientras tanto se elige otro cliente, la respuesta del anterior se descarta.
+    ''' Novedad 749: <paramref name="forzar"/> lo vuelve a pedir aunque sea el mismo cliente (al cargar un pedido para
+    ''' modificarlo o un borrador, que cambian el pedido en edición).
     ''' </summary>
-    Friend Async Function CargarChequeRegaloAsync() As Task
+    Friend Async Function CargarChequeRegaloAsync(Optional forzar As Boolean = False) As Task
         Dim cliente As ClienteJson = clienteSeleccionado
         Dim clave As String = If(cliente Is Nothing, Nothing, $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}")
-        If clave = _clienteChequeRegalo Then
+        If Not forzar AndAlso clave = _clienteChequeRegalo Then
             Return ' el mismo cliente (otro contacto, se vuelve a seleccionar...): no se pregunta otra vez
         End If
         _clienteChequeRegalo = clave
@@ -5348,9 +5350,9 @@ Public Class PlantillaVentaViewModel
     Private _versionCupon As Integer
     Private _clienteCupon As String
 
-    Private Async Sub CargarCupon()
+    Private Async Sub CargarCupon(Optional forzar As Boolean = False)
         Try
-            Await CargarCuponAsync()
+            Await CargarCuponAsync(forzar)
         Catch ex As Exception
             ' Es una ayuda: si algo falla, no se enseña nada y el pedido sigue como siempre
         End Try
@@ -5359,12 +5361,13 @@ Public Class PlantillaVentaViewModel
     ''' <summary>
     ''' GET api/Clientes/{empresa}/{cliente}/Cupones al elegir el cliente, una vez por cliente (como el cheque regalo). Modificando
     ''' un pedido con la plantilla (Nesto#397) se piden todos, para encontrar el que ya lleva. Si mientras tanto se elige otro
-    ''' cliente, la respuesta del anterior se descarta.
+    ''' cliente, la respuesta del anterior se descarta. Novedad 749: <paramref name="forzar"/> lo vuelve a pedir aunque sea
+    ''' el mismo cliente (al cargar un pedido para modificarlo o un borrador).
     ''' </summary>
-    Friend Async Function CargarCuponAsync() As Task
+    Friend Async Function CargarCuponAsync(Optional forzar As Boolean = False) As Task
         Dim cliente As ClienteJson = clienteSeleccionado
         Dim clave As String = If(cliente Is Nothing, Nothing, $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}")
-        If clave = _clienteCupon Then
+        If Not forzar AndAlso clave = _clienteCupon Then
             Return
         End If
         _clienteCupon = clave
@@ -5576,6 +5579,12 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Private Async Function SeleccionarClienteParaBorradorAsync(value As ClienteJson) As Task
         Dim unused = SetProperty(_clienteSeleccionado, value)
+        ' Novedad 749: «Modificar con plantilla», el aviso de pendientes y los borradores eligen el cliente por aquí, no por
+        ' SeleccionarElCliente: sin esto no se pedía el cheque ni el cupón (o se quedaba el del cliente de antes). Se piden
+        ' siempre, aunque sea el mismo cliente, porque ahora hay un pedido en edición (NumeroPedidoEnEdicion ya está puesto):
+        ' el cupón se busca entre todos y la casilla sale marcada si ya están en ese pedido.
+        CargarChequeRegalo(forzar:=True)
+        CargarCupon(forzar:=True)
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
