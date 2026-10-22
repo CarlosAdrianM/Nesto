@@ -5,6 +5,9 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Models
+Imports Nesto.Infrastructure.Services
+Imports ControlesUsuario.SugerenciasProductos
 
 Public Class RapportViewModel
     Inherits ObservableObject
@@ -16,11 +19,20 @@ Public Class RapportViewModel
     Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly _messenger As IMessenger
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger,
+                   servicioSugerenciasProductos As IServicioSugerenciasProductos)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
         _messenger = messenger
+        ' Nesto#544: la misma cinta «Puede ofrecer» que la plantilla, sin carrito y sin «✓ Añadir» (corte 1)
+        _cintaSugerencias = New CintaSugerenciasProductosViewModel(
+            AddressOf PeticionSugerenciasProductos,
+            leerVendedor:=Function() Me.configuracion?.leerParametro(empresaPorDefecto, Parametros.Claves.Vendedor),
+            configuracion:=configuracion) With {
+            .Servicio = servicioSugerenciasProductos
+        }
+        _cintaSugerencias.CargarPreferenciaPlegadas()
 
         listaTiposRapports = servicio.CargarListaTipos()
 
@@ -72,6 +84,7 @@ Public Class RapportViewModel
             OnPropertyChanged(NameOf(EstaVisibleTipoCentro))
             PrerrellenarEmpleados()
             OnPropertyChanged(NameOf(EstaVisibleEmpleados))
+            ActualizarCintaSugerencias() ' Nesto#544
         End Set
     End Property
 
@@ -181,11 +194,22 @@ Public Class RapportViewModel
             Return _rapport
         End Get
         Set(value As SeguimientoClienteDTO)
-            SetProperty(_rapport, value)
+            Dim anterior As SeguimientoClienteDTO = _rapport
+            If SetProperty(_rapport, value) Then
+                ' Nesto#544: el cliente y el contacto se cambian en el propio rapport (SelectorCliente). Evento débil: el
+                ' rapport sigue en la lista cuando se elige otro y no debe retener esta vista.
+                If anterior IsNot Nothing Then
+                    System.ComponentModel.PropertyChangedEventManager.RemoveHandler(anterior, AddressOf Rapport_PropertyChanged, String.Empty)
+                End If
+                If value IsNot Nothing Then
+                    System.ComponentModel.PropertyChangedEventManager.AddHandler(value, AddressOf Rapport_PropertyChanged, String.Empty)
+                End If
+            End If
             cmdCrearCita.NotifyCanExecuteChanged()
             cmdGuardarCambios.NotifyCanExecuteChanged()
             PrerrellenarEmpleados()
             OnPropertyChanged(NameOf(EstaVisibleEmpleados))
+            ActualizarCintaSugerencias() ' Nesto#544
         End Set
     End Property
 
@@ -354,6 +378,61 @@ Public Class RapportViewModel
             VendedorUsuario = Await configuracion.leerParametro("1", "Vendedor")
         End If
     End Sub
+
+
+#Region "Nesto#544 (corte 1): productos que puede ofrecer"
+
+    ' La misma cinta «Puede ofrecer» que la plantilla (CintaSugerenciasProductosViewModel y CintaSugerenciasProductosView, en
+    ' ControlesUsuario): «✗ No le interesa» y «🚫 Quitar» funcionan igual, con la sesión del cliente y Aplicacion = Nesto. Aquí
+    ' no hay carrito y «✓ Añadir» no sale (el corte 2 se diseña con Carlos). Solo en un rapport nuevo y con cliente. Si la API
+    ' falla o no hay nada que ofrecer, la cinta no se ve y no hay errores.
+
+    Private ReadOnly _cintaSugerencias As CintaSugerenciasProductosViewModel
+
+    ''' <summary>La cinta «Puede ofrecer» (su DataContext en la vista).</summary>
+    Public ReadOnly Property CintaSugerencias As CintaSugerenciasProductosViewModel
+        Get
+            Return _cintaSugerencias
+        End Get
+    End Property
+
+    ''' <summary>Lo que se manda a Calcular: el cliente y el contacto del rapport, sin carrito. Nothing si no toca preguntar.</summary>
+    Public Function PeticionSugerenciasProductos() As CalcularSugerenciasProductosDTO
+        If rapport Is Nothing OrElse rapport.Id <> 0 OrElse String.IsNullOrWhiteSpace(rapport.Cliente) Then
+            Return Nothing
+        End If
+        Return New CalcularSugerenciasProductosDTO With {
+            .Empresa = If(String.IsNullOrWhiteSpace(rapport.Empresa), empresaPorDefecto, rapport.Empresa).Trim(),
+            .Cliente = rapport.Cliente.Trim(),
+            .Contacto = rapport.Contacto?.Trim(),
+            .Vendedor = VendedorUsuario?.Trim()
+        }
+    End Function
+
+    ''' <summary>
+    ''' Con otro cliente, sesión nueva y cinta vacía; con el mismo, nada se reinicia. En los dos casos se pregunta tras el
+    ''' respiro (si no ha cambiado nada de lo que se manda, no sale ninguna petición).
+    ''' </summary>
+    Private Sub ActualizarCintaSugerencias()
+        If _cintaSugerencias Is Nothing Then
+            Return ' durante la construcción
+        End If
+        Dim peticion As CalcularSugerenciasProductosDTO = PeticionSugerenciasProductos()
+        _cintaSugerencias.ReiniciarSiCambiaElCliente(If(peticion Is Nothing, Nothing, $"{peticion.Empresa}|{peticion.Cliente}"))
+        _cintaSugerencias.Programar()
+    End Sub
+
+    Private Sub Rapport_PropertyChanged(sender As Object, e As System.ComponentModel.PropertyChangedEventArgs)
+        If e Is Nothing OrElse sender IsNot _rapport Then
+            Return ' un rapport que ya no es el de la vista (o la vista se está cerrando)
+        End If
+        If e.PropertyName = NameOf(SeguimientoClienteDTO.Cliente) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Contacto) OrElse
+            e.PropertyName = NameOf(SeguimientoClienteDTO.Empresa) Then
+            ActualizarCintaSugerencias()
+        End If
+    End Sub
+
+#End Region
 
     Public Structure idByteDescripcion
         Public Sub New(_id As Byte, _descripcion As String)

@@ -48,7 +48,12 @@
             <Run Text="{Binding ClienteCompleto.poblacionConCodigoPostal,Mode=OneWay}"></Run>
         </TextBlock>
         <controles:ListaTelefonos Grid.Row="4" Etiqueta="Teléfono: " Telefonos="{Binding ClienteCompleto.telefono}" />
-        <TextBox Grid.Row="5" Text="{Binding ClienteCompleto.comentarios}" TextWrapping="WrapWithOverflow" IsEnabled="False" Style="{StaticResource campoComentarios}" ></TextBox>
+        <StackPanel Grid.Row="5">
+            <TextBox Text="{Binding ClienteCompleto.comentarios}" TextWrapping="WrapWithOverflow" IsEnabled="False" Style="{StaticResource campoComentarios}" ></TextBox>
+            <!-- Nesto#544 (corte 1): la misma cinta «Puede ofrecer» de la plantilla, en un rapport nuevo y sin «✓ Añadir».
+                 Fichas una debajo de otra porque el panel del rapport es estrecho. Sin sugerencias no se ve nada. -->
+            <controles:CintaSugerenciasProductosView DataContext="{Binding CintaSugerencias}" EnColumna="True" Margin="0,3,0,0"/>
+        </StackPanel>
         <StackPanel Grid.Row="6" Orientation="Horizontal">
             <TextBlock Text="Fecha: "></TextBlock>
             <TextBlock Text="{Binding rapport.Fecha}"></TextBlock>
