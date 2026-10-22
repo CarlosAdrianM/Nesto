@@ -501,6 +501,9 @@ Public Class LineaPlantillaVenta
     ' NestoAPI#593 (c5): la línea «virtual» del cheque regalo en el resumen del pedido (la de verdad la pone el servidor).
     Public Property esLineaChequeRegalo As Boolean = False
 
+    ' Nesto#518: la línea «virtual» del cupón de descuento en el resumen del pedido (la de verdad, con el código, la manda PrepararPedido).
+    Public Property esLineaCupon As Boolean = False
+
     Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
         Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse

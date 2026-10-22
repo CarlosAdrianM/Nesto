@@ -87,6 +87,7 @@ Public Class PlantillaVentaViewModel
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(_clienteApiFactory)) ' NestoAPI#581
         ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(_clienteApiFactory) ' NestoAPI#593
+        ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(_clienteApiFactory) ' Nesto#518
         ServicioSugerenciasProductos = New Nesto.Infrastructure.Services.ServicioSugerenciasProductos(_clienteApiFactory) ' Nesto#537
 
         Titulo = "Plantilla Ventas"
@@ -282,7 +283,8 @@ Public Class PlantillaVentaViewModel
                 baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
             ' NestoAPI#593 (c5): el cheque regalo resta su importe (para portes no cuenta: baseImponibleParaPortes no lo mira)
-            Return baseImponible - ImporteChequeRegaloAplicado
+            ' Nesto#518: el cupón resta su base (importe IVA incluido / 1,21); tampoco cuenta para portes
+            Return baseImponible - ImporteChequeRegaloAplicado - BaseCuponAplicada
         End Get
     End Property
 
@@ -547,7 +549,8 @@ Public Class PlantillaVentaViewModel
             Dim baseProductos As Decimal = listaProductosPedido _
                 .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso _gruposBonificables.Contains(l.grupo.Trim().ToUpper())) _
                 .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
-            Return Math.Max(0D, baseProductos - RestaChequeRegaloBaseBonificable)
+            ' Nesto#518: la línea del cupón (CUPONEVENTO, COS, como el cheque) también cuenta al grabar
+            Return Math.Max(0D, baseProductos - RestaChequeRegaloBaseBonificable - BaseCuponAplicada)
         End Get
     End Property
 
@@ -569,6 +572,9 @@ Public Class PlantillaVentaViewModel
         Get
             Dim cheque As String = If(RestaChequeRegaloBaseBonificable > 0,
                 $" (el cheque regalo resta {RestaChequeRegaloBaseBonificable:N2} € de la base bonificable)", String.Empty)
+            If BaseCuponAplicada > 0 Then
+                cheque &= $" (el cupón resta {BaseCuponAplicada:N2} € de la base bonificable)"
+            End If
             Return $"Los regalos elegidos suman {GanavisionesUsados} Ganavisiones y el pedido solo da {GanavisionesDisponibles}{cheque}. " &
                 "Vuelva a la página de Ganavisiones y quite algún regalo, o amplíe el pedido."
         End Get
@@ -2687,6 +2693,16 @@ Public Class PlantillaVentaViewModel
                     .precio = ImporteChequeRegaloAplicado
                 })
             End If
+            ' Nesto#518: la línea del cupón, igual (la de verdad, con el código, la manda PrepararPedido)
+            If BaseCuponAplicada > 0 Then
+                lista.Add(New LineaPlantillaVenta With {
+                    .esLineaCupon = True,
+                    .producto = Nesto.Infrastructure.Models.ReglasCupon.ProductoDe(Cupon.Cupon),
+                    .texto = Nesto.Infrastructure.Models.ReglasCupon.TextoLinea(Cupon.Cupon),
+                    .cantidad = -1,
+                    .precio = BaseCuponAplicada
+                })
+            End If
             If Not PortesGratis AndAlso hayProductosEnElPedido AndAlso ImportePortesMostrar > 0 Then
                 lista.Add(New LineaPlantillaVenta With {
                     .esLineaPortes = True,
@@ -4323,6 +4339,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         AnadirLineaChequeRegalo(pedido) ' NestoAPI#593 (c5)
+        AnadirLineaCupon(pedido) ' Nesto#518
 
         ' Nesto#537: la API enlaza la sesión de «Puede ofrecer» con el pedido (qué sugerencias entraron)
         pedido.IdSesionSugerencias = IdSesionSugerencias
@@ -5059,7 +5076,218 @@ Public Class PlantillaVentaViewModel
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(BaseComputableChequeRegalo)))
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TextoFaltaChequeRegalo)))
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(HayTextoFaltaChequeRegalo)))
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TotalComputableCupon))) ' Nesto#518
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TextoFaltaCupon)))
+            MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(HayTextoFaltaCupon)))
         End If
+    End Sub
+
+#End Region
+
+#Region "Nesto#518 (NestoAPI#613): cupón de descuento"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioCupones As Nesto.Infrastructure.Services.IServicioCupones
+
+    ''' <summary>El cupón que se ofrece al cliente seleccionado (nada si no tiene, si la API es anterior a #613 o si falla).</summary>
+    Public ReadOnly Property Cupon As New Nesto.Infrastructure.Models.CuponVista()
+
+    Private _versionCupon As Integer
+    Private _clienteCupon As String
+
+    Private Async Sub CargarCupon()
+        Try
+            Await CargarCuponAsync()
+        Catch ex As Exception
+            ' Es una ayuda: si algo falla, no se enseña nada y el pedido sigue como siempre
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' GET api/Clientes/{empresa}/{cliente}/Cupones al elegir el cliente, una vez por cliente (como el cheque regalo). Modificando
+    ''' un pedido con la plantilla (Nesto#397) se piden todos, para encontrar el que ya lleva. Si mientras tanto se elige otro
+    ''' cliente, la respuesta del anterior se descarta.
+    ''' </summary>
+    Friend Async Function CargarCuponAsync() As Task
+        Dim cliente As ClienteJson = clienteSeleccionado
+        Dim clave As String = If(cliente Is Nothing, Nothing, $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}")
+        If clave = _clienteCupon Then
+            Return
+        End If
+        _clienteCupon = clave
+        _versionCupon += 1
+        Dim version As Integer = _versionCupon
+        _usarCupon = False
+        Cupon.Limpiar()
+        NotificarCupon()
+
+        Dim servicio = ServicioCupones
+        If cliente Is Nothing OrElse servicio Is Nothing OrElse String.IsNullOrWhiteSpace(cliente.cliente) Then
+            Return
+        End If
+        Dim cupones As List(Of Nesto.Infrastructure.Models.CuponDTO) = Nothing
+        Try
+            cupones = Await servicio.LeerDelCliente(cliente.empresa, cliente.cliente, NumeroPedidoEnEdicion.HasValue)
+        Catch ex As Exception
+            cupones = Nothing
+        End Try
+        If version <> _versionCupon Then
+            Return
+        End If
+        Cupon.Aplicar(Nesto.Infrastructure.Models.ReglasCupon.ElegirParaPedido(cupones, NumeroPedidoEnEdicion))
+        ' Nesto#397: modificando el pedido que ya lleva el cupón, la casilla sale marcada para que el PUT no lo suelte
+        ' (la plantilla no carga las líneas ficticias del pedido).
+        _usarCupon = CuponEstaEnElPedidoEnEdicion
+        NotificarCupon()
+    End Function
+
+    ''' <summary>El cupón ya está en el pedido que se está modificando con la plantilla (Nesto#397).</summary>
+    Friend ReadOnly Property CuponEstaEnElPedidoEnEdicion As Boolean
+        Get
+            Return Nesto.Infrastructure.Models.ReglasCupon.EstaEnElPedido(Cupon.Cupon, NumeroPedidoEnEdicion)
+        End Get
+    End Property
+
+    ''' <summary>Se enseña la casilla «Usar el cupón de 50 €».</summary>
+    Public ReadOnly Property PuedeUsarCupon As Boolean
+        Get
+            Return Cupon.SePuedeUsar OrElse CuponEstaEnElPedidoEnEdicion
+        End Get
+    End Property
+
+    Private _usarCupon As Boolean
+    ''' <summary>
+    ''' Casilla «Usar el cupón»: el pedido lleva la línea del cupón con su código (la completa el servidor) y el total de la
+    ''' plantilla resta su importe. Desmarcarla la quita (el cupón vuelve a estar disponible).
+    ''' </summary>
+    Public Property UsarCupon As Boolean
+        Get
+            Return _usarCupon
+        End Get
+        Set(value As Boolean)
+            If value AndAlso Not PuedeUsarCupon Then
+                value = False
+            End If
+            If SetProperty(_usarCupon, value) Then
+                NotificarTotalesCupon()
+                ' El cupón (COS) baja la base de Ganavisiones, como el cheque: si los regalos ya elegidos no caben, se avisa
+                If value AndAlso GanavisionesExcedidos Then
+                    dialogService.ShowError(MensajeGanavisionesExcedidos)
+                End If
+            End If
+        End Set
+    End Property
+
+    ''' <summary>¿Lleva IVA el pedido? (como totalPedido: el cliente tiene tipo de IVA)</summary>
+    Private ReadOnly Property PedidoConIvaParaCupon As Boolean
+        Get
+            Return clienteSeleccionado IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Lo que resta el cupón de la base (0 si no se usa): el importe IVA incluido entre 1,21, o el importe si el pedido no lleva
+    ''' IVA. Con recargo de equivalencia la API pone una base algo menor para que descuente los 50 € exactos.
+    ''' </summary>
+    Public ReadOnly Property BaseCuponAplicada As Decimal
+        Get
+            If Not (UsarCupon AndAlso PuedeUsarCupon) Then
+                Return 0D
+            End If
+            Return Nesto.Infrastructure.Models.ReglasCupon.BaseLinea(Cupon.Importe, PedidoConIvaParaCupon)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Productos para el pedido mínimo del cupón, IVA incluido, sin cursos (grupo CUR). Aproximado (el IVA es el de la plantilla);
+    ''' al crear el pedido manda el servidor y, si no llega, su mensaje dice cuánto falta.
+    ''' </summary>
+    Public ReadOnly Property TotalComputableCupon As Decimal
+        Get
+            Dim lineas = listaProductosPedido
+            If Not Cupon.HayCupon OrElse lineas Is Nothing Then
+                Return 0D
+            End If
+            Dim base As Decimal = lineas.Where(Function(l) Not String.Equals(l.grupo?.Trim(), "CUR", StringComparison.OrdinalIgnoreCase)).
+                Sum(Function(l) l.baseImponible + l.baseImponibleOferta)
+            Return Math.Round(If(PedidoConIvaParaCupon, base * 1.21D, base), 2, MidpointRounding.AwayFromZero)
+        End Get
+    End Property
+
+    ''' <summary>«Faltan … para el pedido mínimo del cupón» mientras se pueda usar y no se llegue.</summary>
+    Public ReadOnly Property TextoFaltaCupon As String
+        Get
+            If Not PuedeUsarCupon Then
+                Return Nothing
+            End If
+            Return Nesto.Infrastructure.Models.ReglasCupon.TextoFalta(Cupon.Cupon, TotalComputableCupon)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayTextoFaltaCupon As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(TextoFaltaCupon)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Al crear (o modificar) el pedido: la línea del cupón con su código (CodigoCupon). El servidor pone el producto, la
+    ''' cantidad (−1), la base con el IVA y el recargo del cliente, el texto y el IVA, venga como venga; se manda ya así para
+    ''' que el pedido que viaja cuadre con lo que se ve. Si ya hay una línea del producto del cupón, no se añade otra.
+    ''' </summary>
+    Friend Sub AnadirLineaCupon(pedido As PedidoVentaDTO)
+        Dim c = Cupon.Cupon
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing OrElse c Is Nothing OrElse BaseCuponAplicada <= 0 Then
+            Return
+        End If
+        If pedido.Lineas.Any(Function(l) Nesto.Infrastructure.Models.ReglasCupon.EsLineaDeCupon(l.Producto, c) OrElse Not String.IsNullOrWhiteSpace(l.CodigoCupon)) Then
+            Return
+        End If
+        Dim primera As LineaPedidoVentaDTO = pedido.Lineas.FirstOrDefault(Function(l) l.tipoLinea = 1)
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {
+            .Pedido = pedido,
+            .estado = If(Estado.EsPresupuesto, -3S, 1S),
+            .tipoLinea = 1,
+            .CodigoCupon = c.Codigo.Trim(),
+            .Producto = Nesto.Infrastructure.Models.ReglasCupon.ProductoDe(c),
+            .texto = Nesto.Infrastructure.Models.ReglasCupon.TextoLinea(c),
+            .Cantidad = -1,
+            .fechaEntrega = If(primera IsNot Nothing, primera.fechaEntrega, Estado.FechaEntrega),
+            .PrecioUnitario = BaseCuponAplicada,
+            .DescuentoLinea = 0,
+            .DescuentoProducto = 0,
+            .AplicarDescuento = False,
+            .vistoBueno = 0,
+            .almacen = If(primera IsNot Nothing, primera.almacen, Estado.AlmacenCodigo),
+            .iva = primera?.iva,
+            .formaVenta = If(primera IsNot Nothing, primera.formaVenta, formaVentaPedido),
+            .oferta = Nothing,
+            .EsFicticio = True
+        })
+    End Sub
+
+    Private Sub NotificarCupon()
+        OnPropertyChanged(NameOf(Cupon))
+        OnPropertyChanged(NameOf(PuedeUsarCupon))
+        OnPropertyChanged(NameOf(UsarCupon))
+        NotificarTotalesCupon()
+    End Sub
+
+    Private Sub NotificarTotalesCupon()
+        OnPropertyChanged(NameOf(BaseCuponAplicada))
+        OnPropertyChanged(NameOf(TotalComputableCupon))
+        OnPropertyChanged(NameOf(TextoFaltaCupon))
+        OnPropertyChanged(NameOf(HayTextoFaltaCupon))
+        OnPropertyChanged(NameOf(BaseImponibleBonificable))
+        OnPropertyChanged(NameOf(GanavisionesDisponibles))
+        OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
+        ActualizarIndicadoresGanavisiones()
+        OnPropertyChanged(NameOf(baseImponiblePedido))
+        OnPropertyChanged(NameOf(totalPedido))
+        OnPropertyChanged(NameOf(TotalPedidoPlazosPago))
+        OnPropertyChanged(NameOf(baseImponiblePedidoConPortes))
+        OnPropertyChanged(NameOf(totalPedidoConPortes))
+        OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
     End Sub
 
 #End Region
@@ -5068,6 +5296,7 @@ Public Class PlantillaVentaViewModel
         Dim unused = SetProperty(_clienteSeleccionado, value)
         ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: con otro cliente se vuelve a avisar de todo
         CargarChequeRegalo() ' NestoAPI#593 (c5): sin esperar; una vez por cliente
+        CargarCupon() ' Nesto#518: sin esperar; una vez por cliente
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado

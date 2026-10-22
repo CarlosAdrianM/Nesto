@@ -34,6 +34,25 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
+        <!-- Nesto#518 (NestoAPI#613): el cupón de descuento del cliente (evento o manual), como el cheque regalo: en Productos y en
+             Finalizar. Uno por pedido; el que ya no vale o todavía no vale, solo el texto. Sin cupón no se ve nada. -->
+        <DataTemplate x:Key="PlantillaCupon">
+            <Border Margin="3,4" Padding="8,6" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Stretch"
+                    Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"
+                    BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                    TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                    Visibility="{Binding Cupon.HayCupon, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Cupon.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    <CheckBox Content="{Binding Cupon.TextoUsar}" IsChecked="{Binding UsarCupon, Mode=TwoWay}" Margin="0,4,0,0"
+                              Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                              ToolTip="Añade al pedido la línea del cupón (descuenta su importe con el IVA incluido). Para quitarlo, desmarque la casilla."
+                              Visibility="{Binding PuedeUsarCupon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <TextBlock Text="{Binding TextoFaltaCupon}" TextWrapping="Wrap" FontStyle="Italic" Margin="0,2,0,0"
+                               Visibility="{Binding HayTextoFaltaCupon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <xctk:BusyIndicator Name="IndicadorOcupado" IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
@@ -384,7 +403,10 @@
                             </StackPanel>
                         </Grid>
 
-                        <ContentControl Grid.Row="1" Grid.Column="1" Content="{Binding}" ContentTemplate="{StaticResource PlantillaChequeRegalo}" Focusable="False"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1">
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PlantillaChequeRegalo}" Focusable="False"/>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PlantillaCupon}" Focusable="False"/>
+                        </StackPanel>
 
                         <DockPanel Grid.Row="2" Grid.Column="1" >
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaUltimasVentas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
@@ -516,6 +538,13 @@
                                             </DataTrigger>
                                             <!-- NestoAPI#593 (c5): la línea del cheque regalo (se quita con la casilla) -->
                                             <DataTrigger Binding="{Binding esLineaChequeRegalo}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
+                                                <Setter Property="TextElement.FontStyle" Value="Italic"/>
+                                                <Setter Property="TextElement.Foreground" Value="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                            <!-- Nesto#518: la línea del cupón (se quita con la casilla) -->
+                                            <DataTrigger Binding="{Binding esLineaCupon}" Value="True">
                                                 <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
                                                 <Setter Property="TextElement.FontStyle" Value="Italic"/>
                                                 <Setter Property="TextElement.Foreground" Value="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"/>
@@ -1011,6 +1040,7 @@
 
                         <StackPanel Grid.Row="4">
                             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PlantillaChequeRegalo}" Focusable="False" HorizontalAlignment="Left" MaxWidth="600"/>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource PlantillaCupon}" Focusable="False" HorizontalAlignment="Left" MaxWidth="600"/>
                             <CheckBox IsChecked="{Binding AnadirPortes}" Visibility="{Binding VisibilidadAnadirPortes, Converter={StaticResource BooleanToVisibilityConverter}}">Añadir portes al pedido</CheckBox>
                             <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
                                  La línea aparece en el DataGrid de productos junto con los portes. -->
