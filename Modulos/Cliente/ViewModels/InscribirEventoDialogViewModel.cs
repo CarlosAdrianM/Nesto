@@ -200,7 +200,7 @@ namespace Nesto.Modulos.Cliente
         {
             MarcarPagoInscripcionModel.TRANSFERENCIA => "La inscripción queda reservada hasta que Administración marque la transferencia como señal del evento, o hasta que se marque como pagada.",
             MarcarPagoInscripcionModel.EFECTIVO => "La inscripción queda reservada hasta que se marque como pagada. El cobro se mete en la caja de la tienda, como cualquier otro cobro en efectivo.",
-            _ => "Con el enlace, la inscripción pasa sola a pagada cuando el cliente paga. Sin pagar, caduca a los 7 días (o el día del evento, si es antes)."
+            _ => "Con el enlace, la inscripción pasa sola a pagada cuando el cliente paga. Hay que pagarla antes de que falten para el evento los días que este marque (7 por defecto): se avisa antes de que venza y, si no, la plaza se libera sola y queda como «Caducada»."
         };
 
         private string _mensaje;

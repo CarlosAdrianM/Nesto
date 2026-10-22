@@ -279,7 +279,7 @@ namespace Nesto.Modulos.Cliente
 
         public AsyncRelayCommand SubirImagenCommand { get; }
 
-        /// <summary>NestoAPI#690: sube (o sustituye) la imagen; pueden la tienda del evento, Tienda online y Dirección (la API lo comprueba).</summary>
+        /// <summary>NestoAPI#690: sube (o sustituye) la imagen; pueden Tienda online y Dirección (la API lo comprueba: PermisosEventos.PuedeSubirImagen).</summary>
         public async Task SubirImagenAsync()
         {
             if (_idEdicion <= 0)
