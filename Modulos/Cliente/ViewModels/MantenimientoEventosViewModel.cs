@@ -43,7 +43,13 @@ namespace Nesto.Modulos.Cliente
             GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => Editando);
             ComprobarProductoCommand = new AsyncRelayCommand(ComprobarProductoAsync, () => !string.IsNullOrWhiteSpace(ProductoCursoEdicion));
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => Seleccionado?.Id > 0);
-            AnularInscripcionCommand = new AsyncRelayCommand(AnularInscripcionAsync, () => InscripcionSeleccionada?.EstaReservada == true);
+            AnularInscripcionCommand = new AsyncRelayCommand(AnularInscripcionAsync, () => InscripcionSeleccionada?.SePuedeAnular == true);
+            ConfirmaAsistenciaCommand = new AsyncRelayCommand(() => ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.CONFIRMA),
+                () => InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
+            NoPodraIrCommand = new AsyncRelayCommand(() => ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.NO_PODRA_IR),
+                () => InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
+            SubirImagenCommand = new AsyncRelayCommand(SubirImagenAsync, () => Editando && _idEdicion > 0);
+            QuitarImagenCommand = new AsyncRelayCommand(QuitarImagenAsync, () => Editando && _idEdicion > 0 && !string.IsNullOrWhiteSpace(ImagenUrl));
             MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => InscripcionSeleccionada?.SePuedeMarcarPagada == true);
             FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
@@ -127,6 +133,8 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref _editando, value))
                 {
                     GuardarCommand.NotifyCanExecuteChanged();
+                    SubirImagenCommand?.NotifyCanExecuteChanged();
+                    QuitarImagenCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -202,7 +210,93 @@ namespace Nesto.Modulos.Cliente
 
         private string _imagenUrl;
         /// <summary>NestoAPI#690: la imagen del evento seleccionado (solo se enseña; la subida está pendiente del contrato).</summary>
-        public string ImagenUrl { get => _imagenUrl; private set => SetProperty(ref _imagenUrl, value); }
+        public string ImagenUrl
+        {
+            get => _imagenUrl;
+            private set
+            {
+                if (SetProperty(ref _imagenUrl, value))
+                {
+                    QuitarImagenCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>Elige el fichero de la imagen (null = cancelado). Sustituible en los tests.</summary>
+        public Func<string> ElegirImagen { get; set; } = ElegirImagenWpf;
+
+        private static string ElegirImagenWpf()
+        {
+            var dialogo = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Imagen del evento",
+                Filter = "Imágenes (*.png;*.jpg;*.jpeg;*.gif;*.webp)|*.png;*.jpg;*.jpeg;*.gif;*.webp"
+            };
+            return dialogo.ShowDialog() == true ? dialogo.FileName : null;
+        }
+
+        public AsyncRelayCommand SubirImagenCommand { get; }
+
+        /// <summary>NestoAPI#690: sube (o sustituye) la imagen; pueden la tienda del evento, Tienda online y Dirección (la API lo comprueba).</summary>
+        public async Task SubirImagenAsync()
+        {
+            if (_idEdicion <= 0)
+            {
+                return;
+            }
+            string ruta = ElegirImagen?.Invoke();
+            if (string.IsNullOrWhiteSpace(ruta))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                EventoModel evento = await _servicio.SubirImagen(_idEdicion, ruta);
+                ImagenUrl = string.IsNullOrWhiteSpace(evento?.ImagenUrl) ? null : evento.ImagenUrl.Trim();
+                if (Seleccionado != null && Seleccionado.Id == _idEdicion)
+                {
+                    Seleccionado.ImagenUrl = ImagenUrl;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public AsyncRelayCommand QuitarImagenCommand { get; }
+
+        public async Task QuitarImagenAsync()
+        {
+            if (_idEdicion <= 0 || string.IsNullOrWhiteSpace(ImagenUrl)
+                || !_dialogService.ShowConfirmationAnswer("Quitar imagen", "¿Quita la imagen del evento?"))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await _servicio.BorrarImagen(_idEdicion);
+                ImagenUrl = null;
+                if (Seleccionado != null && Seleccionado.Id == _idEdicion)
+                {
+                    Seleccionado.ImagenUrl = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
 
         /// <summary>«10:00», «9:30» → la hora; vacío → null. False si no se entiende.</summary>
         public static bool LeerHora(string texto, out TimeSpan? hora)
@@ -280,6 +374,8 @@ namespace Nesto.Modulos.Cliente
             DescripcionLargaEdicion = null;
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
+            SubirImagenCommand.NotifyCanExecuteChanged();
+            QuitarImagenCommand.NotifyCanExecuteChanged();
         }
 
         private TiendaEvento TiendaPorCodigo(string codigo) =>
@@ -298,13 +394,15 @@ namespace Nesto.Modulos.Cliente
             PlazasEdicion = evento.Plazas;
             LugarEdicion = evento.Lugar;
             DescripcionLargaEdicion = evento.DescripcionLarga;
-            HoraInicioEdicion = evento.HoraInicio.HasValue ? EventoModel.Hora(evento.HoraInicio.Value) : null;
-            HoraFinEdicion = evento.HoraFin.HasValue ? EventoModel.Hora(evento.HoraFin.Value) : null;
+            HoraInicioEdicion = evento.HoraInicio?.Trim();
+            HoraFinEdicion = evento.HoraFin?.Trim();
             PonenteEdicion = evento.Ponente;
             ImporteSenalNoReembolsableEdicion = evento.ImporteSenalNoReembolsable;
             ImagenUrl = string.IsNullOrWhiteSpace(evento.ImagenUrl) ? null : evento.ImagenUrl.Trim();
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
+            SubirImagenCommand.NotifyCanExecuteChanged();
+            QuitarImagenCommand.NotifyCanExecuteChanged();
         }
 
         public AsyncRelayCommand GuardarCommand { get; }
@@ -371,11 +469,10 @@ namespace Nesto.Modulos.Cliente
                     Plazas = PlazasEdicion,
                     Lugar = Limpiar(LugarEdicion),
                     DescripcionLarga = Limpiar(DescripcionLargaEdicion),
-                    HoraInicio = horaInicio,
-                    HoraFin = horaFin,
+                    HoraInicio = horaInicio.HasValue ? horaInicio.Value.ToString(@"hh\:mm") : null,
+                    HoraFin = horaFin.HasValue ? horaFin.Value.ToString(@"hh\:mm") : null,
                     Ponente = Limpiar(PonenteEdicion),
-                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
-                    ImagenUrl = ImagenUrl
+                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion
                 });
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
@@ -556,6 +653,8 @@ namespace Nesto.Modulos.Cliente
         private void NotificarComandosInscripcion()
         {
             AnularInscripcionCommand.NotifyCanExecuteChanged();
+            ConfirmaAsistenciaCommand.NotifyCanExecuteChanged();
+            NoPodraIrCommand.NotifyCanExecuteChanged();
             MarcarPagadaCommand.NotifyCanExecuteChanged();
             FacturarCommand.NotifyCanExecuteChanged();
         }
@@ -589,7 +688,7 @@ namespace Nesto.Modulos.Cliente
         public async Task AnularInscripcionAsync()
         {
             InscripcionEventoModel inscripcion = InscripcionSeleccionada;
-            if (inscripcion == null || !inscripcion.EstaReservada)
+            if (inscripcion == null || !inscripcion.SePuedeAnular)
             {
                 return;
             }
@@ -673,6 +772,32 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        public AsyncRelayCommand ConfirmaAsistenciaCommand { get; }
+        public AsyncRelayCommand NoPodraIrCommand { get; }
+
+        /// <summary>NestoAPI#690: la tienda apunta lo que le ha dicho el cliente («Confirma» o «No podrá ir»; no anula nada).</summary>
+        public async Task ConfirmarAsistenciaAsync(string respuesta)
+        {
+            InscripcionEventoModel inscripcion = InscripcionSeleccionada;
+            if (inscripcion == null || !inscripcion.SePuedeConfirmarAsistencia)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                Reemplazar(await _servicio.ConfirmarAsistencia(inscripcion.Id, respuesta));
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
         public AsyncRelayCommand FacturarCommand { get; }
 
         /// <summary>NestoAPI#612: relanza la facturación del curso (pedido, factura exenta, liquidación) desde donde se quedó.</summary>
@@ -723,7 +848,7 @@ namespace Nesto.Modulos.Cliente
                 string pasada = Seleccionado.FechaListaAsistencia.HasValue
                     ? $"Lista pasada el {Seleccionado.FechaListaAsistencia.Value:dd/MM/yyyy HH:mm}; se puede corregir. "
                     : string.Empty;
-                return pasada + "Marque quién ha venido: los pagados sin marcar pasan a «No asistió» y pierden el cupón.";
+                return pasada + "Marque quién ha venido: los que no marque pasan a «No asistió» y pierden el cupón.";
             }
         }
 

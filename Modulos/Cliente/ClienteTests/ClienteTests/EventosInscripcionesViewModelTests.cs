@@ -421,10 +421,10 @@ namespace ClienteTests
             A.CallTo(() => eventos.LeerInscripcionesCliente("1", "15191")).MustHaveHappenedOnceExactly();
         }
 
-        // ---------------- NestoAPI#690 (contrato provisional) ----------------
+        // ---------------- NestoAPI#690 (contrato del comentario del 22/10/26) ----------------
 
         [TestMethod]
-        public async Task Nuevo_SeñalesPorDefecto_CienReembolsableYSesentaNo_YGuardaHorarioYPonente()
+        public async Task Nuevo_SenalesPorDefecto_CienReembolsableYSesentaNo_YGuardaHorarioYPonente()
         {
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).ReturnsLazily((EventoModel e) => e);
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
@@ -439,7 +439,7 @@ namespace ClienteTests
             await vm.GuardarAsync();
 
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e =>
-                e.HoraInicio == new TimeSpan(9, 30, 0) && e.HoraFin == new TimeSpan(13, 0, 0) && e.Ponente == "Ana"
+                e.HoraInicio == "09:30" && e.HoraFin == "13:00" && e.Ponente == "Ana"
                 && e.ImporteSenal == 100 && e.ImporteSenalNoReembolsable == 60))).MustHaveHappenedOnceExactly();
         }
 
@@ -460,16 +460,35 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public void Modalidades_SegunLasSeñalesDelEvento()
+        public void Evento_NoMandaLosCamposDeSoloLectura_NiLaNoReembolsableSinValor()
         {
-            EventoModel antiguo = Evento(1, DateTime.Today); // API de antes de #690: sin no reembolsable
-            Assert.AreEqual(1, InscribirEventoDialogViewModel.ModalidadesDe(antiguo).Count);
+            var evento = new EventoModel
+            {
+                Titulo = "X", ImagenUrl = "https://api.nuevavision.es/api/Eventos/7/Imagen?v=1", Gratuito = true,
+                Modalidades = new List<string> { "Gratuita" }, HoraInicio = "10:00"
+            };
+            JObject json = JObject.Parse(JsonConvert.SerializeObject(evento));
 
-            EventoModel dos = Evento(2, DateTime.Today);
-            dos.ImporteSenal = 100;
-            dos.ImporteSenalNoReembolsable = 60;
-            CollectionAssert.AreEqual(new[] { "Reembolsable", "NoReembolsable" },
-                InscribirEventoDialogViewModel.ModalidadesDe(dos).Select(m => m.Valor).ToArray());
+            Assert.IsFalse(json.ContainsKey("ImagenUrl"));
+            Assert.IsFalse(json.ContainsKey("Gratuito"));
+            Assert.IsFalse(json.ContainsKey("Modalidades"));
+            Assert.IsFalse(json.ContainsKey("ImporteSenalNoReembolsable"), "Sin valor no se manda: la API pone 60 al crear y conserva al modificar");
+            Assert.AreEqual("10:00", (string)json["HoraInicio"]);
+        }
+
+        [TestMethod]
+        public void Modalidades_LasDeLaApi_OConLaDeAntesSegunLasSenales()
+        {
+            EventoModel antiguo = Evento(1, DateTime.Today);
+            Assert.AreEqual("Reembolsable", InscribirEventoDialogViewModel.ModalidadesDe(antiguo).Single().Valor);
+
+            EventoModel soloNoReembolsable = Evento(2, DateTime.Today);
+            soloNoReembolsable.ImporteSenal = 0;
+            soloNoReembolsable.ImporteSenalNoReembolsable = 60;
+            soloNoReembolsable.Modalidades = new List<string> { "NoReembolsable" };
+            OpcionEvento unica = InscribirEventoDialogViewModel.ModalidadesDe(soloNoReembolsable).Single();
+            Assert.AreEqual("NoReembolsable", unica.Valor);
+            StringAssert.Contains(unica.Texto, "sin cupón");
 
             EventoModel gratis = Evento(3, DateTime.Today);
             gratis.ImporteSenal = 0;
@@ -484,6 +503,8 @@ namespace ClienteTests
             EventoModel gratis = Evento(7, DateTime.Today.AddDays(3));
             gratis.ImporteSenal = 0;
             gratis.ImporteSenalNoReembolsable = 0;
+            gratis.Gratuito = true;
+            gratis.Modalidades = new List<string> { "Gratuita" };
             InscribirEventoDialogViewModel vm = Dialogo(gratis);
             ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "15191" } });
             Assert.IsFalse(vm.HayQuePagar);
@@ -492,6 +513,24 @@ namespace ClienteTests
 
             A.CallTo(() => eventos.Inscribir(7, A<InscribirEventoModel>.That.Matches(p =>
                 p.Modalidad == "Gratuita" && p.FormaPago == null && !p.GenerarEnlacePago))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void Dialogo_EligeLaNoReembolsable()
+        {
+            EventoModel evento = Evento(7, DateTime.Today.AddDays(3));
+            evento.ImporteSenal = 100;
+            evento.ImporteSenalNoReembolsable = 60;
+            evento.Modalidades = new List<string> { "Reembolsable", "NoReembolsable" };
+            InscribirEventoDialogViewModel vm = Dialogo(evento);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "15191" } });
+            Assert.IsTrue(vm.HayVariasModalidades);
+
+            vm.Modalidad = vm.Modalidades.Single(m => m.Valor == "NoReembolsable");
+            vm.InscribirCommand.Execute(null);
+
+            A.CallTo(() => eventos.Inscribir(7, A<InscribirEventoModel>.That.Matches(p => p.Modalidad == "NoReembolsable" && p.FormaPago == "Tarjeta")))
+                .MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -507,20 +546,70 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public void Asistencia_PendienteConfirmadoAsistioNoAsistio()
+        public void Asistencia_ElTextoDeLaApi_OPendienteConfirmadaAsistioNoAsistio()
         {
-            Assert.AreEqual("Pendiente", Inscripcion(1, InscripcionEventoModel.PAGADA).EstadoAsistencia);
-            InscripcionEventoModel confirmada = JsonConvert.DeserializeObject<InscripcionEventoModel>(
-                "{\"Estado\":\"Pagada\",\"AsistenciaConfirmada\":{\"Fecha\":\"2026-10-28T10:00:00\",\"Usuario\":\"cliente\"}}");
-            Assert.AreEqual("Confirmado", confirmada.EstadoAsistencia);
-            Assert.AreEqual("Pendiente", JsonConvert.DeserializeObject<InscripcionEventoModel>("{\"Estado\":\"Pagada\",\"AsistenciaConfirmada\":false}").EstadoAsistencia);
-            Assert.AreEqual("Asistió", Inscripcion(2, InscripcionEventoModel.ASISTIO).EstadoAsistencia);
-            Assert.AreEqual("No asistió", Inscripcion(3, InscripcionEventoModel.NO_ASISTIO).EstadoAsistencia);
+            Assert.AreEqual("Pendiente", Inscripcion(1, InscripcionEventoModel.PAGADA).TextoAsistencia);
+            Assert.AreEqual("Asistió", Inscripcion(2, InscripcionEventoModel.ASISTIO).TextoAsistencia);
+            Assert.AreEqual("No asistió", Inscripcion(3, InscripcionEventoModel.NO_ASISTIO).TextoAsistencia);
+            InscripcionEventoModel deLaApi = JsonConvert.DeserializeObject<InscripcionEventoModel>(
+                @"{""Estado"":""Pagada"",""EstadoAsistencia"":""NoPodraIr"",""EstadoAsistenciaTexto"":""No podrá ir"",""BaseImponibleDia"":123.45," +
+                @"""AsistenciaConfirmada"":{""Respuesta"":""NoPodraIr"",""Fecha"":""2026-10-28T10:05:00"",""Usuario"":""Reina"",""Origen"":""Tienda""}}");
+            Assert.AreEqual("No podrá ir", deLaApi.TextoAsistencia);
+            Assert.AreEqual(123.45m, deLaApi.BaseImponibleDia);
+            Assert.AreEqual("Tienda", deLaApi.AsistenciaConfirmada.Origen);
 
-            InscripcionEventoModel gratuita = Inscripcion(4, InscripcionEventoModel.RESERVADA);
-            gratuita.Modalidad = InscribirEventoModel.MODALIDAD_GRATUITA;
-            Assert.IsTrue(gratuita.EntraEnListaAsistencia, "La gratuita pasa directamente a la lista");
-            Assert.IsFalse(gratuita.SePuedeMarcarPagada);
+            InscripcionEventoModel inscrita = Inscripcion(4, InscripcionEventoModel.INSCRITA);
+            inscrita.Modalidad = InscribirEventoModel.MODALIDAD_GRATUITA;
+            Assert.IsTrue(inscrita.EntraEnListaAsistencia, "La gratuita pasa directamente a la lista");
+            Assert.IsTrue(inscrita.SePuedeAnular);
+            Assert.IsFalse(inscrita.SePuedeMarcarPagada);
+            Assert.IsFalse(inscrita.SePuedeFacturar);
+        }
+
+        [TestMethod]
+        public async Task ConfirmarAsistencia_LaTiendaApuntaLaRespuesta()
+        {
+            InscripcionEventoModel pagada = Inscripcion(1, InscripcionEventoModel.PAGADA);
+            pagada.FechaEvento = DateTime.Today.AddDays(2);
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(2)), pagada);
+            InscripcionEventoModel respondida = Inscripcion(1, InscripcionEventoModel.PAGADA);
+            respondida.EstadoAsistenciaTexto = "No podrá ir";
+            A.CallTo(() => eventos.ConfirmarAsistencia(1, "NoPodraIr")).Returns(respondida);
+            vm.InscripcionSeleccionada = vm.Inscripciones.Single();
+            Assert.IsTrue(vm.NoPodraIrCommand.CanExecute(null));
+
+            await vm.ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.NO_PODRA_IR);
+
+            Assert.AreEqual("No podrá ir", vm.InscripcionSeleccionada.TextoAsistencia);
+        }
+
+        [TestMethod]
+        public async Task Imagen_SubirYQuitar()
+        {
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(2)));
+            A.CallTo(() => eventos.SubirImagen(7, @"C:\fotos\cartel.png"))
+                .Returns(new EventoModel { Id = 7, ImagenUrl = "https://api.nuevavision.es/api/Eventos/7/Imagen?v=2" });
+            vm.ElegirImagen = () => null;
+            await vm.SubirImagenAsync();
+            A.CallTo(() => eventos.SubirImagen(A<int>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+
+            vm.ElegirImagen = () => @"C:\fotos\cartel.png";
+            Assert.IsTrue(vm.SubirImagenCommand.CanExecute(null));
+            await vm.SubirImagenAsync();
+            Assert.AreEqual("https://api.nuevavision.es/api/Eventos/7/Imagen?v=2", vm.ImagenUrl);
+            Assert.IsTrue(vm.QuitarImagenCommand.CanExecute(null));
+
+            await vm.QuitarImagenAsync();
+            A.CallTo(() => eventos.BorrarImagen(7)).MustHaveHappenedOnceExactly();
+            Assert.IsNull(vm.ImagenUrl);
+        }
+
+        [TestMethod]
+        public void Servicio_TipoDeLaImagenPorLaExtension()
+        {
+            Assert.AreEqual("image/png", EventosService.TipoImagen("cartel.PNG"));
+            Assert.AreEqual("image/jpeg", EventosService.TipoImagen("cartel.jpeg"));
+            Assert.AreEqual("image/webp", EventosService.TipoImagen("cartel.webp"));
         }
 
         // ---------------- Servicio ----------------

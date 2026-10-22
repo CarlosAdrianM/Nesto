@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace Nesto.Modulos.Cliente.Models
 {
@@ -38,40 +39,47 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>Solo lectura: cuándo se pasó lista (null = todavía no).</summary>
         public DateTime? FechaListaAsistencia { get; set; }
 
-        // NestoAPI#690 (corte 1b, Carlos 22/10/26). CONTRATO PROVISIONAL: los nombres son los del texto de la issue; hay que
-        // confirmarlos con el comentario del contrato cuando se publique. La API de hoy no los manda y los ignora al recibirlos.
+        // NestoAPI#690 (corte 1b, Carlos 22/10/26): contrato del comentario del 22/10/26 en la issue. La API de antes no los
+        // manda y los ignora al recibirlos.
 
-        /// <summary>NestoAPI#690: hora de inicio («10:00:00»). Null si no se ha dicho.</summary>
-        public TimeSpan? HoraInicio { get; set; }
-        /// <summary>NestoAPI#690: hora de fin.</summary>
-        public TimeSpan? HoraFin { get; set; }
+        /// <summary>NestoAPI#690: «HH:mm» («10:00») o null.</summary>
+        public string HoraInicio { get; set; }
+        /// <summary>NestoAPI#690: «HH:mm», posterior a <see cref="HoraInicio"/>, o null.</summary>
+        public string HoraFin { get; set; }
         /// <summary>NestoAPI#690: ponente (texto libre, hasta 100).</summary>
         public string Ponente { get; set; }
-        /// <summary>NestoAPI#690: la imagen del evento (la sube su endpoint; aquí solo se enseña).</summary>
+        /// <summary>NestoAPI#690: solo lectura. URL pública de la imagen (se sube con POST api/Eventos/{id}/Imagen). No se manda.</summary>
         public string ImagenUrl { get; set; }
+        public bool ShouldSerializeImagenUrl() => false;
         /// <summary>
         /// NestoAPI#690: la señal NO reembolsable (factura el curso exento, sin cupón). <see cref="ImporteSenal"/> es la
-        /// reembolsable (con cupón). Las dos a 0: evento gratuito. Null con la API de antes de #690.
+        /// reembolsable (con cupón). Las dos a 0: evento gratuito. Null con la API de antes de #690: entonces no se manda (al
+        /// crear, la API pondría 60; en un PUT, lo que no viene se conserva).
         /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public decimal? ImporteSenalNoReembolsable { get; set; }
+        /// <summary>NestoAPI#690: solo lectura. Las dos señales a 0. No se manda.</summary>
+        public bool Gratuito { get; set; }
+        public bool ShouldSerializeGratuito() => false;
+        /// <summary>NestoAPI#690: solo lectura. Lo que se puede elegir al inscribir (Reembolsable, NoReembolsable, Gratuita). No se manda.</summary>
+        public List<string> Modalidades { get; set; }
+        public bool ShouldSerializeModalidades() => false;
 
-        /// <summary>NestoAPI#690: las dos señales a 0 (y la API ya sabe de la no reembolsable).</summary>
+        /// <summary>El de la API o, con la de antes, el de las dos señales a 0.</summary>
         [JsonIgnore]
-        public bool EsGratuito => ImporteSenal == 0 && ImporteSenalNoReembolsable == 0;
+        public bool EsGratuito => Gratuito || (ImporteSenal == 0 && ImporteSenalNoReembolsable == 0);
 
         /// <summary>«10:00 – 13:00», «10:00» o vacío.</summary>
         [JsonIgnore]
-        public string TextoHorario => HoraInicio.HasValue
-            ? (HoraFin.HasValue ? $"{Hora(HoraInicio.Value)} – {Hora(HoraFin.Value)}" : Hora(HoraInicio.Value))
-            : string.Empty;
+        public string TextoHorario => string.IsNullOrWhiteSpace(HoraInicio)
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(HoraFin) ? HoraInicio.Trim() : $"{HoraInicio.Trim()} – {HoraFin.Trim()}";
 
-        public static string Hora(TimeSpan hora) => hora.ToString(@"hh\:mm");
-
-        /// <summary>«100,00 € / 60,00 €», «Gratuito» o solo la reembolsable con la API de antes de #690.</summary>
+        /// <summary>«100,00 € / 60,00 €», «Gratuito» o solo la reembolsable con la API de antes de #690 o sin no reembolsable.</summary>
         [JsonIgnore]
         public string TextoSenales => EsGratuito
             ? "Gratuito"
-            : ImporteSenalNoReembolsable.HasValue ? $"{ImporteSenal:C} / {ImporteSenalNoReembolsable.Value:C}" : $"{ImporteSenal:C}";
+            : ImporteSenalNoReembolsable > 0 ? $"{ImporteSenal:C} / {ImporteSenalNoReembolsable.Value:C}" : $"{ImporteSenal:C}";
 
         /// <summary>«Masterclass Cloasma 13/10/2026» (combos y diálogo de elegir evento).</summary>
         public string Descripcion => $"{Titulo} {Fecha:dd/MM/yyyy}";

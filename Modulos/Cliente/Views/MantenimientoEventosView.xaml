@@ -152,6 +152,11 @@
                                         <Image Source="{Binding ImagenUrl, TargetNullValue={x:Null}}" Stretch="Uniform"/>
                                     </Grid>
                                 </Border>
+                                <StackPanel Margin="6,0,0,0">
+                                    <Button Content="Subir imagen…" Command="{Binding SubirImagenCommand}" Padding="8,1"
+                                            ToolTip="PNG, JPEG, GIF o WebP de hasta 10 MB. Pueden subirla la tienda del evento, Tienda online y Dirección"/>
+                                    <Button Content="Quitar" Command="{Binding QuitarImagenCommand}" Padding="8,1" Margin="0,4,0,0"/>
+                                </StackPanel>
                             </StackPanel>
                             <CheckBox Content="Activo (admite inscripciones y sale al marcar señales)" IsChecked="{Binding ActivoEdicion}" Margin="110,8,0,0"/>
                             <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="110,12,0,0" Padding="20,3"
@@ -175,7 +180,11 @@
                         <Button Content="Inscribir cliente…" Command="{Binding InscribirCommand}" Margin="15,0,0,0" Padding="10,1" FontWeight="Bold"/>
                         <Button Content="Recargar" Command="{Binding RecargarInscripcionesCommand}" Margin="6,0,0,0" Padding="10,1"/>
                         <Button Content="Anular" Command="{Binding AnularInscripcionCommand}" Margin="6,0,0,0" Padding="10,1"
-                                ToolTip="Anula la inscripción sin pagar y libera la plaza"/>
+                                ToolTip="Anula la inscripción sin pagar (o la gratuita) y libera la plaza"/>
+                        <Button Content="Confirma asistencia" Command="{Binding ConfirmaAsistenciaCommand}" Margin="6,0,0,0" Padding="10,1"
+                                ToolTip="Apunta que el cliente le ha dicho que viene"/>
+                        <Button Content="No podrá ir" Command="{Binding NoPodraIrCommand}" Margin="6,0,0,0" Padding="10,1"
+                                ToolTip="Apunta que el cliente le ha dicho que no puede ir (no anula la inscripción)"/>
                         <Button Content="Facturar curso" Command="{Binding FacturarCommand}" Margin="6,0,0,0" Padding="10,1"
                                 ToolTip="Relanza la facturación del curso (pedido, factura exenta y liquidación) desde donde se quedó"/>
                     </StackPanel>
@@ -215,7 +224,8 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Asistencia" Binding="{Binding EstadoAsistencia}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" IsReadOnly="True"/>

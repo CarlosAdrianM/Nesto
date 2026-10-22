@@ -99,7 +99,10 @@ namespace Nesto.Modulos.Cliente
         public bool EsGratuita => Modalidad?.Valor == InscribirEventoModel.MODALIDAD_GRATUITA;
         public bool HayQuePagar => !EsGratuita;
 
-        /// <summary>Gratuito: solo Gratuita. Si no, la reembolsable y, si la tiene, la no reembolsable.</summary>
+        /// <summary>
+        /// Las que manda la API en EventoDTO.Modalidades (NestoAPI#690). Con la API de antes, que no las manda: gratuito, solo
+        /// Gratuita; si no, la reembolsable y, si la tiene, la no reembolsable.
+        /// </summary>
         public static List<OpcionEvento> ModalidadesDe(EventoModel evento)
         {
             var lista = new List<OpcionEvento>();
@@ -107,15 +110,27 @@ namespace Nesto.Modulos.Cliente
             {
                 return lista;
             }
-            if (evento.EsGratuito)
+            IEnumerable<string> valores = evento.Modalidades != null && evento.Modalidades.Any()
+                ? evento.Modalidades
+                : evento.EsGratuito
+                    ? new[] { InscribirEventoModel.MODALIDAD_GRATUITA }
+                    : evento.ImporteSenalNoReembolsable > 0
+                        ? new[] { InscribirEventoModel.MODALIDAD_REEMBOLSABLE, InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE }
+                        : new[] { InscribirEventoModel.MODALIDAD_REEMBOLSABLE };
+            foreach (string valor in valores)
             {
-                lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_GRATUITA, "Gratuita (sin señal)"));
-                return lista;
-            }
-            lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_REEMBOLSABLE, $"Reembolsable: {evento.ImporteSenal:C}, con cupón por el mismo importe"));
-            if (evento.ImporteSenalNoReembolsable > 0)
-            {
-                lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE, $"No reembolsable: {evento.ImporteSenalNoReembolsable.Value:C}, sin cupón"));
+                switch (valor)
+                {
+                    case InscribirEventoModel.MODALIDAD_GRATUITA:
+                        lista.Add(new OpcionEvento(valor, "Gratuita (sin señal)"));
+                        break;
+                    case InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE:
+                        lista.Add(new OpcionEvento(valor, $"No reembolsable: {evento.ImporteSenalNoReembolsable ?? 0:C}, sin cupón"));
+                        break;
+                    default:
+                        lista.Add(new OpcionEvento(valor, $"Reembolsable: {evento.ImporteSenal:C}, con cupón por el mismo importe"));
+                        break;
+                }
             }
             return lista;
         }
@@ -300,8 +315,8 @@ namespace Nesto.Modulos.Cliente
                     Contacto = string.IsNullOrWhiteSpace(Contacto) ? null : Contacto.Trim(),
                     Origen = Origen?.Valor ?? InscribirEventoModel.ORIGEN_NESTO,
                     FormaPago = EsGratuita ? null : FormaPago?.Valor,
-                    // Con la API de antes de #690 el evento no tiene no reembolsable y no se manda la modalidad.
-                    Modalidad = Evento.ImporteSenalNoReembolsable.HasValue ? Modalidad?.Valor : null,
+                    // Con la API de antes de #690 (el evento no trae Modalidades) no se manda la modalidad.
+                    Modalidad = Evento.Modalidades != null && Evento.Modalidades.Any() ? Modalidad?.Valor : null,
                     GenerarEnlacePago = EsTarjeta && GenerarEnlacePago,
                     Correo = EsTarjeta && GenerarEnlacePago && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null
                 });

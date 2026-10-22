@@ -31,5 +31,13 @@ namespace Nesto.Modulos.Cliente
         Task<InscripcionEventoModel> FacturarCurso(int id);
         /// <summary>La referencia del curso (nombre e IVA de la ficha); null si no existe.</summary>
         Task<ProductoCursoModel> LeerProductoCurso(string producto);
+
+        // NestoAPI#690: confirmación de asistencia (la apunta la tienda) e imagen del evento.
+
+        /// <param name="respuesta">Confirma o NoPodraIr.</param>
+        Task<InscripcionEventoModel> ConfirmarAsistencia(int id, string respuesta);
+        /// <summary>Sube (o sustituye) la imagen del evento: PNG, JPEG, GIF o WebP hasta 10 MB. Devuelve el evento con su ImagenUrl.</summary>
+        Task<EventoModel> SubirImagen(int eventoId, string ruta);
+        Task BorrarImagen(int eventoId);
     }
 }

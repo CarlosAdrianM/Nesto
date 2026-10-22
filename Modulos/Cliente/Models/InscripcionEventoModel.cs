@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 
@@ -20,9 +19,11 @@ namespace Nesto.Modulos.Cliente.Models
         public const string NO_ASISTIO = "NoAsistio";
         public const string CADUCADA = "Caducada";
         public const string ANULADA = "Anulada";
+        /// <summary>NestoAPI#690: la gratuita nace así; no caduca, no paga y entra directamente en la lista.</summary>
+        public const string INSCRITA = "Inscrita";
 
         /// <summary>Las que entran en la lista de asistencia (las pagadas y las que ya tienen lista, para corregirla).</summary>
-        public static readonly IReadOnlyCollection<string> EN_LISTA_ASISTENCIA = new[] { PAGADA, FACTURADA, ASISTIO, NO_ASISTIO };
+        public static readonly IReadOnlyCollection<string> EN_LISTA_ASISTENCIA = new[] { PAGADA, FACTURADA, INSCRITA, ASISTIO, NO_ASISTIO };
 
         public int Id { get; set; }
         public int EventoId { get; set; }
@@ -55,18 +56,29 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>NestoAPI#612: la facturación del curso. Null si no ha empezado.</summary>
         public FacturacionCursoModel Facturacion { get; set; }
 
-        // NestoAPI#690 (CONTRATO PROVISIONAL, nombres del texto de la issue; confirmar con el comentario del contrato).
+        // NestoAPI#690 (contrato del 22/10/26): modalidad, confirmación de asistencia y base imponible del día.
 
-        /// <summary>NestoAPI#690: Reembolsable, NoReembolsable o Gratuita. Null con la API de antes (= Reembolsable).</summary>
+        /// <summary>Reembolsable, NoReembolsable o Gratuita. Las de antes salen como Reembolsable (null con la API de antes).</summary>
         public string Modalidad { get; set; }
+        /// <summary>Lo que se cobra por esta inscripción según su modalidad (0 si es gratuita).</summary>
+        public decimal? ImporteSenal { get; set; }
+        /// <summary>Solo la Reembolsable emite cupón.</summary>
+        public bool ConCupon { get; set; }
+        /// <summary>La respuesta al recordatorio (o la que apunta la tienda). Null = todavía no ha contestado.</summary>
+        public AsistenciaConfirmadaModel AsistenciaConfirmada { get; set; }
+        /// <summary>Pendiente, Confirmada, NoPodraIr, Asistio o NoAsistio.</summary>
+        public string EstadoAsistencia { get; set; }
+        /// <summary>«Pendiente», «Confirmada», «No podrá ir», «Asistió», «No asistió».</summary>
+        public string EstadoAsistenciaTexto { get; set; }
+        public DateTime? RecordatorioEnviado { get; set; }
         /// <summary>
-        /// NestoAPI#690: la confirmación de asistencia («fecha y quién»). Se lee como JToken porque la forma exacta (fecha,
-        /// objeto o booleano) está por fijar: cualquier valor que no sea null ni false cuenta como confirmada.
+        /// Base imponible de los pedidos del cliente del día del evento en Reina o Alcobendas (sin presupuestos ni el curso).
+        /// Solo en los inscritos del evento y en la respuesta de la lista; null en los demás.
         /// </summary>
-        public JToken AsistenciaConfirmada { get; set; }
+        public decimal? BaseImponibleDia { get; set; }
 
         [JsonIgnore]
-        public bool EsGratuita => Modalidad == InscribirEventoModel.MODALIDAD_GRATUITA;
+        public bool EsGratuita => Modalidad == InscribirEventoModel.MODALIDAD_GRATUITA || Estado == INSCRITA;
 
         [JsonIgnore]
         public string TextoModalidad => Modalidad switch
@@ -76,19 +88,36 @@ namespace Nesto.Modulos.Cliente.Models
             _ => "Reembolsable"
         };
 
+        /// <summary>Lo que se ve en la columna «Asistencia»: el texto de la API o, con la de antes, Pendiente / Asistió / No asistió.</summary>
         [JsonIgnore]
-        public bool EstaConfirmada => AsistenciaConfirmada != null && AsistenciaConfirmada.Type != JTokenType.Null
-            && AsistenciaConfirmada.Type != JTokenType.Undefined
-            && !(AsistenciaConfirmada.Type == JTokenType.Boolean && !AsistenciaConfirmada.Value<bool>());
-
-        /// <summary>NestoAPI#690: lo que se ve en la lista de asistencia: Pendiente → Confirmado → Asistió / No asistió.</summary>
-        [JsonIgnore]
-        public string EstadoAsistencia => Estado switch
+        public string TextoAsistencia
         {
-            ASISTIO => "Asistió",
-            NO_ASISTIO => "No asistió",
-            _ => EstaConfirmada ? "Confirmado" : "Pendiente"
-        };
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(EstadoAsistenciaTexto))
+                {
+                    return EstadoAsistenciaTexto;
+                }
+                switch (Estado)
+                {
+                    case ASISTIO: return "Asistió";
+                    case NO_ASISTIO: return "No asistió";
+                }
+                switch (AsistenciaConfirmada?.Respuesta)
+                {
+                    case AsistenciaConfirmadaModel.CONFIRMA: return "Confirmada";
+                    case AsistenciaConfirmadaModel.NO_PODRA_IR: return "No podrá ir";
+                    default: return "Pendiente";
+                }
+            }
+        }
+
+        /// <summary>
+        /// La tienda puede apuntar la respuesta (Reservada, Pagada, Facturada o Inscrita) hasta el día del evento incluido.
+        /// </summary>
+        [JsonIgnore]
+        public bool SePuedeConfirmarAsistencia => (Estado == RESERVADA || Estado == PAGADA || Estado == FACTURADA || Estado == INSCRITA)
+            && FechaEvento.Date >= DateTime.Today;
 
         [JsonIgnore]
         public string ClienteContacto => $"{Cliente?.Trim()}/{Contacto?.Trim()}";
@@ -98,6 +127,10 @@ namespace Nesto.Modulos.Cliente.Models
 
         [JsonIgnore]
         public bool EstaReservada => Estado == RESERVADA;
+
+        /// <summary>Se anula como una Reservada; NestoAPI#690: también la Inscrita (gratuita).</summary>
+        [JsonIgnore]
+        public bool SePuedeAnular => Estado == RESERVADA || Estado == INSCRITA;
 
         /// <summary>Se puede marcar como pagada a mano: Reservada o Caducada (paga tarde).</summary>
         [JsonIgnore]
@@ -244,5 +277,25 @@ namespace Nesto.Modulos.Cliente.Models
         public string Texto { get; }
 
         public override string ToString() => Texto;
+    }
+
+    /// <summary>NestoAPI#690: InscripcionEventoDTO.AsistenciaConfirmada.</summary>
+    public class AsistenciaConfirmadaModel
+    {
+        public const string CONFIRMA = "Confirma";
+        public const string NO_PODRA_IR = "NoPodraIr";
+
+        /// <summary>Confirma o NoPodraIr.</summary>
+        public string Respuesta { get; set; }
+        public DateTime? Fecha { get; set; }
+        public string Usuario { get; set; }
+        /// <summary>Cliente o Tienda.</summary>
+        public string Origen { get; set; }
+    }
+
+    /// <summary>NestoAPI#690: cuerpo de POST api/Eventos/Inscripciones/{id}/ConfirmarAsistencia.</summary>
+    public class ConfirmarAsistenciaModel
+    {
+        public string Respuesta { get; set; }
     }
 }

@@ -5,7 +5,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -141,6 +143,48 @@ namespace Nesto.Modulos.Cliente
                     $"Productos?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&id={Uri.EscapeDataString(producto.Trim())}"),
                 "No se pudo leer la referencia del curso", vacioSiNoExiste: true);
             return string.IsNullOrWhiteSpace(body) ? null : JsonConvert.DeserializeObject<ProductoCursoModel>(body);
+        }
+
+        // ---------------- NestoAPI#690 ----------------
+
+        public async Task<InscripcionEventoModel> ConfirmarAsistencia(int id, string respuesta)
+        {
+            string body = await Enviar(c => c.PostAsync($"Eventos/Inscripciones/{id}/ConfirmarAsistencia",
+                Json(new ConfirmarAsistenciaModel { Respuesta = respuesta })), "No se pudo apuntar la respuesta del cliente");
+            return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
+        }
+
+        public async Task<EventoModel> SubirImagen(int eventoId, string ruta)
+        {
+            byte[] bytes = await File.ReadAllBytesAsync(ruta);
+            string body = await Enviar(c =>
+            {
+                var contenido = new MultipartFormDataContent();
+                var fichero = new ByteArrayContent(bytes);
+                fichero.Headers.ContentType = new MediaTypeHeaderValue(TipoImagen(ruta));
+                contenido.Add(fichero, "fichero", Path.GetFileName(ruta));
+                return c.PostAsync($"Eventos/{eventoId}/Imagen", contenido);
+            }, "No se pudo subir la imagen del evento");
+            return JsonConvert.DeserializeObject<EventoModel>(body);
+        }
+
+        public async Task BorrarImagen(int eventoId)
+        {
+            _ = await Enviar(c => c.DeleteAsync($"Eventos/{eventoId}/Imagen"), "No se pudo quitar la imagen del evento");
+        }
+
+        /// <summary>El tipo MIME por la extensión (la API acepta PNG, JPEG, GIF y WebP).</summary>
+        public static string TipoImagen(string ruta)
+        {
+            switch (Path.GetExtension(ruta ?? string.Empty).ToLowerInvariant())
+            {
+                case ".png": return "image/png";
+                case ".jpg":
+                case ".jpeg": return "image/jpeg";
+                case ".gif": return "image/gif";
+                case ".webp": return "image/webp";
+                default: return "application/octet-stream";
+            }
         }
 
         private static List<T> Lista<T>(string body) =>
