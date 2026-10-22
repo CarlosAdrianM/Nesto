@@ -687,7 +687,8 @@ namespace Nesto.Modulos.CanalesExternos
             }
             return CuponPrestashop.Decidir(reglasCupon, pedidoSalida.cliente?.Trim(), cupon,
                 (importeConIva, texto) => CrearLineaCupon(importeConIva, texto, formaVenta, pedidoSalida.iva, configuracion.usuario),
-                c => CrearLineaCuponNesto(c, pedidoSalida.iva));
+                c => CrearLineaCuponNesto(c, pedidoSalida.iva),
+                pedidoEntrada.Pedido?.Element("reference")?.Value?.Trim());
         }
 
         /// <summary>

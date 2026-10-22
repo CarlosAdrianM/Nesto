@@ -47,6 +47,15 @@ namespace Nesto.Infrastructure.Models
         public string FacturaUso { get; set; }
         public DateTime? FechaUso { get; set; }
         public string FacturaOrigen { get; set; }
+        /// <summary>
+        /// Nesto#547 (NestoAPI#694): dónde se usó: «PrestaShop» si lo canjeó la tienda online (entonces UsadoEnPedido es null
+        /// hasta que entra el pedido en Nesto). Null en los usados en Nesto.
+        /// </summary>
+        public string CanalUso { get; set; }
+        /// <summary>Nesto#547: la referencia del pedido de la tienda donde se usó (la que Nesto guarda como PedidoCanalId).</summary>
+        public string PedidoCanal { get; set; }
+        /// <summary>Nesto#547: lo que descontó la tienda, IVA incluido.</summary>
+        public decimal? ImporteDescontado { get; set; }
     }
 
     /// <summary>Nesto#518: <c>POST api/Cupones</c>, cupón sin evento (solo Dirección, con motivo obligatorio).</summary>

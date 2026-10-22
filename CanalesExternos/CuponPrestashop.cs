@@ -45,9 +45,12 @@ namespace Nesto.Modulos.CanalesExternos
         /// <summary>
         /// Decide qué hacer con las reglas de cupón del pedido. <paramref name="cupon"/> es lo que contesta GET api/Cupones/{codigo}
         /// para el código de la regla (null si no existe, si la API no contesta o si no se ha podido preguntar).
+        /// <paramref name="pedidoCanalId"/> es la referencia del pedido en la tienda (Nesto#547: si el módulo de la tienda ya ha
+        /// marcado el cupón como usado en este mismo pedido, se aplica).
         /// </summary>
         public static DecisionCuponPrestashop Decidir(IEnumerable<ReglaCarritoPrestashop> reglas, string clientePedido, CuponDTO cupon,
-            Func<decimal, string, LineaPedidoVentaDTO> crearLineaTicket, Func<CuponDTO, LineaPedidoVentaDTO> crearLineaCupon)
+            Func<decimal, string, LineaPedidoVentaDTO> crearLineaTicket, Func<CuponDTO, LineaPedidoVentaDTO> crearLineaCupon,
+            string pedidoCanalId = null)
         {
             List<ReglaCarritoPrestashop> reglasCupon = (reglas ?? Enumerable.Empty<ReglaCarritoPrestashop>())
                 .Where(r => EsCodigoCupon(r.Codigo)).ToList();
@@ -61,7 +64,7 @@ namespace Nesto.Modulos.CanalesExternos
             decimal sinIva = Math.Round(reglasCupon.Sum(r => r.ValorSinIva), 4, MidpointRounding.AwayFromZero);
             decimal conIva = Math.Round(reglasCupon.Sum(r => r.ValorConIva), 4, MidpointRounding.AwayFromZero);
             string codigos = string.Join(", ", reglasCupon.Select(r => r.Codigo.Trim().ToUpperInvariant()));
-            string motivo = MotivoParaNoAplicar(reglasCupon, clientePedido?.Trim(), cupon);
+            string motivo = MotivoParaNoAplicar(reglasCupon, clientePedido?.Trim(), cupon, pedidoCanalId);
             if (motivo != null)
             {
                 return new DecisionCuponPrestashop
@@ -92,7 +95,21 @@ namespace Nesto.Modulos.CanalesExternos
                 || string.Equals(estado, ReglasCupon.ESTADO_ANULADO, StringComparison.OrdinalIgnoreCase));
         }
 
-        internal static string MotivoParaNoAplicar(List<ReglaCarritoPrestashop> reglasCupon, string clientePedido, CuponDTO cupon)
+        /// <summary>
+        /// Nesto#547 (NestoAPI#694): el módulo de la tienda ya ha marcado el cupón como usado en ESTE pedido de la tienda (Usado,
+        /// sin pedido de Nesto todavía, canal PrestaShop y la misma referencia). No se mira la caducidad ni SePuedeUsar: se puede
+        /// haber usado el último día de validez e importarse al día siguiente. La API acepta la línea y la liga al pedido.
+        /// </summary>
+        internal static bool UsadoEnEstePedidoDeLaTienda(CuponDTO cupon, string pedidoCanalId)
+        {
+            return cupon != null && !string.IsNullOrWhiteSpace(pedidoCanalId)
+                && string.Equals(cupon.Estado?.Trim(), ReglasCupon.ESTADO_USADO, StringComparison.OrdinalIgnoreCase)
+                && cupon.UsadoEnPedido == null
+                && string.Equals(cupon.CanalUso?.Trim(), "PrestaShop", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(cupon.PedidoCanal?.Trim(), pedidoCanalId.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static string MotivoParaNoAplicar(List<ReglaCarritoPrestashop> reglasCupon, string clientePedido, CuponDTO cupon, string pedidoCanalId = null)
         {
             if (reglasCupon.Count > 1)
             {
@@ -110,7 +127,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 return $"el cupón es del cliente {cupon.Cliente?.Trim()} y el pedido ha entrado con el cliente {clientePedido} (por el NIF de la dirección).";
             }
-            if (!cupon.SePuedeUsar)
+            if (!cupon.SePuedeUsar && !UsadoEnEstePedidoDeLaTienda(cupon, pedidoCanalId))
             {
                 return string.IsNullOrWhiteSpace(cupon.Mensaje) ? $"el cupón está {cupon.Estado?.Trim()}." : cupon.Mensaje.Trim();
             }

@@ -198,6 +198,104 @@ namespace CanalesExternosTests
             Assert.IsFalse(await canal.AvisarCuponYaGastadoAsync(pedido), "Solo una vez");
         }
 
+        /// <summary>Nesto#547 (NestoAPI#694): el cupón que el módulo de la tienda ya ha marcado como usado en un pedido de la tienda.</summary>
+        private static CuponDTO CuponUsadoEnLaTienda(string pedidoCanal = "CUPPRUEBA", string canalUso = "PrestaShop", int? usadoEnPedido = null)
+        {
+            CuponDTO cupon = Cupon("Usado", usadoEnPedido: usadoEnPedido);
+            cupon.CanalUso = canalUso;
+            cupon.PedidoCanal = pedidoCanal;
+            cupon.ImporteDescontado = 50M;
+            cupon.Mensaje = $"El cupón {CODIGO} ya se ha usado en la tienda online.";
+            return cupon;
+        }
+
+        private static void AssertLineaDelCupon(List<LineaPedidoVentaDTO> lineas, PedidoCanalExterno pedido)
+        {
+            LineaPedidoVentaDTO cupon = lineas.Single(l => l.CodigoCupon != null);
+            Assert.AreEqual(CODIGO, cupon.CodigoCupon);
+            Assert.AreEqual("CUPONEVENTO", cupon.Producto);
+            Assert.AreEqual((short)-1, cupon.Cantidad);
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"), "Sin la línea de CUPÓN NO APLICADO");
+            Assert.IsFalse(pedido.Pedido.comentarios.Contains("ATENCIÓN CUPÓN"));
+        }
+
+        [TestMethod]
+        public async Task CuponUsadoEnEstePedidoDeLaTienda_EntraConLaLineaDelCupon_SinTicketNiAvisoALaApi()
+        {
+            A.CallTo(() => cupones.LeerPorCodigo(A<string>._)).Returns(Task.FromResult(CuponUsadoEnLaTienda(canalUso: "prestashop")));
+            PedidoPrestashop entrada = Pedido(41.322314M, 50M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCupon() };
+
+            var (lineas, pedido, canal) = await Importar(entrada);
+
+            AssertLineaDelCupon(lineas, pedido);
+            pedido.PedidoNestoId = 930500;
+            Assert.IsFalse(await canal.AvisarCuponYaGastadoAsync(pedido), "No hay que avisar: es el mismo pedido");
+            A.CallTo(() => cupones.AvisarUsoEnTienda(A<string>._, A<UsoCuponTiendaDTO>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task CuponUsadoEnLaTiendaElUltimoDia_PedidoImportadoAlDiaSiguienteYaCaducado_EntraConLaLineaDelCupon()
+        {
+            // Regresión Nesto#547: usado el último día de validez, se importa al día siguiente: la caducidad ya ha pasado
+            CuponDTO usado = CuponUsadoEnLaTienda();
+            usado.ValidoDesde = DateTime.Today.AddMonths(-3);
+            usado.Caducidad = DateTime.Today.AddDays(-1);
+            usado.FechaUso = DateTime.Today.AddDays(-1);
+            usado.SePuedeUsar = false;
+            A.CallTo(() => cupones.LeerPorCodigo(A<string>._)).Returns(Task.FromResult(usado));
+            PedidoPrestashop entrada = Pedido(41.322314M, 50M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCupon() };
+
+            var (lineas, pedido, _) = await Importar(entrada);
+
+            AssertLineaDelCupon(lineas, pedido);
+        }
+
+        [TestMethod]
+        public async Task CuponUsadoEnOtroPedidoDeNesto_SigueAvisando()
+        {
+            A.CallTo(() => cupones.LeerPorCodigo(A<string>._)).Returns(Task.FromResult(CuponUsadoEnLaTienda(usadoEnPedido: 929999)));
+            PedidoPrestashop entrada = Pedido(41.322314M, 50M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCupon() };
+
+            var (lineas, pedido, _) = await Importar(entrada);
+
+            Assert.IsFalse(lineas.Any(l => l.CodigoCupon != null));
+            Assert.AreEqual("CUPÓN NO APLICADO: REVISAR", lineas.Single(l => l.Producto == "TiCKET").texto);
+            StringAssert.Contains(pedido.Pedido.comentarios, "ATENCIÓN CUPÓN");
+        }
+
+        [TestMethod]
+        public async Task CuponUsadoEnLaTiendaConOtraReferencia_SigueAvisandoYSeDiceALaApi()
+        {
+            A.CallTo(() => cupones.LeerPorCodigo(A<string>._)).Returns(Task.FromResult(CuponUsadoEnLaTienda(pedidoCanal: "OTRAREF")));
+            A.CallTo(() => cupones.AvisarUsoEnTienda(A<string>._, A<UsoCuponTiendaDTO>._)).Returns(Task.FromResult(true));
+            PedidoPrestashop entrada = Pedido(41.322314M, 50M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCupon() };
+
+            var (lineas, pedido, canal) = await Importar(entrada);
+
+            Assert.IsFalse(lineas.Any(l => l.CodigoCupon != null));
+            Assert.AreEqual("CUPÓN NO APLICADO: REVISAR", lineas.Single(l => l.Producto == "TiCKET").texto);
+            StringAssert.Contains(pedido.Pedido.comentarios, "ATENCIÓN CUPÓN");
+            pedido.PedidoNestoId = 930500;
+            Assert.IsTrue(await canal.AvisarCuponYaGastadoAsync(pedido));
+        }
+
+        [TestMethod]
+        public async Task CuponUsadoEnOtroCanal_SigueAvisando()
+        {
+            A.CallTo(() => cupones.LeerPorCodigo(A<string>._)).Returns(Task.FromResult(CuponUsadoEnLaTienda(canalUso: "Nesto")));
+            PedidoPrestashop entrada = Pedido(41.322314M, 50M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCupon() };
+
+            var (lineas, _, _) = await Importar(entrada);
+
+            Assert.IsFalse(lineas.Any(l => l.CodigoCupon != null));
+            Assert.AreEqual(1, lineas.Count(l => l.Producto == "TiCKET"));
+        }
+
         [TestMethod]
         public async Task CuponActivo_AplicadoNoHayQueAvisarDespues()
         {
