@@ -79,6 +79,7 @@ Public Class PlantillaVentaViewModel
         Me.servicio = servicio
         Me.messenger = messenger
         Me.dialogService = dialogService
+        CrearCintaSugerencias(configuracion) ' Nesto#537 / Nesto#544: «Puede ofrecer», común con el rapport
         Me.servicioPedidosVenta = servicioPedidosVenta
         Me.servicioBorradores = servicioBorradores
         ServicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
@@ -117,11 +118,6 @@ Public Class PlantillaVentaViewModel
         cmdActualizarRegalo = New RelayCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
         AplicarOfertaSugeridaCommand = New RelayCommand(Of SugerenciaOfertaDTO)(AddressOf OnAplicarOfertaSugerida, AddressOf CanAplicarOfertaSugerida) ' Nesto#465
-        ' Nesto#537: las fichas de «Puede ofrecer»
-        AnadirSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnAnadirSugerenciaProducto)
-        RechazarSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnRechazarSugerenciaProducto)
-        QuitarSugerenciaProductoCommand = New RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)(AddressOf OnQuitarSugerenciaProducto)
-        PlegarSugerenciasProductosCommand = New RelayCommand(Sub() SugerenciasProductosPlegadas = Not SugerenciasProductosPlegadas)
 
         ' Issue #286: Borradores de PlantillaVenta
         GuardarBorradorCommand = New RelayCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
@@ -170,7 +166,7 @@ Public Class PlantillaVentaViewModel
         EsBusquedaConAND = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UsarBusquedaContextualAND) = "1"
         EsBusquedaConOR = Not EsBusquedaConAND
         CargarPreferenciaAlmacenes() ' NestoAPI#256 / Nesto#390
-        CargarPreferenciaSugerenciasPlegadas() ' Nesto#537
+        _cintaSugerencias.CargarPreferenciaPlegadas() ' Nesto#537
 
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
         messenger.Register(Of ClienteCreadoMensaje)(Me, Sub(r, m) DirectCast(r, PlantillaVentaViewModel).ActualizarCliente(m.Value))
@@ -4820,84 +4816,116 @@ Public Class PlantillaVentaViewModel
 
 #Region "Nesto#537 (épica NestoAPI#669): productos que puede ofrecer"
 
-    ' La API (NestoAPI#670) lo decide todo: qué sugerir, solo del grupo del vendedor, nada de lo que ya está en el carrito, y
-    ' mantiene cada ficha en su hueco mientras siga valiendo. Aquí solo se pregunta con un respiro cuando cambian el carrito,
-    ' el cliente o el contacto (un único temporizador que se reprograma, nunca uno continuo), y se manda lo que contesta el
-    ' vendedor en la ficha. Lo que no se toca no cuenta. Si la API falla o no hay nada que ofrecer, el panel no se ve.
-    Private Const RETARDO_SUGERENCIAS_PRODUCTOS_MS As Integer = 1000
-    Friend Const MAXIMO_SUGERENCIAS_PRODUCTOS As Integer = 4
+    ' Nesto#544: la cinta «Puede ofrecer» (lógica y vista) es común con el rapport: CintaSugerenciasProductosViewModel y
+    ' CintaSugerenciasProductosView, en ControlesUsuario. Aquí solo queda lo que es de la plantilla: qué se manda (cliente,
+    ' contacto, vendedor y carrito), cómo entra en el pedido «✓ Añadir» y cuándo se pregunta (carrito, cliente o contacto).
+    ' Lo de abajo son atajos a la cinta con los nombres de siempre (los usan los tests y PrepararPedido).
+    Friend Const MAXIMO_SUGERENCIAS_PRODUCTOS As Integer = ControlesUsuario.SugerenciasProductos.CintaSugerenciasProductosViewModel.MAXIMO_SUGERENCIAS
 
-    Private ReadOnly _peticionesSugerenciasProductos As New ProgramadorPeticionesConHuella(RETARDO_SUGERENCIAS_PRODUCTOS_MS,
-        Sub() Application.Current?.Dispatcher?.InvokeAsync(
-            Async Function() As Task
-                Await RefrescarSugerenciasProductos()
-            End Function))
-    Private ReadOnly _sugerenciasProductos As New ObservableCollection(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
-    Private ReadOnly _respuestasSugerenciasEnCurso As New HashSet(Of Integer)
-    Private _clienteSugerenciasProductos As String
-    Private _vendedorSugerenciasProductos As String
+    Private _cintaSugerencias As ControlesUsuario.SugerenciasProductos.CintaSugerenciasProductosViewModel
+
+    ''' <summary>La cinta «Puede ofrecer» (su DataContext en la vista).</summary>
+    Public ReadOnly Property CintaSugerencias As ControlesUsuario.SugerenciasProductos.CintaSugerenciasProductosViewModel
+        Get
+            Return _cintaSugerencias
+        End Get
+    End Property
+
+    Private Sub CrearCintaSugerencias(configuracion As IConfiguracion)
+        _cintaSugerencias = New ControlesUsuario.SugerenciasProductos.CintaSugerenciasProductosViewModel(
+            AddressOf PeticionSugerenciasProductos, AddressOf CarritoSugerenciasProductos,
+            Function() leerParametro(Parametros.Claves.Vendedor), configuracion, AddressOf AnadirLineaSugeridaAsync)
+    End Sub
 
     ''' <summary>El cliente de la API (sustituible en los tests).</summary>
     Friend Property ServicioSugerenciasProductos As Nesto.Infrastructure.Services.IServicioSugerenciasProductos
+        Get
+            Return _cintaSugerencias.Servicio
+        End Get
+        Set(value As Nesto.Infrastructure.Services.IServicioSugerenciasProductos)
+            _cintaSugerencias.Servicio = value
+        End Set
+    End Property
 
     ''' <summary>Las fichas de «Puede ofrecer» (3, como mucho 4), en el orden de sus huecos.</summary>
     Public ReadOnly Property SugerenciasProductos As ObservableCollection(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
         Get
-            Return _sugerenciasProductos
+            Return _cintaSugerencias.Sugerencias
         End Get
     End Property
 
     Public ReadOnly Property HaySugerenciasProductos As Boolean
         Get
-            Return _sugerenciasProductos.Any()
+            Return _cintaSugerencias.HaySugerencias
         End Get
     End Property
 
     ''' <summary>La sesión de sugerencias de esta plantilla (la crea la API en la primera respuesta). Va en el pedido al grabar.</summary>
     Public Property IdSesionSugerencias As Guid?
+        Get
+            Return _cintaSugerencias.IdSesion
+        End Get
+        Set(value As Guid?)
+            _cintaSugerencias.IdSesion = value
+        End Set
+    End Property
 
     Public ReadOnly Property AnadirSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
+        Get
+            Return _cintaSugerencias.AnadirCommand
+        End Get
+    End Property
+
     Public ReadOnly Property RechazarSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
+        Get
+            Return _cintaSugerencias.RechazarCommand
+        End Get
+    End Property
+
     ''' <summary>«🚫 Quitar»: no se lo ofrezco (sé que no lo quiere o no se lo puedo vender). Sale otra en su lugar.</summary>
     Public ReadOnly Property QuitarSugerenciaProductoCommand As RelayCommand(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)
-    Public ReadOnly Property PlegarSugerenciasProductosCommand As RelayCommand
+        Get
+            Return _cintaSugerencias.QuitarCommand
+        End Get
+    End Property
 
-    Private _sugerenciasProductosPlegadas As Boolean
+    Public ReadOnly Property PlegarSugerenciasProductosCommand As RelayCommand
+        Get
+            Return _cintaSugerencias.PlegarCommand
+        End Get
+    End Property
+
     ''' <summary>La franja plegada deja solo la cabecera. Se recuerda por usuario (parámetro SugerenciasPlantillaPlegadas).</summary>
     Public Property SugerenciasProductosPlegadas As Boolean
         Get
-            Return _sugerenciasProductosPlegadas
+            Return _cintaSugerencias.Plegadas
         End Get
         Set(value As Boolean)
-            If SetProperty(_sugerenciasProductosPlegadas, value) Then
-                OnPropertyChanged(NameOf(SugerenciasProductosDesplegadas))
-                OnPropertyChanged(NameOf(TextoPlegarSugerenciasProductos))
-                GuardarPreferenciaSugerenciasPlegadas(value)
-            End If
+            _cintaSugerencias.Plegadas = value
         End Set
     End Property
 
     Public ReadOnly Property SugerenciasProductosDesplegadas As Boolean
         Get
-            Return Not _sugerenciasProductosPlegadas
+            Return _cintaSugerencias.Desplegadas
         End Get
     End Property
 
     Public ReadOnly Property TextoPlegarSugerenciasProductos As String
         Get
-            Return If(_sugerenciasProductosPlegadas, "▸", "▾")
+            Return _cintaSugerencias.TextoPlegar
         End Get
     End Property
 
     ''' <summary>Cuántas veces se ha preguntado de verdad a la API (para los tests).</summary>
     Friend ReadOnly Property PeticionesSugerenciasProductosEnviadas As Integer
         Get
-            Return _peticionesSugerenciasProductos.PeticionesEnviadas
+            Return _cintaSugerencias.PeticionesEnviadas
         End Get
     End Property
 
     Private Sub PedirSugerenciasProductosConDebounce()
-        _peticionesSugerenciasProductos.Programar()
+        _cintaSugerencias.Programar()
     End Sub
 
     ''' <summary>
@@ -4905,22 +4933,12 @@ Public Class PlantillaVentaViewModel
     ''' cliente no reinicia nada (las fichas no bailan).
     ''' </summary>
     Friend Sub ReiniciarSugerenciasProductosSiCambiaElCliente(value As ClienteJson)
-        Dim clave As String = If(value Is Nothing, Nothing, $"{value.empresa?.Trim()}|{value.cliente?.Trim()}")
-        If String.Equals(clave, _clienteSugerenciasProductos, StringComparison.OrdinalIgnoreCase) Then
-            Return
-        End If
-        _clienteSugerenciasProductos = clave
-        IdSesionSugerencias = Nothing
-        LimpiarSugerenciasProductos()
-        _peticionesSugerenciasProductos.OlvidarHuella()
-        PedirSugerenciasProductosConDebounce()
+        _cintaSugerencias.ReiniciarSiCambiaElCliente(If(value Is Nothing, Nothing, $"{value.empresa?.Trim()}|{value.cliente?.Trim()}"))
     End Sub
 
     ''' <summary>Friend para pedirlas a mano en los tests sin esperar al reloj. Los fallos no se propagan.</summary>
     Friend Function RefrescarSugerenciasProductos() As Task
-        Return _peticionesSugerenciasProductos.EjecutarAsync(Of Nesto.Infrastructure.Models.CalcularSugerenciasProductosDTO)(
-            AddressOf PeticionSugerenciasProductos, AddressOf HuellaSugerenciasProductos,
-            AddressOf LimpiarSugerenciasProductos, AddressOf PedirSugerenciasProductosAlServidor)
+        Return _cintaSugerencias.RefrescarAsync()
     End Function
 
     ''' <summary>Lo que se manda a Calcular, o Nothing si todavía no hay cliente.</summary>
@@ -4932,7 +4950,7 @@ Public Class PlantillaVentaViewModel
             .Empresa = clienteSeleccionado.empresa?.Trim(),
             .Cliente = clienteSeleccionado.cliente.Trim(),
             .Contacto = If(String.IsNullOrWhiteSpace(Estado.Contacto), clienteSeleccionado.contacto, Estado.Contacto)?.Trim(),
-            .Vendedor = If(String.IsNullOrWhiteSpace(vendedorUsuario), _vendedorSugerenciasProductos, vendedorUsuario)?.Trim(),
+            .Vendedor = vendedorUsuario?.Trim(),
             .IdSesion = IdSesionSugerencias,
             .Productos = CarritoSugerenciasProductos()
         }
@@ -4943,13 +4961,7 @@ Public Class PlantillaVentaViewModel
     ''' preguntar; meter o quitar un producto, sí. La sesión no entra: si no, la propia respuesta provocaría otra petición.
     ''' </summary>
     Friend Shared Function HuellaSugerenciasProductos(peticion As Nesto.Infrastructure.Models.CalcularSugerenciasProductosDTO) As String
-        If peticion Is Nothing Then
-            Return Nothing
-        End If
-        Dim productos As IEnumerable(Of String) = If(peticion.Productos, New List(Of Nesto.Infrastructure.Models.ProductoCarritoSugerenciaDTO)).
-            Select(Function(p) p.Producto?.Trim().ToUpperInvariant()).
-            OrderBy(Function(p) p, StringComparer.Ordinal)
-        Return String.Join("|", peticion.Empresa, peticion.Cliente, peticion.Contacto, String.Join(",", productos))
+        Return ControlesUsuario.SugerenciasProductos.CintaSugerenciasProductosViewModel.Huella(peticion)
     End Function
 
     ''' <summary>Las líneas del pedido como las quiere la API: producto → unidades (las de oferta incluidas).</summary>
@@ -4967,96 +4979,12 @@ Public Class PlantillaVentaViewModel
             ToList()
     End Function
 
-    Private Async Function PedirSugerenciasProductosAlServidor(peticion As Nesto.Infrastructure.Models.CalcularSugerenciasProductosDTO) As Task
-        If ServicioSugerenciasProductos Is Nothing Then
-            Return
-        End If
-        If String.IsNullOrWhiteSpace(peticion.Vendedor) Then
-            peticion.Vendedor = Await VendedorSugerenciasProductosAsync().ConfigureAwait(True)
-        End If
-        Dim resultado As Nesto.Infrastructure.Models.SugerenciasProductosDTO = Nothing
-        Try
-            resultado = Await ServicioSugerenciasProductos.Calcular(peticion).ConfigureAwait(True)
-        Catch ex As Exception
-            resultado = Nothing
-        End Try
-        ' Si mientras tanto han cambiado de cliente, esta respuesta es de otro
-        If clienteSeleccionado Is Nothing OrElse Not String.Equals(clienteSeleccionado.cliente?.Trim(), peticion.Cliente, StringComparison.OrdinalIgnoreCase) Then
-            Return
-        End If
-        If resultado Is Nothing Then
-            LimpiarSugerenciasProductos() ' la API no contesta: el panel no se ve y la plantilla sigue igual
-            Return
-        End If
-        If resultado.IdSesion <> Guid.Empty Then
-            IdSesionSugerencias = resultado.IdSesion
-        End If
-        AplicarSugerenciasProductos(resultado.Sugerencias)
-    End Function
-
-    ''' <summary>El vendedor del usuario (parámetro Vendedor), leído una vez. Vacío si no se puede leer: la API enseña todo.</summary>
-    Private Async Function VendedorSugerenciasProductosAsync() As Task(Of String)
-        If _vendedorSugerenciasProductos Is Nothing Then
-            Try
-                _vendedorSugerenciasProductos = If(Await leerParametro(Parametros.Claves.Vendedor).ConfigureAwait(True), String.Empty).Trim()
-            Catch ex As Exception
-                _vendedorSugerenciasProductos = String.Empty
-            End Try
-        End If
-        Return _vendedorSugerenciasProductos
-    End Function
-
     ''' <summary>
     ''' Pone las fichas que manda la API, en el orden de sus huecos, sin las que ya estén en el carrito (por si se ha metido
     ''' a mano mientras se preguntaba). Si son las mismas que ya se ven, no se toca nada.
     ''' </summary>
     Friend Sub AplicarSugerenciasProductos(sugerencias As IEnumerable(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO))
-        Dim enCarrito As New HashSet(Of String)(CarritoSugerenciasProductos().Select(Function(p) p.Producto), StringComparer.OrdinalIgnoreCase)
-        Dim nuevas As List(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO) =
-            If(sugerencias, Enumerable.Empty(Of Nesto.Infrastructure.Models.SugerenciaProductoDTO)()).
-            Where(Function(s) s IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(s.Producto) AndAlso Not enCarrito.Contains(s.Producto.Trim())).
-            OrderBy(Function(s) s.Posicion).
-            Take(MAXIMO_SUGERENCIAS_PRODUCTOS).
-            ToList()
-        If nuevas.Select(Function(s) s.IdSugerencia).SequenceEqual(_sugerenciasProductos.Select(Function(s) s.IdSugerencia)) Then
-            Return
-        End If
-        _sugerenciasProductos.Clear()
-        For Each sugerencia In nuevas
-            _sugerenciasProductos.Add(sugerencia)
-        Next
-        OnPropertyChanged(NameOf(HaySugerenciasProductos))
-    End Sub
-
-    Private Sub LimpiarSugerenciasProductos()
-        If _sugerenciasProductos.Any() Then
-            _sugerenciasProductos.Clear()
-        End If
-        OnPropertyChanged(NameOf(HaySugerenciasProductos))
-    End Sub
-
-    Private Async Sub OnAnadirSugerenciaProducto(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO)
-        Try
-            Await AnadirSugerenciaProductoAsync(sugerencia)
-        Catch ex As Exception
-            dialogService.ShowError($"No se ha podido añadir el producto sugerido: {ex.Message}")
-        End Try
-    End Sub
-
-    Private Async Sub OnRechazarSugerenciaProducto(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO)
-        Try
-            Await RechazarSugerenciaProductoAsync(sugerencia)
-        Catch ex As Exception
-            ' Es una ayuda: si falla, la ficha se queda y no se molesta al vendedor
-        End Try
-    End Sub
-
-    Private Async Sub OnQuitarSugerenciaProducto(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO)
-        Try
-            Await QuitarSugerenciaProductoAsync(sugerencia)
-        Catch ex As Exception
-            ' Es una ayuda: si falla, la ficha se queda y no se molesta al vendedor
-        End Try
+        _cintaSugerencias.Aplicar(sugerencias)
     End Sub
 
     ''' <summary>
@@ -5064,27 +4992,33 @@ Public Class PlantillaVentaViewModel
     ''' tecleara el vendedor (precio, stock y sustituciones igual). La ficha sale del panel, se apunta «Anadido» y, como el
     ''' carrito ha cambiado, su hueco se rellena al volver a preguntar.
     ''' </summary>
-    Friend Async Function AnadirSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
-        If sugerencia Is Nothing OrElse clienteSeleccionado Is Nothing OrElse Not _respuestasSugerenciasEnCurso.Add(sugerencia.IdSugerencia) Then
-            Return
+    Friend Function AnadirSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
+        Return _cintaSugerencias.AnadirAsync(sugerencia)
+    End Function
+
+    ''' <summary>
+    ''' Lo que hace la plantilla con «✓ Añadir» (la cinta pone el resto): busca la línea, le pone 1 unidad si no tenía y la
+    ''' mete en el pedido. True si ha entrado. Si no se encuentra o falla, se le dice al vendedor (de usted).
+    ''' </summary>
+    Private Async Function AnadirLineaSugeridaAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task(Of Boolean)
+        If sugerencia Is Nothing OrElse clienteSeleccionado Is Nothing Then
+            Return False
         End If
         Try
             Dim linea As LineaPlantillaVenta = Await BuscarLineaParaAnadirAsync(sugerencia.Producto)
             If IsNothing(linea) Then
                 dialogService.ShowError($"No se ha encontrado el producto {sugerencia.Producto?.Trim()}. Búsquelo a mano, por favor.")
-                Return
+                Return False
             End If
             If linea.cantidad + linea.cantidadOferta <= 0 Then
                 linea.cantidad = 1
             End If
             cmdActualizarProductosPedido.Execute(linea)
             ActualizarTotales()
-            If _sugerenciasProductos.Remove(sugerencia) Then
-                OnPropertyChanged(NameOf(HaySugerenciasProductos))
-            End If
-            Await ResponderSugerenciaProductoAsync(sugerencia.IdSugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.ANADIDO).ConfigureAwait(True)
-        Finally
-            _respuestasSugerenciasEnCurso.Remove(sugerencia.IdSugerencia)
+            Return True
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido añadir el producto sugerido: {ex.Message}")
+            Return False
         End Try
     End Function
 
@@ -5093,7 +5027,7 @@ Public Class PlantillaVentaViewModel
     ''' (o la API no contesta), la ficha simplemente se va.
     ''' </summary>
     Friend Function RechazarSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
-        Return SustituirSugerenciaProductoAsync(sugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.NO_LE_INTERESA)
+        Return _cintaSugerencias.RechazarAsync(sugerencia)
     End Function
 
     ''' <summary>
@@ -5102,68 +5036,8 @@ Public Class PlantillaVentaViewModel
     ''' («DescartadoVendedor»): no es un rechazo del cliente.
     ''' </summary>
     Friend Function QuitarSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO) As Task
-        Return SustituirSugerenciaProductoAsync(sugerencia, Nesto.Infrastructure.Models.RespuestasSugerenciaProducto.DESCARTADO_VENDEDOR)
+        Return _cintaSugerencias.QuitarAsync(sugerencia)
     End Function
-
-    ''' <summary>La ficha se va y, si la API manda sustituta (y vale), esta ocupa el mismo hueco.</summary>
-    Private Async Function SustituirSugerenciaProductoAsync(sugerencia As Nesto.Infrastructure.Models.SugerenciaProductoDTO, respuesta As String) As Task
-        If sugerencia Is Nothing OrElse Not _respuestasSugerenciasEnCurso.Add(sugerencia.IdSugerencia) Then
-            Return
-        End If
-        Try
-            Dim resultado = Await ResponderSugerenciaProductoAsync(sugerencia.IdSugerencia, respuesta).ConfigureAwait(True)
-            Dim indice As Integer = _sugerenciasProductos.IndexOf(sugerencia)
-            If indice < 0 Then
-                Return ' mientras tanto se ha recalculado el panel
-            End If
-            Dim sustituta = resultado?.Sustituta
-            Dim enCarrito As New HashSet(Of String)(CarritoSugerenciasProductos().Select(Function(p) p.Producto), StringComparer.OrdinalIgnoreCase)
-            Dim valeLaSustituta As Boolean = sustituta IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(sustituta.Producto) AndAlso
-                Not enCarrito.Contains(sustituta.Producto.Trim()) AndAlso
-                Not _sugerenciasProductos.Any(Function(s) s.IdSugerencia = sustituta.IdSugerencia OrElse
-                                                  String.Equals(s.Producto?.Trim(), sustituta.Producto.Trim(), StringComparison.OrdinalIgnoreCase))
-            If valeLaSustituta Then
-                _sugerenciasProductos(indice) = sustituta
-            Else
-                _sugerenciasProductos.RemoveAt(indice)
-            End If
-            OnPropertyChanged(NameOf(HaySugerenciasProductos))
-        Finally
-            _respuestasSugerenciasEnCurso.Remove(sugerencia.IdSugerencia)
-        End Try
-    End Function
-
-    Private Async Function ResponderSugerenciaProductoAsync(idSugerencia As Integer, respuesta As String) As Task(Of Nesto.Infrastructure.Models.ResultadoRespuestaSugerenciaProductoDTO)
-        If ServicioSugerenciasProductos Is Nothing Then
-            Return Nothing
-        End If
-        Try
-            Return Await ServicioSugerenciasProductos.Responder(idSugerencia, respuesta, CarritoSugerenciasProductos()).ConfigureAwait(True)
-        Catch ex As Exception
-            Return Nothing
-        End Try
-    End Function
-
-    ''' <summary>"1" = plegada. Sin fila, otro valor o si no se puede leer: desplegada.</summary>
-    Private Async Sub CargarPreferenciaSugerenciasPlegadas()
-        Try
-            Dim valor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SugerenciasPlantillaPlegadas)
-            If SetProperty(_sugerenciasProductosPlegadas, valor?.Trim() = "1", NameOf(SugerenciasProductosPlegadas)) Then
-                OnPropertyChanged(NameOf(SugerenciasProductosDesplegadas))
-                OnPropertyChanged(NameOf(TextoPlegarSugerenciasProductos))
-            End If
-        Catch ex As Exception
-            ' Sin preferencia, desplegada
-        End Try
-    End Sub
-
-    Private Async Sub GuardarPreferenciaSugerenciasPlegadas(plegadas As Boolean)
-        Try
-            Await configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SugerenciasPlantillaPlegadas, If(plegadas, "1", "0"))
-        Catch ex As Exception
-            ' Es una comodidad: si no se puede guardar, la próxima vez sale desplegada
-        End Try
-    End Sub
 
 #End Region
 
