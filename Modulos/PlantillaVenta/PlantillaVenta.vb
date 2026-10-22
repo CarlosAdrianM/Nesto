@@ -21,6 +21,7 @@ Public Class PlantillaVenta
         registro.Vista(Of PlantillaVentaView)("PlantillaVentaView")
         ' Nesto#543: elegir evento y modalidad al meter un curso
         registro.RegistrarDialogo(Of ElegirEventoCursoDialog, ElegirEventoCursoDialogViewModel)(ElegirEventoCursoDialogViewModel.NOMBRE)
+        registro.RegistrarDialogo(Of ElegirPedidoPendienteDialog, ElegirPedidoPendienteDialogViewModel)(ElegirPedidoPendienteDialogViewModel.NOMBRE) ' Novedad 735
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar
         registro.Transitorio(Of PlantillaVentaMenuBar)()

@@ -4108,25 +4108,103 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Async Sub OnComprobarPendientes()
+        Await ComprobarPendientesAsync()
+    End Sub
+
+    ''' <summary>
+    ''' Novedad 735: si el cliente tiene pedidos pendientes y la plantilla está vacía (y no se está modificando ya un
+    ''' pedido), se pregunta si se quiere modificar uno de ellos —así el cheque, los portes y Ganavisiones cuentan todo
+    ''' el pedido, igual que «Modificar con plantilla»— o hacer uno nuevo. Si no, el aviso informativo de siempre.
+    ''' </summary>
+    Friend Async Function ComprobarPendientesAsync() As Task
         If IsNothing(clienteSeleccionado) Then
             Return
         End If
 
         Try
-            ListaPedidosPendientes = Await servicio.CargarListaPendientes(clienteSeleccionado.empresa, clienteSeleccionado.cliente)
+            Dim empresa As String = clienteSeleccionado.empresa
+            ListaPedidosPendientes = Await servicio.CargarListaPendientes(empresa, clienteSeleccionado.cliente)
 
-            If TienePedidosPendientes Then
+            If Not TienePedidosPendientes Then
+                Return
+            End If
+            Dim pendientes = ListaPedidosPendientes.Where(Function(f) f <> 0).Distinct().ToList()
+
+            If Not PuedeOfrecerModificarPendiente() Then
                 Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
-                For Each i In ListaPedidosPendientes.Where(Function(f) f <> 0)
+                For Each i In pendientes
                     textoMensaje += i.ToString + vbTab
                 Next
                 textoMensaje += vbCr + vbCr + "Por favor, revise que sea todo correcto."
                 dialogService.ShowNotification("Pendientes", textoMensaje)
+                Return
+            End If
+
+            Dim descripciones As New List(Of String)
+            For Each numero In pendientes
+                descripciones.Add(Await DescribirPedidoPendienteAsync(empresa, numero))
+            Next
+
+            Dim opciones As New List(Of OpcionPedidoPendiente)
+            Dim mensaje As String
+            If pendientes.Count = 1 Then
+                mensaje = $"Este cliente tiene un pedido pendiente: {descripciones(0)}. Si quiere añadirle productos, modifíquelo: así el cheque, los portes y Ganavisiones cuentan todo el pedido."
+                opciones.Add(New OpcionPedidoPendiente With {.Numero = pendientes(0), .Texto = $"Modificar el pedido {pendientes(0)}"})
+            Else
+                mensaje = $"Este cliente tiene {pendientes.Count} pedidos pendientes. Si quiere añadirle productos a uno de ellos, modifíquelo: así el cheque, los portes y Ganavisiones cuentan todo el pedido."
+                For i = 0 To pendientes.Count - 1
+                    opciones.Add(New OpcionPedidoPendiente With {.Numero = pendientes(i), .Texto = $"Modificar el pedido {descripciones(i)}"})
+                Next
+            End If
+            opciones.Add(New OpcionPedidoPendiente With {.Numero = 0, .Texto = "Hacer un pedido nuevo"})
+
+            Dim resultado As ResultadoDialogo = Await dialogService.ShowDialogAsync(ElegirPedidoPendienteDialogViewModel.NOMBRE, New ParametrosDialogo From {
+                {ElegirPedidoPendienteDialogViewModel.PARAMETRO_MENSAJE, mensaje},
+                {ElegirPedidoPendienteDialogViewModel.PARAMETRO_OPCIONES, opciones}
+            })
+            Dim elegido As Integer = 0
+            If resultado IsNot Nothing AndAlso resultado.Result = ResultadoBoton.OK AndAlso resultado.Parameters IsNot Nothing AndAlso
+                resultado.Parameters.ContainsKey(ElegirPedidoPendienteDialogViewModel.PARAMETRO_PEDIDO) Then
+                elegido = resultado.Parameters.GetValue(Of Integer)(ElegirPedidoPendienteDialogViewModel.PARAMETRO_PEDIDO)
+            End If
+
+            If elegido <> 0 AndAlso pendientes.Contains(elegido) Then
+                ' El mismo camino que «Modificar con plantilla» de la lista de pedidos (con su aviso de líneas albaranadas)
+                Await CargarPedidoParaModificarAsync(empresa, elegido)
             End If
         Catch ex As Exception
             dialogService.ShowError("Se ha producido un error al comprobar los pedidos pendientes del cliente" + vbCrLf + ex.Message)
         End Try
-    End Sub
+    End Function
+
+    ''' <summary>Novedad 735: solo se ofrece modificar un pendiente con la plantilla vacía y sin estar ya modificando un pedido.</summary>
+    Private Function PuedeOfrecerModificarPendiente() As Boolean
+        If NumeroPedidoEnEdicion.HasValue OrElse _cargandoDesdeBorrador Then
+            Return False
+        End If
+        Dim lineas = If(ListaFiltrableProductos?.ListaOriginal Is Nothing, Nothing, listaProductosPedido)
+        Dim hayLineas = lineas IsNot Nothing AndAlso lineas.Any()
+        Return Not hayLineas AndAlso Not ListaRegalosSeleccionados.Any()
+    End Function
+
+    ''' <summary>Novedad 735: «929105 (175,00 €, del 21/10/2026)»; si no se puede leer el pedido, solo el número.</summary>
+    Private Async Function DescribirPedidoPendienteAsync(empresa As String, numero As Integer) As Task(Of String)
+        Try
+            Dim pedido As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(empresa, numero)
+            If pedido Is Nothing Then
+                Return numero.ToString()
+            End If
+            Dim cultura = Globalization.CultureInfo.GetCultureInfo("es-ES")
+            Dim importe As Decimal = If(pedido.Lineas Is Nothing, 0D, pedido.Lineas.Sum(Function(l) l.BaseImponible))
+            Dim texto = $"{numero} ({importe.ToString("N2", cultura)} €"
+            If pedido.fecha.HasValue Then
+                texto += $", del {pedido.fecha.Value.ToString("dd/MM/yyyy", cultura)}"
+            End If
+            Return texto + ")"
+        Catch
+            Return numero.ToString()
+        End Try
+    End Function
 
     Private _cmdCrearPedido As RelayCommand
     Public Property cmdCrearPedido As RelayCommand

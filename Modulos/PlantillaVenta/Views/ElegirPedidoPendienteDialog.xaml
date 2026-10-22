@@ -1,0 +1,20 @@
+<UserControl x:Class="ElegirPedidoPendienteDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="460" MaxWidth="640"
+             Background="White">
+    <!-- Novedad 735: el cliente tiene pedidos pendientes; un botón por pedido para modificarlo y otro para hacer uno nuevo. -->
+    <StackPanel Margin="15">
+        <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" FontSize="13" Margin="0,0,0,15"/>
+        <ItemsControl ItemsSource="{Binding Opciones}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Content="{Binding Texto}" MinHeight="30" Padding="10,4" Margin="0,0,0,6"
+                            HorizontalContentAlignment="Left"
+                            Command="{Binding DataContext.ElegirCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>
