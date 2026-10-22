@@ -16,6 +16,25 @@ namespace ControlesUsuario.Dialogs
             set { SetProperty(ref _message, value); }
         }
 
+        /// <summary>Parámetro bool: con true, Intro contesta «No» (el botón por defecto es «No»).</summary>
+        public const string PARAMETRO_POR_DEFECTO_NO = "porDefectoNo";
+
+        private bool _porDefectoNo;
+        /// <summary>El botón por defecto (Intro) es «No» en vez de «Sí».</summary>
+        public bool PorDefectoNo
+        {
+            get { return _porDefectoNo; }
+            set
+            {
+                if (SetProperty(ref _porDefectoNo, value))
+                {
+                    OnPropertyChanged(nameof(PorDefectoSi));
+                }
+            }
+        }
+
+        public bool PorDefectoSi => !PorDefectoNo;
+
         public ConfirmationDialogViewModel()
         {
             Title = "Confirmar";
@@ -37,6 +56,7 @@ namespace ControlesUsuario.Dialogs
         {
             Message = parameters.GetValue<string>("message");
             Title = parameters.GetValue<string>("title");
+            PorDefectoNo = parameters.TryGetValue(PARAMETRO_POR_DEFECTO_NO, out bool porDefectoNo) && porDefectoNo;
         }
     }
 }

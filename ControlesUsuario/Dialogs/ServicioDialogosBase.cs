@@ -69,11 +69,17 @@ namespace ControlesUsuario.Dialogs
         public void ShowConfirmation(string title, string message, Action<ResultadoDialogo> callBack)
             => ShowDialog(ConfirmationDialog, new ParametrosDialogo { { "title", title }, { "message", message } }, callBack);
 
-        public bool ShowConfirmationAnswer(string title, string message)
+        public bool ShowConfirmationAnswer(string title, string message) => ShowConfirmationAnswer(title, message, false);
+
+        public bool ShowConfirmationAnswer(string title, string message, bool porDefectoNo)
         {
             bool confirmado = false;
-            ShowDialog(ConfirmationDialog, new ParametrosDialogo { { "title", title }, { "message", message } },
-                r => confirmado = r.Result == ResultadoBoton.OK);
+            var parametros = new ParametrosDialogo { { "title", title }, { "message", message } };
+            if (porDefectoNo)
+            {
+                parametros.Add(ConfirmationDialogViewModel.PARAMETRO_POR_DEFECTO_NO, true);
+            }
+            ShowDialog(ConfirmationDialog, parametros, r => confirmado = r.Result == ResultadoBoton.OK);
             return confirmado;
         }
 
