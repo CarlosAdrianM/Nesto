@@ -12,7 +12,16 @@ Public Interface IPlantillaVentaService
     Function CargarClientesVendedor(filtroCliente As String, vendedor As String, todosLosVendedores As Boolean) As Task(Of ICollection(Of ClienteJson))
     Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer))
     Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
-    Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String)
+    ''' <summary>
+    ''' Crea el pedido (POST api/PedidosVenta). Nesto#543: además del número, los pedidos que la API haya creado
+    ''' aparte (los cursos van en otro pedido, serie CV); lista vacía si no hay ninguno o la API es anterior.
+    ''' </summary>
+    Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of RespuestaCrearPedidoPlantilla)
+    ''' <summary>
+    ''' Nesto#543 / NestoAPI#691: los eventos futuros de un curso, con sus modalidades
+    ''' (GET api/Eventos/PorProducto). Lista vacía si no tiene ninguno; Nothing si no se ha podido consultar.
+    ''' </summary>
+    Function CargarEventosProducto(empresa As String, producto As String) As Task(Of List(Of EventoCursoDTO))
     Function EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String)
     ''' <summary>
     ''' Nesto#505: lo que el cliente tiene a su favor en el extracto (GET api/ExtractosCliente/SaldoAFavor).

@@ -1,4 +1,5 @@
-﻿Imports Nesto.Contratos
+﻿Imports ControlesUsuario.Dialogs
+Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
 Imports Prism.Ioc
@@ -18,6 +19,8 @@ Public Class PlantillaVenta
 
     Public Sub Registrar(registro As IRegistroNesto) Implements IModuloNesto.Registrar
         registro.Vista(Of PlantillaVentaView)("PlantillaVentaView")
+        ' Nesto#543: elegir evento y modalidad al meter un curso
+        registro.RegistrarDialogo(Of ElegirEventoCursoDialog, ElegirEventoCursoDialogViewModel)(ElegirEventoCursoDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar
         registro.Transitorio(Of PlantillaVentaMenuBar)()
