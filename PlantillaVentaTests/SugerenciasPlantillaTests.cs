@@ -85,6 +85,59 @@ namespace PlantillaVentaTests
             Assert.IsTrue(vm.HayMotivoModoServicio, "El motivo se enseña igual");
         }
 
+        // Novedad 731 (María José, 22/10/26): eligió «Todo junto» y la frase gris decía «sale lo que hay y el resto
+        // en una sola entrega más», que es el modo RECOMENDADO. Si no coincide con lo elegido, se dice que es la
+        // recomendación y cuál.
+        [TestMethod]
+        public void ModoSugerido_SiElUsuarioEligeOtroModo_ElTextoDiceQueEsLaRecomendacion()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.AplicarSugerenciaModoServicio(Sugerencia(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ,
+                "1 línea sin stock en ningún almacén: sale lo que hay y el resto en una sola entrega más."));
+
+            vm.ModoServicio = ModosServicio.TODO_JUNTO;
+
+            Assert.AreEqual("Recomendado: «Ahora lo que hay, el resto de una vez». 1 línea sin stock en ningún almacén: sale lo que hay y el resto en una sola entrega más.",
+                vm.MotivoModoServicio);
+        }
+
+        [TestMethod]
+        public void ModoSugerido_SiLoElegidoCoincideConLoRecomendado_SoloElMotivoSinRepetirElModo()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.AplicarSugerenciaModoServicio(Sugerencia(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ, "Motivo del servidor."));
+            vm.ModoServicio = ModosServicio.TODO_JUNTO;
+
+            vm.ModoServicio = ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ;
+
+            Assert.AreEqual("Motivo del servidor.", vm.MotivoModoServicio);
+        }
+
+        [TestMethod]
+        public void ModoSugerido_AlCambiarElModo_SeAvisaDeQueCambiaElTextoDeLaRecomendacion()
+        {
+            var vm = CrearViewModel();
+            vm.direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.AplicarSugerenciaModoServicio(Sugerencia(ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ));
+            var cambiadas = new List<string>();
+            vm.PropertyChanged += (_, e) => cambiadas.Add(e.PropertyName);
+
+            vm.ModoServicio = ModosServicio.SEGUN_VAYA_ENTRANDO;
+
+            CollectionAssert.Contains(cambiadas, nameof(vm.MotivoModoServicio));
+        }
+
+        [TestMethod]
+        public void TextoRecomendacion_SinNombreDelServidor_UsaElNombreLocalDelModo()
+        {
+            var sugerencia = new ModoServicioSugeridoDTO { Modo = ModosServicio.SEGUN_VAYA_ENTRANDO, Motivo = "Motivo." };
+
+            Assert.AreEqual("Recomendado: «Según vaya entrando». Motivo.",
+                PlantillaVentaViewModel.TextoRecomendacionModoServicio(sugerencia, ModosServicio.TODO_JUNTO));
+        }
+
         [TestMethod]
         public void ModoSugerido_AlCambiarDeDireccionDeEntrega_SeConservaElModoSugerido()
         {

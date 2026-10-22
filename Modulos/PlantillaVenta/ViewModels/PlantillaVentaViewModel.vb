@@ -922,6 +922,8 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(ModoServicio))
             OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
             OnPropertyChanged(NameOf(baseImponibleParaPortes))
+            OnPropertyChanged(NameOf(MotivoModoServicio)) ' Novedad 731: «Recomendado: …» solo si lo elegido no es lo recomendado
+            OnPropertyChanged(NameOf(HayMotivoModoServicio))
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) AndAlso Not _restaurandoModoGuardado Then
                 OnValidarServirJunto()
             End If
@@ -1191,12 +1193,28 @@ Public Class PlantillaVentaViewModel
     Private _ultimoModoSugeridoAplicado As Byte?
 
     ''' <summary>Nesto#483: el texto que manda el servidor explicando el modo («2 líneas hay que traerlas
-    ''' de las tiendas: se espera a la reposición»). Vacío mientras no ha contestado.</summary>
+    ''' de las tiendas: se espera a la reposición»). Vacío mientras no ha contestado.
+    ''' Novedad 731 (María José, 22/10/26): ese texto explica el modo RECOMENDADO, no el elegido. Con «Todo junto»
+    ''' elegido leía «sale lo que hay y el resto en una sola entrega» y no se entendía. Si lo elegido no coincide
+    ''' con lo recomendado, se dice que es la recomendación y cuál («Recomendado: «…». motivo»); si coincide, el
+    ''' motivo solo, sin repetir el nombre del modo que ya se ve en el desplegable.</summary>
     Public ReadOnly Property MotivoModoServicio As String
         Get
-            Return _sugerenciaModoServicio?.Motivo
+            Return TextoRecomendacionModoServicio(_sugerenciaModoServicio, ModoServicio)
         End Get
     End Property
+
+    Friend Shared Function TextoRecomendacionModoServicio(sugerencia As ModoServicioSugeridoDTO, modoElegido As Byte) As String
+        If sugerencia Is Nothing OrElse String.IsNullOrWhiteSpace(sugerencia.Motivo) Then
+            Return Nothing
+        End If
+        Dim motivo As String = sugerencia.Motivo.Trim()
+        If sugerencia.Modo = modoElegido Then
+            Return motivo
+        End If
+        Dim nombre As String = If(String.IsNullOrWhiteSpace(sugerencia.Nombre), ModosServicio.Nombre(sugerencia.Modo), sugerencia.Nombre.Trim())
+        Return $"Recomendado: «{nombre}». {motivo}"
+    End Function
 
     Public ReadOnly Property HayMotivoModoServicio As Boolean
         Get
