@@ -34,6 +34,7 @@ namespace ControlesUsuario.SugerenciasProductos
         private readonly Func<List<ProductoCarritoSugerenciaDTO>> _carrito;
         private readonly Func<Task<string>> _leerVendedor;
         private readonly Func<SugerenciaProductoDTO, Task<bool>> _anadir;
+        private readonly bool _apuntarAnadido;
         private readonly IConfiguracion _configuracion;
         private readonly ProgramadorPeticionesConHuella _peticiones;
         private readonly ObservableCollection<SugerenciaProductoDTO> _sugerencias = new ObservableCollection<SugerenciaProductoDTO>();
@@ -52,10 +53,15 @@ namespace ControlesUsuario.SugerenciasProductos
         /// <param name="anadir">
         /// «✓ Añadir»: mete el producto en el pedido y devuelve true si ha entrado. Null: la pantalla no vende y el botón no sale.
         /// </param>
+        /// <param name="apuntarAnadido">
+        /// True (la plantilla): al entrar el producto, la cinta apunta «Anadido». False (el rapport, Nesto#544 corte 2): lo apunta
+        /// la plantilla que lo recibe, con su carrito.
+        /// </param>
         public CintaSugerenciasProductosViewModel(Func<CalcularSugerenciasProductosDTO> peticion,
             Func<List<ProductoCarritoSugerenciaDTO>> carrito = null, Func<Task<string>> leerVendedor = null,
-            IConfiguracion configuracion = null, Func<SugerenciaProductoDTO, Task<bool>> anadir = null)
+            IConfiguracion configuracion = null, Func<SugerenciaProductoDTO, Task<bool>> anadir = null, bool apuntarAnadido = true)
         {
+            _apuntarAnadido = apuntarAnadido;
             _peticion = peticion ?? throw new ArgumentNullException(nameof(peticion));
             _carrito = carrito;
             _leerVendedor = leerVendedor;
@@ -83,6 +89,11 @@ namespace ControlesUsuario.SugerenciasProductos
 
         /// <summary>«✓ Añadir» solo sale donde se puede vender (la plantilla). En el rapport, no (Nesto#544, corte 1).</summary>
         public bool PuedeAnadir => _anadir != null;
+
+        /// <summary>La ayuda de «✓ Añadir»: en la plantilla entra en el pedido; desde el rapport, en una plantilla del cliente.</summary>
+        public string AyudaAnadir => _apuntarAnadido
+            ? "Añadir al pedido (1 unidad; luego puede cambiar la cantidad)"
+            : "Añadir a la plantilla de este cliente (la que tenga abierta o una nueva), con 1 unidad";
 
         public RelayCommand<SugerenciaProductoDTO> AnadirCommand { get; }
         /// <summary>«✗ No le interesa»: se lo ha ofrecido y el cliente no lo quiere.</summary>
@@ -314,11 +325,41 @@ namespace ControlesUsuario.SugerenciasProductos
                 {
                     OnPropertyChanged(nameof(HaySugerencias));
                 }
-                await ResponderAsync(sugerencia.IdSugerencia, RespuestasSugerenciaProducto.ANADIDO).ConfigureAwait(true);
+                if (_apuntarAnadido)
+                {
+                    await ResponderAsync(sugerencia.IdSugerencia, RespuestasSugerenciaProducto.ANADIDO).ConfigureAwait(true);
+                }
             }
             finally
             {
                 _respuestasEnCurso.Remove(sugerencia.IdSugerencia);
+            }
+        }
+
+        /// <summary>
+        /// Nesto#544 (corte 2): apunta «Anadido» de una sugerencia que llega de otra pantalla (el rapport), con el carrito de
+        /// esta. La sesión es la de la cinta (quien la llama ya se ha quedado con la de origen). Los fallos no se propagan.
+        /// </summary>
+        public async Task ApuntarAnadidoAsync(int idSugerencia)
+        {
+            await ResponderAsync(idSugerencia, RespuestasSugerenciaProducto.ANADIDO).ConfigureAwait(true);
+        }
+
+        /// <summary>Nesto#544 (corte 2): quita la ficha de un producto que ya ha entrado en el pedido por otro camino.</summary>
+        public void OlvidarProducto(string producto)
+        {
+            if (string.IsNullOrWhiteSpace(producto))
+            {
+                return;
+            }
+            bool quitada = false;
+            foreach (SugerenciaProductoDTO ficha in _sugerencias.Where(s => string.Equals(s.Producto?.Trim(), producto.Trim(), StringComparison.OrdinalIgnoreCase)).ToList())
+            {
+                quitada |= _sugerencias.Remove(ficha);
+            }
+            if (quitada)
+            {
+                OnPropertyChanged(nameof(HaySugerencias));
             }
         }
 

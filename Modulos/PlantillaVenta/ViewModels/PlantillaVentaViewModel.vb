@@ -170,6 +170,8 @@ Public Class PlantillaVentaViewModel
 
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
         messenger.Register(Of ClienteCreadoMensaje)(Me, Sub(r, m) DirectCast(r, PlantillaVentaViewModel).ActualizarCliente(m.Value))
+        ' Nesto#544 (corte 2): «✓ Añadir» desde la cinta del rapport, si esta plantilla es de ese cliente
+        messenger.Register(Of AnadirProductoSugeridoMensaje)(Me, Sub(r, m) DirectCast(r, PlantillaVentaViewModel).AlPedirProductoSugerido(m))
 
     End Sub
 
@@ -5567,7 +5569,155 @@ Public Class PlantillaVentaViewModel
                 Constantes.Empresas.EMPRESA_DEFECTO)
             Await CargarPedidoParaModificarAsync(empresaPedido, numeroPedido)
         End If
+
+        ' Nesto#544 (corte 2): «✓ Añadir» desde la cinta del rapport sin plantilla abierta de ese cliente
+        Dim sugerido As ProductoSugeridoParaPlantilla = ProductoSugeridoDeLaNavegacion(parametrosNavegacion)
+        If sugerido IsNot Nothing Then
+            Await AbrirConProductoSugeridoAsync(sugerido)
+        End If
     End Sub
+
+#Region "Nesto#544 (corte 2): «✓ Añadir» desde la cinta del rapport"
+
+    ' El rapport pregunta por el mensajero si hay una plantilla abierta del cliente (AnadirProductoSugeridoMensaje): la
+    ' primera que lo sea se trae al frente y mete el producto. Si no contesta ninguna, el rapport navega a una plantilla
+    ' nueva con los parámetros de ProductoSugeridoParaPlantilla y AlLlegar elige el cliente (como al cargar un borrador),
+    ' deja el wizard en la página de productos y lo mete. En los dos casos el producto entra por AnadirLineaSugeridaAsync
+    ' (la misma ruta que «✓ Añadir» en la plantilla), la plantilla se queda con la sesión del rapport y «Anadido» se apunta
+    ' contra la sugerencia del rapport, con el carrito de la plantilla. No se simula ningún clic en la cinta.
+
+    ''' <summary>Los parámetros de la navegación del rapport, o Nothing si no los trae (la navegación de siempre).</summary>
+    Friend Shared Function ProductoSugeridoDeLaNavegacion(parametros As ParametrosNavegacion) As ProductoSugeridoParaPlantilla
+        If parametros Is Nothing OrElse Not parametros.ContainsKey(ProductoSugeridoParaPlantilla.PARAMETRO_CLIENTE) OrElse
+            Not parametros.ContainsKey(ProductoSugeridoParaPlantilla.PARAMETRO_PRODUCTO) Then
+            Return Nothing
+        End If
+        Dim texto = Function(clave As String) As String
+                        Return If(parametros.ContainsKey(clave), parametros.GetValue(Of Object)(clave)?.ToString()?.Trim(), Nothing)
+                    End Function
+        Dim idSugerencia As Integer
+        Integer.TryParse(texto(ProductoSugeridoParaPlantilla.PARAMETRO_ID_SUGERENCIA), idSugerencia)
+        Dim idSesion As Guid
+        Dim sesion As Guid? = If(Guid.TryParse(texto(ProductoSugeridoParaPlantilla.PARAMETRO_ID_SESION), idSesion), idSesion, CType(Nothing, Guid?))
+        Dim sugerido As New ProductoSugeridoParaPlantilla With {
+            .Empresa = If(texto(ProductoSugeridoParaPlantilla.PARAMETRO_EMPRESA), Constantes.Empresas.EMPRESA_DEFECTO),
+            .Cliente = texto(ProductoSugeridoParaPlantilla.PARAMETRO_CLIENTE),
+            .Contacto = texto(ProductoSugeridoParaPlantilla.PARAMETRO_CONTACTO),
+            .Producto = texto(ProductoSugeridoParaPlantilla.PARAMETRO_PRODUCTO),
+            .IdSugerencia = idSugerencia,
+            .IdSesion = sesion
+        }
+        If String.IsNullOrWhiteSpace(sugerido.Cliente) OrElse String.IsNullOrWhiteSpace(sugerido.Producto) Then
+            Return Nothing
+        End If
+        Return sugerido
+    End Function
+
+    ''' <summary>Plantilla nueva: elige el cliente esperando a que carguen sus productos y luego mete el sugerido.</summary>
+    Friend Async Function AbrirConProductoSugeridoAsync(sugerido As ProductoSugeridoParaPlantilla) As Task(Of Boolean)
+        If sugerido Is Nothing Then
+            Return False
+        End If
+        If Not Await BuscarYSeleccionarClienteAsync(sugerido.Cliente, sugerido.Contacto).ConfigureAwait(True) Then
+            Return False
+        End If
+        Return Await AnadirProductoSugeridoAsync(sugerido).ConfigureAwait(True)
+    End Function
+
+    ''' <summary>
+    ''' El rapport pregunta por una plantilla de este cliente. Contesta solo la primera, si es de ese cliente y sigue abierta
+    ''' en su pestaña (una plantilla cerrada cuyo ViewModel todavía no se ha liberado no está en la región y no contesta).
+    ''' </summary>
+    Friend Sub AlPedirProductoSugerido(mensaje As AnadirProductoSugeridoMensaje)
+        If mensaje Is Nothing OrElse mensaje.HasReceivedResponse OrElse Not EsDeEsteCliente(mensaje.Producto) Then
+            Return
+        End If
+        If navegacion Is Nothing OrElse Not navegacion.ActivarVista("MainRegion", Me) Then
+            Return
+        End If
+        mensaje.Reply(AnadirProductoSugeridoAsync(mensaje.Producto))
+    End Sub
+
+    Private Function EsDeEsteCliente(sugerido As ProductoSugeridoParaPlantilla) As Boolean
+        If sugerido Is Nothing OrElse clienteSeleccionado Is Nothing Then
+            Return False
+        End If
+        Dim empresa As String = If(String.IsNullOrWhiteSpace(sugerido.Empresa), Constantes.Empresas.EMPRESA_DEFECTO, sugerido.Empresa.Trim())
+        Return String.Equals(clienteSeleccionado.cliente?.Trim(), sugerido.Cliente?.Trim(), StringComparison.OrdinalIgnoreCase) AndAlso
+            String.Equals(If(clienteSeleccionado.empresa?.Trim(), Constantes.Empresas.EMPRESA_DEFECTO), empresa, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>
+    ''' Mete el producto por la misma ruta que «✓ Añadir» de la plantilla. Si entra: la plantilla se queda con la sesión del
+    ''' rapport, la ficha de ese producto (si la había) sale de su cinta y se apunta «Anadido» contra la sugerencia del rapport.
+    ''' True si ha entrado. Nunca lanza: lo que falle se le dice al vendedor dentro de AnadirLineaSugeridaAsync.
+    ''' </summary>
+    Friend Async Function AnadirProductoSugeridoAsync(sugerido As ProductoSugeridoParaPlantilla) As Task(Of Boolean)
+        Try
+            Dim ficha As New Nesto.Infrastructure.Models.SugerenciaProductoDTO With {
+                .IdSugerencia = sugerido.IdSugerencia,
+                .Producto = sugerido.Producto?.Trim()
+            }
+            If Not Await AnadirLineaSugeridaAsync(ficha).ConfigureAwait(True) Then
+                Return False
+            End If
+            If sugerido.IdSesion.HasValue AndAlso sugerido.IdSesion.Value <> Guid.Empty Then
+                IdSesionSugerencias = sugerido.IdSesion
+            End If
+            _cintaSugerencias.OlvidarProducto(sugerido.Producto)
+            If sugerido.IdSugerencia > 0 Then
+                Await _cintaSugerencias.ApuntarAnadidoAsync(sugerido.IdSugerencia).ConfigureAwait(True)
+            End If
+            Return True
+        Catch ex As Exception
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Busca el cliente entre los del vendedor y lo elige esperando a que carguen sus productos (deja el wizard en la página
+    ''' de productos). Con el contacto exacto si está; si no, el primero del cliente. False (y se le dice) si no se encuentra.
+    ''' Issue #286: lo usaba solo la carga de borradores; Nesto#544 (corte 2) también la sugerencia del rapport.
+    ''' </summary>
+    Private Async Function BuscarYSeleccionarClienteAsync(cliente As String, contacto As String) As Task(Of Boolean)
+        ' Establecer el filtro con el número de cliente para que la búsqueda funcione
+        filtroCliente = cliente.Trim()
+        OnPropertyChanged(NameOf(filtroCliente))
+
+        ' Cargar clientes usando el número de cliente como filtro
+        Try
+            vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
+            Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
+            todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
+            Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
+            listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
+        Catch ex As Exception
+            dialogService.ShowError($"Error al buscar cliente: {ex.Message}")
+            Return False
+        End Try
+
+        ' Buscar el cliente y contacto en la lista cargada
+        Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) _
+            c.cliente?.Trim() = cliente?.Trim() AndAlso
+            c.contacto?.Trim() = contacto?.Trim())
+
+        ' Si no encuentra con el contacto exacto, buscar solo por cliente
+        If clienteEncontrado Is Nothing Then
+            clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente?.Trim() = cliente?.Trim())
+        End If
+
+        If clienteEncontrado Is Nothing Then
+            dialogService.ShowError($"No se encontró el cliente {cliente} en sus clientes asignados")
+            Return False
+        End If
+
+        ' Issue #286: Usar método awaitable para cargar cliente y productos
+        ' Esto espera a que los productos estén completamente cargados antes de aplicar cantidades
+        Await SeleccionarClienteParaBorradorAsync(clienteEncontrado)
+        Return True
+    End Function
+
+#End Region
 
     Public Function ConfirmTabClose() As Boolean Implements ITabCloseConfirmation.ConfirmTabClose
         Dim hayAlgunProducto = listaProductosPedido IsNot Nothing AndAlso
@@ -5806,40 +5956,10 @@ Public Class PlantillaVentaViewModel
                 Return
             End If
 
-            ' Establecer el filtro con el número de cliente para que la búsqueda funcione
-            filtroCliente = borrador.Cliente.Trim()
-            OnPropertyChanged(NameOf(filtroCliente))
-
-            ' Cargar clientes usando el número de cliente como filtro
-            Try
-                vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
-                Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
-                todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
-                Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
-                listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
-            Catch ex As Exception
-                dialogService.ShowError($"Error al buscar cliente: {ex.Message}")
-                Return
-            End Try
-
-            ' Buscar el cliente y contacto en la lista cargada
-            Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) _
-                c.cliente?.Trim() = borrador.Cliente?.Trim() AndAlso
-                c.contacto?.Trim() = borrador.Contacto?.Trim())
-
-            ' Si no encuentra con el contacto exacto, buscar solo por cliente
-            If clienteEncontrado Is Nothing Then
-                clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente?.Trim() = borrador.Cliente?.Trim())
-            End If
-
-            If clienteEncontrado Is Nothing Then
-                dialogService.ShowError($"No se encontró el cliente {borrador.Cliente} en sus clientes asignados")
+            ' Nesto#544 (corte 2): buscar y elegir el cliente es común con la sugerencia que llega del rapport
+            If Not Await BuscarYSeleccionarClienteAsync(borrador.Cliente, borrador.Contacto) Then
                 Return
             End If
-
-            ' Issue #286: Usar método awaitable para cargar cliente y productos
-            ' Esto espera a que los productos estén completamente cargados antes de aplicar cantidades
-            Await SeleccionarClienteParaBorradorAsync(clienteEncontrado)
 
             ' Cargar líneas de productos del borrador
             ' Como guardamos LineaPlantillaVenta completas, tenemos todos los datos

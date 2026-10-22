@@ -101,7 +101,7 @@
                                                     Command="{Binding DataContext.AnadirCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
                                                     Visibility="{Binding DataContext.PuedeAnadir, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource VisibleSiCinta}}"
-                                                    ToolTip="Añadir al pedido (1 unidad; luego puede cambiar la cantidad)"/>
+                                                    ToolTip="{Binding DataContext.AyudaAnadir, RelativeSource={RelativeSource AncestorType=ItemsControl}}"/>
                                             <Button Content="✗" MinWidth="24" Padding="3,0" Margin="0,0,3,0"
                                                     Command="{Binding DataContext.RechazarCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
