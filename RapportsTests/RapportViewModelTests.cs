@@ -162,5 +162,99 @@ namespace RapportsTests
             Assert.AreEqual((byte)5, vm.listaEmpleados[5].id);
             Assert.AreEqual("5 o más", vm.listaEmpleados[5].descripcion);
         }
+
+        // Nesto#548 (sugerencia 736): en un contacto en estado 7 se pregunta antes de registrar el seguimiento, con «No» por
+        // defecto. Con «No» no se guarda; con «Sí», sí. En otros estados, o en un rapport ya guardado sin cambiar el contacto,
+        // no se pregunta.
+
+        private const string MENSAJE_ESTADO_7 = "Este contacto está en estado 7. ¿Seguro que quiere registrar aquí el seguimiento?";
+
+        private static (RapportViewModel vm, IServicioDialogos dialogo, IRapportService servicio) CrearViewModelEstado7(bool respuestaUsuario)
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
+            A.CallTo(() => configuracion.usuario).Returns("vendedor");
+            var dialogo = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(respuestaUsuario);
+            var servicio = A.Fake<IRapportService>();
+            A.CallTo(() => servicio.crearRapport(A<SeguimientoClienteDTO>._)).Returns(Task.FromResult("Guardado"));
+            var vm = new RapportViewModel(configuracion, servicio, dialogo, new WeakReferenceMessenger(),
+                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+            return (vm, dialogo, servicio);
+        }
+
+        private static void PonerContacto(RapportViewModel vm, int estado, int idRapport = 0, string contacto = "1")
+        {
+            vm.rapport = new SeguimientoClienteDTO { Id = idRapport, Cliente = "15191", Contacto = contacto, Usuario = "vendedor" };
+            vm.ClienteCompleto = new ClienteDTO { cliente = "15191", contacto = contacto, estado = estado };
+        }
+
+        [TestMethod]
+        public void ContactoEnEstado7_RapportNuevo_Pregunta()
+        {
+            var (vm, dialogo, _) = CrearViewModelEstado7(respuestaUsuario: true);
+            PonerContacto(vm, Nesto.Infrastructure.Shared.Constantes.Clientes.ESTADO_NO_VISITABLE);
+
+            Assert.IsTrue(vm.ConfirmarContactoNoVisitable());
+            A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, MENSAJE_ESTADO_7, true)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void ContactoEnOtroEstado_NoPregunta()
+        {
+            foreach (var estado in new[] { 0, 5, 6, 9, 67 })
+            {
+                var (vm, dialogo, _) = CrearViewModelEstado7(respuestaUsuario: false);
+                PonerContacto(vm, estado);
+
+                Assert.IsTrue(vm.ConfirmarContactoNoVisitable(), $"Estado {estado}");
+                A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).MustNotHaveHappened();
+            }
+        }
+
+        [TestMethod]
+        public void ContactoEnEstado7_RespondeNo_NoGuarda()
+        {
+            var (vm, dialogo, servicio) = CrearViewModelEstado7(respuestaUsuario: false);
+            PonerContacto(vm, 7);
+
+            vm.cmdGuardarCambios.Execute(null);
+
+            A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, MENSAJE_ESTADO_7, true)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.crearRapport(A<SeguimientoClienteDTO>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void ContactoEnEstado7_RespondeSi_Guarda()
+        {
+            var (vm, _, servicio) = CrearViewModelEstado7(respuestaUsuario: true);
+            PonerContacto(vm, 7);
+
+            vm.cmdGuardarCambios.Execute(null);
+
+            A.CallTo(() => servicio.crearRapport(vm.rapport)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void ContactoEnEstado7_RapportYaGuardadoSinCambiarContacto_NoPregunta()
+        {
+            var (vm, dialogo, _) = CrearViewModelEstado7(respuestaUsuario: false);
+            PonerContacto(vm, 7, idRapport: 1234);
+
+            Assert.IsTrue(vm.ConfirmarContactoNoVisitable());
+            A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void ContactoEnEstado7_RapportYaGuardadoAlQueSeLeCambiaElContacto_Pregunta()
+        {
+            var (vm, dialogo, _) = CrearViewModelEstado7(respuestaUsuario: false);
+            PonerContacto(vm, 0, idRapport: 1234, contacto: "0");
+            vm.rapport.Contacto = "1";
+            vm.ClienteCompleto = new ClienteDTO { cliente = "15191", contacto = "1", estado = 7 };
+
+            Assert.IsFalse(vm.ConfirmarContactoNoVisitable());
+            A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, MENSAJE_ESTADO_7, true)).MustHaveHappenedOnceExactly();
+        }
     }
 }

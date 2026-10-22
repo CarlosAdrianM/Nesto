@@ -201,6 +201,7 @@ Public Class RapportViewModel
         Set(value As SeguimientoClienteDTO)
             Dim anterior As SeguimientoClienteDTO = _rapport
             If SetProperty(_rapport, value) Then
+                _clienteContactoGuardado = ClaveClienteContacto(value)
                 ' Nesto#544: el cliente y el contacto se cambian en el propio rapport (SelectorCliente). Evento débil: el
                 ' rapport sigue en la lista cuando se elige otro y no debe retener esta vista.
                 If anterior IsNot Nothing Then
@@ -339,8 +340,60 @@ Public Class RapportViewModel
         Return continuar
     End Function
 
+    ' Nesto#548 (sugerencia 736): cliente|contacto con que llegó el rapport ya guardado (Id <> 0). Nothing en uno nuevo.
+    Private _clienteContactoGuardado As String
+
+    Private Shared Function ClaveClienteContacto(r As SeguimientoClienteDTO) As String
+        If r Is Nothing OrElse r.Id = 0 Then
+            Return Nothing
+        End If
+        Return $"{r.Cliente?.Trim()}|{r.Contacto?.Trim()}"
+    End Function
+
+    ''' <summary>
+    ''' Nesto#548 (sugerencia 736): muchos vendedores registran el seguimiento en un contacto equivocado del cliente. Si el
+    ''' contacto elegido está en estado 7 (Constantes.Clientes.ESTADO_NO_VISITABLE), se pregunta antes de guardar, con «No»
+    ''' por defecto. Solo en un rapport nuevo o cuando se le cambia el cliente o el contacto; los ya guardados no se
+    ''' preguntan otra vez. El estado sale de ClienteCompleto (el contacto que tiene el selector), siempre que sea el del
+    ''' rapport. Devuelve True si se puede guardar.
+    ''' </summary>
+    Public Function ConfirmarContactoNoVisitable() As Boolean
+        If rapport Is Nothing Then
+            Return True
+        End If
+        If rapport.Id <> 0 AndAlso ClaveClienteContacto(rapport) = _clienteContactoGuardado Then
+            Return True
+        End If
+        If EstadoContactoDelRapport() <> Constantes.Clientes.ESTADO_NO_VISITABLE Then
+            Return True
+        End If
+        Return dialogService.ShowConfirmationAnswer("Contacto en estado 7",
+            "Este contacto está en estado 7. ¿Seguro que quiere registrar aquí el seguimiento?", porDefectoNo:=True)
+    End Function
+
+    ''' <summary>El estado del contacto del rapport según ClienteCompleto; Nothing si no es ese contacto o no se sabe.</summary>
+    Private Function EstadoContactoDelRapport() As Integer?
+        If _clienteCompleto Is Nothing Then
+            Return Nothing
+        End If
+        Try
+            Dim cliente As String = CStr(_clienteCompleto.cliente)?.Trim()
+            Dim contacto As String = CStr(_clienteCompleto.contacto)?.Trim()
+            If Not String.Equals(cliente, rapport.Cliente?.Trim(), StringComparison.OrdinalIgnoreCase) OrElse
+                Not String.Equals(contacto, rapport.Contacto?.Trim(), StringComparison.OrdinalIgnoreCase) Then
+                Return Nothing
+            End If
+            Return CInt(_clienteCompleto.estado)
+        Catch ex As Exception
+            Return Nothing ' un cliente de un modelo sin esas propiedades: no se pregunta
+        End Try
+    End Function
+
     Private Async Sub OnGuardarCambios(arg As Object)
         If _guardandoRapport Then
+            Return
+        End If
+        If Not ConfirmarContactoNoVisitable() Then
             Return
         End If
         If Not ConfirmarEmpleadosSinRellenar() Then
@@ -361,6 +414,7 @@ Public Class RapportViewModel
                 Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria)
                 QuitarDeMiListado = False
             End If
+            _clienteContactoGuardado = ClaveClienteContacto(rapport)
             _messenger.Send(New RapportGuardadoMensaje(0))
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
