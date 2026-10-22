@@ -23,7 +23,7 @@ namespace RapportsTests
             A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
             return new RapportViewModel(configuracion, A.Fake<IRapportService>(),
                 A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
+                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
         }
 
         // Nesto#469 (Carlos, 16/09/26): si se le pregunta y la deja vacía, tiene que confirmar que no lo
@@ -42,7 +42,7 @@ namespace RapportsTests
                 });
             var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(),
                 dialogo, new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
+                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
             return (vm, dialogo);
         }
 

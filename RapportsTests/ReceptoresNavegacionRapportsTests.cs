@@ -38,7 +38,7 @@ namespace RapportsTests
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro("1", "Vendedor")).Returns(Task.FromResult("NV"));
             var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
+                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
             var rapport = new SeguimientoClienteDTO { Id = 7, Cliente = "15191" };
 
             vm.AlLlegar(new ParametrosNavegacion { { "rapportParameter", rapport } });
@@ -52,7 +52,7 @@ namespace RapportsTests
         {
             var configuracion = A.Fake<IConfiguracion>();
             var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
+                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
             vm.VendedorUsuario = "JE";
             Fake.ClearRecordedCalls(configuracion);
 

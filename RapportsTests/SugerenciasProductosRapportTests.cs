@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.Rapports;
@@ -13,9 +14,10 @@ using System.Threading.Tasks;
 namespace RapportsTests
 {
     /// <summary>
-    /// Nesto#544 (corte 1): la cinta «Puede ofrecer» de la plantilla, en el rapport. Se pregunta con el cliente y el contacto
-    /// del rapport y sin carrito, solo en un rapport nuevo; «✗ No le interesa» y «🚫 Quitar» mandan la respuesta igual que en
-    /// la plantilla; sin sugerencias (o con la API caída) no se ve, y «✓ Añadir» no está (corte 2).
+    /// Nesto#544: la cinta «Puede ofrecer» de la plantilla, en el rapport. Se pregunta con el cliente y el contacto del rapport
+    /// y sin carrito, solo en un rapport nuevo; «✗ No le interesa» y «🚫 Quitar» mandan la respuesta igual que en la plantilla;
+    /// sin sugerencias (o con la API caída) no se ve. «✓ Añadir» (corte 2) pregunta por el mensajero si hay una plantilla
+    /// abierta del cliente y, si no, abre una nueva con los parámetros; «Anadido» lo apunta la plantilla.
     /// </summary>
     [TestClass]
     public class SugerenciasProductosRapportTests
@@ -24,13 +26,22 @@ namespace RapportsTests
 
         private static (RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos) CrearViewModel()
         {
+            var (vm, sugerencias, configuracion, dialogos, _, _) = CrearViewModelConNavegacion();
+            return (vm, sugerencias, configuracion, dialogos);
+        }
+
+        private static (RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos,
+            IServicioNavegacion navegacion, IMessenger messenger) CrearViewModelConNavegacion()
+        {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult<string>(null));
             A.CallTo(() => configuracion.leerParametro("1", "Vendedor")).Returns(Task.FromResult("NV"));
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
             IServicioSugerenciasProductos sugerencias = A.Fake<IServicioSugerenciasProductos>();
-            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), dialogos, new WeakReferenceMessenger(), sugerencias);
-            return (vm, sugerencias, configuracion, dialogos);
+            IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
+            var messenger = new WeakReferenceMessenger();
+            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), dialogos, messenger, sugerencias, navegacion);
+            return (vm, sugerencias, configuracion, dialogos, navegacion, messenger);
         }
 
         private static SeguimientoClienteDTO RapportNuevo(string cliente = "15191", string contacto = "2") =>
@@ -224,20 +235,99 @@ namespace RapportsTests
             A.CallTo(dialogos).MustNotHaveHappened();
         }
 
-        [TestMethod]
-        public async Task Anadir_NoApareceEnElRapport()
+        #region «✓ Añadir» (corte 2)
+
+        /// <summary>Lo que haría una plantilla abierta de ese cliente: contesta con lo que diga <c>entra</c>.</summary>
+        private sealed class PlantillaAbierta
         {
-            var (vm, sugerencias, _, _) = CrearViewModel();
-            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1))));
+            public AnadirProductoSugeridoMensaje Recibido;
+
+            public PlantillaAbierta(IMessenger messenger, bool entra)
+            {
+                messenger.Register<PlantillaAbierta, AnadirProductoSugeridoMensaje>(this, (r, m) =>
+                {
+                    r.Recibido = m;
+                    m.Reply(Task.FromResult(entra));
+                });
+            }
+        }
+
+        private static async Task<(RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IServicioNavegacion navegacion, IMessenger messenger)> RapportConFichas()
+        {
+            var (vm, sugerencias, _, _, navegacion, messenger) = CrearViewModelConNavegacion();
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
+                .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1), Ficha(11, "39000", 2))));
             vm.rapport = RapportNuevo();
             await vm.CintaSugerencias.RefrescarAsync();
+            return (vm, sugerencias, navegacion, messenger);
+        }
 
-            Assert.IsFalse(vm.CintaSugerencias.PuedeAnadir, "«✓ Añadir» es el corte 2");
-            Assert.IsFalse(vm.CintaSugerencias.AnadirCommand.CanExecute(vm.CintaSugerencias.Sugerencias[0]));
+        [TestMethod]
+        public async Task Anadir_SaleEnElRapport()
+        {
+            var (vm, _, _, _) = await RapportConFichas();
+
+            Assert.IsTrue(vm.CintaSugerencias.PuedeAnadir);
+            Assert.IsTrue(vm.CintaSugerencias.AnadirCommand.CanExecute(vm.CintaSugerencias.Sugerencias[0]));
+        }
+
+        [TestMethod]
+        public async Task Anadir_SinPlantillaAbierta_AbreUnaNuevaConElClienteElContactoElProductoLaSugerenciaYLaSesion()
+        {
+            var (vm, sugerencias, navegacion, _) = await RapportConFichas();
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "PlantillaVentaView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
             await vm.CintaSugerencias.AnadirAsync(vm.CintaSugerencias.Sugerencias[0]);
 
-            A.CallTo(() => sugerencias.Responder(A<int>._, RespuestasSugerenciaProducto.ANADIDO, A<List<ProductoCarritoSugerenciaDTO>>._)).MustNotHaveHappened();
-            Assert.AreEqual(1, vm.CintaSugerencias.Sugerencias.Count);
+            Assert.IsNotNull(parametros, "Sin plantilla abierta, se abre una nueva");
+            Assert.AreEqual("1", parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_EMPRESA));
+            Assert.AreEqual("15191", parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_CLIENTE));
+            Assert.AreEqual("2", parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_CONTACTO));
+            Assert.AreEqual("38000", parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_PRODUCTO));
+            Assert.AreEqual(10, parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_ID_SUGERENCIA));
+            Assert.AreEqual(SESION, parametros.GetValue<object>(ProductoSugeridoParaPlantilla.PARAMETRO_ID_SESION));
+            CollectionAssert.AreEqual(new[] { "39000" }, vm.CintaSugerencias.Sugerencias.Select(s => s.Producto).ToArray());
+            A.CallTo(() => sugerencias.Responder(A<int>._, RespuestasSugerenciaProducto.ANADIDO, A<List<ProductoCarritoSugerenciaDTO>>._))
+                .MustNotHaveHappened(); // lo apunta la plantilla, con su carrito
         }
+
+        [TestMethod]
+        public async Task Anadir_ConPlantillaAbiertaDelCliente_LoMeteElla_YNoSeAbreOtra()
+        {
+            var (vm, sugerencias, navegacion, messenger) = await RapportConFichas();
+            var plantilla = new PlantillaAbierta(messenger, entra: true);
+
+            await vm.CintaSugerencias.AnadirAsync(vm.CintaSugerencias.Sugerencias[1]);
+
+            Assert.IsNotNull(plantilla.Recibido);
+            ProductoSugeridoParaPlantilla producto = plantilla.Recibido.Producto;
+            Assert.AreEqual("1", producto.Empresa);
+            Assert.AreEqual("15191", producto.Cliente);
+            Assert.AreEqual("2", producto.Contacto);
+            Assert.AreEqual("39000", producto.Producto);
+            Assert.AreEqual(11, producto.IdSugerencia);
+            Assert.AreEqual(SESION, producto.IdSesion);
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+            CollectionAssert.AreEqual(new[] { "38000" }, vm.CintaSugerencias.Sugerencias.Select(s => s.Producto).ToArray());
+            A.CallTo(() => sugerencias.Responder(A<int>._, A<string>._, A<List<ProductoCarritoSugerenciaDTO>>._)).MustNotHaveHappened();
+            GC.KeepAlive(plantilla);
+        }
+
+        [TestMethod]
+        public async Task Anadir_SiLaPlantillaAbiertaNoPuedeMeterlo_LaFichaSeQueda()
+        {
+            var (vm, _, navegacion, messenger) = await RapportConFichas();
+            var plantilla = new PlantillaAbierta(messenger, entra: false);
+
+            await vm.CintaSugerencias.AnadirAsync(vm.CintaSugerencias.Sugerencias[0]);
+
+            Assert.AreEqual(2, vm.CintaSugerencias.Sugerencias.Count);
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+            GC.KeepAlive(plantilla);
+        }
+
+        #endregion
     }
 }
