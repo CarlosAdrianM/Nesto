@@ -34,6 +34,16 @@ Public Class LineaPedidoVentaDTO
     ' Se usa para determinar si se puede cambiar el almacén de la línea
     Public Property EsFicticio() As Boolean
 
+    ''' <summary>
+    ''' Nesto#543 / NestoAPI#691: en una línea de curso, el evento al que se apunta la clienta y la modalidad elegida
+    ''' («Reembolsable», «NoReembolsable» o «Gratuita»). El precio de la línea lo fija la API con el importe de esa
+    ''' modalidad en el evento. Nothing en el resto de líneas (no viajan).
+    ''' </summary>
+    <JsonProperty(NullValueHandling:=NullValueHandling.Ignore)>
+    Public Property EventoId As Integer?
+    <JsonProperty(NullValueHandling:=NullValueHandling.Ignore)>
+    Public Property ModalidadEvento As String
+
     Public ReadOnly Property estaAlbaraneada() As Boolean
         Get
             Return estado >= 2

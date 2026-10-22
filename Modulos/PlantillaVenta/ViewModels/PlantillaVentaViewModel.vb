@@ -278,8 +278,10 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property baseImponiblePedido As Decimal
         Get
             Dim baseImponible As Decimal = 0
-            If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
-                baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
+            ' Nesto#543: los cursos van en un pedido aparte (serie CV) y no suman al de productos
+            Dim lineas = LineasPedidoSinCursos
+            If lineas.Count > 0 Then
+                baseImponible = lineas.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
             ' NestoAPI#593 (c5): el cheque regalo resta su importe (para portes no cuenta: baseImponibleParaPortes no lo mira)
             Return baseImponible - ImporteChequeRegaloAplicado
@@ -291,11 +293,13 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property baseImponibleParaPortes As Decimal
         Get
             Dim baseImponible As Decimal = 0
-            If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
+            ' Nesto#543: los cursos no cuentan para la base ni para el umbral de portes
+            Dim lineas = LineasPedidoSinCursos
+            If lineas.Count > 0 Then
                 ' NestoAPI#482: para portes cuentan como entrega única los modos 1 y 4 (misma regla que
                 ' GestorPortes en la API), no solo «servir junto».
                 Dim entregaUnica As Boolean = ModosServicio.EsEntregaUnica(ModoServicio)
-                baseImponible = listaProductosPedido.
+                baseImponible = lineas.
                     Where(Function(l) Not EsSobrePedidoParaPortes(l, entregaUnica)).
                     Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
@@ -362,7 +366,7 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Public ReadOnly Property ImportePortesMostrar As Decimal
         Get
-            If IsNothing(_resultadoPortes) OrElse PortesGratis OrElse Not hayProductosEnElPedido Then Return 0
+            If IsNothing(_resultadoPortes) OrElse PortesGratis OrElse Not HayProductosQueNoSonCurso Then Return 0
             Return _resultadoPortes.ImportePortes
         End Get
     End Property
@@ -376,7 +380,7 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property ImporteReembolsoMostrar As Decimal
         Get
-            If IsNothing(_resultadoPortes) OrElse Not hayProductosEnElPedido Then Return 0
+            If IsNothing(_resultadoPortes) OrElse Not HayProductosQueNoSonCurso Then Return 0
             Return _resultadoPortes.ComisionReembolso
         End Get
     End Property
@@ -541,10 +545,12 @@ Public Class PlantillaVentaViewModel
     ''' </summary>
     Public ReadOnly Property BaseImponibleBonificable As Decimal
         Get
-            If IsNothing(listaProductosPedido) OrElse listaProductosPedido.Count = 0 Then
+            ' Nesto#543: los cursos no generan Ganavisiones
+            Dim lineas = LineasPedidoSinCursos
+            If lineas.Count = 0 Then
                 Return 0
             End If
-            Dim baseProductos As Decimal = listaProductosPedido _
+            Dim baseProductos As Decimal = lineas _
                 .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso _gruposBonificables.Contains(l.grupo.Trim().ToUpper())) _
                 .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             Return Math.Max(0D, baseProductos - RestaChequeRegaloBaseBonificable)
@@ -1475,6 +1481,8 @@ Public Class PlantillaVentaViewModel
                 linea.Usuario = configuracion?.usuario
                 linea.delegacion = delegacionUsuario
             Next
+            ' Nesto#543: modos, ofertas sugeridas, fecha de agencia... son del pedido de productos: sin cursos
+            QuitarLineasCurso(pedido)
             Return pedido
         Catch ex As Exception
             Return Nothing
@@ -1604,7 +1612,7 @@ Public Class PlantillaVentaViewModel
 
         Dim modoElegido As Byte = ModoServicio
         Try
-            Dim lineas As List(Of LineaPlantillaVenta) = If(listaProductosPedido?.ToList(), New List(Of LineaPlantillaVenta))
+            Dim lineas As List(Of LineaPlantillaVenta) = LineasPedidoSinCursos ' Nesto#543: sin cursos
             Dim respuesta = Await ValidarSalirDeTodoJunto(lineas, modoElegido).ConfigureAwait(True)
 
             ' Nesto#527 (como Nesto#452 en el detalle del pedido): si el servidor deniega porque hay muestras
@@ -2573,6 +2581,248 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+#Region "Nesto#543: cursos y eventos"
+    ''' <summary>
+    ''' Nesto#543 / NestoAPI#691: las líneas del pedido que no son cursos. Los cursos van en un pedido aparte (serie
+    ''' CV), así que su importe no suma para nada del pedido de productos: portes (base y umbral), Ganavisiones,
+    ''' regalos por importe, ofertas y mínimos, cupones. Todo lo que se calcula sobre el importe parte de aquí.
+    ''' </summary>
+    Friend ReadOnly Property LineasPedidoSinCursos As List(Of LineaPlantillaVenta)
+        Get
+            Dim lista = listaProductosPedido
+            If lista Is Nothing Then
+                Return New List(Of LineaPlantillaVenta)
+            End If
+            Return lista.Where(Function(l) Not l.EsCurso).ToList()
+        End Get
+    End Property
+
+    Friend ReadOnly Property LineasCursoEnElPedido As List(Of LineaPlantillaVenta)
+        Get
+            Dim lista = listaProductosPedido
+            If lista Is Nothing Then
+                Return New List(Of LineaPlantillaVenta)
+            End If
+            Return lista.Where(Function(l) l.EsCurso).ToList()
+        End Get
+    End Property
+
+    ''' <summary>Nesto#543: hay líneas que no son cursos (sin ellas no hay portes ni comisión de reembolso).</summary>
+    Public ReadOnly Property HayProductosQueNoSonCurso As Boolean
+        Get
+            Return LineasPedidoSinCursos.Count > 0
+        End Get
+    End Property
+
+    Public ReadOnly Property HayCursosEnElPedido As Boolean
+        Get
+            Return LineasCursoEnElPedido.Count > 0
+        End Get
+    End Property
+
+    ''' <summary>Nesto#543: lo que suman los cursos (van en otro pedido; se enseña aparte).</summary>
+    Public ReadOnly Property BaseImponibleCursos As Decimal
+        Get
+            Return LineasCursoEnElPedido.Sum(Function(l) l.baseImponible)
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoCursos As String
+        Get
+            If Not HayCursosEnElPedido Then
+                Return String.Empty
+            End If
+            Return String.Format(Globalization.CultureInfo.GetCultureInfo("es-ES"),
+                "Cursos: {0:C2} de base imponible, en un pedido aparte con prepago (no suman al pedido de productos).", BaseImponibleCursos)
+        End Get
+    End Property
+
+    Public Const TITULO_CURSO As String = "Curso"
+    Public Const MENSAJE_PREPAGO_FORZADO As String = "Los cursos se pagan por adelantado: se ha puesto el plazo de pago «Prepago». Compruebe la forma de pago, por favor."
+    Public Const MENSAJE_PREPAGO_OBLIGATORIO As String = "El pedido lleva un curso y los cursos se pagan por adelantado. Elija el plazo de pago «Prepago» antes de guardar, por favor."
+    Public Const MENSAJE_CURSO_EN_AMPLIACION As String = "Los cursos van en un pedido aparte y no se pueden añadir a un pedido que ya existe. Cree un pedido nuevo (sin ampliar el pendiente), por favor."
+
+    ''' <summary>Nesto#543: quita del pedido las líneas de curso (para todo lo que se pregunta sobre el de productos).</summary>
+    Friend Sub QuitarLineasCurso(pedido As PedidoVentaDTO)
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing Then
+            Return
+        End If
+        Dim cursos As New HashSet(Of String)(LineasCursoEnElPedido.
+            Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto)).
+            Select(Function(l) l.producto.Trim()), StringComparer.OrdinalIgnoreCase)
+        For Each linea In pedido.Lineas.ToList()
+            If linea.EventoId.HasValue OrElse (linea.Producto IsNot Nothing AndAlso cursos.Contains(linea.Producto.Trim())) Then
+                pedido.Lineas.Remove(linea)
+            End If
+        Next
+    End Sub
+
+    Private ReadOnly _cursosEligiendoEvento As New HashSet(Of LineaPlantillaVenta)
+
+    Private Async Sub ElegirEventoCursoSinEsperar(linea As LineaPlantillaVenta)
+        Try
+            Await ElegirEventoCursoAsync(linea)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#543: al meter un curso se pide el evento (si hay varios) y la modalidad. Sin eventos con plazas, o si se
+    ''' cancela, la línea no se añade (cantidad a cero). Con evento y modalidad, el precio de la línea es el importe de
+    ''' la modalidad, sin descuentos ni oferta, y el pedido pasa a prepago. True si la línea queda en el pedido.
+    ''' </summary>
+    Friend Async Function ElegirEventoCursoAsync(linea As LineaPlantillaVenta) As Task(Of Boolean)
+        If linea Is Nothing OrElse Not linea.EsCurso Then
+            Return True
+        End If
+        If linea.cantidad + linea.cantidadOferta <= 0 Then
+            LimpiarEventoCurso(linea) ' al quitarlo, si se vuelve a meter se pregunta otra vez
+            Return False
+        End If
+        If linea.TieneEventoElegido Then
+            Return True
+        End If
+        If Not _cursosEligiendoEvento.Add(linea) Then
+            Return False ' ya se está preguntando por esta línea
+        End If
+        Try
+            Dim producto As String = linea.producto?.Trim()
+            Dim empresa As String = If(clienteSeleccionado?.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
+            Dim eventos As List(Of EventoCursoDTO) = Await servicio.CargarEventosProducto(empresa, producto)
+            If eventos Is Nothing Then
+                QuitarLineaCurso(linea)
+                dialogService.ShowError($"No se han podido consultar los eventos del curso {producto}. Inténtelo de nuevo, por favor.")
+                Return False
+            End If
+            Dim conPlazas = eventos.Where(Function(e) e IsNot Nothing AndAlso e.PlazasLibres > 0 AndAlso
+                                              e.Modalidades IsNot Nothing AndAlso e.Modalidades.Any()).
+                                    OrderBy(Function(e) e.Fecha).ToList()
+            If conPlazas.Count = 0 Then
+                QuitarLineaCurso(linea)
+                dialogService.ShowError($"El curso {producto} no tiene ningún evento con plazas libres, así que no se ha añadido al pedido.")
+                Return False
+            End If
+
+            Dim parametros As New ParametrosDialogo From {
+                {ElegirEventoCursoDialogViewModel.PARAMETRO_PRODUCTO, $"{producto} {linea.texto?.Trim()}".Trim()},
+                {ElegirEventoCursoDialogViewModel.PARAMETRO_EVENTOS, conPlazas}
+            }
+            Dim resultado As ResultadoDialogo = Await dialogService.ShowDialogAsync(ElegirEventoCursoDialogViewModel.NOMBRE, parametros)
+            Dim evento As EventoCursoDTO = Nothing
+            Dim modalidad As ModalidadEventoDTO = Nothing
+            If resultado Is Nothing OrElse resultado.Result <> ResultadoBoton.OK OrElse
+                Not resultado.Parameters.TryGetValue(ElegirEventoCursoDialogViewModel.PARAMETRO_EVENTO, evento) OrElse
+                Not resultado.Parameters.TryGetValue(ElegirEventoCursoDialogViewModel.PARAMETRO_MODALIDAD, modalidad) OrElse
+                evento Is Nothing OrElse modalidad Is Nothing OrElse String.IsNullOrWhiteSpace(modalidad.Modalidad) Then
+                ' Sin evento y modalidad elegidos no hay curso que vender
+                QuitarLineaCurso(linea)
+                Return False
+            End If
+
+            AplicarEventoALinea(linea, evento, modalidad)
+            ForzarPrepagoPorCurso()
+            ActualizarTotales()
+            OnPropertyChanged(NameOf(hayProductosEnElPedido))
+            OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
+            Return True
+        Finally
+            _cursosEligiendoEvento.Remove(linea)
+        End Try
+    End Function
+
+    ''' <summary>Nesto#543: precio = importe de la modalidad, sin descuentos ni oferta; se ve el evento en la línea.</summary>
+    Friend Shared Sub AplicarEventoALinea(linea As LineaPlantillaVenta, evento As EventoCursoDTO, modalidad As ModalidadEventoDTO)
+        linea.EventoId = evento.Id
+        linea.ModalidadEvento = modalidad.Modalidad.Trim()
+        linea.TextoEvento = $"{evento.TextoEvento} · {modalidad.Nombre?.Trim()}"
+        linea.aplicarDescuentoFicha = False
+        linea.aplicarDescuento = False
+        linea.descuentoProducto = 0
+        linea.descuento = 0
+        linea.cantidadOferta = 0
+        linea.personalizarOferta = False
+        linea.precio = modalidad.Importe
+    End Sub
+
+    Private Shared Sub LimpiarEventoCurso(linea As LineaPlantillaVenta)
+        linea.EventoId = Nothing
+        linea.ModalidadEvento = Nothing
+        linea.TextoEvento = Nothing
+    End Sub
+
+    Private Sub QuitarLineaCurso(linea As LineaPlantillaVenta)
+        LimpiarEventoCurso(linea)
+        linea.cantidad = 0
+        linea.cantidadOferta = 0
+        ActualizarTotales()
+        OnPropertyChanged(NameOf(hayProductosEnElPedido))
+        OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#543: con un curso el pedido va con prepago. El plazo «Prepago» (PRE) se pide al selector de plazos por
+    ''' su código (PlazoPagoCliente, enlazado en las dos direcciones): si el cliente lo tiene, queda elegido. Si no
+    ''' quedara, el guardado lo bloquea (ErrorCursosAlGuardar).
+    ''' </summary>
+    Friend Sub ForzarPrepagoPorCurso()
+        If plazoPagoSeleccionado?.plazoPago?.Trim() = Constantes.PlazosPago.PREPAGO Then
+            Return
+        End If
+        PlazoPagoCliente = Constantes.PlazosPago.PREPAGO
+        dialogService.ShowNotification(TITULO_CURSO, MENSAJE_PREPAGO_FORZADO)
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#543: lo que impide guardar un pedido con cursos (Nothing si no hay nada): curso sin evento o modalidad,
+    ''' ampliación de un pedido existente (los cursos van en un pedido aparte) o plazo de pago que no es prepago.
+    ''' </summary>
+    Friend Function ErrorCursosAlGuardar() As String
+        Dim cursos = LineasCursoEnElPedido
+        If cursos.Count = 0 Then
+            Return Nothing
+        End If
+        Dim sinEvento = cursos.FirstOrDefault(Function(l) Not l.TieneEventoElegido)
+        If sinEvento IsNot Nothing Then
+            Return $"Falta elegir el evento y la modalidad del curso {sinEvento.producto?.Trim()}. Quítelo y vuelva a añadirlo, por favor."
+        End If
+        If Not NumeroPedidoEnEdicion.HasValue AndAlso PedidoPendienteSeleccionado <> 0 Then
+            Return MENSAJE_CURSO_EN_AMPLIACION
+        End If
+        If plazoPagoSeleccionado?.plazoPago?.Trim() <> Constantes.PlazosPago.PREPAGO Then
+            Return MENSAJE_PREPAGO_OBLIGATORIO
+        End If
+        Return Nothing
+    End Function
+
+    ''' <summary>
+    ''' Nesto#543: el aviso cuando la API ha separado los cursos en otro pedido. Nothing si no hay pedidos adicionales.
+    ''' «Se han creado dos pedidos: N (productos) y M (curso). Los cursos se facturan aparte.»
+    ''' </summary>
+    Public Shared Function MensajePedidosAdicionales(numero As String, adicionales As IEnumerable(Of PedidoAdicionalDTO)) As String
+        Dim lista = If(adicionales, Enumerable.Empty(Of PedidoAdicionalDTO)()).Where(Function(a) a IsNot Nothing AndAlso a.Numero > 0).ToList()
+        If lista.Count = 0 Then
+            Return Nothing
+        End If
+        Dim cuantos As String = If(lista.Count = 1, "dos", (lista.Count + 1).ToString())
+        Dim partes As New List(Of String) From {$"{numero?.Trim()} (productos)"}
+        partes.AddRange(lista.Select(Function(a) $"{a.Numero} (curso)"))
+        Dim enumeracion As String = String.Join(", ", partes.Take(partes.Count - 1)) & " y " & partes.Last()
+        Return $"Se han creado {cuantos} pedidos: {enumeracion}. Los cursos se facturan aparte."
+    End Function
+
+    ''' <summary>Nesto#543: avisa de los pedidos adicionales (si los hay). True si ha avisado.</summary>
+    Friend Function AvisarPedidosAdicionales(respuesta As RespuestaCrearPedidoPlantilla) As Boolean
+        Dim mensaje As String = MensajePedidosAdicionales(respuesta?.Numero, respuesta?.PedidosAdicionales)
+        If mensaje Is Nothing Then
+            Return False
+        End If
+        dialogService.ShowNotification("Pedidos creados", mensaje)
+        Return True
+    End Function
+#End Region
+
+
     Public ReadOnly Property hayUnClienteSeleccionado As Boolean
         Get
             Return Not IsNothing(clienteSeleccionado)
@@ -2687,7 +2937,7 @@ Public Class PlantillaVentaViewModel
                     .precio = ImporteChequeRegaloAplicado
                 })
             End If
-            If Not PortesGratis AndAlso hayProductosEnElPedido AndAlso ImportePortesMostrar > 0 Then
+            If Not PortesGratis AndAlso HayProductosQueNoSonCurso AndAlso ImportePortesMostrar > 0 Then
                 lista.Add(New LineaPlantillaVenta With {
                     .esLineaPortes = True,
                     .texto = "Portes",
@@ -2696,7 +2946,7 @@ Public Class PlantillaVentaViewModel
                 })
             End If
             ' Issue #159: línea de comisión contra reembolso, análoga a la de portes.
-            If EsContraReembolso AndAlso hayProductosEnElPedido AndAlso ImporteReembolsoMostrar > 0 Then
+            If EsContraReembolso AndAlso HayProductosQueNoSonCurso AndAlso ImporteReembolsoMostrar > 0 Then
                 lista.Add(New LineaPlantillaVenta With {
                     .esLineaReembolso = True,
                     .texto = "Comisión contra reembolso",
@@ -3004,6 +3254,10 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(totalPedidoConPortes))
         OnPropertyChanged(NameOf(TotalPedidoPlazosPago))
         OnPropertyChanged(NameOf(HayGanavisionesDisponibles))
+        OnPropertyChanged(NameOf(BaseImponibleBonificable))
+        OnPropertyChanged(NameOf(HayCursosEnElPedido)) ' Nesto#543
+        OnPropertyChanged(NameOf(BaseImponibleCursos))
+        OnPropertyChanged(NameOf(TextoCursos))
         ActualizarEtiquetaPortes()
         OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
         ' Nesto#483 / Nesto#465: han cambiado las lineas, asi que el modo de servicio y las ofertas que el
@@ -3053,6 +3307,10 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Async Sub OnActualizarPrecioProducto(arg As Object)
         If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+        ' Nesto#543: el precio de un curso es el importe de la modalidad elegida
+        If TypeOf arg Is LineaPlantillaVenta AndAlso DirectCast(arg, LineaPlantillaVenta).EsCurso Then
             Return
         End If
 
@@ -3119,7 +3377,16 @@ Public Class PlantillaVentaViewModel
         ' Issue #314: Eliminado diálogo de confirmación de producto bonificable.
         ' Dejamos que el vendedor añada el producto con precio sin interrupciones.
 
-        cmdActualizarPrecioProducto.Execute(arg)
+        If arg.EsCurso Then
+            ' Nesto#543: el precio del curso es el de la modalidad (no se recalcula); al meterlo se elige evento
+            If arg.cantidad + arg.cantidadOferta > 0 AndAlso Not arg.TieneEventoElegido Then
+                ElegirEventoCursoSinEsperar(arg)
+            ElseIf arg.cantidad + arg.cantidadOferta <= 0 Then
+                LimpiarEventoCurso(arg)
+            End If
+        Else
+            cmdActualizarPrecioProducto.Execute(arg)
+        End If
 
         If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
             cmdInsertarProducto.Execute(arg)
@@ -3143,7 +3410,7 @@ Public Class PlantillaVentaViewModel
         ActualizarEtiquetaPortes()
         PedirSugerenciasProductosConDebounce() ' Nesto#537: el carrito ha cambiado
 
-        If arg.cantidad + arg.cantidadOferta > 0 Then
+        If arg.cantidad + arg.cantidadOferta > 0 AndAlso Not arg.EsCurso Then
             ComprobarSustitucion(arg) ' NestoAPI#581
         End If
     End Sub
@@ -3852,6 +4119,13 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        ' Nesto#543: un pedido con cursos va con prepago, con evento y modalidad, y nunca ampliando otro pedido
+        Dim errorCursos As String = ErrorCursosAlGuardar()
+        If errorCursos IsNot Nothing Then
+            dialogService.ShowError(errorCursos)
+            Return
+        End If
+
         ' NestoAPI#593 (Ganavisiones): si los regalos no caben en los Ganavisiones del pedido, el servidor lo rechazaría con un
         ' «descuento no autorizado» que no explica nada; se avisa aquí con los números.
         If GanavisionesExcedidos Then
@@ -3911,6 +4185,7 @@ Public Class PlantillaVentaViewModel
         Try
 
             Dim numPedido As String
+            Dim respuestaCrear As RespuestaCrearPedidoPlantilla = Nothing ' Nesto#543
 
             If NumeroPedidoEnEdicion.HasValue Then
                 ' Nesto#397: la plantilla está editando un pedido existente → PUT (modificar), no
@@ -3946,7 +4221,8 @@ Public Class PlantillaVentaViewModel
             ElseIf PedidoPendienteSeleccionado = 0 Then
                 Dim crearEx As Exception = Nothing
                 Try
-                    numPedido = Await servicio.CrearPedido(pedido)
+                    respuestaCrear = Await servicio.CrearPedido(pedido)
+                    numPedido = respuestaCrear?.Numero
                 Catch ex As ValidationException
                     crearEx = ex
                 End Try
@@ -3965,7 +4241,8 @@ Public Class PlantillaVentaViewModel
                     If confirmar Then
                         pedido.CreadoSinPasarValidacion = True
                         ' Reintento (si vuelve a fallar, la excepción se propagará y será capturada por el Catch exterior)
-                        numPedido = Await servicio.CrearPedido(pedido)
+                        respuestaCrear = Await servicio.CrearPedido(pedido)
+                        numPedido = respuestaCrear?.Numero
                     Else
                         ' El usuario no quiere forzar el pedido: relanzamos la excepción original para que la maneje el Catch exterior
                         Throw crearEx
@@ -4043,6 +4320,9 @@ Public Class PlantillaVentaViewModel
                     End If
                 End If
             End If
+
+            ' Nesto#543: si la API ha separado los cursos en otro pedido (serie CV), se dice
+            AvisarPedidosAdicionales(respuestaCrear)
 
             ' Issue #135: Crear etiqueta de recogida si se marcó
             If RecogerProducto Then
@@ -4284,7 +4564,7 @@ Public Class PlantillaVentaViewModel
     Private Sub OnMostrarGanavisiones()
         If IsNothing(ListaProductosGanavisiones) Then
             Try
-                Dim lista = servicio.CargarProductosBonificables(clienteSeleccionado.cliente, listaProductosPedido.ToList)
+                Dim lista = servicio.CargarProductosBonificables(clienteSeleccionado.cliente, LineasPedidoSinCursos) ' Nesto#543: sin cursos
                 ListaProductosGanavisiones = New ObservableCollection(Of IFiltrableItem)(lista)
             Catch ex As Exception
                 dialogService.ShowError("No se han podido cargar los Ganavisiones")
@@ -4445,6 +4725,7 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
             Dim pedido As PedidoVentaDTO = PrepararPedido()
+            QuitarLineasCurso(pedido) ' Nesto#543: los cursos no se envían
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
@@ -4638,8 +4919,8 @@ Public Class PlantillaVentaViewModel
 
     ''' <summary>Las líneas del pedido como las quiere la API: producto → unidades (las de oferta incluidas).</summary>
     Friend Function CarritoSugerenciasProductos() As List(Of Nesto.Infrastructure.Models.ProductoCarritoSugerenciaDTO)
-        Dim lineas As ObservableCollection(Of LineaPlantillaVenta) = listaProductosPedido
-        If lineas Is Nothing Then
+        Dim lineas As List(Of LineaPlantillaVenta) = LineasPedidoSinCursos ' Nesto#543: sin cursos
+        If lineas.Count = 0 Then
             Return New List(Of Nesto.Infrastructure.Models.ProductoCarritoSugerenciaDTO)
         End If
         Return lineas.Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto)).
@@ -4968,8 +5249,8 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property BaseComputableChequeRegalo As Decimal
         Get
             Dim cheque = ChequeRegalo.Cheque
-            Dim lineas = listaProductosPedido
-            If cheque Is Nothing OrElse lineas Is Nothing Then
+            Dim lineas = LineasPedidoSinCursos ' Nesto#543: los cursos no cuentan para el mínimo del cheque
+            If cheque Is Nothing Then
                 Return 0D
             End If
             Return lineas.Where(Function(l) Nesto.Infrastructure.Models.ReglasChequeRegalo.CuentaParaElMinimo(cheque, l.producto, l.texto, l.grupo)).

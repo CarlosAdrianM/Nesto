@@ -267,7 +267,27 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String) Implements IPlantillaVentaService.CrearPedido
+    Public Async Function CargarEventosProducto(empresa As String, producto As String) As Task(Of List(Of EventoCursoDTO)) Implements IPlantillaVentaService.CargarEventosProducto
+        If String.IsNullOrWhiteSpace(producto) Then
+            Return New List(Of EventoCursoDTO)
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim url As String = "Eventos/PorProducto?empresa=" & Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) &
+                    "&producto=" & Uri.EscapeDataString(producto.Trim())
+                Dim response = Await client.GetAsync(url).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                Return If(JsonConvert.DeserializeObject(Of List(Of EventoCursoDTO))(cadenaJson), New List(Of EventoCursoDTO))
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
+    Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of RespuestaCrearPedidoPlantilla) Implements IPlantillaVentaService.CrearPedido
         ' TO-DO: llamar al método CrearPedido del servicio de pedidos y eliminar este código duplicado
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -283,7 +303,17 @@ Public Class PlantillaVentaService
                     'Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
-                    Return pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
+                    ' Nesto#543: el cuerpo es el pedido creado; si la API separó los cursos, trae PedidosAdicionales
+                    Dim cuerpo As String = Nothing
+                    Try
+                        cuerpo = Await response.Content.ReadAsStringAsync()
+                    Catch exCuerpo As Exception
+                        cuerpo = Nothing
+                    End Try
+                    Return New RespuestaCrearPedidoPlantilla With {
+                        .Numero = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1),
+                        .PedidosAdicionales = RespuestaCrearPedidoPlantilla.LeerPedidosAdicionales(cuerpo)
+                    }
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)

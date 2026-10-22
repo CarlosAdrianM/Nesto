@@ -155,6 +155,8 @@ Public Class LineaPlantillaVenta
     ''' </summary>
     Public ReadOnly Property puedeEditarCantidadOferta As Boolean Implements ILineaConCantidad.puedeEditarCantidadOferta
         Get
+            ' Nesto#543: un curso no lleva oferta (el precio es el de la modalidad)
+            If EsCurso Then Return False
             Return aplicarDescuentoFicha.GetValueOrDefault(False) OrElse cantidadOferta > 0
         End Get
     End Property
@@ -434,6 +436,8 @@ Public Class LineaPlantillaVenta
     End Property
     Public ReadOnly Property precioHabilitado As Boolean
         Get
+            ' Nesto#543: el precio de un curso es el importe de la modalidad y lo fija la API
+            If EsCurso Then Return False
             Return aplicarDescuento OrElse subGrupo = "Productos depilación ceras"
         End Get
     End Property
@@ -494,6 +498,48 @@ Public Class LineaPlantillaVenta
     End Property
 
     Public Property esLineaPortes As Boolean = False
+
+    ''' <summary>
+    ''' Nesto#543 / NestoAPI#691: el producto es un curso o evento (grupo CUR, ficticio). Lo marca la búsqueda de la
+    ''' plantilla. Al meterlo se elige evento y modalidad, el precio queda bloqueado y el pedido pasa a prepago.
+    ''' Los cursos van en un pedido aparte (serie CV): su importe no suma para nada del pedido de productos.
+    ''' </summary>
+    Private _esCurso As Boolean
+    Public Property EsCurso As Boolean
+        Get
+            Return _esCurso
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_esCurso, value) Then
+                OnPropertyChanged(NameOf(precioHabilitado))
+                OnPropertyChanged(NameOf(puedeEditarCantidadOferta))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Nesto#543: el evento elegido para el curso (Nothing hasta que se elige).</summary>
+    Public Property EventoId As Integer?
+
+    ''' <summary>Nesto#543: la modalidad elegida («Reembolsable», «NoReembolsable» o «Gratuita»).</summary>
+    Public Property ModalidadEvento As String
+
+    ''' <summary>Nesto#543: lo que se ve en la línea: fecha, tienda, formato y modalidad.</summary>
+    Private _textoEvento As String
+    Public Property TextoEvento As String
+        Get
+            Return _textoEvento
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_textoEvento, value)
+        End Set
+    End Property
+
+    ''' <summary>Nesto#543: el curso ya tiene evento y modalidad.</summary>
+    Public ReadOnly Property TieneEventoElegido As Boolean
+        Get
+            Return EventoId.HasValue AndAlso Not String.IsNullOrWhiteSpace(ModalidadEvento)
+        End Get
+    End Property
 
     ' Issue #159: marca la línea "virtual" de comisión contra reembolso (análoga a esLineaPortes).
     Public Property esLineaReembolso As Boolean = False

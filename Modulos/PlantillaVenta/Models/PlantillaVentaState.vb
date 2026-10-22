@@ -558,6 +558,11 @@ Public Class PlantillaVentaState
                     .formaVenta = formaVentaCodigo,
                     .oferta = ofertaLinea
                 }
+                ' Nesto#543 / NestoAPI#691: la línea de curso lleva el evento y la modalidad; la API fija el precio
+                If linea.EsCurso Then
+                    lineaPedido.EventoId = linea.EventoId
+                    lineaPedido.ModalidadEvento = linea.ModalidadEvento
+                End If
                 pedido.Lineas.Add(lineaPedido)
             End If
 
