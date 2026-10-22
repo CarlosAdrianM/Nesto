@@ -1,4 +1,4 @@
-using Nesto.Modulos.Cliente.Models;
+﻿using Nesto.Modulos.Cliente.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -14,5 +14,22 @@ namespace Nesto.Modulos.Cliente
         Task<List<SenalEventoModel>> LeerSenalesCliente(string cliente);
         Task<SenalEventoModel> MarcarSenal(int eventoId, MarcarSenalEventoModel peticion);
         Task QuitarSenal(int id);
+
+        // Nesto#517 (NestoAPI#611/#612): inscripciones sin pedido, pago a mano, lista de asistencia y facturación del curso.
+
+        /// <summary>Los inscritos del evento (todas, también caducadas y anuladas). Lista vacía con una API sin inscripciones.</summary>
+        Task<List<InscripcionEventoModel>> LeerInscripciones(int eventoId);
+        /// <summary>Las inscripciones del cliente (de todos sus contactos). Lista vacía con una API sin inscripciones.</summary>
+        Task<List<InscripcionEventoModel>> LeerInscripcionesCliente(string empresa, string cliente);
+        Task<InscripcionEventoModel> Inscribir(int eventoId, InscribirEventoModel peticion);
+        /// <summary>Anula una inscripción sin pagar (Reservada).</summary>
+        Task<InscripcionEventoModel> AnularInscripcion(int id);
+        Task<InscripcionEventoModel> MarcarPagada(int id, MarcarPagoInscripcionModel peticion);
+        /// <summary>Las pagadas que vienen en <paramref name="asistentes"/> pasan a Asistió y el resto a No asistió.</summary>
+        Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes);
+        /// <summary>NestoAPI#612: relanza la facturación del curso desde donde se quedó.</summary>
+        Task<InscripcionEventoModel> FacturarCurso(int id);
+        /// <summary>La referencia del curso (nombre e IVA de la ficha); null si no existe.</summary>
+        Task<ProductoCursoModel> LeerProductoCurso(string producto);
     }
 }
