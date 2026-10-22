@@ -39,7 +39,13 @@
                 <ComboBox ItemsSource="{Binding Origenes}" SelectedItem="{Binding Origen}" Width="240"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <!-- NestoAPI#690: reembolsable (con cupón), no reembolsable (sin cupón) o gratuita -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding HayVariasModalidades, Converter={StaticResource BoolAVisibilidad}}">
+                <TextBlock Text="Modalidad:" Width="110" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding Modalidades}" SelectedItem="{Binding Modalidad}" Width="360"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding HayQuePagar, Converter={StaticResource BoolAVisibilidad}}">
                 <TextBlock Text="Va a pagar con:" Width="110" VerticalAlignment="Center"/>
                 <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPago}" Width="240"/>
             </StackPanel>

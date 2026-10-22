@@ -58,6 +58,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _evento, value))
                 {
+                    PonerModalidades();
                     OnPropertyChanged(nameof(TextoEvento));
                     InscribirCommand.NotifyCanExecuteChanged();
                 }
@@ -67,7 +68,64 @@ namespace Nesto.Modulos.Cliente
         /// <summary>«Señal: 50,00 € · Plazas: 3 / 12 · Reina».</summary>
         public string TextoEvento => Evento == null
             ? string.Empty
-            : $"Señal: {Evento.ImporteSenal:C} · Plazas: {Evento.TextoPlazas}" + (string.IsNullOrWhiteSpace(Evento.NombreTienda) ? string.Empty : $" · {Evento.NombreTienda}");
+            : $"Señal: {Evento.TextoSenales} · Plazas: {Evento.TextoPlazas}"
+              + (string.IsNullOrWhiteSpace(Evento.TextoHorario) ? string.Empty : $" · {Evento.TextoHorario}")
+              + (string.IsNullOrWhiteSpace(Evento.NombreTienda) ? string.Empty : $" · {Evento.NombreTienda}");
+
+        // NestoAPI#690 (contrato provisional): la modalidad fija lo que se cobra y si hay cupón.
+
+        private List<OpcionEvento> _modalidades = new();
+        public List<OpcionEvento> Modalidades { get => _modalidades; private set => SetProperty(ref _modalidades, value); }
+
+        private OpcionEvento _modalidad;
+        public OpcionEvento Modalidad
+        {
+            get => _modalidad;
+            set
+            {
+                if (SetProperty(ref _modalidad, value))
+                {
+                    OnPropertyChanged(nameof(EsGratuita));
+                    OnPropertyChanged(nameof(HayQuePagar));
+                    OnPropertyChanged(nameof(EsTarjeta));
+                    OnPropertyChanged(nameof(AvisoFormaPago));
+                }
+            }
+        }
+
+        /// <summary>Solo se elige si el evento tiene más de una (la API de antes de #690 solo conoce la reembolsable).</summary>
+        public bool HayVariasModalidades => Modalidades.Count > 1;
+
+        public bool EsGratuita => Modalidad?.Valor == InscribirEventoModel.MODALIDAD_GRATUITA;
+        public bool HayQuePagar => !EsGratuita;
+
+        /// <summary>Gratuito: solo Gratuita. Si no, la reembolsable y, si la tiene, la no reembolsable.</summary>
+        public static List<OpcionEvento> ModalidadesDe(EventoModel evento)
+        {
+            var lista = new List<OpcionEvento>();
+            if (evento == null)
+            {
+                return lista;
+            }
+            if (evento.EsGratuito)
+            {
+                lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_GRATUITA, "Gratuita (sin señal)"));
+                return lista;
+            }
+            lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_REEMBOLSABLE, $"Reembolsable: {evento.ImporteSenal:C}, con cupón por el mismo importe"));
+            if (evento.ImporteSenalNoReembolsable > 0)
+            {
+                lista.Add(new OpcionEvento(InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE, $"No reembolsable: {evento.ImporteSenalNoReembolsable.Value:C}, sin cupón"));
+            }
+            return lista;
+        }
+
+        private void PonerModalidades()
+        {
+            Modalidades = ModalidadesDe(Evento);
+            Modalidad = Modalidades.FirstOrDefault();
+            OnPropertyChanged(nameof(HayVariasModalidades));
+        }
 
         private string _empresa = Constantes.Empresas.EMPRESA_DEFECTO;
         public string Empresa { get => _empresa; set => SetProperty(ref _empresa, value); }
@@ -112,7 +170,7 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public bool EsTarjeta => FormaPago?.Valor == MarcarPagoInscripcionModel.TARJETA;
+        public bool EsTarjeta => !EsGratuita && FormaPago?.Valor == MarcarPagoInscripcionModel.TARJETA;
 
         private bool _generarEnlacePago = true;
         public bool GenerarEnlacePago { get => _generarEnlacePago; set => SetProperty(ref _generarEnlacePago, value); }
@@ -121,7 +179,9 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Opcional: si se pone, la API manda el enlace de pago a ese correo.</summary>
         public string Correo { get => _correo; set => SetProperty(ref _correo, value); }
 
-        public string AvisoFormaPago => FormaPago?.Valor switch
+        public string AvisoFormaPago => EsGratuita
+            ? "Evento gratuito: el cliente no paga nada y pasa directamente a la lista de asistencia."
+            : FormaPago?.Valor switch
         {
             MarcarPagoInscripcionModel.TRANSFERENCIA => "La inscripción queda reservada hasta que Administración marque la transferencia como señal del evento, o hasta que se marque como pagada.",
             MarcarPagoInscripcionModel.EFECTIVO => "La inscripción queda reservada hasta que se marque como pagada. El cobro se mete en la caja de la tienda, como cualquier otro cobro en efectivo.",
@@ -239,7 +299,9 @@ namespace Nesto.Modulos.Cliente
                     Cliente = Cliente.Trim(),
                     Contacto = string.IsNullOrWhiteSpace(Contacto) ? null : Contacto.Trim(),
                     Origen = Origen?.Valor ?? InscribirEventoModel.ORIGEN_NESTO,
-                    FormaPago = FormaPago?.Valor,
+                    FormaPago = EsGratuita ? null : FormaPago?.Valor,
+                    // Con la API de antes de #690 el evento no tiene no reembolsable y no se manda la modalidad.
+                    Modalidad = Evento.ImporteSenalNoReembolsable.HasValue ? Modalidad?.Valor : null,
                     GenerarEnlacePago = EsTarjeta && GenerarEnlacePago,
                     Correo = EsTarjeta && GenerarEnlacePago && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null
                 });

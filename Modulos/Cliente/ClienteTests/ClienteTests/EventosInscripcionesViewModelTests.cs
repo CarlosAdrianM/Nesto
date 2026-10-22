@@ -421,6 +421,108 @@ namespace ClienteTests
             A.CallTo(() => eventos.LeerInscripcionesCliente("1", "15191")).MustHaveHappenedOnceExactly();
         }
 
+        // ---------------- NestoAPI#690 (contrato provisional) ----------------
+
+        [TestMethod]
+        public async Task Nuevo_SeñalesPorDefecto_CienReembolsableYSesentaNo_YGuardaHorarioYPonente()
+        {
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).ReturnsLazily((EventoModel e) => e);
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            vm.NuevoCommand.Execute(null);
+            Assert.AreEqual(100, vm.ImporteSenalEdicion);
+            Assert.AreEqual(60, vm.ImporteSenalNoReembolsableEdicion);
+
+            vm.TituloEdicion = "Masterclass Maystar";
+            vm.HoraInicioEdicion = "9.30";
+            vm.HoraFinEdicion = "13:00";
+            vm.PonenteEdicion = " Ana ";
+            await vm.GuardarAsync();
+
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e =>
+                e.HoraInicio == new TimeSpan(9, 30, 0) && e.HoraFin == new TimeSpan(13, 0, 0) && e.Ponente == "Ana"
+                && e.ImporteSenal == 100 && e.ImporteSenalNoReembolsable == 60))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Guardar_HorasMalEscritasOFinAntesQueInicio_NoGuarda()
+        {
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            vm.NuevoCommand.Execute(null);
+            vm.TituloEdicion = "X";
+            vm.HoraInicioEdicion = "las diez";
+            await vm.GuardarAsync();
+            vm.HoraInicioEdicion = "12:00";
+            vm.HoraFinEdicion = "10:00";
+            await vm.GuardarAsync();
+
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).MustNotHaveHappened();
+            CollectionAssert.AreEqual(new[] { "Escriba las horas como 10:00.", "La hora de fin tiene que ser posterior a la de inicio." }, errores);
+        }
+
+        [TestMethod]
+        public void Modalidades_SegunLasSeñalesDelEvento()
+        {
+            EventoModel antiguo = Evento(1, DateTime.Today); // API de antes de #690: sin no reembolsable
+            Assert.AreEqual(1, InscribirEventoDialogViewModel.ModalidadesDe(antiguo).Count);
+
+            EventoModel dos = Evento(2, DateTime.Today);
+            dos.ImporteSenal = 100;
+            dos.ImporteSenalNoReembolsable = 60;
+            CollectionAssert.AreEqual(new[] { "Reembolsable", "NoReembolsable" },
+                InscribirEventoDialogViewModel.ModalidadesDe(dos).Select(m => m.Valor).ToArray());
+
+            EventoModel gratis = Evento(3, DateTime.Today);
+            gratis.ImporteSenal = 0;
+            gratis.ImporteSenalNoReembolsable = 0;
+            Assert.IsTrue(gratis.EsGratuito);
+            Assert.AreEqual("Gratuita", InscribirEventoDialogViewModel.ModalidadesDe(gratis).Single().Valor);
+        }
+
+        [TestMethod]
+        public void Dialogo_Gratuito_SinFormaDePagoNiEnlace_YConLaModalidad()
+        {
+            EventoModel gratis = Evento(7, DateTime.Today.AddDays(3));
+            gratis.ImporteSenal = 0;
+            gratis.ImporteSenalNoReembolsable = 0;
+            InscribirEventoDialogViewModel vm = Dialogo(gratis);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "15191" } });
+            Assert.IsFalse(vm.HayQuePagar);
+
+            vm.InscribirCommand.Execute(null);
+
+            A.CallTo(() => eventos.Inscribir(7, A<InscribirEventoModel>.That.Matches(p =>
+                p.Modalidad == "Gratuita" && p.FormaPago == null && !p.GenerarEnlacePago))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void Dialogo_ConApiDeAntes_NoMandaLaModalidad()
+        {
+            InscribirEventoDialogViewModel vm = Dialogo(Evento(7, DateTime.Today.AddDays(3)));
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "15191" } });
+
+            vm.InscribirCommand.Execute(null);
+
+            A.CallTo(() => eventos.Inscribir(7, A<InscribirEventoModel>.That.Matches(p => p.Modalidad == null))).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(JObject.Parse(JsonConvert.SerializeObject(new InscribirEventoModel())).ContainsKey("Modalidad"));
+        }
+
+        [TestMethod]
+        public void Asistencia_PendienteConfirmadoAsistioNoAsistio()
+        {
+            Assert.AreEqual("Pendiente", Inscripcion(1, InscripcionEventoModel.PAGADA).EstadoAsistencia);
+            InscripcionEventoModel confirmada = JsonConvert.DeserializeObject<InscripcionEventoModel>(
+                "{\"Estado\":\"Pagada\",\"AsistenciaConfirmada\":{\"Fecha\":\"2026-10-28T10:00:00\",\"Usuario\":\"cliente\"}}");
+            Assert.AreEqual("Confirmado", confirmada.EstadoAsistencia);
+            Assert.AreEqual("Pendiente", JsonConvert.DeserializeObject<InscripcionEventoModel>("{\"Estado\":\"Pagada\",\"AsistenciaConfirmada\":false}").EstadoAsistencia);
+            Assert.AreEqual("Asistió", Inscripcion(2, InscripcionEventoModel.ASISTIO).EstadoAsistencia);
+            Assert.AreEqual("No asistió", Inscripcion(3, InscripcionEventoModel.NO_ASISTIO).EstadoAsistencia);
+
+            InscripcionEventoModel gratuita = Inscripcion(4, InscripcionEventoModel.RESERVADA);
+            gratuita.Modalidad = InscribirEventoModel.MODALIDAD_GRATUITA;
+            Assert.IsTrue(gratuita.EntraEnListaAsistencia, "La gratuita pasa directamente a la lista");
+            Assert.IsFalse(gratuita.SePuedeMarcarPagada);
+        }
+
         // ---------------- Servicio ----------------
 
         [TestMethod]

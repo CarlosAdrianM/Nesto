@@ -44,10 +44,12 @@
                 </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}"/>
+                    <DataGridTextColumn Header="Horario" Binding="{Binding TextoHorario}"/>
                     <DataGridTextColumn Header="Título" Binding="{Binding Titulo}" Width="*"/>
                     <DataGridTextColumn Header="Tienda" Binding="{Binding NombreTienda}"/>
                     <DataGridTextColumn Header="Curso" Binding="{Binding ProductoCurso}"/>
-                    <DataGridTextColumn Header="Señal" Binding="{Binding ImporteSenal, StringFormat=c}"/>
+                    <DataGridTextColumn Header="Señal (reemb. / no reemb.)" Binding="{Binding TextoSenales}"/>
+                    <DataGridTextColumn Header="Ponente" Binding="{Binding Ponente}"/>
                     <DataGridTextColumn Header="Plazas" Binding="{Binding TextoPlazas}"/>
                     <DataGridTextColumn Header="Lugar" Binding="{Binding Lugar}"/>
                     <DataGridCheckBoxColumn Header="Activo" Binding="{Binding Activo}"/>
@@ -95,9 +97,28 @@
                                           ToolTip="La tienda donde es el evento: la mantiene esa tienda, Administración y Dirección"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <TextBlock Text="Importe señal:" VerticalAlignment="Center" Width="110"/>
-                                <xctk:DecimalUpDown Value="{Binding ImporteSenalEdicion}" FormatString="C2" Minimum="0" Increment="5" Width="140"/>
+                                <TextBlock Text="Horario:" VerticalAlignment="Center" Width="110"/>
+                                <TextBox Text="{Binding HoraInicioEdicion, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalContentAlignment="Center"
+                                         ToolTip="Hora de inicio, como 10:00"/>
+                                <TextBlock Text="a" VerticalAlignment="Center" Margin="5,0"/>
+                                <TextBox Text="{Binding HoraFinEdicion, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalContentAlignment="Center"
+                                         ToolTip="Hora de fin, como 13:00"/>
                             </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Ponente:" VerticalAlignment="Center" Width="110"/>
+                                <TextBox Text="{Binding PonenteEdicion, UpdateSourceTrigger=PropertyChanged}" Width="320" MaxLength="100"
+                                         VerticalContentAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Señal reembolsable:" VerticalAlignment="Center" Width="110" ToolTip="Factura el curso exento y emite un cupón por el mismo importe"/>
+                                <xctk:DecimalUpDown Value="{Binding ImporteSenalEdicion}" FormatString="C2" Minimum="0" Increment="5" Width="110"
+                                                    ToolTip="Con cupón por el mismo importe (IVA incluido)"/>
+                                <TextBlock Text="No reembolsable:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                                <xctk:DecimalUpDown Value="{Binding ImporteSenalNoReembolsableEdicion}" FormatString="C2" Minimum="0" Increment="5" Width="110"
+                                                    ToolTip="Factura el curso exento, sin cupón. Las dos a 0: evento gratuito"/>
+                            </StackPanel>
+                            <TextBlock Text="Las dos señales a 0: el evento es gratuito (se apunta quien quiera, sin pagar)." Foreground="DimGray"
+                                       TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Margin="110,2,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Referencia curso:" VerticalAlignment="Center" Width="110"/>
                                 <TextBox Text="{Binding ProductoCursoEdicion, UpdateSourceTrigger=PropertyChanged}" Width="140" MaxLength="15"
@@ -122,6 +143,15 @@
                                 <TextBlock Text="Descripción:" VerticalAlignment="Top" Width="110"/>
                                 <TextBox Text="{Binding DescripcionLargaEdicion, UpdateSourceTrigger=PropertyChanged}" Width="320" Height="70"
                                          MaxLength="2000" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Imagen:" VerticalAlignment="Top" Width="110"/>
+                                <Border BorderBrush="LightGray" BorderThickness="1" Width="160" Height="90">
+                                    <Grid>
+                                        <TextBlock Text="Sin imagen" Foreground="DimGray" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Image Source="{Binding ImagenUrl, TargetNullValue={x:Null}}" Stretch="Uniform"/>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
                             <CheckBox Content="Activo (admite inscripciones y sale al marcar señales)" IsChecked="{Binding ActivoEdicion}" Margin="110,8,0,0"/>
                             <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="110,12,0,0" Padding="20,3"
@@ -185,7 +215,9 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Asistencia" Binding="{Binding EstadoAsistencia}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}" IsReadOnly="True"/>

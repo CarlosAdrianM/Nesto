@@ -45,6 +45,8 @@
                 <DataGridTextColumn Header="Evento" Binding="{Binding Evento}" Width="*"/>
                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
                 <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}"/>
+                <DataGridTextColumn Header="Asistencia" Binding="{Binding EstadoAsistencia}"/>
+                <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}"/>
                 <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}"/>
                 <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}"/>
                 <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}"/>

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 
@@ -54,6 +55,41 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>NestoAPI#612: la facturación del curso. Null si no ha empezado.</summary>
         public FacturacionCursoModel Facturacion { get; set; }
 
+        // NestoAPI#690 (CONTRATO PROVISIONAL, nombres del texto de la issue; confirmar con el comentario del contrato).
+
+        /// <summary>NestoAPI#690: Reembolsable, NoReembolsable o Gratuita. Null con la API de antes (= Reembolsable).</summary>
+        public string Modalidad { get; set; }
+        /// <summary>
+        /// NestoAPI#690: la confirmación de asistencia («fecha y quién»). Se lee como JToken porque la forma exacta (fecha,
+        /// objeto o booleano) está por fijar: cualquier valor que no sea null ni false cuenta como confirmada.
+        /// </summary>
+        public JToken AsistenciaConfirmada { get; set; }
+
+        [JsonIgnore]
+        public bool EsGratuita => Modalidad == InscribirEventoModel.MODALIDAD_GRATUITA;
+
+        [JsonIgnore]
+        public string TextoModalidad => Modalidad switch
+        {
+            InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE => "No reembolsable",
+            InscribirEventoModel.MODALIDAD_GRATUITA => "Gratuita",
+            _ => "Reembolsable"
+        };
+
+        [JsonIgnore]
+        public bool EstaConfirmada => AsistenciaConfirmada != null && AsistenciaConfirmada.Type != JTokenType.Null
+            && AsistenciaConfirmada.Type != JTokenType.Undefined
+            && !(AsistenciaConfirmada.Type == JTokenType.Boolean && !AsistenciaConfirmada.Value<bool>());
+
+        /// <summary>NestoAPI#690: lo que se ve en la lista de asistencia: Pendiente → Confirmado → Asistió / No asistió.</summary>
+        [JsonIgnore]
+        public string EstadoAsistencia => Estado switch
+        {
+            ASISTIO => "Asistió",
+            NO_ASISTIO => "No asistió",
+            _ => EstaConfirmada ? "Confirmado" : "Pendiente"
+        };
+
         [JsonIgnore]
         public string ClienteContacto => $"{Cliente?.Trim()}/{Contacto?.Trim()}";
 
@@ -65,15 +101,17 @@ namespace Nesto.Modulos.Cliente.Models
 
         /// <summary>Se puede marcar como pagada a mano: Reservada o Caducada (paga tarde).</summary>
         [JsonIgnore]
-        public bool SePuedeMarcarPagada => Estado == RESERVADA || Estado == CADUCADA;
+        public bool SePuedeMarcarPagada => !EsGratuita && (Estado == RESERVADA || Estado == CADUCADA);
 
         [JsonIgnore]
-        public bool EntraEnListaAsistencia => Estado != null && ((ICollection<string>)EN_LISTA_ASISTENCIA).Contains(Estado);
+        public bool EntraEnListaAsistencia => Estado != null && (((ICollection<string>)EN_LISTA_ASISTENCIA).Contains(Estado)
+            // NestoAPI#690: la gratuita no paga y pasa directamente a la lista.
+            || (EsGratuita && Estado != CADUCADA && Estado != ANULADA));
 
         /// <summary>Con la facturación en Error o NoAutomatizable (o pagada sin empezar) tiene sentido relanzarla.</summary>
         [JsonIgnore]
         public bool SePuedeFacturar =>
-            (Estado == PAGADA || Estado == ASISTIO || Estado == NO_ASISTIO)
+            !EsGratuita && (Estado == PAGADA || Estado == ASISTIO || Estado == NO_ASISTIO)
             && (Facturacion == null || Facturacion.Estado == FacturacionCursoModel.ERROR || Facturacion.Estado == FacturacionCursoModel.NO_AUTOMATIZABLE);
 
         /// <summary>«CV2600700 (Facturada)», «Error», o vacío (columna de la lista).</summary>
@@ -135,6 +173,9 @@ namespace Nesto.Modulos.Cliente.Models
     {
         public const string ORIGEN_NESTO = "Nesto";
         public const string ORIGEN_TELEFONO = "Telefono";
+        public const string MODALIDAD_REEMBOLSABLE = "Reembolsable";
+        public const string MODALIDAD_NO_REEMBOLSABLE = "NoReembolsable";
+        public const string MODALIDAD_GRATUITA = "Gratuita";
 
         public string Empresa { get; set; }
         public string Cliente { get; set; }
@@ -148,6 +189,9 @@ namespace Nesto.Modulos.Cliente.Models
         public bool GenerarEnlacePago { get; set; } = true;
         /// <summary>Si viene, la API manda el enlace por correo al cliente.</summary>
         public string Correo { get; set; }
+        /// <summary>NestoAPI#690 (provisional): Reembolsable, NoReembolsable o Gratuita. Null = no se manda (API de antes).</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string Modalidad { get; set; }
     }
 
     /// <summary>Nesto#517: cuerpo de POST api/Eventos/Inscripciones/{id}/Pago (marcar pagada a mano).</summary>

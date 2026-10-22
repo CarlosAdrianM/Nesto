@@ -176,6 +176,52 @@ namespace Nesto.Modulos.Cliente
         private string _descripcionLargaEdicion;
         public string DescripcionLargaEdicion { get => _descripcionLargaEdicion; set => SetProperty(ref _descripcionLargaEdicion, value); }
 
+        // NestoAPI#690 (corte 1b, contrato provisional): horario, ponente, imagen y la señal no reembolsable.
+
+        /// <summary>NestoAPI#690: por defecto, la reembolsable (con cupón) es de 100 € y la no reembolsable de 60 €.</summary>
+        public const decimal SENAL_REEMBOLSABLE_DEFECTO = 100;
+        public const decimal SENAL_NO_REEMBOLSABLE_DEFECTO = 60;
+
+        private string _horaInicioEdicion;
+        /// <summary>«10:00» (vacío = sin hora).</summary>
+        public string HoraInicioEdicion { get => _horaInicioEdicion; set => SetProperty(ref _horaInicioEdicion, value); }
+
+        private string _horaFinEdicion;
+        public string HoraFinEdicion { get => _horaFinEdicion; set => SetProperty(ref _horaFinEdicion, value); }
+
+        private string _ponenteEdicion;
+        public string PonenteEdicion { get => _ponenteEdicion; set => SetProperty(ref _ponenteEdicion, value); }
+
+        private decimal? _importeSenalNoReembolsableEdicion;
+        /// <summary>Sin cupón. Las dos señales a 0: evento gratuito.</summary>
+        public decimal? ImporteSenalNoReembolsableEdicion
+        {
+            get => _importeSenalNoReembolsableEdicion;
+            set => SetProperty(ref _importeSenalNoReembolsableEdicion, value);
+        }
+
+        private string _imagenUrl;
+        /// <summary>NestoAPI#690: la imagen del evento seleccionado (solo se enseña; la subida está pendiente del contrato).</summary>
+        public string ImagenUrl { get => _imagenUrl; private set => SetProperty(ref _imagenUrl, value); }
+
+        /// <summary>«10:00», «9:30» → la hora; vacío → null. False si no se entiende.</summary>
+        public static bool LeerHora(string texto, out TimeSpan? hora)
+        {
+            hora = null;
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return true;
+            }
+            string limpio = texto.Trim().Replace('.', ':');
+            if (TimeSpan.TryParseExact(limpio, new[] { @"h\:mm", @"hh\:mm" }, System.Globalization.CultureInfo.InvariantCulture, out TimeSpan leida)
+                && leida >= TimeSpan.Zero && leida < TimeSpan.FromDays(1))
+            {
+                hora = leida;
+                return true;
+            }
+            return false;
+        }
+
         private bool _estaOcupado;
         public bool EstaOcupado { get => _estaOcupado; set => SetProperty(ref _estaOcupado, value); }
 
@@ -220,7 +266,12 @@ namespace Nesto.Modulos.Cliente
             _idEdicion = 0;
             TituloEdicion = string.Empty;
             FechaEdicion = DateTime.Today;
-            ImporteSenalEdicion = 0;
+            ImporteSenalEdicion = SENAL_REEMBOLSABLE_DEFECTO;
+            ImporteSenalNoReembolsableEdicion = SENAL_NO_REEMBOLSABLE_DEFECTO;
+            HoraInicioEdicion = null;
+            HoraFinEdicion = null;
+            PonenteEdicion = null;
+            ImagenUrl = null;
             ActivoEdicion = true;
             TiendaEdicion = TiendaPorCodigo(TiendaEvento.EsTiendaDeEventos(_almacenUsuario) ? _almacenUsuario : null);
             ProductoCursoEdicion = null;
@@ -247,6 +298,11 @@ namespace Nesto.Modulos.Cliente
             PlazasEdicion = evento.Plazas;
             LugarEdicion = evento.Lugar;
             DescripcionLargaEdicion = evento.DescripcionLarga;
+            HoraInicioEdicion = evento.HoraInicio.HasValue ? EventoModel.Hora(evento.HoraInicio.Value) : null;
+            HoraFinEdicion = evento.HoraFin.HasValue ? EventoModel.Hora(evento.HoraFin.Value) : null;
+            PonenteEdicion = evento.Ponente;
+            ImporteSenalNoReembolsableEdicion = evento.ImporteSenalNoReembolsable;
+            ImagenUrl = string.IsNullOrWhiteSpace(evento.ImagenUrl) ? null : evento.ImagenUrl.Trim();
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
         }
@@ -279,6 +335,21 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("El importe de la señal no puede ser negativo.");
                 return;
             }
+            if (ImporteSenalNoReembolsableEdicion < 0)
+            {
+                _dialogService.ShowError("El importe de la señal no reembolsable no puede ser negativo.");
+                return;
+            }
+            if (!LeerHora(HoraInicioEdicion, out TimeSpan? horaInicio) || !LeerHora(HoraFinEdicion, out TimeSpan? horaFin))
+            {
+                _dialogService.ShowError("Escriba las horas como 10:00.");
+                return;
+            }
+            if (horaInicio.HasValue && horaFin.HasValue && horaFin.Value <= horaInicio.Value)
+            {
+                _dialogService.ShowError("La hora de fin tiene que ser posterior a la de inicio.");
+                return;
+            }
             if (PlazasEdicion.HasValue && PlazasEdicion.Value <= 0)
             {
                 _dialogService.ShowError("Las plazas tienen que ser más de cero (o ninguna, si no hay límite).");
@@ -299,7 +370,12 @@ namespace Nesto.Modulos.Cliente
                     ProductoCurso = Limpiar(ProductoCursoEdicion),
                     Plazas = PlazasEdicion,
                     Lugar = Limpiar(LugarEdicion),
-                    DescripcionLarga = Limpiar(DescripcionLargaEdicion)
+                    DescripcionLarga = Limpiar(DescripcionLargaEdicion),
+                    HoraInicio = horaInicio,
+                    HoraFin = horaFin,
+                    Ponente = Limpiar(PonenteEdicion),
+                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
+                    ImagenUrl = ImagenUrl
                 });
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
