@@ -13,6 +13,7 @@ Public Class LineaPlantillaVenta
             Return _cantidad
         End Get
         Set(value As Integer)
+            If CambioBloqueadoPorPicking(_cantidad <> value, NameOf(cantidad)) Then Return
             SetProperty(_cantidad, value)
             OnPropertyChanged(NameOf(colorStock))
             OnPropertyChanged(NameOf(baseImponible))
@@ -24,6 +25,7 @@ Public Class LineaPlantillaVenta
             Return _cantidadOferta
         End Get
         Set(value As Integer)
+            If CambioBloqueadoPorPicking(_cantidadOferta <> value, NameOf(cantidadOferta)) Then Return
             ' No permitimos sumar oferta y descuento. OJO (Nesto#401): se asigna el CAMPO privado,
             ' no la propiedad, para que poner una oferta nunca inicialice aplicarDescuentoFicha.
             ' Al recargar un borrador, Json.NET ejecuta este setter ANTES de asignar la ficha
@@ -55,6 +57,7 @@ Public Class LineaPlantillaVenta
             Return _personalizarOferta
         End Get
         Set(value As Boolean)
+            If CambioBloqueadoPorPicking(_personalizarOferta <> value, NameOf(personalizarOferta)) Then Return
             SetProperty(_personalizarOferta, value)
             ' Nesto#375 (hardening): al desmarcar, resetear precio/dto de oferta a su valor por
             ' defecto (gratis) para no dejar valores residuales si se vuelve a marcar.
@@ -68,9 +71,27 @@ Public Class LineaPlantillaVenta
         End Set
     End Property
     ''' <summary>Nesto#371: precio de la unidad de oferta cuando se personaliza (0 = gratis).</summary>
+    Private _precioOferta As Decimal
     Public Property precioOferta As Decimal
+        Get
+            Return _precioOferta
+        End Get
+        Set(value As Decimal)
+            If CambioBloqueadoPorPicking(_precioOferta <> value, NameOf(precioOferta)) Then Return
+            _precioOferta = value
+        End Set
+    End Property
     ''' <summary>Nesto#371: descuento (0..1) de la unidad de oferta cuando se personaliza.</summary>
+    Private _descuentoOferta As Decimal
     Public Property descuentoOferta As Decimal
+        Get
+            Return _descuentoOferta
+        End Get
+        Set(value As Decimal)
+            If CambioBloqueadoPorPicking(_descuentoOferta <> value, NameOf(descuentoOferta)) Then Return
+            _descuentoOferta = value
+        End Set
+    End Property
     ''' <summary>
     ''' Nesto#375: True si se personaliza la oferta pero NO aporta beneficio: la unidad de oferta
     ''' sale igual o más cara que la de pago (precio efectivo oferta &gt;= precio efectivo normal).
@@ -119,6 +140,7 @@ Public Class LineaPlantillaVenta
             Return _precio
         End Get
         Set(value As Decimal)
+            If CambioBloqueadoPorPicking(_precio <> value, NameOf(precio)) Then Return
             SetProperty(_precio, value)
             OnPropertyChanged(NameOf(baseImponible))
         End Set
@@ -157,6 +179,7 @@ Public Class LineaPlantillaVenta
         Get
             ' Nesto#543: un curso no lleva oferta (el precio es el de la modalidad)
             If EsCurso Then Return False
+            If tienePicking Then Return False ' Novedad 750
             Return aplicarDescuentoFicha.GetValueOrDefault(False) OrElse cantidadOferta > 0
         End Get
     End Property
@@ -214,6 +237,7 @@ Public Class LineaPlantillaVenta
             Return _descuento
         End Get
         Set(value As Decimal)
+            If CambioBloqueadoPorPicking(_descuento <> value, NameOf(descuento)) Then Return
             ' Nesto#462: un 500 % (le sobró un cero al teclear 50) llegaba al servidor y reventaba
             ' con el CHECK de SQL. Fuera de 0-100 % se ignora y la celda vuelve al valor anterior.
             Dim admitido As Decimal = DescuentoAdmitido(value, _descuento)
@@ -292,6 +316,44 @@ Public Class LineaPlantillaVenta
     ''' </summary>
     Public Property idLineaPedido As Integer
     Public Property idLineaPedidoOferta As Integer?
+
+    ''' <summary>
+    ''' Novedad 750: la línea (la de pago o la de oferta) del pedido en edición ya tiene PICKING: está
+    ''' preparada en el almacén y no se puede cambiar ni quitar desde la plantilla. Se bloquea al
+    ''' cargarla (<see cref="BloquearPorPicking"/>) para avisar en el momento de editarla, en vez de
+    ''' fallar al guardar y perder el trabajo. No se serializa: un borrador de disco no la bloquea (lo
+    ''' sigue protegiendo ValidarLineasConPicking antes del PUT).
+    ''' </summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property tienePicking As Boolean
+        Get
+            Return _tienePicking
+        End Get
+    End Property
+    Private _tienePicking As Boolean
+
+    ''' <summary>Novedad 750: se intentó cambiar una línea con picking; el cambio no se ha hecho.</summary>
+    Public Event IntentoCambiarLineaConPicking As EventHandler
+
+    ''' <summary>Novedad 750: deja la línea como está (con los valores ya puestos) y no admite más cambios.</summary>
+    Public Sub BloquearPorPicking()
+        _tienePicking = True
+        OnPropertyChanged(NameOf(tienePicking))
+        OnPropertyChanged(NameOf(puedeEditarCantidadOferta))
+    End Sub
+
+    ''' <summary>
+    ''' Novedad 750: True si el cambio no se admite porque la línea tiene picking. La celda vuelve a
+    ''' pintar el valor que se queda y se avisa (el ViewModel lo enseña).
+    ''' </summary>
+    Private Function CambioBloqueadoPorPicking(cambia As Boolean, propiedad As String) As Boolean
+        If Not _tienePicking OrElse Not cambia Then
+            Return False
+        End If
+        OnPropertyChanged(propiedad)
+        RaiseEvent IntentoCambiarLineaConPicking(Me, EventArgs.Empty)
+        Return True
+    End Function
     Private _urlImagen As String
     Public Property urlImagen As String
         Get

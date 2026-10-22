@@ -236,7 +236,7 @@ Public Class BorradorPlantillaVentaService
         End If
 
         For Each linea In If(pedido.Lineas, New List(Of LineaParaPlantillaModel))
-            borrador.LineasProducto.Add(New LineaPlantillaVenta With {
+            Dim lineaPlantilla As New LineaPlantillaVenta With {
                 .producto = linea.Producto,
                 .texto = linea.Texto,
                 .cantidad = linea.Cantidad,
@@ -250,7 +250,13 @@ Public Class BorradorPlantillaVentaService
                 .idLineaPedido = linea.IdLineaPago,
                 .idLineaPedidoOferta = linea.IdLineaOferta,
                 .stockActualizado = False
-            })
+            }
+            ' Novedad 750: con picking (la de pago o la de oferta) la línea no se puede cambiar desde la
+            ' plantilla; se bloquea ya con sus valores para avisar al editarla, no al guardar.
+            If linea.PagoTienePicking OrElse linea.OfertaTienePicking Then
+                lineaPlantilla.BloquearPorPicking()
+            End If
+            borrador.LineasProducto.Add(lineaPlantilla)
         Next
 
         For Each regalo In If(pedido.Regalos, New List(Of RegaloParaPlantillaModel))

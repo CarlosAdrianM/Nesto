@@ -235,24 +235,23 @@ Public Class PlantillaVentaViewModel
             ' Nesto#484: los modos permitidos dependen del almacén (en tienda, solo «según vaya entrando»).
             PedirSugerenciasConDebounce()
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
-                Application.Current.Dispatcher.Invoke(New Action(Async Sub()
+                Dim refrescarStocks As New Action(Async Sub()
                                                                      estaOcupado = True
                                                                      Dim listaCast As New ObservableCollection(Of LineaPlantillaVenta)
                                                                      For Each linea In ListaFiltrableProductos.ListaOriginal
                                                                          listaCast.Add(linea)
                                                                      Next
-                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, AlmacenesStockUsuario)
+                                                                     Dim conStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, AlmacenesStockUsuario)
+                                                                     ' Novedad 750: los stocks se copian EN SITIO. Antes la lista se sustituía por
+                                                                     ' las copias que devuelve PonerStock, cuyo modelo en la API no lleva los ids
+                                                                     ' de línea del pedido en edición (ni la oferta personalizada ni el bloqueo por
+                                                                     ' picking): modificar un pedido con la plantilla perdía TODOS los ids, el PUT
+                                                                     ' borraba y recreaba las líneas y las que tenían picking no se dejaban guardar.
+                                                                     Dim nuevosStocks As List(Of LineaPlantillaVenta) = CopiarStocksEnSitio(listaCast, conStocks)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
-                                                                     For Each linea In nuevosStocks
-                                                                         If linea.StockDisponibleTodosLosAlmacenes = 0 AndAlso linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0 Then
-                                                                             linea.StockDisponibleTodosLosAlmacenes = linea.stocks.Sum(Function(s) s.cantidadDisponible)
-                                                                         End If
-                                                                         linea.stockActualizado = True
-                                                                     Next
-                                                                     ' Nesto#430 (slice 1): con el pedido empezado, las líneas son instancias
-                                                                     ' nuevas tras el refresh: hay que refrescar las vistas del pedido y avisar
-                                                                     ' (sin bloquear) de las líneas que se quedan sin stock suficiente en el
-                                                                     ' nuevo almacén; su color rojo/ámbar ya lo pinta colorStock solo.
+                                                                     ' Nesto#430 (slice 1): con el pedido empezado hay que refrescar las vistas del
+                                                                     ' pedido y avisar (sin bloquear) de las líneas que se quedan sin stock suficiente
+                                                                     ' en el nuevo almacén; su color rojo/ámbar ya lo pinta colorStock solo.
                                                                      OnPropertyChanged(NameOf(hayProductosEnElPedido))
                                                                      OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
                                                                      OnPropertyChanged(NameOf(listaProductosPedido))
@@ -268,11 +267,53 @@ Public Class PlantillaVentaViewModel
                                                                      Dim fechaPuente = Await ObtenerFechaMinimaEntregaAsync()
                                                                      fechaMinimaEntrega = fechaPuente
                                                                      fechaEntrega = fechaPuente
-                                                                 End Sub))
+                                                                 End Sub)
+                If Application.Current?.Dispatcher IsNot Nothing Then
+                    Application.Current.Dispatcher.Invoke(refrescarStocks)
+                Else
+                    refrescarStocks() ' tests (sin Application): mismo hilo
+                End If
             End If
         End Set
     End Property
 
+
+    ''' <summary>
+    ''' Novedad 750: pone en las líneas de la plantilla los stocks que devuelve POST PlantillaVentas/PonerStock
+    ''' SIN sustituirlas (la respuesta es una copia con el modelo de la API, que no lleva ids de línea, oferta
+    ''' personalizada, descuento calculado ni bloqueo por picking). La API devuelve las líneas en el mismo orden;
+    ''' si no cuadra, se busca por producto. Devuelve las líneas originales, ya con stock.
+    ''' </summary>
+    Friend Shared Function CopiarStocksEnSitio(originales As IList(Of LineaPlantillaVenta), conStocks As IEnumerable(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
+        Dim resultado As New List(Of LineaPlantillaVenta)(originales)
+        If conStocks Is Nothing Then
+            Return resultado
+        End If
+        Dim respuesta = conStocks.ToList()
+        Dim mismoOrden As Boolean = respuesta.Count = originales.Count AndAlso
+            Enumerable.Range(0, originales.Count).All(Function(i) originales(i).producto?.Trim() = respuesta(i).producto?.Trim())
+        For i = 0 To respuesta.Count - 1
+            Dim lineaConStock = respuesta(i)
+            Dim original As LineaPlantillaVenta = If(mismoOrden, originales(i),
+                originales.FirstOrDefault(Function(l) l.producto?.Trim() = lineaConStock.producto?.Trim()))
+            If original Is Nothing Then
+                Continue For
+            End If
+            original.stock = lineaConStock.stock
+            original.cantidadDisponible = lineaConStock.cantidadDisponible
+            original.cantidadPendienteRecibir = lineaConStock.cantidadPendienteRecibir
+            original.stocks = lineaConStock.stocks
+            If lineaConStock.StockDisponibleTodosLosAlmacenes > 0 Then
+                original.StockDisponibleTodosLosAlmacenes = lineaConStock.StockDisponibleTodosLosAlmacenes
+            ElseIf lineaConStock.stocks IsNot Nothing AndAlso lineaConStock.stocks.Count > 0 Then
+                original.StockDisponibleTodosLosAlmacenes = lineaConStock.stocks.Sum(Function(s) s.cantidadDisponible)
+            Else
+                original.StockDisponibleTodosLosAlmacenes = 0
+            End If
+            original.stockActualizado = True
+        Next
+        Return resultado
+    End Function
 
     Public ReadOnly Property baseImponiblePedido As Decimal
         Get
@@ -777,6 +818,7 @@ Public Class PlantillaVentaViewModel
                             Function(r) r.producto?.Trim() = regaloBorrador.producto?.Trim())
                         If regaloExistente IsNot Nothing Then
                             regaloExistente.cantidad = regaloBorrador.cantidad
+                            regaloExistente.idLineaPedido = regaloBorrador.idLineaPedido ' Novedad 750: el PUT la actualiza, no la recrea
                         End If
                     Next
                 End If
@@ -3345,6 +3387,10 @@ Public Class PlantillaVentaViewModel
         If TypeOf arg Is LineaPlantillaVenta AndAlso DirectCast(arg, LineaPlantillaVenta).EsCurso Then
             Return
         End If
+        ' Novedad 750: una línea con picking se queda con el precio y el descuento que tiene
+        If TypeOf arg Is LineaPlantillaVenta AndAlso DirectCast(arg, LineaPlantillaVenta).tienePicking Then
+            Return
+        End If
 
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
@@ -3495,6 +3541,10 @@ Public Class PlantillaVentaViewModel
     Friend Async Function SustituirProductoAsync(linea As LineaPlantillaVenta, sustituto As String) As Task
         Dim numero As String = sustituto?.Trim()
         If String.IsNullOrEmpty(numero) Then
+            Return
+        End If
+        If linea IsNot Nothing AndAlso linea.tienePicking Then
+            OnIntentoCambiarLineaConPicking(linea, EventArgs.Empty) ' Novedad 750: no se puede quitar
             Return
         End If
         Dim nueva As LineaPlantillaVenta = Await BuscarLineaParaAnadirAsync(numero)
@@ -4310,7 +4360,7 @@ Public Class PlantillaVentaViewModel
                 If estadoFresco IsNot Nothing Then
                     modoGuardado = ModosServicio.Efectivo(estadoFresco.ModoServicio, estadoFresco.ServirJunto) ' Nesto#489
                 End If
-                Dim errorPicking As String = ValidarLineasConPicking(estadoFresco, pedido)
+                Dim errorPicking As String = ComprobarLineasConPickingAntesDeGuardar(estadoFresco, pedido)
                 If errorPicking IsNot Nothing Then
                     dialogService.ShowError(errorPicking)
                     Return
@@ -4533,6 +4583,17 @@ Public Class PlantillaVentaViewModel
     ''' Devuelve Nothing si todo está intacto, o el mensaje de error.
     ''' </summary>
     Public Shared Function ValidarLineasConPicking(estadoFresco As PedidoParaPlantillaModel, pedido As PedidoVentaDTO) As String
+        Return PrimeraLineaConPickingAlterada(estadoFresco, pedido)?.Mensaje
+    End Function
+
+    ''' <summary>Novedad 750: la línea con picking que falta o ha cambiado en el DTO, para el mensaje y para ELMAH.</summary>
+    Public Class LineaConPickingAlterada
+        Public Property Mensaje As String
+        Public Property Producto As String
+        Public Property IdLinea As Integer
+    End Class
+
+    Friend Shared Function PrimeraLineaConPickingAlterada(estadoFresco As PedidoParaPlantillaModel, pedido As PedidoVentaDTO) As LineaConPickingAlterada
         If estadoFresco Is Nothing OrElse pedido Is Nothing Then
             Return Nothing
         End If
@@ -4541,14 +4602,14 @@ Public Class PlantillaVentaViewModel
             If lineaOriginal.PagoTienePicking Then
                 Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, lineaOriginal.IdLineaPago, lineaOriginal.Producto,
                     lineaOriginal.Cantidad, lineaOriginal.Precio, lineaOriginal.Descuento)
-                If errorLinea IsNot Nothing Then Return errorLinea
+                If errorLinea IsNot Nothing Then Return Alterada(errorLinea, lineaOriginal.Producto, lineaOriginal.IdLineaPago)
             End If
             If lineaOriginal.OfertaTienePicking AndAlso lineaOriginal.IdLineaOferta.HasValue Then
                 Dim precioOferta As Decimal = If(lineaOriginal.PersonalizarOferta, lineaOriginal.PrecioOferta, 0D)
                 Dim descuentoOferta As Decimal = If(lineaOriginal.PersonalizarOferta, lineaOriginal.DescuentoOferta, 0D)
                 Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, lineaOriginal.IdLineaOferta.Value, lineaOriginal.Producto,
                     lineaOriginal.CantidadOferta, precioOferta, descuentoOferta)
-                If errorLinea IsNot Nothing Then Return errorLinea
+                If errorLinea IsNot Nothing Then Return Alterada(errorLinea, lineaOriginal.Producto, lineaOriginal.IdLineaOferta.Value)
             End If
         Next
 
@@ -4557,12 +4618,52 @@ Public Class PlantillaVentaViewModel
                 ' En los regalos solo importa la cantidad (el precio/descuento se regeneran igual).
                 Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, regalo.IdLinea, regalo.Producto,
                     regalo.Cantidad, Nothing, Nothing)
-                If errorLinea IsNot Nothing Then Return errorLinea
+                If errorLinea IsNot Nothing Then Return Alterada(errorLinea, regalo.Producto, regalo.IdLinea)
             End If
         Next
 
         Return Nothing
     End Function
+
+    Private Shared Function Alterada(mensaje As String, producto As String, idLinea As Integer) As LineaConPickingAlterada
+        Return New LineaConPickingAlterada With {.Mensaje = mensaje, .Producto = producto?.Trim(), .IdLinea = idLinea}
+    End Function
+
+    ''' <summary>
+    ''' Novedad 750: valida las líneas con picking antes del PUT y, si la plantilla bloquea el guardado,
+    ''' lo deja en ELMAH (POST api/Errores): como Nesto corta antes del PUT, si no, no queda rastro ni en
+    ''' ELMAH ni en Modificaciones. Lleva el pedido, el producto y el id de la línea que falta o ha
+    ''' cambiado, y los ids que sí lleva el DTO. Devuelve el mensaje para el usuario (Nothing si vale).
+    ''' </summary>
+    Friend Function ComprobarLineasConPickingAntesDeGuardar(estadoFresco As PedidoParaPlantillaModel, pedido As PedidoVentaDTO) As String
+        Dim alterada = PrimeraLineaConPickingAlterada(estadoFresco, pedido)
+        If alterada Is Nothing Then
+            Return Nothing
+        End If
+        Try
+            Dim registro = If(ServicioRegistroErrores, Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)())
+            If registro IsNot Nothing Then
+                Dim idsDto As String = String.Join(", ", If(pedido.Lineas, New List(Of LineaPedidoVentaDTO)).Select(Function(l) $"{l.id} ({l.Producto?.Trim()} x{l.Cantidad})"))
+                Dim contexto As String = $"Plantilla de ventas, modificar el pedido {pedido.numero}: no deja guardar por una línea con picking. " &
+                    $"Producto {alterada.Producto}, línea {alterada.IdLinea}. Ids que lleva el DTO: {String.Join(", ", If(pedido.Lineas, New List(Of LineaPedidoVentaDTO)).Select(Function(l) l.id))}. " &
+                    $"Detalle: {idsDto}"
+                Dim excepcion As New InvalidOperationException($"Pedido {pedido.numero}: {alterada.Mensaje} (línea {alterada.IdLinea})")
+                Dim unused = registro.RegistrarErrorAsync(excepcion, contexto)
+            End If
+        Catch
+            ' El registro nunca debe impedir enseñar el aviso
+        End Try
+        Return alterada.Mensaje
+    End Function
+
+    ''' <summary>Novedad 750: registro de errores en ELMAH (sustituible en los tests; si no, el del contenedor).</summary>
+    Friend Property ServicioRegistroErrores As IServicioRegistroErrores
+
+    ''' <summary>Novedad 750: se ha intentado cambiar una línea con picking; el cambio no se hace y se avisa en el momento.</summary>
+    Private Sub OnIntentoCambiarLineaConPicking(sender As Object, e As EventArgs)
+        Dim linea = TryCast(sender, LineaPlantillaVenta)
+        dialogService.ShowNotification($"La línea del producto {linea?.producto?.Trim()} ya tiene picking en el almacén: no se puede cambiar ni quitar desde la plantilla. Sí puede añadir productos nuevos al pedido.")
+    End Sub
 
     Private Shared Function ComprobarLineaConPickingIntacta(pedido As PedidoVentaDTO, idLinea As Integer,
             producto As String, cantidad As Integer, precio As Decimal?, descuento As Decimal?) As String
@@ -6081,12 +6182,25 @@ Public Class PlantillaVentaViewModel
                         lineaExistente.personalizarOferta = lineaBorrador.personalizarOferta
                         lineaExistente.precioOferta = lineaBorrador.precioOferta
                         lineaExistente.descuentoOferta = lineaBorrador.descuentoOferta
+                        ' Novedad 750: y los ids de las líneas del pedido en edición. Sin ellos, un
+                        ' producto que ya estaba en la plantilla del cliente viajaba en el PUT como
+                        ' línea nueva (id 0): el servidor borraba la original y, si tenía picking,
+                        ' la plantilla no dejaba guardar («ya tiene picking… no se puede quitar»).
+                        lineaExistente.idLineaPedido = lineaBorrador.idLineaPedido
+                        lineaExistente.idLineaPedidoOferta = lineaBorrador.idLineaPedidoOferta
+                        If lineaBorrador.tienePicking Then
+                            lineaExistente.BloquearPorPicking()
+                            AddHandler lineaExistente.IntentoCambiarLineaConPicking, AddressOf OnIntentoCambiarLineaConPicking
+                        End If
                         lineasActualizadas += 1
                     Else
                         ' El producto NO está en la plantilla - añadirlo directamente del borrador
                         ' El borrador tiene todos los datos (nombre, foto, subgrupo, etc.)
                         ' Solo el stock puede estar desactualizado
                         lineaBorrador.stockActualizado = False ' Marcar que el stock puede no estar actualizado
+                        If lineaBorrador.tienePicking Then
+                            AddHandler lineaBorrador.IntentoCambiarLineaConPicking, AddressOf OnIntentoCambiarLineaConPicking ' Novedad 750
+                        End If
                         ListaFiltrableProductos?.ListaOriginal?.Add(lineaBorrador)
                         lineasCargadas += 1
                         If lineaBorrador.descuentoEsElCalculado Then
