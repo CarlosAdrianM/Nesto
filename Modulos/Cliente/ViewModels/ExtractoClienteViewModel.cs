@@ -361,7 +361,7 @@ namespace Nesto.Modulos.Cliente
                 EstaOcupado = false;
                 if (!eventos.Any())
                 {
-                    _dialogService.ShowError("No hay ningún evento activo. Los eventos los da de alta Tienda online (Clientes → Eventos).");
+                    _dialogService.ShowError("No hay ningún evento activo. Los eventos los da de alta cada tienda (Clientes → Eventos).");
                     return;
                 }
                 ResultadoDialogo resultado = await _dialogService.ShowDialogAsync(ElegirEventoDialogViewModel.NOMBRE, new ParametrosDialogo

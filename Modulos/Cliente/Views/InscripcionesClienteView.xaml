@@ -1,0 +1,65 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.InscripcionesClienteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="250" d:DesignWidth="800"
+             Background="White">
+    <!-- El DataContext del ViewModel va en Raiz, no en el UserControl: así Empresa/Cliente/Contacto se enlazan con la ficha. -->
+    <DockPanel x:Name="Raiz">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
+            <Button Content="Inscribir en un evento…" Command="{Binding InscribirCommand}" Padding="10,3" FontWeight="Bold"/>
+            <Button Content="Recargar" Command="{Binding CargarCommand}" Padding="10,3" Margin="6,0,0,0"/>
+            <TextBlock Text="Cargando…" Foreground="DimGray" VerticalAlignment="Center" Margin="10,0,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EstaOcupado}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
+        <DataGrid ItemsSource="{Binding Inscripciones}" SelectedItem="{Binding Seleccionada}" AutoGenerateColumns="False"
+                  IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" ColumnWidth="Auto">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Estado}" Value="Caducada">
+                            <Setter Property="Foreground" Value="Gray"/>
+                            <Setter Property="FontStyle" Value="Italic"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Estado}" Value="Anulada">
+                            <Setter Property="Foreground" Value="Gray"/>
+                            <Setter Property="FontStyle" Value="Italic"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding FechaEvento, StringFormat=dd/MM/yyyy}"/>
+                <DataGridTextColumn Header="Evento" Binding="{Binding Evento}" Width="*"/>
+                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}"/>
+                <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}"/>
+                <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}"/>
+                <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}"/>
+                <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}"/>
+                <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}"/>
+                <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}"/>
+                <DataGridTemplateColumn Header="Enlace de pago" Width="220">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding UrlPago, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                     ToolTip="Seleccione y copie el enlace para mandárselo al cliente"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

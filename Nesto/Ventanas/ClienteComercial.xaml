@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+    xmlns:cliente="clr-namespace:Nesto.Modulos.Cliente;assembly=Cliente"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"    
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" 
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
@@ -395,6 +396,14 @@
                                     </Grid>
                                 </ScrollViewer>
                             </Grid>
+                        </TabItem>
+                        <!-- Nesto#517: inscripciones del cliente a eventos (cursos, masterclass) e inscribir sin pedido -->
+                        <TabItem Header="Eventos">
+                            <cliente:InscripcionesClienteView Margin="3"
+                                Empresa="{Binding clienteActivo.empresa}"
+                                Cliente="{Binding clienteActivo.cliente}"
+                                Contacto="{Binding clienteActivo.contacto}"
+                                Nombre="{Binding clienteActivo.nombre}"/>
                         </TabItem>
                     </TabControl>
                 </Grid>

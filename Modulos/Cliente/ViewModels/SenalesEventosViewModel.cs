@@ -38,11 +38,18 @@ namespace Nesto.Modulos.Cliente
         private readonly IServicioDialogos _dialogService;
         private readonly IServicioNavegacion _navegacion;
 
-        public SenalesEventosViewModel(IEventosService servicio, IServicioDialogos dialogService, IServicioNavegacion navegacion)
+        private readonly IConfiguracion _configuracion;
+
+        public SenalesEventosViewModel(IEventosService servicio, IServicioDialogos dialogService, IServicioNavegacion navegacion,
+            IConfiguracion configuracion = null)
         {
             _servicio = servicio;
             _dialogService = dialogService;
             _navegacion = navegacion;
+            _configuracion = configuracion;
+            BuscarPropuestasCommand = new AsyncRelayCommand(BuscarPropuestasAsync, () => PuedeConfirmarPropuestas);
+            ConfirmarPropuestaCommand = new AsyncRelayCommand(ConfirmarPropuestaAsync, () => PuedeConfirmarPropuestas && PropuestaSeleccionada != null);
+            DescartarPropuestaCommand = new AsyncRelayCommand(DescartarPropuestaAsync, () => PuedeConfirmarPropuestas && PropuestaSeleccionada != null);
             Titulo = "Señales de eventos";
             Estados = new List<FiltroEstadoSenal>
             {
@@ -157,6 +164,156 @@ namespace Nesto.Modulos.Cliente
             }
             _cargadoAlgunaVez = true;
             await CargarSenalesAsync();
+            await CargarPropuestasAsync();
+        }
+
+        // ---------------- NestoAPI#615: señales propuestas ----------------
+
+        /// <summary>Confirmar, descartar y buscar: Administración, Dirección e Informática (la API da 403 al resto).</summary>
+        public bool PuedeConfirmarPropuestas => _configuracion != null
+            && (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        private bool _hayApiDePropuestas;
+        /// <summary>False con una API sin las propuestas (404): el bloque se esconde.</summary>
+        public bool HayApiDePropuestas { get => _hayApiDePropuestas; private set => SetProperty(ref _hayApiDePropuestas, value); }
+
+        private ObservableCollection<FilaPropuestaSenal> _propuestas = new();
+        public ObservableCollection<FilaPropuestaSenal> Propuestas
+        {
+            get => _propuestas;
+            private set
+            {
+                if (SetProperty(ref _propuestas, value))
+                {
+                    OnPropertyChanged(nameof(TituloPropuestas));
+                }
+            }
+        }
+
+        /// <summary>«Propuestas (3 cobros)».</summary>
+        public string TituloPropuestas
+        {
+            get
+            {
+                int cobros = Propuestas?.Count(p => p.PrimeraDelCobro) ?? 0;
+                return cobros == 0 ? "Propuestas (ninguna)" : cobros == 1 ? "Propuestas (1 cobro)" : $"Propuestas ({cobros} cobros)";
+            }
+        }
+
+        private FilaPropuestaSenal _propuestaSeleccionada;
+        public FilaPropuestaSenal PropuestaSeleccionada
+        {
+            get => _propuestaSeleccionada;
+            set
+            {
+                if (SetProperty(ref _propuestaSeleccionada, value))
+                {
+                    ConfirmarPropuestaCommand.NotifyCanExecuteChanged();
+                    DescartarPropuestaCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        public AsyncRelayCommand BuscarPropuestasCommand { get; }
+        public AsyncRelayCommand ConfirmarPropuestaCommand { get; }
+        public AsyncRelayCommand DescartarPropuestaCommand { get; }
+
+        public async Task CargarPropuestasAsync()
+        {
+            try
+            {
+                PonerPropuestas(await _servicio.LeerPropuestas());
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        private void PonerPropuestas(List<PropuestaSenalModel> propuestas)
+        {
+            HayApiDePropuestas = propuestas != null;
+            Propuestas = new ObservableCollection<FilaPropuestaSenal>(FilaPropuestaSenal.Aplanar(propuestas));
+            PropuestaSeleccionada = null;
+        }
+
+        /// <summary>«Buscar ahora»: no espera al barrido de las 7:50 (últimos 15 días).</summary>
+        public async Task BuscarPropuestasAsync()
+        {
+            try
+            {
+                EstaOcupado = true;
+                PonerPropuestas(await _servicio.BuscarPropuestas(15));
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public async Task ConfirmarPropuestaAsync()
+        {
+            FilaPropuestaSenal fila = PropuestaSeleccionada;
+            if (fila == null)
+            {
+                return;
+            }
+            if (!_dialogService.ShowConfirmationAnswer("Confirmar señal",
+                $"¿Confirma que el cobro {fila.Cobro.NumOrdenExtracto} de {fila.Nombre} ({fila.Importe:C}) es la señal de «{fila.Evento}»?"))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                SenalEventoModel senal = await _servicio.ConfirmarPropuesta(fila.IdPropuesta);
+                await CargarSenalesAsync();
+                await CargarPropuestasAsync();
+                _dialogService.ShowNotification("Señal confirmada",
+                    $"El apunte {fila.Cobro.NumOrdenExtracto} es la señal del evento «{senal?.Evento ?? fila.Candidato.Evento}».");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public async Task DescartarPropuestaAsync()
+        {
+            FilaPropuestaSenal fila = PropuestaSeleccionada;
+            if (fila == null)
+            {
+                return;
+            }
+            if (!_dialogService.ShowConfirmationAnswer("Descartar propuesta",
+                $"¿Descarta que el cobro {fila.Cobro.NumOrdenExtracto} de {fila.Nombre} sea la señal de «{fila.Evento}»? No se volverá a proponer."))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await _servicio.DescartarPropuesta(fila.IdPropuesta);
+                await CargarPropuestasAsync();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
         }
 
         public async Task CargarSenalesAsync()

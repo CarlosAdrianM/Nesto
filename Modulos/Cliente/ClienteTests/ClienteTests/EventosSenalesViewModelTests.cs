@@ -42,12 +42,21 @@ namespace ClienteTests
         // ---------------- Mantenimiento de eventos ----------------
 
         [TestMethod]
-        public void PuedeMantener_SoloTiendaOnlineDireccionEInformatica()
+        public void PuedeMantener_SinGrupo_No()
         {
             Assert.IsFalse(MantenimientoEventosViewModel.PuedeMantener(configuracion));
-            EnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
-            Assert.IsFalse(MantenimientoEventosViewModel.PuedeMantener(configuracion), "Administración marca señales, no mantiene eventos");
-            EnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+        }
+
+        // Nesto#517 (NestoAPI#611, Carlos 14/10/26): cada tienda mantiene sus eventos, y Administración y Dirección todos.
+        [DataTestMethod]
+        [DataRow(Constantes.GruposSeguridad.TIENDA_ON_LINE)]
+        [DataRow(Constantes.GruposSeguridad.TIENDAS)]
+        [DataRow(Constantes.GruposSeguridad.ADMINISTRACION)]
+        [DataRow(Constantes.GruposSeguridad.DIRECCION)]
+        [DataRow(Constantes.GruposSeguridad.INFORMATICA)]
+        public void PuedeMantener_TiendasAdministracionDireccionYTiendaOnline(string grupo)
+        {
+            EnGrupo(grupo);
             Assert.IsTrue(MantenimientoEventosViewModel.PuedeMantener(configuracion));
         }
 

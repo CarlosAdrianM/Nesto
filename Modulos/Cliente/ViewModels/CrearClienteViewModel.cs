@@ -800,7 +800,7 @@ namespace Nesto.Modulos.Cliente
             Navegacion.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
         }
 
-        // NestoAPI#591: mantenimiento de eventos con señal reembolsable (Tienda online, Dirección, Informática)
+        // NestoAPI#591 y Nesto#517: mantenimiento de eventos (cada tienda, Tienda online, Administración, Dirección, Informática)
         public bool PuedeMantenerEventos => MantenimientoEventosViewModel.PuedeMantener(Configuracion);
         public ICommand AbrirEventosCommand { get; private set; }
         private void OnAbrirEventos()
