@@ -50,15 +50,24 @@ namespace Nesto.Modulos.CanalesExternos
 
         private readonly PrestashopService servicio;
         private readonly IServicioChequesRegalo chequesRegalo;
+        private readonly IServicioCupones cupones;
+        /// <summary>
+        /// Nesto#518: los cupones que han entrado como TiCKET porque ya estaban usados o anulados en Nesto, por referencia del
+        /// pedido de la tienda; tras crear el pedido se le dice a NestoAPI (EjecutarTrasCrearPedido).
+        /// </summary>
+        private readonly Dictionary<string, (string Codigo, decimal ImporteConIva)> cuponesParaAvisar = new(StringComparer.OrdinalIgnoreCase);
 
         /// <param name="chequesRegalo">Nesto#533: GET api/ChequesRegalo/Cliente. Null = no se puede preguntar: las reglas
         /// NVCHEQUE-* quedan como cupón con aviso.</param>
+        /// <param name="cupones">Nesto#518: GET api/Cupones/{codigo}. Null = no se puede preguntar: las reglas EV-…/MN-… quedan
+        /// como TiCKET con aviso.</param>
         public CanalExternoPedidosPrestashop(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesLookup, TiendaPrestashop tienda,
-            IServicioChequesRegalo chequesRegalo = null)
+            IServicioChequesRegalo chequesRegalo = null, IServicioCupones cupones = null)
         {
             this.configuracion = configuracion;
             this.clientesLookup = clientesLookup;
             this.chequesRegalo = chequesRegalo;
+            this.cupones = cupones;
             Tienda = tienda ?? throw new ArgumentNullException(nameof(tienda));
             servicio = new PrestashopService(tienda);
         }
@@ -307,7 +316,39 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<bool> EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
         {
-            return await servicio.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 3, true); //Preparación en curso
+            bool cambiado = await servicio.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 3, true); //Preparación en curso
+            _ = await AvisarCuponYaGastadoAsync(pedido);
+            return cambiado;
+        }
+
+        /// <summary>
+        /// Nesto#518 (NestoAPI#614): el pedido ha entrado con un cupón que en Nesto ya estaba usado o anulado (lo ha gastado en los
+        /// dos sitios). Se le dice a NestoAPI con el pedido para que avise a Administración. Con una API que todavía no lo tenga
+        /// (404), queda solo el aviso de los comentarios del pedido. Nunca lanza.
+        /// </summary>
+        internal async Task<bool> AvisarCuponYaGastadoAsync(PedidoCanalExterno pedido)
+        {
+            if (cupones == null || pedido?.PedidoCanalId == null || pedido.PedidoNestoId == 0
+                || !cuponesParaAvisar.TryGetValue(pedido.PedidoCanalId, out (string Codigo, decimal ImporteConIva) pendiente))
+            {
+                return false;
+            }
+            _ = cuponesParaAvisar.Remove(pedido.PedidoCanalId);
+            try
+            {
+                return await cupones.AvisarUsoEnTienda(pendiente.Codigo, new UsoCuponTiendaDTO
+                {
+                    Empresa = pedido.Pedido?.empresa?.Trim(),
+                    Pedido = pedido.PedidoNestoId,
+                    Canal = "PrestaShop",
+                    PedidoCanal = pedido.PedidoCanalId,
+                    ImporteDescontado = Math.Round(pendiente.ImporteConIva, 2, MidpointRounding.AwayFromZero)
+                });
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
@@ -376,7 +417,7 @@ namespace Nesto.Modulos.CanalesExternos
         /// </summary>
         private async Task LeerReglasCarritoAsync(PedidoPrestashop pedidoEntrada)
         {
-            if (!Tienda.CanjeaChequesRegalo || ChequeRegaloPrestashop.LeerImporte(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) == 0)
+            if ((!Tienda.CanjeaChequesRegalo && !Tienda.CanjeaCupones) || ChequeRegaloPrestashop.LeerImporte(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) == 0)
             {
                 return;
             }
@@ -528,7 +569,7 @@ namespace Nesto.Modulos.CanalesExternos
                 pedidoSalida.Lineas.Add(lineaEmbalaje);
             }
 
-            // Añadir cupones de descuento (y el cheque regalo, Nesto#533)
+            // Añadir cupones de descuento (y el cheque regalo, Nesto#533, y el cupón de Nesto, Nesto#518)
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
             {
                 decimal totalDescuentosSinIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_excl")?.Value) / 1000000, 4);
@@ -538,6 +579,13 @@ namespace Nesto.Modulos.CanalesExternos
                 DecisionChequeRegaloPrestashop cheque = await DecidirChequeRegaloAsync(pedidoSalida, pedidoEntrada);
                 totalDescuentosSinIva -= cheque.DescuentoSinIva;
                 totalDescuentosConIva -= cheque.DescuentoConIva;
+                DecisionCuponPrestashop cupon = await DecidirCuponAsync(pedidoSalida, pedidoEntrada);
+                totalDescuentosSinIva -= cupon.DescuentoSinIva;
+                totalDescuentosConIva -= cupon.DescuentoConIva;
+                if (cupon.CodigoParaAvisar != null && !string.IsNullOrWhiteSpace(pedido?.PedidoCanalId))
+                {
+                    cuponesParaAvisar[pedido.PedidoCanalId] = (cupon.CodigoParaAvisar, cupon.DescuentoConIva);
+                }
                 // El resto (otros cupones) se reparte como siempre, sin la línea del cheque delante: es de tipo producto
                 // y con su −50 descuadraría la detección del porcentaje
                 if (Math.Round(totalDescuentosConIva, 2, MidpointRounding.AwayFromZero) != 0)
@@ -549,6 +597,11 @@ namespace Nesto.Modulos.CanalesExternos
                     pedidoSalida.Lineas.Add(cheque.Linea);
                 }
                 AnadirAviso(pedidoSalida, cheque.Aviso);
+                if (cupon.Linea != null)
+                {
+                    pedidoSalida.Lineas.Add(cupon.Linea);
+                }
+                AnadirAviso(pedidoSalida, cupon.Aviso);
             }
 
             return pedidoSalida.Lineas;
@@ -581,7 +634,9 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     Aviso = pedidoEntrada.ErrorReglasCarrito == null ? null
                         : $"{ChequeRegaloPrestashop.AVISO}no se han podido leer las reglas de carrito del pedido ({pedidoEntrada.ErrorReglasCarrito}). " +
-                          "Si el descuento es un cheque regalo (NVCHEQUE-…), ha entrado como cupón: revisar a mano."
+                          (Tienda.CanjeaCupones
+                            ? "Si el descuento es un cheque regalo (NVCHEQUE-…) o un cupón de Nesto (EV-…, MN-…), ha entrado como cupón: revisar a mano."
+                            : "Si el descuento es un cheque regalo (NVCHEQUE-…), ha entrado como cupón: revisar a mano.")
                 };
             }
             if (!pedidoEntrada.ReglasCarrito.Any(r => ChequeRegaloPrestashop.EsCodigoCheque(r.Codigo)))
@@ -598,6 +653,73 @@ namespace Nesto.Modulos.CanalesExternos
             return ChequeRegaloPrestashop.Decidir(pedidoEntrada.ReglasCarrito, cliente, chequeCliente,
                 (importeConIva, texto) => CrearLineaCupon(importeConIva, texto, formaVenta, pedidoSalida.iva, configuracion.usuario),
                 c => CrearLineaCheque(c, pedidoSalida.iva));
+        }
+
+        /// <summary>
+        /// Nesto#518: ¿lleva el pedido un cupón de Nesto (regla de carrito con código EV-…/MN-…)? Se pregunta a NestoAPI por ese
+        /// código para no meter uno que ya no se puede usar; al grabar, NestoAPI vuelve a comprobarlo todo y lo reserva.
+        /// </summary>
+        internal async Task<DecisionCuponPrestashop> DecidirCuponAsync(PedidoVentaDTO pedidoSalida, PedidoPrestashop pedidoEntrada)
+        {
+            if (!Tienda.CanjeaCupones)
+            {
+                return DecisionCuponPrestashop.Ninguna;
+            }
+            if (pedidoEntrada.ReglasCarrito == null)
+            {
+                // Si la tienda también canjea cheques, ese aviso ya lo dice por los dos (DecidirChequeRegaloAsync)
+                return new DecisionCuponPrestashop
+                {
+                    Aviso = pedidoEntrada.ErrorReglasCarrito == null || Tienda.CanjeaChequesRegalo ? null
+                        : $"{CuponPrestashop.AVISO}no se han podido leer las reglas de carrito del pedido ({pedidoEntrada.ErrorReglasCarrito}). " +
+                          "Si el descuento es un cupón de un evento (EV-…) o manual (MN-…), ha entrado como descuento: revisar a mano."
+                };
+            }
+            List<ReglaCarritoPrestashop> reglasCupon = pedidoEntrada.ReglasCarrito.Where(r => CuponPrestashop.EsCodigoCupon(r.Codigo)).ToList();
+            if (!reglasCupon.Any())
+            {
+                return DecisionCuponPrestashop.Ninguna;
+            }
+            CuponDTO cupon = null;
+            if (cupones != null && reglasCupon.Count == 1)
+            {
+                cupon = await cupones.LeerPorCodigo(reglasCupon[0].Codigo.Trim());
+            }
+            return CuponPrestashop.Decidir(reglasCupon, pedidoSalida.cliente?.Trim(), cupon,
+                (importeConIva, texto) => CrearLineaCupon(importeConIva, texto, formaVenta, pedidoSalida.iva, configuracion.usuario),
+                c => CrearLineaCuponNesto(c, pedidoSalida.iva));
+        }
+
+        /// <summary>
+        /// Nesto#518: la línea del cupón con su código. NestoAPI la normaliza al grabar (producto, cantidad −1, base con el IVA y el
+        /// recargo del cliente para que descuente el importe exacto, texto e IVA); aquí va con la base al 21 % para que cuadre.
+        /// </summary>
+        private LineaPedidoVentaDTO CrearLineaCuponNesto(CuponDTO cupon, string iva)
+        {
+            LineaPedidoVentaDTO linea = new()
+            {
+                almacen = "ALG",
+                AplicarDescuento = false,
+                Cantidad = -1,
+                CodigoCupon = cupon.Codigo?.Trim(),
+                delegacion = "ALG",
+                formaVenta = formaVenta,
+                estado = 1,
+                fechaEntrega = DateTime.Today,
+                iva = "G21",
+                PrecioUnitario = ReglasCupon.BaseLinea(cupon.Importe, iva != null),
+                Producto = ReglasCupon.ProductoDe(cupon),
+                texto = ReglasCupon.TextoLinea(cupon),
+                tipoLinea = 1, // producto
+                vistoBueno = true,
+                Usuario = configuracion.usuario,
+                EsFicticio = true
+            };
+            if (iva != null)
+            {
+                linea.PorcentajeIva = .21M;
+            }
+            return linea;
         }
 
         private LineaPedidoVentaDTO CrearLineaCheque(ChequeRegaloClienteDTO cheque, string iva)
