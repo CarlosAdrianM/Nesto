@@ -73,6 +73,7 @@ namespace ClienteTests
             vm.TituloEdicion = "  Masterclass Cloasma ";
             vm.FechaEdicion = new DateTime(2026, 10, 13, 10, 0, 0);
             vm.ImporteSenalEdicion = 50;
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             await vm.GuardarAsync();
 
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e =>
@@ -94,6 +95,7 @@ namespace ClienteTests
 
             vm.Seleccionado = vm.Eventos.Single();
             vm.ActivoEdicion = false;
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             await vm.GuardarAsync();
 
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e => e.Id == 3 && !e.Activo && e.Titulo == "Curso peelings")))

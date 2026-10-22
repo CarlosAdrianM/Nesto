@@ -142,7 +142,27 @@ namespace Nesto.Modulos.Cliente
             string body = await Enviar(c => c.GetAsync(
                     $"Productos?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&id={Uri.EscapeDataString(producto.Trim())}"),
                 "No se pudo leer la referencia del curso", vacioSiNoExiste: true);
-            return string.IsNullOrWhiteSpace(body) ? null : JsonConvert.DeserializeObject<ProductoCursoModel>(body);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return null;
+            }
+            ProductoCursoModel leido = JsonConvert.DeserializeObject<ProductoCursoModel>(body);
+            // El grupo no viene en el DTO de la plantilla: se lee de la ficha (sin la parte cara de fichaCompleta).
+            string ficha = await Enviar(c => c.GetAsync(
+                    $"Productos?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&id={Uri.EscapeDataString(producto.Trim())}&fichaCompleta=false"),
+                "No se pudo leer el grupo de la referencia del curso", vacioSiNoExiste: true);
+            if (!string.IsNullOrWhiteSpace(ficha))
+            {
+                leido.Grupo = Newtonsoft.Json.Linq.JObject.Parse(ficha)["Grupo"]?.ToString()?.Trim();
+            }
+            return leido;
+        }
+
+        public async Task<ProductoCursoCreadoModel> CrearProductoCurso(int eventoId, string modalidad)
+        {
+            string body = await Enviar(c => c.PostAsync($"Eventos/{eventoId}/ProductoCurso",
+                Json(new CrearProductoCursoModel { Modalidad = modalidad })), "No se pudo crear la referencia del curso");
+            return JsonConvert.DeserializeObject<ProductoCursoCreadoModel>(body);
         }
 
         // ---------------- NestoAPI#690 ----------------

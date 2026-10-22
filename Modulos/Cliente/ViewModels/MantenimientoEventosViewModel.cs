@@ -34,14 +34,21 @@ namespace Nesto.Modulos.Cliente
             Tiendas = new List<TiendaEvento>
             {
                 new(TiendaEvento.REINA, "Reina"),
-                new(TiendaEvento.ALCOBENDAS, "Alcobendas"),
-                new(null, "(Sin tienda: Tienda online)")
+                new(TiendaEvento.ALCOBENDAS, "Alcobendas")
             };
+            // Carlos 22/10/26: el formato es Presencial u Online (webinar); la tienda es obligatoria en los dos.
+            Formatos = new List<OpcionEvento>
+            {
+                new(EventoModel.FORMATO_PRESENCIAL, "Presencial"),
+                new(EventoModel.FORMATO_ONLINE, "Online (webinar)")
+            };
+            _formatoEdicion = Formatos[0];
             FormasPago = MarcarPagoInscripcionModel.FORMAS_PAGO.ToList();
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             NuevoCommand = new RelayCommand(OnNuevo);
             GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => Editando);
             ComprobarProductoCommand = new AsyncRelayCommand(ComprobarProductoAsync, () => !string.IsNullOrWhiteSpace(ProductoCursoEdicion));
+            CrearProductoCursoCommand = new AsyncRelayCommand(CrearProductoCursoAsync, () => Editando && _idEdicion > 0 && !TieneReferenciaForzada);
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => Seleccionado?.Id > 0);
             AnularInscripcionCommand = new AsyncRelayCommand(AnularInscripcionAsync, () => InscripcionSeleccionada?.SePuedeAnular == true);
             ConfirmaAsistenciaCommand = new AsyncRelayCommand(() => ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.CONFIRMA),
@@ -85,6 +92,14 @@ namespace Nesto.Modulos.Cliente
         private string _almacenUsuario;
 
         public List<TiendaEvento> Tiendas { get; }
+        public List<OpcionEvento> Formatos { get; }
+
+        private OpcionEvento _formatoEdicion;
+        /// <summary>Presencial (por defecto) u Online (webinar).</summary>
+        public OpcionEvento FormatoEdicion { get => _formatoEdicion; set => SetProperty(ref _formatoEdicion, value); }
+
+        private OpcionEvento FormatoPorValor(string valor) =>
+            Formatos.FirstOrDefault(f => string.Equals(f.Valor, valor?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? Formatos[0];
         public List<string> FormasPago { get; }
 
         private ObservableCollection<EventoModel> _eventos = new();
@@ -134,6 +149,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     GuardarCommand.NotifyCanExecuteChanged();
                     SubirImagenCommand?.NotifyCanExecuteChanged();
+                    CrearProductoCursoCommand?.NotifyCanExecuteChanged();
                     QuitarImagenCommand?.NotifyCanExecuteChanged();
                 }
             }
@@ -166,7 +182,32 @@ namespace Nesto.Modulos.Cliente
                 {
                     NombreProductoCurso = null;
                     ComprobarProductoCommand.NotifyCanExecuteChanged();
+                    CrearProductoCursoCommand?.NotifyCanExecuteChanged();
+                    OnPropertyChanged(nameof(TieneReferenciaForzada));
                 }
+            }
+        }
+
+        /// <summary>«EVENTO00007»: la referencia propia del evento (reembolsable); con «NR», la no reembolsable.</summary>
+        public static string ReferenciaPropia(int idEvento) => $"EVENTO{idEvento:D5}";
+
+        /// <summary>
+        /// Hay escrita una referencia de curso que no es la propia del evento (p. ej. 90077, que pueden compartir varios
+        /// eventos): esa sirve para todas las modalidades, así que «Crear referencia» no hace falta (ni crea la NR).
+        /// </summary>
+        public bool TieneReferenciaForzada
+        {
+            get
+            {
+                string referencia = Limpiar(ProductoCursoEdicion);
+                if (referencia == null)
+                {
+                    return false;
+                }
+                string propia = ReferenciaPropia(_idEdicion);
+                return _idEdicion <= 0
+                    || (!string.Equals(referencia, propia, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(referencia, propia + "NR", StringComparison.OrdinalIgnoreCase));
             }
         }
 
@@ -368,6 +409,7 @@ namespace Nesto.Modulos.Cliente
             ImagenUrl = null;
             ActivoEdicion = true;
             TiendaEdicion = TiendaPorCodigo(TiendaEvento.EsTiendaDeEventos(_almacenUsuario) ? _almacenUsuario : null);
+            FormatoEdicion = Formatos[0];
             ProductoCursoEdicion = null;
             PlazasEdicion = null;
             LugarEdicion = null;
@@ -376,11 +418,12 @@ namespace Nesto.Modulos.Cliente
             OnPropertyChanged(nameof(EsNuevo));
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
+            CrearProductoCursoCommand.NotifyCanExecuteChanged();
         }
 
+        /// <summary>Null si el evento no tiene tienda (los de antes): hay que elegirla para guardar.</summary>
         private TiendaEvento TiendaPorCodigo(string codigo) =>
-            Tiendas.FirstOrDefault(t => string.Equals(t.Codigo, codigo?.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?? Tiendas.First(t => t.Codigo == null);
+            Tiendas.FirstOrDefault(t => string.Equals(t.Codigo, codigo?.Trim(), StringComparison.OrdinalIgnoreCase));
 
         private void CargarEdicion(EventoModel evento)
         {
@@ -390,6 +433,7 @@ namespace Nesto.Modulos.Cliente
             ImporteSenalEdicion = evento.ImporteSenal;
             ActivoEdicion = evento.Activo;
             TiendaEdicion = TiendaPorCodigo(evento.Almacen);
+            FormatoEdicion = FormatoPorValor(evento.Formato);
             ProductoCursoEdicion = evento.ProductoCurso?.Trim();
             PlazasEdicion = evento.Plazas;
             LugarEdicion = evento.Lugar;
@@ -403,6 +447,7 @@ namespace Nesto.Modulos.Cliente
             OnPropertyChanged(nameof(EsNuevo));
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
+            CrearProductoCursoCommand.NotifyCanExecuteChanged();
         }
 
         public AsyncRelayCommand GuardarCommand { get; }
@@ -426,6 +471,11 @@ namespace Nesto.Modulos.Cliente
             if (FechaEdicion == null)
             {
                 _dialogService.ShowError("El evento tiene que tener fecha.");
+                return;
+            }
+            if (!TiendaEvento.EsTiendaDeEventos(TiendaEdicion?.Codigo))
+            {
+                _dialogService.ShowError("Elija la tienda del evento (Reina o Alcobendas). También en los online: el ponente emite desde una de las dos tiendas y la factura lleva su almacén y su delegación.");
                 return;
             }
             if (ImporteSenalEdicion < 0)
@@ -465,6 +515,7 @@ namespace Nesto.Modulos.Cliente
                     ImporteSenal = ImporteSenalEdicion,
                     Activo = ActivoEdicion,
                     Almacen = TiendaEdicion?.Codigo,
+                    Formato = FormatoEdicion?.Valor ?? EventoModel.FORMATO_PRESENCIAL,
                     ProductoCurso = Limpiar(ProductoCursoEdicion),
                     Plazas = PlazasEdicion,
                     Lugar = Limpiar(LugarEdicion),
@@ -510,6 +561,12 @@ namespace Nesto.Modulos.Cliente
                     NombreProductoCurso = $"No existe el producto {referencia}: dé de alta antes la referencia del curso (exenta de IVA).";
                     return;
                 }
+                string grupo = producto.Grupo?.Trim();
+                if (!string.IsNullOrEmpty(grupo) && !string.Equals(grupo, ProductoCursoModel.GRUPO_CURSOS, StringComparison.OrdinalIgnoreCase))
+                {
+                    NombreProductoCurso = $"La referencia {referencia} ({producto.Nombre?.Trim()}) es del grupo {grupo}, no de cursos ({ProductoCursoModel.GRUPO_CURSOS}): escriba una referencia de curso o pulse «Crear referencia».";
+                    return;
+                }
                 string iva = producto.Iva?.Trim();
                 NombreProductoCurso = string.Equals(iva, "EX", StringComparison.OrdinalIgnoreCase)
                     ? $"{producto.Nombre?.Trim()} (exento)"
@@ -523,6 +580,66 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = false;
             }
+        }
+
+        public AsyncRelayCommand CrearProductoCursoCommand { get; }
+
+        /// <summary>
+        /// Nesto#517 (Carlos 22/10/26): crea en la API la referencia del curso de cada modalidad con importe (la reembolsable,
+        /// «EVENTO» + Id a 5 cifras; la no reembolsable, con «NR») y la pone en el evento: la reembolsable si la hay y, si
+        /// no, la no reembolsable (el evento tiene un solo campo de curso). Hay que guardar el evento después. Solo con el
+        /// evento ya guardado (con Id) y sin una referencia forzada (<see cref="TieneReferenciaForzada"/>: esa sirve para
+        /// todas las modalidades, así que no se crea la NR).
+        /// </summary>
+        public async Task CrearProductoCursoAsync()
+        {
+            if (!Editando || _idEdicion <= 0 || TieneReferenciaForzada)
+            {
+                return;
+            }
+            List<string> modalidades = new();
+            if (ImporteSenalEdicion > 0)
+            {
+                modalidades.Add(InscribirEventoModel.MODALIDAD_REEMBOLSABLE);
+            }
+            if (ImporteSenalNoReembolsableEdicion > 0)
+            {
+                modalidades.Add(InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE);
+            }
+            if (!modalidades.Any())
+            {
+                _dialogService.ShowError("El evento es gratuito (las dos señales a 0): no necesita referencia de curso.");
+                return;
+            }
+            int idEvento = _idEdicion;
+            List<ProductoCursoCreadoModel> creados = new();
+            try
+            {
+                EstaOcupado = true;
+                foreach (string modalidad in modalidades)
+                {
+                    ProductoCursoCreadoModel creado = await _servicio.CrearProductoCurso(idEvento, modalidad);
+                    if (creado != null && !string.IsNullOrWhiteSpace(creado.Producto))
+                    {
+                        creados.Add(creado);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message); // «No se pudo crear la referencia del curso: …» (EventosService)
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            if (!creados.Any() || _idEdicion != idEvento)
+            {
+                return;
+            }
+            ProductoCursoEdicion = creados.First().Producto.Trim();
+            NombreProductoCurso = string.Join(" ", creados.Select(c =>
+                $"{c.Producto.Trim()} ({c.Nombre?.Trim()}) {(c.Creado ? "creada" : "ya existía")}.")) + " Guarde el evento para que quede asociada.";
         }
 
         // ---------------- Nesto#517: inscritos del evento seleccionado ----------------
@@ -854,6 +971,24 @@ namespace Nesto.Modulos.Cliente
 
         public AsyncRelayCommand GuardarAsistenciaCommand { get; }
 
+        /// <summary>
+        /// «Las siguientes personas pagaron y no están marcadas: Ana P., Lucía R. Quedarán como ‘No asistió’ y perderán su
+        /// cupón. ¿Desea guardar la lista?»; null si todas las que pagaron están marcadas (las gratuitas no cuentan).
+        /// </summary>
+        public static string MensajePagadasSinMarcar(IEnumerable<InscripcionEventoModel> enLista)
+        {
+            List<string> nombres = enLista?
+                .Where(i => i.EntraEnListaAsistencia && !i.EsGratuita && !i.Asistio)
+                .Select(i => string.IsNullOrWhiteSpace(i.Nombre) ? i.ClienteContacto : i.Nombre.Trim())
+                .ToList() ?? new List<string>();
+            if (!nombres.Any())
+            {
+                return null;
+            }
+            string lista = string.Join(", ", nombres);
+            return $"Las siguientes personas pagaron y no están marcadas: {lista}{(lista.EndsWith(".") ? string.Empty : ".")} Quedarán como ‘No asistió’ y perderán su cupón. ¿Desea guardar la lista?";
+        }
+
         public async Task GuardarAsistenciaAsync()
         {
             EventoModel evento = Seleccionado;
@@ -863,10 +998,10 @@ namespace Nesto.Modulos.Cliente
             }
             List<InscripcionEventoModel> enLista = Inscripciones.Where(i => i.EntraEnListaAsistencia).ToList();
             List<int> asistentes = enLista.Where(i => i.Asistio).Select(i => i.Id).ToList();
-            int noVinieron = enLista.Count - asistentes.Count;
-            if (!_dialogService.ShowConfirmationAnswer("Lista de asistencia",
-                $"¿Guarda la lista de «{evento.Titulo}»? Han venido {asistentes.Count} y no han venido {noVinieron}" +
-                (noVinieron > 0 ? ", que pierden el cupón." : ".")))
+            // Carlos 22/10/26: solo se pregunta si alguien que pagó se queda sin marcar (con sus nombres y «No» por defecto);
+            // si no, se guarda sin preguntar.
+            string mensaje = MensajePagadasSinMarcar(enLista);
+            if (mensaje != null && !_dialogService.ShowConfirmationAnswer("Lista de asistencia", mensaje, porDefectoNo: true))
             {
                 return;
             }

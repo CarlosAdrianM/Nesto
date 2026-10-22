@@ -94,7 +94,12 @@
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Tienda:" VerticalAlignment="Center" Width="110"/>
                                 <ComboBox ItemsSource="{Binding Tiendas}" SelectedItem="{Binding TiendaEdicion}" Width="200"
-                                          ToolTip="La tienda donde es el evento: la mantiene esa tienda, Administración y Dirección"/>
+                                          ToolTip="Obligatoria, también en los online (el ponente emite desde la tienda y la factura lleva su almacén). La mantiene esa tienda, Administración y Dirección"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Formato:" VerticalAlignment="Center" Width="110"/>
+                                <ComboBox ItemsSource="{Binding Formatos}" SelectedItem="{Binding FormatoEdicion}" Width="200"
+                                          ToolTip="Presencial u online (webinar). Los online también son de una tienda"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Horario:" VerticalAlignment="Center" Width="110"/>
@@ -125,8 +130,12 @@
                                          VerticalContentAlignment="Center"
                                          ToolTip="El producto del curso (uno por curso, exento de IVA), con el que se factura"/>
                                 <Button Content="Comprobar" Command="{Binding ComprobarProductoCommand}" Margin="6,0,0,0" Padding="8,1"/>
+                                <Button Content="Crear referencia" Command="{Binding CrearProductoCursoCommand}" Margin="6,0,0,0" Padding="8,1" ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="Crea la referencia propia del evento para cada modalidad con importe (EVENTO + número del evento; con NR, la no reembolsable). Primero hay que guardar el evento; si hay escrita otra referencia, bórrela antes."/>
                             </StackPanel>
-                            <TextBlock Text="{Binding NombreProductoCurso}" Foreground="DimGray" TextWrapping="Wrap" MaxWidth="320"
+                            <TextBlock Foreground="DimGray" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" Margin="110,2,0,0"
+                                       Text="Dos formas: escriba una referencia de curso que ya exista (grupo CUR; varios eventos pueden compartirla) y pulse «Comprobar», o guarde el evento y pulse «Crear referencia» para crear la suya (EVENTO y el número del evento; con «NR», la no reembolsable). Con una referencia escrita, esa sirve para todas las modalidades."/>
+                            <TextBlock Text="{Binding NombreProductoCurso}" Foreground="DimGray" TextWrapping="Wrap" MaxWidth="420"
                                        HorizontalAlignment="Left" Margin="110,2,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Plazas:" VerticalAlignment="Center" Width="110"/>

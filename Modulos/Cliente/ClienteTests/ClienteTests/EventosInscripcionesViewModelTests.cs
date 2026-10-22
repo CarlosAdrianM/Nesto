@@ -32,6 +32,7 @@ namespace ClienteTests
             A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)).Returns(true);
             A.CallTo(() => configuracion.leerParametro(A<string>.Ignored, Parametros.Claves.AlmacenPedidoVta)).Returns("REI");
             A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored)).Returns(true);
         }
 
         private static EventoModel Evento(int id, DateTime fecha, string almacen = "REI") =>
@@ -92,7 +93,44 @@ namespace ClienteTests
             var otro = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await otro.CargarAsync();
             otro.NuevoCommand.Execute(null);
-            Assert.IsNull(otro.TiendaEdicion.Codigo, "Algete no hace eventos: sin tienda");
+            Assert.IsNull(otro.TiendaEdicion, "Algete no hace eventos: hay que elegir la tienda");
+        }
+
+        [TestMethod]
+        public async Task Guardar_SinTienda_NoDejaYLoExplica_TambienEnLosOnline()
+        {
+            A.CallTo(() => configuracion.leerParametro(A<string>.Ignored, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            await vm.CargarAsync();
+            vm.NuevoCommand.Execute(null);
+            vm.TituloEdicion = "Webinar Cloasma";
+            vm.FormatoEdicion = vm.Formatos.Single(f => f.Valor == EventoModel.FORMATO_ONLINE);
+
+            await vm.GuardarAsync();
+
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).MustNotHaveHappened();
+            StringAssert.StartsWith(errores.Single(), "Elija la tienda del evento (Reina o Alcobendas). También en los online");
+        }
+
+        [TestMethod]
+        public async Task Formato_PorDefectoPresencial_SeCargaYSeManda()
+        {
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).ReturnsLazily((EventoModel e) => e);
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            await vm.CargarAsync();
+            vm.NuevoCommand.Execute(null);
+            Assert.AreEqual(EventoModel.FORMATO_PRESENCIAL, vm.FormatoEdicion.Valor);
+            Assert.AreEqual("Online (webinar)", vm.Formatos.Single(f => f.Valor == EventoModel.FORMATO_ONLINE).Texto);
+
+            vm.TituloEdicion = "Webinar Cloasma";
+            vm.FormatoEdicion = vm.Formatos.Single(f => f.Valor == EventoModel.FORMATO_ONLINE);
+            await vm.GuardarAsync();
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e => e.Formato == "Online" && e.Almacen == "REI")))
+                .MustHaveHappenedOnceExactly();
+
+            EventoModel sinFormato = Evento(8, DateTime.Today.AddDays(5));
+            MantenimientoEventosViewModel otro = await MantenimientoConEvento(sinFormato);
+            Assert.AreEqual(EventoModel.FORMATO_PRESENCIAL, otro.FormatoEdicion.Valor, "Null cuenta como Presencial");
         }
 
         [TestMethod]
@@ -141,6 +179,22 @@ namespace ClienteTests
             vm.ProductoCursoEdicion = "CURSO01";
             await vm.ComprobarProductoAsync();
             Assert.AreEqual("Masterclass (exento)", vm.NombreProductoCurso);
+        }
+
+        [TestMethod]
+        public async Task ComprobarProducto_TieneQueSerDelGrupoCUR()
+        {
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            vm.NuevoCommand.Execute(null);
+            A.CallTo(() => eventos.LeerProductoCurso("12345")).Returns(new ProductoCursoModel { Producto = "12345", Nombre = "Crema", Iva = "G21", Grupo = "COS" });
+            vm.ProductoCursoEdicion = "12345";
+            await vm.ComprobarProductoAsync();
+            Assert.AreEqual("La referencia 12345 (Crema) es del grupo COS, no de cursos (CUR): escriba una referencia de curso o pulse «Crear referencia».", vm.NombreProductoCurso);
+
+            A.CallTo(() => eventos.LeerProductoCurso("90077")).Returns(new ProductoCursoModel { Producto = "90077", Nombre = "Curso", Iva = "EX", Grupo = "CUR" });
+            vm.ProductoCursoEdicion = "90077";
+            await vm.ComprobarProductoAsync();
+            Assert.AreEqual("Curso (exento)", vm.NombreProductoCurso);
         }
 
         // ---------------- Inscritos ----------------
@@ -249,8 +303,153 @@ namespace ClienteTests
 
             A.CallTo(() => eventos.PasarLista(7, A<IEnumerable<int>>.That.Matches(a => a.OrderBy(x => x).SequenceEqual(new[] { 1, 3 }))))
                 .MustHaveHappenedOnceExactly();
-            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.That.Contains("no han venido 1, que pierden el cupón")))
-                .MustHaveHappened();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer("Lista de asistencia",
+                    "Las siguientes personas pagaron y no están marcadas: Peluquería Pepa. Quedarán como ‘No asistió’ y perderán su cupón. ¿Desea guardar la lista?",
+                    true))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        private static InscripcionEventoModel Inscrita(int id, string estado, string nombre, string modalidad = InscribirEventoModel.MODALIDAD_REEMBOLSABLE)
+        {
+            InscripcionEventoModel inscripcion = Inscripcion(id, estado);
+            inscripcion.Nombre = nombre;
+            inscripcion.Modalidad = modalidad;
+            return inscripcion;
+        }
+
+        [TestMethod]
+        public async Task GuardarLista_PagadasSinMarcar_PreguntaConSusNombresConNoPorDefecto_YSiDiceNoNoGuarda()
+        {
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today),
+                Inscrita(1, InscripcionEventoModel.PAGADA, "Ana P. "), Inscrita(2, InscripcionEventoModel.FACTURADA, "Lucía R."),
+                Inscrita(3, InscripcionEventoModel.PAGADA, "Marta S."), Inscrita(4, InscripcionEventoModel.RESERVADA, "Sin pagar"));
+            vm.Inscripciones.Single(i => i.Id == 3).Asistio = true;
+            string mensaje = null;
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored, true))
+                .ReturnsLazily((string t, string m, bool n) => { mensaje = m; return false; });
+
+            await vm.GuardarAsistenciaAsync();
+
+            Assert.AreEqual("Las siguientes personas pagaron y no están marcadas: Ana P., Lucía R. Quedarán como ‘No asistió’ y perderán su cupón. ¿Desea guardar la lista?",
+                mensaje);
+            A.CallTo(() => eventos.PasarLista(A<int>.Ignored, A<IEnumerable<int>>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task GuardarLista_PagadasSinMarcar_SiDiceSi_Guarda()
+        {
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today),
+                Inscrita(1, InscripcionEventoModel.PAGADA, "Ana P."), Inscrita(2, InscripcionEventoModel.PAGADA, "Lucía R."));
+            vm.Inscripciones.Single(i => i.Id == 2).Asistio = true;
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored, true)).Returns(true);
+
+            await vm.GuardarAsistenciaAsync();
+
+            A.CallTo(() => eventos.PasarLista(7, A<IEnumerable<int>>.That.Matches(a => a.SequenceEqual(new[] { 2 })))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task GuardarLista_TodasLasQuePagaronMarcadas_GuardaSinPreguntar()
+        {
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today),
+                Inscrita(1, InscripcionEventoModel.PAGADA, "Ana P."), Inscrita(2, InscripcionEventoModel.ASISTIO, "Lucía R."),
+                // La gratuita sin marcar no pagó: no se pregunta por ella.
+                Inscrita(3, InscripcionEventoModel.INSCRITA, "Gratis G.", InscribirEventoModel.MODALIDAD_GRATUITA));
+            vm.Inscripciones.Single(i => i.Id == 1).Asistio = true;
+
+            await vm.GuardarAsistenciaAsync();
+
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => eventos.PasarLista(7, A<IEnumerable<int>>.That.Matches(a => a.OrderBy(x => x).SequenceEqual(new[] { 1, 2 }))))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        // ---------------- Crear la referencia del curso (POST api/Eventos/{id}/ProductoCurso) ----------------
+
+        [TestMethod]
+        public async Task CrearReferencia_ConLasDosSenales_CreaLasDosYPoneLaReembolsableEnElEvento()
+        {
+            EventoModel evento = Evento(7, DateTime.Today.AddDays(5));
+            evento.ImporteSenalNoReembolsable = 60;
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(evento);
+            A.CallTo(() => eventos.CrearProductoCurso(7, InscribirEventoModel.MODALIDAD_REEMBOLSABLE))
+                .Returns(new ProductoCursoCreadoModel { Producto = "EVENTO00007", Nombre = "Masterclass Cloasma", Creado = true });
+            A.CallTo(() => eventos.CrearProductoCurso(7, InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE))
+                .Returns(new ProductoCursoCreadoModel { Producto = "EVENTO00007NR", Nombre = "Masterclass Cloasma (no reembolsable)", Creado = false });
+
+            Assert.IsTrue(vm.CrearProductoCursoCommand.CanExecute(null));
+            await vm.CrearProductoCursoAsync();
+
+            Assert.AreEqual("EVENTO00007", vm.ProductoCursoEdicion);
+            Assert.IsFalse(vm.TieneReferenciaForzada, "La propia del evento no es forzada");
+            Assert.IsTrue(vm.CrearProductoCursoCommand.CanExecute(null), "Se puede volver a pulsar (la API devuelve las que ya existen)");
+            StringAssert.Contains(vm.NombreProductoCurso, "EVENTO00007 (Masterclass Cloasma) creada.");
+            StringAssert.Contains(vm.NombreProductoCurso, "EVENTO00007NR (Masterclass Cloasma (no reembolsable)) ya existía.");
+            Assert.IsTrue(vm.ComprobarProductoCommand.CanExecute(null), "«Comprobar» sigue funcionando con la referencia nueva");
+            A.CallTo(() => eventos.CrearProductoCurso(A<int>.Ignored, A<string>.Ignored)).MustHaveHappenedTwiceExactly();
+            Assert.AreEqual(0, errores.Count);
+        }
+
+        [TestMethod]
+        public async Task CrearReferencia_SoloNoReembolsable_CreaSoloEsaYLaPoneEnElEvento()
+        {
+            EventoModel evento = Evento(7, DateTime.Today.AddDays(5));
+            evento.ImporteSenal = 0;
+            evento.ImporteSenalNoReembolsable = 60;
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(evento);
+            A.CallTo(() => eventos.CrearProductoCurso(7, InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE))
+                .Returns(new ProductoCursoCreadoModel { Producto = "EVENTO00007NR", Nombre = "Curso", Creado = true });
+
+            await vm.CrearProductoCursoAsync();
+
+            Assert.AreEqual("EVENTO00007NR", vm.ProductoCursoEdicion);
+            A.CallTo(() => eventos.CrearProductoCurso(7, InscribirEventoModel.MODALIDAD_REEMBOLSABLE)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task CrearReferencia_ConUnaReferenciaForzada_NoCreaNada()
+        {
+            EventoModel evento = Evento(7, DateTime.Today.AddDays(5));
+            evento.ImporteSenalNoReembolsable = 60;
+            evento.ProductoCurso = "90077";
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(evento);
+
+            Assert.IsTrue(vm.TieneReferenciaForzada);
+            Assert.IsFalse(vm.CrearProductoCursoCommand.CanExecute(null));
+            await vm.CrearProductoCursoAsync();
+
+            A.CallTo(() => eventos.CrearProductoCurso(A<int>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            Assert.AreEqual("90077", vm.ProductoCursoEdicion);
+
+            vm.ProductoCursoEdicion = "";
+            Assert.IsTrue(vm.CrearProductoCursoCommand.CanExecute(null), "Al borrarla se puede crear la propia");
+        }
+
+        [TestMethod]
+        public async Task CrearReferencia_EventoSinGuardar_NoSePuede()
+        {
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
+            await vm.CargarAsync();
+
+            vm.NuevoCommand.Execute(null);
+            await vm.CrearProductoCursoAsync();
+
+            Assert.IsFalse(vm.CrearProductoCursoCommand.CanExecute(null));
+            A.CallTo(() => eventos.CrearProductoCurso(A<int>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task CrearReferencia_SiLaApiFalla_EnseñaElErrorYNoTocaLaReferencia()
+        {
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(5)));
+            A.CallTo(() => eventos.CrearProductoCurso(7, A<string>.Ignored))
+                .ThrowsAsync(new Exception("No se pudo crear la referencia del curso: no tiene permiso para crear productos."));
+
+            await vm.CrearProductoCursoAsync();
+
+            Assert.IsNull(vm.ProductoCursoEdicion);
+            Assert.AreEqual("No se pudo crear la referencia del curso: no tiene permiso para crear productos.", errores.Single());
         }
 
         [TestMethod]
@@ -433,6 +632,7 @@ namespace ClienteTests
             Assert.AreEqual(60, vm.ImporteSenalNoReembolsableEdicion);
 
             vm.TituloEdicion = "Masterclass Maystar";
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             vm.HoraInicioEdicion = "9.30";
             vm.HoraFinEdicion = "13:00";
             vm.PonenteEdicion = " Ana ";
@@ -449,6 +649,7 @@ namespace ClienteTests
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
             vm.TituloEdicion = "X";
+            vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             vm.HoraInicioEdicion = "las diez";
             await vm.GuardarAsync();
             vm.HoraInicioEdicion = "12:00";

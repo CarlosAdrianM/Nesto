@@ -31,6 +31,12 @@ namespace Nesto.Modulos.Cliente
         Task<InscripcionEventoModel> FacturarCurso(int id);
         /// <summary>La referencia del curso (nombre e IVA de la ficha); null si no existe.</summary>
         Task<ProductoCursoModel> LeerProductoCurso(string producto);
+        /// <summary>
+        /// Nesto#517: crea (o devuelve, si ya existe) la referencia del curso del evento para esa modalidad
+        /// (POST api/Eventos/{id}/ProductoCurso): «EVENTO» + Id a 5 cifras la reembolsable; con «NR», la no reembolsable.
+        /// </summary>
+        /// <param name="modalidad">Reembolsable o NoReembolsable.</param>
+        Task<ProductoCursoCreadoModel> CrearProductoCurso(int eventoId, string modalidad);
 
         // NestoAPI#690: confirmación de asistencia (la apunta la tienda) e imagen del evento.
 

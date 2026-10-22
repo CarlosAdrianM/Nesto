@@ -262,6 +262,28 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>El IVA de la ficha: los cursos son EX.</summary>
         [JsonProperty("iva")]
         public string Iva { get; set; }
+        /// <summary>El grupo de la ficha (GET api/Productos con fichaCompleta=false): los cursos son CUR. Null si no se sabe.</summary>
+        [JsonProperty("Grupo")]
+        public string Grupo { get; set; }
+
+        public const string GRUPO_CURSOS = "CUR";
+    }
+
+    /// <summary>Nesto#517: cuerpo de POST api/Eventos/{id}/ProductoCurso.</summary>
+    public class CrearProductoCursoModel
+    {
+        /// <summary>Reembolsable o NoReembolsable.</summary>
+        public string Modalidad { get; set; }
+    }
+
+    /// <summary>Nesto#517: respuesta de POST api/Eventos/{id}/ProductoCurso.</summary>
+    public class ProductoCursoCreadoModel
+    {
+        /// <summary>«EVENTO00123» (reembolsable) o «EVENTO00123NR» (no reembolsable).</summary>
+        public string Producto { get; set; }
+        public string Nombre { get; set; }
+        /// <summary>False si ya existía (no se ha tocado).</summary>
+        public bool Creado { get; set; }
     }
 
     /// <summary>Nesto#517: una opción de un combo (lo que se ve y lo que se manda a la API).</summary>

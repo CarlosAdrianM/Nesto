@@ -58,6 +58,18 @@ namespace Nesto.Modulos.Cliente.Models
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public decimal? ImporteSenalNoReembolsable { get; set; }
+        public const string FORMATO_PRESENCIAL = "Presencial";
+        public const string FORMATO_ONLINE = "Online";
+
+        /// <summary>
+        /// Presencial u Online (webinar). Null cuenta como Presencial. Aunque sea online, el evento es de una tienda (el
+        /// ponente emite desde allí y la factura lleva su almacén y su delegación).
+        /// </summary>
+        public string Formato { get; set; }
+
+        [JsonIgnore]
+        public bool EsOnline => string.Equals(Formato?.Trim(), FORMATO_ONLINE, StringComparison.OrdinalIgnoreCase);
+
         /// <summary>NestoAPI#690: solo lectura. Las dos señales a 0. No se manda.</summary>
         public bool Gratuito { get; set; }
         public bool ShouldSerializeGratuito() => false;
