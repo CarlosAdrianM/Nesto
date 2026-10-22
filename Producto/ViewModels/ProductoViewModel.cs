@@ -282,8 +282,14 @@ namespace Nesto.Modules.Producto.ViewModels
             get => _productoActual;
             set
             {
+                string productoAnterior = _productoActual?.Producto?.Trim();
                 if (SetProperty(ref _productoActual, value))
                 {
+                    // Sugerencia 734 (Reina): al cambiar de referencia, las copias de la etiqueta vuelven a 1
+                    if (!string.Equals(productoAnterior, value?.Producto?.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        CopiasEtiquetaCodigoBarras = 1;
+                    }
                     if (PestannaSeleccionada == Pestannas.Clientes)
                     {
                         BuscarClientesCommand.Execute(null);

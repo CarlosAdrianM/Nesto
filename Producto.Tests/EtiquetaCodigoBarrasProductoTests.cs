@@ -65,6 +65,31 @@ namespace Producto.Tests
         }
 
         [TestMethod]
+        public void Ficha_AlCambiarDeReferencia_LasCopiasVuelvenAUno()
+        {
+            // Sugerencia 734 (Reina): imprimió 5 de una referencia y, al pasar a otra, seguían puestas 5
+            ProductoViewModel vm = Ficha(Constantes.GruposSeguridad.TIENDAS);
+            vm.ProductoActual = new ProductoModel { Producto = "17404" };
+            vm.CopiasEtiquetaCodigoBarras = 5;
+
+            vm.ProductoActual = new ProductoModel { Producto = "24883" };
+
+            Assert.AreEqual(1, vm.CopiasEtiquetaCodigoBarras);
+        }
+
+        [TestMethod]
+        public void Ficha_AlRecargarLaMismaReferencia_LasCopiasNoCambian()
+        {
+            ProductoViewModel vm = Ficha(Constantes.GruposSeguridad.TIENDAS);
+            vm.ProductoActual = new ProductoModel { Producto = "17404" };
+            vm.CopiasEtiquetaCodigoBarras = 5;
+
+            vm.ProductoActual = new ProductoModel { Producto = "17404     " };
+
+            Assert.AreEqual(5, vm.CopiasEtiquetaCodigoBarras);
+        }
+
+        [TestMethod]
         public void Ficha_SinProducto_ElBotonNoSePuedePulsar()
         {
             ProductoViewModel vm = Ficha(Constantes.GruposSeguridad.TIENDAS);
