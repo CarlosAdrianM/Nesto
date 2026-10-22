@@ -264,5 +264,81 @@ namespace CajasTests
             // Assert
             Assert.IsTrue(esContabilizable, "La regla debería permitir mezclar pagos Standard y Premium.");
         }
+
+        // Nesto#542, caso real 22/10/26 (desglose del dashboard de Stripe, tienda de Eva Visnú):
+        // pago con Klarna de 149,75 €, comisión 7,87 € (4,99 % + 0,40 €), neto 141,88 €.
+        [TestMethod]
+        public void ReglaStripe_Klarna_CasoReal_EsContabilizableDevuelveTrue()
+        {
+            var apunteBanco = ApunteStripe(141.88m);
+            var apunteContabilidad = new ContabilidadDTO { Debe = 149.75m };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+
+            var respuesta = _regla.ApuntesContabilizar(new[] { apunteBanco }, new[] { apunteContabilidad }, _banco);
+            Assert.AreEqual(7.87m, respuesta.Lineas.Single().Debe);
+        }
+
+        // Nesto#542: Klarna (149,75 → 7,87) y tarjeta estándar (39,95 → 0,85) en el mismo payout.
+        [TestMethod]
+        public void ReglaStripe_KlarnaYTarjetaMezclados_EsContabilizableDevuelveTrue()
+        {
+            var apunteBanco = ApunteStripe(149.75m + 39.95m - 7.87m - 0.85m); // 180,98
+            var apuntesContabilidad = new[]
+            {
+                new ContabilidadDTO { Debe = 149.75m },
+                new ContabilidadDTO { Debe = 39.95m }
+            };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, apuntesContabilidad));
+        }
+
+        // Nesto#542: tarifa premium EEE actual (2,8 % + 0,25 €) sin perder la anterior (1,9 %).
+        [TestMethod]
+        public void ReglaStripe_PremiumEEEActual_EsContabilizableDevuelveTrue()
+        {
+            decimal comision = Math.Round((39.95m * 0.028m) + 0.25m, 2, MidpointRounding.AwayFromZero); // 1,37
+            var apunteBanco = ApunteStripe(39.95m - comision);
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        // Nesto#542: un descuadre arbitrario en el mismo pago de Klarna (7,88 en vez de 7,87) no
+        // cuadra con ninguna tarifa y el botón sigue desactivado.
+        [TestMethod]
+        public void ReglaStripe_Klarna_DescuadreArbitrario_EsContabilizableDevuelveFalse()
+        {
+            var apunteBanco = ApunteStripe(141.87m);
+            var apunteContabilidad = new ContabilidadDTO { Debe = 149.75m };
+
+            Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        // Nesto#542: con 6 tarifas y muchos cargos la fuerza bruta (6^n) colgaba la pantalla de
+        // Bancos. Ahora tiene que responder al momento, tanto si cuadra como si no.
+        [TestMethod]
+        [Timeout(5000)]
+        public void ReglaStripe_MuchosCargos_RespondeSinColgarse()
+        {
+            var importes = Enumerable.Range(1, 40).Select(i => 10m + i * 1.37m).ToList();
+            decimal comisionEstandar = importes.Sum(i => Math.Round((i * 0.015m) + 0.25m, 2, MidpointRounding.AwayFromZero));
+            var apuntesContabilidad = importes.Select(i => new ContabilidadDTO { Debe = i }).ToList();
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { ApunteStripe(importes.Sum() - comisionEstandar) }, apuntesContabilidad));
+            Assert.IsFalse(_regla.EsContabilizable(new[] { ApunteStripe(importes.Sum() - comisionEstandar - 100m) }, apuntesContabilidad));
+        }
+
+        private static ApunteBancarioDTO ApunteStripe(decimal importeMovimiento) => new()
+        {
+            ConceptoComun = "02",
+            ConceptoPropio = "032",
+            RegistrosConcepto =
+            [
+                new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+            ],
+            ImporteMovimiento = importeMovimiento,
+            Referencia2 = "po_1234567890ABCDEF"
+        };
     }
 }

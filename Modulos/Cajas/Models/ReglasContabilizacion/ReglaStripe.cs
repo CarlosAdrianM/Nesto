@@ -80,10 +80,18 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         private static readonly (decimal Porcentaje, decimal Fijo)[] TarifasStripe =
         {
             (0.015m, 0.25m),  // estándar EEE
-            (0.019m, 0.25m),  // premium EEE (comercial/empresa)
+            (0.019m, 0.25m),  // premium EEE (comercial/empresa), tarifa anterior: se queda para los movimientos antiguos
+            (0.028m, 0.25m),  // Nesto#542: premium EEE actual (stripe.com/es/pricing, verificado 22/10/26)
             (0.025m, 0.25m),  // tarjetas UK
-            (0.0325m, 0.25m)  // internacional (no EEE)
+            (0.0325m, 0.25m), // internacional (no EEE)
+            (0.0499m, 0.40m)  // Nesto#542: Klarna «a partir de 4,99 % + 0,40 €» (stripe.com/es/pricing, verificado 22/10/26).
+                              // Caso real: 149,75 → comisión 7,87 → neto 141,88. Si aparece otro tramo de Klarna
+                              // (país o plazo), mirar el desglose en el dashboard de Stripe y añadirlo aquí.
         };
+
+        // Nesto#542: tope de cargos por payout. Ya no hay fuerza bruta (ver VerificarImportesCombinadosPorMovimiento),
+        // pero se mantiene un límite holgado por si se selecciona media contabilidad por error.
+        private const int MAXIMO_CARGOS = 100;
 
         private bool VerificarImportesCombinadosPorMovimiento(IList<decimal> importesOriginales, decimal importeComision, decimal importeIngresado)
         {
@@ -94,43 +102,52 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             // el cuadre sigue siendo EXACTO: un descuadre arbitrario no activa el botón.
             List<decimal> cargos = importesOriginales.Where(i => i > 0).ToList();
             int numeroPagos = cargos.Count;
-            // 4^n combinaciones: con más de 10 cargos (1M combos) no merece la pena la fuerza bruta
-            if (numeroPagos == 0 || numeroPagos > 10)
+            if (numeroPagos == 0 || numeroPagos > MAXIMO_CARGOS || importeComision <= 0)
             {
                 return false;
             }
 
             decimal sumaOriginales = Math.Round(importesOriginales.Sum(), 2, MidpointRounding.AwayFromZero);
-            long combinaciones = 1;
-            for (int i = 0; i < numeroPagos; i++)
+            // El neto tiene que cuadrar con lo ingresado restando exactamente la comisión
+            decimal netoCalculado = Math.Round(sumaOriginales - importeComision, 2, MidpointRounding.AwayFromZero);
+            if (netoCalculado != importeIngresado)
             {
-                combinaciones *= TarifasStripe.Length;
+                return false;
             }
 
-            for (long mask = 0; mask < combinaciones; mask++)
+            // Nesto#542: antes se probaban las T^n combinaciones de tarifas (con 6 tarifas y 10 cargos,
+            // ~60 millones) y la pantalla de Bancos se quedaba colgada. Ahora se recorren los cargos
+            // guardando solo las comisiones PARCIALES alcanzables (en céntimos, sin repetidos) y se
+            // poda cualquier suma que ya se pase de la comisión buscada. El número de estados está
+            // acotado por los céntimos de la comisión, así que el coste es lineal en cargos y tarifas.
+            // El cuadre sigue siendo EXACTO: un descuadre arbitrario no activa el botón.
+            HashSet<decimal> alcanzables = [0m];
+            foreach (decimal cargo in cargos)
             {
-                decimal comisionTotal = 0m;
-                long resto = mask;
-
-                for (int i = 0; i < numeroPagos; i++)
+                List<decimal> comisionesCargo = TarifasStripe
+                    .Select(t => Math.Round((cargo * t.Porcentaje) + t.Fijo, 2, MidpointRounding.AwayFromZero))
+                    .Distinct()
+                    .ToList();
+                HashSet<decimal> siguientes = [];
+                foreach (decimal parcial in alcanzables)
                 {
-                    var tarifa = TarifasStripe[resto % TarifasStripe.Length];
-                    resto /= TarifasStripe.Length;
-                    comisionTotal += Math.Round((cargos[i] * tarifa.Porcentaje) + tarifa.Fijo, 2, MidpointRounding.AwayFromZero);
+                    foreach (decimal comision in comisionesCargo)
+                    {
+                        decimal suma = parcial + comision;
+                        if (suma <= importeComision)
+                        {
+                            _ = siguientes.Add(suma);
+                        }
+                    }
                 }
-
-                comisionTotal = Math.Round(comisionTotal, 2, MidpointRounding.AwayFromZero);
-
-                // Comparar comisiones exactas y que la resta (suma con reembolsos - comisión total) cuadre con lo ingresado
-                decimal netoCalculado = Math.Round(sumaOriginales - comisionTotal, 2, MidpointRounding.AwayFromZero);
-
-                if (comisionTotal == importeComision && netoCalculado == importeIngresado)
+                if (siguientes.Count == 0)
                 {
-                    return true; // combinación válida encontrada
+                    return false;
                 }
+                alcanzables = siguientes;
             }
 
-            return false;
+            return alcanzables.Contains(importeComision);
         }
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
