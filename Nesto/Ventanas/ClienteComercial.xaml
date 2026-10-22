@@ -7,7 +7,8 @@
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" 
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-    xmlns:prism="http://prismlibrary.com/" xmlns:d="http://schemas.microsoft.com/expression/blend/2008">
+    xmlns:prism="http://prismlibrary.com/" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:cliente="clr-namespace:Nesto.Modulos.Cliente;assembly=Cliente">
 
 
     <UserControl.Resources>
@@ -395,6 +396,12 @@
                                     </Grid>
                                 </ScrollViewer>
                             </Grid>
+                        </TabItem>
+                        <!-- Nesto#518 (NestoAPI#613): los cupones de descuento del cliente (estado, importe, validez y dónde se usaron);
+                             cupones manuales para Dirección y anulación para Administración y Dirección. Lee la API al enseñarse. -->
+                        <TabItem Header="Cupones">
+                            <cliente:CuponesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
+                                                        Contacto="{Binding clienteActivo.contacto}"/>
                         </TabItem>
                     </TabControl>
                 </Grid>
