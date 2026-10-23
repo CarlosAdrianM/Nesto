@@ -31,6 +31,10 @@ Public Interface IPedidoVentaService
     Function LeerNotasEntregaSinFecha(empresa As String, numeroPedido As Integer) As Task(Of List(Of NotaEntregaSinFecha))
     ''' <summary>NestoAPI#582: pone la fecha de entrega a una nota de entrega (y le quita el aviso de «sin fecha»).</summary>
     Function PonerFechaEntregaNota(empresa As String, nota As Integer, fechaEntrega As Date) As Task
+    ''' <summary>Nesto#552: las líneas pendientes de entregar de todos los almacenes (filtros opcionales).</summary>
+    Function LeerPendientesEntregar(empresa As String, almacen As String, producto As String, vendedor As String) As Task(Of List(Of LineaPendienteEntregar))
+    ''' <summary>Nesto#552: las mismas líneas en Excel (.xlsx), generado por la API.</summary>
+    Function DescargarPendientesEntregarExcel(empresa As String, almacen As String, producto As String, vendedor As String) As Task(Of Byte())
     Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
     Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String)
     Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())

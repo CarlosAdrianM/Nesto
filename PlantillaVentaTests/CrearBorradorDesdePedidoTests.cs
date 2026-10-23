@@ -62,6 +62,21 @@ namespace PlantillaVentaTests
         // Nesto#397 (Parte 1): un PedidoVentaDTO pegado desde el portapapeles (dump de ELMAH de
         // un pedido que NO llegó a crearse) se convierte en el servidor y llega aquí sin número.
 
+        // Sugerencia 756 (Sancho, pedido 929207): sin el grupo, las líneas que ya tenía el pedido no contaban en la base
+        // bonificable de Ganavisiones al modificar con la plantilla («ha superado los Ganavisiones»).
+        [TestMethod]
+        public void CrearBorradorDesdePedido_LasLineasLlevanSuGrupo()
+        {
+            var pedido = PedidoDeEjemplo();
+            pedido.Lineas[0].Grupo = "COS";
+            pedido.Lineas[1].Grupo = "ACC";
+
+            var borrador = _servicio.CrearBorradorDesdePedido(pedido);
+
+            Assert.AreEqual("COS", borrador.LineasProducto.Single(l => l.producto == "38697").grupo);
+            Assert.AreEqual("ACC", borrador.LineasProducto.Single(l => l.producto == "44707").grupo);
+        }
+
         [TestMethod]
         public void CrearBorradorDesdePedido_SinNumeroDePedido_NoEsModoEdicion()
         {

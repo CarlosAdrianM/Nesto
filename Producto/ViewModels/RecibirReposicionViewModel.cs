@@ -7,12 +7,14 @@ using Nesto.Infrastructure.Shared;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
@@ -49,14 +51,22 @@ namespace Nesto.Modules.Producto.ViewModels
             get => _leido;
             set
             {
+                int anterior = _leido;
                 if (SetProperty(ref _leido, Math.Max(0, value)))
                 {
                     OnPropertyChanged(nameof(Diferencia));
                     OnPropertyChanged(nameof(Estado));
                     OnPropertyChanged(nameof(TipoEstado));
+                    LeidoCambiado?.Invoke(this, _leido - anterior);
                 }
             }
         }
+
+        /// <summary>
+        /// Ariadna#51: lo leído ha cambiado (por el lector o tecleado en «Leído»), con cuánto ha cambiado: es el apunte que se
+        /// guarda en el servidor.
+        /// </summary>
+        internal event Action<LineaRecibirReposicion, int> LeidoCambiado;
 
         public int Diferencia => Leido - Enviado;
 
@@ -117,8 +127,11 @@ namespace Nesto.Modules.Producto.ViewModels
     /// NestoAPI#553: la tienda recibe la reposición que sale de Algete con la misma API que Ariadna. Se elige la
     /// reposición, se lee lo que llega (el lector suma una unidad; los productos sin código se teclean en la columna
     /// «Leído») y al terminar entra LO LEÍDO; el servidor informa de las diferencias a quien creó el traspaso.
+    /// Ariadna#51 (corte 2, reposición 81119): lo leído ya no vive solo en esta pantalla. Cada lectura se guarda en el servidor
+    /// (…/Lecturas), compartida con Ariadna y con otros Nesto: si se corta la API al terminar o se cierra la pantalla, no se
+    /// pierde nada y se puede seguir o terminar desde cualquier equipo. Con una API anterior (404), como antes.
     /// </summary>
-    public class RecibirReposicionViewModel : ObservableObject
+    public class RecibirReposicionViewModel : ObservableObject, ITabCloseConfirmation
     {
         private readonly IServicioRecepcionReposiciones _servicio;
         private readonly IServicioDialogos _dialogos;
@@ -128,20 +141,60 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly IServicioNavegacion _navegacion;
         private readonly IServicioEtiquetasProducto _etiquetas;
 
-        /// <summary>Uno por reposición abierta: si la respuesta se pierde y se reintenta, no se recibe dos veces.</summary>
+        /// <summary>
+        /// Uno por recepción: si la respuesta se pierde y se reintenta, no se recibe dos veces. Ariadna#51: el del servidor,
+        /// compartido por todos los equipos; con una API anterior, uno nuevo al abrirla.
+        /// </summary>
         private Guid _idRecepcion;
 
+        // ---------------------------------------------------------------- Ariadna#51 (corte 2): lo leído, en el servidor
+
+        public const string TEXTO_LECTURA_NO_GUARDADA = "No se ha podido guardar la lectura: compruebe la conexión.";
+
+        /// <summary>Los avisos de SignalR del grupo de la recepción. Null: sin avisos (se recarga al abrirla y al volver).</summary>
+        private readonly IGruposAlmacenTiempoReal _grupos;
+        /// <summary>Los avisos de SignalR llegan en otro hilo: se recarga en el de la pantalla.</summary>
+        private readonly SynchronizationContext _contextoUI;
+        /// <summary>La reposición abierta guarda lo leído en el servidor (false con una API anterior: solo en la pantalla).</summary>
+        private bool _lecturasEnServidor;
+        /// <summary>El grupo de SignalR en el que se está (el de la reposición abierta). Null si ninguno.</summary>
+        private string _grupoActual;
+        /// <summary>Se está pintando lo que dice el servidor: esos cambios de «Leído» no son lecturas.</summary>
+        private bool _pintando;
+        /// <summary>Lo leído que falta por mandar; se manda en orden, de una vez lo que se haya juntado.</summary>
+        private readonly List<(LecturaEnCursoRecepcion Lectura, Action Deshacer)> _cola = new List<(LecturaEnCursoRecepcion, Action)>();
+        private bool _enviando;
+        /// <summary>Ha llegado un aviso mientras se mandaba: al acabar, se recarga.</summary>
+        private bool _recargarTrasEnviar;
+
+        /// <summary>Lo que se está mandando al servidor (los tests lo esperan).</summary>
+        internal Task EnvioEnCurso { get; private set; } = Task.CompletedTask;
+        /// <summary>La recarga tras un aviso de SignalR (los tests la esperan).</summary>
+        internal Task RecargaEnCurso { get; private set; } = Task.CompletedTask;
+
+        /// <summary>La reposición abierta guarda lo leído en el servidor, compartido con los demás equipos.</summary>
+        public bool LecturasCompartidas => _lecturasEnServidor;
+
+        private string _textoOtrosEquipos;
+        /// <summary>«También está recibiendo: Andre (Ariadna)». Null si no hay nadie más.</summary>
+        public string TextoOtrosEquipos { get => _textoOtrosEquipos; private set => SetProperty(ref _textoOtrosEquipos, value); }
+
         public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas)
-            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas, IAvisosEnTiempoReal avisos)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas, avisos as IGruposAlmacenTiempoReal)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
         /// <param name="etiquetas">Nesto#534: la etiqueta de código de barras de cada línea. Sin él, el botón no hace nada.</param>
+        /// <param name="grupos">Ariadna#51: los avisos de SignalR de la recepción. Sin él, no llegan (se recarga al abrir y al volver).</param>
         internal RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null,
+            IGruposAlmacenTiempoReal grupos = null)
         {
+            _grupos = grupos;
+            _contextoUI = SynchronizationContext.Current;
+            Lineas.CollectionChanged += AlCambiarLineas;
             _etiquetas = etiquetas;
             _servicio = servicio;
             _dialogos = dialogos;
@@ -354,6 +407,8 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             // NestoAPI#673: el aviso de las recibidas en parte hace más de 2 días se queda a la vista al abrir una
             Mensaje = Pendientes.Any(p => p.AvisarRecibidaEnParte) ? Mensaje : null;
+            // Ariadna#51: lo leído de la que estaba abierta tiene que llegar al servidor antes de cambiar
+            await EsperarEnviosAsync().ConfigureAwait(true);
             await Ocupado(async () =>
             {
                 RecepcionReposicion recepcion = await _servicio.LeerRecepcion(Empresa, Almacen, pendiente.Documento).ConfigureAwait(true);
@@ -362,8 +417,14 @@ namespace Nesto.Modules.Producto.ViewModels
                     Mensaje = $"La reposición {pendiente.Documento} ya no está pendiente.";
                     return;
                 }
+                // Ariadna#51: lo ya leído (en este u otro equipo) y el IdRecepcion compartido. Null con una API anterior (404)
+                LecturasRecepcionReposicion enCurso = await _servicio.LeerLecturas(Empresa, Almacen, pendiente.Documento).ConfigureAwait(true);
+                SalirDelGrupo();
                 _recepcion = recepcion;
-                _idRecepcion = Guid.NewGuid();
+                _lecturasEnServidor = enCurso != null && enCurso.IdRecepcion != Guid.Empty;
+                OnPropertyChanged(nameof(LecturasCompartidas));
+                _idRecepcion = _lecturasEnServidor ? enCurso.IdRecepcion : Guid.NewGuid();
+                TextoOtrosEquipos = null;
                 Seleccionada = pendiente;
                 Filtro = null;
                 Lineas.Clear();
@@ -380,6 +441,11 @@ namespace Nesto.Modules.Producto.ViewModels
                         SinCodigo = linea.SinCodigo,
                         Enviado = linea.Cantidad
                     });
+                }
+                if (_lecturasEnServidor)
+                {
+                    Pintar(enCurso);
+                    EntrarEnGrupo(pendiente.Documento);
                 }
                 PuedeTerminar = recepcion.PuedeTerminar && recepcion.SeTerminaDesdeAqui;
                 RefrescarRecibirEnParte();
@@ -525,6 +591,15 @@ namespace Nesto.Modules.Producto.ViewModels
             Mensaje = $"Bulto {bulto} de la reposición {DocumentoAbierto} leído. Lea los productos.";
             _sonidos?.Correcto();
             PedirFocoEnLector?.Invoke();
+            if (_lecturasEnServidor)
+            {
+                // Ariadna#51: la etiqueta leída también se guarda en el servidor (la ven los demás equipos)
+                Encolar(new LecturaEnCursoRecepcion { CodigoBulto = leida, Cantidad = 1 }, () =>
+                {
+                    _ = CodigosBulto.Remove(leida);
+                    RefrescarBultos();
+                });
+            }
         }
 
         /// <summary>Lo que manda el lector (o se teclea): un código de barras o la referencia suma una unidad.</summary>
@@ -664,6 +739,21 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <param name="codigoLeido">Nesto#538: el código de barras leído, si no era la referencia; la línea nueva lo guarda.</param>
         private void SumarUnaUnidad(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido = null)
         {
+            // Ariadna#51: lo leído se manda al servidor después de decir cómo ha ido (si no llega, se dice después)
+            _juntando = true;
+            try
+            {
+                SumarUnaUnidadAqui(linea, producto, nombre, codigoLeido);
+            }
+            finally
+            {
+                _juntando = false;
+            }
+            IniciarEnvio();
+        }
+
+        private void SumarUnaUnidadAqui(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido)
+        {
             linea ??= Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, producto, StringComparison.OrdinalIgnoreCase));
             if (linea == null)
             {
@@ -705,6 +795,346 @@ namespace Nesto.Modules.Producto.ViewModels
             Mensaje = mensaje;
             _sonidos?.Error();
             PedirFocoEnLector?.Invoke();
+        }
+
+        // ---------------------------------------------------------------- Ariadna#51 (corte 2): lo leído, en el servidor
+
+        private void AlCambiarLineas(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            foreach (LineaRecibirReposicion linea in e.OldItems?.OfType<LineaRecibirReposicion>() ?? Enumerable.Empty<LineaRecibirReposicion>())
+            {
+                linea.LeidoCambiado -= AlCambiarLeido;
+            }
+            foreach (LineaRecibirReposicion linea in e.NewItems?.OfType<LineaRecibirReposicion>() ?? Enumerable.Empty<LineaRecibirReposicion>())
+            {
+                linea.LeidoCambiado -= AlCambiarLeido;
+                linea.LeidoCambiado += AlCambiarLeido;
+            }
+        }
+
+        /// <summary>
+        /// Lo leído de una línea ha cambiado en esta pantalla (el lector suma uno; en «Leído» se teclea lo que sea, también
+        /// para quitar): ese cambio es el apunte que se guarda en el servidor. Lo que se pinta del servidor no es una lectura.
+        /// </summary>
+        private void AlCambiarLeido(LineaRecibirReposicion linea, int diferencia)
+        {
+            if (!_lecturasEnServidor || _pintando || diferencia == 0 || Seleccionada == null || string.IsNullOrWhiteSpace(linea?.Producto))
+            {
+                return;
+            }
+            Encolar(new LecturaEnCursoRecepcion { Producto = linea.Producto.Trim(), Cantidad = diferencia }, () =>
+            {
+                // No ha llegado al servidor: no cuenta
+                ComoDelServidor(() =>
+                {
+                    linea.Leido -= diferencia;
+                    if (linea.NoVenia && linea.Leido == 0)
+                    {
+                        _ = Lineas.Remove(linea);
+                    }
+                });
+            });
+        }
+
+        /// <summary>
+        /// Apunta lo leído para mandarlo al servidor. Se manda después de la lectura (lo que se lea mientras tanto va en el
+        /// mismo envío) y en orden; si no llega, se deshace y se avisa.
+        /// </summary>
+        private void Encolar(LecturaEnCursoRecepcion lectura, Action deshacer)
+        {
+            lectura.IdCliente = Guid.NewGuid();
+            lectura.Dispositivo = Environment.MachineName;
+            lectura.Fecha = DateTime.Now;
+            _cola.Add((lectura, deshacer));
+            if (!_juntando)
+            {
+                IniciarEnvio();
+            }
+        }
+
+        /// <summary>Se está apuntando una lectura (mensaje y sonido): lo leído se manda al acabar.</summary>
+        private bool _juntando;
+
+        private void IniciarEnvio()
+        {
+            if (!_enviando && _cola.Count > 0)
+            {
+                _enviando = true;
+                EnvioEnCurso = EnviarColaAsync();
+            }
+        }
+
+        private async Task EnviarColaAsync()
+        {
+            try
+            {
+                while (_cola.Count > 0)
+                {
+                    List<(LecturaEnCursoRecepcion Lectura, Action Deshacer)> lote = _cola.ToList();
+                    _cola.Clear();
+                    RecepcionPendiente abierta = Seleccionada;
+                    LecturasRecepcionReposicion respuesta = null;
+                    string fallo = null;
+                    try
+                    {
+                        respuesta = await _servicio.GuardarLecturas(Empresa, Almacen, abierta?.Documento,
+                            lote.Select(l => l.Lectura).ToList(), _grupos?.IdConexion).ConfigureAwait(true);
+                    }
+                    catch (RecepcionReposicionException ex)
+                    {
+                        fallo = $"No se ha podido guardar la lectura: {ex.Message}";
+                    }
+                    catch (Exception)
+                    {
+                        fallo = TEXTO_LECTURA_NO_GUARDADA;
+                    }
+                    if (Seleccionada != abierta || abierta == null)
+                    {
+                        // Se ha terminado o cerrado mientras tanto: lo de esta pantalla ya no está
+                        continue;
+                    }
+                    if (respuesta == null || respuesta.IdRecepcion == Guid.Empty)
+                    {
+                        for (int i = lote.Count - 1; i >= 0; i--)
+                        {
+                            lote[i].Deshacer();
+                        }
+                        LecturaFallida(fallo ?? TEXTO_LECTURA_NO_GUARDADA);
+                        continue;
+                    }
+                    if (_cola.Count == 0)
+                    {
+                        // Lo que hay en el servidor, con lo de los demás equipos (si queda algo por mandar, lo pinta su respuesta)
+                        Pintar(respuesta);
+                    }
+                }
+            }
+            finally
+            {
+                _enviando = false;
+            }
+            if (_recargarTrasEnviar)
+            {
+                _recargarTrasEnviar = false;
+                RecargaEnCurso = RecargarLecturasAsync();
+            }
+        }
+
+        /// <summary>Espera a que llegue al servidor todo lo leído (antes de terminar o de cambiar de reposición).</summary>
+        private async Task EsperarEnviosAsync()
+        {
+            while (_enviando)
+            {
+                await EnvioEnCurso.ConfigureAwait(true);
+            }
+        }
+
+        private void ComoDelServidor(Action cambio)
+        {
+            bool antes = _pintando;
+            _pintando = true;
+            try
+            {
+                cambio();
+            }
+            finally
+            {
+                _pintando = antes;
+            }
+        }
+
+        /// <summary>Pinta lo leído según el servidor (de todos los equipos): «Leído» de cada línea, bultos y quién más recibe.</summary>
+        private void Pintar(LecturasRecepcionReposicion lecturas)
+        {
+            if (lecturas == null)
+            {
+                return;
+            }
+            ComoDelServidor(() =>
+            {
+                if (lecturas.IdRecepcion != Guid.Empty)
+                {
+                    _idRecepcion = lecturas.IdRecepcion;
+                }
+                Dictionary<string, int> leido = (lecturas.Lecturas ?? new List<LecturaRecepcionReposicion>())
+                    .Where(l => !string.IsNullOrWhiteSpace(l?.Producto))
+                    .GroupBy(l => l.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.Sum(l => l.Cantidad), StringComparer.OrdinalIgnoreCase);
+                var pintados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                // Primero las que venían (un producto que venía nunca va a «no venía»)
+                foreach (LineaRecibirReposicion linea in Lineas.Where(l => !l.NoVenia).Concat(Lineas.Where(l => l.NoVenia)).ToList())
+                {
+                    string producto = linea.Producto?.Trim() ?? string.Empty;
+                    linea.Leido = pintados.Add(producto) && leido.TryGetValue(producto, out int cantidad) ? cantidad : 0;
+                }
+                foreach (KeyValuePair<string, int> otro in leido.Where(l => l.Value > 0 && !pintados.Contains(l.Key)))
+                {
+                    // Lo ha leído otro equipo y no venía en la reposición
+                    Lineas.Add(new LineaRecibirReposicion
+                    {
+                        Producto = otro.Key,
+                        Descripcion = "(no venía en la reposición)",
+                        NoVenia = true,
+                        Leido = otro.Value
+                    });
+                }
+                List<string> bultos = (lecturas.CodigosBulto ?? new List<string>())
+                    .Where(b => !string.IsNullOrWhiteSpace(b))
+                    .Select(b => b.Trim().ToUpperInvariant())
+                    .Distinct()
+                    .ToList();
+                if (!bultos.SequenceEqual(CodigosBulto))
+                {
+                    CodigosBulto.Clear();
+                    foreach (string bulto in bultos)
+                    {
+                        CodigosBulto.Add(bulto);
+                    }
+                    RefrescarBultos();
+                }
+            });
+            TextoOtrosEquipos = TextoEquipos(lecturas.Equipos);
+        }
+
+        /// <summary>«También está recibiendo: Andre (Ariadna), Pedro (PDA2)», sin este equipo. Null si no hay nadie más.</summary>
+        internal string TextoEquipos(IEnumerable<EquipoRecepcionReposicion> equipos)
+        {
+            string yo = SinDominio(_configuracion?.usuario);
+            List<string> otros = (equipos ?? Enumerable.Empty<EquipoRecepcionReposicion>())
+                .Where(e => e != null && !string.IsNullOrWhiteSpace(e.Usuario))
+                .Where(e => !(string.Equals(SinDominio(e.Usuario), yo, StringComparison.OrdinalIgnoreCase)
+                              && string.Equals(e.Dispositivo?.Trim(), Environment.MachineName, StringComparison.OrdinalIgnoreCase)))
+                .Select(e => string.IsNullOrWhiteSpace(e.Dispositivo) ? SinDominio(e.Usuario) : $"{SinDominio(e.Usuario)} ({e.Dispositivo.Trim()})")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return otros.Count == 0 ? null : "También está recibiendo: " + string.Join(", ", otros);
+        }
+
+        private static string SinDominio(string usuario)
+        {
+            string limpio = usuario?.Trim() ?? string.Empty;
+            int barra = limpio.LastIndexOf('\\');
+            return barra >= 0 ? limpio.Substring(barra + 1) : limpio;
+        }
+
+        private void EntrarEnGrupo(string documento)
+        {
+            if (_grupos == null)
+            {
+                return;
+            }
+            _grupoActual = GruposAlmacen.Recepcion(ServicioRecepcionReposiciones.TIPO_REPOSICION, documento, Almacen);
+            _grupos.GrupoHaCambiado -= AlCambiarGrupo;
+            _grupos.GrupoHaCambiado += AlCambiarGrupo;
+            _grupos.EntrarEnGrupo(_grupoActual);
+        }
+
+        private void SalirDelGrupo()
+        {
+            if (_grupos == null || _grupoActual == null)
+            {
+                return;
+            }
+            _grupos.GrupoHaCambiado -= AlCambiarGrupo;
+            _grupos.SalirDeGrupo(_grupoActual);
+            _grupoActual = null;
+        }
+
+        /// <summary>Otro equipo ha leído algo de la reposición abierta (llega en otro hilo): se recarga lo leído.</summary>
+        private void AlCambiarGrupo(object sender, string grupo)
+        {
+            string esperado = _grupoActual;
+            if (esperado == null || !string.Equals(grupo?.Trim(), esperado, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            if (_contextoUI != null)
+            {
+                _contextoUI.Post(_ => RecargaEnCurso = RecargarLecturasAsync(), null);
+            }
+            else
+            {
+                RecargaEnCurso = RecargarLecturasAsync();
+            }
+        }
+
+        /// <summary>
+        /// Vuelve a pedir lo leído de la reposición abierta (tras un aviso de SignalR o al volver a la pantalla). Si se está
+        /// mandando algo, se recarga al acabar; si no contesta, se deja como está (el aviso es un extra).
+        /// </summary>
+        public async Task RecargarLecturasAsync()
+        {
+            if (!_lecturasEnServidor || Seleccionada == null || EstaOcupado)
+            {
+                return;
+            }
+            if (_enviando)
+            {
+                _recargarTrasEnviar = true;
+                return;
+            }
+            RecepcionPendiente abierta = Seleccionada;
+            LecturasRecepcionReposicion lecturas;
+            try
+            {
+                lecturas = await _servicio.LeerLecturas(Empresa, Almacen, abierta.Documento).ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            if (lecturas == null || lecturas.IdRecepcion == Guid.Empty || Seleccionada != abierta || EstaOcupado)
+            {
+                return;
+            }
+            if (_enviando)
+            {
+                _recargarTrasEnviar = true;
+                return;
+            }
+            Pintar(lecturas);
+        }
+
+        /// <summary>
+        /// Antes de terminar: lo leído aquí tiene que estar en el servidor y se pinta lo del servidor (también lo de los demás
+        /// equipos), que es lo que se termina. False si no se ha podido comprobar (el motivo, en <see cref="Mensaje"/>).
+        /// </summary>
+        private async Task<bool> SincronizarAntesDeTerminarAsync(string boton)
+        {
+            if (!_lecturasEnServidor)
+            {
+                return true;
+            }
+            await EsperarEnviosAsync().ConfigureAwait(true);
+            RecepcionPendiente abierta = Seleccionada;
+            LecturasRecepcionReposicion lecturas = null;
+            bool leidas = false;
+            await Ocupado(async () =>
+            {
+                lecturas = await _servicio.LeerLecturas(Empresa, Almacen, abierta.Documento).ConfigureAwait(true);
+                leidas = true;
+            }).ConfigureAwait(true);
+            if (!leidas)
+            {
+                Mensaje = $"{Mensaje} {TextoSigueEnElServidor(boton)}";
+                return false;
+            }
+            if (Seleccionada != abierta)
+            {
+                return false;
+            }
+            Pintar(lecturas);
+            return true;
+        }
+
+        internal static string TextoSigueEnElServidor(string boton)
+            => $"Lo leído sigue guardado en el servidor: basta con volver a pulsar «{boton}» (también desde otro equipo).";
+
+        /// <summary>Ariadna#51: al cerrar la pestaña se sale del grupo de SignalR (lo leído ya está en el servidor).</summary>
+        public bool ConfirmTabClose()
+        {
+            SalirDelGrupo();
+            return true;
         }
 
         /// <summary>
@@ -775,6 +1205,11 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            // Ariadna#51: se termina con lo leído que hay en el servidor (también lo de los demás equipos)
+            if (!await SincronizarAntesDeTerminarAsync("Terminar").ConfigureAwait(true))
+            {
+                return;
+            }
             if (EsperandoEtiqueta)
             {
                 // La API tampoco la deja terminar sin la etiqueta
@@ -798,19 +1233,36 @@ namespace Nesto.Modules.Producto.ViewModels
                 // Nesto#530: las etiquetas de los bultos leídas (la API las exige en las reposiciones enviadas con bultos)
                 CodigosBulto = CodigosBulto.ToList()
             };
+            bool terminada = false;
             await Ocupado(async () =>
             {
                 ResultadoRecepcionReposicion resultado = await _servicio.Terminar(Empresa, Almacen, Seleccionada.Documento, terminar).ConfigureAwait(true);
+                terminada = true;
                 Mensaje = TextoResultado(Seleccionada.Documento, resultado);
                 Pendientes.Remove(Seleccionada);
-                Seleccionada = null;
-                _recepcion = null;
-                Lineas.Clear();
-                CodigosBulto.Clear();
-                RefrescarBultos();
-                PuedeTerminar = false;
-                RefrescarRecibirEnParte();
+                CerrarLaAbierta();
             }).ConfigureAwait(true);
+            if (!terminada && _lecturasEnServidor)
+            {
+                // Ariadna#51 (reposición 81119): ya no se pierde lo leído si se corta la API al terminar
+                Mensaje = $"{Mensaje} {TextoSigueEnElServidor("Terminar")}";
+            }
+        }
+
+        /// <summary>Tras terminarla (entera): ya no hay ninguna abierta.</summary>
+        private void CerrarLaAbierta()
+        {
+            SalirDelGrupo();
+            _lecturasEnServidor = false;
+            OnPropertyChanged(nameof(LecturasCompartidas));
+            TextoOtrosEquipos = null;
+            Seleccionada = null;
+            _recepcion = null;
+            Lineas.Clear();
+            CodigosBulto.Clear();
+            RefrescarBultos();
+            PuedeTerminar = false;
+            RefrescarRecibirEnParte();
         }
 
         // ---------------------------------------------------------------- NestoAPI#673: recibir por partes
@@ -845,6 +1297,11 @@ namespace Nesto.Modules.Producto.ViewModels
         internal async Task RecibirLoLeidoAsync()
         {
             if (_recepcion == null || Seleccionada == null || !PuedeRecibirEnParte)
+            {
+                return;
+            }
+            // Ariadna#51: se da de alta lo leído que hay en el servidor (también lo de los demás equipos)
+            if (!await SincronizarAntesDeTerminarAsync("Dar de alta solo lo leído").ConfigureAwait(true))
             {
                 return;
             }
@@ -899,6 +1356,10 @@ namespace Nesto.Modules.Producto.ViewModels
             if (resultado == null)
             {
                 // No ha entrado nada: Ocupado ya ha puesto el motivo y lo leído sigue ahí
+                if (_lecturasEnServidor)
+                {
+                    Mensaje = $"{Mensaje} {TextoSigueEnElServidor("Dar de alta solo lo leído")}";
+                }
                 return;
             }
             string texto = TextoResultadoParcial(abierta.Documento, resultado);
@@ -907,13 +1368,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 // Lo leído era la reposición entera: queda recibida, como al terminar
                 Mensaje = texto;
                 Pendientes.Remove(abierta);
-                Seleccionada = null;
-                _recepcion = null;
-                Lineas.Clear();
-                CodigosBulto.Clear();
-                RefrescarBultos();
-                PuedeTerminar = false;
-                RefrescarRecibirEnParte();
+                CerrarLaAbierta();
                 return;
             }
             // Sigue pendiente con lo que queda: se vuelve a abrir (IdRecepcion nuevo y lo leído a cero) sin volver a pedir
@@ -925,6 +1380,16 @@ namespace Nesto.Modules.Producto.ViewModels
                 foreach (string bulto in bultos.Where(b => !CodigosBulto.Contains(b)))
                 {
                     CodigosBulto.Add(bulto);
+                    if (_lecturasEnServidor)
+                    {
+                        // Ariadna#51: la recepción en curso nueva también los tiene (los demás equipos no los vuelven a pedir)
+                        string leido = bulto;
+                        Encolar(new LecturaEnCursoRecepcion { CodigoBulto = leido, Cantidad = 1 }, () =>
+                        {
+                            _ = CodigosBulto.Remove(leido);
+                            RefrescarBultos();
+                        });
+                    }
                 }
                 RefrescarBultos();
             }
@@ -949,13 +1414,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Pendientes.Add(pendiente);
             }
             RecepcionPendiente misma = Pendientes.FirstOrDefault(p => string.Equals(p.Documento?.Trim(), documento?.Trim(), StringComparison.OrdinalIgnoreCase));
-            Seleccionada = null;
-            _recepcion = null;
-            Lineas.Clear();
-            CodigosBulto.Clear();
-            PuedeTerminar = false;
-            RefrescarRecibirEnParte();
-            RefrescarBultos();
+            CerrarLaAbierta();
             if (misma != null)
             {
                 await ElegirAsync(misma).ConfigureAwait(true);
@@ -1062,7 +1521,10 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
-                Mensaje = "No se puede conectar con el servidor. Vuelve a intentarlo; lo leído no se pierde.";
+                // Ariadna#51: con lo leído en el servidor, quien llama añade que sigue allí
+                Mensaje = _lecturasEnServidor
+                    ? "No se puede conectar con el servidor."
+                    : "No se puede conectar con el servidor. Vuelva a intentarlo; lo leído no se pierde.";
             }
             finally
             {

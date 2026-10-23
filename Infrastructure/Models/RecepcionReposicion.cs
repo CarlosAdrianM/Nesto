@@ -163,6 +163,51 @@ namespace Nesto.Infrastructure.Models
         public string Mensaje { get; set; }
     }
 
+    // Ariadna#51 (corte 2): lo leído de una recepción en curso vive en el servidor, compartido por Nesto y Ariadna
+    // (GET/POST api/Almacen/Recepciones/{tipo}/{documento}/Lecturas). Si se corta la API al terminar, no se pierde nada.
+
+    /// <summary>
+    /// Ariadna#51: lo leído hasta ahora de la recepción en curso, ya sumado (de todos los equipos). Es la respuesta del GET y
+    /// del POST de …/Lecturas.
+    /// </summary>
+    public class LecturasRecepcionReposicion
+    {
+        /// <summary>El de la recepción en curso, compartido por todos los equipos: es el que va al terminar.</summary>
+        public Guid IdRecepcion { get; set; }
+        /// <summary>Lo leído de cada producto (la suma de todos los apuntes).</summary>
+        public List<LecturaRecepcionReposicion> Lecturas { get; set; } = new List<LecturaRecepcionReposicion>();
+        /// <summary>Las etiquetas de los bultos leídas (R81010-1…).</summary>
+        public List<string> CodigosBulto { get; set; } = new List<string>();
+        /// <summary>Quién está recibiendo (o ha recibido) esta recepción en curso.</summary>
+        public List<EquipoRecepcionReposicion> Equipos { get; set; } = new List<EquipoRecepcionReposicion>();
+    }
+
+    /// <summary>Ariadna#51: un usuario en un equipo que está recibiendo la misma recepción.</summary>
+    public class EquipoRecepcionReposicion
+    {
+        public string Usuario { get; set; }
+        /// <summary>«Ariadna», o el nombre del equipo en Nesto.</summary>
+        public string Dispositivo { get; set; }
+        /// <summary>Su última lectura.</summary>
+        public DateTime? Ultima { get; set; }
+    }
+
+    /// <summary>
+    /// Ariadna#51: un apunte de lo leído (POST …/Lecturas). Cantidad positiva al leer y negativa al quitar. Un
+    /// <see cref="IdCliente"/> nuevo por apunte: si la respuesta se pierde y se reenvía, no se suma dos veces.
+    /// </summary>
+    public class LecturaEnCursoRecepcion
+    {
+        public Guid IdCliente { get; set; }
+        /// <summary>El producto leído (null si es la etiqueta de un bulto).</summary>
+        public string Producto { get; set; }
+        /// <summary>La etiqueta del bulto leída (null si es un producto).</summary>
+        public string CodigoBulto { get; set; }
+        public int Cantidad { get; set; }
+        public string Dispositivo { get; set; }
+        public DateTime Fecha { get; set; }
+    }
+
     /// <summary>Nesto#530 (NestoAPI#645): GET api/Reposiciones/Bultos/{codigo}, la etiqueta de un bulto leída al recibir.</summary>
     public class EtiquetaBultoReposicion
     {

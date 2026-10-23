@@ -681,6 +681,37 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' Nesto#552: GET api/PedidosVenta/PendientesEntregar[/Excel] con los filtros que haya
+    Friend Shared Function UrlPendientesEntregar(empresa As String, almacen As String, producto As String, vendedor As String, Optional excel As Boolean = False) As String
+        Dim url As String = "PedidosVenta/PendientesEntregar" & If(excel, "/Excel", "") &
+            $"?empresa={Uri.EscapeDataString(If(String.IsNullOrWhiteSpace(empresa), Constantes.Empresas.EMPRESA_DEFECTO, empresa.Trim()))}"
+        If Not String.IsNullOrWhiteSpace(almacen) Then url &= $"&almacen={Uri.EscapeDataString(almacen.Trim())}"
+        If Not String.IsNullOrWhiteSpace(producto) Then url &= $"&producto={Uri.EscapeDataString(producto.Trim())}"
+        If Not String.IsNullOrWhiteSpace(vendedor) Then url &= $"&vendedor={Uri.EscapeDataString(vendedor.Trim())}"
+        Return url
+    End Function
+
+    Public Async Function LeerPendientesEntregar(empresa As String, almacen As String, producto As String, vendedor As String) As Task(Of List(Of LineaPendienteEntregar)) Implements IPedidoVentaService.LeerPendientesEntregar
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync(UrlPendientesEntregar(empresa, almacen, producto, vendedor))
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of LineaPendienteEntregar))(cuerpo), New List(Of LineaPendienteEntregar))
+        End Using
+    End Function
+
+    Public Async Function DescargarPendientesEntregarExcel(empresa As String, almacen As String, producto As String, vendedor As String) As Task(Of Byte()) Implements IPedidoVentaService.DescargarPendientesEntregarExcel
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync(UrlPendientesEntregar(empresa, almacen, producto, vendedor, excel:=True))
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync()))
+            End If
+            Return Await response.Content.ReadAsByteArrayAsync()
+        End Using
+    End Function
+
     Public Async Function LeerEnTransito(empresa As String, almacen As String, productos As IEnumerable(Of String)) As Task(Of List(Of ProductoEnTransito)) Implements IPedidoVentaService.LeerEnTransito
         Dim lista As String = String.Join(",", If(productos, Enumerable.Empty(Of String)()) _
             .Where(Function(p) Not String.IsNullOrWhiteSpace(p)).Select(Function(p) p.Trim()).Distinct())

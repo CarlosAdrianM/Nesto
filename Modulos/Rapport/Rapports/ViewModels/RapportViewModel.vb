@@ -34,7 +34,8 @@ Public Class RapportViewModel
             leerVendedor:=Function() Me.configuracion?.leerParametro(empresaPorDefecto, Parametros.Claves.Vendedor),
             configuracion:=configuracion,
             anadir:=AddressOf AnadirEnPlantillaAsync,
-            apuntarAnadido:=False) With {
+            apuntarAnadido:=False,
+            clavePlegadas:=Parametros.Claves.SugerenciasRapportPlegadas) With {
             .Servicio = servicioSugerenciasProductos
         }
         _cintaSugerencias.CargarPreferenciaPlegadas()

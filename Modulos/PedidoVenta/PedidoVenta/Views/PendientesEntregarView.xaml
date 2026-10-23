@@ -1,0 +1,88 @@
+﻿<UserControl x:Class="PendientesEntregarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:pedidoventa="clr-namespace:Nesto.Modulos.PedidoVenta"
+             d:DataContext="{d:DesignInstance Type=pedidoventa:PendientesEntregarViewModel}"
+             mc:Ignorable="d" Background="White"
+             d:DesignHeight="450" d:DesignWidth="1000">
+
+    <!-- Nesto#552 (sugerencia 717, Manuel): líneas pendientes de entregar de todos los almacenes. Solo lectura. -->
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding CargarCommand}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                <StackPanel.InputBindings>
+                    <KeyBinding Key="Enter" Command="{Binding CargarCommand}"/>
+                </StackPanel.InputBindings>
+                <TextBlock Text="Almacén:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox ItemsSource="{Binding Almacenes}" SelectedItem="{Binding Almacen}" Width="90" Margin="0,0,15,0"/>
+                <TextBlock Text="Producto:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding Producto, UpdateSourceTrigger=PropertyChanged}" Width="90" Margin="0,0,15,0" VerticalContentAlignment="Center"
+                         ToolTip="Deje el producto en blanco para ver todos"/>
+                <TextBlock Text="Vendedor:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding Vendedor, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="0,0,15,0" VerticalContentAlignment="Center"
+                         ToolTip="Vendedor del pedido. Déjelo en blanco para ver todos"/>
+                <Button Content="Cargar" Command="{Binding CargarCommand}" Padding="10,2" Margin="0,0,5,0"
+                        ToolTip="Vuelve a leer del servidor las líneas pendientes con estos filtros"/>
+                <Button Content="Exportar a Excel" Command="{Binding ExportarExcelCommand}" Padding="10,2"
+                        ToolTip="Abre en Excel las líneas pendientes con los filtros de almacén, producto y vendedor (el filtro de texto no se aplica)"/>
+            </StackPanel>
+
+            <controles:BarraFiltro Grid.Row="1" x:Name="txtFiltro" ListaItems="{Binding ListaLineas}" ItemSeleccionado="{Binding ListaLineas.ElementoSeleccionado}"/>
+
+            <DataGrid Grid.Row="2" x:Name="dgLineas" ItemsSource="{Binding ListaLineas.Lista}" SelectedItem="{Binding ListaLineas.ElementoSeleccionado}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                      MouseDoubleClick="dgLineas_MouseDoubleClick" ToolTip="Haga doble clic en una línea para abrir el pedido">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}"/>
+                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                    <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCliente}" Width="2*"/>
+                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}"/>
+                    <DataGridTextColumn Header="Almacén" Binding="{Binding Almacen}"/>
+                    <DataGridTextColumn Header="Fecha entrega" Binding="{Binding FechaEntrega, StringFormat=dd/MM/yyyy}"/>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
+                    <DataGridTextColumn Header="Descripción" Binding="{Binding Texto}" Width="2*"/>
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto, StringFormat=c}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Grid.Row="3" HorizontalAlignment="Right" Margin="5,3" FontWeight="Bold">
+                <Run Text="{Binding NumeroLineas, Mode=OneWay}"/>
+                <Run Text=" líneas · Bruto: "/>
+                <Run Text="{Binding TotalBruto, StringFormat='{}{0:N2} €', Mode=OneWay}"/>
+            </TextBlock>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

@@ -91,6 +91,40 @@ namespace PedidoVentaTests
             Assert.IsFalse(vm.AnadirChequeRegaloCommand.CanExecute(null));
         }
 
+        // Carlos (23/10/26, pedido 928889): el pedido cuya factura (NV2617220) generó el cheque, y ya facturado entero, enseñaba
+        // «Añadir el cheque regalo de 50 €». La API lo rechaza al guardar; aquí no se tiene que ofrecer.
+        [TestMethod]
+        public async Task PedidoDeLaFacturaQueGeneroElCheque_NoHayAviso()
+        {
+            ChequeRegaloClienteDTO cheque = Cheque();
+            cheque.FacturaOrigen = "NV2617220";
+            LineaPedidoVentaDTO facturada = Producto();
+            facturada.estado = 4;
+            facturada.Factura = "NV2617220 ";
+            LineaPedidoVentaDTO otraPendiente = Producto("54321");
+            otraPendiente.id = 2;
+
+            var (vm, _, _, _) = await Vm(cheque, facturada, otraPendiente);
+
+            Assert.IsFalse(vm.MostrarAvisoChequeRegalo);
+            Assert.IsFalse(vm.AnadirChequeRegaloCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task PedidoSinNadaPendiente_NoHayAviso()
+        {
+            LineaPedidoVentaDTO albaran = Producto();
+            albaran.estado = 2;
+            LineaPedidoVentaDTO facturada = Producto("54321");
+            facturada.id = 2;
+            facturada.estado = 4;
+            facturada.Factura = "NV2617999";
+
+            var (vm, _, _, _) = await Vm(Cheque(), albaran, facturada);
+
+            Assert.IsFalse(vm.MostrarAvisoChequeRegalo);
+        }
+
         [TestMethod]
         public async Task ChequeDisponible_SinLaLinea_SaleElAviso()
         {

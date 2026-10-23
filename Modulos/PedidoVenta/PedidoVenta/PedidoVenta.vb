@@ -34,6 +34,9 @@ Public Class PedidoVenta
         ' Los ViewModels de sus vistas
         registro.Transitorio(Of ListaPedidosVentaViewModel)()
         registro.Transitorio(Of DetallePedidoViewModel)()
+        ' Nesto#552: «Pendientes de entregar» (Clientes > Ventas en la cinta)
+        registro.Transitorio(Of PendientesEntregarView)()
+        registro.Transitorio(Of PendientesEntregarViewModel)()
     End Sub
 
     Public Sub Inicializar(resolutor As IResolutorNesto) Implements IModuloNesto.Inicializar
