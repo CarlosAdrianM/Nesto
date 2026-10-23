@@ -249,6 +249,7 @@ Public Class BorradorPlantillaVentaService
                 .descuentoOferta = linea.DescuentoOferta,
                 .idLineaPedido = linea.IdLineaPago,
                 .idLineaPedidoOferta = linea.IdLineaOferta,
+                .grupo = linea.Grupo, ' Sugerencia 756: sin grupo no contaba para los Ganavisiones
                 .stockActualizado = False
             }
             ' Novedad 750: con picking (la de pago o la de oferta) la línea no se puede cambiar desde la

@@ -52,6 +52,11 @@ Public Class LineaParaPlantillaModel
     ''' </summary>
     Public Property PagoTienePicking As Boolean
     Public Property OfertaTienePicking As Boolean
+    ''' <summary>
+    ''' Sugerencia 756 (Sancho, pedido 929207): el grupo del producto. Sin él, las líneas que ya tenía el pedido no contaban
+    ''' en la base bonificable de Ganavisiones al modificar con la plantilla.
+    ''' </summary>
+    Public Property Grupo As String
 End Class
 
 Public Class RegaloParaPlantillaModel
