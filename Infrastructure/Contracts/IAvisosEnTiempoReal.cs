@@ -21,6 +21,38 @@ namespace Nesto.Infrastructure.Contracts
         event EventHandler EstadoCambiado;
     }
 
+    /// <summary>
+    /// Ariadna#51 (corte 2): avisos de un documento del almacén compartido con Ariadna (el hub «AlmacenHub» de NestoAPI#646, en
+    /// la misma conexión que la campana). La pantalla entra en el grupo del documento al abrirlo y sale al cerrarlo; cuando otro
+    /// equipo cambia algo, la API manda al grupo solo el aviso (sin datos) y la pantalla pide lo nuevo. Sin sondeo.
+    /// Lo implementa <see cref="Shared.AvisosEnTiempoRealSignalR"/>; sin él (o desactivado) no llega ningún aviso.
+    /// </summary>
+    public interface IGruposAlmacenTiempoReal
+    {
+        /// <summary>Entra en el grupo (y vuelve a entrar solo al reconectar). Nunca lanza.</summary>
+        void EntrarEnGrupo(string grupo);
+
+        /// <summary>Sale del grupo. Nunca lanza.</summary>
+        void SalirDeGrupo(string grupo);
+
+        /// <summary>
+        /// Otro equipo ha cambiado algo del grupo (el argumento es el grupo). También tras recuperar la conexión, por si se
+        /// perdió algún aviso. Llega en un hilo que no es el de la UI.
+        /// </summary>
+        event EventHandler<string> GrupoHaCambiado;
+
+        /// <summary>La conexión de SignalR de este Nesto (para que la API no le avise de lo suyo). Null si no está conectado.</summary>
+        string IdConexion { get; }
+    }
+
+    /// <summary>Ariadna#51: los nombres de los grupos del almacén, en un solo sitio (los mismos en la API y en Ariadna).</summary>
+    public static class GruposAlmacen
+    {
+        /// <summary>«recepcion:REPO:81119:REI»: la recepción en curso de un documento en un almacén.</summary>
+        public static string Recepcion(string tipo, string documento, string almacen)
+            => $"recepcion:{(tipo ?? string.Empty).Trim().ToUpperInvariant()}:{(documento ?? string.Empty).Trim()}:{(almacen ?? string.Empty).Trim().ToUpperInvariant()}";
+    }
+
     /// <summary>Nesto#492: estado de la conexión en tiempo real con la API.</summary>
     public enum EstadoConexionTiempoReal
     {

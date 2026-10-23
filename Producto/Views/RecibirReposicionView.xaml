@@ -73,6 +73,9 @@
             <TextBlock Text="{Binding TextoBultos}" VerticalAlignment="Center" Margin="0,0,12,0" />
             <!-- NestoAPI#673: lo que ya se ha dado de alta de esta reposición -->
             <TextBlock Text="{Binding TextoRecibidaEnParte}" FontStyle="Italic" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <!-- Ariadna#51: lo leído está en el servidor; quién más la está recibiendo (Ariadna u otro Nesto) -->
+            <TextBlock Text="{Binding TextoOtrosEquipos}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"
+                       ToolTip="Lo que lee cada uno se suma y se ve en todos los equipos al momento" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad. Si escribes el nombre, elige el producto en la lista: también suma una unidad. La etiqueta de un bulto (R81010-2) abre su reposición">

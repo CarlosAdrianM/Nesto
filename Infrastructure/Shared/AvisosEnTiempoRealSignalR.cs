@@ -1,7 +1,9 @@
 using Microsoft.AspNet.SignalR.Client;
 using Nesto.Infrastructure.Contracts;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,9 +22,12 @@ namespace Nesto.Infrastructure.Shared
     /// - Nesto#492: <see cref="Estado"/> sigue a la conexión real (conectando, conectada, reintentando al
     ///   perderla o no conseguirla, desactivada si no se ha arrancado o se ha detenido). Renovar el token
     ///   no cambia el estado: se reconecta enseguida y no se ha perdido nada.
-    /// Los eventos <see cref="HayNotificacionesNuevas"/> y <see cref="EstadoCambiado"/> llegan en un hilo que no es el de la UI.
+    /// - Ariadna#51 (corte 2): en la misma conexión, los grupos del almacén compartidos con Ariadna («AlmacenHub»,
+    ///   <see cref="IGruposAlmacenTiempoReal"/>). Se recuerdan los grupos en los que se ha entrado y se vuelve a entrar en cada
+    ///   conexión nueva; al recuperar una perdida se avisa de cada grupo (pudo cambiar algo mientras no había conexión).
+    /// Los eventos <see cref="HayNotificacionesNuevas"/>, <see cref="EstadoCambiado"/> y <see cref="GrupoHaCambiado"/> llegan en un hilo que no es el de la UI.
     /// </summary>
-    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IDisposable
+    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IGruposAlmacenTiempoReal, IDisposable
     {
         public const string RUTA_HUB = "/signalr";
         public static readonly TimeSpan INTERVALO_REVISION_TOKEN = TimeSpan.FromMinutes(15);
@@ -43,8 +48,125 @@ namespace Nesto.Infrastructure.Shared
         private bool _errorRegistrado;
         private int _estado = (int)EstadoConexionTiempoReal.Desactivado;
         private IConexionAvisos _conexionActual;
+        /// <summary>Ariadna#51: los grupos del almacén en los que se está, con cuántas pantallas lo han pedido.</summary>
+        private readonly ConcurrentDictionary<string, int> _grupos = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler HayNotificacionesNuevas;
+
+        /// <summary>Ariadna#51: otro equipo ha cambiado algo de un grupo del almacén. Llega en un hilo que no es el de la UI.</summary>
+        public event EventHandler<string> GrupoHaCambiado;
+
+        /// <summary>Ariadna#51: la conexión de SignalR actual (null si no está conectado).</summary>
+        public string IdConexion
+        {
+            get
+            {
+                try
+                {
+                    return Volatile.Read(ref _conexionActual)?.IdConexion;
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+        }
+
+        public void EntrarEnGrupo(string grupo)
+        {
+            string limpio = grupo?.Trim();
+            if (string.IsNullOrEmpty(limpio))
+            {
+                return;
+            }
+            if (_grupos.AddOrUpdate(limpio, 1, (_, n) => n + 1) == 1)
+            {
+                IConexionAvisos conexion = Volatile.Read(ref _conexionActual);
+                if (conexion != null)
+                {
+                    _ = EntrarSinFallar(conexion, limpio);
+                }
+            }
+        }
+
+        public void SalirDeGrupo(string grupo)
+        {
+            string limpio = grupo?.Trim();
+            if (string.IsNullOrEmpty(limpio) || !_grupos.TryGetValue(limpio, out int veces))
+            {
+                return;
+            }
+            if (veces > 1)
+            {
+                _grupos[limpio] = veces - 1;
+                return;
+            }
+            _ = _grupos.TryRemove(limpio, out _);
+            IConexionAvisos conexion = Volatile.Read(ref _conexionActual);
+            if (conexion != null)
+            {
+                _ = SalirSinFallar(conexion, limpio);
+            }
+        }
+
+        /// <summary>Para los tests: los grupos en los que se está.</summary>
+        internal IReadOnlyCollection<string> Grupos => _grupos.Keys.ToList();
+
+        private static async Task EntrarSinFallar(IConexionAvisos conexion, string grupo)
+        {
+            try
+            {
+                _ = await conexion.EntrarEnGrupo(grupo, Environment.MachineName).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // El aviso es un extra: la pantalla también recarga al abrirla y al volver a ella
+            }
+        }
+
+        private static async Task SalirSinFallar(IConexionAvisos conexion, string grupo)
+        {
+            try
+            {
+                await conexion.SalirDeGrupo(grupo).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // nada
+            }
+        }
+
+        private async Task EntrarEnTodos(IConexionAvisos conexion)
+        {
+            foreach (string grupo in _grupos.Keys.ToList())
+            {
+                await EntrarSinFallar(conexion, grupo).ConfigureAwait(false);
+            }
+        }
+
+        private void AvisarGrupo(string grupo)
+        {
+            if (string.IsNullOrWhiteSpace(grupo))
+            {
+                return;
+            }
+            try
+            {
+                GrupoHaCambiado?.Invoke(this, grupo.Trim());
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
+
+        private void AvisarTodosLosGrupos()
+        {
+            foreach (string grupo in _grupos.Keys.ToList())
+            {
+                AvisarGrupo(grupo);
+            }
+        }
 
         /// <summary>Nesto#492: cambia <see cref="Estado"/>. Llega en un hilo que no es el de la UI.</summary>
         public event EventHandler EstadoCambiado;
@@ -153,11 +275,14 @@ namespace Nesto.Infrastructure.Shared
                     IConexionAvisos esta = conexion;
                     var cerrada = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     conexion.HayNotificacionesNuevas += (s, e) => Avisar();
+                    conexion.GrupoHaCambiado += (s, grupo) => AvisarGrupo(grupo);
                     conexion.Reconectando += (s, e) => CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Reintentando, ct);
                     conexion.Reconectada += (s, e) =>
                     {
                         CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Conectado, ct);
                         Avisar();
+                        // Ariadna#51: por si la API se ha reciclado y ha olvidado los grupos; y pudo perderse algún aviso
+                        _ = EntrarEnTodos(esta).ContinueWith(_ => AvisarTodosLosGrupos(), TaskScheduler.Default);
                     };
                     conexion.Cerrada += (s, e) => cerrada.TrySetResult(true);
 
@@ -168,9 +293,12 @@ namespace Nesto.Infrastructure.Shared
                         CambiarEstado(EstadoConexionTiempoReal.Conectado);
                     }
                     fallos = 0;
+                    // Ariadna#51: en cada conexión nueva se vuelve a entrar en los grupos del almacén
+                    await EntrarEnTodos(conexion).ConfigureAwait(false);
                     if (avisarAlConectar)
                     {
                         Avisar();
+                        AvisarTodosLosGrupos();
                     }
                     avisarAlConectar = true;
 
@@ -329,7 +457,15 @@ namespace Nesto.Infrastructure.Shared
         event EventHandler Reconectada;
         /// <summary>La conexión se ha cerrado del todo (SignalR ya no reintenta).</summary>
         event EventHandler Cerrada;
+        /// <summary>Ariadna#51: el servidor ha llamado a «haCambiado(grupo, dispositivo)» del hub del almacén (el argumento es el grupo).</summary>
+        event EventHandler<string> GrupoHaCambiado;
+        /// <summary>Ariadna#51: la conexión de SignalR (null antes de conectar).</summary>
+        string IdConexion { get; }
         Task Iniciar();
+        /// <summary>Ariadna#51: AlmacenHub.Entrar(grupo, dispositivo). False si el servidor no admite el grupo.</summary>
+        Task<bool> EntrarEnGrupo(string grupo, string dispositivo);
+        /// <summary>Ariadna#51: AlmacenHub.Salir(grupo).</summary>
+        Task SalirDeGrupo(string grupo);
     }
 
     /// <summary>NestoAPI#536: <see cref="IConexionAvisos"/> con el cliente de ASP.NET SignalR 2.</summary>
@@ -338,9 +474,19 @@ namespace Nesto.Infrastructure.Shared
         internal const string HUB = "AvisosHub";
         internal const string METODO_AVISO = "hayNotificacionesNuevas";
 
+        // Ariadna#51 (corte 2): el hub del almacén de NestoAPI#646, el mismo que usa Ariadna. Si la API cambia el nombre del
+        // aviso de las recepciones en curso, se cambia solo aquí.
+        internal const string HUB_ALMACEN = "AlmacenHub";
+        internal const string METODO_ENTRAR = "Entrar";
+        internal const string METODO_SALIR = "Salir";
+        /// <summary>«haCambiado(grupo, dispositivo)»: otro equipo ha cambiado algo del grupo (sin datos).</summary>
+        internal const string METODO_HA_CAMBIADO = "haCambiado";
+
         private readonly HubConnection _conexion;
+        private readonly IHubProxy _almacen;
 
         public event EventHandler HayNotificacionesNuevas;
+        public event EventHandler<string> GrupoHaCambiado;
         public event EventHandler Reconectando;
         public event EventHandler Reconectada;
         public event EventHandler Cerrada;
@@ -350,12 +496,21 @@ namespace Nesto.Infrastructure.Shared
             _conexion = new HubConnection(urlHub, new Dictionary<string, string> { { "access_token", token } }, useDefaultUrl: false);
             IHubProxy proxy = _conexion.CreateHubProxy(HUB);
             _ = proxy.On(METODO_AVISO, () => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty));
+            // Ariadna#51: el proxy se crea antes de Start (SignalR 2 se suscribe a los hubs al conectar)
+            _almacen = _conexion.CreateHubProxy(HUB_ALMACEN);
+            _ = _almacen.On<string, string>(METODO_HA_CAMBIADO, (grupo, dispositivo) => GrupoHaCambiado?.Invoke(this, grupo));
             _conexion.Reconnecting += () => Reconectando?.Invoke(this, EventArgs.Empty);
             _conexion.Reconnected += () => Reconectada?.Invoke(this, EventArgs.Empty);
             _conexion.Closed += () => Cerrada?.Invoke(this, EventArgs.Empty);
         }
 
         public Task Iniciar() => _conexion.Start();
+
+        public string IdConexion => _conexion.ConnectionId;
+
+        public Task<bool> EntrarEnGrupo(string grupo, string dispositivo) => _almacen.Invoke<bool>(METODO_ENTRAR, grupo, dispositivo);
+
+        public Task SalirDeGrupo(string grupo) => _almacen.Invoke(METODO_SALIR, grupo);
 
         public void Dispose()
         {
