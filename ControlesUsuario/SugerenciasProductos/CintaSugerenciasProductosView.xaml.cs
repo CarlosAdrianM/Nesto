@@ -13,6 +13,10 @@ namespace ControlesUsuario
         public static readonly DependencyProperty EnColumnaProperty =
             DependencyProperty.Register(nameof(EnColumna), typeof(bool), typeof(CintaSugerenciasProductosView), new PropertyMetadata(false));
 
+        public static readonly DependencyProperty AlturaMaximaFichasProperty =
+            DependencyProperty.Register(nameof(AlturaMaximaFichas), typeof(double), typeof(CintaSugerenciasProductosView),
+                new PropertyMetadata(double.PositiveInfinity));
+
         public CintaSugerenciasProductosView()
         {
             InitializeComponent();
@@ -23,6 +27,16 @@ namespace ControlesUsuario
         {
             get => (bool)GetValue(EnColumnaProperty);
             set => SetValue(EnColumnaProperty, value);
+        }
+
+        /// <summary>
+        /// Sugerencia 761: alto máximo de las fichas (sin contar la cabecera «Puede ofrecer»). Con <see cref="EnColumna"/>, si no
+        /// caben, se desplazan dentro. Por defecto, sin tope.
+        /// </summary>
+        public double AlturaMaximaFichas
+        {
+            get => (double)GetValue(AlturaMaximaFichasProperty);
+            set => SetValue(AlturaMaximaFichasProperty, value);
         }
     }
 }
