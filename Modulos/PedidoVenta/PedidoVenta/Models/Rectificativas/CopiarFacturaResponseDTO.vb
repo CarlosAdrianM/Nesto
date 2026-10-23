@@ -46,6 +46,12 @@ Public Class CopiarFacturaResponseDTO
     ''' Solo se rellena cuando CrearAbonoYCargo=true.
     ''' &lt;/summary&gt;
     Public Property Cargo As OperacionFacturaDTO
+
+    ''' <summary>
+    ''' NestoAPI#699: pedido nuevo, pendiente de servir, para el mismo cliente.
+    ''' Solo se rellena cuando RehacerPedido=true. Es el que abre «Abrir pedido».
+    ''' </summary>
+    Public Property PedidoRehecho As OperacionFacturaDTO
 End Class
 
 ''' &lt;summary&gt;

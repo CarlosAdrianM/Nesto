@@ -81,4 +81,17 @@ Public Class CopiarFacturaRequestDTO
     ''' Por defecto true.
     ''' </summary>
     Public Property UsarVendedorFacturaOriginal As Boolean = True
+
+    ''' <summary>
+    ''' NestoAPI#699: la agencia devuelve el pedido y el cliente lo sigue queriendo.
+    ''' Abono de la factura + pedido nuevo para el MISMO cliente, con las mismas condiciones,
+    ''' pendiente de servir (sale por el picking normal). Solo una factura y sin cambio de cliente.
+    ''' </summary>
+    Public Property RehacerPedido As Boolean
+
+    ''' <summary>
+    ''' NestoAPI#699: solo con RehacerPedido. Si es False (por defecto) los portes del reenvio
+    ''' no se cobran: la linea de portes pasa al pedido nuevo con un 100% de descuento.
+    ''' </summary>
+    Public Property IncluirPortes As Boolean
 End Class

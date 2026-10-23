@@ -188,6 +188,102 @@ namespace PedidoVentaTests
             Assert.IsFalse(((IDialogoNesto)vm).CanCloseDialog());
         }
 
+        // NestoAPI#699: la agencia devuelve el pedido y el cliente lo sigue queriendo.
+
+        private static (CopiarFacturaViewModel vm, List<CopiarFacturaRequestDTO> enviadas) CrearCopiarFacturaQueResponde(CopiarFacturaResponseDTO respuesta)
+        {
+            var servicio = A.Fake<IPedidoVentaService>();
+            var enviadas = new List<CopiarFacturaRequestDTO>();
+            A.CallTo(() => servicio.CopiarFactura(A<CopiarFacturaRequestDTO>._))
+                .ReturnsLazily((CopiarFacturaRequestDTO r) => { enviadas.Add(r); return Task.FromResult(respuesta); });
+            var vm = new CopiarFacturaViewModel(servicio, A.Fake<IConfiguracion>());
+            vm.OnDialogOpened(new ParametrosDialogo { { "empresa", "1" }, { "cliente", "15234" }, { "numeroFactura", "NV26/000001" } });
+            return (vm, enviadas);
+        }
+
+        [TestMethod]
+        public void CopiarFactura_RehacerPedido_MandaLaOpcionSinPortesYAbreElPedidoNuevo()
+        {
+            var (vm, enviadas) = CrearCopiarFacturaQueResponde(new CopiarFacturaResponseDTO
+            {
+                Exitoso = true,
+                NumeroPedido = 927002,
+                Mensaje = "Abono hecho",
+                Abono = new OperacionFacturaDTO { NumeroPedido = 927001, NumeroFactura = "RV26/000001" },
+                PedidoRehecho = new OperacionFacturaDTO { NumeroPedido = 927002 }
+            });
+            ResultadoDialogo resultado = null;
+            ((IDialogoNesto)vm).RequestClose += r => resultado = r;
+
+            vm.InvertirCantidades = false;
+            vm.RehacerPedido = true;
+            vm.EjecutarCommand.Execute(null);
+
+            CopiarFacturaRequestDTO request = enviadas[0];
+            Assert.IsTrue(request.RehacerPedido);
+            Assert.IsFalse(request.IncluirPortes, "Por defecto los portes del reenvío no se cobran");
+            Assert.IsFalse(request.CrearAbonoYCargo);
+            Assert.IsTrue(request.InvertirCantidades, "El primer paso es el abono");
+            Assert.IsNull(request.ClienteDestino);
+            Assert.AreEqual(927002, vm.NumeroPedidoAAbrir);
+            Assert.AreEqual("Abono hecho", vm.Mensaje);
+
+            vm.AbrirPedidoCommand.Execute(null);
+
+            Assert.AreEqual(ResultadoBoton.OK, resultado.Result);
+            Assert.AreEqual(927002, resultado.Parameters.GetValue<int>("numeroPedido"));
+        }
+
+        [TestMethod]
+        public void CopiarFactura_RehacerPedidoConPortes_MandaIncluirPortes()
+        {
+            var (vm, enviadas) = CrearCopiarFacturaQueResponde(new CopiarFacturaResponseDTO { Exitoso = true, NumeroPedido = 927002, PedidoRehecho = new OperacionFacturaDTO { NumeroPedido = 927002 } });
+
+            vm.RehacerPedido = true;
+            vm.IncluirPortes = true;
+            vm.EjecutarCommand.Execute(null);
+
+            Assert.IsTrue(enviadas[0].IncluirPortes);
+        }
+
+        [TestMethod]
+        public void CopiarFactura_SinRehacer_NoMandaLosPortesAunqueSeHubieranMarcado()
+        {
+            var (vm, enviadas) = CrearCopiarFacturaQueResponde(new CopiarFacturaResponseDTO { Exitoso = true, NumeroPedido = 927001 });
+
+            vm.IncluirPortes = true;
+            vm.EjecutarCommand.Execute(null);
+
+            Assert.IsFalse(enviadas[0].RehacerPedido);
+            Assert.IsFalse(enviadas[0].IncluirPortes);
+            Assert.AreEqual(927001, vm.NumeroPedidoAAbrir);
+        }
+
+        [TestMethod]
+        public void CopiarFactura_RehacerYAbonoYCargo_SeExcluyen()
+        {
+            var vm = CrearCopiarFactura();
+
+            vm.CrearAbonoYCargo = true;
+            vm.RehacerPedido = true;
+            Assert.IsFalse(vm.CrearAbonoYCargo);
+
+            vm.CrearAbonoYCargo = true;
+            Assert.IsFalse(vm.RehacerPedido);
+        }
+
+        [TestMethod]
+        public void CopiarFactura_RehacerPedidoConUnServidorSinLaOpcion_AvisaDeQueSoloEstaElAbono()
+        {
+            // Si Nesto se publica antes que la API, el servidor ignora RehacerPedido y solo hace el abono.
+            var (vm, _) = CrearCopiarFacturaQueResponde(new CopiarFacturaResponseDTO { Exitoso = true, NumeroPedido = 927001, Mensaje = "Rectificativa creada" });
+
+            vm.RehacerPedido = true;
+            vm.EjecutarCommand.Execute(null);
+
+            StringAssert.Contains(vm.Mensaje, "no ha rehecho el pedido");
+        }
+
         #endregion
 
         #region Grupo de comisión del inmovilizado
