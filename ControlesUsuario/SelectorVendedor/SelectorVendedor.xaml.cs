@@ -8,7 +8,6 @@ using System.Collections.ObjectModel;
 using System.Net.Http;
 using Newtonsoft.Json;
 using Nesto.Infrastructure.Contracts;
-using Prism.Ioc;
 
 namespace ControlesUsuario
 {

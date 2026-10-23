@@ -1,5 +1,4 @@
-﻿Imports Prism.Ioc
-Imports Nesto.Infrastructure.Contracts
+﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports System.ComponentModel
 Imports System.Windows.Threading

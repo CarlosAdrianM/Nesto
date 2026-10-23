@@ -2,18 +2,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
-using Prism.Ioc;
-using Prism.Unity;
 using System;
 using System.Windows.Controls;
 
 namespace Nesto.Infrastructure.Tests
 {
     /// <summary>
-    /// Nesto#490 (4C.5): lo mismo registrado con <see cref="IRegistroNesto"/> se tiene que resolver igual con los dos
-    /// contenedores: el de Prism/Unity (<see cref="RegistroPrism"/>/<see cref="ResolutorPrism"/>, el de hoy) y el de
-    /// Microsoft.Extensions.DependencyInjection (<see cref="ContenedorMicrosoft"/>, el del tramo 4). Las pruebas son las
-    /// mismas para los dos; las de Prism comprueban además que queda el mismo registro de Unity que antes se hacía a mano.
+    /// Nesto#490 (4C.5): el contrato de <see cref="IRegistroNesto"/>/<see cref="IResolutorNesto"/>. Hasta el tramo 4 se
+    /// comprobaba con los dos contenedores (Prism/Unity y Microsoft.Extensions.DependencyInjection) para que resolvieran
+    /// igual; desde el tramo 4 (sin Prism ni Unity) solo queda el de MS.DI, <see cref="ContenedorMicrosoft"/>, y el
+    /// contrato sigue siendo el mismo (incluido lo que hacía Unity: el último registro gana y los concretos sin registrar
+    /// se construyen).
     /// </summary>
     public abstract class RegistroNestoContratoTests
     {
@@ -219,74 +218,6 @@ namespace Nesto.Infrastructure.Tests
     }
 
     [TestClass]
-    public class RegistroPrismTests : RegistroNestoContratoTests
-    {
-        protected override IResolutorNesto Montar(Action<IRegistroNesto> registrar)
-        {
-            var unity = new UnityContainerExtension();
-            registrar(new RegistroPrism(unity));
-            return new ResolutorPrism(unity);
-        }
-
-        [TestMethod]
-        public void Vista_QuedaElMismoRegistroQueRegisterObjectConNombre()
-        {
-            var unity = new UnityContainerExtension();
-
-            new RegistroPrism(unity).Vista<VistaDePrueba>("VistaDePrueba");
-
-            Assert.IsTrue(unity.IsRegistered(typeof(object), "VistaDePrueba"));
-            Assert.IsInstanceOfType(unity.Resolve(typeof(object), "VistaDePrueba"), typeof(VistaDePrueba));
-            Assert.IsFalse(unity.IsRegistered(typeof(VistaDePrueba)), "Como Register<object, X>(nombre): solo por nombre");
-        }
-
-        [TestMethod]
-        public void Dialogo_QuedaComoInstanciaConNombre()
-        {
-            var unity = new UnityContainerExtension();
-            var dialogo = new DialogoRegistrado("Prueba", typeof(Grid), typeof(DialogoDePrueba));
-
-            new RegistroPrism(unity).Dialogo("Prueba", dialogo);
-
-            Assert.IsTrue(unity.IsRegistered(typeof(DialogoRegistrado), "Prueba"));
-            Assert.AreSame(dialogo, unity.Resolve(typeof(DialogoRegistrado), "Prueba"));
-        }
-
-        [TestMethod]
-        public void Singleton_Transitorio_EInstancia_QuedanRegistradosEnUnity()
-        {
-            var unity = new UnityContainerExtension();
-            var registro = new RegistroPrism(unity);
-
-            registro.Singleton<IServicio, Servicio>();
-            registro.Transitorio<Concreto>();
-            registro.Instancia<OtroServicio>(new OtroServicio());
-
-            Assert.IsTrue(unity.IsRegistered(typeof(IServicio)));
-            Assert.AreSame(unity.Resolve<IServicio>(), unity.Resolve<IServicio>());
-            Assert.IsTrue(unity.IsRegistered(typeof(Concreto)));
-            Assert.AreNotSame(unity.Resolve<Concreto>(), unity.Resolve<Concreto>());
-            Assert.IsTrue(unity.IsRegistered(typeof(OtroServicio)));
-        }
-
-        [TestMethod]
-        public void LaFabricaDelSingleton_RecibeUnResolutorSobreElContenedorDePrism()
-        {
-            var unity = new UnityContainerExtension();
-            IResolutorNesto recibido = null;
-
-            new RegistroPrism(unity).Singleton<IServicio>(r =>
-            {
-                recibido = r;
-                return new Servicio();
-            });
-            _ = unity.Resolve<IServicio>();
-
-            Assert.IsInstanceOfType(recibido, typeof(ResolutorPrism));
-        }
-    }
-
-    [TestClass]
     public class ContenedorMicrosoftTests : RegistroNestoContratoTests
     {
         protected override IResolutorNesto Montar(Action<IRegistroNesto> registrar)
@@ -308,7 +239,27 @@ namespace Nesto.Infrastructure.Tests
 
             Assert.IsTrue(claves.IsKeyedService(typeof(object), "VistaDePrueba"));
             Assert.IsTrue(claves.IsKeyedService(typeof(DialogoRegistrado), "Prueba"));
-            Assert.IsNull(proveedor.GetService(typeof(VistaDePrueba)), "Como con Prism: la vista solo se pide por su nombre");
+            Assert.IsNull(proveedor.GetService(typeof(VistaDePrueba)), "Como era con Prism: la vista solo se pide por su nombre");
+        }
+
+        [TestMethod]
+        public void LaFabricaDelSingleton_RecibeUnResolutorSobreElMismoContenedor()
+        {
+            // Nesto#490 (4C.5, tramo 4): sustituye a la de RegistroPrism (allí la fábrica recibía un ResolutorPrism)
+            var contenedor = new ContenedorMicrosoft();
+            IResolutorNesto recibido = null;
+            contenedor.Singleton<OtroServicio, OtroServicio>();
+            contenedor.Singleton<IServicio>(r =>
+            {
+                recibido = r;
+                return new Servicio();
+            });
+            ResolutorMicrosoft resolutor = contenedor.Construir();
+
+            _ = resolutor.Resolver<IServicio>();
+
+            Assert.IsInstanceOfType(recibido, typeof(ResolutorMicrosoft));
+            Assert.AreSame(resolutor.Resolver<OtroServicio>(), recibido.Resolver<OtroServicio>(), "Los singletons son los del mismo contenedor");
         }
 
         [TestMethod]

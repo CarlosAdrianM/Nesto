@@ -9,7 +9,6 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
-Imports Prism.Ioc
 
 Public Class AgenciaService
     Implements IAgenciaService

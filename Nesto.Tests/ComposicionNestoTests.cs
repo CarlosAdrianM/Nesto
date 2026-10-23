@@ -181,6 +181,7 @@ namespace Nesto.Tests
             {
                 typeof(Nesto.Modulos.PedidoVenta.PedidoVentaView),
                 typeof(Nesto.Modulos.PedidoVenta.ListaPedidosVenta),
+                typeof(Nesto.Modulos.PedidoVenta.PendientesEntregarView), // Nesto#552: PedidoVentaViewModel.OnAbrirPendientesEntregar
                 typeof(Nesto.Modulos.PedidoCompra.Views.PedidoCompraView),
                 typeof(Nesto.Modulos.PedidoCompra.Views.ListaPedidosCompraView),
                 typeof(ControlesUsuario.ViewModels.SelectorClienteViewModel),
@@ -226,12 +227,16 @@ namespace Nesto.Tests
             List<string> conContenedor = clases
                 .SelectMany(t => t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                     .SelectMany(c => c.GetParameters())
-                    .Where(p => p.ParameterType == typeof(Unity.IUnityContainer)
-                                || typeof(Prism.Ioc.IContainerProvider).IsAssignableFrom(p.ParameterType))
+                    .Where(p => EsContenedorDePrismOUnity(p.ParameterType))
                     .Select(p => $"{t.Name} ({p.Name})"))
                 .ToList();
 
             Assert.AreEqual(0, conContenedor.Count, "Reciben el contenedor: " + string.Join(", ", conContenedor));
+
+            // Nesto#490 (4C.5, tramo 4): sin Prism ni Unity referenciados, por el nombre (IUnityContainer, IContainerProvider,
+            // IContainerExtension…); la guarda de que no queda ninguna referencia está en ArranqueSombraTests
+            static bool EsContenedorDePrismOUnity(Type tipo)
+                => tipo.FullName != null && (tipo.FullName.StartsWith("Unity.") || tipo.FullName.StartsWith("Prism.Ioc."));
         }
 
         [TestMethod]

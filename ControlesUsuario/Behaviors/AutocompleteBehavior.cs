@@ -2,7 +2,6 @@ using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Microsoft.Xaml.Behaviors;
-using Prism.Ioc;
 using System;
 using System.Collections.Generic;
 using System.Threading;

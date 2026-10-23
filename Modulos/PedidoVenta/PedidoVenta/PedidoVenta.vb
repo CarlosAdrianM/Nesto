@@ -1,21 +1,9 @@
 ﻿Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Services
-Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
-Imports Prism.Ioc
-Imports Prism.Modularity
 
 Public Class PedidoVenta
-    Implements IModule, IModuloNesto, IPedidoVenta
-
-    ' Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
-    Private Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
-        Registrar(New RegistroPrism(containerRegistry))
-    End Sub
-
-    Private Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
-        Inicializar(New ResolutorPrism(containerProvider))
-    End Sub
+    Implements IModuloNesto, IPedidoVenta
 
     Public Sub Registrar(registro As IRegistroNesto) Implements IModuloNesto.Registrar
         registro.Vista(Of PedidoVentaView)("PedidoVentaView")

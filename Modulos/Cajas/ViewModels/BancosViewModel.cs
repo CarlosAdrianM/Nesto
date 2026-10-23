@@ -1434,7 +1434,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         return;
                     }
 
-                    _ = MovimientosRelacionados.AddRange(MovimientosTPV);
+                    // Nesto#490 (4C.5, tramo 4): el AddRange de las colecciones era una extensión de Prism.Core; hace lo
+                    // mismo que hacía aquella: un Add por cada movimiento
+                    foreach (MovimientoTPV movimiento in MovimientosTPV)
+                    {
+                        MovimientosRelacionados.Add(movimiento);
+                    }
                 }
 
                 // Verificaciones finales con el apunte actual

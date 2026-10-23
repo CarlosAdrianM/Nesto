@@ -32,7 +32,7 @@ Imports Nesto.ViewModels
 
 ''' <summary>
 ''' Nesto#490 (4C.5): todo lo que registra la aplicación (lo que antes estaba en Application.RegisterTypes), sobre
-''' <see cref="IRegistroNesto"/> y sin tipos de Prism. Hoy lo llama Application con un RegistroPrism; la prueba sombra
+''' <see cref="IRegistroNesto"/> y sin tipos de Prism. Desde el tramo 4 lo llama ArranqueNesto sobre MS.DI (hasta entonces, Application con un RegistroPrism); la prueba sombra
 ''' (Nesto.Tests) lo monta, con los módulos de <see cref="Modulos"/>, sobre Microsoft.Extensions.DependencyInjection.
 ''' Desde el tramo 4 de 4C.4 también registra las regiones y la navegación (la región propia, sin Prism.Regions).
 ''' </summary>
@@ -43,7 +43,8 @@ Public NotInheritable Class ComposicionNesto
 
     ''' <summary>
     ''' Los módulos de Nesto, en el orden en el que se cargan, por el tipo con el que se piden al contenedor (el
-    ''' catálogo de módulos de Prism se rellena con esta lista).
+    ''' orden en que ArranqueNesto los inicializa; era el del catálogo de módulos de Prism, que no lo reordenaba). La
+    ''' cinta depende de este orden: lo comprueba ArranqueSombraTests.
     ''' </summary>
     Public Shared ReadOnly Property Modulos As IReadOnlyList(Of Type) = New List(Of Type) From {
         GetType(IMenuBar),                                  ' Los botones de la cinta de todo lo viejo que no se hizo con módulos
@@ -124,7 +125,7 @@ Public NotInheritable Class ComposicionNesto
         registro.Singleton(Of IAbridorPedidos)(Function(r) New AbridorPedidos(r))
         ' Nesto#490 (4C.5, tramo 3b): el resolutor propio para lo que crea vistas por su tipo, en lugar del IUnityContainer o
         ' el IContainerProvider: PedidoVentaViewModel y PedidoCompraViewModel (la pestaña nueva) y sus vistas (la lista del
-        ' maestro-detalle). Es el del propio contenedor (con Prism, un ResolutorPrism sobre Unity; en el tramo 4, el de MS.DI).
+        ' maestro-detalle). Es el del propio contenedor (desde el tramo 4, el de MS.DI; antes, un ResolutorPrism sobre Unity).
         registro.Singleton(Of IResolutorNesto)(Function(r) r)
         ' Nesto#490 (4C.4, tramo 4): la región propia para todos, sin Prism.Regions ni el piloto RegionesPropias. Las
         ' regiones del shell (Application.CreateShell cuelga su gestor de MainWindow) y la navegación sobre ellas, que crea

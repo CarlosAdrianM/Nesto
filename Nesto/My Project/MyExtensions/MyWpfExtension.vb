@@ -1,6 +1,6 @@
 ﻿#If _MyType <> "Empty" Then
 
-Imports Prism.Unity
+
 
 Namespace My
     ''' <summary>
@@ -110,7 +110,7 @@ Namespace My
     End Module
 End Namespace
 Partial Class Application
-    Inherits PrismApplication
+    Inherits Global.System.Windows.Application
     <Global.System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")> _
     <Global.System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1822:MarkMembersAsStatic")> _
     Friend ReadOnly Property Info() As Global.Microsoft.VisualBasic.ApplicationServices.AssemblyInfo

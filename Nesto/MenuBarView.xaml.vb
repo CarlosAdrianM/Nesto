@@ -1,14 +1,10 @@
 ﻿Imports Nesto.ViewModels
-Imports Prism.Modularity
-Imports Prism.Ioc
 Imports ControlesUsuario.Dialogs
-Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 
-<[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
-    Implements IModule, IModuloNesto, IMenuBar
+    Implements IModuloNesto, IMenuBar
 
     ''' <summary>
     ''' Las ventanas que abre MenuBarViewModel en una pestaña nueva, por el nombre con el que las pide. Se crean con el
@@ -26,15 +22,6 @@ Public Class MenuBarView
         {"ClienteComercial", GetType(ClienteComercial)},
         {"PlanesVentajas", GetType(PlanesVentajas)}
     }
-
-    ' Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
-    Private Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
-        Registrar(New RegistroPrism(containerRegistry))
-    End Sub
-
-    Private Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
-        Inicializar(New ResolutorPrism(containerProvider))
-    End Sub
 
     Public Sub Registrar(registro As IRegistroNesto) Implements IModuloNesto.Registrar
         For Each tipoVentana In VentanasPorNombre.Values

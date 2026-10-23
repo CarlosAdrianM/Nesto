@@ -10,7 +10,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
-using Prism.Ioc;
 using CommunityToolkit.Mvvm.Messaging;
 using Nesto.Infrastructure.Events;
 using Nesto.Models.Nesto.Models;

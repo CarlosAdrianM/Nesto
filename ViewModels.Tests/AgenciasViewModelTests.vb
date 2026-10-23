@@ -2,7 +2,6 @@
 Imports FakeItEasy
 Imports System.Collections.ObjectModel
 Imports Nesto.Models.Nesto.Models
-Imports Prism.Ioc
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta
@@ -16,7 +15,6 @@ Public Class AgenciaViewModelTests
     '''Obtiene o establece el contexto de las pruebas que proporciona
     '''información y funcionalidad para la serie de pruebas actual.
     '''</summary>
-    Private container As IContainerProvider
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
     Private dialogService As IServicioDialogos
@@ -47,7 +45,6 @@ Public Class AgenciaViewModelTests
     <TestInitialize()>
     Public Sub Initialize()
         configuracion = A.Fake(Of IConfiguracion)
-        container = A.Fake(Of IContainerProvider)
         servicio = A.Fake(Of IAgenciaService)
         dialogService = A.Fake(Of IServicioDialogos)
         servicioPedidos = A.Fake(Of IPedidoVentaService)

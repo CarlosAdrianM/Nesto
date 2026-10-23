@@ -1,42 +1,7 @@
 ﻿Imports System.Globalization
 Imports System.Windows.Markup
-Imports Azure.Identity
-Imports CommunityToolkit.Mvvm.Messaging
-Imports ControlesUsuario
-Imports ControlesUsuario.Dialogs
-Imports ControlesUsuario.Services
-Imports ControlesUsuario.ViewModels
-Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
-Imports Nesto.Modules.Producto
-Imports Nesto.Modules.Producto.ViewModels
-Imports Nesto.Modulos
-Imports Nesto.Modulos.Cajas
-Imports Nesto.Modulos.Cajas.Interfaces
-Imports Nesto.Modulos.Cajas.Services
-Imports Nesto.Modulos.Ganavisiones
-Imports Nesto.Modulos.Ganavisiones.Interfaces
-Imports Nesto.Modulos.Ganavisiones.Services
-Imports Nesto.Modulos.OfertasCombinadas
-Imports Nesto.Modulos.OfertasCombinadas.Interfaces
-Imports Nesto.Modulos.OfertasCombinadas.Services
-Imports Nesto.Modulos.CanalesExternos.Interfaces
-Imports Nesto.Modulos.CanalesExternos.Services
-Imports Nesto.Modulos.CarteraPagos
-Imports Nesto.Modulos.Cliente
-Imports Nesto.Modulos.Inventario
-Imports Nesto.Modulos.PedidoVenta
-Imports Nesto.Modulos.PlantillaVenta
-Imports Nesto.Modulos.Producto.Views
-Imports Nesto.Modulos.Rapports
-Imports Nesto.ViewModels
-Imports Prism
-Imports Prism.Ioc
-Imports Prism.Modularity
-Imports Prism.Mvvm
-Imports Unity
 
 Partial Public Class Application
 
@@ -62,7 +27,32 @@ Partial Public Class Application
         ' Carlos 29/09/26: Tab + escribir en las celdas con AutocompleteBehavior/CuentaContableBehavior (sin ratón)
         ControlesUsuario.Behaviors.EdicionCeldaConTeclado.Registrar()
 
+        ' PrismApplication también llamaba primero a la base (el evento Startup) y después arrancaba
         MyBase.OnStartup(e)
+
+        Arrancar()
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#490 (4C.5, tramo 4): el arranque sin PrismApplication, en el mismo orden que PrismApplication.Initialize +
+    ''' OnInitialized: el contenedor (MS.DI, validado al construirlo), el shell, los módulos, mostrar el shell y, por
+    ''' último, el token y los avisos en tiempo real. Los pasos están en ArranqueNesto, que también usa la prueba de
+    ''' arranque sombra.
+    ''' </summary>
+    Private Sub Arrancar()
+        Dim arranque = ArranqueNesto.Componer()
+        ' Antes de crear nada: el shell, los menús y los controles creados desde XAML ya lo usan (con Prism quedaba listo
+        ' en RegisterTypes, antes del shell y de los módulos)
+        Contenedor.Establecer(arranque.Resolutor)
+
+        Dim shell = arranque.CrearShell()
+        ' Lo que hacía PrismApplication.InitializeShell: la ventana principal es el shell aunque se haya creado otra antes
+        MainWindow = shell
+        arranque.InicializarModulos()
+        ' Lo que hacía PrismApplication.OnInitialized: mostrarlo cuando los módulos ya han puesto su menú en la cinta
+        shell.Show()
+
+        ObtenerTokenEIniciarAvisos()
     End Sub
 
     Private Sub OnDispatcherUnhandledException(sender As Object, e As System.Windows.Threading.DispatcherUnhandledExceptionEventArgs)
@@ -93,7 +83,9 @@ Partial Public Class Application
     ' el SynchronizationContext de UI (evita deadlocks al esperar) y nunca propaga excepciones.
     Private Sub RegistrarError(ex As Exception, contexto As String)
         Try
-            Dim servicio = Container?.Resolve(Of IServicioRegistroErrores)()
+            ' Nesto#490 (4C.5, tramo 4): Contenedor.Actual en lugar del Container de PrismApplication. Es null si el error
+            ' llega antes de construir el contenedor, igual que el Container de Prism: entonces no se registra.
+            Dim servicio = Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)()
             If servicio IsNot Nothing Then
                 Dim unused = Task.Run(Function() servicio.RegistrarErrorAsync(ex, contexto)).Wait(TimeSpan.FromSeconds(10))
             End If
@@ -102,37 +94,10 @@ Partial Public Class Application
         End Try
     End Sub
 
-    Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
-        ' Nesto#490 (4C.5, tramo 2): Contenedor.Actual sustituye a ContainerLocator.Container. Prism deja listo su
-        ' ContainerLocator justo antes de llamar aquí (y antes de crear el shell y los módulos), así que es el sitio para
-        ' dejar listo el nuestro: el mismo contenedor de Prism/Unity, envuelto en un IResolutorNesto. En el tramo 4 será el de MS.DI.
-        Nesto.Infrastructure.Contracts.Contenedor.Establecer(New ResolutorPrism(ContainerLocator.Container))
-
-        ' Nesto#490 (4C.5): todo lo de la aplicación se registra en ComposicionNesto, sin tipos de Prism (la prueba sombra
-        ' lo monta igual sobre Microsoft.Extensions.DependencyInjection). Desde el tramo 4 de 4C.4, también las regiones y
-        ' la navegación (la región propia, sin Prism.Regions).
-        ComposicionNesto.Registrar(New RegistroPrism(containerRegistry))
-    End Sub
-
-    Protected Overrides Function CreateShell() As Window
-        Dim shell As Window = CType(Container.Resolve(Of IMainWindow)(), Window)
-        ' Nesto#490 (4C.4, tramo 4): el gestor de regiones del shell, colgado de la ventana, para que MainRegion se registre en él
-        Container.Resolve(Of Nesto.Infrastructure.Navegacion.RegionesDelShell)().AlCrearShell(shell)
-        Return shell
-    End Function
-
-    Protected Overrides Sub ConfigureModuleCatalog(moduleCatalog As IModuleCatalog)
-        MyBase.ConfigureModuleCatalog(moduleCatalog)
-        ' Nesto#490 (4C.5): la lista de módulos (con sus fechas) está en ComposicionNesto, para que la prueba sombra cargue los mismos
-        For Each tipoModulo In ComposicionNesto.Modulos
-            Dim unused = moduleCatalog.AddModule(tipoModulo)
-        Next
-    End Sub
-
-    Protected Overrides Sub OnInitialized()
-        MyBase.OnInitialized()
-
-        Dim authService = Container.Resolve(Of IServicioAutenticacion)()
+    ' Lo que se hacía en OnInitialized con Prism, ya con el shell en pantalla: el token de Windows y, después, la campana
+    ' en tiempo real
+    Private Sub ObtenerTokenEIniciarAvisos()
+        Dim authService = Contenedor.Actual.Resolver(Of IServicioAutenticacion)()
         Dim unused = Task.Run(
             Async Function()
                 Dim token = Await authService.ObtenerTokenWindowsAsync()
@@ -147,13 +112,13 @@ Partial Public Class Application
     ' Si no se puede leer el parámetro, se conecta igual (la conexión no molesta aunque falle: reintenta sola).
     Private Async Function IniciarAvisosEnTiempoReal() As Task
         Try
-            Dim avisos = TryCast(Container.Resolve(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)
+            Dim avisos = TryCast(Contenedor.Actual.Resolver(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)
             If avisos Is Nothing Then
                 Return
             End If
             Dim valor As String = Nothing
             Try
-                Dim cfg = Container.Resolve(Of IConfiguracion)()
+                Dim cfg = Contenedor.Actual.Resolver(Of IConfiguracion)()
                 valor = Await cfg.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AvisosTiempoReal)
             Catch
                 ' Sin parámetro legible se queda el valor por defecto (conectada).
@@ -169,7 +134,7 @@ Partial Public Class Application
 
     Protected Overrides Sub OnExit(e As ExitEventArgs)
         Try
-            TryCast(Container?.Resolve(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)?.Detener()
+            TryCast(Contenedor.Actual?.Resolver(Of IAvisosEnTiempoReal)(), AvisosEnTiempoRealSignalR)?.Detener()
         Catch
             ' Al cerrar, nada debe impedirlo.
         End Try
