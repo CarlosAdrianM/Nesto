@@ -4,8 +4,8 @@ namespace Nesto.Infrastructure.Contracts
 {
     /// <summary>
     /// Nesto#490 (4C.5): de donde se saca lo registrado con <see cref="IRegistroNesto"/>, sin tipos de Prism ni de
-    /// Microsoft.Extensions.DependencyInjection. Hoy lo implementa <c>ResolutorPrism</c> (delega en el
-    /// <c>IContainerProvider</c> de Prism/Unity); en el tramo 4, el de <c>ContenedorMicrosoft</c> (MS.DI).
+    /// Microsoft.Extensions.DependencyInjection. Lo implementa el de <c>ContenedorMicrosoft</c> (MS.DI); hasta el tramo 4
+    /// de 4C.5, también <c>ResolutorPrism</c> (sobre el <c>IContainerProvider</c> de Prism/Unity).
     /// </summary>
     public interface IResolutorNesto
     {

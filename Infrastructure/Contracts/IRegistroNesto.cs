@@ -4,8 +4,8 @@ namespace Nesto.Infrastructure.Contracts
 {
     /// <summary>
     /// Nesto#490 (4C.5): donde Nesto y sus módulos registran lo que se puede pedir al contenedor, sin tipos de Prism ni de
-    /// Microsoft.Extensions.DependencyInjection. Hoy lo implementa <c>RegistroPrism</c> (delega en el
-    /// <c>IContainerRegistry</c> de Prism/Unity); en el tramo 4, <c>ContenedorMicrosoft</c> (MS.DI).
+    /// Microsoft.Extensions.DependencyInjection. Lo implementa <c>ContenedorMicrosoft</c> (MS.DI); hasta el tramo 4 de
+    /// 4C.5, también <c>RegistroPrism</c> (sobre el <c>IContainerRegistry</c> de Prism/Unity).
     /// <para>
     /// Diferencia con Unity: Unity construye cualquier clase concreta aunque no esté registrada y MS.DI no. Por eso todo lo
     /// que se pide por su tipo concreto (menús de la cinta, ViewModels de las vistas, ventanas…) se registra aquí.

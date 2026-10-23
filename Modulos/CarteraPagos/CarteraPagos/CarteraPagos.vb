@@ -1,20 +1,8 @@
-﻿Imports Prism.Modularity
-Imports Nesto.Contratos
-Imports Prism.Ioc
-Imports Nesto.Infrastructure.Composicion
+﻿Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 
 Public Class CarteraPagos
-    Implements IModule, IModuloNesto, ICarteraPagos
-
-    ' Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
-    Private Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
-        Registrar(New RegistroPrism(containerRegistry))
-    End Sub
-
-    Private Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
-        Inicializar(New ResolutorPrism(containerProvider))
-    End Sub
+    Implements IModuloNesto, ICarteraPagos
 
     Public Sub Registrar(registro As IRegistroNesto) Implements IModuloNesto.Registrar
         registro.Vista(Of CarteraPagosView)("CarteraPagosView")

@@ -2,7 +2,6 @@ using ControlesUsuario.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
-using Prism.Unity;
 using System;
 using System.Threading;
 using System.Windows;
@@ -49,14 +48,14 @@ namespace ControlesUsuario.Tests.Dialogs
             public void Aceptar() => RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "respuesta", 42 } }));
         }
 
-        // Nesto#490 (4C.5): se registra con RegistroPrism y se resuelve con ResolutorPrism, sobre Unity como en Nesto
+        // Nesto#490 (4C.5, tramo 4): se registra y se resuelve con el contenedor de Nesto (MS.DI), sin registrar la vista ni
+        // el ViewModel: el resolutor los construye como hacía Unity
         private static IResolutorNesto ContenedorConElDialogo(string nombre = null)
         {
-            var unity = new UnityContainerExtension();
-            var registro = new RegistroPrism(unity);
+            var registro = new ContenedorMicrosoft();
             registro.Transitorio<IServicioDePrueba, ServicioDePrueba>();
             registro.RegistrarDialogo<VistaDePrueba, DialogoDePrueba>(nombre);
-            return new ResolutorPrism(unity);
+            return registro.Construir();
         }
 
         [TestMethod]
@@ -104,7 +103,7 @@ namespace ControlesUsuario.Tests.Dialogs
         [TestMethod]
         public void UnNombreNoRegistrado_DevuelveNull()
         {
-            var contenedor = new ResolutorPrism(new UnityContainerExtension());
+            var contenedor = new ContenedorMicrosoft().Construir();
 
             Assert.IsNull(RegistroDialogos.CrearDialogo(contenedor, "NoExiste"));
             Assert.IsNull(RegistroDialogos.CrearDialogo(contenedor, null));

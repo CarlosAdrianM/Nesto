@@ -1,18 +1,11 @@
 ﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Composicion;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cliente.ViewModels;
-using Prism.Ioc;
-using Prism.Modularity;
 
 namespace Nesto.Modulos.Cliente
 {
-    public class Cliente : IModule, IModuloNesto, ICliente
+    public class Cliente : IModuloNesto, ICliente
     {
-        // Nesto#490 (4C.5): Prism sigue cargando el módulo por IModule, que delega en IModuloNesto
-        void IModule.RegisterTypes(IContainerRegistry containerRegistry) => Registrar(new RegistroPrism(containerRegistry));
-        void IModule.OnInitialized(IContainerProvider containerProvider) => Inicializar(new ResolutorPrism(containerProvider));
-
         public void Registrar(IRegistroNesto registro)
         {
             registro.Vista<CrearClienteView>("CrearClienteView");

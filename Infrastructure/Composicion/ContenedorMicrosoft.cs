@@ -7,7 +7,7 @@ namespace Nesto.Infrastructure.Composicion
     /// <summary>
     /// Nesto#490 (4C.5): <see cref="IRegistroNesto"/> sobre <see cref="IServiceCollection"/> de
     /// Microsoft.Extensions.DependencyInjection. En el tramo 1 solo lo usa la prueba sombra (la composición de Nesto
-    /// montada sobre MS.DI con <c>ValidateOnBuild</c>); en el tramo 4 sustituye a Prism/Unity.
+    /// montada sobre MS.DI con <c>ValidateOnBuild</c>); desde el tramo 4, el contenedor de la aplicación (ArranqueNesto), en lugar de Prism/Unity.
     /// <list type="bullet">
     /// <item>Las vistas por nombre son servicios con clave (<c>AddKeyedTransient(typeof(object), nombre, tipo)</c>).</item>
     /// <item>Los diálogos, instancias con clave de <see cref="DialogoRegistrado"/>.</item>

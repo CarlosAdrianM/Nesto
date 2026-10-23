@@ -5,8 +5,8 @@ namespace Nesto.Infrastructure.Contracts
     /// <summary>
     /// Nesto#490 (4C.5, tramo 2): el punto de acceso al contenedor para lo que no puede recibir sus dependencias por el
     /// constructor (controles creados desde XAML, behaviors, código heredado). Sustituye a <c>Prism.Ioc.ContainerLocator</c>:
-    /// en los tramos 2-3 lo inicializa el arranque con un <c>ResolutorPrism</c> (delega en el mismo contenedor de Prism/Unity);
-    /// en el tramo 4, con el de Microsoft.Extensions.DependencyInjection, sin tocar a quien lo usa.
+    /// en los tramos 2-3 lo inicializaba el arranque con un <c>ResolutorPrism</c> (sobre el contenedor de Prism/Unity);
+    /// desde el tramo 4, Application.OnStartup lo inicializa con el de Microsoft.Extensions.DependencyInjection (sin tocar a quien lo usa).
     /// <para>
     /// Es <c>null</c> mientras nadie lo inicialice (el diseñador de XAML y la mayoría de los tests), igual que
     /// <c>ContainerLocator.Container</c>: quien lo use fuera de la aplicación tiene que contar con ello.
