@@ -8,7 +8,6 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using Prism.Ioc;
 using ControlesUsuario.ViewModels;
 using Nesto.Infrastructure.Shared;
 using System.Linq;

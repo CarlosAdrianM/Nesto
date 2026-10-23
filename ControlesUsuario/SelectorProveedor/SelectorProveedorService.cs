@@ -9,7 +9,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Prism.Ioc;
 using static ControlesUsuario.Models.SelectorProveedorModel;
 
 namespace ControlesUsuario.Services

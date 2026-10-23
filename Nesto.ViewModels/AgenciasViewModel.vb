@@ -22,7 +22,6 @@ Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
 Imports PdfiumViewer
 Imports CommunityToolkit.Mvvm.Input
-Imports Prism.Ioc
 Imports CommunityToolkit.Mvvm.ComponentModel
 
 Public Class AgenciasViewModel

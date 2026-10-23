@@ -1,7 +1,6 @@
 ﻿Imports Microsoft.Xaml.Behaviors
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Navegacion
-Imports Prism.Ioc
 
 Public Class CloseTabAction
     Inherits TriggerAction(Of Button)

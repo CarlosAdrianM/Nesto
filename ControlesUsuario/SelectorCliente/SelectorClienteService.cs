@@ -3,7 +3,6 @@ using Nesto.Infrastructure.Contracts;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Prism.Ioc;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using Nesto.Infrastructure.Shared;

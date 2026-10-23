@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Nesto.Infrastructure.Contracts;
 using System;
-using Prism.Ioc;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;

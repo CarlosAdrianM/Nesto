@@ -1,7 +1,6 @@
 using Nesto.Infrastructure.Contracts;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
-using Prism.Ioc;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;

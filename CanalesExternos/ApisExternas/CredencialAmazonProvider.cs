@@ -1,6 +1,5 @@
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
-using Prism.Ioc;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;

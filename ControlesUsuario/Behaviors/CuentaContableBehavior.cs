@@ -2,7 +2,6 @@ using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Microsoft.Xaml.Behaviors;
 using Nesto.Infrastructure.Contracts;
-using Prism.Ioc;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

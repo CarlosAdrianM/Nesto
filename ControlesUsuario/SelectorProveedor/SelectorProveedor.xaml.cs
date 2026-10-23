@@ -18,7 +18,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using static ControlesUsuario.Models.SelectorProveedorModel;
-using Prism.Ioc;
 
 namespace ControlesUsuario
 {
