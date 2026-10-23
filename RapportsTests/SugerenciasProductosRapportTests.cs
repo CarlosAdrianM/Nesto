@@ -5,6 +5,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Rapports;
 using System;
 using System.Collections.Generic;
@@ -326,6 +327,55 @@ namespace RapportsTests
             Assert.AreEqual(2, vm.CintaSugerencias.Sugerencias.Count);
             A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
             GC.KeepAlive(plantilla);
+        }
+
+        #endregion
+
+        #region Plegar (sugerencia 761)
+
+        [TestMethod]
+        public void Plegar_EnElRapport_SeGuardaConSuParametro_YNoTocaElDeLaPlantilla()
+        {
+            var (vm, _, configuracion, _) = CrearViewModel();
+            Assert.IsTrue(vm.CintaSugerencias.Desplegadas, "Sin preferencia, desplegada");
+
+            vm.CintaSugerencias.PlegarCommand.Execute(null);
+
+            Assert.IsTrue(vm.CintaSugerencias.Plegadas);
+            A.CallTo(() => configuracion.GuardarParametro("1", Parametros.Claves.SugerenciasRapportPlegadas, "1"))
+                .MustHaveHappenedOnceExactly();
+            A.CallTo(() => configuracion.GuardarParametro(A<string>._, Parametros.Claves.SugerenciasPlantillaPlegadas, A<string>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AlAbrir_SeLeeElParametroDelRapport_NoElDeLaPlantilla()
+        {
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult<string>(null));
+            A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasPlantillaPlegadas)).Returns(Task.FromResult("0"));
+            A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasRapportPlegadas)).Returns(Task.FromResult("1"));
+
+            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
+                A.Fake<IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+
+            Assert.IsTrue(vm.CintaSugerencias.Plegadas, "En el rapport manda SugerenciasRapportPlegadas");
+        }
+
+        [TestMethod]
+        public void AlAbrir_SinElParametroDelRapportEnLaBD_NoFalla_YSaleDesplegada()
+        {
+            // Si aún no se ha lanzado el script de la fila «(defecto)», la API da 404 y Configuracion.leerParametro lanza
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult<string>(null));
+            A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasPlantillaPlegadas)).Returns(Task.FromResult("1"));
+            A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasRapportPlegadas))
+                .ThrowsAsync(new Exception("No se puede leer el parámetro"));
+
+            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
+                A.Fake<IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+
+            Assert.IsTrue(vm.CintaSugerencias.Desplegadas, "Sin el parámetro, el valor por defecto: desplegada");
         }
 
         #endregion

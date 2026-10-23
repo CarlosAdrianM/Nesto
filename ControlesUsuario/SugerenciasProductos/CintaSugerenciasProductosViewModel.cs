@@ -42,6 +42,7 @@ namespace ControlesUsuario.SugerenciasProductos
         private string _clienteActual;
         private string _vendedor;
         private bool _plegadas;
+        private readonly string _clavePlegadas;
 
         /// <param name="peticion">
         /// Lo que se manda a Calcular (empresa, cliente, contacto, vendedor y carrito), o null si todavía no hay cliente. La sesión
@@ -57,10 +58,16 @@ namespace ControlesUsuario.SugerenciasProductos
         /// True (la plantilla): al entrar el producto, la cinta apunta «Anadido». False (el rapport, Nesto#544 corte 2): lo apunta
         /// la plantilla que lo recibe, con su carrito.
         /// </param>
+        /// <param name="clavePlegadas">
+        /// Sugerencia 761: el parámetro de usuario con el que se recuerda si va plegada. Cada pantalla el suyo (la plantilla,
+        /// SugerenciasPlantillaPlegadas; el rapport, SugerenciasRapportPlegadas). Null: el de la plantilla.
+        /// </param>
         public CintaSugerenciasProductosViewModel(Func<CalcularSugerenciasProductosDTO> peticion,
             Func<List<ProductoCarritoSugerenciaDTO>> carrito = null, Func<Task<string>> leerVendedor = null,
-            IConfiguracion configuracion = null, Func<SugerenciaProductoDTO, Task<bool>> anadir = null, bool apuntarAnadido = true)
+            IConfiguracion configuracion = null, Func<SugerenciaProductoDTO, Task<bool>> anadir = null, bool apuntarAnadido = true,
+            string clavePlegadas = null)
         {
+            _clavePlegadas = string.IsNullOrWhiteSpace(clavePlegadas) ? Parametros.Claves.SugerenciasPlantillaPlegadas : clavePlegadas;
             _apuntarAnadido = apuntarAnadido;
             _peticion = peticion ?? throw new ArgumentNullException(nameof(peticion));
             _carrito = carrito;
@@ -102,7 +109,7 @@ namespace ControlesUsuario.SugerenciasProductos
         public RelayCommand<SugerenciaProductoDTO> QuitarCommand { get; }
         public RelayCommand PlegarCommand { get; }
 
-        /// <summary>La cinta plegada deja solo la cabecera. Se recuerda por usuario (parámetro SugerenciasPlantillaPlegadas).</summary>
+        /// <summary>La cinta plegada deja solo la cabecera. Se recuerda por usuario y pantalla (<see cref="ClavePlegadas"/>).</summary>
         public bool Plegadas
         {
             get => _plegadas;
@@ -118,6 +125,9 @@ namespace ControlesUsuario.SugerenciasProductos
         }
 
         public bool Desplegadas => !_plegadas;
+
+        /// <summary>El parámetro de usuario con el que se recuerda si va plegada (sugerencia 761).</summary>
+        public string ClavePlegadas => _clavePlegadas;
 
         public string TextoPlegar => _plegadas ? "▸" : "▾";
 
@@ -435,7 +445,7 @@ namespace ControlesUsuario.SugerenciasProductos
             }
         }
 
-        /// <summary>"1" = plegada. Sin fila, otro valor o si no se puede leer: desplegada.</summary>
+        /// <summary>"1" = plegada. Sin fila (también si aún no está la de «(defecto)»), otro valor o si no se puede leer: desplegada.</summary>
         public async void CargarPreferenciaPlegadas()
         {
             if (_configuracion == null)
@@ -444,7 +454,7 @@ namespace ControlesUsuario.SugerenciasProductos
             }
             try
             {
-                string valor = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SugerenciasPlantillaPlegadas);
+                string valor = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, _clavePlegadas);
                 if (SetProperty(ref _plegadas, valor?.Trim() == "1", nameof(Plegadas)))
                 {
                     OnPropertyChanged(nameof(Desplegadas));
@@ -465,7 +475,7 @@ namespace ControlesUsuario.SugerenciasProductos
             }
             try
             {
-                await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SugerenciasPlantillaPlegadas, plegadas ? "1" : "0");
+                await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, _clavePlegadas, plegadas ? "1" : "0");
             }
             catch (Exception)
             {

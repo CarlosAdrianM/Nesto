@@ -65,6 +65,9 @@
             // Nesto#537: "1" = la franja «Puede ofrecer» de la plantilla de venta sale plegada; cualquier otro valor, sin
             // fila o si no se puede leer = desplegada. La guarda la propia plantilla al plegarla o desplegarla.
             public const string SugerenciasPlantillaPlegadas = "SugerenciasPlantillaPlegadas";
+            // Sugerencia 761: lo mismo para la cinta «Puede ofrecer» del rapport, que se recuerda aparte de la plantilla.
+            // Fila «(defecto)»: Scripts/Sugerencia761_ParametroRapport.sql (NestoAPI). Sin ella, desplegada.
+            public const string SugerenciasRapportPlegadas = "SugerenciasRapportPlegadas";
             public const string UltimaVersionNovedades = "UltimaVersionNovedades";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
