@@ -13,6 +13,8 @@
             <RibbonGroup x:Name="grpVentas"
                                     Header="Ventas">
                 <RibbonButton Label="Pedidos" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirModulo}" />
+                <!-- Nesto#552: listado de solo lectura de las líneas pendientes de entregar de todos los almacenes -->
+                <RibbonButton Label="Pendientes de entregar" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirPendientesEntregar}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

@@ -27,6 +27,7 @@ Public Class PedidoVentaViewModel
         Me.servicio = servicio
 
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        cmdAbrirPendientesEntregar = New RelayCommand(AddressOf OnAbrirPendientesEntregar)
 
         Titulo = "Lista de Pedidos"
     End Sub
@@ -62,6 +63,15 @@ Public Class PedidoVentaViewModel
         Dim view = resolutor.Resolver(Of PedidoVentaView)()
         If Not IsNothing(view) Then
             Dim unused = navegacion.AbrirVistaConAmbito("MainRegion", view)
+        End If
+    End Sub
+
+    ' Nesto#552: pestaña nueva con las líneas pendientes de entregar de todos los almacenes
+    Public ReadOnly Property cmdAbrirPendientesEntregar As RelayCommand
+    Private Sub OnAbrirPendientesEntregar()
+        Dim view = resolutor.Resolver(Of PendientesEntregarView)()
+        If Not IsNothing(view) Then
+            navegacion.AbrirVistaNueva("MainRegion", view, "PendientesEntregarView")
         End If
     End Sub
 
