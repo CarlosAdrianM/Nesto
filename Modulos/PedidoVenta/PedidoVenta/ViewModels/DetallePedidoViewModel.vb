@@ -2760,10 +2760,31 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
-    ''' <summary>Cheque disponible y el pedido sin su línea: aviso con «Añadir el cheque regalo».</summary>
+    ''' <summary>
+    ''' Cheque disponible y el pedido sin su línea: aviso con «Añadir el cheque regalo». Carlos (23/10/26, pedido 928889): no en
+    ''' el pedido cuya factura generó el cheque (la API lo rechaza al guardar) ni en uno sin nada pendiente (servido o facturado
+    ''' entero: no hay a qué descontarlo).
+    ''' </summary>
     Public ReadOnly Property MostrarAvisoChequeRegalo As Boolean
         Get
-            Return ChequeRegalo.SePuedeUsar AndAlso Not PedidoLlevaChequeRegalo
+            Return ChequeRegalo.SePuedeUsar AndAlso Not PedidoLlevaChequeRegalo AndAlso PedidoTieneAlgoPendiente AndAlso Not EsPedidoDeLaFacturaOrigen
+        End Get
+    End Property
+
+    ''' <summary>Pedido nuevo (sin líneas) o con alguna línea sin albaranar (presupuesto, pendiente o en curso).</summary>
+    Private ReadOnly Property PedidoTieneAlgoPendiente As Boolean
+        Get
+            Return pedido?.Lineas Is Nothing OrElse Not pedido.Lineas.Any() OrElse
+                pedido.Lineas.Any(Function(l) l.estado <= Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO)
+        End Get
+    End Property
+
+    ''' <summary>Alguna línea es de la factura que generó el cheque: es su pedido de origen.</summary>
+    Private ReadOnly Property EsPedidoDeLaFacturaOrigen As Boolean
+        Get
+            Dim origen As String = ChequeRegalo.Cheque?.FacturaOrigen?.Trim()
+            Return Not String.IsNullOrEmpty(origen) AndAlso pedido?.Lineas IsNot Nothing AndAlso
+                pedido.Lineas.Any(Function(l) String.Equals(l.Factura?.Trim(), origen, StringComparison.OrdinalIgnoreCase))
         End Get
     End Property
 
