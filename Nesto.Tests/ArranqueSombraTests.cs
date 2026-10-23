@@ -358,6 +358,7 @@ namespace Nesto.Tests
             "  RibbonGroup «Ventas» [PlantillaVentaViewModel]",
             "    RibbonButton «Plantilla» [PlantillaVentaViewModel]",
             "    RibbonButton «Pedidos» [PedidoVentaViewModel]",
+            "    RibbonButton «Pendientes de entregar» [PedidoVentaViewModel]", // Nesto#552, después de la referencia de Prism
             "  RibbonGroup «Rapports» [ListaRapportsViewModel]",
             "    RibbonButton «Rapports» [ListaRapportsViewModel]",
             "  RibbonGroup «Documentos» [CrearClienteViewModel]",

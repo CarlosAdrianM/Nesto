@@ -181,6 +181,7 @@ namespace Nesto.Tests
             {
                 typeof(Nesto.Modulos.PedidoVenta.PedidoVentaView),
                 typeof(Nesto.Modulos.PedidoVenta.ListaPedidosVenta),
+                typeof(Nesto.Modulos.PedidoVenta.PendientesEntregarView), // Nesto#552: PedidoVentaViewModel.OnAbrirPendientesEntregar
                 typeof(Nesto.Modulos.PedidoCompra.Views.PedidoCompraView),
                 typeof(Nesto.Modulos.PedidoCompra.Views.ListaPedidosCompraView),
                 typeof(ControlesUsuario.ViewModels.SelectorClienteViewModel),
