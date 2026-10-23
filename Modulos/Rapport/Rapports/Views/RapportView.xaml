@@ -51,8 +51,10 @@
         <StackPanel Grid.Row="5">
             <TextBox Text="{Binding ClienteCompleto.comentarios}" TextWrapping="WrapWithOverflow" IsEnabled="False" Style="{StaticResource campoComentarios}" ></TextBox>
             <!-- Nesto#544 (corte 1): la misma cinta «Puede ofrecer» de la plantilla, en un rapport nuevo y sin «✓ Añadir».
-                 Fichas una debajo de otra porque el panel del rapport es estrecho. Sin sugerencias no se ve nada. -->
-            <controles:CintaSugerenciasProductosView DataContext="{Binding CintaSugerencias}" EnColumna="True" Margin="0,3,0,0"/>
+                 Fichas una debajo de otra porque el panel del rapport es estrecho. Sin sugerencias no se ve nada.
+                 Sugerencia 761: con tope de alto (dos fichas; el resto, desplazando) para dejar sitio a los comentarios.
+                 Se pliega con su cabecera (Alt+O) y se recuerda por usuario. -->
+            <controles:CintaSugerenciasProductosView DataContext="{Binding CintaSugerencias}" EnColumna="True" AlturaMaximaFichas="176" Margin="0,3,0,0"/>
         </StackPanel>
         <StackPanel Grid.Row="6" Orientation="Horizontal">
             <TextBlock Text="Fecha: "></TextBlock>
@@ -107,7 +109,8 @@
         
         <DockPanel Grid.Row="10">
             <TextBlock DockPanel.Dock="Top" Text="Comentarios: "></TextBlock>
-            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="Wrap" AcceptsReturn="True" SpellCheck.IsEnabled="True" VerticalScrollBarVisibility="Auto"></TextBox>
+            <!-- Sugerencia 761: siempre al menos unas 5 líneas; si hay sitio, crece -->
+            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="Wrap" AcceptsReturn="True" SpellCheck.IsEnabled="True" VerticalScrollBarVisibility="Auto" MinHeight="90"></TextBox>
         </DockPanel>
         <StackPanel Grid.Row="11" Orientation="Horizontal">
             <TextBlock Text="Usuario: "></TextBlock>
