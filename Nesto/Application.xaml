@@ -1,9 +1,9 @@
-﻿<prism:PrismApplication x:Class="Application"
+﻿<Application x:Class="Application"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:prism="http://prismlibrary.com/">
-    <!--StartupUri="MainWindow.xaml"-->
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Nesto#490 (4C.5, tramo 4): una Application normal, sin PrismApplication. El arranque está en OnStartup
+         (ArranqueNesto), así que tampoco hay StartupUri. -->
     <Application.Resources>
         <ResourceDictionary Source="Dictionary.xaml" />
     </Application.Resources>
-</prism:PrismApplication>
+</Application>

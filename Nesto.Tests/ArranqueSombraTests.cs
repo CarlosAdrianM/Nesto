@@ -6,8 +6,6 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Navegacion;
 using Nesto.Infrastructure.Shared;
 using Nesto.Views;
-using Prism.Modularity;
-using Prism.Unity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +28,11 @@ namespace Nesto.Tests
     /// Las listas de referencia se sacaron ejecutando esta misma prueba con el arranque de Prism (PrismApplication:
     /// Unity, el catálogo de módulos y el ModuleManager), antes de quitarlo. Si MS.DI elige otro constructor sin avisar
     /// (p. ej. <c>PedidoVentaMenuBar</c> con <c>New()</c> y <c>New(viewModel)</c>), el DataContext no coincide y falla.
+    /// Comprobado a mano: con el menú de pedidos de venta creado por <c>New()</c> (ValidateOnBuild no protesta) fallan la
+    /// de los menús (DataContext null) y la de la cinta (el botón «Pedidos» se queda con el ViewModel de la plantilla).
+    /// </para>
+    /// <para>
+    /// Desde el tramo 4, el arranque es el de la aplicación (<see cref="ArranqueNesto"/>) sobre MS.DI con ValidateOnBuild.
     /// </para>
     /// <para>
     /// Se arranca una sola vez para toda la clase, en un hilo STA con una <see cref="System.Windows.Application"/> (la de
@@ -226,34 +229,27 @@ namespace Nesto.Tests
             registro.Singleton<IServicioCinta>(r => new CintaQueApunta(new ServicioCinta(r.Resolver<IMainWindow>().mainRibbon), arranque.MenusEnLaCinta));
         }
 
-        // El arranque de PrismApplication (Initialize): RegisterTypes, CreateShell (con AlCrearShell) y los módulos del
-        // catálogo con el ModuleManager de Prism, en su orden.
+        // El arranque de la aplicación (ArranqueNesto, lo mismo que hace Application.OnStartup), con los fakes registrados
+        // encima de todo y sin Show(). Hasta el tramo 4 aquí estaba el de PrismApplication.Initialize (Unity, CreateShell con
+        // AlCrearShell y el ModuleManager de Prism), con el que se sacaron las listas de referencia.
         private static Arranque Arrancar()
         {
             var arranque = new Arranque();
+            // Los nombres de las vistas y de los diálogos, para pedirlos todos después
             var apunta = new RegistroQueApunta(arranque);
             ComposicionNesto.Registrar(apunta);
-
-            var unity = new UnityContainerExtension();
-            var resolutor = new ResolutorPrism(unity);
-            var registro = new RegistroPrism(unity);
-            ComposicionNesto.Registrar(registro);
-            RegistrarFakes(registro, arranque);
-            arranque.Resolutor = resolutor;
-
-            var catalogo = new ModuleCatalog();
             foreach (Type tipoModulo in ComposicionNesto.Modulos)
             {
-                _ = catalogo.AddModule(tipoModulo);
                 ((IModuloNesto)Activator.CreateInstance(ImplementacionDe(tipoModulo))).Registrar(apunta);
             }
 
-            using (Contenedor.Sustituir(resolutor))
+            ArranqueNesto arranqueNesto = ArranqueNesto.Componer(registro => RegistrarFakes(registro, arranque));
+            arranque.Resolutor = arranqueNesto.Resolutor;
+            using (Contenedor.Sustituir(arranqueNesto.Resolutor))
             {
-                arranque.Shell = (Window)resolutor.Resolver<IMainWindow>();
-                arranque.Regiones = resolutor.Resolver<RegionesDelShell>();
-                arranque.Regiones.AlCrearShell(arranque.Shell);
-                new ModuleManager(new ModuleInitializer(unity), catalogo).Run();
+                arranque.Shell = arranqueNesto.CrearShell();
+                arranque.Regiones = arranqueNesto.Resolutor.Resolver<RegionesDelShell>();
+                arranqueNesto.InicializarModulos();
             }
             return arranque;
         }
