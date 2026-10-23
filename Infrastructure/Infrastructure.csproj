@@ -10,11 +10,9 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.4.3" />
-    <!-- Nesto#490 (4C.5): el contenedor que sustituirá a Prism/Unity (en el tramo 1, solo la prueba sombra) -->
+    <!-- Nesto#490 (4C.5): el contenedor de Nesto; desde el tramo 4 sustituye a Prism/Unity (ContenedorMicrosoft) -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
-    <PackageReference Include="Prism.Core" Version="8.1.97" />
-    <PackageReference Include="Prism.Wpf" Version="8.1.97" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.26.1" />
   </ItemGroup>
 
