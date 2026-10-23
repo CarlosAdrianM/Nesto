@@ -25,12 +25,14 @@ namespace Infrastructure.Tests
         {
             public readonly List<string> Urls = new List<string>();
             public readonly List<string> Cuerpos = new List<string>();
+            public readonly List<HttpRequestMessage> Peticiones = new List<HttpRequestMessage>();
             public HttpStatusCode Codigo = HttpStatusCode.OK;
             public string Respuesta = "{}";
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 Urls.Add(request.Method + " " + request.RequestUri.PathAndQuery);
+                Peticiones.Add(request);
                 Cuerpos.Add(request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false));
                 return new HttpResponseMessage(Codigo) { Content = new StringContent(Respuesta, Encoding.UTF8, "application/json") };
             }
@@ -230,6 +232,78 @@ namespace Infrastructure.Tests
             var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
 
             await Assert.ThrowsExceptionAsync<RecepcionReposicionException>(() => servicio.BuscarProductosPorCodigo("1", "8437020512176"));
+        }
+    
+
+        // ---------------------------------------------------------------- Ariadna#51 (corte 2): lo leído, en el servidor
+
+        [TestMethod]
+        public async Task LeerLecturas_PideLoLeidoDeLaRecepcionEnCurso()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"IdRecepcion\":\"5b1d0c1e-51c2-4a51-9b11-811190000001\",\"Lecturas\":[{\"Producto\":\"17404\",\"Cantidad\":2}]," +
+                            "\"CodigosBulto\":[\"R81119-1\"],\"Equipos\":[{\"Usuario\":\"Andre\",\"Dispositivo\":\"Ariadna\"}]}"
+            };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            LecturasRecepcionReposicion lecturas = await servicio.LeerLecturas("1", "REI", "81119");
+
+            Assert.AreEqual("GET /api/Almacen/Recepciones/REPO/81119/Lecturas?almacen=REI&empresa=1", handler.Urls[0]);
+            Assert.AreEqual(new Guid("5b1d0c1e-51c2-4a51-9b11-811190000001"), lecturas.IdRecepcion);
+            Assert.AreEqual(2, lecturas.Lecturas.Single().Cantidad);
+            Assert.AreEqual("R81119-1", lecturas.CodigosBulto.Single());
+            Assert.AreEqual("Ariadna", lecturas.Equipos.Single().Dispositivo);
+        }
+
+        [TestMethod]
+        public async Task LeerLecturas_ConUnaApiAnterior_DevuelveNull()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            Assert.IsNull(await servicio.LeerLecturas("1", "REI", "81119"));
+        }
+
+        [TestMethod]
+        public async Task LeerLecturas_SiLaApiFalla_Lanza()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.InternalServerError, Respuesta = "{\"Message\":\"Error\"}" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            await Assert.ThrowsExceptionAsync<RecepcionReposicionException>(() => servicio.LeerLecturas("1", "REI", "81119"));
+        }
+
+        [TestMethod]
+        public async Task GuardarLecturas_MandaLosApuntesConLaConexionYElEquipo()
+        {
+            var handler = new HandlerFalso { Respuesta = "{\"IdRecepcion\":\"5b1d0c1e-51c2-4a51-9b11-811190000001\",\"Lecturas\":[]}" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+            var id = Guid.NewGuid();
+
+            LecturasRecepcionReposicion lecturas = await servicio.GuardarLecturas("1", "REI", "81119", new List<LecturaEnCursoRecepcion>
+            {
+                new LecturaEnCursoRecepcion { IdCliente = id, Producto = "17404", Cantidad = -1, Dispositivo = "RDS2016" }
+            }, "conexion-1");
+
+            Assert.AreEqual("POST /api/Almacen/Recepciones/REPO/81119/Lecturas?almacen=REI&empresa=1", handler.Urls[0]);
+            JArray cuerpo = JArray.Parse(handler.Cuerpos[0]);
+            Assert.AreEqual(id.ToString(), (string)cuerpo[0]["IdCliente"]);
+            Assert.AreEqual(-1, (int)cuerpo[0]["Cantidad"]);
+            Assert.AreEqual("conexion-1", handler.Peticiones[0].Headers.GetValues("X-Conexion-SignalR").Single());
+            Assert.AreEqual(Environment.MachineName, handler.Peticiones[0].Headers.GetValues("X-Dispositivo").Single());
+            Assert.AreEqual(new Guid("5b1d0c1e-51c2-4a51-9b11-811190000001"), lecturas.IdRecepcion);
+        }
+
+        [TestMethod]
+        public async Task GuardarLecturas_SiLaApiNoLaGuarda_Lanza()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.BadRequest, Respuesta = "\"La reposición ya está recibida\"" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            var ex = await Assert.ThrowsExceptionAsync<RecepcionReposicionException>(() =>
+                servicio.GuardarLecturas("1", "REI", "81119", new List<LecturaEnCursoRecepcion>(), null));
+            Assert.AreEqual("La reposición ya está recibida", ex.Message);
         }
     }
 }

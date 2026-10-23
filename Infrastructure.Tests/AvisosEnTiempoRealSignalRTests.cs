@@ -42,6 +42,28 @@ namespace Infrastructure.Tests
                 return Task.CompletedTask;
             }
 
+            // Ariadna#51: los grupos del almacén
+            public event EventHandler<string> GrupoHaCambiado;
+            public string IdConexion => "conexion-1";
+            public readonly ConcurrentQueue<string> Entradas = new ConcurrentQueue<string>();
+            public readonly ConcurrentQueue<string> Salidas = new ConcurrentQueue<string>();
+            public readonly TaskCompletionSource<bool> HaEntrado = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public Task<bool> EntrarEnGrupo(string grupo, string dispositivo)
+            {
+                Entradas.Enqueue(grupo);
+                _ = HaEntrado.TrySetResult(true);
+                return Task.FromResult(true);
+            }
+
+            public Task SalirDeGrupo(string grupo)
+            {
+                Salidas.Enqueue(grupo);
+                return Task.CompletedTask;
+            }
+
+            public void CambiaElGrupo(string grupo) => GrupoHaCambiado?.Invoke(this, grupo);
+
             public void LlegaAviso() => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty);
             public void PierdeLaConexion() => Reconectando?.Invoke(this, EventArgs.Empty);
             public void Reconecta() => Reconectada?.Invoke(this, EventArgs.Empty);
@@ -124,6 +146,65 @@ namespace Infrastructure.Tests
             await avisos.BucleEnCurso.WaitAsync(TIMEOUT);
 
             Assert.AreEqual(0, errores.Count);
+        }
+
+        [TestMethod]
+        public async Task GrupoDelAlmacen_AlConectarEntraEnElYSusAvisosLlegan()
+        {
+            // Ariadna#51: la pantalla entra en el grupo de la recepción antes de que haya conexión; al conectar se entra
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            var cambiados = new ConcurrentQueue<string>();
+            avisos.GrupoHaCambiado += (s, grupo) => cambiados.Enqueue(grupo);
+            string grupo = GruposAlmacen.Recepcion("repo", " 81119 ", "rei");
+            Assert.AreEqual("recepcion:REPO:81119:REI", grupo);
+
+            avisos.EntrarEnGrupo(grupo);
+            avisos.Iniciar();
+            await conexion.HaEntrado.Task.WaitAsync(TIMEOUT);
+            conexion.CambiaElGrupo(grupo);
+
+            CollectionAssert.AreEqual(new[] { grupo }, conexion.Entradas.ToArray());
+            CollectionAssert.AreEqual(new[] { grupo }, cambiados.ToArray(), "Conectar la primera vez no avisa; el cambio, sí");
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task GrupoDelAlmacen_TrasPerderLaConexion_VuelveAEntrarYAvisaPorLoQuePudoPerderse()
+        {
+            var primera = new ConexionFalsa();
+            var segunda = new ConexionFalsa();
+            var cola = new Queue<ConexionFalsa>(new[] { primera, segunda });
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => cola.Dequeue(),
+                (espera, ct) => espera == AvisosEnTiempoRealSignalR.INTERVALO_REVISION_TOKEN ? EsperaInfinita(ct) : Task.CompletedTask, null);
+            var avisado = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            avisos.GrupoHaCambiado += (s, grupo) => avisado.TrySetResult(grupo);
+
+            avisos.EntrarEnGrupo("recepcion:REPO:81119:REI");
+            avisos.Iniciar();
+            await primera.HaEntrado.Task.WaitAsync(TIMEOUT);
+            primera.SeCierra();
+            await segunda.HaEntrado.Task.WaitAsync(TIMEOUT);
+
+            Assert.AreEqual("recepcion:REPO:81119:REI", await avisado.Task.WaitAsync(TIMEOUT));
+            CollectionAssert.AreEqual(new[] { "recepcion:REPO:81119:REI" }, segunda.Entradas.ToArray());
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public void GrupoDelAlmacen_DosPantallasEnElMismo_SoloSaleCuandoSalenLasDos()
+        {
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => new ConexionFalsa(), (espera, ct) => EsperaInfinita(ct), null);
+
+            avisos.EntrarEnGrupo("recepcion:REPO:81119:REI");
+            avisos.EntrarEnGrupo("recepcion:REPO:81119:REI");
+            avisos.SalirDeGrupo("recepcion:REPO:81119:REI");
+            CollectionAssert.AreEqual(new[] { "recepcion:REPO:81119:REI" }, avisos.Grupos.ToArray());
+            avisos.SalirDeGrupo("recepcion:REPO:81119:REI");
+            Assert.AreEqual(0, avisos.Grupos.Count);
         }
 
         [TestMethod]

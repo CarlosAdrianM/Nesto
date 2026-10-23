@@ -78,6 +78,11 @@ namespace Nesto.Modules.Producto.Views
 
         private void AlCambiarVisibilidad(object sender, DependencyPropertyChangedEventArgs e)
         {
+            // Ariadna#51: al volver a la pestaña, lo leído en los demás equipos (por si se perdió algún aviso)
+            if (e.NewValue is true && DataContext is RecibirReposicionViewModel vm)
+            {
+                _ = vm.RecargarLecturasAsync();
+            }
             if (_volverAlLectorAlVerse && e.NewValue is true)
             {
                 _volverAlLectorAlVerse = false;
