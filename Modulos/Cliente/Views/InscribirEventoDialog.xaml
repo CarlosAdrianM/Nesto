@@ -68,6 +68,12 @@
                              Visibility="{Binding TieneEnlace, Converter={StaticResource BoolAVisibilidad}}"/>
                 </StackPanel>
             </Border>
+
+            <!-- Sugerencia 776: avisos de la API (p. ej. a la ficha le falta el teléfono o el correo); no impiden nada -->
+            <Border Margin="0,8,0,0" Padding="8" Background="#FFF8E1" BorderBrush="#FFE082" BorderThickness="1"
+                    Visibility="{Binding HayAvisos, Converter={StaticResource BoolAVisibilidad}}">
+                <TextBlock Text="{Binding TextoAvisos}" TextWrapping="Wrap" Foreground="#5D4037"/>
+            </Border>
         </StackPanel>
 
         <TextBlock Grid.Row="2" Text="{Binding Mensaje}" Foreground="Red" TextWrapping="Wrap" Margin="0,10,0,0"/>

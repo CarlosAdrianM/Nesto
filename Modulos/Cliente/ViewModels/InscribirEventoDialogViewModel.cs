@@ -233,6 +233,8 @@ namespace Nesto.Modulos.Cliente
                     OnPropertyChanged(nameof(SinInscribir));
                     OnPropertyChanged(nameof(TextoInscrito));
                     OnPropertyChanged(nameof(TieneEnlace));
+                    OnPropertyChanged(nameof(HayAvisos));
+                    OnPropertyChanged(nameof(TextoAvisos));
                     InscribirCommand.NotifyCanExecuteChanged();
                 }
             }
@@ -241,6 +243,17 @@ namespace Nesto.Modulos.Cliente
         public bool Inscrito => Inscripcion != null;
         public bool SinInscribir => Inscripcion == null;
         public bool TieneEnlace => !string.IsNullOrWhiteSpace(Inscripcion?.UrlPago);
+
+        /// <summary>
+        /// Sugerencia 776: lo que avisa la API al inscribir (p. ej. que a la ficha le falta el teléfono o el correo). No impide
+        /// nada: la inscripción ya está hecha; se enseña en el propio diálogo para que completen la ficha.
+        /// </summary>
+        public IReadOnlyList<string> Avisos => Inscripcion?.Avisos?
+            .Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? new List<string>();
+
+        public bool HayAvisos => Avisos.Any();
+
+        public string TextoAvisos => string.Join(Environment.NewLine, Avisos);
 
         public string TextoInscrito => Inscripcion == null
             ? string.Empty

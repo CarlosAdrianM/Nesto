@@ -76,6 +76,11 @@ namespace Nesto.Modulos.Cliente.Models
         /// Solo en los inscritos del evento y en la respuesta de la lista; null en los demás.
         /// </summary>
         public decimal? BaseImponibleDia { get; set; }
+        /// <summary>
+        /// Sugerencia 776: avisos (no errores) de la API al inscribir, p. ej. que a la ficha le falta el teléfono o el correo.
+        /// Solo en la respuesta de inscribir; null en el resto y con la API de antes.
+        /// </summary>
+        public List<string> Avisos { get; set; }
 
         [JsonIgnore]
         public bool EsGratuita => Modalidad == InscribirEventoModel.MODALIDAD_GRATUITA || Estado == INSCRITA;

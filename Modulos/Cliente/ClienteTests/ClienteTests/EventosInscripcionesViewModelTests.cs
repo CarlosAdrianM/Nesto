@@ -575,6 +575,83 @@ namespace ClienteTests
             Assert.AreEqual(ResultadoBoton.Cancel, resultado.Result);
         }
 
+        // ---------------- Sugerencia 776: avisos de la ficha al inscribir ----------------
+
+        private const string FALTA_TELEFONO = "A la ficha de la clienta le falta el teléfono: añádalo para poder avisarla del evento.";
+        private const string FALTA_CORREO = "A la ficha de la clienta le falta el correo electrónico: añádalo para poder avisarla del evento.";
+        private const string FALTAN_AMBOS = "A la ficha de la clienta le faltan el teléfono y el correo electrónico: añádalos para poder avisarla del evento.";
+
+        private InscribirEventoDialogViewModel InscritoConAvisos(List<string> avisos)
+        {
+            InscribirEventoDialogViewModel vm = Dialogo(Evento(7, DateTime.Today.AddDays(5)));
+            InscripcionEventoModel creada = Inscripcion(11, InscripcionEventoModel.RESERVADA);
+            creada.Avisos = avisos;
+            A.CallTo(() => eventos.Inscribir(A<int>.Ignored, A<InscribirEventoModel>.Ignored)).Returns(creada);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "15191" } });
+            Assert.IsFalse(vm.HayAvisos, "Antes de inscribir no hay avisos");
+            vm.InscribirCommand.Execute(null);
+            return vm;
+        }
+
+        [TestMethod]
+        public void Dialogo_FaltaElTelefono_LoAvisaSinImpedirLaInscripcion()
+        {
+            InscribirEventoDialogViewModel vm = InscritoConAvisos(new List<string> { FALTA_TELEFONO });
+
+            Assert.IsTrue(vm.Inscrito);
+            Assert.IsTrue(vm.HayAvisos);
+            Assert.AreEqual(FALTA_TELEFONO, vm.TextoAvisos);
+            Assert.IsNull(vm.Mensaje, "No es un error");
+        }
+
+        [TestMethod]
+        public void Dialogo_FaltaElCorreo_LoAvisa()
+        {
+            InscribirEventoDialogViewModel vm = InscritoConAvisos(new List<string> { FALTA_CORREO });
+
+            Assert.IsTrue(vm.HayAvisos);
+            Assert.AreEqual(FALTA_CORREO, vm.TextoAvisos);
+        }
+
+        [TestMethod]
+        public void Dialogo_FaltanLosDos_UnSoloAviso()
+        {
+            InscribirEventoDialogViewModel vm = InscritoConAvisos(new List<string> { FALTAN_AMBOS });
+
+            Assert.AreEqual(1, vm.Avisos.Count);
+            Assert.AreEqual(FALTAN_AMBOS, vm.TextoAvisos);
+        }
+
+        [TestMethod]
+        public void Dialogo_NoFaltaNada_SinAvisos()
+        {
+            InscribirEventoDialogViewModel vm = InscritoConAvisos(new List<string>());
+
+            Assert.IsTrue(vm.Inscrito);
+            Assert.IsFalse(vm.HayAvisos);
+            Assert.AreEqual(string.Empty, vm.TextoAvisos);
+        }
+
+        [TestMethod]
+        public void Dialogo_ApiDeAntesSinAvisos_NoEnseñaNada()
+        {
+            InscribirEventoDialogViewModel vm = InscritoConAvisos(null);
+
+            Assert.IsTrue(vm.Inscrito);
+            Assert.IsFalse(vm.HayAvisos);
+        }
+
+        [TestMethod]
+        public void Inscripcion_LeeLosAvisosDeLaApi()
+        {
+            var conAvisos = Newtonsoft.Json.JsonConvert.DeserializeObject<InscripcionEventoModel>(
+                "{\"Id\":11,\"Estado\":\"Reservada\",\"Avisos\":[\"" + FALTA_CORREO + "\"]}");
+            var sinAvisos = Newtonsoft.Json.JsonConvert.DeserializeObject<InscripcionEventoModel>("{\"Id\":11,\"Estado\":\"Reservada\"}");
+
+            CollectionAssert.AreEqual(new[] { FALTA_CORREO }, conAvisos.Avisos);
+            Assert.IsNull(sinAvisos.Avisos);
+        }
+
         // ---------------- Pestaña «Eventos» de la ficha del cliente ----------------
 
         [TestMethod]
