@@ -4,6 +4,7 @@ using Nesto.Infrastructure.Services;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.ViewModels;
+using Newtonsoft.Json.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -13,6 +14,7 @@ namespace Producto.Tests
     /// <summary>
     /// Sugerencia 648 (Paloma, NestoAPI#658): el Excel de lo facturado en la tienda. Por defecto, la semana anterior de lunes a
     /// domingo; las tiendas sacan la suya (la API decide con su AlmacénPedidoVta) y Dirección, Administración e Informática eligen.
+    /// El Excel se manda por correo (en el escritorio remoto Office no tiene licencia): aquí no se abre.
     /// </summary>
     [TestClass]
     public class FacturacionTiendaViewModelTests
@@ -21,7 +23,6 @@ namespace Producto.Tests
         private IServicioFacturacionTienda _servicio = null!;
         private IConfiguracion _configuracion = null!;
         private IServicioDialogos _dialogos = null!;
-        private readonly List<(byte[] Excel, string Nombre)> _abiertos = new();
 
         [TestInitialize]
         public void Inicializar()
@@ -29,7 +30,17 @@ namespace Producto.Tests
             _servicio = A.Fake<IServicioFacturacionTienda>();
             _configuracion = A.Fake<IConfiguracion>();
             _dialogos = A.Fake<IServicioDialogos>();
-            A.CallTo(() => _servicio.DescargarExcel(A<string>._, A<DateTime>._, A<DateTime>._)).Returns(Task.FromResult(new byte[] { 0x50, 0x4B }));
+            A.CallTo(() => _servicio.LeerCorreoUsuario()).Returns(Task.FromResult<string>("paloma@nuevavision.es"));
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(A<string>._, A<DateTime>._, A<DateTime>._, A<string>._))
+                .ReturnsLazily((string tienda, DateTime desde, DateTime hasta, string correo) => Task.FromResult(new ResultadoCorreoFacturacionTienda
+                {
+                    Correo = correo ?? "paloma@nuevavision.es",
+                    Tienda = tienda ?? "ALC",
+                    Desde = desde,
+                    Hasta = hasta,
+                    NumeroFacturas = 12,
+                    Total = 1234.56m
+                }));
         }
 
         private FacturacionTiendaViewModel Vm(params string[] grupos)
@@ -38,13 +49,7 @@ namespace Producto.Tests
             {
                 A.CallTo(() => _configuracion.UsuarioEnGrupo(grupo)).Returns(true);
             }
-            var vm = new FacturacionTiendaViewModel(_servicio, _configuracion, _dialogos, () => MARTES);
-            vm.GuardarYAbrir = (excel, nombre) =>
-            {
-                _abiertos.Add((excel, nombre));
-                return null;
-            };
-            return vm;
+            return new FacturacionTiendaViewModel(_servicio, _configuracion, _dialogos, () => MARTES);
         }
 
         [TestMethod]
@@ -85,37 +90,113 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Generar_Tiendas_PideSinTiendaConLaSemanaYAbreElExcel()
+        public void ElViewModel_YaNoAbreElExcelEnElServidor()
+        {
+            // En el escritorio remoto Office no tiene licencia: ni descarga ni «abrir aquí»
+            Assert.IsNull(typeof(FacturacionTiendaViewModel).GetProperty("GuardarYAbrir",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic));
+            Assert.IsNull(typeof(IServicioFacturacionTienda).GetMethod("DescargarExcel"));
+        }
+
+        // ---------------------------------------------------------------- el correo
+
+        [TestMethod]
+        public async Task AlLlegar_RellenaElCorreoConElDelUsuario()
         {
             var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
 
-            await vm.GenerarAsync();
+            await vm.LeerCorreoDelUsuarioAsync();
 
-            A.CallTo(() => _servicio.DescargarExcel(null, new DateTime(2026, 10, 19), new DateTime(2026, 10, 25))).MustHaveHappenedOnceExactly();
-            Assert.AreEqual("FacturacionTienda_Tienda_20261019_20261025", _abiertos.Single().Nombre);
-            CollectionAssert.AreEqual(new byte[] { 0x50, 0x4B }, _abiertos.Single().Excel);
+            Assert.AreEqual("paloma@nuevavision.es", vm.Correo);
+            Assert.IsNull(vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task AlLlegar_SinCorreoDelUsuario_LoDiceYSeQuedaVacio()
+        {
+            A.CallTo(() => _servicio.LeerCorreoUsuario()).Returns(Task.FromResult<string>(null!));
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+
+            await vm.LeerCorreoDelUsuarioAsync();
+
+            Assert.IsTrue(string.IsNullOrEmpty(vm.Correo));
+            Assert.AreEqual(FacturacionTiendaViewModel.MENSAJE_SIN_CORREO, vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task AlLlegar_SiFallaLeerElCorreo_NoRompe()
+        {
+            A.CallTo(() => _servicio.LeerCorreoUsuario()).ThrowsAsync(new HttpRequestException("sin red"));
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+
+            await vm.LeerCorreoDelUsuarioAsync();
+
+            Assert.IsNull(vm.Correo);
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Mandar_Tiendas_PideSinTiendaConLaSemanaYSuCorreo_YDiceAQuienSeHaMandado()
+        {
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+            await vm.LeerCorreoDelUsuarioAsync();
+
+            await vm.MandarAsync();
+
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(null, new DateTime(2026, 10, 19), new DateTime(2026, 10, 25), "paloma@nuevavision.es"))
+                .MustHaveHappenedOnceExactly();
+            StringAssert.StartsWith(vm.Mensaje, "Se lo hemos mandado a paloma@nuevavision.es");
+            StringAssert.Contains(vm.Mensaje, "12 facturas");
+            A.CallTo(() => _dialogos.ShowNotification(A<string>._, vm.Mensaje)).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.EstaOcupado);
         }
 
         [TestMethod]
-        public async Task Generar_ConOtrasFechas_LasPasa()
+        public async Task Mandar_ConOtroCorreo_LoPasaSinEspacios()
+        {
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+            vm.Correo = "  tiendaalcobendas@nuevavision.es ";
+
+            await vm.MandarAsync();
+
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(null, A<DateTime>._, A<DateTime>._, "tiendaalcobendas@nuevavision.es"))
+                .MustHaveHappenedOnceExactly();
+            StringAssert.StartsWith(vm.Mensaje, "Se lo hemos mandado a tiendaalcobendas@nuevavision.es");
+        }
+
+        [TestMethod]
+        public async Task Mandar_CorreoVacio_DejaQueLaApiPongaElSuyoYLoEnsena()
+        {
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+            vm.Correo = "   ";
+
+            await vm.MandarAsync();
+
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(null, A<DateTime>._, A<DateTime>._, null)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual("paloma@nuevavision.es", vm.Correo);
+            StringAssert.StartsWith(vm.Mensaje, "Se lo hemos mandado a paloma@nuevavision.es");
+        }
+
+        [TestMethod]
+        public async Task Mandar_ConOtrasFechas_LasPasa()
         {
             var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
             vm.Desde = new DateTime(2026, 10, 1, 15, 0, 0);
             vm.Hasta = new DateTime(2026, 10, 15);
 
-            await vm.GenerarAsync();
+            await vm.MandarAsync();
 
-            A.CallTo(() => _servicio.DescargarExcel(null, new DateTime(2026, 10, 1), new DateTime(2026, 10, 15))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(null, new DateTime(2026, 10, 1), new DateTime(2026, 10, 15), A<string>._))
+                .MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
-        public void Generar_DesdePosteriorAHasta_NoSePuede()
+        public void Mandar_DesdePosteriorAHasta_NoSePuede()
         {
             var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
             vm.Desde = new DateTime(2026, 10, 30);
 
-            Assert.IsFalse(vm.GenerarCommand.CanExecute(null));
+            Assert.IsFalse(vm.MandarCommand.CanExecute(null));
         }
 
         [TestMethod]
@@ -139,11 +220,11 @@ namespace Producto.Tests
             var vm = Vm(Constantes.GruposSeguridad.DIRECCION);
 
             await vm.LeerTiendaDelUsuarioAsync();
-            await vm.GenerarAsync();
+            await vm.MandarAsync();
 
             Assert.IsTrue(vm.PuedeElegirTienda);
             CollectionAssert.AreEqual(new[] { "REI", "ALC" }, vm.Tiendas.Select(t => t.Almacen).ToArray());
-            A.CallTo(() => _servicio.DescargarExcel("ALC", A<DateTime>._, A<DateTime>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.MandarExcelPorCorreo("ALC", A<DateTime>._, A<DateTime>._, A<string>._)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -158,18 +239,31 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Generar_LaApiDiceQueNo_EnsenaSuMensaje()
+        public async Task Mandar_LaApiDiceQueNo_EnsenaSuMensaje()
         {
-            A.CallTo(() => _servicio.DescargarExcel(A<string>._, A<DateTime>._, A<DateTime>._))
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(A<string>._, A<DateTime>._, A<DateTime>._, A<string>._))
                 .ThrowsAsync(new FacturacionTiendaException("Cada tienda solo puede ver lo facturado en su almacén.", 403));
             var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
 
-            await vm.GenerarAsync();
+            await vm.MandarAsync();
 
             Assert.AreEqual("Cada tienda solo puede ver lo facturado en su almacén.", vm.Mensaje);
             A.CallTo(() => _dialogos.ShowError("Cada tienda solo puede ver lo facturado en su almacén.")).MustHaveHappenedOnceExactly();
-            Assert.AreEqual(0, _abiertos.Count);
+            A.CallTo(() => _dialogos.ShowNotification(A<string>._, A<string>._)).MustNotHaveHappened();
             Assert.IsFalse(vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public async Task Mandar_FallaLaRed_MensajeDeUsted()
+        {
+            A.CallTo(() => _servicio.MandarExcelPorCorreo(A<string>._, A<DateTime>._, A<DateTime>._, A<string>._))
+                .ThrowsAsync(new HttpRequestException("sin red"));
+            var vm = Vm(Constantes.GruposSeguridad.TIENDAS);
+
+            await vm.MandarAsync();
+
+            Assert.AreEqual("No se ha podido mandar el Excel: sin red", vm.Mensaje);
+            A.CallTo(() => _dialogos.ShowError("No se ha podido mandar el Excel: sin red")).MustHaveHappenedOnceExactly();
         }
 
         // ---------------------------------------------------------------- el botón de la cinta
@@ -200,14 +294,15 @@ namespace Producto.Tests
         private sealed class HandlerFalso : HttpMessageHandler
         {
             private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
-            public List<string> Urls { get; } = new();
+            public List<(string Metodo, string Url, string? Cuerpo)> Peticiones { get; } = new();
 
             public HandlerFalso(Func<HttpRequestMessage, HttpResponseMessage> responder) => _responder = responder;
 
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                Urls.Add(request.RequestUri!.PathAndQuery);
-                return Task.FromResult(_responder(request));
+                string? cuerpo = request.Content == null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+                Peticiones.Add((request.Method.Method, request.RequestUri!.PathAndQuery, cuerpo));
+                return _responder(request);
             }
         }
 
@@ -219,29 +314,58 @@ namespace Producto.Tests
             return new ServicioFacturacionTienda(factoria);
         }
 
+        private static HttpResponseMessage Json(HttpStatusCode codigo, string json)
+            => new HttpResponseMessage(codigo) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
+
         [TestMethod]
-        public async Task Servicio_SinTienda_PideElExcelSoloConLasFechas()
+        public async Task Servicio_Mandar_HaceElPostConTiendaFechasYCorreo_YDevuelveElDestinatario()
         {
-            var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[] { 1, 2, 3 }) });
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK,
+                "{\"Correo\":\"paloma@nuevavision.es\",\"Tienda\":\"ALC\",\"Desde\":\"2026-10-19T00:00:00\",\"Hasta\":\"2026-10-25T00:00:00\",\"NumeroFacturas\":3,\"TotalBaseImponible\":100.0,\"Total\":121.0}"));
 
-            byte[] excel = await Servicio(handler).DescargarExcel(null, new DateTime(2026, 10, 19), new DateTime(2026, 10, 25));
+            ResultadoCorreoFacturacionTienda resultado = await Servicio(handler)
+                .MandarExcelPorCorreo("ALC", new DateTime(2026, 10, 19, 9, 0, 0), new DateTime(2026, 10, 25), " paloma@nuevavision.es ");
 
-            Assert.AreEqual("/api/Informes/FacturacionTienda/Excel?desde=2026-10-19&hasta=2026-10-25", handler.Urls.Single());
-            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, excel);
+            var peticion = handler.Peticiones.Single();
+            Assert.AreEqual("POST", peticion.Metodo);
+            Assert.AreEqual("/api/Informes/FacturacionTienda/Correo", peticion.Url);
+            JObject cuerpo = JObject.Parse(peticion.Cuerpo!);
+            Assert.AreEqual("ALC", (string?)cuerpo["Tienda"]);
+            Assert.AreEqual("2026-10-19", (string?)cuerpo["Desde"]);
+            Assert.AreEqual("2026-10-25", (string?)cuerpo["Hasta"]);
+            Assert.AreEqual("paloma@nuevavision.es", (string?)cuerpo["Correo"]);
+            Assert.AreEqual("paloma@nuevavision.es", resultado.Correo);
+            Assert.AreEqual(3, resultado.NumeroFacturas);
+            Assert.AreEqual(121m, resultado.Total);
         }
 
         [TestMethod]
-        public async Task Servicio_ConTienda_LaPasa()
+        public async Task Servicio_Mandar_SinTiendaNiCorreo_VanNull()
         {
-            var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Array.Empty<byte>()) });
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"Correo\":\"paloma@nuevavision.es\"}"));
 
-            await Servicio(handler).DescargarExcel("ALC", new DateTime(2026, 10, 19), new DateTime(2026, 10, 25));
+            await Servicio(handler).MandarExcelPorCorreo(null, new DateTime(2026, 10, 19), new DateTime(2026, 10, 25), "  ");
 
-            Assert.AreEqual("/api/Informes/FacturacionTienda/Excel?tienda=ALC&desde=2026-10-19&hasta=2026-10-25", handler.Urls.Single());
+            JObject cuerpo = JObject.Parse(handler.Peticiones.Single().Cuerpo!);
+            Assert.AreEqual(JTokenType.Null, cuerpo["Tienda"]!.Type);
+            Assert.AreEqual(JTokenType.Null, cuerpo["Correo"]!.Type);
         }
 
         [TestMethod]
-        public async Task Servicio_403EnTexto_LanzaConElMensajeDeLaApi()
+        public async Task Servicio_Mandar_400ConMessage_LanzaConElMensajeDeLaApi()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.BadRequest,
+                "{\"Message\":\"Por protección de datos, el informe solo se puede mandar a su correo o a uno de @nuevavision.es.\"}"));
+
+            FacturacionTiendaException ex = await Assert.ThrowsExceptionAsync<FacturacionTiendaException>(
+                () => Servicio(handler).MandarExcelPorCorreo(null, new DateTime(2026, 10, 19), new DateTime(2026, 10, 25), "x@gmail.com"));
+
+            Assert.AreEqual(400, ex.Codigo);
+            Assert.AreEqual("Por protección de datos, el informe solo se puede mandar a su correo o a uno de @nuevavision.es.", ex.Message);
+        }
+
+        [TestMethod]
+        public async Task Servicio_Mandar_403EnTexto_LanzaConElMensajeDeLaApi()
         {
             var handler = new HandlerFalso(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)
             {
@@ -249,10 +373,29 @@ namespace Producto.Tests
             });
 
             FacturacionTiendaException ex = await Assert.ThrowsExceptionAsync<FacturacionTiendaException>(
-                () => Servicio(handler).DescargarExcel("REI", new DateTime(2026, 10, 19), new DateTime(2026, 10, 25)));
+                () => Servicio(handler).MandarExcelPorCorreo("REI", new DateTime(2026, 10, 19), new DateTime(2026, 10, 25), null));
 
             Assert.AreEqual(403, ex.Codigo);
             Assert.AreEqual("Cada tienda solo puede ver lo facturado en su almacén.", ex.Message);
+        }
+
+        [TestMethod]
+        public async Task Servicio_LeerCorreo_GetYDevuelveElCorreo()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"Correo\":\" paloma@nuevavision.es \"}"));
+
+            string correo = await Servicio(handler).LeerCorreoUsuario();
+
+            Assert.AreEqual(("GET", "/api/Informes/FacturacionTienda/Correo"), (handler.Peticiones.Single().Metodo, handler.Peticiones.Single().Url));
+            Assert.AreEqual("paloma@nuevavision.es", correo);
+        }
+
+        [TestMethod]
+        public async Task Servicio_LeerCorreo_SinCorreo_Null()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"Correo\":null}"));
+
+            Assert.IsNull(await Servicio(handler).LeerCorreoUsuario());
         }
     }
 }

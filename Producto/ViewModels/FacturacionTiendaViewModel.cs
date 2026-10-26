@@ -28,16 +28,21 @@ namespace Nesto.Modules.Producto.ViewModels
     /// de cada semana: por factura, cliente, dirección, comercial, forma de venta e importe, con los totales. Por defecto, la semana
     /// anterior de lunes a domingo. Dirección, Administración e Informática eligen la tienda; los demás sacan la suya (lo decide la
     /// API con su AlmacénPedidoVta, y su mensaje se enseña tal cual).
+    /// El Excel NO se abre aquí: Nesto corre en el escritorio remoto, donde Office no tiene licencia (y no se quiere Excel consumiendo
+    /// memoria en el servidor). La API lo manda por correo al usuario (a su CorreoDefecto, o al que escriba), que lo abre en su
+    /// ordenador o en el móvil.
     /// </summary>
     public class FacturacionTiendaViewModel : ObservableObject, IReceptorNavegacion
     {
         public const string OPCION_SU_TIENDA = "Su tienda";
+        public const string MENSAJE_SIN_CORREO = "No tiene puesto su correo en Nesto: escriba a qué correo se lo mandamos.";
 
         private readonly IServicioFacturacionTienda _servicio;
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDialogos _dialogos;
         private readonly Func<DateTime> _ahora;
         private bool _tiendaLeida;
+        private bool _correoLeido;
 
         public FacturacionTiendaViewModel(IServicioFacturacionTienda servicio, IConfiguracion configuracion, IServicioDialogos dialogos)
             : this(servicio, configuracion, dialogos, null)
@@ -64,14 +69,15 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 : new List<OpcionTiendaFacturacion> { new OpcionTiendaFacturacion(null, OPCION_SU_TIENDA) };
             _tienda = Tiendas[0];
-            GenerarCommand = new AsyncRelayCommand(GenerarAsync, PuedeGenerar);
+            MandarCommand = new AsyncRelayCommand(MandarAsync, PuedeMandar);
             SemanaAnteriorCommand = new RelayCommand(PonerSemanaAnterior);
             PonerSemanaAnterior();
         }
 
         public string Titulo => "Facturado en la tienda";
         public string Ayuda => "Todo lo facturado con el almacén de la tienda en esas fechas (cursos incluidos), factura a factura y por " +
-            "cliente, con su dirección, su comercial, la forma de venta y el importe. Se abre en Excel.";
+            "cliente, con su dirección, su comercial, la forma de venta y el importe. Se lo mandamos en Excel a su correo, para que lo " +
+            "abra en su ordenador o en el móvil.";
 
         /// <summary>Dirección, Administración e Informática eligen la tienda; los demás, la suya.</summary>
         public bool PuedeElegirTienda { get; }
@@ -92,7 +98,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _desde, value.Date))
                 {
-                    GenerarCommand.NotifyCanExecuteChanged();
+                    MandarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -105,9 +111,17 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _hasta, value.Date))
                 {
-                    GenerarCommand.NotifyCanExecuteChanged();
+                    MandarCommand.NotifyCanExecuteChanged();
                 }
             }
+        }
+
+        private string _correo;
+        /// <summary>A qué correo se manda: empieza con el del usuario (su CorreoDefecto) y se puede cambiar. Vacío: el suyo.</summary>
+        public string Correo
+        {
+            get => _correo;
+            set => SetProperty(ref _correo, value);
         }
 
         private bool _estaOcupado;
@@ -118,7 +132,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _estaOcupado, value))
                 {
-                    GenerarCommand.NotifyCanExecuteChanged();
+                    MandarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -126,11 +140,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _mensaje;
         public string Mensaje { get => _mensaje; private set => SetProperty(ref _mensaje, value); }
 
-        /// <summary>Guarda el Excel en la carpeta temporal y lo abre (los tests lo sustituyen). Devuelve null o el error.</summary>
-        internal Func<byte[], string, string> GuardarYAbrir { get; set; } = (excel, nombre) =>
-            AbridorFicheros.GuardarYAbrir(excel, nombre, "xlsx", "el Excel", AbridorFicheros.AbrirConElVisorDelSistema);
-
-        public IAsyncRelayCommand GenerarCommand { get; }
+        public IAsyncRelayCommand MandarCommand { get; }
         public IRelayCommand SemanaAnteriorCommand { get; }
 
         /// <summary>La última semana cerrada, de lunes a domingo, anterior a <paramref name="hoy"/> (un lunes da la semana pasada).</summary>
@@ -151,6 +161,7 @@ namespace Nesto.Modules.Producto.ViewModels
         public void AlLlegar(ParametrosNavegacion parametros)
         {
             _ = LeerTiendaDelUsuarioAsync();
+            _ = LeerCorreoDelUsuarioAsync();
         }
 
         /// <summary>Quien elige tienda empieza con la suya (su AlmacénPedidoVta) si es una de las tiendas.</summary>
@@ -177,11 +188,37 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        private bool PuedeGenerar() => !EstaOcupado && Desde <= Hasta;
-
-        internal async Task GenerarAsync()
+        /// <summary>El correo al que va el Excel empieza siendo el del usuario (lo dice la API: su CorreoDefecto).</summary>
+        internal async Task LeerCorreoDelUsuarioAsync()
         {
-            if (!PuedeGenerar())
+            if (_correoLeido || _servicio == null)
+            {
+                return;
+            }
+            _correoLeido = true;
+            try
+            {
+                string correo = await _servicio.LeerCorreoUsuario().ConfigureAwait(true);
+                if (string.IsNullOrWhiteSpace(Correo))
+                {
+                    Correo = correo;
+                }
+                if (string.IsNullOrWhiteSpace(Correo))
+                {
+                    Mensaje = MENSAJE_SIN_CORREO;
+                }
+            }
+            catch (Exception)
+            {
+                // Es solo el correo que sale escrito: si se deja vacío, la API usa el suyo (o dice que no lo tiene)
+            }
+        }
+
+        private bool PuedeMandar() => !EstaOcupado && Desde <= Hasta;
+
+        internal async Task MandarAsync()
+        {
+            if (!PuedeMandar())
             {
                 return;
             }
@@ -189,15 +226,18 @@ namespace Nesto.Modules.Producto.ViewModels
             EstaOcupado = true;
             try
             {
-                string tienda = Tienda?.Almacen;
-                byte[] excel = await _servicio.DescargarExcel(tienda, Desde, Hasta).ConfigureAwait(true);
-                string nombre = $"FacturacionTienda_{tienda ?? "Tienda"}_{Desde:yyyyMMdd}_{Hasta:yyyyMMdd}";
-                string error = GuardarYAbrir(excel, nombre);
-                Mensaje = error ?? $"Excel abierto: del {Desde:dd/MM/yyyy} al {Hasta:dd/MM/yyyy}.";
-                if (error != null)
+                string correo = string.IsNullOrWhiteSpace(Correo) ? null : Correo.Trim();
+                ResultadoCorreoFacturacionTienda resultado = await _servicio
+                    .MandarExcelPorCorreo(Tienda?.Almacen, Desde, Hasta, correo)
+                    .ConfigureAwait(true);
+                string destinatario = string.IsNullOrWhiteSpace(resultado?.Correo) ? correo : resultado.Correo.Trim();
+                if (!string.IsNullOrWhiteSpace(destinatario))
                 {
-                    _dialogos?.ShowError(error);
+                    Correo = destinatario;
                 }
+                Mensaje = $"Se lo hemos mandado a {destinatario}: del {Desde:dd/MM/yyyy} al {Hasta:dd/MM/yyyy}" +
+                    (resultado == null ? "." : $", {TextoFacturas(resultado.NumeroFacturas)} por {resultado.Total:N2} € (IVA incluido).");
+                _dialogos?.ShowNotification("Facturado en la tienda", Mensaje);
             }
             catch (FacturacionTiendaException ex)
             {
@@ -206,7 +246,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (Exception ex)
             {
-                Mensaje = "No se ha podido sacar el Excel: " + ex.Message;
+                Mensaje = "No se ha podido mandar el Excel: " + ex.Message;
                 _dialogos?.ShowError(Mensaje);
             }
             finally
@@ -214,5 +254,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaOcupado = false;
             }
         }
+
+        private static string TextoFacturas(int numero) => numero == 1 ? "1 factura" : $"{numero} facturas";
     }
 }

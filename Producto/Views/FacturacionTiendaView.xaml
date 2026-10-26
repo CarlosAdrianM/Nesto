@@ -11,7 +11,8 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
-    <!-- Sugerencia 648 (NestoAPI#658): el Excel de lo facturado en la tienda para pasar las cifras de la semana -->
+    <!-- Sugerencia 648 (NestoAPI#658): el Excel de lo facturado en la tienda para pasar las cifras de la semana. Se manda por correo:
+         en el escritorio remoto Office no tiene licencia, así que aquí no se abre -->
     <StackPanel Margin="16" HorizontalAlignment="Left" MaxWidth="700">
         <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
         <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,16" />
@@ -23,6 +24,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -40,10 +42,15 @@
 
             <TextBlock Grid.Row="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,8" />
             <DatePicker Grid.Row="2" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Hasta}" />
+
+            <TextBlock Grid.Row="3" Text="Correo:" VerticalAlignment="Center" Margin="0,0,8,8" />
+            <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Width="320" HorizontalAlignment="Left" Margin="0,0,0,8"
+                     Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="El Excel le llega a este correo. Si no es el suyo, tiene que ser de @nuevavision.es" />
         </Grid>
 
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-            <Button Content="Sacar el Excel" Command="{Binding GenerarCommand}" Padding="16,4" FontWeight="SemiBold" />
+            <Button Content="Mandar el Excel a mi correo" Command="{Binding MandarCommand}" Padding="16,4" FontWeight="SemiBold" IsDefault="True" />
             <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
                        Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
