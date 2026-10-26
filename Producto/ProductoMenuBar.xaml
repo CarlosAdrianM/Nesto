@@ -24,6 +24,12 @@
                 <RibbonButton Label="Calendario" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirCalendarioReposicionesCommand}" />
                 <RibbonButton Label="{Binding EtiquetaDiferencias}" ToolTip="{Binding AyudaDiferencias}" LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirDiferenciasReposicionCommand}" />
             </RibbonGroup>
+            <!-- Sugerencia 648 (NestoAPI#658): las cifras de la semana de cada tienda, en Excel -->
+            <RibbonGroup x:Name="grpTienda"
+                                Header="Tienda">
+                <RibbonButton Label="Facturado en tienda" ToolTip="Excel con lo facturado en la tienda (cursos incluidos): por defecto, la semana anterior"
+                              LargeImageSource="Images/Diarios.png" Command="{Binding AbrirFacturacionTiendaCommand}" />
+            </RibbonGroup>
             <RibbonGroup x:Name="grpAlmacen"
                                 Header="Almacén">
                 <RibbonButton Label="Etiquetas de hueco" LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirEtiquetasHuecoCommand}" />

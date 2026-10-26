@@ -1,0 +1,52 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.FacturacionTiendaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:FacturacionTiendaViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="700"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- Sugerencia 648 (NestoAPI#658): el Excel de lo facturado en la tienda para pasar las cifras de la semana -->
+    <StackPanel Margin="16" HorizontalAlignment="Left" MaxWidth="700">
+        <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,16" />
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Tienda:" VerticalAlignment="Center" Margin="0,0,8,8" />
+            <ComboBox Grid.Column="1" Width="180" Margin="0,0,0,8" ItemsSource="{Binding Tiendas}" SelectedItem="{Binding Tienda}"
+                      DisplayMemberPath="Texto" IsEnabled="{Binding PuedeElegirTienda}"
+                      ToolTip="Dirección, Administración e Informática pueden elegir la tienda; los demás sacan la suya" />
+
+            <TextBlock Grid.Row="1" Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,8" />
+            <DatePicker Grid.Row="1" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Desde}" />
+            <Button Grid.Row="1" Grid.Column="2" Content="Semana anterior" Command="{Binding SemanaAnteriorCommand}" Padding="12,2"
+                    Margin="12,0,0,8" ToolTip="De lunes a domingo de la semana pasada" />
+
+            <TextBlock Grid.Row="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,8" />
+            <DatePicker Grid.Row="2" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Hasta}" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button Content="Sacar el Excel" Command="{Binding GenerarCommand}" Padding="16,4" FontWeight="SemiBold" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+        <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,12,0,0" />
+    </StackPanel>
+</UserControl>

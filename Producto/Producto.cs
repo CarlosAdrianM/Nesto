@@ -37,6 +37,11 @@ namespace Nesto.Modulos.Producto
             registro.Vista<PropuestasStockView>(NotificacionBuzon.VISTA_PROPUESTAS_STOCK);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.PropuestasStockViewModel>();
             registro.Singleton<IServicioPropuestasStock, ServicioPropuestasStock>();
+
+            // Sugerencia 648 (NestoAPI#658): el Excel de lo facturado en la tienda (las cifras de la semana)
+            registro.Vista<FacturacionTiendaView>(ProductoMenuBarViewModel.VISTA_FACTURACION_TIENDA);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.FacturacionTiendaViewModel>();
+            registro.Singleton<IServicioFacturacionTienda, ServicioFacturacionTienda>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

@@ -28,6 +28,7 @@ namespace Nesto.Modules.Producto
             AbrirCalendarioReposicionesCommand = new RelayCommand(OnAbrirCalendarioReposiciones);
             AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
             AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
+            AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -37,6 +38,24 @@ namespace Nesto.Modules.Producto
         }
 
         public const string ETIQUETA_DIFERENCIAS = "Diferencias";
+        public const string VISTA_FACTURACION_TIENDA = "FacturacionTiendaView";
+
+        /// <summary>
+        /// Sugerencia 648 (Paloma, NestoAPI#658): el Excel con lo facturado en la tienda para el informe de cifras de la semana.
+        /// Las tiendas sacan la suya; Dirección, Administración e Informática, cualquiera (lo comprueba la API).
+        /// </summary>
+        public ICommand AbrirFacturacionTiendaCommand { get; private set; }
+        internal bool CanAbrirFacturacionTienda()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
+        }
+        private void OnAbrirFacturacionTienda()
+        {
+            Navegacion.RequestNavigate("MainRegion", VISTA_FACTURACION_TIENDA);
+        }
 
         /// <summary>
         /// Nesto#526 (NestoAPI#634): lo recibido que no coincide con lo enviado, pendiente de comprobar en el origen. La ven
