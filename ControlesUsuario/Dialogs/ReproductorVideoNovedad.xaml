@@ -1,0 +1,23 @@
+<Window x:Class="ControlesUsuario.Dialogs.ReproductorVideoNovedad"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vídeo de la novedad" Width="960" Height="620" MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResize"
+        Background="White">
+    <!-- NestoAPI#711: el vídeo de una novedad (unos 20 s, sin audio), desde un fichero temporal que borra quien lo abre. -->
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="10,8,10,10" LastChildFill="False">
+            <Button x:Name="BotonPausa" DockPanel.Dock="Left" Content="⏸ Pausa" Padding="12,3" MinWidth="110"
+                    Click="BotonPausa_Click" ToolTip="Pausar o seguir viendo el vídeo (también con la barra espaciadora)" />
+            <Button DockPanel.Dock="Left" Content="⏮ Desde el principio" Padding="12,3" Margin="6,0,0,0"
+                    Click="BotonPrincipio_Click" />
+            <TextBlock x:Name="TextoError" DockPanel.Dock="Left" Margin="12,0,0,0" VerticalAlignment="Center"
+                       Foreground="#B03A2E" TextWrapping="Wrap" Visibility="Collapsed" />
+            <Button DockPanel.Dock="Right" Content="Cerrar" Padding="16,3" IsCancel="True" Click="BotonCerrar_Click" />
+        </DockPanel>
+        <Grid Background="Black">
+            <MediaElement x:Name="Reproductor" LoadedBehavior="Manual" UnloadedBehavior="Close" Stretch="Uniform"
+                          IsMuted="True" MediaEnded="Reproductor_MediaEnded" MediaFailed="Reproductor_MediaFailed" />
+        </Grid>
+    </DockPanel>
+</Window>

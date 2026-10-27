@@ -62,6 +62,14 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public bool Privada { get; set; }
 
+        /// <summary>
+        /// NestoAPI#711: la novedad tiene un vídeo corto (como mucho uno por versión). Se descarga solo al pulsar «Ver vídeo».
+        /// false si no tiene o si la API todavía no lo conoce.
+        /// </summary>
+        public bool TieneVideo { get; set; }
+        /// <summary>NestoAPI#711: bytes del vídeo (null si no tiene o la API no lo manda).</summary>
+        public long? VideoTamano { get; set; }
+
         /// <summary>Sin versión = sugerencia de un usuario, todavía sin implementar.</summary>
         public bool EsSugerencia => string.IsNullOrWhiteSpace(Version);
     }
@@ -92,6 +100,18 @@ namespace Nesto.Infrastructure.Contracts
         public string Tipo { get; set; }
         /// <summary>Tamaño en bytes.</summary>
         public long Tamano { get; set; }
+    }
+
+    /// <summary>
+    /// NestoAPI#711: el vídeo de una novedad. Descargar lanza con el mensaje de la API; registrar la reproducción
+    /// nunca lanza (contar no debe estorbar al que lo está viendo).
+    /// </summary>
+    public interface IServicioVideosNovedades
+    {
+        /// <summary>GET api/Novedades/{id}/Video: el MP4 entero.</summary>
+        Task<byte[]> Descargar(int novedadId);
+        /// <summary>POST api/Novedades/{id}/Video/Reproduccion: quién lo ve y cuándo. No lanza.</summary>
+        Task RegistrarReproduccion(int novedadId);
     }
 
     /// <summary>
