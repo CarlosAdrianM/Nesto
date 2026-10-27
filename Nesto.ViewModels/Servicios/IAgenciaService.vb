@@ -87,7 +87,8 @@ Public Interface IAgenciaService
     ' NestoAPI#552 (fase 4): «Tramitar todos» de GLS por la API (POST api/EnviosAgencias/TramitarTodos): por cada envío, grabarlo
     ' en GLS y darlo por tramitado. Devuelve el resultado de cada uno (un error en uno no para los demás). Solo detrás del
     ' parámetro de usuario GlsPorApi = "API". Lanza con el motivo del servidor si rechaza la petición entera.
-    Function TramitarEnviosGls(numeros As List(Of Integer)) As Task(Of ResultadoTramitarEnviosGlsDto)
+    ' Fase 5: agencia 1 (GLS) o 5 (GLS de la empresa espejo); todos los envíos de la lista son de esa agencia.
+    Function TramitarEnviosGls(numeros As List(Of Integer), agencia As Integer) As Task(Of ResultadoTramitarEnviosGlsDto)
     ' NestoAPI#552 (fase 4): la etiqueta ZPL de un envío de GLS montada en la API, sin grabarlo en GLS (GET
     ' api/EnviosAgencias/{id}/EtiquetaZpl). Lanza con el motivo del servidor si no la da.
     Function LeerEtiquetaGls(numeroEnvio As Integer) As Task(Of EtiquetaEnvioGlsDto)

@@ -947,14 +947,14 @@ Public Class AgenciaService
     ''' <summary>Tramitar todos puede tardar (una llamada a GLS por envío): más margen que los 100 s por defecto.</summary>
     Friend Shared ReadOnly ESPERA_TRAMITAR_TODOS As TimeSpan = TimeSpan.FromMinutes(5)
 
-    Public Async Function TramitarEnviosGls(numeros As List(Of Integer)) As Task(Of ResultadoTramitarEnviosGlsDto) Implements IAgenciaService.TramitarEnviosGls
+    Public Async Function TramitarEnviosGls(numeros As List(Of Integer), agencia As Integer) As Task(Of ResultadoTramitarEnviosGlsDto) Implements IAgenciaService.TramitarEnviosGls
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
             End If
             client.Timeout = ESPERA_TRAMITAR_TODOS
 
-            Dim content As HttpContent = New StringContent(CuerpoTramitarTodos(numeros), Encoding.UTF8, "application/json")
+            Dim content As HttpContent = New StringContent(CuerpoTramitarTodos(numeros, agencia), Encoding.UTF8, "application/json")
             Dim response As HttpResponseMessage = Await client.PostAsync(RUTA_TRAMITAR_TODOS, content)
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
             If Not response.IsSuccessStatusCode Then
@@ -964,9 +964,12 @@ Public Class AgenciaService
         End Using
     End Function
 
-    ''' <summary>NestoAPI#552 (fase 4): el cuerpo aparte para fijar en un test el contrato con el endpoint (agencia 1, GLS).</summary>
-    Friend Shared Function CuerpoTramitarTodos(numeros As List(Of Integer)) As String
-        Return JsonConvert.SerializeObject(New TramitarEnviosGlsDto With {.Agencia = 1, .Envios = numeros})
+    ''' <summary>
+    ''' NestoAPI#552 (fase 4): el cuerpo aparte para fijar en un test el contrato con el endpoint. Fase 5: la agencia 1 (GLS) o
+    ''' la 5 (GLS de la empresa espejo).
+    ''' </summary>
+    Friend Shared Function CuerpoTramitarTodos(numeros As List(Of Integer), agencia As Integer) As String
+        Return JsonConvert.SerializeObject(New TramitarEnviosGlsDto With {.Agencia = agencia, .Envios = numeros})
     End Function
 
     Friend Shared Function RutaEtiquetaGls(numeroEnvio As Integer) As String

@@ -20,6 +20,11 @@ Public Class ResultadoTramitarEnvioGlsDto
     Public Property Asiento As Integer
     Public Property Expedicion As String
     Public Property YaEstabaEnGls As Boolean
+    ''' <summary>
+    ''' NestoAPI#552 (fase 5): GLS ya lo tenía grabado (-33) con otros datos (dirección, bultos, reembolso...) o no se ha podido
+    ''' comprobar: el envío se ha dado por tramitado, pero Almacén tiene que revisarlo con GLS. Nothing si no hay nada que revisar.
+    ''' </summary>
+    Public Property Aviso As String
 End Class
 
 ''' <summary>NestoAPI#552 (fase 4): el resumen de «Tramitar todos» (los contadores los calcula el cliente con la lista).</summary>
@@ -41,6 +46,13 @@ Public Class ResultadoTramitarEnviosGlsDto
     Public ReadOnly Property EnviosFallidos As IEnumerable(Of ResultadoTramitarEnvioGlsDto)
         Get
             Return Envios.Where(Function(e) e.Resultado = ResultadoTramitarEnvioGlsDto.ERROR)
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#552 (fase 5): los que hay que revisar con GLS (ver <see cref="ResultadoTramitarEnvioGlsDto.Aviso"/>).</summary>
+    Public ReadOnly Property EnviosConAviso As IEnumerable(Of ResultadoTramitarEnvioGlsDto)
+        Get
+            Return Envios.Where(Function(e) Not String.IsNullOrWhiteSpace(e.Aviso))
         End Get
     End Property
 End Class
