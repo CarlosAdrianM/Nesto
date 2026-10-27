@@ -99,6 +99,10 @@ namespace Nesto.Tests
             public Comando ComandoPlantilla;
             public Comando ComandoPedidos;
             public List<string> Guardados = new List<string>();
+            public List<string> Errores = new List<string>();
+            public TabControl Pestanas;
+            public TextBox CajaPestana1;
+            public TextBox CajaPestana2;
         }
 
         private static Montaje Montar(string compactaGuardada = null)
@@ -108,7 +112,8 @@ namespace Nesto.Tests
             m.Pedidos = new ElementoMenu(MapaMenuPorRol.Clave("Clientes", "Ventas", "Pedidos")) { Titulo = "Pedidos", Comando = m.ComandoPedidos };
             var parametros = new ElementoMenu(MapaMenuPorRol.Clave("Menú de aplicación", "", "Parámetros")) { Titulo = "Parámetros", Comando = new Comando() };
             CatalogoMenu catalogo = CatalogoMenu.Construir(new ElementoMenuBase[] { m.Plantilla, m.Pedidos }, new[] { parametros });
-            var conmutador = new ConmutadorNavegacionLateral(() => "1", () => compactaGuardada, m.Guardados.Add);
+            var conmutador = new ConmutadorNavegacionLateral(() => "1", () => compactaGuardada, m.Guardados.Add,
+                (ex, contexto) => m.Errores.Add(contexto + " | " + ex));
 
             m.Panel = new PanelNavegacionLateral(catalogo, conmutador);
             m.BotonFuera = new Button { Content = "Fuera del panel" };
@@ -116,6 +121,14 @@ namespace Nesto.Tests
             var fuera = new StackPanel();
             fuera.Children.Add(m.BotonFuera);
             fuera.Children.Add(m.TextoFuera);
+            // Tramo 2: como MainRegion, unas pestañas con pantallas que tienen dónde escribir
+            m.CajaPestana1 = new TextBox { Text = "Pantalla 1" };
+            m.CajaPestana2 = new TextBox { Text = "Pantalla 2" };
+            m.Pestanas = new TabControl();
+            _ = m.Pestanas.Items.Add(new TabItem { Header = "Uno", Content = m.CajaPestana1 });
+            _ = m.Pestanas.Items.Add(new TabItem { Header = "Dos", Content = m.CajaPestana2 });
+            m.Pestanas.SelectedIndex = 0;
+            fuera.Children.Add(m.Pestanas);
             var raiz = new Grid();
             raiz.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             raiz.ColumnDefinitions.Add(new ColumnDefinition());
@@ -272,6 +285,222 @@ namespace Nesto.Tests
                     navegacion.IsPaneOpen = true; // el botón del panel
                     Bombear();
                     CollectionAssert.AreEqual(new[] { "0" }, m.Guardados, "Lo deja abierto: se recuerda");
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        // ── Tramo 2: «Buscar pantalla…» y Ctrl+K ──────────────────────────────────────────────────────────────────────
+
+        private static bool TieneElFoco(Window ventana, IInputElement elemento)
+            => (elemento as UIElement)?.IsKeyboardFocusWithin == true || FocusManager.GetFocusedElement(ventana) == elemento;
+
+        // Una tecla como la manda WPF: PreviewKeyDown sobre la caja (que es quien la atiende)
+        private static void Tecla(UIElement destino, Key tecla)
+        {
+            var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual((Visual)destino), 0, tecla)
+            {
+                RoutedEvent = Keyboard.PreviewKeyDownEvent
+            };
+            destino.RaiseEvent(args);
+            Bombear();
+        }
+
+        [TestMethod]
+        public void Busqueda_NoCogeElFoco_NiAlArrancar_NiAlCambiarDePestana()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0"); // abierto: la caja se ve
+                try
+                {
+                    m.Ventana.Activate();
+                    Bombear();
+                    Assert.AreEqual(Visibility.Visible, m.Panel.CajaBusqueda.Visibility);
+                    Assert.IsFalse(m.Panel.BusquedaTieneElFoco, "Al arrancar, la búsqueda no tiene el foco");
+                    Assert.IsFalse(m.Panel.CajaBusqueda.IsTabStop, "El tabulador no entra en la búsqueda");
+
+                    _ = Keyboard.Focus(m.CajaPestana1);
+                    m.Pestanas.SelectedIndex = 1;
+                    Bombear();
+                    m.Pestanas.SelectedIndex = 0;
+                    Bombear();
+                    Assert.IsFalse(m.Panel.BusquedaTieneElFoco, "Al cambiar de pestaña, tampoco");
+                    Assert.AreEqual(0, m.Errores.Count, string.Join("\n", m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void CtrlK_ConElPanelCompacto_LoAbreConElFocoEnLaBusqueda_YEscLoDejaComoEstaba()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar(null); // compacto
+                try
+                {
+                    m.Ventana.Activate();
+                    _ = Keyboard.Focus(m.CajaPestana1);
+                    Bombear();
+                    Assert.AreEqual(Visibility.Collapsed, m.Panel.CajaBusqueda.Visibility, "Compacto: solo la lupa");
+
+                    m.Panel.Buscador.ActivarCommand.Execute(null); // Ctrl+K
+                    Bombear();
+
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen, "Ctrl+K abre el panel compacto");
+                    Assert.IsTrue(m.Panel.BusquedaTieneElFoco, "con el foco en la búsqueda");
+                    m.Panel.CajaBusqueda.Text = "PLÁN";
+                    Bombear();
+                    Assert.AreEqual(Visibility.Visible, m.Panel.ListaResultados.Visibility);
+                    Assert.AreEqual("Ventas › Plantilla", ((ResultadoBusquedaMenu)m.Panel.ListaResultados.Items[0]).Ruta);
+
+                    Tecla(m.Panel.CajaBusqueda, Key.Escape);
+
+                    Assert.IsFalse(m.Panel.Navegacion.IsPaneOpen, "Esc: vuelve a compacto");
+                    Assert.AreEqual(string.Empty, m.Panel.CajaBusqueda.Text, "y borra lo escrito");
+                    Assert.IsTrue(TieneElFoco(m.Ventana, m.CajaPestana1), "El foco vuelve a donde estaba");
+                    Assert.AreEqual(0, m.ComandoPlantilla.Ejecuciones);
+                    Assert.AreEqual(0, m.Guardados.Count, "Abrirlo para buscar no se recuerda");
+                    Assert.AreEqual(0, m.Errores.Count, string.Join("\n", m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void CtrlK_FlechasEIntro_AbrenLaPantallaElegida_YElPanelVuelveACompacto()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar(null);
+                try
+                {
+                    m.Ventana.Activate();
+                    _ = Keyboard.Focus(m.CajaPestana1);
+                    m.Panel.Buscador.ActivarCommand.Execute(null);
+                    Bombear();
+                    m.Panel.CajaBusqueda.Text = "venta"; // «Pedidos de venta» (título) y «Plantilla» (por la sección)
+                    Bombear();
+                    CollectionAssert.AreEqual(new[] { "Ventas › Pedidos de venta", "Ventas › Plantilla" },
+                        m.Panel.ListaResultados.Items.Cast<ResultadoBusquedaMenu>().Select(r => r.Ruta).ToArray());
+                    Assert.AreEqual(0, m.Panel.ListaResultados.SelectedIndex, "El primero, elegido");
+
+                    Tecla(m.Panel.CajaBusqueda, Key.Down);
+                    Assert.AreEqual(1, m.Panel.ListaResultados.SelectedIndex);
+                    Assert.IsTrue(m.Panel.BusquedaTieneElFoco, "Las flechas no sacan el foco de la caja");
+
+                    Tecla(m.Panel.CajaBusqueda, Key.Enter);
+                    Esperar(100);
+
+                    Assert.AreEqual(1, m.ComandoPlantilla.Ejecuciones, "Intro abre el elegido");
+                    Assert.AreEqual(0, m.ComandoPedidos.Ejecuciones);
+                    Assert.IsFalse(m.Panel.Navegacion.IsPaneOpen, "y vuelve a compacto");
+                    Assert.IsFalse(m.Panel.BusquedaTieneElFoco, "El foco sale de la búsqueda");
+                    Assert.AreEqual(0, m.Guardados.Count);
+                    Assert.AreEqual(0, m.Errores.Count, string.Join("\n", m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void CtrlK_ConElPanelAbierto_LoDejaAbierto()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0");
+                try
+                {
+                    m.Ventana.Activate();
+                    m.Panel.Buscador.ActivarCommand.Execute(null);
+                    Bombear();
+                    Assert.IsTrue(m.Panel.BusquedaTieneElFoco);
+                    m.Panel.CajaBusqueda.Text = "pedidos";
+                    Tecla(m.Panel.CajaBusqueda, Key.Enter);
+                    Esperar(100);
+
+                    Assert.AreEqual(1, m.ComandoPedidos.Ejecuciones);
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen, "Lo había dejado abierto el usuario: sigue abierto");
+                    Assert.AreEqual(0, m.Guardados.Count);
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void SiElUsuarioSeVaAOtroSitio_LaBusquedaSeCancelaSinQuitarleElFoco()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar(null);
+                try
+                {
+                    m.Ventana.Activate();
+                    m.Panel.Buscador.ActivarCommand.Execute(null);
+                    Bombear();
+                    m.Panel.CajaBusqueda.Text = "pla";
+                    Bombear();
+
+                    _ = Keyboard.Focus(m.CajaPestana1); // un clic en la pantalla
+                    Bombear();
+
+                    Assert.IsTrue(TieneElFoco(m.Ventana, m.CajaPestana1), "El foco se queda donde ha ido el usuario");
+                    Assert.IsFalse(m.Panel.Navegacion.IsPaneOpen, "El panel vuelve a compacto");
+                    Assert.AreEqual(string.Empty, m.Panel.Buscador.Texto);
+                    Assert.AreEqual(0, m.ComandoPlantilla.Ejecuciones);
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void LaLupa_SoloConElPanelCompacto_YHaceLoMismoQueCtrlK_YCaptura()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar(null);
+                try
+                {
+                    m.Ventana.Activate();
+                    Bombear();
+                    Assert.AreEqual(Visibility.Collapsed, m.Panel.ListaResultados.Visibility, "Sin escribir, sin lista");
+                    Assert.AreEqual(Visibility.Visible, m.Panel.BotonBuscar.Visibility, "Compacto: la lupa");
+                    Assert.IsFalse(m.Panel.BotonBuscar.Focusable, "La lupa no se queda con el foco");
+
+                    typeof(System.Windows.Controls.Primitives.ButtonBase).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(m.Panel.BotonBuscar, null);
+                    Bombear();
+
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen, "La lupa abre el panel");
+                    Assert.AreEqual(Visibility.Collapsed, m.Panel.BotonBuscar.Visibility, "Abierto: la caja en lugar de la lupa");
+                    Assert.IsTrue(m.Panel.BusquedaTieneElFoco, "con el foco en la búsqueda");
+                    m.Panel.CajaBusqueda.Text = "p";
+                    Esperar(400);
+                    GuardarCaptura(m.Ventana, "panel-lateral-busqueda-prueba.png");
+                    Tecla(m.Panel.CajaBusqueda, Key.Escape);
+                    m.Panel.CajaBusqueda.Text = "zzz"; // con el panel compacto no se pinta nada
+                    Bombear();
+                    Assert.AreEqual(Visibility.Collapsed, m.Panel.ListaResultados.Visibility);
+                    Assert.AreEqual(0, m.Errores.Count, string.Join("\n", m.Errores));
                 }
                 finally
                 {

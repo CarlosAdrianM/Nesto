@@ -210,8 +210,35 @@ Partial Class MainWindow
         Grid.SetRowSpan(panel, 2)
         Grid.SetColumn(panel, 0)
         Raiz.Children.Add(panel)
+
+        ' Tramo 2: Ctrl+K busca una pantalla desde cualquier sitio de la ventana (ninguna vista usa Ctrl+K) y, al terminar,
+        ' el foco vuelve a la pestaña activa
+        _AtajoBuscar = New KeyBinding(panel.Buscador.ActivarCommand, Key.K, ModifierKeys.Control)
+        InputBindings.Add(_AtajoBuscar)
+        panel.DevolverFocoAPestanaActiva = AddressOf EnfocarPestanaActiva
         Return panel
     End Function
+
+    ''' <summary>Nesto#490 (panel lateral, tramo 2): el Ctrl+K de la búsqueda (solo con el menú lateral). Para las pruebas.</summary>
+    Public ReadOnly Property AtajoBuscar As KeyBinding
+
+    ' El foco a la pantalla de la pestaña activa (a su primer control, como el tabulador desde la pestaña) o, si no se
+    ' deja, a la pestaña
+    Private Sub EnfocarPestanaActiva()
+        Try
+            Dim pestana = TryCast(MainRegion.ItemContainerGenerator.ContainerFromItem(MainRegion.SelectedItem), TabItem)
+            If pestana Is Nothing OrElse Not pestana.Focus() Then
+                Return
+            End If
+            Dim vista = TryCast(MainRegion.SelectedContent, UIElement)
+            If vista IsNot Nothing AndAlso pestana.MoveFocus(New TraversalRequest(FocusNavigationDirection.Next)) AndAlso
+                Not vista.IsKeyboardFocusWithin Then
+                pestana.Focus()
+            End If
+        Catch ex As Exception
+            ' El foco nunca rompe nada: el panel lo deja en la ventana
+        End Try
+    End Sub
 
     ''' <summary>La campana, en la cinta o (con el menú lateral) en la cabecera. Para las pruebas.</summary>
     Public ReadOnly Property CampanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificaciones
