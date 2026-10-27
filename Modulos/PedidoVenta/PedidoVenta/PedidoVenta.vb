@@ -16,6 +16,8 @@ Public Class PedidoVenta
         registro.RegistrarDialogo(Of CopiarFacturaView, CopiarFacturaViewModel)
         ' NestoAPI#352: pregunta el grupo de comisión de las líneas de inmovilizado al guardar
         registro.RegistrarDialogo(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
+        ' NestoAPI#698: motivo y fecha al retener un pedido hasta nuevo aviso
+        registro.RegistrarDialogo(Of RetenerPedidoDialog, RetenerPedidoDialogViewModel)(RetenerPedidoDialogViewModel.NOMBRE)
 
         ' Registrar servicios del módulo
         registro.Singleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)()

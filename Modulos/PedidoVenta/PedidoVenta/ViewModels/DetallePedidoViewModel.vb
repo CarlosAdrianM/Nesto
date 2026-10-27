@@ -117,6 +117,8 @@ Public Class DetallePedidoViewModel
         AbrirCambioClienteCommand = New RelayCommand(AddressOf OnAbrirCambioCliente, Function() PuedeCambiarCliente) ' Nesto#496
         CancelarCambioClienteCommand = New RelayCommand(AddressOf OnCancelarCambioCliente)
         AplicarCambioClienteCommand = New AsyncRelayCommand(AddressOf AplicarCambioClienteAsync, Function() Not String.IsNullOrWhiteSpace(ClienteNuevo))
+        CmdRetenerPedido = New AsyncRelayCommand(AddressOf RetenerPedidoAsync, Function() PuedeRetenerPedido) ' NestoAPI#698
+        CmdLiberarPedido = New AsyncRelayCommand(AddressOf LiberarPedidoAsync, Function() EstaRetenido) ' NestoAPI#698
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -650,6 +652,7 @@ Public Class DetallePedidoViewModel
             MostrarCambioCliente = False
             OnPropertyChanged(NameOf(PuedeCambiarCliente))
             AbrirCambioClienteCommand?.NotifyCanExecuteChanged()
+            NotificarCambioRetencion() ' NestoAPI#698
             NotificarCambioDatosTransferencia() ' Sugerencia 396
         End Set
     End Property
@@ -3521,7 +3524,22 @@ Public Class DetallePedidoViewModel
     ''' <summary>Las opciones del combo «Servir»: las que no tienen sentido para el pedido, deshabilitadas con su motivo.</summary>
     Public ReadOnly Property OpcionesModoServicio As IReadOnlyList(Of OpcionModo)
         Get
+            ' NestoAPI#698: retenido, el combo (deshabilitado) solo enseña «Retenido»; el 5 no se elige nunca aquí.
+            If EstaRetenido Then
+                Return _opcionesRetenido
+            End If
             Return _selectorModos.Opciones
+        End Get
+    End Property
+
+    Private Shared ReadOnly _opcionesRetenido As IReadOnlyList(Of OpcionModo) = New List(Of OpcionModo) From {
+        New OpcionModo(ModosServicio.ItemRetenido) With {.Habilitado = False}
+    }
+
+    ''' <summary>NestoAPI#698: mientras está retenido, el modo no se cambia en el selector (se libera con «Liberar»).</summary>
+    Public ReadOnly Property PuedeElegirModoServicio As Boolean
+        Get
+            Return Not EstaRetenido
         End Get
     End Property
 
@@ -3559,8 +3577,8 @@ Public Class DetallePedidoViewModel
     ''' </summary>
     Friend Sub AplicarModosPermitidos(sugerencia As ModoServicioSugeridoDTO)
         _selectorModos.Aplicar(sugerencia)
-        If sugerencia Is Nothing OrElse pedido Is Nothing OrElse Not ModosServicio.EsValido(sugerencia.Modo) Then
-            Return
+        If sugerencia Is Nothing OrElse pedido Is Nothing OrElse Not ModosServicio.EsValido(sugerencia.Modo) OrElse EstaRetenido Then
+            Return ' NestoAPI#698: un pedido retenido no cambia de modo solo
         End If
         If _selectorModos.EsPermitido(pedido.ModoServicio) Then
             Return
@@ -3573,7 +3591,7 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Friend Sub CambiarAModoValido(modoValido As Byte, motivo As String, avisar As Boolean)
-        If pedido Is Nothing OrElse Not ModosServicio.EsValido(modoValido) Then
+        If pedido Is Nothing OrElse Not ModosServicio.EsValido(modoValido) OrElse EstaRetenido Then
             Return
         End If
         Dim anterior As Byte = pedido.ModoServicio
@@ -3867,6 +3885,140 @@ Public Class DetallePedidoViewModel
         dialogService.ShowNotification(CambioClientePedido.TITULO, CambioClientePedido.TextoResultado(respuesta))
         cmdCargarPedido.Execute(New ResumenPedido With {.empresa = empresa, .numero = numero})
     End Function
+#End Region
+
+#Region "NestoAPI#698: retener el pedido hasta nuevo aviso"
+    ''' <summary>El pedido está retenido (modo 5): no entra en el picking hasta que alguien lo libere.</summary>
+    Public ReadOnly Property EstaRetenido As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso RetencionPedido.EstaRetenido(pedido.Model)
+        End Get
+    End Property
+
+    ''' <summary>«Retenido por Alfredo desde 22/10/2026 hasta 15/11/2026: motivo». Vacío si no está retenido.</summary>
+    Public ReadOnly Property TextoRetenido As String
+        Get
+            If Not EstaRetenido Then
+                Return String.Empty
+            End If
+            Return RetencionPedido.Texto(pedido.Model.retencion)
+        End Get
+    End Property
+
+    Public ReadOnly Property PuedeRetenerPedido As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso RetencionPedido.PuedeRetenerse(pedido.Model)
+        End Get
+    End Property
+
+    Public Property CmdRetenerPedido As AsyncRelayCommand
+    Public Property CmdLiberarPedido As AsyncRelayCommand
+
+    Private Sub NotificarCambioRetencion()
+        OnPropertyChanged(NameOf(EstaRetenido))
+        OnPropertyChanged(NameOf(TextoRetenido))
+        OnPropertyChanged(NameOf(PuedeRetenerPedido))
+        OnPropertyChanged(NameOf(PuedeElegirModoServicio))
+        OnPropertyChanged(NameOf(OpcionesModoServicio))
+        CmdRetenerPedido?.NotifyCanExecuteChanged()
+        CmdLiberarPedido?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>
+    ''' Pide motivo y fecha (opcional), llama a la API y deja el pedido en pantalla como retenido. No se recarga: la API solo
+    ''' cambia el modo de servicio y así no se pierden cambios sin guardar (un «Guardar» posterior manda el 5, que la API
+    ''' acepta mientras siga retenido). Friend para los tests.
+    ''' </summary>
+    Friend Async Function RetenerPedidoAsync() As Task
+        If Not PuedeRetenerPedido Then
+            Return
+        End If
+        Dim empresa As String = pedido.empresa
+        Dim numero As Integer = pedido.numero
+        Dim resultado As ResultadoDialogo = Await dialogService.ShowDialogAsync(RetenerPedidoDialogViewModel.NOMBRE,
+            New ParametrosDialogo From {{RetenerPedidoDialogViewModel.PARAMETRO_NUMERO, numero}})
+        If resultado Is Nothing OrElse resultado.Result <> ResultadoBoton.OK Then
+            Return
+        End If
+        Dim motivo As String = resultado.Parameters.GetValue(Of String)(RetenerPedidoDialogViewModel.PARAMETRO_MOTIVO)
+        Dim hastaFecha As Date? = resultado.Parameters.GetValue(Of Date?)(RetenerPedidoDialogViewModel.PARAMETRO_HASTA_FECHA)
+        If String.IsNullOrWhiteSpace(motivo) Then
+            dialogService.ShowError("Para retener el pedido hay que indicar el motivo.")
+            Return
+        End If
+
+        Dim retencion As RetencionPedidoDTO
+        Try
+            retencion = Await servicio.RetenerPedido(empresa, numero, motivo.Trim(), hastaFecha)
+        Catch ex As Exception
+            dialogService.ShowError("No se ha retenido el pedido:" & vbCrLf & ex.Message)
+            Return
+        End Try
+        If pedido Is Nothing OrElse pedido.numero <> numero Then
+            Return ' mientras tanto se ha abierto otro pedido
+        End If
+        If retencion Is Nothing Then
+            retencion = New RetencionPedidoDTO With {
+                .Empresa = empresa, .Pedido = numero, .Motivo = motivo.Trim(), .HastaFecha = hastaFecha,
+                .ModoServicioAnterior = pedido.Model.modoServicio, .Usuario = configuracion?.usuario, .Fecha = Date.Now
+            }
+        End If
+        AplicarRetencion(retencion, ModosServicio.RETENIDO)
+    End Function
+
+    ''' <summary>Confirma, llama a la API y devuelve el pedido a su modo anterior. Friend para los tests.</summary>
+    Friend Async Function LiberarPedidoAsync() As Task
+        If Not EstaRetenido Then
+            Return
+        End If
+        Dim empresa As String = pedido.empresa
+        Dim numero As Integer = pedido.numero
+        If Not Await dialogService.ShowConfirmationAsync(RetencionPedido.TITULO_LIBERAR, RetencionPedido.TextoConfirmacionLiberar(numero)) Then
+            Return
+        End If
+
+        Dim liberada As RetencionPedidoDTO
+        Try
+            liberada = Await servicio.LiberarPedido(empresa, numero)
+        Catch ex As Exception
+            dialogService.ShowError("No se ha liberado el pedido:" & vbCrLf & ex.Message)
+            Return
+        End Try
+        If pedido Is Nothing OrElse pedido.numero <> numero Then
+            Return
+        End If
+        Dim modoAnterior As Byte? = If(liberada?.ModoServicioAnterior, pedido.Model.retencion?.ModoServicioAnterior)
+        If modoAnterior.HasValue AndAlso ModosServicio.EsValido(modoAnterior.Value) Then
+            AplicarRetencion(Nothing, modoAnterior.Value)
+        Else
+            ' Sin el modo anterior no sabemos a cuál ha vuelto: lo dice el pedido recién leído.
+            pedido.Model.retencion = Nothing
+            NotificarCambioRetencion()
+            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = empresa, .numero = numero})
+        End If
+    End Function
+
+    ''' <summary>
+    ''' Deja en pantalla lo que ya ha hecho la API: la retención y el modo de servicio. También en el snapshot, para que no
+    ''' salte el falso «el pedido tiene cambios sin guardar» (Issue #254): no es un cambio del usuario.
+    ''' </summary>
+    Private Sub AplicarRetencion(retencion As RetencionPedidoDTO, modo As Byte)
+        pedido.Model.retencion = retencion
+        _aplicandoModoAutomatico = True
+        _restaurandoModoGuardado = True
+        Try
+            pedido.ModoServicio = modo
+        Finally
+            _aplicandoModoAutomatico = False
+            _restaurandoModoGuardado = False
+        End Try
+        AvisoModoServicio = Nothing
+        If _snapshotPedidoGuardado IsNot Nothing Then
+            _snapshotPedidoGuardado.modoServicio = pedido.Model.modoServicio
+            _snapshotPedidoGuardado.servirJunto = pedido.Model.servirJunto
+        End If
+        NotificarCambioRetencion()
+    End Sub
 #End Region
 
     ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>

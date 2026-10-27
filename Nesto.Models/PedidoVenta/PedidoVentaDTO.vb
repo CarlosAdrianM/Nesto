@@ -94,6 +94,9 @@ Public Class PedidoVentaDTO
     Public Property pedidoOrigen() As Integer?
     ''' <summary>NestoAPI#542 (solo lectura): el albarán de ese pedido del que sale lo pendiente.</summary>
     Public Property albaranOrigen() As Integer?
+    ''' <summary>NestoAPI#698 (solo lectura): la retención activa del pedido (modoServicio = 5). Nothing si no está retenido.
+    ''' Se pone y se quita solo con «Retener…» y «Liberar», nunca con el PUT del pedido.</summary>
+    Public Property retencion() As RetencionPedidoDTO
     Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean

@@ -81,6 +81,12 @@
                 <TabItem Header="Cabecera">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top">
+                            <!-- NestoAPI#698: pedido retenido hasta nuevo aviso (modo 5). Se quita con «Liberar». -->
+                            <Border Background="#FFF3CD" BorderBrush="#E0A800" BorderThickness="1" CornerRadius="3" Padding="8,5" Margin="0,0,0,6"
+                                    Visibility="{Binding EstaRetenido, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding TextoRetenido}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#7A4F01"
+                                           ToolTip="Mientras esté retenido, el pedido no entra en el picking. Para que salga, pulse «Liberar»."/>
+                            </Border>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
@@ -224,7 +230,12 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <!-- Fila 0: Rutas y rectificativas -->
+                                <!-- Fila 0: retener/liberar (NestoAPI#698), rutas y rectificativas -->
+                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CmdRetenerPedido}" Content="Retener…"
+                                        ToolTip="Que el pedido no salga hasta nuevo aviso (o hasta una fecha), sin tocar la fecha de entrega"/>
+                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CmdLiberarPedido}" Content="Liberar"
+                                        Visibility="{Binding EstaRetenido, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Quitar la retención: el pedido vuelve a su modo de servicio anterior y entra en el picking"/>
                                 <Button Grid.Row="0" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
                                 <Button Grid.Row="0" Grid.Column="3" Command="{Binding CopiarFacturaCommand}" Visibility="{Binding MostrarCopiarFactura, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Copiar líneas de una factura existente para crear rectificativa o duplicar">Copiar Factura</Button>
                                 <!-- Fila 1: Picking, PDF y presupuestos -->
@@ -314,6 +325,7 @@
                                           DisplayMemberPath="Nombre"
                                           SelectedValuePath="Codigo"
                                           SelectedValue="{Binding pedido.ModoServicio, Mode=TwoWay}"
+                                          IsEnabled="{Binding PuedeElegirModoServicio}"
                                           MinWidth="230"
                                           ToolTip="Cómo se sirve el pedido cuando no hay stock de todo">
                                     <ComboBox.ItemContainerStyle>

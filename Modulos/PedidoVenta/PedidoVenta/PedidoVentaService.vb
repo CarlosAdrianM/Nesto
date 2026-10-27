@@ -217,6 +217,69 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' NestoAPI#698: retener el pedido hasta nuevo aviso (o hasta una fecha). La API decide si se puede.
+    Public Async Function RetenerPedido(empresa As String, numero As Integer, motivo As String, hastaFecha As Date?) As Task(Of RetencionPedidoDTO) Implements IPedidoVentaService.RetenerPedido
+        Dim peticion As New RetenerPedidoRequest With {
+            .Motivo = motivo?.Trim(),
+            .HastaFecha = hastaFecha,
+            .Usuario = configuracion.usuario
+        }
+        Return Await EnviarRetencion($"PedidosVenta/{empresa?.Trim()}/{numero}/Retener", peticion, numero, "retener")
+    End Function
+
+    ' NestoAPI#698: liberar el pedido retenido; vuelve a su modo de servicio anterior.
+    Public Async Function LiberarPedido(empresa As String, numero As Integer) As Task(Of RetencionPedidoDTO) Implements IPedidoVentaService.LiberarPedido
+        Dim peticion As New LiberarPedidoRequest With {.Usuario = configuracion.usuario}
+        Return Await EnviarRetencion($"PedidosVenta/{empresa?.Trim()}/{numero}/Liberar", peticion, numero, "liberar")
+    End Function
+
+    Private Async Function EnviarRetencion(url As String, peticion As Object, numero As Integer, accion As String) As Task(Of RetencionPedidoDTO)
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(url, contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If response.StatusCode = System.Net.HttpStatusCode.NotFound Then
+                    Throw New Exception($"No se encuentra el pedido {numero}. ¿Está guardado?")
+                End If
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se ha podido {accion} el pedido ({CInt(response.StatusCode)}).")
+                End If
+                Throw InterpretarRespuestaError(body) ' el 400 trae el motivo (ya retenido, sin motivo, nada pendiente...)
+            End If
+            Return JsonConvert.DeserializeObject(Of RetencionPedidoDTO)(body)
+        End Using
+    End Function
+
+    ' NestoAPI#698: la retención activa (204 = no está retenido).
+    Public Async Function LeerRetencion(empresa As String, numero As Integer) As Task(Of RetencionPedidoDTO) Implements IPedidoVentaService.LeerRetencion
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/{empresa?.Trim()}/{numero}/Retencion")
+            If response.StatusCode = System.Net.HttpStatusCode.NoContent Then
+                Return Nothing
+            End If
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se ha podido leer la retención del pedido ({CInt(response.StatusCode)}).")
+                End If
+                Throw InterpretarRespuestaError(body)
+            End If
+            If String.IsNullOrWhiteSpace(body) Then
+                Return Nothing
+            End If
+            Return JsonConvert.DeserializeObject(Of RetencionPedidoDTO)(body)
+        End Using
+    End Function
+
     ' Sugerencia 396 de Novedades: los datos para que el cliente pague el pedido prepago por transferencia.
     Public Async Function LeerDatosTransferencia(empresa As String, numero As Integer) As Task(Of DatosTransferenciaPedidoModel) Implements IPedidoVentaService.LeerDatosTransferencia
         Using client As HttpClient = _clienteApiFactory.Crear()
