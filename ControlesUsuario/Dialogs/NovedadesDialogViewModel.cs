@@ -177,26 +177,49 @@ namespace ControlesUsuario.Dialogs
         public const string PARAMETRO_PANTALLA = "pantalla";
         private string _pantalla;
 
-        /// <summary>Nesto#501: la página de esa versión; sin ella o si no tiene novedades, la más nueva (0).</summary>
+        /// <summary>
+        /// Nesto#501: la página de esa versión; sin ella o si no tiene novedades, la más nueva (0).
+        /// Nesto#549: la página es la de su versión «grande»: el aviso de la campana de la 1.10.47.2 abre la de la 1.10.47.
+        /// </summary>
         private int IndiceDeVersion(string version)
         {
             if (string.IsNullOrWhiteSpace(version))
             {
                 return 0;
             }
-            return Math.Max(0, _porVersion.FindIndex(g => g.Key == version.Trim()));
+            return Math.Max(0, IndiceDelGrupoDe(version));
+        }
+
+        /// <summary>Nesto#549: índice de la página que contiene esa versión exacta (-1 si no hay).</summary>
+        private int IndiceDelGrupoDe(string version)
+        {
+            string clave = ClaveGrupo(version);
+            return _porVersion.FindIndex(g => g.Key == clave);
         }
 
         private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos, _videos);
 
-        // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
-        // parsea; si no, por texto, para no romper con versiones con formato raro).
+        /// <summary>
+        /// Nesto#549 (22/10/26: quien saltó de la 1.10.46.0 a la 1.10.47.2 vio solo la novedad de la .2 y se perdió las
+        /// gordas de la .0): las revisiones de una misma versión (1.10.47.0, .1 y .2) van juntas en una página, la de
+        /// «1.10.47» (Major.Minor.Build). Una versión que no parsea (o vacía) es su propio grupo, como antes.
+        /// </summary>
+        internal static string ClaveGrupo(string version)
+        {
+            string texto = (version ?? string.Empty).Trim();
+            return Version.TryParse(texto, out Version v) && v.Build >= 0
+                ? $"{v.Major}.{v.Minor}.{v.Build}"
+                : texto;
+        }
+
+        // Agrupar por versión (Nesto#549: por Major.Minor.Build) y ordenar de la más nueva a la más antigua (por
+        // System.Version si parsea; si no, por texto, para no romper con versiones con formato raro).
         private void Reagrupar()
         {
             // Sugerencia 551: sin «Ver todas», solo las de sus perfiles (y las que son para todos).
             _porVersion = _items
                 .Where(EsVisible)
-                .GroupBy(n => (n.Version ?? string.Empty).Trim())
+                .GroupBy(n => ClaveGrupo(n.Version))
                 .OrderByDescending(g => ParsearVersion(g.Key))
                 .ThenByDescending(g => g.Key, StringComparer.Ordinal)
                 .ToList();
@@ -215,12 +238,34 @@ namespace ControlesUsuario.Dialogs
             {
                 _indice = Math.Max(0, Math.Min(indice, _porVersion.Count - 1));
                 IGrouping<string, NovedadItem> grupo = _porVersion[_indice];
-                Novedades = grupo.ToList();
-                VersionActual = string.IsNullOrWhiteSpace(grupo.Key)
-                    ? "Novedades"
-                    : ConFecha($"Versión {grupo.Key}", grupo.Min(n => n.Fecha));
+                // Nesto#549: dentro de la página, de la revisión más nueva a la más antigua (y dentro de cada revisión,
+                // en el orden en que vienen de la API). Si la página mezcla revisiones, cada tarjeta enseña la suya.
+                List<NovedadItem> pagina = grupo.OrderByDescending(n => ParsearVersion(n.Version)).ToList();
+                List<string> revisiones = pagina.Select(n => (n.Version ?? string.Empty).Trim()).Distinct().ToList();
+                foreach (NovedadItem n in pagina)
+                {
+                    n.VersionVisible = revisiones.Count > 1;
+                }
+                Novedades = pagina;
+                VersionActual = TituloPagina(grupo.Key, revisiones, grupo.Min(n => n.Fecha));
             }
             NotificarNavegacion();
+        }
+
+        /// <summary>
+        /// Título de la página: «Versión 1.10.8.0 · 17/09/26» si solo tiene una revisión; con varias (Nesto#549),
+        /// «Versión 1.10.47.0 – 1.10.47.2 · 22/10/26» (de la más antigua a la más nueva). Sin versión, «Novedades».
+        /// </summary>
+        internal static string TituloPagina(string clave, IReadOnlyList<string> revisiones, DateTime fecha)
+        {
+            if (string.IsNullOrWhiteSpace(clave))
+            {
+                return "Novedades";
+            }
+            string version = revisiones.Count == 1
+                ? revisiones[0]
+                : $"{revisiones[revisiones.Count - 1]} – {revisiones[0]}";
+            return ConFecha($"Versión {version}", fecha);
         }
 
         private void NotificarNavegacion()
@@ -857,8 +902,7 @@ namespace ControlesUsuario.Dialogs
                 OnPropertyChanged(nameof(VerTodas));
             }
             Reagrupar();
-            string version = (item.Version ?? string.Empty).Trim();
-            MostrarVersion(_porVersion.FindIndex(g => g.Key == version));
+            MostrarVersion(IndiceDelGrupoDe(item.Version));
             Destacar(item);
         }
 
