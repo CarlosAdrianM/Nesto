@@ -414,6 +414,8 @@ namespace Nesto.Tests
             "    RibbonButton «Enviar» [ProductoMenuBarViewModel]",
             "    RibbonButton «Calendario» [ProductoMenuBarViewModel]",
             "    RibbonButton «» [ProductoMenuBarViewModel]",
+            "  RibbonGroup «Tienda» [ProductoMenuBarViewModel]", // sugerencia 648, después de la referencia de Prism
+            "    RibbonButton «Facturado en tienda» [ProductoMenuBarViewModel]",
             "  RibbonGroup «Almacén» [ProductoMenuBarViewModel]",
             "    RibbonButton «Etiquetas de hueco» [ProductoMenuBarViewModel]",
             "  RibbonGroup «Compras» [ProductoMenuBarViewModel]",
@@ -461,6 +463,7 @@ namespace Nesto.Tests
             "CalendarioReposicionesView | CalendarioReposicionesView | CalendarioReposicionesViewModel",
             "DiferenciasReposicionView | DiferenciasReposicionView | DiferenciasReposicionViewModel",
             "PropuestasStockView | PropuestasStockView | PropuestasStockViewModel",
+            "FacturacionTiendaView | FacturacionTiendaView | FacturacionTiendaViewModel", // sugerencia 648, después de la referencia de Prism
             "CrearClienteView | CrearClienteView | CrearClienteViewModel",
             "Modelo347View | Modelo347View | Modelo347ViewModel",
             "ExtractoClienteView | ExtractoClienteView | ExtractoClienteViewModel",
