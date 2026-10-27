@@ -458,6 +458,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     Mensaje = TextoLeaEtiqueta(DocumentoAbierto);
                 }
+                // NestoAPI#695: lo que el servidor avisa antes de leer (un producto regularizado por inventario después del envío:
+                // puede estar contado dos veces), tal cual, debajo de lo que ya hubiera
+                List<string> avisosServidor = (recepcion.Avisos ?? new List<string>()).Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList();
+                if (avisosServidor.Count > 0)
+                {
+                    string avisos = string.Join(Environment.NewLine, avisosServidor);
+                    Mensaje = string.IsNullOrWhiteSpace(Mensaje) ? avisos : $"{Mensaje}{Environment.NewLine}{avisos}";
+                }
             }).ConfigureAwait(true);
             if (EsperandoEtiqueta)
             {

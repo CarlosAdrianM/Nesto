@@ -104,6 +104,11 @@ namespace Nesto.Infrastructure.Models
         public bool AdmiteRecibirEnParte { get; set; }
         /// <summary>NestoAPI#673: «Recibido en parte: 1 línea, 2 ud.» si ya se ha dado de alta una parte; null si no.</summary>
         public string TextoRecibidaEnParte { get; set; }
+        /// <summary>
+        /// NestoAPI#695: lo que hay que saber antes de leer, para enseñar tal cual («El 42267 se regularizó por inventario el 26/10
+        /// a las 14:19 (+1, Paloma), después de enviar la reposición: compruebe que no se cuenta dos veces.»). Vacía con una API anterior.
+        /// </summary>
+        public List<string> Avisos { get; set; } = new List<string>();
     }
 
     public class LecturaRecepcionReposicion
