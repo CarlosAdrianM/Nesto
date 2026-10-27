@@ -267,6 +267,20 @@ namespace ControlesUsuario.Dialogs
         // ---- Datos de la novedad (los que ya pintaba la ventana) ----
         public int Id => _novedad.Id;
         public string Version => _novedad.Version;
+
+        /// <summary>
+        /// Nesto#549: la página junta las revisiones de una misma versión (1.10.47.0, .1 y .2); cuando mezcla varias,
+        /// cada tarjeta enseña la suya en pequeño (<see cref="TextoVersion"/>). Lo pone la ventana al montar la página.
+        /// </summary>
+        private bool _versionVisible;
+        public bool VersionVisible
+        {
+            get => _versionVisible;
+            set => SetProperty(ref _versionVisible, value);
+        }
+
+        /// <summary>Nesto#549: «1.10.47.2» (la versión exacta de la novedad, para la tarjeta).</summary>
+        public string TextoVersion => (_novedad.Version ?? string.Empty).Trim();
         public DateTime Fecha => _novedad.Fecha;
         public string Categoria => _novedad.Categoria;
         public string Titulo => _novedad.Titulo;

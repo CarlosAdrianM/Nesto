@@ -89,7 +89,9 @@
         </StackPanel>
 
         <!-- Navegación entre versiones: solo se muestra una versión a la vez (la más nueva al abrir);
-             las flechas permiten consultar las novedades de versiones anteriores/siguientes. -->
+             las flechas permiten consultar las novedades de versiones anteriores/siguientes.
+             Nesto#549: una «versión» es la grande (1.10.47): sus revisiones .0, .1 y .2 salen juntas en la página,
+             de la más nueva a la más antigua, y cada tarjeta lleva la suya en pequeño. -->
         <Grid Grid.Row="2" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -186,6 +188,10 @@
                                         </Border.Style>
                                         <TextBlock Text="{Binding Categoria}" Foreground="White" FontSize="11" />
                                     </Border>
+                                    <!-- Nesto#549: la revisión exacta, solo cuando la página mezcla varias (1.10.47.0, .1 y .2) -->
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding TextoVersion}" FontSize="11" Foreground="#999999"
+                                               Margin="8,0,0,0" VerticalAlignment="Top" ToolTip="Versión en la que salió esta novedad"
+                                               Visibility="{Binding VersionVisible, Converter={StaticResource BoolAVisible}}" />
                                     <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
                                 <!-- Nesto#487: en una sugerencia, quién/cuándo, lo que escribió el usuario tal cual y su captura;
