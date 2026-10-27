@@ -940,6 +940,53 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ' ===== NestoAPI#552 (fase 4): GLS por la API (Tramitar todos y etiqueta) =====
+
+    Friend Const RUTA_TRAMITAR_TODOS As String = "EnviosAgencias/TramitarTodos"
+
+    ''' <summary>Tramitar todos puede tardar (una llamada a GLS por envío): más margen que los 100 s por defecto.</summary>
+    Friend Shared ReadOnly ESPERA_TRAMITAR_TODOS As TimeSpan = TimeSpan.FromMinutes(5)
+
+    Public Async Function TramitarEnviosGls(numeros As List(Of Integer)) As Task(Of ResultadoTramitarEnviosGlsDto) Implements IAgenciaService.TramitarEnviosGls
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            client.Timeout = ESPERA_TRAMITAR_TODOS
+
+            Dim content As HttpContent = New StringContent(CuerpoTramitarTodos(numeros), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RUTA_TRAMITAR_TODOS, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI no ha tramitado los envíos de GLS ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+            Return If(JsonConvert.DeserializeObject(Of ResultadoTramitarEnviosGlsDto)(cuerpo), New ResultadoTramitarEnviosGlsDto())
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#552 (fase 4): el cuerpo aparte para fijar en un test el contrato con el endpoint (agencia 1, GLS).</summary>
+    Friend Shared Function CuerpoTramitarTodos(numeros As List(Of Integer)) As String
+        Return JsonConvert.SerializeObject(New TramitarEnviosGlsDto With {.Agencia = 1, .Envios = numeros})
+    End Function
+
+    Friend Shared Function RutaEtiquetaGls(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/EtiquetaZpl"
+    End Function
+
+    Public Async Function LeerEtiquetaGls(numeroEnvio As Integer) As Task(Of EtiquetaEnvioGlsDto) Implements IAgenciaService.LeerEtiquetaGls
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaEtiquetaGls(numeroEnvio))
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI no ha dado la etiqueta de GLS del envío {numeroEnvio} ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+            Return JsonConvert.DeserializeObject(Of EtiquetaEnvioGlsDto)(cuerpo)
+        End Using
+    End Function
+
     ''' <summary>NestoAPI#676: ruta y cuerpo aparte para fijar en un test el contrato con el endpoint.</summary>
     Friend Shared Function RutaDarPorCerrado(numeroEnvio As Integer) As String
         Return $"EnviosAgencias/{numeroEnvio}/DarPorCerrado"

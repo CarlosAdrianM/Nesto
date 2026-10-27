@@ -84,6 +84,13 @@ Public Interface IAgenciaService
     ' api/EnviosAgencias/DesdePedido). Con un 409 devuelve lo que hay que preguntar; con un 400/404, el motivo. Solo
     ' detrás del parámetro de usuario InsertarEnvioPorApi = "API".
     Function CrearEnvioDesdePedido(peticion As CrearEnvioDesdePedidoDto) As Task(Of ResultadoEnvioDesdePedidoModel)
+    ' NestoAPI#552 (fase 4): «Tramitar todos» de GLS por la API (POST api/EnviosAgencias/TramitarTodos): por cada envío, grabarlo
+    ' en GLS y darlo por tramitado. Devuelve el resultado de cada uno (un error en uno no para los demás). Solo detrás del
+    ' parámetro de usuario GlsPorApi = "API". Lanza con el motivo del servidor si rechaza la petición entera.
+    Function TramitarEnviosGls(numeros As List(Of Integer)) As Task(Of ResultadoTramitarEnviosGlsDto)
+    ' NestoAPI#552 (fase 4): la etiqueta ZPL de un envío de GLS montada en la API, sin grabarlo en GLS (GET
+    ' api/EnviosAgencias/{id}/EtiquetaZpl). Lanza con el motivo del servidor si no la da.
+    Function LeerEtiquetaGls(numeroEnvio As Integer) As Task(Of EtiquetaEnvioGlsDto)
     ' Nesto#340 (Agencias, slice A4.4): reembolso/retorno/estado/fecha de un envío tramitado (y rehusar),
     ' con historia y contabilización en el servidor. Lanza con el motivo del servidor si lo rechaza.
     Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto)
