@@ -182,6 +182,8 @@ Public Class PedidoVentaService
                 Throw ' Nesto#484: el ViewModel lo necesita para preseleccionar el modo que vale
             Catch ex As ModoConPickingException
                 Throw ' Nesto#489: el ViewModel ofrece pedirle el cambio a almacén
+            Catch ex As FechaEntregaLejanaException
+                Throw ' NestoAPI#712: el ViewModel pregunta si la fecha es correcta y reintenta
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -305,6 +307,9 @@ Public Class PedidoVentaService
         ElseIf errorCode = ModoConPickingException.CODIGO_ERROR Then
             ' Nesto#489 / NestoAPI#533: con picking el modo ya no se cambia; se puede pedir a almacén.
             Return ModoConPickingException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = FechaEntregaLejanaException.CODIGO_ERROR Then
+            ' NestoAPI#712: alguna línea va a más de 60 días; se pregunta y se repite confirmando.
+            Return FechaEntregaLejanaException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
@@ -950,6 +955,8 @@ Public Class PedidoVentaService
                         Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
                     ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
                         Throw ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido) ' Nesto#484
+                    ElseIf errorCode = FechaEntregaLejanaException.CODIGO_ERROR Then
+                        Throw FechaEntregaLejanaException.DesdeRespuesta(detallesError, contenido) ' NestoAPI#712
                     Else
                         Throw New Exception(contenido)
                     End If
@@ -959,6 +966,8 @@ Public Class PedidoVentaService
                 Throw
             Catch ex As ModoServicioNoPermitidoException
                 Throw
+            Catch ex As FechaEntregaLejanaException
+                Throw ' NestoAPI#712
             Catch ex As Exception
                 Throw New Exception("Error al crear el pedido: " + ex.Message)
             End Try

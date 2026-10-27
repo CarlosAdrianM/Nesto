@@ -4339,6 +4339,7 @@ Public Class PlantillaVentaViewModel
 
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()
+        pedido.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: se pregunta si alguna línea va a más de 60 días
         Dim rechazoConPicking As ModoConPickingException = Nothing ' Nesto#489
         Dim modoGuardado As Byte? = Nothing
 
@@ -4367,7 +4368,7 @@ Public Class PlantillaVentaViewModel
                 End If
 
                 Try
-                    Await servicioPedidosVenta.modificarPedido(pedido)
+                    Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
                 Catch ex As ModoConPickingException
                     rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
                 End Try
@@ -4381,7 +4382,7 @@ Public Class PlantillaVentaViewModel
             ElseIf PedidoPendienteSeleccionado = 0 Then
                 Dim crearEx As Exception = Nothing
                 Try
-                    respuestaCrear = Await servicio.CrearPedido(pedido)
+                    respuestaCrear = Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.CrearPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
                     numPedido = respuestaCrear?.Numero
                 Catch ex As ValidationException
                     crearEx = ex
@@ -4431,7 +4432,7 @@ Public Class PlantillaVentaViewModel
                 Dim unirEx As Exception = Nothing
                 Dim pedidoUnido As PedidoVentaDTO = Nothing
                 Try
-                    pedidoUnido = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
+                    pedidoUnido = Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
                 Catch ex As ValidationException
                     unirEx = ex
                 End Try
@@ -4507,6 +4508,8 @@ Public Class PlantillaVentaViewModel
 
             ' Abrimos el pedido
             abridorPedidos.Abrir(clienteSeleccionado.empresa, numPedido)
+        Catch ex As GuardadoCanceladoPorFechaEntregaException
+            ' NestoAPI#712: ha dicho que la fecha de entrega no es correcta; se queda en la plantilla para corregirla
         Catch ex As ModoServicioNoPermitidoException
             ' NestoAPI#518: el stock cambió y el modo ya no vale; se enseña el mensaje y se preselecciona el que sí.
             dialogService.ShowError(ex.Message)
@@ -4531,6 +4534,11 @@ Public Class PlantillaVentaViewModel
                 ModosServicio.Efectivo(pedido.modoServicio, pedido.servirJunto), modoGuardado)
         End If
     End Sub
+
+    ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
+    Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
+        Return dialogService.ShowConfirmationAsync(titulo, mensaje)
+    End Function
 
     ''' <summary>
     ''' Nesto#489 / NestoAPI#533: al modificar un pedido desde la plantilla, la API no deja cambiar el modo porque ya

@@ -2238,12 +2238,13 @@ Public Class DetallePedidoViewModel
         Dim rechazoConPicking As ModoConPickingException = Nothing
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
+        pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Try
             textoBusyIndicator = "Guardando pedido..."
             estaBloqueado = True
 
             If EstaCreandoPedido Then
-                Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
+                Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 pedido.numero = numeroPedidoCreado
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
                 OnPropertyChanged(NameOf(TextoBotonGuardar))
@@ -2251,7 +2252,7 @@ Public Class DetallePedidoViewModel
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
                 ' al guardar cambios pendientes antes de crear albarán/factura).
-                Dim avisosModificacion = Await servicio.modificarPedido(pedido.Model)
+                Dim avisosModificacion = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 Await ProcesarAvisosModificacion(avisosModificacion)
             End If
 
@@ -2259,6 +2260,8 @@ Public Class DetallePedidoViewModel
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             Return True ' Guardado exitoso, continuar
 
+        Catch ex As GuardadoCanceladoPorFechaEntregaException
+            Return False ' NestoAPI#712: el usuario va a corregir la fecha; no se sigue con albarán/factura
         Catch ex As ModoConPickingException
             rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
         Catch ex As Exception
@@ -2583,13 +2586,14 @@ Public Class DetallePedidoViewModel
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         Dim guardado As Boolean = False ' NestoAPI#606
+        pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
             Dim crearModificarEx As Exception = Nothing
 
             If esPedidoNuevo Then
                 Try
-                    Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
+                    Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                     pedido.numero = numeroPedidoCreado
                 Catch ex As ValidationException
                     crearModificarEx = ex
@@ -2642,7 +2646,7 @@ Public Class DetallePedidoViewModel
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    avisosModificacion = Await servicio.modificarPedido(pedido.Model)
+                    avisosModificacion = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 Catch ex As ValidationException
                     crearModificarEx = ex
                 End Try
@@ -2676,6 +2680,8 @@ Public Class DetallePedidoViewModel
             ' Issue #135: Gestionar etiqueta de recogida
             Await GestionarEtiquetaRecogida()
             guardado = True
+        Catch ex As GuardadoCanceladoPorFechaEntregaException
+            ' NestoAPI#712: ha dicho que la fecha de entrega no es correcta; se vuelve a editar sin más mensajes
         Catch ex As ModoConPickingException
             rechazoConPicking = ex ' Nesto#489: en VB no se puede esperar un diálogo dentro del Catch
         Catch ex As ModoServicioNoPermitidoException
@@ -2709,6 +2715,11 @@ Public Class DetallePedidoViewModel
             Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
             Await CargarCuponAsync() ' Nesto#518: el cupón puede haber pasado a este pedido o haberse soltado
         End If
+    End Function
+
+    ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
+    Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
+        Return dialogService.ShowConfirmationAsync(titulo, mensaje)
     End Function
 
 #Region "NestoAPI#593 (c5): cheque regalo"
