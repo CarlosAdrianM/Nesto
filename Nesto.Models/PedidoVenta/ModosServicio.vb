@@ -12,6 +12,12 @@ Public NotInheritable Class ModosServicio
     Public Const SEGUN_VAYA_ENTRANDO As Byte = 2
     Public Const TRAS_REPONER_DE_TIENDAS As Byte = 3
     Public Const AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ As Byte = 4
+    ''' <summary>
+    ''' NestoAPI#698: pedido retenido hasta nuevo aviso (o hasta una fecha). NO se elige en el selector: solo lo ponen y
+    ''' lo quitan los botones «Retener…» y «Liberar» (POST Retener/Liberar de la API). Mientras dura, el pedido no entra
+    ''' en el picking y la API rechaza cambiar el modo («libérelo antes»).
+    ''' </summary>
+    Public Const RETENIDO As Byte = 5
 
     ''' <summary>
     ''' Modo con el que nace un pedido si nadie dice otra cosa (Carlos, 16/09/26): «tras reponer de
@@ -42,6 +48,15 @@ Public NotInheritable Class ModosServicio
         New ModoServicioItem(AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ, "Ahora lo que hay, el resto de una vez", "Sale ya lo que hay; lo que falta se entrega en una sola entrega más, cuando esté todo.")
     }
 
+    Private Shared ReadOnly _retenido As New ModoServicioItem(RETENIDO, "Retenido", "El pedido no sale hasta que alguien lo libere (o hasta la fecha indicada al retenerlo). Se pone y se quita con «Retener…» y «Liberar».")
+
+    ''' <summary>NestoAPI#698: el modo «Retenido», solo para enseñarlo (no está en <see cref="Lista"/> porque no se elige).</summary>
+    Public Shared ReadOnly Property ItemRetenido As ModoServicioItem
+        Get
+            Return _retenido
+        End Get
+    End Property
+
     ''' <summary>Los modos que se pueden elegir en pantalla, en el orden del selector.</summary>
     Public Shared ReadOnly Property Lista As IReadOnlyList(Of ModoServicioItem)
         Get
@@ -56,6 +71,10 @@ Public NotInheritable Class ModosServicio
     ''' NestoApp solo manda el bool; el modo solo refina el «no todo junto».
     ''' </summary>
     Public Shared Function Efectivo(modoServicio As Byte?, servirJunto As Boolean) As Byte
+        ' NestoAPI#698: la retención manda sobre todo lo demás (el servirJunto guardado es el de antes de retener).
+        If modoServicio.HasValue AndAlso EsRetenido(modoServicio.Value) Then
+            Return RETENIDO
+        End If
         If servirJunto Then
             Return TODO_JUNTO
         End If
@@ -65,8 +84,14 @@ Public NotInheritable Class ModosServicio
         Return SEGUN_VAYA_ENTRANDO
     End Function
 
+    ''' <summary>Los modos que se pueden elegir (1..4). El 5 (<see cref="RETENIDO"/>) no: ver <see cref="EsRetenido"/>.</summary>
     Public Shared Function EsValido(modo As Byte) As Boolean
         Return modo >= TODO_JUNTO AndAlso modo <= AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ
+    End Function
+
+    ''' <summary>NestoAPI#698: ¿el pedido está retenido?</summary>
+    Public Shared Function EsRetenido(modo As Byte?) As Boolean
+        Return modo.HasValue AndAlso modo.Value = RETENIDO
     End Function
 
     ''' <summary>Solo el modo 1 es «servir junto» en el sentido de la columna y de las validaciones
@@ -82,6 +107,9 @@ Public NotInheritable Class ModosServicio
     End Function
 
     Public Shared Function Nombre(modo As Byte) As String
+        If modo = RETENIDO Then
+            Return _retenido.Nombre
+        End If
         Dim item = _lista.FirstOrDefault(Function(m) m.Codigo = modo)
         Return If(item?.Nombre, $"Modo {modo}")
     End Function

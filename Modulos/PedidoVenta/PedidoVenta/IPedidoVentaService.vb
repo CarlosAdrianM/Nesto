@@ -109,6 +109,13 @@ Public Interface IPedidoVentaService
     ' Nesto#496 / NestoAPI#519: pasa el pedido a otro cliente y lo recalcula en la API. Lanza ValidationException
     ' si con el cliente nuevo no pasa la validación (se puede forzar con creadoSinPasarValidacion).
     Function CambiarCliente(empresa As String, numero As Integer, cliente As String, contacto As String, creadoSinPasarValidacion As Boolean) As Task(Of CambiarClientePedidoRespuestaModel)
+    ' NestoAPI#698: retiene el pedido hasta nuevo aviso (hastaFecha Nothing) o hasta una fecha. Devuelve la retención creada;
+    ' lanza una excepción con el motivo de la API si no se puede (ya retenido, sin motivo, nada pendiente...).
+    Function RetenerPedido(empresa As String, numero As Integer, motivo As String, hastaFecha As Date?) As Task(Of RetencionPedidoDTO)
+    ' NestoAPI#698: libera el pedido retenido (vuelve a su modo anterior). Devuelve la retención cerrada (con Liberado).
+    Function LiberarPedido(empresa As String, numero As Integer) As Task(Of RetencionPedidoDTO)
+    ' NestoAPI#698: la retención activa del pedido, o Nothing si no está retenido (204).
+    Function LeerRetencion(empresa As String, numero As Integer) As Task(Of RetencionPedidoDTO)
     ' Sugerencia 396 de Novedades: IBAN, beneficiario, concepto, importe y el texto para copiar de un pedido
     ' prepago por transferencia. Lanza una excepción con el motivo si la API no los da (404, sin cuenta...).
     Function LeerDatosTransferencia(empresa As String, numero As Integer) As Task(Of DatosTransferenciaPedidoModel)
