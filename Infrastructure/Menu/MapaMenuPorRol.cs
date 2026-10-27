@@ -90,6 +90,8 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Clientes", "Ventas", "Plantilla"), new DestinoMenu(VENTAS, "Pedidos", 10)),
             (Clave("Clientes", "Ventas", "Pedidos"), new DestinoMenu(VENTAS, "Pedidos", 20, "Pedidos de venta")),
             (Clave("Clientes", "Ventas", "Pendientes de entregar"), new DestinoMenu(VENTAS, "Pedidos", 30)),
+            // Nesto#546 (NestoAPI#693): los pedidos cuya fecha prometida al cliente ya no se cumple
+            (Clave("Clientes", "Ventas", "Fecha en riesgo"), new DestinoMenu(VENTAS, "Pedidos", 35, "Pedidos con la fecha en riesgo")),
             (Clave("Clientes", "Rapports", "Rapports"), new DestinoMenu(VENTAS, "Vendedores", 40)),
             (Clave("Vendedores", "Clientes", "Ficha"), new DestinoMenu(VENTAS, "Vendedores", 50, "Clientes del vendedor")),
             (Clave("Vendedores", "Clientes", "Planes de Ventajas"), new DestinoMenu(VENTAS, "Vendedores", 60)),

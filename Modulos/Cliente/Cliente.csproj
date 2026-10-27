@@ -16,6 +16,10 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Nesto#546: las pruebas usan el constructor con el portapapeles falso y los métodos puros del VM -->
+    <InternalsVisibleTo Include="ClienteTests" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="ClienteTests\**" />
     <EmbeddedResource Remove="ClienteTests\**" />
     <None Remove="ClienteTests\**" />
@@ -50,6 +54,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\MantenimientoEventosView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\PedidosPromesaRiesgoView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
