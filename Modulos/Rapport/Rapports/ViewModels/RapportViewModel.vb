@@ -8,6 +8,7 @@ Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports ControlesUsuario.SugerenciasProductos
+Imports ControlesUsuario.Dialogs
 
 Public Class RapportViewModel
     Inherits ObservableObject
@@ -70,8 +71,73 @@ Public Class RapportViewModel
 
         cmdCrearCita = New RelayCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New RelayCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
+        QuitarResultadoCommand = New RelayCommand(Sub()
+                                                      If rapport IsNot Nothing Then
+                                                          rapport.Resultado = Nothing
+                                                      End If
+                                                  End Sub)
 
     End Sub
+
+#Region "Nesto#558: resultado del rapport y próximo contacto"
+
+    ''' <summary>
+    ''' Nesto#558 (NestoAPI#716): los chips de resultado, en el orden del catálogo de la API (un solo sitio:
+    ''' Nesto.Infrastructure.Shared.ResultadoRapport). El elegido va en rapport.Resultado; sin marcar, Nothing.
+    ''' </summary>
+    Public ReadOnly Property ResultadosRapport As IReadOnlyList(Of OpcionCatalogo)
+        Get
+            Return ResultadoRapport.Opciones
+        End Get
+    End Property
+
+    ''' <summary>Desmarca el chip de resultado (Supr/Retroceso sobre los chips, o el botón «×»).</summary>
+    Public ReadOnly Property QuitarResultadoCommand As RelayCommand
+
+    ' Evita el ping-pong entre el chip «Pedido» y el check «Pedido» mientras uno actualiza al otro.
+    Private _sincronizandoPedido As Boolean
+
+    ''' <summary>
+    ''' El chip «Pedido» y el check «Pedido» de siempre dicen lo mismo: marcar el chip marca el check; marcar el check sin
+    ''' resultado elegido pone el chip; desmarcar el check quita el chip si era «Pedido». Cambiar el chip a otro resultado
+    ''' no toca el check (el vendedor puede haber hecho pedido y aun así apuntar otra cosa).
+    ''' </summary>
+    Private Sub SincronizarPedidoConResultado(propiedad As String)
+        If _sincronizandoPedido OrElse rapport Is Nothing Then
+            Return
+        End If
+        _sincronizandoPedido = True
+        Try
+            If propiedad = NameOf(SeguimientoClienteDTO.Resultado) Then
+                If rapport.Resultado = ResultadoRapport.PEDIDO AndAlso Not rapport.Pedido Then
+                    rapport.Pedido = True
+                End If
+            ElseIf propiedad = NameOf(SeguimientoClienteDTO.Pedido) Then
+                If rapport.Pedido AndAlso String.IsNullOrEmpty(rapport.Resultado) Then
+                    rapport.Resultado = ResultadoRapport.PEDIDO
+                ElseIf Not rapport.Pedido AndAlso rapport.Resultado = ResultadoRapport.PEDIDO Then
+                    rapport.Resultado = Nothing
+                End If
+            End If
+        Finally
+            _sincronizandoPedido = False
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#558 (NestoAPI#716, 2.2): con «Quitar de mi listado» marcado, antes de guardar se pregunta por qué se deja de
+    ''' visitar (motivo del catálogo y comentario, los dos opcionales). Nothing = no se manda nada y la API anota
+    ''' «DejarDeVisitar» ella sola. Nunca impide guardar.
+    ''' </summary>
+    Public Function PedirMotivoDejarDeVisitar() As MotivoCambioEstado
+        If Not QuitarDeMiListado OrElse rapport Is Nothing Then
+            Return Nothing
+        End If
+        Return PeticionMotivoCambioEstado.Pedir(dialogService, "Dejar de visitar",
+            $"Va a quitar al cliente {rapport.Cliente?.Trim()} de su listado. Si lo sabe, indique el motivo; puede dejarlo en blanco.")
+    End Function
+
+#End Region
 
 #Region "Propiedades de Nesto"
     Private _clienteCompleto As Object
@@ -412,7 +478,9 @@ Public Class RapportViewModel
                 texto += vbCrLf + Await servicio.CrearTareaPlanner(rapport)
             End If
             If QuitarDeMiListado Then
-                Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria)
+                ' Nesto#558: el motivo se pregunta después de guardar el rapport (si falla el rapport, no se molesta)
+                Dim motivo As MotivoCambioEstado = PedirMotivoDejarDeVisitar()
+                Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria, motivo?.Motivo, motivo?.Comentario)
                 QuitarDeMiListado = False
             End If
             _clienteContactoGuardado = ClaveClienteContacto(rapport)
@@ -530,6 +598,8 @@ Public Class RapportViewModel
         If e.PropertyName = NameOf(SeguimientoClienteDTO.Cliente) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Contacto) OrElse
             e.PropertyName = NameOf(SeguimientoClienteDTO.Empresa) Then
             ActualizarCintaSugerencias()
+        ElseIf e.PropertyName = NameOf(SeguimientoClienteDTO.Resultado) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Pedido) Then
+            SincronizarPedidoConResultado(e.PropertyName) ' Nesto#558
         End If
     End Sub
 

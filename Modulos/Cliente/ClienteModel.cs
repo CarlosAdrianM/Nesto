@@ -43,6 +43,15 @@ namespace Nesto.Modulos.Cliente
 
         public string Usuario { get; set; }
 
+        /// <summary>
+        /// Nesto#558 (NestoAPI#716): en el PUT Clientes/DejarDeVisitar, por qué se deja de visitar (un código de
+        /// Nesto.Infrastructure.Shared.MotivoCambioEstadoCliente). Opcional: sin él la API anota «DejarDeVisitar».
+        /// </summary>
+        public string MotivoCambioEstado { get; set; }
+
+        /// <summary>Nesto#558 (NestoAPI#716): comentario libre del cambio de estado (200 caracteres). Opcional.</summary>
+        public string ComentarioCambioEstado { get; set; }
+
 
         public virtual ICollection<PersonaContactoDTO> PersonasContacto { get; set; }
     }
