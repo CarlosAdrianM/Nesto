@@ -192,6 +192,42 @@ namespace ControlesUsuario.Behaviors
             set => SetValue(SiempreActivoProperty, value);
         }
 
+        /// <summary>
+        /// Incidencia 787 (Paloma, 27/10/26): expresión regular de lo que NO se busca. En «Recibir reposición» la etiqueta
+        /// de un bulto tecleada a mano («R81177-1») abría la lista y el Intro cogía el primer producto en vez de la etiqueta.
+        /// Null o vacío: se busca todo, como siempre.
+        /// </summary>
+        public static readonly DependencyProperty PatronSinBusquedaProperty =
+            DependencyProperty.Register(
+                nameof(PatronSinBusqueda),
+                typeof(string),
+                typeof(AutocompleteBehavior),
+                new PropertyMetadata(null));
+
+        public string PatronSinBusqueda
+        {
+            get => (string)GetValue(PatronSinBusquedaProperty);
+            set => SetValue(PatronSinBusquedaProperty, value);
+        }
+
+        /// <summary>Incidencia 787: si lo escrito casa con <paramref name="patron"/> no se busca ni se abre la lista.</summary>
+        public static bool EsTextoSinBusqueda(string texto, string patron)
+        {
+            if (string.IsNullOrWhiteSpace(texto) || string.IsNullOrWhiteSpace(patron))
+            {
+                return false;
+            }
+            try
+            {
+                return System.Text.RegularExpressions.Regex.IsMatch(texto.Trim(), patron,
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            }
+            catch (System.ArgumentException)
+            {
+                return false; // patrón mal escrito: se busca como siempre
+            }
+        }
+
         #endregion
 
         #region Events
@@ -315,9 +351,10 @@ namespace ControlesUsuario.Behaviors
 
             var texto = AssociatedObject.Text;
 
-            // Verificar mínimo de caracteres
-            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars)
+            // Verificar mínimo de caracteres (y lo que no se busca: incidencia 787)
+            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda))
             {
+                _debounceTimer?.Stop();
                 CerrarPopup();
                 return;
             }
@@ -353,7 +390,7 @@ namespace ControlesUsuario.Behaviors
             if (AssociatedObject == null) return;
 
             var texto = AssociatedObject.Text;
-            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars)
+            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda))
             {
                 CerrarPopup();
                 return;

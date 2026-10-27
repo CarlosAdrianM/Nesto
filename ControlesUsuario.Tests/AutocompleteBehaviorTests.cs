@@ -14,6 +14,34 @@ namespace ControlesUsuario.Tests
     [TestClass]
     public class AutocompleteBehaviorTests
     {
+        #region Incidencia 787: lo que no se busca
+
+        private const string PATRON_ETIQUETA_BULTO = "^R[0-9]+[^A-Za-z0-9]+[0-9]+$";
+
+        [TestMethod]
+        public void EsTextoSinBusqueda_EtiquetaDeBultoTecleada_NoSeBusca()
+        {
+            Assert.IsTrue(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("R81177-1", PATRON_ETIQUETA_BULTO));
+            Assert.IsTrue(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda(" r81177'1 ", PATRON_ETIQUETA_BULTO));
+        }
+
+        [TestMethod]
+        public void EsTextoSinBusqueda_ProductoONombre_SeBuscaComoSiempre()
+        {
+            Assert.IsFalse(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("45395", PATRON_ETIQUETA_BULTO));
+            Assert.IsFalse(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("RASURADORAS", PATRON_ETIQUETA_BULTO));
+            Assert.IsFalse(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("R81177", PATRON_ETIQUETA_BULTO));
+        }
+
+        [TestMethod]
+        public void EsTextoSinBusqueda_SinPatronOPatronMalo_SeBuscaTodo()
+        {
+            Assert.IsFalse(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("R81177-1", null));
+            Assert.IsFalse(Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("R81177-1", "("));
+        }
+
+        #endregion
+
         #region AutocompleteItem Tests
 
         [TestMethod]

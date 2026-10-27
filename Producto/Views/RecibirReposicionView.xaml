@@ -84,7 +84,9 @@
                 <i:Interaction.Behaviors>
                     <behaviors:AutocompleteBehavior Empresa="{Binding Empresa}" SiempreActivo="True" TipoBusqueda="Producto"
                                                     MinChars="3" DebounceMs="400" MaxResults="10"
+                                                    PatronSinBusqueda="^R[0-9]+[^A-Za-z0-9]+[0-9]+$"
                                                     ItemSeleccionado="Lector_ProductoElegido" />
+                <!-- Incidencia 787: la etiqueta de un bulto tecleada a mano (R81177-1) no abre la lista de productos -->
                 </i:Interaction.Behaviors>
                 <TextBox.InputBindings>
                     <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />
