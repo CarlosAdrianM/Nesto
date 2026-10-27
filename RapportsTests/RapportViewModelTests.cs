@@ -22,8 +22,7 @@ namespace RapportsTests
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
             return new RapportViewModel(configuracion, A.Fake<IRapportService>(),
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
         }
 
         // Nesto#469 (Carlos, 16/09/26): si se le pregunta y la deja vacía, tiene que confirmar que no lo
@@ -41,8 +40,7 @@ namespace RapportsTests
                     callback?.Invoke(resultado);
                 });
             var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(),
-                dialogo, new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+                dialogo, new WeakReferenceMessenger());
             return (vm, dialogo);
         }
 
@@ -178,8 +176,7 @@ namespace RapportsTests
             A.CallTo(() => dialogo.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(respuestaUsuario);
             var servicio = A.Fake<IRapportService>();
             A.CallTo(() => servicio.crearRapport(A<SeguimientoClienteDTO>._)).Returns(Task.FromResult("Guardado"));
-            var vm = new RapportViewModel(configuracion, servicio, dialogo, new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+            var vm = new RapportViewModel(configuracion, servicio, dialogo, new WeakReferenceMessenger());
             return (vm, dialogo, servicio);
         }
 

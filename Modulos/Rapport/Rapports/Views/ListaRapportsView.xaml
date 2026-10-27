@@ -374,6 +374,11 @@
                 <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando rapports...">
                     <DockPanel>
                         <xctk:WatermarkTextBox Name="txtFiltro" Text="{Binding Filtro}" DockPanel.Dock="Top" Watermark="Buscar en todos los seguimientos..." />
+                        <!-- Nesto#557 (Sancho, 761): «Puede ofrecer» aquí, encima de los rapports del cliente elegido (se consultan antes o
+                             durante la conversación), y ya no en la ficha de crear el rapport. Misma cinta que la plantilla (Nesto#544),
+                             con «✓ Añadir» a la plantilla, «✗ No le interesa» y «🚫 Quitar». Sin cliente o sin sugerencias no se ve.
+                             Se pliega con su cabecera (Alt+O) y se recuerda por usuario (SugerenciasRapportPlegadas, sugerencia 761). -->
+                        <controles:CintaSugerenciasProductosView DockPanel.Dock="Top" DataContext="{Binding CintaSugerencias}" Margin="0,3,0,3"/>
                         <DataGrid ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding Fecha, StringFormat=d}" Width="Auto" Header="Fecha" />

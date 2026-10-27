@@ -39,7 +39,7 @@ namespace RapportsTests
         private ListaRapportsViewModel Abrir()
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
             vm.AlLlegar(new ParametrosNavegacion());
             // Lo que hace SelectorSubgrupoProducto al terminar de cargar: elige «(Todos los subgrupos)»
             vm.GrupoSubgrupoSeleccionado = string.Empty;
@@ -62,7 +62,7 @@ namespace RapportsTests
             var leerTipo = new TaskCompletionSource<string>();
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.UltTipoSeguimientoCliente)).Returns(leerTipo.Task);
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
 
             vm.AlLlegar(new ParametrosNavegacion());
             vm.GrupoSubgrupoSeleccionado = string.Empty;
@@ -75,7 +75,7 @@ namespace RapportsTests
         public void ElegirGrupoAntesDeTenerTipo_NoPideConElTipoVacio()
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
 
             vm.GrupoSubgrupoSeleccionado = "PEL/PEL";
 

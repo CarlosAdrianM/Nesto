@@ -9,29 +9,32 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Rapports;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace RapportsTests
 {
     /// <summary>
-    /// Nesto#544: la cinta «Puede ofrecer» de la plantilla, en el rapport. Se pregunta con el cliente y el contacto del rapport
-    /// y sin carrito, solo en un rapport nuevo; «✗ No le interesa» y «🚫 Quitar» mandan la respuesta igual que en la plantilla;
-    /// sin sugerencias (o con la API caída) no se ve. «✓ Añadir» (corte 2) pregunta por el mensajero si hay una plantilla
-    /// abierta del cliente y, si no, abre una nueva con los parámetros; «Anadido» lo apunta la plantilla.
+    /// Nesto#544 y Nesto#557 (Sancho, comentario 325 de la 761): la cinta «Puede ofrecer» de la plantilla vive en la LISTA de
+    /// rapports, con el cliente y el contacto del selector (lo que se consulta antes o durante la conversación), y ya no en la
+    /// ficha de crear el rapport. Se pregunta sin carrito en cuanto cambia el cliente; «✗ No le interesa» y «🚫 Quitar» mandan
+    /// la respuesta igual que en la plantilla (alimentan el modelo); sin sugerencias (o con la API caída) no se ve. «✓ Añadir»
+    /// (corte 2) pregunta por el mensajero si hay una plantilla abierta del cliente y, si no, abre una nueva con los parámetros;
+    /// «Anadido» lo apunta la plantilla.
     /// </summary>
     [TestClass]
     public class SugerenciasProductosRapportTests
     {
         private static readonly Guid SESION = new Guid("0f6c9a43-8f2e-4a55-b3d5-2b6c1c3e9a11");
 
-        private static (RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos) CrearViewModel()
+        private static (ListaRapportsViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos) CrearViewModel()
         {
             var (vm, sugerencias, configuracion, dialogos, _, _) = CrearViewModelConNavegacion();
             return (vm, sugerencias, configuracion, dialogos);
         }
 
-        private static (RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos,
+        private static (ListaRapportsViewModel vm, IServicioSugerenciasProductos sugerencias, IConfiguracion configuracion, IServicioDialogos dialogos,
             IServicioNavegacion navegacion, IMessenger messenger) CrearViewModelConNavegacion()
         {
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
@@ -40,13 +43,20 @@ namespace RapportsTests
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
             IServicioSugerenciasProductos sugerencias = A.Fake<IServicioSugerenciasProductos>();
             IServicioNavegacion navegacion = A.Fake<IServicioNavegacion>();
+            IRapportService servicio = A.Fake<IRapportService>();
+            A.CallTo(() => servicio.cargarListaRapports(A<string>._, A<string>._, A<string>._))
+                .Returns(Task.FromResult(new ObservableCollection<SeguimientoClienteDTO>()));
             var messenger = new WeakReferenceMessenger();
-            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), dialogos, messenger, sugerencias, navegacion);
+            var vm = new ListaRapportsViewModel(navegacion, configuracion, servicio, dialogos, messenger, sugerencias);
             return (vm, sugerencias, configuracion, dialogos, navegacion, messenger);
         }
 
-        private static SeguimientoClienteDTO RapportNuevo(string cliente = "15191", string contacto = "2") =>
-            new SeguimientoClienteDTO { Id = 0, Empresa = "1  ", Cliente = cliente + "     ", Contacto = contacto + "  " };
+        /// <summary>Lo que hace el SelectorCliente de la lista al elegir un cliente (con el relleno de la BD).</summary>
+        private static void ElegirCliente(ListaRapportsViewModel vm, string cliente = "15191", string contacto = "2")
+        {
+            vm.clienteSeleccionado = cliente + "     ";
+            vm.contactoSeleccionado = contacto + "  ";
+        }
 
         private static SugerenciaProductoDTO Ficha(int id, string producto, int posicion) =>
             new SugerenciaProductoDTO
@@ -63,26 +73,34 @@ namespace RapportsTests
             new SugerenciasProductosDTO { IdSesion = SESION, Sugerencias = fichas.ToList() };
 
         [TestMethod]
-        public async Task RapportNuevo_PideConElClienteYElContacto_SinCarrito_YEnsenaLasFichas()
+        public void Nesto557_LaFichaDelRapportYaNoTieneCinta()
+        {
+            // Carlos (23/10/26): no tiene sentido tenerla en los dos sitios. Cuando se crea el rapport la conversación ya ha terminado.
+            Assert.IsNull(typeof(RapportViewModel).GetProperty("CintaSugerencias"), "La cinta «Puede ofrecer» se quitó de RapportViewModel (Nesto#557)");
+            Assert.IsNotNull(typeof(ListaRapportsViewModel).GetProperty("CintaSugerencias"), "Vive en la lista de rapports del cliente");
+        }
+
+        [TestMethod]
+        public async Task AlElegirCliente_PideConElClienteYElContacto_SinCarrito_YEnsenaLasFichas()
         {
             var (vm, sugerencias, _, _) = CrearViewModel();
-            vm.VendedorUsuario = "JE";
+            vm.vendedor = "JE";
             CalcularSugerenciasProductosDTO enviada = null;
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
                 .Invokes((CalcularSugerenciasProductosDTO p) => enviada = p)
                 .Returns(Task.FromResult(Respuesta(Ficha(11, "39000", 2), Ficha(10, "38000", 1), Ficha(12, "40000", 3))));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
 
             await vm.CintaSugerencias.RefrescarAsync();
 
             Assert.IsNotNull(enviada);
             Assert.AreEqual("1", enviada.Empresa);
             Assert.AreEqual("15191", enviada.Cliente);
-            Assert.AreEqual("2", enviada.Contacto, "El contacto del rapport, no el de la ficha");
+            Assert.AreEqual("2", enviada.Contacto, "El contacto del selector");
             Assert.AreEqual("JE", enviada.Vendedor);
             Assert.AreEqual(CalcularSugerenciasProductosDTO.APLICACION_NESTO, enviada.Aplicacion);
             Assert.IsNull(enviada.IdSesion, "La primera vez la sesión la crea la API");
-            Assert.AreEqual(0, enviada.Productos.Count, "En el rapport no hay carrito");
+            Assert.AreEqual(0, enviada.Productos.Count, "En los rapports no hay carrito");
             Assert.IsTrue(vm.CintaSugerencias.HaySugerencias);
             CollectionAssert.AreEqual(new[] { "38000", "39000", "40000" }, vm.CintaSugerencias.Sugerencias.Select(s => s.Producto).ToArray());
             Assert.AreEqual(SESION, vm.CintaSugerencias.IdSesion);
@@ -96,7 +114,7 @@ namespace RapportsTests
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
                 .Invokes((CalcularSugerenciasProductosDTO p) => enviada = p)
                 .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1))));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
 
             await vm.CintaSugerencias.RefrescarAsync();
 
@@ -104,24 +122,9 @@ namespace RapportsTests
         }
 
         [TestMethod]
-        public async Task RapportYaGuardado_NoPide_NiSeVe()
-        {
-            var (vm, sugerencias, _, _) = CrearViewModel();
-            SeguimientoClienteDTO guardado = RapportNuevo();
-            guardado.Id = 7;
-            vm.rapport = guardado;
-
-            await vm.CintaSugerencias.RefrescarAsync();
-
-            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).MustNotHaveHappened();
-            Assert.IsFalse(vm.CintaSugerencias.HaySugerencias);
-        }
-
-        [TestMethod]
         public async Task SinCliente_NoPide()
         {
             var (vm, sugerencias, _, _) = CrearViewModel();
-            vm.rapport = new SeguimientoClienteDTO();
 
             await vm.CintaSugerencias.RefrescarAsync();
 
@@ -137,11 +140,11 @@ namespace RapportsTests
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
                 .Invokes((CalcularSugerenciasProductosDTO p) => enviadas.Add(p))
                 .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1))));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
             await vm.CintaSugerencias.RefrescarAsync();
             Assert.AreEqual(SESION, vm.CintaSugerencias.IdSesion);
 
-            vm.rapport.Cliente = "34867"; // lo cambia el SelectorCliente (binding TwoWay)
+            vm.clienteSeleccionado = "34867"; // lo cambia el SelectorCliente de la lista (binding TwoWay)
 
             Assert.IsFalse(vm.CintaSugerencias.HaySugerencias, "Lo de antes era para otro cliente");
             Assert.IsNull(vm.CintaSugerencias.IdSesion);
@@ -152,6 +155,24 @@ namespace RapportsTests
         }
 
         [TestMethod]
+        public async Task AlBorrarElCliente_LaCintaSeVacia_YNoPide()
+        {
+            var (vm, sugerencias, _, _) = CrearViewModel();
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
+                .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1))));
+            A.CallTo(() => vm.configuracion.usuario).Returns("carlos");
+            ElegirCliente(vm);
+            await vm.CintaSugerencias.RefrescarAsync();
+            Assert.IsTrue(vm.CintaSugerencias.HaySugerencias);
+
+            vm.clienteSeleccionado = null; // Nesto#551: vuelve la lista del día
+
+            Assert.IsFalse(vm.CintaSugerencias.HaySugerencias);
+            await vm.CintaSugerencias.RefrescarAsync();
+            A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
         public async Task AlCambiarDeContacto_SeVuelveAPreguntarConLaMismaSesion()
         {
             var (vm, sugerencias, _, _) = CrearViewModel();
@@ -159,10 +180,10 @@ namespace RapportsTests
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
                 .Invokes((CalcularSugerenciasProductosDTO p) => enviadas.Add(p))
                 .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1))));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
             await vm.CintaSugerencias.RefrescarAsync();
 
-            vm.rapport.Contacto = "5";
+            vm.contactoSeleccionado = "5";
             await vm.CintaSugerencias.RefrescarAsync();
 
             Assert.AreEqual(2, enviadas.Count);
@@ -180,7 +201,7 @@ namespace RapportsTests
             A.CallTo(() => sugerencias.Responder(10, RespuestasSugerenciaProducto.NO_LE_INTERESA, A<List<ProductoCarritoSugerenciaDTO>>._))
                 .Invokes((int id, string r, List<ProductoCarritoSugerenciaDTO> productos) => carritoEnviado = productos)
                 .Returns(Task.FromResult(new ResultadoRespuestaSugerenciaProductoDTO { IdSugerencia = 10, Sustituta = Ficha(13, "41000", 1) }));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
             await vm.CintaSugerencias.RefrescarAsync();
 
             Assert.IsTrue(vm.CintaSugerencias.RechazarCommand.CanExecute(vm.CintaSugerencias.Sugerencias[0]));
@@ -200,7 +221,7 @@ namespace RapportsTests
                 .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1), Ficha(11, "39000", 2))));
             A.CallTo(() => sugerencias.Responder(A<int>._, A<string>._, A<List<ProductoCarritoSugerenciaDTO>>._))
                 .Returns(Task.FromResult<ResultadoRespuestaSugerenciaProductoDTO>(null));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
             await vm.CintaSugerencias.RefrescarAsync();
 
             vm.CintaSugerencias.QuitarCommand.Execute(vm.CintaSugerencias.Sugerencias[1]);
@@ -216,7 +237,7 @@ namespace RapportsTests
         {
             var (vm, sugerencias, _, _) = CrearViewModel();
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).Returns(Task.FromResult(Respuesta()));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
 
             await vm.CintaSugerencias.RefrescarAsync();
 
@@ -228,7 +249,7 @@ namespace RapportsTests
         {
             var (vm, sugerencias, _, dialogos) = CrearViewModel();
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._)).Throws(new InvalidOperationException("Sin conexión"));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
 
             await vm.CintaSugerencias.RefrescarAsync();
 
@@ -253,20 +274,20 @@ namespace RapportsTests
             }
         }
 
-        private static async Task<(RapportViewModel vm, IServicioSugerenciasProductos sugerencias, IServicioNavegacion navegacion, IMessenger messenger)> RapportConFichas()
+        private static async Task<(ListaRapportsViewModel vm, IServicioSugerenciasProductos sugerencias, IServicioNavegacion navegacion, IMessenger messenger)> ListaConFichas()
         {
             var (vm, sugerencias, _, _, navegacion, messenger) = CrearViewModelConNavegacion();
             A.CallTo(() => sugerencias.Calcular(A<CalcularSugerenciasProductosDTO>._))
                 .Returns(Task.FromResult(Respuesta(Ficha(10, "38000", 1), Ficha(11, "39000", 2))));
-            vm.rapport = RapportNuevo();
+            ElegirCliente(vm);
             await vm.CintaSugerencias.RefrescarAsync();
             return (vm, sugerencias, navegacion, messenger);
         }
 
         [TestMethod]
-        public async Task Anadir_SaleEnElRapport()
+        public async Task Anadir_SaleEnLaLista()
         {
-            var (vm, _, _, _) = await RapportConFichas();
+            var (vm, _, _, _) = await ListaConFichas();
 
             Assert.IsTrue(vm.CintaSugerencias.PuedeAnadir);
             Assert.IsTrue(vm.CintaSugerencias.AnadirCommand.CanExecute(vm.CintaSugerencias.Sugerencias[0]));
@@ -275,7 +296,7 @@ namespace RapportsTests
         [TestMethod]
         public async Task Anadir_SinPlantillaAbierta_AbreUnaNuevaConElClienteElContactoElProductoLaSugerenciaYLaSesion()
         {
-            var (vm, sugerencias, navegacion, _) = await RapportConFichas();
+            var (vm, sugerencias, navegacion, _) = await ListaConFichas();
             ParametrosNavegacion parametros = null;
             A.CallTo(() => navegacion.RequestNavigate("MainRegion", "PlantillaVentaView", A<ParametrosNavegacion>._))
                 .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
@@ -297,7 +318,7 @@ namespace RapportsTests
         [TestMethod]
         public async Task Anadir_ConPlantillaAbiertaDelCliente_LoMeteElla_YNoSeAbreOtra()
         {
-            var (vm, sugerencias, navegacion, messenger) = await RapportConFichas();
+            var (vm, sugerencias, navegacion, messenger) = await ListaConFichas();
             var plantilla = new PlantillaAbierta(messenger, entra: true);
 
             await vm.CintaSugerencias.AnadirAsync(vm.CintaSugerencias.Sugerencias[1]);
@@ -319,7 +340,7 @@ namespace RapportsTests
         [TestMethod]
         public async Task Anadir_SiLaPlantillaAbiertaNoPuedeMeterlo_LaFichaSeQueda()
         {
-            var (vm, _, navegacion, messenger) = await RapportConFichas();
+            var (vm, _, navegacion, messenger) = await ListaConFichas();
             var plantilla = new PlantillaAbierta(messenger, entra: false);
 
             await vm.CintaSugerencias.AnadirAsync(vm.CintaSugerencias.Sugerencias[0]);
@@ -333,9 +354,14 @@ namespace RapportsTests
 
         #region Plegar (sugerencia 761)
 
+        private static ListaRapportsViewModel CrearConConfiguracion(IConfiguracion configuracion) =>
+            new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(),
+                new WeakReferenceMessenger(), A.Fake<IServicioSugerenciasProductos>());
+
         [TestMethod]
-        public void Plegar_EnElRapport_SeGuardaConSuParametro_YNoTocaElDeLaPlantilla()
+        public void Plegar_EnLaLista_SeGuardaConElParametroDelRapport_YNoTocaElDeLaPlantilla()
         {
+            // Nesto#557: la cinta cambia de sitio pero el plegado sigue siendo el del rapport (SugerenciasRapportPlegadas)
             var (vm, _, configuracion, _) = CrearViewModel();
             Assert.IsTrue(vm.CintaSugerencias.Desplegadas, "Sin preferencia, desplegada");
 
@@ -356,10 +382,9 @@ namespace RapportsTests
             A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasPlantillaPlegadas)).Returns(Task.FromResult("0"));
             A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasRapportPlegadas)).Returns(Task.FromResult("1"));
 
-            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+            var vm = CrearConConfiguracion(configuracion);
 
-            Assert.IsTrue(vm.CintaSugerencias.Plegadas, "En el rapport manda SugerenciasRapportPlegadas");
+            Assert.IsTrue(vm.CintaSugerencias.Plegadas, "En los rapports manda SugerenciasRapportPlegadas");
         }
 
         [TestMethod]
@@ -372,8 +397,7 @@ namespace RapportsTests
             A.CallTo(() => configuracion.leerParametro("1", Parametros.Claves.SugerenciasRapportPlegadas))
                 .ThrowsAsync(new Exception("No se puede leer el parámetro"));
 
-            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(),
-                A.Fake<IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+            var vm = CrearConConfiguracion(configuracion);
 
             Assert.IsTrue(vm.CintaSugerencias.Desplegadas, "Sin el parámetro, el valor por defecto: desplegada");
         }

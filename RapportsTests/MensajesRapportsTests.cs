@@ -29,7 +29,7 @@ namespace RapportsTests
         private ListaRapportsViewModel CrearLista()
         {
             return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), _servicio,
-                A.Fake<IServicioDialogos>(), _messenger);
+                A.Fake<IServicioDialogos>(), _messenger, A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
         }
 
         private static (ListaRapportsViewModel, SeguimientoClienteDTO) ConRapportNuevo(ListaRapportsViewModel vm)
