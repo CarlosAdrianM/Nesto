@@ -139,20 +139,34 @@ namespace ControlesUsuario.Dialogs
         /// Carlos 05/10/26: con Prism un texto largo no salía entero y al agrandar la ventana el texto no se
         /// ajustaba. La ventana nace ajustada al contenido pero con un tope (<see cref="ANCHO_MAXIMO_INICIAL"/> de
         /// ancho y casi toda la pantalla de alto, para que el texto se envuelva y, si no cabe, salga la barra de
-        /// desplazamiento); una vez pintada, se queda con ese tamaño y se suelta el tope, así que el usuario la
+        /// desplazamiento); una vez pintada, se queda con ese ancho y se suelta el tope, así que el usuario la
         /// puede agrandar y el contenido se ajusta. Solo con el estilo por defecto: una vista con su propio estilo
         /// de ventana manda entero, como en Prism.
+        ///
+        /// Nesto#556 (sugerencia 757, Laura): el alto sigue ajustándose al contenido (<see cref="SizeToContent.Height"/>)
+        /// en vez de quedarse fijo. «Parámetros de usuario» carga sus parámetros de la API DESPUÉS de pintarse: con el
+        /// alto fijo la ventana no crecía y el botón Guardar quedaba cortado. El tope de alto se mantiene (casi toda la
+        /// pantalla): si el contenido no cabe, la vista tiene que llevar su propio ScrollViewer en una fila * (como
+        /// ParametrosUsuarioDialog y CopiarSeguimientosView). Si el usuario redimensiona la ventana, WPF pasa
+        /// SizeToContent a Manual solo y se queda con el tamaño que él le dé.
         /// </summary>
         private void SoltarElTamanoInicial(object sender, EventArgs e)
         {
             ContentRendered -= SoltarElTamanoInicial;
+            AjustarTamanoTrasPintar();
+        }
+
+        /// <summary>Lo que hace <see cref="SoltarElTamanoInicial"/> una vez pintada (separado para poder probarlo).</summary>
+        internal void AjustarTamanoTrasPintar()
+        {
             if (!ReferenceEquals(Style, EstiloPorDefecto))
             {
                 return;
             }
-            SizeToContent = SizeToContent.Manual;
+            SizeToContent = SizeToContent.Height;
             MaxWidth = double.PositiveInfinity;
-            MaxHeight = double.PositiveInfinity;
+            SizeChanged += MantenerDentroDeLaPantalla;
+            Closed += (s, e) => SizeChanged -= MantenerDentroDeLaPantalla;
             // Los diálogos de aviso llevan su propio tope (se les puso para la ventana de Prism, que crecía sin límite
             // con un texto largo; también sirve para que nazcan con ese ancho): una vez pintada ya no hace falta
             if (Content is FrameworkElement vista && vista.MaxWidth == ANCHO_MAXIMO_INICIAL)
@@ -160,6 +174,27 @@ namespace ControlesUsuario.Dialogs
                 vista.MaxWidth = double.PositiveInfinity;
             }
         }
+
+        /// <summary>
+        /// Nesto#556: la ventana nace centrada sobre su dueña y, al crecer con el contenido, crece hacia abajo; si se
+        /// saliera del área de trabajo, se sube para que el borde de abajo (los botones) siga a la vista.
+        /// </summary>
+        private void MantenerDentroDeLaPantalla(object sender, SizeChangedEventArgs e)
+        {
+            if (!e.HeightChanged || double.IsNaN(Top) || double.IsNaN(ActualHeight))
+            {
+                return;
+            }
+            // Solo en el monitor principal (WorkArea es el suyo): en otro monitor no se sabe dónde acaba la pantalla
+            Rect area = SystemParameters.WorkArea;
+            if (area.Contains(new Point(Left, Top)) && Top + ActualHeight > area.Bottom)
+            {
+                Top = Math.Max(area.Top, area.Bottom - ActualHeight);
+            }
+        }
+
+        /// <summary>Nesto#556: tope de alto de la ventana con el estilo por defecto (casi toda el área de trabajo).</summary>
+        internal static double AltoMaximo() => Math.Max(300d, SystemParameters.WorkArea.Height * 0.85);
 
         /// <summary>Resultado con el que pidió cerrarse el diálogo; null si se cerró con la X.</summary>
         public ResultadoDialogo Resultado { get; set; }
@@ -170,7 +205,7 @@ namespace ControlesUsuario.Dialogs
             estilo.Setters.Add(new Setter(SizeToContentProperty, SizeToContent.WidthAndHeight));
             estilo.Setters.Add(new Setter(ResizeModeProperty, ResizeMode.CanResize));
             estilo.Setters.Add(new Setter(MaxWidthProperty, ANCHO_MAXIMO_INICIAL));
-            estilo.Setters.Add(new Setter(MaxHeightProperty, Math.Max(300d, SystemParameters.WorkArea.Height * 0.85)));
+            estilo.Setters.Add(new Setter(MaxHeightProperty, AltoMaximo()));
             estilo.Seal();
             return estilo;
         }
