@@ -45,6 +45,14 @@ Public Class ClienteJson
     ''' </summary>
     Public Property pais As String
 
+    ''' <summary>
+    ''' Nesto#558 (NestoAPI#716): por qué cambia el estado (un código de Nesto.Infrastructure.Shared.MotivoCambioEstadoCliente).
+    ''' Solo viaja en el PUT de ClienteComercial cuando el estado cambia a una baja (o sale de ella); Nothing = no se manda.
+    ''' </summary>
+    Public Property motivoCambioEstado As String
+    ''' <summary>Nesto#558 (NestoAPI#716): comentario libre del cambio de estado (200 caracteres). Nothing = no se manda.</summary>
+    Public Property comentarioCambioEstado As String
+
     Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 
     ''' <summary>
