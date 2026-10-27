@@ -76,6 +76,44 @@ namespace ControlesUsuario.Tests.Dialogs
             Assert.AreEqual("No se pudieron cargar los parámetros editables: sin conexión", vm.Mensaje);
         }
 
+        // Nesto#490 (panel lateral): NavegacionLateral se lee al arrancar; al guardarlo hay que avisar de que se reinicie
+        [TestMethod]
+        public void ParametrosUsuario_AlGuardarUnoQueRequiereReiniciar_AvisaDeCerrarYAbrirNesto()
+        {
+            var servicio = A.Fake<IServicioParametrosEditables>();
+            var opciones = new List<OpcionParametroModel> { new() { Valor = "0", Descripcion = "Cinta" }, new() { Valor = "1", Descripcion = "Menú lateral" } };
+            A.CallTo(() => servicio.LeerEditables()).Returns(Task.FromResult(new List<ParametroEditableModel>
+            {
+                new() { Clave = "NavegacionLateral", Descripcion = "Diseño nuevo: menú lateral en lugar de la cinta (requiere reiniciar Nesto)",
+                        ValorActual = "0", RequiereReiniciar = true, Opciones = opciones }
+            }));
+            A.CallTo(() => servicio.Cambiar("NavegacionLateral", "1")).Returns(Task.FromResult(
+                new ParametroEditableModel { Clave = "NavegacionLateral", ValorActual = "1", RequiereReiniciar = true, Opciones = opciones }));
+            var vm = new ParametrosUsuarioDialogViewModel(servicio);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo());
+
+            vm.Editables[0].ValorSeleccionado = "1";
+            vm.GuardarCommand.Execute(null);
+
+            StringAssert.Contains(vm.Mensaje, "cierre Nesto y vuelva a abrirlo");
+            StringAssert.Contains(vm.Mensaje, "«Diseño nuevo: menú lateral en lugar de la cinta (requiere reiniciar Nesto)»");
+        }
+
+        [TestMethod]
+        public void ParametrosUsuario_AlGuardarUnoNormal_ElMensajeDeSiempre()
+        {
+            var servicio = ServicioConUnEditable();
+            A.CallTo(() => servicio.Cambiar("AlmacenPedidoVta", "AMZ")).Returns(Task.FromResult(
+                new ParametroEditableModel { Clave = "AlmacenPedidoVta", ValorActual = "AMZ", Opciones = new List<OpcionParametroModel>() }));
+            var vm = new ParametrosUsuarioDialogViewModel(servicio);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo());
+
+            vm.Editables[0].ValorSeleccionado = "AMZ";
+            vm.GuardarCommand.Execute(null);
+
+            Assert.AreEqual("Cambios guardados. Ya están activos para los próximos pedidos.", vm.Mensaje);
+        }
+
         [TestMethod]
         public void Novedades_TituloPorDefectoYElDelLlamante()
         {

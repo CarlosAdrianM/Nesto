@@ -62,6 +62,19 @@ Public NotInheritable Class ComposicionNesto
         GetType(IOfertasCombinadas)                         ' Ofertas Combinadas - 27/02/26 (Issue #299)
     }
 
+    ' Guarda un parámetro del usuario sin bloquear la interfaz; si falla, a ELMAH (nunca rompe nada)
+    Private Shared Async Sub GuardarSinEsperar(cfg As IConfiguracion, clave As String, valor As String,
+                                               registrarError As Action(Of Exception, String))
+        Try
+            Await cfg.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, clave, valor)
+        Catch ex As Exception
+            Try
+                registrarError?.Invoke(ex, $"Guardar el parámetro {clave}")
+            Catch
+            End Try
+        End Try
+    End Sub
+
     Public Shared Sub Registrar(registro As IRegistroNesto)
         If registro Is Nothing Then
             Throw New ArgumentNullException(NameOf(registro))
@@ -73,6 +86,19 @@ Public NotInheritable Class ComposicionNesto
         registro.Singleton(Of IServicioCinta)(
             Function(r) New Nesto.Infrastructure.Cinta.ServicioCinta(r.Resolver(Of IMainWindow)().mainRibbon))
         registro.Singleton(GetType(IMenuBar), GetType(MenuBarView))
+        ' Nesto#490 (panel lateral, tramo 1): el piloto del menú lateral (NavegacionLateral = "1"), leído una vez al crear la
+        ' ventana principal, y si el panel sale compacto (NavegacionLateralCompacta), que guarda el propio panel sin esperar
+        registro.Singleton(Of Nesto.Infrastructure.Menu.ConmutadorNavegacionLateral)(
+            Function(r)
+                Dim cfg = r.Resolver(Of IConfiguracion)()
+                Dim registrarError As Action(Of Exception, String) =
+                    Sub(ex, contexto) r.Resolver(Of IServicioRegistroErrores)().RegistrarErrorAsync(ex, contexto)
+                Return New Nesto.Infrastructure.Menu.ConmutadorNavegacionLateral(
+                    Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.NavegacionLateral),
+                    Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.NavegacionLateralCompacta),
+                    Sub(valor) GuardarSinEsperar(cfg, Parametros.Claves.NavegacionLateralCompacta, valor, registrarError),
+                    registrarError)
+            End Function)
         registro.Singleton(GetType(IConfiguracion), GetType(Configuracion))
         ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
         ' de Prism. Un único messenger para toda la aplicación (referencias débiles, como Prism).

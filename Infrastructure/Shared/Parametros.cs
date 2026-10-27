@@ -44,6 +44,14 @@
             // "QuestPDF" → api/Clientes/MandatoPDF?...&motor=QuestPDF; cualquier otro valor o sin fila → RDLC.
             // El mandato va al CLIENTE: se activa usuario a usuario (fila "(defecto)" = RDLC).
             public const string MotorPdfMandatoSepa = "MotorPdfMandatoSepa";
+            // Nesto#490 (panel lateral): "1" = el menú lateral (NavigationView) en lugar de la cinta; cualquier otro
+            // valor, sin fila o si no se puede leer = la cinta. Se lee una vez al crear la ventana principal
+            // (ConmutadorNavegacionLateral): el cambio se nota al reiniciar Nesto. El usuario lo cambia desde Parámetros
+            // (catálogo de editables de NestoAPI). Filas: Scripts/Nesto490_NavegacionLateral.sql (NestoAPI).
+            public const string NavegacionLateral = "NavegacionLateral";
+            // Nesto#490 (panel lateral): "0" = el menú lateral sale abierto; cualquier otro valor o sin fila = compacto
+            // (solo iconos). Lo guarda el propio panel cuando el usuario lo abre o lo cierra con su botón.
+            public const string NavegacionLateralCompacta = "NavegacionLateralCompacta";
             // Nesto#340 (Agencias A4.3/A4.4, 23/09/26): PagarReembolsosPorApi y ModificarEnvioPorApi se
             // retiraron: validados en vivo, el camino de Entity Framework se borró y ya siempre va por la API.
             public const string PathNorma19 = "PathNorma19";

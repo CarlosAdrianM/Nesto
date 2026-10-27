@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Cinta;
 using Nesto.Infrastructure.Composicion;
@@ -54,6 +54,14 @@ namespace Nesto.Tests
             public List<string> Dialogos { get; } = new List<string>();
             public bool MainRegionRegistrada { get; set; }
             public bool MainRegionEsLaDelShell { get; set; }
+            // Nesto#490 (panel lateral, tramo 1): el catálogo del menú lateral que sale del arranque
+            public List<string> Catalogo { get; } = new List<string>();
+            public List<string> FuentesYComandosDistintos { get; } = new List<string>();
+            public List<string> SinMapear { get; } = new List<string>();
+            public List<string> MenuAplicacion { get; } = new List<string>();
+            public bool CatalogoEsElDelServicio { get; set; }
+            // Y el menú lateral montado sobre el shell de verdad (como con NavegacionLateral = "1")
+            public List<string> PanelMontado { get; } = new List<string>();
         }
 
         private sealed class Arranque
@@ -83,6 +91,10 @@ namespace Nesto.Tests
                 _menus.Add(menu);
                 _real.AnadirMenu(menu);
             }
+
+            public CatalogoMenu Completar() => _real.Completar();
+
+            public CatalogoMenu Catalogo => _real.Catalogo;
         }
 
         private sealed class ApiQueNoContesta : System.Net.Http.HttpMessageHandler
@@ -162,6 +174,7 @@ namespace Nesto.Tests
             resultado.Cinta.AddRange(VolcarCinta(((IMainWindow)arranque.Shell).mainRibbon));
             resultado.MainRegionRegistrada = arranque.Regiones.GestorShell.Contiene("MainRegion");
             resultado.MainRegionEsLaDelShell = ReferenceEquals(GestorRegiones.GetGestor(arranque.Shell), arranque.Regiones.GestorShell);
+            MirarCatalogo(arranque, resultado);
             using (Contenedor.Sustituir(arranque.Resolutor))
             {
                 foreach (string nombre in arranque.Vistas)
@@ -189,7 +202,112 @@ namespace Nesto.Tests
                     }
                 }
             }
+            // Lo último, porque carga WPF-UI: el menú lateral sobre el shell de verdad, como con el piloto encendido
+            MirarPanelMontado(arranque, resultado);
             return resultado;
+        }
+
+        // Nesto#490 (panel lateral, tramo 1): el catálogo que deja InicializarModulos (IServicioCinta.Completar), comparado
+        // con los botones de la cinta: el mismo DataContext (Fuente) y el MISMO ICommand, elemento a elemento
+        private static void MirarCatalogo(Arranque arranque, Resultado resultado)
+        {
+            IServicioCinta servicio = arranque.Resolutor.Resolver<IServicioCinta>();
+            CatalogoMenu catalogo = servicio.Catalogo;
+            resultado.CatalogoEsElDelServicio = catalogo != null && !ReferenceEquals(catalogo, CatalogoMenu.Vacio);
+            if (catalogo == null)
+            {
+                return;
+            }
+            foreach (ElementoMenuBase elemento in catalogo.Elementos)
+            {
+                resultado.Catalogo.Add(NombreDelTipo(elemento.Fuente));
+                var origen = elemento.Origen as FrameworkElement;
+                if (!ReferenceEquals(origen?.DataContext, elemento.Fuente))
+                {
+                    resultado.FuentesYComandosDistintos.Add(elemento.Clave + ": Fuente distinta del DataContext de la cinta");
+                }
+                if (elemento is ElementoMenu boton && !ReferenceEquals(ComandoDeLaCinta((RibbonButton)origen), boton.Comando))
+                {
+                    resultado.FuentesYComandosDistintos.Add(elemento.Clave + ": ICommand distinto del de la cinta");
+                }
+                // Sin bombear el dispatcher: el catálogo copia los Binding de la cinta con el DataContext como Source, así
+                // que tiene el comando ya al completar (los de la cinta se activan después, a prioridad DataBind)
+                if (elemento is ElementoMenu sinComando && sinComando.Comando == null)
+                {
+                    resultado.FuentesYComandosDistintos.Add(elemento.Clave + ": sin ICommand");
+                }
+            }
+            resultado.SinMapear.AddRange(catalogo.SinMapear);
+            resultado.MenuAplicacion.AddRange(catalogo.MenuAplicacion.Select(e => e.Titulo + " [" + NombreDelTipo(e.Fuente) + "]"));
+        }
+
+        // El ICommand que tendrá el botón de la cinta: el de su Binding, leído del DataContext (su Command aún no está
+        // activado sin dispatcher) o, si no está enlazado, el que tenga
+        private static object ComandoDeLaCinta(RibbonButton boton)
+        {
+            var enlace = System.Windows.Data.BindingOperations.GetBinding(boton, System.Windows.Controls.Primitives.ButtonBase.CommandProperty);
+            if (enlace == null)
+            {
+                return boton.Command;
+            }
+            return boton.DataContext?.GetType().GetProperty(enlace.Path.Path)?.GetValue(boton.DataContext);
+        }
+
+        private static void MirarPanelMontado(Arranque arranque, Resultado resultado)
+        {
+            try
+            {
+                var ventana = (MainWindow)arranque.Shell;
+                CatalogoMenu catalogo = arranque.Resolutor.Resolver<IServicioCinta>().Catalogo;
+                PanelNavegacionLateral panel = ventana.MontarNavegacionLateral(catalogo,
+                    new Nesto.Infrastructure.Menu.ConmutadorNavegacionLateral(() => "1"));
+                Ribbon cinta = ((IMainWindow)ventana).mainRibbon;
+                resultado.PanelMontado.Add("cinta " + cinta.Visibility);
+                resultado.PanelMontado.Add("campana en la cinta: " + (cinta.HelpPaneContent != null));
+                resultado.PanelMontado.Add("campana con su ViewModel: " + NombreDelTipo(ventana.CampanaNotificaciones.DataContext));
+                resultado.PanelMontado.Add("campana en la cabecera: " + NombreDelTipo(ventana.CampanaNotificaciones.Parent));
+                resultado.PanelMontado.Add("items: " + panel.ItemsDeElementos.Count);
+                resultado.PanelMontado.Add("pie: " + string.Join(", ", panel.ItemsDelPie.Select(i => i.Content)));
+                resultado.PanelMontado.Add("WPF-UI en Application.Resources: " + System.Windows.Application.Current.Resources.MergedDictionaries
+                    .Any(d => d.Source != null && d.Source.ToString().Contains("Wpf.Ui")));
+                CapturarPanel(panel);
+            }
+            catch (Exception ex)
+            {
+                resultado.PanelMontado.Add("ERROR " + ex);
+            }
+        }
+
+        // Para verlo sin abrir Nesto: el panel abierto, con todas las secciones desplegadas (con lo que vería el usuario
+        // de prueba, que no está en ningún grupo), en %TEMP%\panel-lateral-arranque.png. Nunca falla la prueba.
+        private static void CapturarPanel(PanelNavegacionLateral panel)
+        {
+            try
+            {
+                panel.Navegacion.IsPaneOpen = true;
+                foreach (var seccion in panel.ItemsDeSecciones.Values)
+                {
+                    seccion.IsExpanded = true;
+                }
+                var tamano = new Size(280, 2400);
+                panel.Measure(tamano);
+                panel.Arrange(new Rect(tamano));
+                panel.UpdateLayout();
+                var mapa = new System.Windows.Media.Imaging.RenderTargetBitmap(280, 2400, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                mapa.Render(panel);
+                var codificador = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                codificador.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(mapa));
+                string ruta = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "panel-lateral-arranque.png");
+                using (var fichero = System.IO.File.Create(ruta))
+                {
+                    codificador.Save(fichero);
+                }
+                Console.WriteLine("Captura: " + ruta);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Sin captura del panel: " + ex.Message);
+            }
         }
 
         private static string NombreDelTipo(object objeto) => objeto?.GetType().Name ?? "null";
@@ -282,6 +400,41 @@ namespace Nesto.Tests
         public void LaCinta_TieneLasMismasPestanasGruposYBotonesQueConPrism()
         {
             CompararConPrism(CintaConPrism, ResultadoDelArranque().Cinta, "cinta (tipo «texto» [DataContext])");
+        }
+
+        [TestMethod]
+        public void ElCatalogoDelMenuLateral_TieneLosMismosBotonesYDataContextsQueLaCinta()
+        {
+            Resultado r = ResultadoDelArranque();
+            Assert.IsTrue(r.CatalogoEsElDelServicio, "InicializarModulos no llamó a IServicioCinta.Completar()");
+            // Los elementos de la cinta de referencia: lo que cuelga de un grupo (cuatro espacios), en el mismo orden
+            var esperados = CintaConPrism
+                .Where(l => l.StartsWith("    ") && !l.StartsWith("     "))
+                .Select(l => l.Substring(l.LastIndexOf('[') + 1).TrimEnd(']'))
+                .ToList();
+            CompararConPrism(esperados, r.Catalogo, "fuentes del catálogo del menú lateral (DataContext de cada elemento)");
+            Assert.AreEqual(0, r.FuentesYComandosDistintos.Count, string.Join("\n", r.FuentesYComandosDistintos));
+            Assert.AreEqual(0, r.SinMapear.Count,
+                "Hay elementos de la cinta que no están en MapaMenuPorRol (han ido a «Otros»):\n" + string.Join("\n", r.SinMapear));
+            CollectionAssert.AreEqual(new[] { "Parámetros [MenuBarViewModel]", "Novedades [MenuBarViewModel]" }, r.MenuAplicacion);
+        }
+
+        [TestMethod]
+        public void ConElPilotoEncendido_LaCintaSeEsconde_LaCampanaVaALaCabecera_YElPanelLoTieneTodo()
+        {
+            Resultado r = ResultadoDelArranque();
+            int botones = CintaConPrism.Count(l => l.StartsWith("    RibbonButton"));
+            CollectionAssert.AreEqual(new[]
+            {
+                "cinta Collapsed",
+                "campana en la cinta: False",
+                "campana con su ViewModel: CampanaNotificacionesViewModel",
+                "campana en la cabecera: DockPanel",
+                // Cada botón tiene su item y, además, «Opciones de los informes» (fechas e «Incluir Global») y los dos del pie
+                "items: " + (botones + 1 + 2),
+                "pie: Parámetros, Novedades",
+                "WPF-UI en Application.Resources: False",
+            }, r.PanelMontado, string.Join("\n", r.PanelMontado));
         }
 
         [TestMethod]

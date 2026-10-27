@@ -26,5 +26,13 @@ namespace Nesto.Infrastructure.Cinta
             }
             FusionCinta.Fusionar(menu, _cintaPrincipal);
         }
+
+        public CatalogoMenu Catalogo { get; private set; } = CatalogoMenu.Vacio;
+
+        public CatalogoMenu Completar()
+        {
+            Catalogo = LectorCinta.LeerCatalogo(_cintaPrincipal);
+            return Catalogo;
+        }
     }
 }

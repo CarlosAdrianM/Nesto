@@ -1,6 +1,7 @@
 Imports Microsoft.Extensions.DependencyInjection
 Imports Nesto.Infrastructure.Composicion
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Menu
 Imports Nesto.Infrastructure.Navegacion
 
 ''' <summary>
@@ -13,7 +14,9 @@ Imports Nesto.Infrastructure.Navegacion
 ''' <item><see cref="CrearShell"/>: la ventana principal (IMainWindow) y el gestor de regiones colgado de ella.</item>
 ''' <item><see cref="InicializarModulos"/>: cada módulo pone su menú en la cinta, en el orden de
 ''' <see cref="ComposicionNesto.Modulos"/> (el mismo que el catálogo de Prism: sin dependencias entre módulos, Prism no
-''' lo reordenaba). La cinta depende del orden: los grupos que se fusionan en la misma pestaña salen en el que llegan.</item>
+''' lo reordenaba). La cinta depende del orden: los grupos que se fusionan en la misma pestaña salen en el que llegan.
+''' Al final, el catálogo del menú lateral (IServicioCinta.Completar).</item>
+''' <item><see cref="MontarNavegacion"/>: con el piloto NavegacionLateral, el menú lateral en lugar de la cinta.</item>
 ''' </list>
 ''' </summary>
 Public NotInheritable Class ArranqueNesto
@@ -55,6 +58,9 @@ Public NotInheritable Class ArranqueNesto
     ''' que hacía Application.CreateShell con Prism.
     ''' </summary>
     Public Function CrearShell() As Window
+        ' Nesto#490 (panel lateral): el piloto NavegacionLateral se lee una vez, aquí, antes de crear la ventana; vale
+        ' hasta cerrar Nesto (cambiarlo desde Parámetros pide reiniciar)
+        Dim unused = Resolutor.Resolver(Of ConmutadorNavegacionLateral)().Activa
         Dim shell As Window = CType(Resolutor.Resolver(Of IMainWindow)(), Window)
         Resolutor.Resolver(Of RegionesDelShell)().AlCrearShell(shell)
         Return shell
@@ -69,7 +75,31 @@ Public NotInheritable Class ArranqueNesto
         For Each tipoModulo In ComposicionNesto.Modulos
             DirectCast(Resolutor.Resolver(tipoModulo), IModuloNesto).Inicializar(Resolutor)
         Next
+        ' Nesto#490 (panel lateral, tramo 1): con todos los menús ya en la cinta, el catálogo del menú lateral (para todos,
+        ' tengan o no el piloto: no carga nada de WPF-UI y lo comprueba la prueba sombra)
+        Resolutor.Resolver(Of IServicioCinta)().Completar()
     End Sub
+
+    ''' <summary>
+    ''' Nesto#490 (panel lateral, tramo 1): con el piloto NavegacionLateral, pone el menú lateral en la ventana principal
+    ''' (después de <see cref="InicializarModulos"/> y antes de Show). Sin el piloto no hace nada. Si el panel falla al
+    ''' crearse, el error va a ELMAH y se queda la cinta: nunca impide arrancar Nesto. Devuelve si lo ha puesto.
+    ''' </summary>
+    Public Function MontarNavegacion(shell As Window) As Boolean
+        Dim conmutador = Resolutor.Resolver(Of ConmutadorNavegacionLateral)()
+        Dim ventana = TryCast(shell, MainWindow)
+        If Not conmutador.Activa OrElse ventana Is Nothing Then
+            Return False
+        End If
+        Try
+            ventana.MontarNavegacionLateral(Resolutor.Resolver(Of IServicioCinta)().Catalogo, conmutador)
+            Return True
+        Catch ex As Exception
+            conmutador.Registrar(ex, "NavegacionLateral: montar el menú lateral (se queda la cinta)")
+            ventana.regionRibbon.Visibility = Visibility.Visible
+            Return False
+        End Try
+    End Function
 
     ' La clase que se crea para registrar el módulo: la registrada para el tipo del catálogo (IPedidoVenta → PedidoVenta)
     ' o, si el catálogo ya trae la clase (CanalesExternos), ella misma.

@@ -18,19 +18,25 @@
         <SolidColorBrush x:Key="ColorNoAutenticado" Color="#F44336"/>
     </Window.Resources>
 
-    <Grid>
+    <!-- Nesto#490 (panel lateral): la columna 0 está vacía (ancho 0) salvo con el piloto NavegacionLateral, que pone ahí
+         el menú lateral por código (MontarNavegacionLateral) y esconde la cinta. -->
+    <Grid x:Name="Raiz" x:FieldModifier="Private">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <Ribbon Grid.Column="0" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Ribbon Grid.Column="0" Grid.ColumnSpan="2" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public">
             <!-- Nesto#477: campana de notificaciones, arriba a la derecha de la cinta (visible con cualquier pestaña) -->
             <Ribbon.HelpPaneContent>
                 <cun:CampanaNotificaciones x:Name="Campana" x:FieldModifier="Private"/>
             </Ribbon.HelpPaneContent>
         </Ribbon>
         <!-- MainRegion -->
-        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+        <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
             <!-- Usuario con indicador de conexión con el servidor (línea sutil debajo). Nesto#492:
                  verde = sesión válida y conexión en tiempo real (o tiempo real desactivado);
                  ámbar = hay sesión pero la conexión en tiempo real está caída (reintentando);
@@ -59,7 +65,7 @@
             <cu:SelectorSede Seleccionado="{Binding Delegacion, RelativeSource={RelativeSource AncestorType=Window}}" Etiqueta="Delegación:" ColorEtiqueta="DarkSlateGray" IsEnabled="False"></cu:SelectorSede>
             <TextBlock Text="{Binding TextoAdvertencia, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Center" Foreground="Red" FontSize="24"/>
         </StackPanel>
-        <Border Grid.Row="1" Margin="2,2,2,2" Background="Transparent">
+        <Border Grid.Row="1" Grid.Column="1" Margin="2,2,2,2" Background="Transparent">
             <TabControl x:Name="MainRegion"
                         nav:Regiones.Nombre="MainRegion"
                             VerticalContentAlignment="Stretch" 
