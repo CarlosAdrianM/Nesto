@@ -17,6 +17,7 @@ namespace Producto.Tests
         private IServicioDiferenciasReposicion _servicio = null!;
         private IConfiguracion _configuracion = null!;
         private IServicioDialogos _dialogos = null!;
+        private IServicioNavegacion _navegacion = null!;
         private List<(string Estado, string? Almacen)> _lecturas = null!;
         private List<(int Id, ResolverDiferenciaReposicion Peticion)> _resueltas = null!;
 
@@ -53,6 +54,7 @@ namespace Producto.Tests
             _servicio = A.Fake<IServicioDiferenciasReposicion>();
             _configuracion = A.Fake<IConfiguracion>();
             _dialogos = A.Fake<IServicioDialogos>();
+            _navegacion = A.Fake<IServicioNavegacion>();
             _lecturas = new();
             _resueltas = new();
             A.CallTo(() => _servicio.Leer(A<string>._, A<string>._, A<string>._))
@@ -83,7 +85,7 @@ namespace Producto.Tests
             {
                 A.CallTo(() => _configuracion.UsuarioEnGrupo(grupo)).Returns(true);
             }
-            return new DiferenciasReposicionViewModel(_servicio, _configuracion, _dialogos);
+            return new DiferenciasReposicionViewModel(_servicio, _configuracion, _dialogos, _navegacion);
         }
 
         [TestMethod]
@@ -143,7 +145,7 @@ namespace Producto.Tests
             Assert.IsTrue(almacen.PuedeElegirAlmacen);
             CollectionAssert.AreEqual(new[] { null, "ALG", "REI", "ALC" }, almacen.Almacenes.Select(a => a.Valor).ToArray());
 
-            var tienda = new DiferenciasReposicionViewModel(A.Fake<IServicioDiferenciasReposicion>(), A.Fake<IConfiguracion>(), _dialogos);
+            var tienda = new DiferenciasReposicionViewModel(A.Fake<IServicioDiferenciasReposicion>(), A.Fake<IConfiguracion>(), _dialogos, _navegacion);
             Assert.IsFalse(tienda.PuedeElegirAlmacen);
             Assert.AreEqual(1, tienda.Almacenes.Count);
             Assert.IsNull(tienda.Almacenes[0].Valor, "Sin almacén: la API da las de su AlmacénPedidoVta");
@@ -278,6 +280,41 @@ namespace Producto.Tests
 
             Assert.AreEqual(0, _resueltas.Count);
             StringAssert.Contains(vm.Mensaje, "500");
+        }
+
+        // Sugerencia 790 (Paloma): doble clic en el producto (o su descripción) abre la ficha, como en «Recibir reposición» (599)
+        [TestMethod]
+        public async Task AbrirFichaProducto_NavegaALaFichaDelProductoDeLaFila()
+        {
+            DiferenciasReposicionViewModel vm = Vm(Constantes.GruposSeguridad.ALMACEN);
+            await vm.CargarAsync();
+            string producto = vm.Diferencias[0].Producto;
+
+            vm.AbrirFichaProductoCommand.Execute(producto + "  ");
+
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "ProductoView",
+                A<ParametrosNavegacion>.That.Matches(p => p.GetValue<string>("numeroProductoParameter") == "38631")))
+                .MustHaveHappenedOnceExactly();
+            Assert.AreEqual(2, vm.Diferencias.Count, "Abrir la ficha no toca la lista");
+        }
+
+        [TestMethod]
+        public void AbrirFichaProducto_SinReferencia_NoNavega()
+        {
+            DiferenciasReposicionViewModel vm = Vm();
+
+            vm.AbrirFichaProductoCommand.Execute(null);
+            vm.AbrirFichaProductoCommand.Execute("  ");
+
+            A.CallTo(() => _navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AbrirFichaProducto_SinServicioDeNavegacion_NoFalla()
+        {
+            var vm = new DiferenciasReposicionViewModel(_servicio, _configuracion, _dialogos, null!);
+
+            vm.AbrirFichaProductoCommand.Execute("38631");
         }
 
         [TestMethod]

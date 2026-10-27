@@ -86,12 +86,16 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private readonly IServicioDiferenciasReposicion _servicio;
         private readonly IServicioDialogos _dialogos;
+        private readonly IServicioNavegacion _navegacion;
         private bool _filtrosListos;
 
-        public DiferenciasReposicionViewModel(IServicioDiferenciasReposicion servicio, IConfiguracion configuracion, IServicioDialogos dialogos)
+        /// <param name="navegacion">Sugerencia 790 (Paloma): para abrir la ficha del producto con doble clic. Sin él, el doble clic no hace nada.</param>
+        public DiferenciasReposicionViewModel(IServicioDiferenciasReposicion servicio, IConfiguracion configuracion, IServicioDialogos dialogos,
+            IServicioNavegacion navegacion)
         {
             _servicio = servicio;
             _dialogos = dialogos;
+            _navegacion = navegacion;
             PuedeElegirAlmacen = configuracion != null
                 && (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION));
             Almacenes = PuedeElegirAlmacen
@@ -105,6 +109,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 : new List<OpcionDiferencia> { new OpcionDiferencia(null, "Su almacén") };
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             ResolverCommand = new AsyncRelayCommand<string>(ResolverAsync, PuedeResolver);
+            // Sugerencia 790 (Paloma): doble clic en el producto abre su ficha, como en «Recibir reposición» (sugerencia 599)
+            AbrirFichaProductoCommand = new RelayCommand<string>(AbrirFichaProducto);
             _filtrosListos = true;
         }
 
@@ -215,6 +221,25 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public IAsyncRelayCommand CargarCommand { get; }
         public IAsyncRelayCommand<string> ResolverCommand { get; }
+
+        /// <summary>
+        /// Sugerencia 790 (Paloma): abre la ficha del producto en la pestaña de productos (esta se queda como estaba), igual
+        /// que en «Recibir reposición» (sugerencia 599). Recibe la referencia; vacía, no hace nada.
+        /// </summary>
+        public IRelayCommand<string> AbrirFichaProductoCommand { get; }
+
+        private void AbrirFichaProducto(string producto)
+        {
+            if (string.IsNullOrWhiteSpace(producto) || _navegacion == null)
+            {
+                return;
+            }
+            var parameters = new ParametrosNavegacion
+            {
+                { "numeroProductoParameter", producto.Trim() }
+            };
+            _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
+        }
 
         /// <summary>
         /// Cada vez que se llega (la cinta o el aviso de la campana, con la pestaña nueva o la ya abierta) se vuelve a leer:

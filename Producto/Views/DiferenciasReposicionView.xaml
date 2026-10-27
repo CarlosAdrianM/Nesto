@@ -57,8 +57,26 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Reposición" Binding="{Binding Traspaso}" />
                 <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}" />
-                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
-                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*" />
+                <!-- Sugerencia 790 (Paloma): doble clic en el producto o en su descripción abre la ficha del producto,
+                     como en «Recibir reposición» (sugerencia 599) -->
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="ToolTip" Value="Doble clic: abre la ficha del producto" />
+                            <EventSetter Event="MouseDoubleClick" Handler="Producto_MouseDoubleClick" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="ToolTip" Value="Doble clic: abre la ficha del producto" />
+                            <EventSetter Event="MouseDoubleClick" Handler="Producto_MouseDoubleClick" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Enviado" Binding="{Binding Enviado}" />
                 <DataGridTextColumn Header="Leído" Binding="{Binding Leido}" />
                 <DataGridTextColumn Header="Diferencia" Binding="{Binding TextoDiferencia}" FontWeight="SemiBold" />
