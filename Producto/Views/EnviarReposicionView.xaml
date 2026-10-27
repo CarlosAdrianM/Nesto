@@ -184,9 +184,32 @@
                     ToolTip="Se pone número de traspaso, sale de la tienda y queda pendiente de recibir en Algete" />
         </StackPanel>
 
+        <StackPanel Grid.Row="4">
+        <!-- Sugerencia 733: las etiquetas de bulto de CUALQUIER reposición por su número (recibida o no, de la tienda o de
+             Algete), p. ej. si la impresora se atasca aunque la API las haya mandado bien. Alt+R pone el foco en el número e
+             Intro las reimprime. Sin colores fijos: modo claro y oscuro -->
+        <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                Padding="0,8,0,0" Margin="0,12,0,0"
+                Visibility="{Binding MostrarReimprimirPorNumero, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Label Content="_Reimprimir etiquetas de bulto de la reposición nº" Target="{Binding ElementName=NumeroReimprimirBultosTextBox}"
+                       VerticalAlignment="Center" Padding="0,0,6,0" />
+                <TextBox x:Name="NumeroReimprimirBultosTextBox" Width="90" VerticalContentAlignment="Center"
+                         Text="{Binding NumeroReimprimirBultos, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Número de la reposición (traspaso), p. ej. 81198. También vale la etiqueta de un bulto sin el guion (R81198).">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Return" Command="{Binding ReimprimirBultosPorNumeroCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Content="Reimprimir etiquetas de bulto" Command="{Binding ReimprimirBultosPorNumeroCommand}" Padding="12,2" Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        ToolTip="Vuelve a imprimir en su impresora de etiquetas todas las etiquetas de bulto de esa reposición, aunque ya se haya recibido" />
+            </StackPanel>
+        </Border>
+
         <!-- NestoAPI#685: las que han salido de la tienda y aún no se han recibido, para reimprimir los bultos y el impreso en
              cualquier momento (no solo justo después de enviarla). Sin colores fijos: modo claro y oscuro -->
-        <Border Grid.Row="4" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+        <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
                 Padding="0,8,0,0" Margin="0,12,0,0"
                 Visibility="{Binding HayEnviadas, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
@@ -220,6 +243,7 @@
                 </DataGrid>
             </StackPanel>
         </Border>
+        </StackPanel>
 
         <TextBlock Grid.Row="5" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
     </Grid>
