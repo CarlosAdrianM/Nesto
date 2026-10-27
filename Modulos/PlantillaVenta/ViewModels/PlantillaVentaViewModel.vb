@@ -4833,6 +4833,10 @@ Public Class PlantillaVentaViewModel
         ' Nesto#537: la API enlaza la sesión de «Puede ofrecer» con el pedido (qué sugerencias entraron)
         pedido.IdSesionSugerencias = IdSesionSugerencias
 
+        ' NestoAPI#704 (caso 929152): la API registra si el modo de servicio lo eligió el vendedor o venía puesto
+        pedido.OrigenModoServicio = CalcularOrigenModoServicio()
+        pedido.ModoServicioSugerido = If(_sugerenciaModoServicio Is Nothing, Nothing, CType(_sugerenciaModoServicio.Modo, Byte?))
+
         ' Añadir Usuario y delegacion a cada línea
         For Each linea In pedido.Lineas
             linea.Usuario = configuracion.usuario
@@ -4840,6 +4844,21 @@ Public Class PlantillaVentaViewModel
         Next
 
         Return pedido
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#704: de dónde sale el modo de servicio con el que se graba. «Corregido» si el vendedor eligió uno y
+    ''' Nesto lo cambió avisando (Nesto#484 o rechazo del servidor); «Usuario» si eligió y se respeta; «Sugerido» si
+    ''' no eligió nada y el modo es el que sugirió el servidor; «PorDefecto» en el resto (parámetro del usuario).
+    ''' </summary>
+    Friend Function CalcularOrigenModoServicio() As String
+        If _modoServicioElegidoPorUsuario Then
+            Return If(HayAvisoModoServicio, OrigenesModoServicio.CORREGIDO, OrigenesModoServicio.USUARIO)
+        End If
+        If _sugerenciaModoServicio IsNot Nothing AndAlso ModoServicio = _sugerenciaModoServicio.Modo Then
+            Return OrigenesModoServicio.SUGERIDO
+        End If
+        Return OrigenesModoServicio.POR_DEFECTO
     End Function
 
     ''' <summary>
