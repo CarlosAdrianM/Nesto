@@ -36,6 +36,8 @@ namespace ControlesUsuario.Dialogs
         private readonly ListaMencionables _mencionables;
         /// <summary>Nesto#519: adjuntos de las novedades (null en los tests antiguos: sin chips ni botón).</summary>
         private readonly ContextoAdjuntosNovedades _adjuntos;
+        /// <summary>NestoAPI#711: el vídeo de las novedades (null en los tests antiguos: sin botón).</summary>
+        private readonly ContextoVideosNovedades _videos;
         /// <summary>Sugerencia 551: a quién afecta cada novedad y los perfiles del usuario.</summary>
         private readonly ContextoPerfilesNovedades _perfiles;
 
@@ -50,18 +52,21 @@ namespace ControlesUsuario.Dialogs
 
         /// <summary>
         /// El que usa el contenedor (el más largo). Nesto#519 (NestoAPI#616): con los adjuntos; el grupo del usuario
-        /// decide si puede adjuntar y borrar, y el borrado se confirma con el servicio de diálogos.
+        /// decide si puede adjuntar y borrar, y el borrado se confirma con el servicio de diálogos. NestoAPI#711: y el
+        /// vídeo de las novedades.
         /// </summary>
         public NovedadesDialogViewModel(INovedadesService servicio, IServicioAdjuntosNovedades servicioAdjuntos,
-            IConfiguracion configuracion, IServicioDialogos dialogos)
+            IConfiguracion configuracion, IServicioDialogos dialogos, IServicioVideosNovedades servicioVideos)
             : this(servicio, new PortapapelesImagenesWpf(), PreguntarConMessageBox,
-                  ContextoAdjuntosNovedades.Crear(servicioAdjuntos, configuracion, dialogos)) { }
+                  ContextoAdjuntosNovedades.Crear(servicioAdjuntos, configuracion, dialogos),
+                  ContextoVideosNovedades.Crear(servicioVideos)) { }
 
         internal NovedadesDialogViewModel(INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar,
-            ContextoAdjuntosNovedades adjuntos = null)
+            ContextoAdjuntosNovedades adjuntos = null, ContextoVideosNovedades videos = null)
         {
             _servicio = servicio;
             _adjuntos = adjuntos;
+            _videos = videos;
             _portapapeles = portapapeles;
             _preguntar = preguntar ?? (_ => false);
             // Nesto#491: una sola petición de mencionables por ventana, compartida por todos los cuadros.
@@ -182,7 +187,7 @@ namespace ControlesUsuario.Dialogs
             return Math.Max(0, _porVersion.FindIndex(g => g.Key == version.Trim()));
         }
 
-        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos);
+        private NovedadItem CrearItem(NovedadUsuario n) => new NovedadItem(n, _servicio, _portapapeles, _preguntar, _mencionables, _adjuntos, _videos);
 
         // Agrupar por versión y ordenar de la más nueva a la más antigua (por System.Version si
         // parsea; si no, por texto, para no romper con versiones con formato raro).

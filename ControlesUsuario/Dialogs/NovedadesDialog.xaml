@@ -217,6 +217,16 @@
                                 <TextBlock Text="(no se pudo cargar la captura)" FontSize="11" Foreground="#999999"
                                            Visibility="{Binding ImagenNovedadNoDisponible, Converter={StaticResource BoolAVisible}}" />
 
+                                <!-- NestoAPI#711: el vídeo corto de la novedad (como mucho uno por versión). No se descarga hasta pulsar el
+                                     botón; se ve dentro de Nesto y el fichero temporal se borra al cerrarlo. -->
+                                <StackPanel Margin="0,6,0,0" Visibility="{Binding TieneVideo, Converter={StaticResource BoolAVisible}}">
+                                    <Button Content="{Binding Video.TextoBoton}" Command="{Binding Video.VerCommand}" HorizontalAlignment="Left"
+                                            Padding="12,3" Cursor="Hand" ToolTip="{Binding Video.TextoAyuda}"
+                                            AutomationProperties.Name="{Binding Video.TextoAyuda}" />
+                                    <TextBlock Text="{Binding Video.Mensaje}" FontSize="11" Foreground="#B03A2E" TextWrapping="Wrap" Margin="0,2,0,0"
+                                               Visibility="{Binding Video.HayMensaje, Converter={StaticResource BoolAVisible}}" />
+                                </StackPanel>
+
                                 <!-- Nesto#519 (NestoAPI#616): adjuntos. Cada chip es un botón (clic o Intro = descargar y abrir con el
                                      visor del sistema); Se adjuntan por script (Scripts/AdjuntarANovedad.ps1 en NestoAPI), no desde Nesto (Carlos, 08/10/26).
                                      Con una API sin adjuntos no se ve nada. -->

@@ -117,6 +117,8 @@ Public NotInheritable Class ComposicionNesto
         registro.Singleton(Of INovedadesService)(Function(r) New NovedadesService(r.Resolver(Of IClienteApiFactory)()))
         ' Nesto#519 (NestoAPI#616): adjuntos de las novedades (PDF e imágenes)
         registro.Singleton(Of IServicioAdjuntosNovedades)(Function(r) New ServicioAdjuntosNovedades(r.Resolver(Of IClienteApiFactory)()))
+        ' NestoAPI#711: el vídeo de las novedades (como mucho uno por versión)
+        registro.Singleton(Of IServicioVideosNovedades)(Function(r) New ServicioVideosNovedades(r.Resolver(Of IClienteApiFactory)()))
         ' Nesto#501: abre Novedades (menú de la cinta, botón junto a la campana y aviso de versión nueva)
         registro.Transitorio(Of IAbridorNovedades, AbridorNovedades)()
         ' NestoAPI#555: la campana abre el pedido de los avisos que hablan de uno.

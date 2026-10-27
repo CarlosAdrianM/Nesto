@@ -116,13 +116,19 @@ namespace ControlesUsuario.Dialogs
         private readonly Func<string, bool> _preguntar;
 
         public NovedadItem(NovedadUsuario novedad, INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar,
-            ListaMencionables mencionables = null, ContextoAdjuntosNovedades adjuntos = null)
+            ListaMencionables mencionables = null, ContextoAdjuntosNovedades adjuntos = null,
+            ContextoVideosNovedades videos = null)
         {
             _novedad = novedad ?? throw new ArgumentNullException(nameof(novedad));
             _servicio = servicio;
             _adjuntos = adjuntos;
             // Sugerencia 551: a quién afecta (se pone por script; aquí solo se enseña)
             Perfiles = new PerfilesNovedadItem(novedad.Perfiles);
+            // NestoAPI#711: el botón «▶ Ver vídeo», solo si la novedad lo tiene y hay con qué verlo (no descarga nada hasta pulsarlo)
+            if (novedad.TieneVideo && videos?.Servicio != null)
+            {
+                Video = new VideoNovedadItem(novedad.Id, novedad.Titulo, novedad.VideoTamano, videos);
+            }
             // Nesto#519: sin servicio de adjuntos o con una API que no los conoce (Adjuntos null), ni chips ni botón.
             if (adjuntos?.Servicio != null && novedad.Adjuntos != null)
             {
@@ -153,6 +159,10 @@ namespace ControlesUsuario.Dialogs
 
         /// <summary>Sugerencia 551: a quién afecta la novedad («Para: Almacén y Tiendas»).</summary>
         public PerfilesNovedadItem Perfiles { get; }
+
+        /// <summary>NestoAPI#711: el vídeo de la novedad (null si no tiene).</summary>
+        public VideoNovedadItem Video { get; }
+        public bool TieneVideo => Video != null;
 
         #region Nesto#519 (NestoAPI#616): adjuntos (PDF e imágenes)
 
