@@ -76,12 +76,20 @@ Public Class AgenciasViewModelGlsPorApiTests
     End Function
 
     <TestMethod()>
-    Public Async Function DebeTramitarGlsPorApi_SoloLaAgencia1_LaDeLaEmpresaEspejoSigueEnNesto() As Task
+    Public Async Function DebeTramitarGlsPorApi_LaAgencia1YLaDeLaEmpresaEspejo() As Task
         ParametroGlsPorApi("API")
 
         Assert.IsTrue(Await viewModel.DebeTramitarGlsPorApi(1))
-        Assert.IsFalse(Await viewModel.DebeTramitarGlsPorApi(5), "Agencia 5 (GLS de la empresa espejo): pendiente de decidir")
+        Assert.IsTrue(Await viewModel.DebeTramitarGlsPorApi(5), "Agencia 5 (GLS de la empresa espejo): a la API igual que la 1 (Carlos, 27/10/26)")
         Assert.IsFalse(Await viewModel.DebeTramitarGlsPorApi(13))
+    End Function
+
+    <TestMethod()>
+    Public Async Function DebeTramitarGlsPorApi_SinElParametro_NiLa1NiLa5() As Task
+        ParametroGlsPorApi("NESTO")
+
+        Assert.IsFalse(Await viewModel.DebeTramitarGlsPorApi(1))
+        Assert.IsFalse(Await viewModel.DebeTramitarGlsPorApi(5))
     End Function
 
     ' ---------------------------------------------------------------- la etiqueta
@@ -113,14 +121,16 @@ Public Class AgenciasViewModelGlsPorApiTests
     End Function
 
     <TestMethod()>
-    Public Async Function Etiqueta_EmpresaEspejoConElParametro_AgenciaAsmComoSiempre() As Task
+    Public Async Function Etiqueta_EmpresaEspejoConElParametro_TambienLaMontaLaApi() As Task
         ParametroGlsPorApi("API")
         Dim envioEspejo = Envio(249723, agencia:=5)
+        A.CallTo(Function() servicio.LeerEtiquetaGls(249723)).Returns(Task.FromResult(New EtiquetaEnvioGlsDto With {
+            .Envio = 249723, .EtiquetaTipo = "ZPL", .EtiquetaCodificacion = "texto", .EtiquetaContenido = "^XA^XZ"}))
 
         Await viewModel.ImprimirEtiquetaClasica(agenciaAsm, envioEspejo)
 
-        A.CallTo(Sub() agenciaAsm.imprimirEtiqueta(envioEspejo)).MustHaveHappenedOnceExactly()
-        A.CallTo(Function() servicio.LeerEtiquetaGls(A(Of Integer).Ignored)).MustNotHaveHappened()
+        Assert.AreEqual("^XA^XZ", impresiones.Single())
+        A.CallTo(Sub() agenciaAsm.imprimirEtiqueta(A(Of EnviosAgencia).Ignored)).MustNotHaveHappened()
     End Function
 
     ' ---------------------------------------------------------------- Tramitar todos
@@ -128,8 +138,8 @@ Public Class AgenciasViewModelGlsPorApiTests
     <TestMethod()>
     Public Async Function TramitarTodos_MandaLosEnviosEnLotesYJuntaElResultado() As Task
         Dim lotes As New List(Of List(Of Integer))
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored)).ReturnsLazily(
-            Function(numeros As List(Of Integer))
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).ReturnsLazily(
+            Function(numeros As List(Of Integer), agencia As Integer)
                 lotes.Add(numeros.ToList())
                 Return Task.FromResult(Resultado(numeros.Select(Function(n) Tramitado(n)).ToArray()))
             End Function)
@@ -147,7 +157,7 @@ Public Class AgenciasViewModelGlsPorApiTests
 
     <TestMethod()>
     Public Async Function TramitarTodos_ConUnFallo_LoEnsenaEnUnDialogoConElPedido() As Task
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored)).Returns(Task.FromResult(Resultado(
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Returns(Task.FromResult(Resultado(
             Tramitado(249701),
             New ResultadoTramitarEnvioGlsDto With {.Numero = 249702, .Pedido = 928702, .Resultado = ResultadoTramitarEnvioGlsDto.YA_TRAMITADO},
             New ResultadoTramitarEnvioGlsDto With {.Numero = 249703, .Pedido = 928703, .Resultado = ResultadoTramitarEnvioGlsDto.ERROR,
@@ -162,7 +172,7 @@ Public Class AgenciasViewModelGlsPorApiTests
 
     <TestMethod()>
     Public Async Function TramitarTodos_SiSeCortaLaPeticion_DiceQueSePuedeRepetir() As Task
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored)).Throws(New Exception("NestoAPI no ha tramitado los envíos de GLS (500)"))
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Throws(New Exception("NestoAPI no ha tramitado los envíos de GLS (500)"))
 
         Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701)})
 
@@ -173,31 +183,87 @@ Public Class AgenciasViewModelGlsPorApiTests
     <TestMethod()>
     Public Async Function TramitarTodos_UnoANuestraDireccionSinConfirmar_NoSeManda() As Task
         A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701))))
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701))))
         Dim propia = Envio(249702)
         propia.Direccion = "C/ Río Tiétar, 11"
         propia.CodPostal = "28110"
 
         Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701), propia})
 
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).That.Matches(Function(l) l.Count = 1 AndAlso l(0) = 249701))) _
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).That.Matches(Function(l) l.Count = 1 AndAlso l(0) = 249701), 1)) _
             .MustHaveHappenedOnceExactly()
     End Function
 
     <TestMethod()>
     Public Async Function TramitarUno_DevuelveElMensajeDelServidor() As Task
-        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701))))
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701))))
 
         Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701)})
 
         Assert.AreEqual("Envío del pedido 928701 tramitado correctamente.", viewModel.mensajeError)
     End Function
 
+    <TestMethod()>
+    Public Async Function TramitarTodos_CadaEnvioVaConSuAgencia() As Task
+        Dim llamadas As New List(Of (Agencia As Integer, Numeros As List(Of Integer)))
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).ReturnsLazily(
+            Function(numeros As List(Of Integer), agencia As Integer)
+                llamadas.Add((agencia, numeros.ToList()))
+                Return Task.FromResult(Resultado(numeros.Select(Function(n) Tramitado(n)).ToArray()))
+            End Function)
+
+        Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701, agencia:=5), Envio(249702, agencia:=5)})
+
+        Assert.AreEqual(5, llamadas.Single().Agencia)
+        CollectionAssert.AreEqual({249701, 249702}, llamadas.Single().Numeros.ToArray())
+    End Function
+
+    ' ---------------------------------------------------------------- -33 con datos cambiados (fase 5)
+
+    <TestMethod()>
+    Public Async Function TramitarTodos_ConAvisoDeGls_LoEnsenaParaRevisarlo() As Task
+        Dim conAviso = Tramitado(249702)
+        conAviso.YaEstabaEnGls = True
+        conAviso.Aviso = "GLS ya tenía grabado el envío del pedido 928702, pero con otros datos: Bultos: «2» → «3». Se ha dado por tramitado: revíselo con GLS para que lo entreguen con los datos de ahora."
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701), conAviso)))
+
+        Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701), Envio(249702)})
+
+        StringAssert.StartsWith(viewModel.mensajeError, "Se han tramitado 2 envíos de GLS.")
+        StringAssert.Contains(viewModel.mensajeError, "Revise con GLS 1 envío:")
+        StringAssert.Contains(viewModel.mensajeError, "- Pedido 928702 (envío 249702): GLS ya tenía grabado el envío del pedido 928702, pero con otros datos: Bultos: «2» → «3».")
+        A.CallTo(Sub() dialogService.ShowNotification("Revise con GLS", A(Of String).That.Contains("Bultos: «2» → «3»"))).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Sub MensajeTramitarGls_UnoSoloConAviso_NoSeQuedaEnElMensajeCorto()
+        Dim conAviso = Tramitado(249701)
+        conAviso.Aviso = "revíselo con GLS"
+
+        Dim mensaje = AgenciasViewModel.MensajeTramitarGls(Resultado(conAviso), Nothing)
+
+        StringAssert.Contains(mensaje, "Revise con GLS 1 envío:")
+        StringAssert.Contains(mensaje, "revíselo con GLS")
+    End Sub
+
+    <TestMethod()>
+    Public Async Function TramitarTodos_SinAvisos_NoSaleNingunDialogo() As Task
+        A.CallTo(Function() servicio.TramitarEnviosGls(A(Of List(Of Integer)).Ignored, A(Of Integer).Ignored)).Returns(Task.FromResult(Resultado(Tramitado(249701), Tramitado(249702))))
+
+        Dim unused = Await viewModel.TramitarGlsPorApi({Envio(249701), Envio(249702)})
+
+        A.CallTo(Sub() dialogService.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
     ' ---------------------------------------------------------------- el contrato con la API
 
     <TestMethod()>
     Public Sub Contrato_CuerpoYRutas()
-        Assert.AreEqual("{""Agencia"":1,""Envios"":[249701,249702]}", AgenciaService.CuerpoTramitarTodos(New List(Of Integer) From {249701, 249702}))
+        Assert.AreEqual("{""Agencia"":1,""Envios"":[249701,249702]}", AgenciaService.CuerpoTramitarTodos(New List(Of Integer) From {249701, 249702}, 1))
+        Assert.AreEqual("{""Agencia"":5,""Envios"":[249701]}", AgenciaService.CuerpoTramitarTodos(New List(Of Integer) From {249701}, 5))
+        Assert.AreEqual("Aviso", NameOf(ResultadoTramitarEnvioGlsDto.Aviso), "Mismo nombre que ResultadoTramitarEnvioDTO.Aviso de la API")
         Assert.AreEqual("EnviosAgencias/TramitarTodos", AgenciaService.RUTA_TRAMITAR_TODOS)
         Assert.AreEqual("EnviosAgencias/249701/EtiquetaZpl", AgenciaService.RutaEtiquetaGls(249701))
     End Sub
