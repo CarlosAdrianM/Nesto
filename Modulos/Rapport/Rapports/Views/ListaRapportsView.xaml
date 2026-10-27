@@ -97,7 +97,16 @@
                 <CheckBox IsChecked="{Binding esUsuarioElVendedor}">Filtrar por Usuario</CheckBox>
             </StackPanel>
             <TextBlock Grid.Row="3"></TextBlock>
-            <Button Grid.Row="4" Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
+                <!-- Nesto#551 (sugerencia 760): volver a los rapports del día sin cerrar la pestaña. Vacía el selector de cliente. -->
+                <Button Grid.Column="1" Margin="3,0,0,0" Padding="6,0" Command="{Binding VerRapportsDeHoyCommand}"
+                        ToolTip="Vacía el cliente y vuelve a enseñar sus rapports de hoy (también puede borrar el cliente del selector)">Mis rapports de hoy</Button>
+            </Grid>
             <TextBlock Grid.Row="5"></TextBlock>
             <Button Grid.Row="6" Command="{Binding CopiarSeguimientosCommand}" Margin="0,0,0,5"
                     Visibility="{Binding PuedeCopiarSeguimientos, Converter={StaticResource BoolToVis}}">Copiar seguimientos a otro cliente</Button>

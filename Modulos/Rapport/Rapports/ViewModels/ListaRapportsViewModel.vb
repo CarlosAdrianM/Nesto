@@ -46,6 +46,7 @@ Public Class ListaRapportsViewModel
         _cintaSugerencias.CargarPreferenciaPlegadas()
 
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        VerRapportsDeHoyCommand = New RelayCommand(AddressOf OnVerRapportsDeHoy)
         CambiarModoComparativaCommand = New RelayCommand(Of String)(Sub(valor) ModoComparativa = valor)
         CambiarAgruparPorCommand = New RelayCommand(Of String)(Sub(valor) AgruparPor = valor)
         cmdCargarListaRapports = New RelayCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
@@ -97,12 +98,21 @@ Public Class ListaRapportsViewModel
             End If
             cmdCargarListaRapports.NotifyCanExecuteChanged()
             CopiarSeguimientosCommand.NotifyCanExecuteChanged()
+            RaisePropertyChanged(NameOf(HayClienteSeleccionado))
             ActualizarCintaSugerencias() ' Nesto#557
-            If _clienteSeleccionado = String.Empty Then
+            ' Nesto#551 (sugerencia 760): al borrar el cliente del selector vuelve la lista del día (en VB, Nothing = "" es True)
+            If String.IsNullOrEmpty(_clienteSeleccionado) AndAlso Not _volviendoAHoy Then
                 ClienteCompleto = Nothing
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
             End If
         End Set
+    End Property
+
+    ''' <summary>Nesto#551: hay un cliente en el selector (la lista es la suya, no la del día).</summary>
+    Public ReadOnly Property HayClienteSeleccionado As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(_clienteSeleccionado)
+        End Get
     End Property
 
     Private _clienteCompleto As Object
@@ -818,7 +828,8 @@ Public Class ListaRapportsViewModel
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, "Vendedor")
         End If
         ResumenListaRapports = String.Empty
-        If Not IsNothing(clienteSeleccionado) Then
+        ' Nesto#551: con el selector vacío ("" o Nothing) la lista es la del día, no la de un cliente en blanco
+        If Not String.IsNullOrWhiteSpace(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
             Await LlamarApiResumenVentasAsync()
         Else
@@ -880,7 +891,10 @@ Public Class ListaRapportsViewModel
 
     ''' <summary>
     ''' Un rapport nuevo (sin guardar) del cliente, con el vendedor del usuario y el tipo indicado; antes carga sus rapports.
-    ''' Sin cliente, un rapport en blanco. NestoAPI#593: lo usan también los botones de llamar/WhatsApp de los cheques.
+    ''' NestoAPI#593: lo usan también los botones de llamar/WhatsApp de los cheques.
+    ''' Nesto#551 (sugerencia 760, DLopez): sin cliente (el botón «Crear Rapport»), el rapport sale con el cliente y el contacto
+    ''' que haya en el selector, como en NestoApp; sus rapports ya están cargados y no se vuelven a pedir. Sin nada en el
+    ''' selector, un rapport en blanco.
     ''' </summary>
     Public Async Function CrearRapportAsync(cliente As String, contacto As String, tipo As String) As Task
 
@@ -894,6 +908,9 @@ Public Class ListaRapportsViewModel
             Catch
                 _dialogService.ShowError("No se ha podido cargar la lista de rapports")
             End Try
+        ElseIf HayClienteSeleccionado Then
+            cliente = clienteSeleccionado.Trim()
+            contacto = contactoSeleccionado?.Trim()
         End If
 
 
@@ -922,6 +939,41 @@ Public Class ListaRapportsViewModel
         End If
         listaRapports.Add(rapportNuevo)
     End Function
+
+#Region "Nesto#551: volver a los rapports del día"
+
+    ''' <summary>
+    ''' Sugerencia 760 (DLopez): al abrir Rapports salen los del día, pero en cuanto se busca un cliente solo se podían volver a
+    ''' ver cerrando y abriendo la pestaña. El botón vacía el selector (cliente, contacto y ficha), pone la fecha de hoy y carga
+    ''' la lista del día del usuario. Un rapport a medio escribir de otro cliente sigue en su pestaña de detalle.
+    ''' </summary>
+    Public Property VerRapportsDeHoyCommand As RelayCommand
+
+    ' Mientras se vacía el selector desde aquí, su setter no lanza su propia carga (la hacemos nosotros, esperada).
+    Private _volviendoAHoy As Boolean
+
+    Private Async Sub OnVerRapportsDeHoy()
+        Await VerRapportsDeHoyAsync()
+    End Sub
+
+    Public Async Function VerRapportsDeHoyAsync() As Task
+        _volviendoAHoy = True
+        Try
+            fechaSeleccionada = Today
+            clienteSeleccionado = Nothing
+            contactoSeleccionado = Nothing
+            ClienteCompleto = Nothing
+        Finally
+            _volviendoAHoy = False
+        End Try
+        Try
+            Await CargarListaRapportsAsync()
+        Catch ex As Exception
+            _dialogService.ShowError("No se han podido cargar los rapports de hoy: " & ex.Message)
+        End Try
+    End Function
+
+#End Region
 
     Public Property GenerarResumenCommand As RelayCommand
     Private Function CanGenerarResumen() As Boolean
