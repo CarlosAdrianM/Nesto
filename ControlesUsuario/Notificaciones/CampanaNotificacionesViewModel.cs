@@ -326,6 +326,15 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_DIFERENCIAS_REPOSICION);
                 return;
             }
+            // Nesto#546 (NestoAPI#693): la fecha prometida de un pedido se retrasa o se queda sin fecha: abre «Pedidos con la
+            // fecha en riesgo» con ese pedido elegido (ahí se ve el porqué y qué hacer), no el pedido suelto. Va antes del
+            // salto genérico al pedido porque este aviso también trae Datos["pedido"].
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_PROMESA_EN_RIESGO && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO, ParametrosPromesaRiesgo(item.Notificacion));
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");
@@ -340,6 +349,20 @@ namespace ControlesUsuario.Notificaciones
         }
 
         internal const string EMPRESA_POR_DEFECTO = "1";
+
+        /// <summary>Nesto#546: el pedido y la empresa del aviso, para que la pantalla lo deje elegido. Sin pedido, vacío.</summary>
+        internal static ParametrosNavegacion ParametrosPromesaRiesgo(NotificacionBuzon notificacion)
+        {
+            var parametros = new ParametrosNavegacion();
+            int? pedido = notificacion?.DatoEntero(NotificacionBuzon.PARAMETRO_PROMESA_PEDIDO);
+            if (pedido.HasValue && pedido.Value > 0)
+            {
+                parametros.Add(NotificacionBuzon.PARAMETRO_PROMESA_PEDIDO, pedido.Value);
+                string empresa = notificacion.Dato(NotificacionBuzon.PARAMETRO_PROMESA_EMPRESA);
+                parametros.Add(NotificacionBuzon.PARAMETRO_PROMESA_EMPRESA, string.IsNullOrWhiteSpace(empresa) ? EMPRESA_POR_DEFECTO : empresa.Trim());
+            }
+            return parametros;
+        }
 
         /// <summary>Nesto#501: cierra el panel y abre Novedades (en <paramref name="version"/> si se indica).</summary>
         private Task AbrirNovedades(string version)

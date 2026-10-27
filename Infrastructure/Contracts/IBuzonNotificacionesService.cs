@@ -43,6 +43,18 @@ namespace Nesto.Infrastructure.Contracts
         public const string VISTA_DIFERENCIAS_REPOSICION = "DiferenciasReposicionView";
 
         /// <summary>
+        /// Nesto#546 (NestoAPI#693): la fecha de entrega a la agencia prometida de un pedido se retrasa o se queda sin fecha
+        /// (TextosPromesaRiesgo.TIPO_NOTIFICACION). Trae Datos["pedido"] y Datos["empresa"] y abre
+        /// <see cref="VISTA_PEDIDOS_PROMESA_RIESGO"/> con ese pedido elegido, no el pedido suelto.
+        /// </summary>
+        public const string TIPO_PROMESA_EN_RIESGO = "PromesaEnRiesgo";
+        /// <summary>Nesto#546: la ventana (módulo Cliente) «Pedidos con la fecha en riesgo».</summary>
+        public const string VISTA_PEDIDOS_PROMESA_RIESGO = "PedidosPromesaRiesgoView";
+        /// <summary>Nesto#546: parámetros de navegación con que la campana abre esa ventana en un pedido.</summary>
+        public const string PARAMETRO_PROMESA_PEDIDO = "pedido";
+        public const string PARAMETRO_PROMESA_EMPRESA = "empresa";
+
+        /// <summary>
         /// Nesto#509 (Ariadna#8): un mozo dice que un dato de la ficha de un producto está mal. Trae Datos["avisoId"] y
         /// Datos["producto"]; se cierra con <see cref="RESULTADO_AVISO_CAMBIADO"/> o <see cref="RESULTADO_AVISO_ESTABA_BIEN"/>.
         /// </summary>

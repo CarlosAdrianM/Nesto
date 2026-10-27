@@ -15,6 +15,9 @@
                 <RibbonButton Label="Pedidos" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirModulo}" />
                 <!-- Nesto#552: listado de solo lectura de las líneas pendientes de entregar de todos los almacenes -->
                 <RibbonButton Label="Pendientes de entregar" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirPendientesEntregar}" />
+                <!-- Nesto#546 (NestoAPI#693): pedidos cuya fecha de entrega prometida al cliente ya no se cumple (la pantalla vive en el módulo Cliente) -->
+                <RibbonButton Label="Fecha en riesgo" ToolTip="Pedidos con la fecha de entrega prometida al cliente en riesgo: se retrasan o se quedan sin fecha"
+                              LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirPromesaRiesgo}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

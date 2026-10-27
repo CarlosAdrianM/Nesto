@@ -1,0 +1,132 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.PedidosPromesaRiesgoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
+             d:DataContext="{d:DesignInstance Type=local:PedidosPromesaRiesgoViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad" />
+    </UserControl.Resources>
+    <!-- Nesto#546 (NestoAPI#693): pedidos cuya fecha de entrega a la agencia prometida al cliente ya no se cumple. -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" />
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center"
+                    ToolTip="Vuelve a leer los pedidos con la fecha en riesgo" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BoolAVisibilidad}}" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Text="{Binding Ayuda}" TextWrapping="Wrap" Margin="0,0,0,8" Opacity="0.8" />
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Ver:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <ComboBox Width="130" ItemsSource="{x:Static local:PedidosPromesaRiesgoViewModel.Filtros}"
+                      DisplayMemberPath="Texto" SelectedValuePath="Valor" SelectedValue="{Binding Filtro}"
+                      ToolTip="Pendientes: siguen en riesgo. Resueltos: los de los últimos días que ya cumplen, se sirvieron o se renegociaron." />
+            <TextBlock Text="{Binding Resumen}" VerticalAlignment="Center" Margin="16,0,0,0" FontWeight="SemiBold" />
+        </StackPanel>
+
+        <!-- Doble clic en una fila: abre el pedido (code-behind → AbrirPedidoCommand) -->
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Pedidos}" SelectedItem="{Binding Seleccionado}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" SelectionMode="Single"
+                  ToolTip="Doble clic: abre el pedido">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <EventSetter Event="MouseDoubleClick" Handler="Fila_MouseDoubleClick" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EstaResuelto}" Value="True">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" FontWeight="SemiBold" />
+                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCliente}" Width="1.5*" />
+                <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" />
+                <DataGridTextColumn Header="Prometida" Binding="{Binding TextoFechaPrometida}" />
+                <DataGridTextColumn Header="Fecha nueva" Binding="{Binding TextoFechaNueva}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SinFecha}" Value="True">
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Foreground" Value="DarkRed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Retraso" Binding="{Binding TextoRetraso}" />
+                <DataGridTextColumn Header="Qué falla y por qué" Binding="{Binding Motivo}" Width="3*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Detectado" Binding="{Binding TextoDetectado}" />
+                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                <DataGridTextColumn Header="Resuelto" Binding="{Binding TextoResuelto}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- El pedido elegido: qué hacer y el texto para avisar al cliente -->
+        <Border Grid.Row="4" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                Padding="12" Margin="0,8,0,0"
+                Visibility="{Binding HaySeleccionado, Converter={StaticResource BoolAVisibilidad}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Qué falla:" FontWeight="SemiBold" Margin="0,0,8,4" />
+                <TextBlock Grid.Column="1" Text="{Binding Seleccionado.Motivo}" TextWrapping="Wrap" Margin="0,0,0,4" />
+
+                <TextBlock Grid.Row="1" Text="Lo detectó:" FontWeight="SemiBold" Margin="0,0,8,4" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Seleccionado.Evento, TargetNullValue='—'}" TextWrapping="Wrap" Margin="0,0,0,4" />
+
+                <TextBlock Grid.Row="2" Text="Qué hacer:" FontWeight="SemiBold" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <WrapPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
+                    <Button Content="Abrir el pedido" Padding="12,2" Margin="0,0,8,4" Command="{Binding AbrirPedidoCommand}" />
+                    <Button Content="Copiar texto para el cliente" Padding="12,2" Margin="0,0,8,4" Command="{Binding CopiarTextoClienteCommand}"
+                            ToolTip="Copia al portapapeles el aviso para el cliente que se ve abajo" />
+                    <Button Content="Cambiar el modo de servir" Padding="12,2" Margin="0,0,8,4" Command="{Binding CambiarModoCommand}"
+                            ToolTip="Por ahora abre el pedido para cambiarlo desde la cabecera" />
+                    <Button Content="Reposición puntual" Padding="12,2" Margin="0,0,8,4" Command="{Binding ReposicionPuntualCommand}"
+                            ToolTip="Por ahora abre el pedido para pedirla a la tienda que tiene el producto" />
+                    <Button Content="Sustituir el producto" Padding="12,2" Margin="0,0,8,4" Command="{Binding SustituirProductoCommand}"
+                            ToolTip="Por ahora abre el pedido para cambiar el producto en sus líneas" />
+                </WrapPanel>
+
+                <TextBlock Grid.Row="3" Text="Para el cliente:" FontWeight="SemiBold" Margin="0,0,8,0" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TextoCliente, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
+                         Background="Transparent" BorderThickness="0" ToolTip="Puede seleccionarlo y copiarlo, o usar «Copiar texto para el cliente»" />
+            </Grid>
+        </Border>
+
+        <TextBlock Grid.Row="5" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+    </Grid>
+</UserControl>

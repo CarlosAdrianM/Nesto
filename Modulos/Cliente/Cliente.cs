@@ -29,6 +29,9 @@ namespace Nesto.Modulos.Cliente
             // Nesto#545: «Anunciar otra vez» con el reclamo del aviso
             registro.RegistrarDialogo<AnunciarEventoDialog, AnunciarEventoDialogViewModel>(AnunciarEventoDialogViewModel.NOMBRE);
             registro.RegistrarDialogo<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
+            // Nesto#546 (NestoAPI#693): pedidos con la fecha prometida en riesgo (la abre la cinta y el aviso de la campana)
+            registro.Vista<PedidosPromesaRiesgoView>(NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO);
+            registro.Transitorio<PedidosPromesaRiesgoViewModel>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ClienteMenuBar>();

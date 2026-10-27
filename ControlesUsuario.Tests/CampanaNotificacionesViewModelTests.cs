@@ -358,6 +358,47 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public async Task PulsarElAvisoDePromesaEnRiesgo_AbreLaPantallaDePedidosConLaFechaEnRiesgo_EnEsePedido()
+        {
+            // Nesto#546 (NestoAPI#693): el aviso trae el pedido, pero no abre el pedido suelto: abre la lista con ese pedido elegido
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 13,
+                Titulo = "El pedido 928908 se queda sin fecha",
+                Cuerpo = "El pedido 928908 del cliente 40353 tenía la entrega a la agencia prometida para el 22/10/2026 y ahora se queda sin fecha.",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "PromesaEnRiesgo", ["empresa"] = "1", ["pedido"] = "928908", ["cliente"] = "40353" }
+            });
+            vm.PanelAbierto = true;
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "PedidosPromesaRiesgoView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(13)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ventana");
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "PedidosPromesaRiesgoView", A<ParametrosNavegacion>._)).MustHaveHappenedOnceExactly();
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual(928908, parametros.GetValue<int>("pedido"));
+            Assert.AreEqual("1", parametros.GetValue<string>("empresa"));
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public void ParametrosPromesaRiesgo_SinPedido_VanVacios_YSinEmpresaLaPonePorDefecto()
+        {
+            Assert.AreEqual(0, CampanaNotificacionesViewModel.ParametrosPromesaRiesgo(new NotificacionBuzon { Datos = new Dictionary<string, string> { ["tipo"] = "PromesaEnRiesgo" } }).Count);
+            Assert.AreEqual(0, CampanaNotificacionesViewModel.ParametrosPromesaRiesgo(null).Count);
+
+            ParametrosNavegacion sinEmpresa = CampanaNotificacionesViewModel.ParametrosPromesaRiesgo(new NotificacionBuzon { Datos = new Dictionary<string, string> { ["pedido"] = "929000" } });
+
+            Assert.AreEqual(929000, sinEmpresa.GetValue<int>("pedido"));
+            Assert.AreEqual("1", sinEmpresa.GetValue<string>("empresa"));
+        }
+
+        [TestMethod]
         public async Task PulsarUnAvisoConPedido_AbreEsePedido()
         {
             // NestoAPI#555: «El pedido 927075 ha cogido picking» lleva al pedido

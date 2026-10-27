@@ -28,6 +28,7 @@ Public Class PedidoVentaViewModel
 
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdAbrirPendientesEntregar = New RelayCommand(AddressOf OnAbrirPendientesEntregar)
+        cmdAbrirPromesaRiesgo = New RelayCommand(AddressOf OnAbrirPromesaRiesgo)
 
         Titulo = "Lista de Pedidos"
     End Sub
@@ -73,6 +74,14 @@ Public Class PedidoVentaViewModel
         If Not IsNothing(view) Then
             navegacion.AbrirVistaNueva("MainRegion", view, "PendientesEntregarView")
         End If
+    End Sub
+
+    ' Nesto#546 (NestoAPI#693): «Pedidos con la fecha en riesgo». La vista está registrada por nombre en el módulo Cliente
+    ' (NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO): si ya está abierta se reutiliza la pestaña y se vuelve a leer, como
+    ' hace la campana al pulsar el aviso.
+    Public ReadOnly Property cmdAbrirPromesaRiesgo As RelayCommand
+    Private Sub OnAbrirPromesaRiesgo()
+        navegacion?.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO)
     End Sub
 
 #End Region

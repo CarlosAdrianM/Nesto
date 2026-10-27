@@ -200,6 +200,9 @@ Public NotInheritable Class ComposicionNesto
         ' Nesto#526 (NestoAPI#634): las diferencias de reposición (api/Reposiciones/Diferencias): la ventana y el contador de la cinta
         registro.Singleton(Of IServicioDiferenciasReposicion)(Function(r) New ServicioDiferenciasReposicion(r.Resolver(Of IClienteApiFactory)()))
 
+        ' Nesto#546 (NestoAPI#693): los pedidos con la fecha prometida en riesgo (api/PedidosVenta/PromesaEnRiesgo), para la pantalla del módulo Cliente
+        registro.Singleton(Of IServicioPedidosPromesaRiesgo)(Function(r) New ServicioPedidosPromesaRiesgo(r.Resolver(Of IClienteApiFactory)()))
+
         ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
         registro.Singleton(Of IServicioChequesRegalo)(Function(r) New ServicioChequesRegalo(r.Resolver(Of IClienteApiFactory)()))
 
