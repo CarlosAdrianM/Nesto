@@ -2943,12 +2943,13 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_listaFormasVenta, value)
         End Set
     End Property
-    Private _listaPedidosPendientes As List(Of Integer)
-    Public Property ListaPedidosPendientes As List(Of Integer)
+    ''' <summary>Nesto#550: los pendientes del cliente (con su descripción) y «Pedido nuevo» (Numero = 0) al final.</summary>
+    Private _listaPedidosPendientes As List(Of PedidoPendientePlantilla)
+    Public Property ListaPedidosPendientes As List(Of PedidoPendientePlantilla)
         Get
             Return _listaPedidosPendientes
         End Get
-        Set(value As List(Of Integer))
+        Set(value As List(Of PedidoPendientePlantilla))
             Dim unused = SetProperty(_listaPedidosPendientes, value)
             OnPropertyChanged(NameOf(TienePedidosPendientes))
         End Set
@@ -3279,7 +3280,7 @@ Public Class PlantillaVentaViewModel
     End Property
     Public ReadOnly Property TienePedidosPendientes As Boolean
         Get
-            Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Where(Function(f) f <> 0).Any
+            Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Where(Function(f) f.Numero <> 0).Any
         End Get
     End Property
     Private _titulo As String
@@ -4178,33 +4179,39 @@ Public Class PlantillaVentaViewModel
             If Not TienePedidosPendientes Then
                 Return
             End If
-            Dim pendientes = ListaPedidosPendientes.Where(Function(f) f <> 0).Distinct().ToList()
+            Dim todosLosPendientes = ListaPedidosPendientes.Where(Function(f) f.Numero <> 0).GroupBy(Function(f) f.Numero).Select(Function(g) g.First()).ToList()
 
             If Not PuedeOfrecerModificarPendiente() Then
                 Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
-                For Each i In pendientes
-                    textoMensaje += i.ToString + vbTab
+                For Each p In todosLosPendientes
+                    textoMensaje += p.Texto + vbCr
                 Next
-                textoMensaje += vbCr + vbCr + "Por favor, revise que sea todo correcto."
+                textoMensaje += vbCr + "Por favor, revise que sea todo correcto."
                 dialogService.ShowNotification("Pendientes", textoMensaje)
                 Return
             End If
 
-            Dim descripciones As New List(Of String)
-            For Each numero In pendientes
-                descripciones.Add(Await DescribirPedidoPendienteAsync(empresa, numero))
-            Next
+            ' Nesto#554 (sugerencia 775): las notas de entrega no se pueden modificar desde la plantilla, así que no se ofrecen
+            Dim notasEntrega = todosLosPendientes.Where(Function(f) f.NotaEntrega).ToList()
+            Dim pendientes = todosLosPendientes.Where(Function(f) Not f.NotaEntrega).ToList()
+            If Not pendientes.Any() Then
+                dialogService.ShowNotification("Pendientes", TextoAvisoSoloNotasEntrega(notasEntrega))
+                Return
+            End If
 
             Dim opciones As New List(Of OpcionPedidoPendiente)
             Dim mensaje As String
             If pendientes.Count = 1 Then
-                mensaje = $"Este cliente tiene un pedido pendiente: {descripciones(0)}. Si quiere añadirle productos, modifíquelo: así el cheque, los portes y Ganavisiones cuentan todo el pedido."
-                opciones.Add(New OpcionPedidoPendiente With {.Numero = pendientes(0), .Texto = $"Modificar el pedido {pendientes(0)}"})
+                mensaje = $"Este cliente tiene un pedido pendiente: {pendientes(0).Texto}. Si quiere añadirle productos, modifíquelo: así el cheque, los portes y Ganavisiones cuentan todo el pedido."
+                opciones.Add(New OpcionPedidoPendiente With {.Numero = pendientes(0).Numero, .Texto = $"Modificar el pedido {pendientes(0).Numero}"})
             Else
                 mensaje = $"Este cliente tiene {pendientes.Count} pedidos pendientes. Si quiere añadirle productos a uno de ellos, modifíquelo: así el cheque, los portes y Ganavisiones cuentan todo el pedido."
-                For i = 0 To pendientes.Count - 1
-                    opciones.Add(New OpcionPedidoPendiente With {.Numero = pendientes(i), .Texto = $"Modificar el pedido {descripciones(i)}"})
+                For Each p In pendientes
+                    opciones.Add(New OpcionPedidoPendiente With {.Numero = p.Numero, .Texto = $"Modificar el pedido {p.Texto}"})
                 Next
+            End If
+            If notasEntrega.Any() Then
+                mensaje += " " + TextoNotasEntregaAdemas(notasEntrega)
             End If
             opciones.Add(New OpcionPedidoPendiente With {.Numero = 0, .Texto = "Hacer un pedido nuevo"})
 
@@ -4218,7 +4225,7 @@ Public Class PlantillaVentaViewModel
                 elegido = resultado.Parameters.GetValue(Of Integer)(ElegirPedidoPendienteDialogViewModel.PARAMETRO_PEDIDO)
             End If
 
-            If elegido <> 0 AndAlso pendientes.Contains(elegido) Then
+            If elegido <> 0 AndAlso pendientes.Any(Function(p) p.Numero = elegido) Then
                 ' El mismo camino que «Modificar con plantilla» de la lista de pedidos (con su aviso de líneas albaranadas)
                 Await CargarPedidoParaModificarAsync(empresa, elegido)
             End If
@@ -4237,23 +4244,22 @@ Public Class PlantillaVentaViewModel
         Return Not hayLineas AndAlso Not ListaRegalosSeleccionados.Any()
     End Function
 
-    ''' <summary>Novedad 735: «929105 (175,00 €, del 21/10/2026)»; si no se puede leer el pedido, solo el número.</summary>
-    Private Async Function DescribirPedidoPendienteAsync(empresa As String, numero As Integer) As Task(Of String)
-        Try
-            Dim pedido As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(empresa, numero)
-            If pedido Is Nothing Then
-                Return numero.ToString()
-            End If
-            Dim cultura = Globalization.CultureInfo.GetCultureInfo("es-ES")
-            Dim importe As Decimal = If(pedido.Lineas Is Nothing, 0D, pedido.Lineas.Sum(Function(l) l.BaseImponible))
-            Dim texto = $"{numero} ({importe.ToString("N2", cultura)} €"
-            If pedido.fecha.HasValue Then
-                texto += $", del {pedido.fecha.Value.ToString("dd/MM/yyyy", cultura)}"
-            End If
-            Return texto + ")"
-        Catch
-            Return numero.ToString()
-        End Try
+    ''' <summary>Nesto#554: solo hay notas de entrega pendientes; aviso informativo, sin botón de modificar.</summary>
+    Friend Shared Function TextoAvisoSoloNotasEntrega(notasEntrega As List(Of PedidoPendientePlantilla)) As String
+        Dim numeros = String.Join(", ", notasEntrega.Select(Function(n) n.Numero.ToString()))
+        If notasEntrega.Count = 1 Then
+            Return $"Este cliente tiene una nota de entrega pendiente ({numeros}). Las notas de entrega no se pueden modificar desde la plantilla: se hará un pedido nuevo."
+        End If
+        Return $"Este cliente tiene {notasEntrega.Count} notas de entrega pendientes ({numeros}). Las notas de entrega no se pueden modificar desde la plantilla: se hará un pedido nuevo."
+    End Function
+
+    ''' <summary>Nesto#554: hay pedidos normales y, además, notas de entrega; estas se mencionan pero no se ofrecen.</summary>
+    Friend Shared Function TextoNotasEntregaAdemas(notasEntrega As List(Of PedidoPendientePlantilla)) As String
+        Dim numeros = String.Join(", ", notasEntrega.Select(Function(n) n.Numero.ToString()))
+        If notasEntrega.Count = 1 Then
+            Return $"Tiene además una nota de entrega pendiente ({numeros}), que no se puede modificar desde la plantilla."
+        End If
+        Return $"Tiene además {notasEntrega.Count} notas de entrega pendientes ({numeros}), que no se pueden modificar desde la plantilla."
     End Function
 
     Private _cmdCrearPedido As RelayCommand
