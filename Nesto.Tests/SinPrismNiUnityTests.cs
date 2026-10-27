@@ -96,7 +96,7 @@ namespace Nesto.Tests
             }
             Assert.IsNotNull(raiz, "No se encuentra Nesto.sln por encima de la carpeta de las pruebas");
 
-            // Los proyectos de la solución (no las copias viejas de MigrationBackup ni de los informes)
+            // Los proyectos de la solución (solo los que lista Nesto.sln)
             string solucion = File.ReadAllText(Path.Combine(raiz.FullName, "Nesto.sln"));
             List<string> proyectos = Regex.Matches(solucion, "\"([^\"]+\\.(?:csproj|vbproj))\"")
                 .Select(m => Path.Combine(raiz.FullName, m.Groups[1].Value))
