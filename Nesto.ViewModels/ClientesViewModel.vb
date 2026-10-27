@@ -546,6 +546,9 @@ Public Class ClientesViewModel
         End Get
         Set(value As ClienteJson)
             _clienteActivo = value
+            ' Nesto#558: el estado con que llegó la ficha (el TextBox edita este mismo objeto, así que es la única
+            ' ocasión de saber de qué estado se viene al guardar).
+            _estadoCargado = value?.estado
 
             If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
                 If Not IsNothing(clienteActivoDTO) Then
@@ -1374,6 +1377,44 @@ Public Class ClientesViewModel
     Private Function CanGuardarVendedores(ByVal param As Object) As Boolean
         Return True
     End Function
+#Region "Nesto#558: motivo al cambiar el estado del cliente"
+
+    ' El estado de la ficha tal como se cargó (se fija en el setter de clienteActivo y al guardar con éxito).
+    Private _estadoCargado As Integer?
+
+    ''' <summary>Nesto#558: el estado con que se cargó la ficha; con él se sabe si el guardado cambia el estado.</summary>
+    Public ReadOnly Property EstadoCargado As Integer?
+        Get
+            Return _estadoCargado
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#558 (NestoAPI#716, 2.2): si el estado pasa a una baja (9, -1, 93, 11, 22, 95, 99) o sale de una, pregunta el
+    ''' motivo (catálogo MotivoCambioEstadoCliente) y un comentario, los dos opcionales, y los deja en la ficha para que
+    ''' viajen en el PUT de ClienteComercial (motivoCambioEstado / comentarioCambioEstado). Si el estado no cambia, o la
+    ''' persona no contesta nada, no se manda nada. Nunca impide guardar. Devuelve True si se ha preguntado.
+    ''' </summary>
+    Public Function PedirMotivoCambioEstadoSiHaceFalta() As Boolean
+        If clienteServidor Is Nothing OrElse clienteActivo Is Nothing Then
+            Return False
+        End If
+        clienteServidor.motivoCambioEstado = Nothing
+        clienteServidor.comentarioCambioEstado = Nothing
+        If Not MotivoCambioEstadoCliente.PideMotivo(_estadoCargado, clienteActivo.estado) Then
+            Return False
+        End If
+        Dim respuesta As MotivoCambioEstado = PeticionMotivoCambioEstado.Pedir(dialogService, "Motivo del cambio de estado",
+            $"El cliente {clienteActivo.cliente?.Trim()} pasa del estado {If(_estadoCargado.HasValue, _estadoCargado.Value.ToString(), "?")} al {clienteActivo.estado}. Si lo sabe, indique el motivo; puede dejarlo en blanco.")
+        If respuesta IsNot Nothing Then
+            clienteServidor.motivoCambioEstado = respuesta.Motivo
+            clienteServidor.comentarioCambioEstado = respuesta.Comentario
+        End If
+        Return True
+    End Function
+
+#End Region
+
     Private Sub GuardarVendedores(ByVal param As Object)
         Dim continuar As Boolean = False
         Dim p As New ParametrosDialogo From {
@@ -1398,6 +1439,8 @@ Public Class ClientesViewModel
                 Dim urlConsulta As String = "Clientes/ClienteComercial"
                 clienteServidor.estado = clienteActivo.estado
                 clienteServidor.usuario = configuracion.usuario
+                ' Nesto#558: si el estado pasa a una baja (o sale de ella), motivo y comentario opcionales en el PUT
+                PedirMotivoCambioEstadoSiHaceFalta()
                 ' Nesto#340 (1C.8, slice 4): el PUT solo gestiona vendedores; quitamos
                 ' PersonasContacto del payload para que el [EmailAddress] del DTO del servidor no
                 ' devuelva 400 por correos mal grabados en fichas antiguas.
@@ -1415,6 +1458,12 @@ Public Class ClientesViewModel
             End Using
 
             mensajeError = "Cliente guardado correctamente"
+            ' Nesto#558: desde ahora, el estado guardado es el de partida para el siguiente cambio
+            _estadoCargado = clienteActivo?.estado
+            If clienteServidor IsNot Nothing Then
+                clienteServidor.motivoCambioEstado = Nothing
+                clienteServidor.comentarioCambioEstado = Nothing
+            End If
 
             Dim c As New ParametrosDialogo From {
                 {"message", "Se han guardado correctamente los cambios"}

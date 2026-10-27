@@ -10,7 +10,10 @@ Public Interface IRapportService
     Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
     Function CargarListaEstados() As List(Of idShortDescripcion)
     Function CargarListaTipos() As List(Of idDescripcion)
-    Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean)
+    ' Nesto#558 (NestoAPI#716): motivo y comentario opcionales del cambio de estado (PUT Clientes/DejarDeVisitar); con
+    ' Nothing la API anota «DejarDeVisitar» ella sola.
+    Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String,
+                               Optional motivoCambioEstado As String = Nothing, Optional comentarioCambioEstado As String = Nothing) As Task(Of Boolean)
     Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of List(Of ClienteProbabilidadVenta))
     ' NestoAPI#603: lista por prioridad y cadencia, con el ritmo del vendedor. Si la API publicada aún no
     ' tiene el endpoint (404), cae a CargarClientesProbabilidad y devuelve Ritmo = Nothing.

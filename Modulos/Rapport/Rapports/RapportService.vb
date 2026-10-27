@@ -315,12 +315,15 @@ Public Class RapportService
         End Try
     End Function
 
-    Public Async Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean) Implements IRapportService.QuitarDeMiListado
+    Public Async Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String,
+                                            Optional motivoCambioEstado As String = Nothing, Optional comentarioCambioEstado As String = Nothing) As Task(Of Boolean) Implements IRapportService.QuitarDeMiListado
         Dim clienteCrear As New ClienteCrear With {
             .Empresa = rapport.Empresa,
             .Cliente = rapport.Cliente,
             .Contacto = rapport.Contacto,
-            .Usuario = rapport.Usuario
+            .Usuario = rapport.Usuario,
+            .MotivoCambioEstado = motivoCambioEstado,
+            .ComentarioCambioEstado = comentarioCambioEstado
         }
 
         Dim vendedorUsuario As String = Await configuracion.leerParametro(rapport.Empresa, Parametros.Claves.Vendedor)

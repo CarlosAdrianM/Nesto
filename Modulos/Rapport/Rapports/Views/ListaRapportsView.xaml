@@ -25,6 +25,8 @@
                                             Media="{StaticResource PrioridadMediaBrush}"
                                             Baja="{StaticResource PrioridadBajaBrush}"/>
         <rapports:StringEqualityConverter x:Key="StringEqualityConverter"/>
+        <!-- Nesto#558: código del resultado del rapport → texto corto -->
+        <rapports:ResultadoRapportConverter x:Key="ResultadoRapportConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- Estilo para ToggleButton como botón -->
         <Style TargetType="ToggleButton" x:Key="ToggleButtonAsButtonStyle">
@@ -379,6 +381,9 @@
                                 <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaTipos}}" Header="Tipo" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Tipo}"></DataGridComboBoxColumn>
                                 <DataGridTextColumn Binding="{Binding Vendedor}" Width="Auto" Header="Vendedor" />
                                 <DataGridCheckBoxColumn Binding="{Binding Pedido}" Width="Auto" Header="Pedido"/>
+                                <!-- Nesto#558: resultado y próximo contacto que vienen del GET (vacíos en los rapports viejos) -->
+                                <DataGridTextColumn Binding="{Binding Resultado, Converter={StaticResource ResultadoRapportConverter}}" Width="Auto" Header="Resultado" />
+                                <DataGridTextColumn Binding="{Binding ProximoContacto, StringFormat=d}" Width="Auto" Header="Próx. contacto" />
                                 <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaEstados}}" Header="Estado" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Estado}"></DataGridComboBoxColumn>
                                 <DataGridTextColumn Binding="{Binding Comentarios}" Width="*" Header="Comentarios" />
                             </DataGrid.Columns>

@@ -137,6 +137,40 @@ Public Class SeguimientoClienteDTO
     ''' </summary>
     Public Property Empleados As Byte?
 
+    ''' <summary>
+    ''' Nesto#558 (NestoAPI#716): resultado del rapport / motivo de no compra, un código del catálogo
+    ''' Nesto.Infrastructure.Shared.ResultadoRapport (Pedido, PediraMasTarde, NoNecesita...). Nothing = sin marcar
+    ''' (viaja null y la API no guarda nada). Un valor fuera del catálogo es un 400 de la API.
+    ''' </summary>
+    Private _Resultado As String
+    Public Property Resultado As String
+        Get
+            Return _Resultado
+        End Get
+        Set(value As String)
+            Dim limpio As String = If(String.IsNullOrWhiteSpace(value), Nothing, value.Trim())
+            If _Resultado <> limpio Then
+                _Resultado = limpio
+                RaisePropertyChanged("Resultado")
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Nesto#558 (NestoAPI#716): cuándo toca volver a contactar (solo la fecha). Nothing = sin fecha.</summary>
+    Private _ProximoContacto As DateTime?
+    Public Property ProximoContacto As DateTime?
+        Get
+            Return _ProximoContacto
+        End Get
+        Set(value As DateTime?)
+            Dim soloFecha As DateTime? = If(value.HasValue, value.Value.Date, CType(Nothing, DateTime?))
+            If Not Nullable.Equals(_ProximoContacto, soloFecha) Then
+                _ProximoContacto = soloFecha
+                RaisePropertyChanged("ProximoContacto")
+            End If
+        End Set
+    End Property
+
     Public Enum TiposCentro
         <Description("No se sabe")>
         NoSeSabe

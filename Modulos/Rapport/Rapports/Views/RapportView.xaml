@@ -10,6 +10,57 @@
     
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- Nesto#558: los chips de resultado del rapport. Una ListBox sin borde con WrapPanel; cada elemento es una
+             píldora. Colores del sistema (se leen en claro y en oscuro). Con el teclado: flechas para moverse, Supr o
+             Retroceso para desmarcar; con el ratón, clic en el marcado lo desmarca (RapportView.xaml.vb). -->
+        <Style x:Key="ChipsResultado" TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Margin" Value="2"/>
+                        <Setter Property="Padding" Value="9,2"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Pildora" CornerRadius="11" BorderThickness="1" SnapsToDevicePixels="True"
+                                            BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"
+                                            Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Pildora" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                            <Setter TargetName="Pildora" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            <Setter TargetName="Pildora" Property="BorderThickness" Value="2"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Pildora" Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            <Setter TargetName="Pildora" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     
     
@@ -26,6 +77,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -111,23 +163,51 @@
             <!-- Sugerencia 761: siempre al menos unas 5 líneas; si hay sitio, crece -->
             <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="Wrap" AcceptsReturn="True" SpellCheck.IsEnabled="True" VerticalScrollBarVisibility="Auto" MinHeight="90"></TextBox>
         </DockPanel>
-        <StackPanel Grid.Row="11" Orientation="Horizontal">
+        <!-- Nesto#558 (NestoAPI#716): resultado del rapport (un chip o ninguno) y próximo contacto, los dos opcionales.
+             El chip «Pedido» y el check «Pedido» van a la par (RapportViewModel.SincronizarPedidoConResultado). -->
+        <StackPanel Grid.Row="11" Margin="0,3,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="×" Padding="5,0" Margin="3,0,0,0" ToolTip="Quitar el resultado (también con Supr sobre los chips)"
+                        Command="{Binding QuitarResultadoCommand}">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding rapport.Resultado}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <TextBlock Text="Resultado: " VerticalAlignment="Center" ToolTip="Resultado de la llamada o visita; si no procede, déjelo sin marcar"/>
+            </DockPanel>
+            <ListBox x:Name="lstResultadoRapport" Style="{StaticResource ChipsResultado}" ItemsSource="{Binding ResultadosRapport}"
+                     DisplayMemberPath="Nombre" SelectedValuePath="Codigo" SelectedValue="{Binding rapport.Resultado, Mode=TwoWay}"
+                     SelectionMode="Single" KeyboardNavigation.TabNavigation="Once"
+                     PreviewMouseLeftButtonDown="lstResultadoRapport_PreviewMouseLeftButtonDown" PreviewKeyDown="lstResultadoRapport_PreviewKeyDown"/>
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                <TextBlock Text="Próximo contacto: " VerticalAlignment="Center"/>
+                <DatePicker SelectedDate="{Binding rapport.ProximoContacto, Mode=TwoWay}" Width="130" FirstDayOfWeek="Monday"
+                            ToolTip="Cuándo toca volver a contactar; borre el texto para dejarlo sin fecha"/>
+            </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Row="12" Orientation="Horizontal">
             <TextBlock Text="Usuario: "></TextBlock>
             <TextBlock Text="{Binding rapport.Usuario}"></TextBlock>
         </StackPanel>
-        <StackPanel Grid.Row="12" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleTipoCentro, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <StackPanel Grid.Row="13" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleTipoCentro, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Tipo de Centro:"></TextBlock>
             <ComboBox Name="cmbTiposCentro" ItemsSource="{Binding listaTiposCentros}" SelectedValue="{Binding rapport.TipoCentro}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
         </StackPanel>
         <!-- Nesto#469: solo si la API lo pide (PreguntarEmpleados); sale rellena si la ficha ya lo sabe -->
-        <StackPanel Grid.Row="13" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleEmpleados, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <StackPanel Grid.Row="14" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleEmpleados, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Empleados del centro:"></TextBlock>
             <ComboBox Name="cmbEmpleados" ItemsSource="{Binding listaEmpleados}" SelectedValue="{Binding rapport.Empleados}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
         </StackPanel>
-        <StackPanel Grid.Row="14">
+        <StackPanel Grid.Row="15">
             <CheckBox IsChecked="{Binding QuitarDeMiListado}" Content="Quitar de mi listado"></CheckBox>
         </StackPanel>
-        <StackPanel Grid.Row="15" HorizontalAlignment="Stretch">
+        <StackPanel Grid.Row="16" HorizontalAlignment="Stretch">
             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
         </StackPanel>
     </Grid>
