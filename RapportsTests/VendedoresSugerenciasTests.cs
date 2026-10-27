@@ -55,7 +55,7 @@ namespace RapportsTests
         private ListaRapportsViewModel Abrir()
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
             vm.AlLlegar(new ParametrosNavegacion());
             // Lo que hace SelectorSubgrupoProducto al terminar de cargar: elige «(Todos los subgrupos)»
             vm.GrupoSubgrupoSeleccionado = string.Empty;

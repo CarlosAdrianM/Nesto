@@ -239,7 +239,7 @@ namespace RapportsTests
         private static ListaRapportsViewModel CrearViewModel(IRapportService servicio)
         {
             return new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), A.Fake<IConfiguracion>(), servicio,
-                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+                A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
         }
 
         private static RapportService CrearServicio(HttpMessageHandler handler)

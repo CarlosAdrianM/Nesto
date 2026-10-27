@@ -6,8 +6,6 @@ Imports Nesto.Infrastructure.Shared
 Imports CommunityToolkit.Mvvm.Messaging
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
-Imports Nesto.Infrastructure.Services
-Imports ControlesUsuario.SugerenciasProductos
 Imports ControlesUsuario.Dialogs
 
 Public Class RapportViewModel
@@ -19,27 +17,15 @@ Public Class RapportViewModel
     Private ReadOnly servicio As IRapportService
     Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly _messenger As IMessenger
-    Private ReadOnly _navegacion As IServicioNavegacion
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger,
-                   servicioSugerenciasProductos As IServicioSugerenciasProductos, navegacion As IServicioNavegacion)
+    ' Nesto#557 (Sancho, comentario 325 de la 761): la cinta «Puede ofrecer» (Nesto#544) ya no está en la ficha del rapport:
+    ' cuando se crea el rapport la conversación con el cliente ya ha terminado. Vive en ListaRapportsViewModel, al cargar los
+    ' rapports del cliente, que es lo que se mira antes o durante la conversación.
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
         _messenger = messenger
-        _navegacion = navegacion
-        ' Nesto#544: la misma cinta «Puede ofrecer» que la plantilla, sin carrito. «✓ Añadir» (corte 2) lo mete en una
-        ' plantilla de ese cliente, que es la que apunta «Anadido».
-        _cintaSugerencias = New CintaSugerenciasProductosViewModel(
-            AddressOf PeticionSugerenciasProductos,
-            leerVendedor:=Function() Me.configuracion?.leerParametro(empresaPorDefecto, Parametros.Claves.Vendedor),
-            configuracion:=configuracion,
-            anadir:=AddressOf AnadirEnPlantillaAsync,
-            apuntarAnadido:=False,
-            clavePlegadas:=Parametros.Claves.SugerenciasRapportPlegadas) With {
-            .Servicio = servicioSugerenciasProductos
-        }
-        _cintaSugerencias.CargarPreferenciaPlegadas()
 
         listaTiposRapports = servicio.CargarListaTipos()
 
@@ -156,7 +142,6 @@ Public Class RapportViewModel
             OnPropertyChanged(NameOf(EstaVisibleTipoCentro))
             PrerrellenarEmpleados()
             OnPropertyChanged(NameOf(EstaVisibleEmpleados))
-            ActualizarCintaSugerencias() ' Nesto#544
         End Set
     End Property
 
@@ -269,7 +254,7 @@ Public Class RapportViewModel
             Dim anterior As SeguimientoClienteDTO = _rapport
             If SetProperty(_rapport, value) Then
                 _clienteContactoGuardado = ClaveClienteContacto(value)
-                ' Nesto#544: el cliente y el contacto se cambian en el propio rapport (SelectorCliente). Evento débil: el
+                ' Nesto#558: el chip «Pedido» y el check «Pedido» van a la par (Rapport_PropertyChanged). Evento débil: el
                 ' rapport sigue en la lista cuando se elige otro y no debe retener esta vista.
                 If anterior IsNot Nothing Then
                     System.ComponentModel.PropertyChangedEventManager.RemoveHandler(anterior, AddressOf Rapport_PropertyChanged, String.Empty)
@@ -282,7 +267,6 @@ Public Class RapportViewModel
             cmdGuardarCambios.NotifyCanExecuteChanged()
             PrerrellenarEmpleados()
             OnPropertyChanged(NameOf(EstaVisibleEmpleados))
-            ActualizarCintaSugerencias() ' Nesto#544
         End Set
     End Property
 
@@ -508,102 +492,14 @@ Public Class RapportViewModel
     End Sub
 
 
-#Region "Nesto#544: productos que puede ofrecer"
-
-    ' La misma cinta «Puede ofrecer» que la plantilla (CintaSugerenciasProductosViewModel y CintaSugerenciasProductosView, en
-    ' ControlesUsuario): «✗ No le interesa» y «🚫 Quitar» funcionan igual, con la sesión del cliente y Aplicacion = Nesto. Aquí
-    ' no hay carrito. Solo en un rapport nuevo y con cliente. Si la API falla o no hay nada que ofrecer, la cinta no se ve y
-    ' no hay errores. «✓ Añadir» (corte 2) lo mete en una plantilla del cliente: la abierta si la hay, si no una nueva.
-
-    Private ReadOnly _cintaSugerencias As CintaSugerenciasProductosViewModel
-
-    ''' <summary>La cinta «Puede ofrecer» (su DataContext en la vista).</summary>
-    Public ReadOnly Property CintaSugerencias As CintaSugerenciasProductosViewModel
-        Get
-            Return _cintaSugerencias
-        End Get
-    End Property
-
-    ''' <summary>Lo que se manda a Calcular: el cliente y el contacto del rapport, sin carrito. Nothing si no toca preguntar.</summary>
-    Public Function PeticionSugerenciasProductos() As CalcularSugerenciasProductosDTO
-        If rapport Is Nothing OrElse rapport.Id <> 0 OrElse String.IsNullOrWhiteSpace(rapport.Cliente) Then
-            Return Nothing
-        End If
-        Return New CalcularSugerenciasProductosDTO With {
-            .Empresa = If(String.IsNullOrWhiteSpace(rapport.Empresa), empresaPorDefecto, rapport.Empresa).Trim(),
-            .Cliente = rapport.Cliente.Trim(),
-            .Contacto = rapport.Contacto?.Trim(),
-            .Vendedor = VendedorUsuario?.Trim()
-        }
-    End Function
-
-    ''' <summary>
-    ''' Con otro cliente, sesión nueva y cinta vacía; con el mismo, nada se reinicia. En los dos casos se pregunta tras el
-    ''' respiro (si no ha cambiado nada de lo que se manda, no sale ninguna petición).
-    ''' </summary>
-    Private Sub ActualizarCintaSugerencias()
-        If _cintaSugerencias Is Nothing Then
-            Return ' durante la construcción
-        End If
-        Dim peticion As CalcularSugerenciasProductosDTO = PeticionSugerenciasProductos()
-        _cintaSugerencias.ReiniciarSiCambiaElCliente(If(peticion Is Nothing, Nothing, $"{peticion.Empresa}|{peticion.Cliente}"))
-        _cintaSugerencias.Programar()
-    End Sub
-
-    ''' <summary>
-    ''' «✓ Añadir» (corte 2): pregunta por el mensajero si hay una plantilla abierta de este cliente; si contesta, ella mete
-    ''' el producto y se trae al frente (True si ha entrado). Si no hay ninguna, abre una plantilla nueva con el cliente, el
-    ''' contacto, el producto, la sugerencia y la sesión (True: la ficha sale de aquí; lo demás lo cuenta la plantilla).
-    ''' En los dos casos «Anadido» lo apunta la plantilla, contra esta sugerencia y esta sesión.
-    ''' </summary>
-    Friend Async Function AnadirEnPlantillaAsync(sugerencia As SugerenciaProductoDTO) As Task(Of Boolean)
-        Dim peticion As CalcularSugerenciasProductosDTO = PeticionSugerenciasProductos()
-        If sugerencia Is Nothing OrElse peticion Is Nothing OrElse String.IsNullOrWhiteSpace(sugerencia.Producto) Then
-            Return False
-        End If
-        Dim sugerido As New ProductoSugeridoParaPlantilla With {
-            .Empresa = peticion.Empresa,
-            .Cliente = peticion.Cliente,
-            .Contacto = peticion.Contacto,
-            .Producto = sugerencia.Producto.Trim(),
-            .IdSugerencia = sugerencia.IdSugerencia,
-            .IdSesion = _cintaSugerencias.IdSesion
-        }
-        Dim mensaje As New AnadirProductoSugeridoMensaje(sugerido)
-        _messenger?.Send(mensaje)
-        If mensaje.HasReceivedResponse Then
-            Return Await mensaje.Response.ConfigureAwait(True)
-        End If
-        If _navegacion Is Nothing Then
-            Return False
-        End If
-        Dim parametros As New ParametrosNavegacion From {
-            {ProductoSugeridoParaPlantilla.PARAMETRO_EMPRESA, sugerido.Empresa},
-            {ProductoSugeridoParaPlantilla.PARAMETRO_CLIENTE, sugerido.Cliente},
-            {ProductoSugeridoParaPlantilla.PARAMETRO_CONTACTO, sugerido.Contacto},
-            {ProductoSugeridoParaPlantilla.PARAMETRO_PRODUCTO, sugerido.Producto},
-            {ProductoSugeridoParaPlantilla.PARAMETRO_ID_SUGERENCIA, sugerido.IdSugerencia}
-        }
-        If sugerido.IdSesion.HasValue Then
-            parametros.Add(ProductoSugeridoParaPlantilla.PARAMETRO_ID_SESION, sugerido.IdSesion.Value)
-        End If
-        _navegacion.RequestNavigate("MainRegion", "PlantillaVentaView", parametros)
-        Return True
-    End Function
-
     Private Sub Rapport_PropertyChanged(sender As Object, e As System.ComponentModel.PropertyChangedEventArgs)
         If e Is Nothing OrElse sender IsNot _rapport Then
             Return ' un rapport que ya no es el de la vista (o la vista se está cerrando)
         End If
-        If e.PropertyName = NameOf(SeguimientoClienteDTO.Cliente) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Contacto) OrElse
-            e.PropertyName = NameOf(SeguimientoClienteDTO.Empresa) Then
-            ActualizarCintaSugerencias()
-        ElseIf e.PropertyName = NameOf(SeguimientoClienteDTO.Resultado) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Pedido) Then
+        If e.PropertyName = NameOf(SeguimientoClienteDTO.Resultado) OrElse e.PropertyName = NameOf(SeguimientoClienteDTO.Pedido) Then
             SincronizarPedidoConResultado(e.PropertyName) ' Nesto#558
         End If
     End Sub
-
-#End Region
 
     Public Structure idByteDescripcion
         Public Sub New(_id As Byte, _descripcion As String)

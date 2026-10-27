@@ -121,8 +121,7 @@ namespace RapportsTests
             var servicio = A.Fake<IRapportService>();
             A.CallTo(() => servicio.crearRapport(A<SeguimientoClienteDTO>._)).Returns(Task.FromResult("Guardado"));
             A.CallTo(() => servicio.QuitarDeMiListado(A<SeguimientoClienteDTO>._, A<string>._, A<string>._, A<string>._, A<string>._)).Returns(Task.FromResult(true));
-            var vm = new RapportViewModel(configuracion, servicio, dialogo, new WeakReferenceMessenger(),
-                A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>(), A.Fake<IServicioNavegacion>());
+            var vm = new RapportViewModel(configuracion, servicio, dialogo, new WeakReferenceMessenger());
             return (vm, dialogo, servicio);
         }
 

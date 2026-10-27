@@ -294,7 +294,16 @@ namespace ControlesUsuario
             
             if (selector.Cliente == null)
             {
-                vm.listaClientes.ElementoSeleccionado = null;
+                // Nesto#551: la pantalla ha vaciado el cliente (p. ej. «Mis rapports de hoy»): se quita la selección y el
+                // número que quedaba escrito en la caja (su texto va al Filtro), para que no parezca que sigue elegido.
+                if (vm?.listaClientes is not null)
+                {
+                    vm.listaClientes.ElementoSeleccionado = null;
+                    if (!string.IsNullOrEmpty(vm.listaClientes.Filtro))
+                    {
+                        vm.listaClientes.Filtro = string.Empty;
+                    }
+                }
             }
             else if (vm.listaClientes.Filtro != selector.Cliente.Trim())
             {

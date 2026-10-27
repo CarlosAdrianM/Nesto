@@ -19,7 +19,7 @@ namespace RapportsTests
         public void Inicializar() => _navegacion = A.Fake<IServicioNavegacion>();
 
         private ListaRapportsViewModel Nuevo() => new ListaRapportsViewModel(_navegacion, A.Fake<IConfiguracion>(), A.Fake<IRapportService>(),
-            A.Fake<IServicioDialogos>(), new WeakReferenceMessenger());
+            A.Fake<IServicioDialogos>(), new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>());
 
         [TestMethod]
         public void AbrirModulo_NavegaALaListaDeRapports()

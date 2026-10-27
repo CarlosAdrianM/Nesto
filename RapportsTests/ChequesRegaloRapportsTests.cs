@@ -85,7 +85,7 @@ namespace RapportsTests
         private ListaRapportsViewModel Abrir()
         {
             var vm = new ListaRapportsViewModel(A.Fake<IServicioNavegacion>(), _configuracion, _servicio,
-                _dialogos, new WeakReferenceMessenger())
+                _dialogos, new WeakReferenceMessenger(), A.Fake<Nesto.Infrastructure.Services.IServicioSugerenciasProductos>())
             {
                 AbrirConElSistema = ruta => _abiertos.Add(ruta)
             };
