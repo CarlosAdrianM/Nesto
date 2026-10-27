@@ -270,7 +270,13 @@ namespace Nesto.Tests
                 resultado.PanelMontado.Add("pie: " + string.Join(", ", panel.ItemsDelPie.Select(i => i.Content)));
                 resultado.PanelMontado.Add("WPF-UI en Application.Resources: " + System.Windows.Application.Current.Resources.MergedDictionaries
                     .Any(d => d.Source != null && d.Source.ToString().Contains("Wpf.Ui")));
+                // Tramo 2: Ctrl+K en la ventana, con el comando de la búsqueda del panel
+                System.Windows.Input.KeyBinding atajo = ventana.AtajoBuscar;
+                resultado.PanelMontado.Add("Ctrl+K: " + (atajo != null && ventana.InputBindings.Contains(atajo)
+                    && atajo.Key == System.Windows.Input.Key.K && atajo.Modifiers == System.Windows.Input.ModifierKeys.Control
+                    && ReferenceEquals(atajo.Command, panel.Buscador.ActivarCommand)));
                 CapturarPanel(panel);
+                CapturarBusqueda(panel);
             }
             catch (Exception ex)
             {
@@ -307,6 +313,41 @@ namespace Nesto.Tests
             catch (Exception ex)
             {
                 Console.WriteLine("Sin captura del panel: " + ex.Message);
+            }
+        }
+
+        // Tramo 2: la búsqueda sobre el catálogo del arranque real, en %TEMP%\panel-lateral-busqueda.png (con lo que puede
+        // usar el usuario de prueba). Nunca falla la prueba.
+        private static void CapturarBusqueda(PanelNavegacionLateral panel)
+        {
+            try
+            {
+                foreach (var seccion in panel.ItemsDeSecciones.Values)
+                {
+                    seccion.IsExpanded = false;
+                }
+                panel.Navegacion.IsPaneOpen = true;
+                panel.Buscador.Texto = "pedidos";
+                Console.WriteLine("Búsqueda «pedidos»: " + string.Join(" | ", panel.Buscador.Resultados.Select(x => x.Ruta)));
+                var tamano = new Size(300, 640);
+                panel.Measure(tamano);
+                panel.Arrange(new Rect(tamano));
+                panel.UpdateLayout();
+                var mapa = new System.Windows.Media.Imaging.RenderTargetBitmap(300, 640, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                mapa.Render(panel);
+                var codificador = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                codificador.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(mapa));
+                string ruta = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "panel-lateral-busqueda.png");
+                using (var fichero = System.IO.File.Create(ruta))
+                {
+                    codificador.Save(fichero);
+                }
+                Console.WriteLine("Captura: " + ruta);
+                panel.Buscador.Texto = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Sin captura de la búsqueda: " + ex.Message);
             }
         }
 
@@ -434,6 +475,7 @@ namespace Nesto.Tests
                 "items: " + (botones + 1 + 2),
                 "pie: Parámetros, Novedades",
                 "WPF-UI en Application.Resources: False",
+                "Ctrl+K: True",
             }, r.PanelMontado, string.Join("\n", r.PanelMontado));
         }
 

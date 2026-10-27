@@ -13,7 +13,8 @@ namespace Nesto.Infrastructure.Menu
     /// </para>
     /// <para>
     /// Lleva también si el panel sale compacto (solo iconos, 48 px; Carlos 27/10/26, decisión 2: por defecto) o abierto,
-    /// que se recuerda por usuario en <c>NavegacionLateralCompacta</c>.
+    /// que se recuerda por usuario en <c>NavegacionLateralCompacta</c> (necesita la fila «(defecto)» = "1": el PUT de
+    /// api/ParametrosUsuario solo actualiza, y la fila del usuario la crea el GET copiando la de «(defecto)»).
     /// </para>
     /// </summary>
     public sealed class ConmutadorNavegacionLateral
