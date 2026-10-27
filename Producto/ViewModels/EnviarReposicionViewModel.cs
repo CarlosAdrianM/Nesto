@@ -161,6 +161,7 @@ namespace Nesto.Modules.Producto.ViewModels
             ReimprimirEtiquetasCommand = new AsyncRelayCommand(ReimprimirEtiquetasAsync, () => PuedeReimprimirEtiquetas && !EstaOcupado);
             ReimprimirBultosEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirBultosEnviadaAsync, e => e != null && !EstaOcupado);
             ReimprimirImpresoEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirImpresoEnviadaAsync, e => e != null && !EstaOcupado);
+            ReimprimirBultosPorNumeroCommand = new AsyncRelayCommand(ReimprimirBultosPorNumeroAsync, () => MostrarReimprimirPorNumero && LeerNumeroReposicion(NumeroReimprimirBultos) != null && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -630,6 +631,8 @@ namespace Nesto.Modules.Producto.ViewModels
             }).ConfigureAwait(true);
             if (enviada != null)
             {
+                // Sugerencia 733: la recién enviada es la que se propone para reimprimir
+                NumeroReimprimirBultos = enviada.NumTraspaso.ToString(CultureInfo.InvariantCulture);
                 // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
                 await PedirBultosEImprimirAsync(enviada.NumTraspaso).ConfigureAwait(true);
                 // NestoAPI#685: ya sale en las enviadas sin recibir
@@ -1019,6 +1022,8 @@ namespace Nesto.Modules.Producto.ViewModels
             }).ConfigureAwait(true);
             if (terminada != null)
             {
+                // Sugerencia 733: la recién enviada es la que se propone para reimprimir
+                NumeroReimprimirBultos = terminada.NumTraspaso.ToString(CultureInfo.InvariantCulture);
                 // Nesto#530: ya se sabe el traspaso: los bultos y sus etiquetas
                 await PedirBultosEImprimirAsync(terminada.NumTraspaso).ConfigureAwait(true);
                 // NestoAPI#685: ya sale en las enviadas sin recibir
@@ -1100,7 +1105,8 @@ namespace Nesto.Modules.Producto.ViewModels
         /// Crea los bultos (o los reimprime) y devuelve lo que hay que decir. Si la impresora falla (502) los bultos ya están
         /// creados: se ofrece reimprimir, y si no, queda el botón «Reimprimir etiquetas».
         /// </summary>
-        private async Task<string> ImprimirEtiquetasAsync(string traspaso, Func<Task<BultosReposicion>> llamada)
+        private async Task<string> ImprimirEtiquetasAsync(string traspaso, Func<Task<BultosReposicion>> llamada,
+            Func<BultosReposicion, string> textoImpresas = null, string textoSinEtiquetas = null)
         {
             while (true)
             {
@@ -1111,7 +1117,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     BultosReposicion resultado = await llamada().ConfigureAwait(true);
                     TraspasoSinImprimir(null);
-                    return TextoEtiquetasImpresas(resultado);
+                    return (textoImpresas ?? TextoEtiquetasImpresas)(resultado);
                 }
                 catch (EnvioReposicionException ex) when (ex.Codigo == 502)
                 {
@@ -1120,8 +1126,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 catch (EnvioReposicionException ex)
                 {
-                    _dialogos.ShowError(ex.Message);
-                    return ex.Message;
+                    string texto = ex.Codigo == 404 && textoSinEtiquetas != null ? textoSinEtiquetas : ex.Message;
+                    _dialogos.ShowError(texto);
+                    return texto;
                 }
                 catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
                 {
@@ -1190,6 +1197,84 @@ namespace Nesto.Modules.Producto.ViewModels
                 Enviadas.Add(enviada);
             }
             OnPropertyChanged(nameof(HayEnviadas));
+            // Sugerencia 733: si no ha escrito ninguna, se propone la última enviada con bultos
+            if (string.IsNullOrWhiteSpace(NumeroReimprimirBultos))
+            {
+                ReposicionEnviada ultima = Enviadas.FirstOrDefault(e => e.Bultos > 0);
+                if (ultima != null)
+                {
+                    NumeroReimprimirBultos = ultima.Traspaso.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------- Sugerencia 733: reimprimir los bultos de cualquier reposición
+
+        private string _numeroReimprimirBultos;
+        /// <summary>
+        /// Sugerencia 733: el número de la reposición cuyas etiquetas de bulto se reimprimen (cualquiera, recibida o no, de
+        /// la tienda o de Algete). Al enviar una se pone la recién enviada; si no, la última enviada con bultos.
+        /// </summary>
+        public string NumeroReimprimirBultos
+        {
+            get => _numeroReimprimirBultos;
+            set
+            {
+                if (SetProperty(ref _numeroReimprimirBultos, value))
+                {
+                    ReimprimirBultosPorNumeroCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>Se ve el cuadro para reimprimir por número: en una tienda y fuera de la puntual.</summary>
+        public bool MostrarReimprimirPorNumero => _origenValido && !EnModoPuntual;
+
+        /// <summary>Sugerencia 733: reimprime las etiquetas de bulto de la reposición <see cref="NumeroReimprimirBultos"/>.</summary>
+        public IAsyncRelayCommand ReimprimirBultosPorNumeroCommand { get; }
+
+        /// <summary>«81198», « 81198 » o «R81198» → 81198; vacío, no numérico, cero o negativo → null.</summary>
+        internal static int? LeerNumeroReposicion(string texto)
+        {
+            string limpio = texto?.Trim();
+            if (string.IsNullOrEmpty(limpio))
+            {
+                return null;
+            }
+            if (limpio.StartsWith("R", StringComparison.OrdinalIgnoreCase))
+            {
+                limpio = limpio.Substring(1);
+            }
+            return int.TryParse(limpio, NumberStyles.None, CultureInfo.InvariantCulture, out int numero) && numero > 0
+                ? numero
+                : (int?)null;
+        }
+
+        /// <summary>«Etiquetas de la reposición 81198 reimpresas (2 bultos) en Zebra tienda.» y los avisos de la API.</summary>
+        internal static string TextoEtiquetasReimpresas(string traspaso, BultosReposicion resultado)
+        {
+            int bultos = resultado?.Bultos?.Count ?? 0;
+            string impresora = resultado?.Impresora?.Trim();
+            string texto = $"Etiquetas de la reposición {traspaso} reimpresas ({(bultos == 1 ? "1 bulto" : $"{bultos} bultos")})"
+                + (string.IsNullOrEmpty(impresora) ? "." : $" en {impresora}.");
+            IEnumerable<string> avisos = (resultado?.Avisos ?? new List<string>()).Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim());
+            return string.Join(" ", new[] { texto }.Concat(avisos));
+        }
+
+        internal static string TextoSinEtiquetas(string traspaso) => $"La reposición {traspaso} no tiene etiquetas de bulto.";
+
+        internal async Task ReimprimirBultosPorNumeroAsync()
+        {
+            int? numero = LeerNumeroReposicion(NumeroReimprimirBultos);
+            if (numero == null)
+            {
+                return;
+            }
+            string traspaso = numero.Value.ToString(CultureInfo.InvariantCulture);
+            NumeroReimprimirBultos = traspaso;
+            Mensaje = null;
+            Mensaje = await ImprimirEtiquetasAsync(traspaso, () => _servicio.ReimprimirBultos(Empresa, traspaso),
+                r => TextoEtiquetasReimpresas(traspaso, r), TextoSinEtiquetas(traspaso)).ConfigureAwait(true);
         }
 
         internal async Task ReimprimirBultosEnviadaAsync(ReposicionEnviada enviada)
@@ -1364,6 +1449,8 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(HayEnviadas));
             ReimprimirBultosEnviadaCommand?.NotifyCanExecuteChanged();
             ReimprimirImpresoEnviadaCommand?.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(MostrarReimprimirPorNumero));
+            ReimprimirBultosPorNumeroCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>
