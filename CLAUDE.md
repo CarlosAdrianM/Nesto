@@ -9,7 +9,7 @@ Nesto is a WPF desktop application built with .NET Framework 4.8 (legacy VB.NET)
 ## Solution Structure
 
 - **Nesto**: Main WPF application project
-- **Nesto.Models**: Data models (VB.NET, .NET Framework 4.8)
+- **Nesto.Models**: Data models (VB.NET, net8.0-windows)
 - **Nesto.ViewModels**: Global ViewModels
 - **Infrastructure**: Cross-cutting services
 - **ControlesUsuario**: Reusable WPF controls (C#, .NET 8)
