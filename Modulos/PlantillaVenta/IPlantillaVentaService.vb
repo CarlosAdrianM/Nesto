@@ -10,7 +10,11 @@ Public Interface IPlantillaVentaService
     ''' <summary>Nesto#397 (Parte 1): un PedidoVentaDTO suelto (dump de ELMAH) a forma de plantilla (POST).</summary>
     Function ConvertirPedidoAPlantilla(jsonPedido As String) As Task(Of PedidoParaPlantillaModel)
     Function CargarClientesVendedor(filtroCliente As String, vendedor As String, todosLosVendedores As Boolean) As Task(Of ICollection(Of ClienteJson))
-    Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer))
+    ''' <summary>
+    ''' Nesto#550/#554: los pedidos pendientes del cliente con lo que hace falta para describirlos (GET
+    ''' api/PlantillaVentas/PedidosPendientesDetalle), más «Pedido nuevo» (Numero = 0) al final, como el 0 de siempre.
+    ''' </summary>
+    Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of PedidoPendientePlantilla))
     Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     ''' <summary>
     ''' Crea el pedido (POST api/PedidosVenta). Nesto#543: además del número, los pedidos que la API haya creado

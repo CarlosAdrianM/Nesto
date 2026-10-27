@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.Messaging;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
 using FakeItEasy;
@@ -108,7 +108,7 @@ namespace PlantillaVentaTests
             A.CallTo(() => _servicio.CargarClientesVendedor(A<string>._, A<string>._, A<bool>._))
                 .ReturnsLazily((string filtro, string vendedor, bool todos) => Task.FromResult<ICollection<ClienteJson>>(new List<ClienteJson> { ClienteJson(filtro) }));
             A.CallTo(() => _servicio.CargarPedidoParaPlantilla("1", PEDIDO)).ReturnsLazily(() => Task.FromResult(Pedido("4730")));
-            A.CallTo(() => _servicio.CargarListaPendientes(A<string>._, A<string>._)).Returns(Task.FromResult(new List<int>()));
+            A.CallTo(() => _servicio.CargarListaPendientes(A<string>._, A<string>._)).Returns(Task.FromResult(new List<PedidoPendientePlantilla>()));
             A.CallTo(() => _servicio.CargarProductosPlantilla(A<ClienteJson>._)).ReturnsLazily(() => Task.FromResult(new ObservableCollection<LineaPlantillaVenta>()));
             A.CallTo(() => _servicio.PonerStocks(A<ObservableCollection<LineaPlantillaVenta>>._, A<string>._, A<List<string>>._))
                 .ReturnsLazily((ObservableCollection<LineaPlantillaVenta> lineas, string almacen, List<string> almacenes) => Task.FromResult(lineas));
@@ -195,7 +195,7 @@ namespace PlantillaVentaTests
             vm._clienteSeleccionado = ClienteJson("4730");
             await vm.CargarChequeRegaloAsync();
             Assert.IsFalse(vm.PuedeUsarChequeRegalo);
-            A.CallTo(() => _servicio.CargarListaPendientes("1", "4730")).Returns(Task.FromResult(new List<int> { PEDIDO }));
+            A.CallTo(() => _servicio.CargarListaPendientes("1", "4730")).Returns(Task.FromResult(new List<PedidoPendientePlantilla> { new PedidoPendientePlantilla { Numero = PEDIDO } }));
             DialogoEligeModificar(PEDIDO);
 
             await vm.ComprobarPendientesAsync();
@@ -214,7 +214,7 @@ namespace PlantillaVentaTests
             _chequePorCliente["4730"] = Cheque("4730");
             var vm = CrearViewModel();
             vm._clienteSeleccionado = ClienteJson("4730");
-            A.CallTo(() => _servicio.CargarListaPendientes("1", "4730")).Returns(Task.FromResult(new List<int> { PEDIDO }));
+            A.CallTo(() => _servicio.CargarListaPendientes("1", "4730")).Returns(Task.FromResult(new List<PedidoPendientePlantilla> { new PedidoPendientePlantilla { Numero = PEDIDO } }));
             DialogoEligeModificar(PEDIDO);
 
             await vm.ComprobarPendientesAsync();

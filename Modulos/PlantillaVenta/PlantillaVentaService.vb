@@ -244,19 +244,23 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer)) Implements IPlantillaVentaService.CargarListaPendientes
+    Public Async Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of PedidoPendientePlantilla)) Implements IPlantillaVentaService.CargarListaPendientes
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Try
-                Dim urlConsulta As String = "PlantillaVentas/PedidosPendientes?empresa=" + empresa
-                urlConsulta += "&clientePendientes=" + cliente
+                ' Nesto#550/#554: con fecha, líneas, base, entrega, nota de entrega, picking y retenido (antes solo números)
+                Dim urlConsulta As String = "PlantillaVentas/PedidosPendientesDetalle?empresa=" + Uri.EscapeDataString(empresa?.Trim())
+                urlConsulta += "&cliente=" + Uri.EscapeDataString(cliente?.Trim())
                 response = Await client.GetAsync(urlConsulta)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    Dim pedidosPendientes As List(Of Integer) = JsonConvert.DeserializeObject(Of List(Of Integer))(cadenaJson)
-                    pedidosPendientes.Add(0)
+                    Dim pedidosPendientes As List(Of PedidoPendientePlantilla) = JsonConvert.DeserializeObject(Of List(Of PedidoPendientePlantilla))(cadenaJson)
+                    If pedidosPendientes Is Nothing Then
+                        pedidosPendientes = New List(Of PedidoPendientePlantilla)
+                    End If
+                    pedidosPendientes.Add(PedidoPendientePlantilla.PedidoNuevo())
                     Return pedidosPendientes
                 Else
                     Throw New Exception("Se ha producido un error al comprobar los pedidos pendientes del cliente")
