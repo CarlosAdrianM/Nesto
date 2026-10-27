@@ -75,18 +75,35 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
+        /// <summary>
+        /// Nesto#490: lo que se dice al guardar. Si alguno de los guardados no se nota hasta reiniciar Nesto (el menú
+        /// lateral), se avisa de que hay que cerrar y volver a abrir; si no, lo de siempre.
+        /// </summary>
+        internal static string MensajeAlGuardar(System.Collections.Generic.IReadOnlyCollection<ParametroEditableItem> guardados)
+        {
+            var conReinicio = guardados.Where(g => g.RequiereReiniciar).ToList();
+            if (conReinicio.Count == 0)
+            {
+                return "Cambios guardados. Ya están activos para los próximos pedidos.";
+            }
+            string cuales = string.Join(", ", conReinicio.Select(g => $"«{g.Descripcion}»"));
+            return $"Cambios guardados. Para que {cuales} surta efecto, cierre Nesto y vuelva a abrirlo.";
+        }
+
         private async void OnGuardar()
         {
             _guardando = true;
             GuardarCommand.NotifyCanExecuteChanged();
             try
             {
+                var guardados = new System.Collections.Generic.List<ParametroEditableItem>();
                 foreach (ParametroEditableItem item in Editables.Where(e => e.TieneCambios).ToList())
                 {
                     ParametroEditableModel resultado = await _servicio.Cambiar(item.Clave, item.ValorSeleccionado);
                     item.AplicarGuardado(resultado);
+                    guardados.Add(item);
                 }
-                Mensaje = "Cambios guardados. Ya están activos para los próximos pedidos.";
+                Mensaje = MensajeAlGuardar(guardados);
             }
             catch (Exception ex)
             {
@@ -113,6 +130,7 @@ namespace ControlesUsuario.Dialogs
             Descripcion = modelo.Descripcion;
             Opciones = modelo.Opciones;
             ValorTitular = modelo.ValorTitular;
+            RequiereReiniciar = modelo.RequiereReiniciar;
             _valorGuardado = modelo.ValorActual;
             _valorSeleccionado = modelo.ValorActual;
             _alCambiar = alCambiar;
@@ -122,6 +140,7 @@ namespace ControlesUsuario.Dialogs
         public string Descripcion { get; }
         public System.Collections.Generic.List<OpcionParametroModel> Opciones { get; }
         public string ValorTitular { get; private set; }
+        public bool RequiereReiniciar { get; }
 
         private string _valorSeleccionado;
         public string ValorSeleccionado

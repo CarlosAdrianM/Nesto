@@ -224,6 +224,9 @@
       <Version>13.0.3</Version>
     </PackageReference>
 	  <PackageReference Include="PdfiumViewer" Version="2.13.0" />
+	  <!-- Nesto#490 (panel lateral, tramo 1): el NavigationView de WPF-UI (lepoco). Solo en el exe: Infrastructure no depende
+	       de él. Sus diccionarios se fusionan solo en el contenedor del panel, nunca en Application.Resources. -->
+	  <PackageReference Include="WPF-UI" Version="4.3.0" />
 	  <PackageReference Include="PdfiumViewer.Native.x86_64.v8-xfa" Version="2018.4.8.256" />
   </ItemGroup>
 </Project>

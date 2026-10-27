@@ -15,6 +15,9 @@ namespace ControlesUsuario.Models
         /// <summary>Valor "titular" (el de antes del primer cambio): el arranque de Nesto
         /// ofrece restaurarlo para que un cambio temporal no se quede puesto por olvido.</summary>
         public string ValorTitular { get; set; }
+        /// <summary>Nesto#490: el cambio no se nota hasta reiniciar Nesto (p. ej. NavegacionLateral, que se lee al
+        /// crear la ventana principal). La ventana de Parámetros lo avisa al guardar.</summary>
+        public bool RequiereReiniciar { get; set; }
         public List<OpcionParametroModel> Opciones { get; set; }
     }
 

@@ -3,6 +3,7 @@ Imports Nesto.Infrastructure.Shared
 Imports System.ComponentModel
 Imports System.Windows.Threading
 Imports Microsoft.Win32
+Imports Nesto.Infrastructure.Menu
 
 Partial Class MainWindow
     Implements IMainWindow
@@ -176,6 +177,48 @@ Partial Class MainWindow
             ' Sin servidor la raya se queda en rojo; no debe romper el arranque
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Nesto#490 (panel lateral, tramo 1): con el piloto NavegacionLateral, esconde la cinta (que sigue existiendo: el
+    ''' catálogo enlaza con sus botones) y pone el menú lateral en la columna 0 y, encima de MainRegion, una cabecera con
+    ''' el título y la campana (con su DataContext de siempre). Se llama una vez, después de que los módulos hayan puesto su
+    ''' menú y antes de Show. Devuelve el panel creado.
+    ''' </summary>
+    Public Function MontarNavegacionLateral(catalogo As CatalogoMenu, conmutador As ConmutadorNavegacionLateral) As PanelNavegacionLateral
+        ' WPF-UI cambia para todo el proceso el tamaño por defecto de los TextBlock (12 → 14): se compensa (ver la clase)
+        CompensacionTextoWpfUi.Aplicar(Me)
+        Dim panel As New PanelNavegacionLateral(catalogo, conmutador)
+
+        MainMenu.Visibility = Visibility.Collapsed
+        ' La campana sale de la cinta (HelpPaneContent) y va a la cabecera; su DataContext es suyo (CampanaNotificacionesViewModel)
+        MainMenu.HelpPaneContent = Nothing
+
+        Dim cabecera As New DockPanel With {.LastChildFill = True, .Margin = New Thickness(8, 4, 8, 0)}
+        DockPanel.SetDock(Campana, Dock.Right)
+        cabecera.Children.Add(Campana)
+        cabecera.Children.Add(New TextBlock With {
+            .Text = tituloVentana,
+            .FontSize = 16,
+            .Foreground = Brushes.DarkSlateGray,
+            .VerticalAlignment = VerticalAlignment.Center
+        })
+        Grid.SetRow(cabecera, 0)
+        Grid.SetColumn(cabecera, 1)
+        Raiz.Children.Add(cabecera)
+
+        Grid.SetRow(panel, 0)
+        Grid.SetRowSpan(panel, 2)
+        Grid.SetColumn(panel, 0)
+        Raiz.Children.Add(panel)
+        Return panel
+    End Function
+
+    ''' <summary>La campana, en la cinta o (con el menú lateral) en la cabecera. Para las pruebas.</summary>
+    Public ReadOnly Property CampanaNotificaciones As ControlesUsuario.Notificaciones.CampanaNotificaciones
+        Get
+            Return Campana
+        End Get
+    End Property
 
     Public Property regionRibbon As Controls.Ribbon.Ribbon Implements IMainWindow.mainRibbon
         Get

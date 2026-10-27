@@ -49,6 +49,8 @@ Partial Public Class Application
         ' Lo que hacía PrismApplication.InitializeShell: la ventana principal es el shell aunque se haya creado otra antes
         MainWindow = shell
         arranque.InicializarModulos()
+        ' Nesto#490 (panel lateral): con el piloto NavegacionLateral, el menú lateral en lugar de la cinta
+        arranque.MontarNavegacion(shell)
         ' Lo que hacía PrismApplication.OnInitialized: mostrarlo cuando los módulos ya han puesto su menú en la cinta
         shell.Show()
 

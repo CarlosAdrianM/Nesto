@@ -12,7 +12,7 @@
                               Header="Proveedores">
             <RibbonGroup x:Name="grpCompras"
                                     Header="Pedidos" Visibility="Hidden">
-                <RibbonButton Name="btnComprasPedidos" Label="Pedidos" LargeImageSource="Images/PedidoCompra.png" Command="{Binding AbrirModuloCommand}" Loaded="btnComprasPedidos_Loaded"/>
+                <RibbonButton Name="btnComprasPedidos" Label="Pedidos" LargeImageSource="Images/PedidoCompra.png" Command="{Binding AbrirModuloCommand}"/>
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>
