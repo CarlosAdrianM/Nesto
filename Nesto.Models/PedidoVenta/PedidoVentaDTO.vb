@@ -99,6 +99,12 @@ Public Class PedidoVentaDTO
     Public Property notaEntrega As Boolean
     Public Property Agrupada As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
+    ''' <summary>
+    ''' NestoAPI#712: aviso de fecha de entrega a más de 60 días. Nothing = no se pregunta (la API graba como siempre);
+    ''' False = la API comprueba y, si hace falta, rechaza con FECHA_ENTREGA_LEJANA; True = el usuario ya ha dicho que sí.
+    ''' Lo ponen el detalle de pedido y la plantilla al guardar.
+    ''' </summary>
+    Public Property ConfirmarFechaEntregaLejana As Boolean?
     ' Issue #159: el vendedor puede marcar que no se cobre la comisión por contra reembolso.
     ' El backend ignora este flag a partir de 2026-09-01.
     Public Property NoCobrarComisionReembolso As Boolean

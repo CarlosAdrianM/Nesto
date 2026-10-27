@@ -336,6 +336,9 @@ Public Class PlantillaVentaService
                     ElseIf errorCode = ModoServicioNoPermitidoException.CODIGO_ERROR Then
                         ' NestoAPI#518: el modo elegido ya no tiene sentido; la API dice cuál vale.
                         Throw ModoServicioNoPermitidoException.DesdeRespuesta(detallesError, contenido)
+                    ElseIf errorCode = FechaEntregaLejanaException.CODIGO_ERROR Then
+                        ' NestoAPI#712: alguna línea va a más de 60 días; el ViewModel pregunta y reintenta confirmando.
+                        Throw FechaEntregaLejanaException.DesdeRespuesta(detallesError, contenido)
                     Else
                         Throw New Exception(contenido)
                     End If
@@ -344,6 +347,8 @@ Public Class PlantillaVentaService
                 Throw
             Catch ex As ModoServicioNoPermitidoException
                 Throw
+            Catch ex As FechaEntregaLejanaException
+                Throw ' NestoAPI#712
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             End Try
@@ -388,6 +393,8 @@ Public Class PlantillaVentaService
             Catch ex As ValidationException
                 ' No aplanar: el ViewModel la distingue para preguntar y reintentar
                 Throw
+            Catch ex As FechaEntregaLejanaException
+                Throw ' NestoAPI#712: ídem con la fecha de entrega lejana
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             Finally
