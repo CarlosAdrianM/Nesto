@@ -87,6 +87,7 @@
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Señal" Binding="{Binding SenalTexto}" IsReadOnly="True" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}" IsReadOnly="True">
                         <DataGridTextColumn.CellStyle>
