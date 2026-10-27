@@ -2040,6 +2040,12 @@ Public Class AgenciasViewModel
             envioATramitar.Reembolso = 0
         End If
 
+        ' NestoAPI#552 (fase 4): con el parámetro GlsPorApi = "API", GLS lo graba y lo cierra la API (lo mismo que abajo).
+        If Await DebeTramitarGlsPorApi(envioATramitar.Agencia) Then
+            Dim unused = Await TramitarGlsPorApi(New List(Of EnviosAgencia) From {envioATramitar})
+            Return
+        End If
+
         Try
             Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioATramitar, _servicio)
             Await _servicio.GuardarLlamadaAgencia(respuesta)
@@ -2152,7 +2158,20 @@ Public Class AgenciasViewModel
     Private Function CanTramitarTodos(ByVal param As Object) As Boolean
         Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0
     End Function
-    Private Sub TramitarTodos(ByVal param As Object)
+    Private Async Sub TramitarTodos(ByVal param As Object)
+        ' NestoAPI#552 (fase 4): con el parámetro GlsPorApi = "API", «Tramitar todos» de GLS es UNA petición a la API con los
+        ' envíos de la pestaña (en lotes), en vez de un Tramitar por envío desde Nesto. Se sigue trabajando igual: primero
+        ' imprimir y tramitar al cerrar el día.
+        Try
+            If agenciaSeleccionada IsNot Nothing AndAlso Await DebeTramitarGlsPorApi(agenciaSeleccionada.Numero) Then
+                Dim unused = Await TramitarGlsPorApi(listaEnvios.ToList())
+                Return
+            End If
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+            Return
+        End Try
+
         barraProgresoActual = 0
         barraProgresoFinal = listaEnvios.Count
         For Each envio In listaEnvios
@@ -2163,6 +2182,144 @@ Public Class AgenciasViewModel
             cmdTramitar.Execute(Nothing)
         Next
     End Sub
+
+    ' ===== NestoAPI#552 (fase 4): GLS por la API (decisión de Carlos del 21/10/26) =====
+    ' La etiqueta de GLS la monta NestoAPI sin grabar en GLS, y Tramitar / Tramitar todos graban y cierran en el servidor. Así
+    ' la etiqueta también sale desde el packing de Ariadna. Solo la agencia 1: la 5 (GLS de la empresa espejo) sigue por
+    ' AgenciaASM hasta que se decida (TODO NestoAPI#552), igual que el caso -33 al volver a grabar un código.
+
+    ''' <summary>Número de GLS en AgenciasTransporte (la 5 es la de la empresa espejo y sigue por AgenciaASM).</summary>
+    Friend Const AGENCIA_GLS As Integer = 1
+
+    ''' <summary>Envíos por petición: cada uno es una llamada a GLS y la respuesta tiene que llegar antes del tiempo de espera.</summary>
+    Friend Const TAMANO_LOTE_TRAMITAR_GLS As Integer = 5
+
+    ''' <summary>Solo "API" (sin distinguir mayúsculas) enciende el camino nuevo; sin fila o si no se puede leer, el de siempre.</summary>
+    Friend Async Function GlsPorApiActivo() As Task(Of Boolean)
+        Try
+            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.GlsPorApi)
+            Return String.Equals(valor?.Trim(), "API", StringComparison.OrdinalIgnoreCase)
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Friend Async Function DebeTramitarGlsPorApi(agencia As Integer) As Task(Of Boolean)
+        Return agencia = AGENCIA_GLS AndAlso Await GlsPorApiActivo()
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#552 (fase 4): graba en GLS y da por tramitados los envíos en la API (POST api/EnviosAgencias/TramitarTodos), en
+    ''' lotes. Antes pregunta, como siempre, por los que van a la dirección de Nueva Visión (los que no se confirman no se mandan).
+    ''' Deja el resumen en mensajeError y, si alguno falla, lo enseña en un diálogo. Repetirlo es seguro: los ya tramitados se
+    ''' saltan y GLS da por bueno un envío que ya tenía.
+    ''' </summary>
+    Friend Async Function TramitarGlsPorApi(envios As IEnumerable(Of EnviosAgencia)) As Task(Of ResultadoTramitarEnviosGlsDto)
+        Dim total As New ResultadoTramitarEnviosGlsDto()
+        Dim numeros As New List(Of Integer)
+        For Each envio In If(envios, Enumerable.Empty(Of EnviosAgencia)()).Where(Function(e) e IsNot Nothing)
+            If ConfirmarDireccionPropia(envio) Then
+                numeros.Add(envio.Numero)
+            End If
+        Next
+        If numeros.Count = 0 Then
+            Return total
+        End If
+
+        barraProgresoActual = 0
+        barraProgresoFinal = numeros.Count
+        Dim excepcion As Exception = Nothing
+        Try
+            For Each lote In numeros.Chunk(TAMANO_LOTE_TRAMITAR_GLS)
+                mensajeError = $"Tramitando en GLS {barraProgresoActual + 1}-{barraProgresoActual + lote.Length} de {numeros.Count}..."
+                Dim resultado As ResultadoTramitarEnviosGlsDto = Await _servicio.TramitarEnviosGls(lote.ToList())
+                If resultado?.Envios IsNot Nothing Then
+                    total.Envios.AddRange(resultado.Envios)
+                End If
+                barraProgresoActual += lote.Length
+            Next
+        Catch ex As Exception
+            excepcion = ex
+        End Try
+        If excepcion IsNot Nothing Then
+            Await RegistrarErrorAgenciaEnElmah(excepcion, "AgenciasViewModel.TramitarGlsPorApi")
+        End If
+
+        Try
+            listaEnvios = _servicio.CargarListaEnvios(If(agenciaSeleccionada?.Numero, AGENCIA_GLS))
+            envioActual = listaEnvios?.LastOrDefault()
+        Catch ex As Exception
+            Debug.WriteLine($"No se ha podido recargar la lista de envíos tras tramitar GLS: {ex.Message}")
+        End Try
+
+        ' Después de recargar: cambiar de envío actual limpia el mensaje.
+        mensajeError = MensajeTramitarGls(total, excepcion)
+        If excepcion IsNot Nothing OrElse total.EnviosFallidos.Any() Then
+            _dialogService.ShowError(mensajeError)
+        End If
+        OnPropertyChanged(NameOf(listaReembolsos))
+        OnPropertyChanged(NameOf(mensajeError))
+        Return total
+    End Function
+
+    ''' <summary>NestoAPI#552 (fase 4): el resumen de Tramitar todos de GLS para el usuario (de usted).</summary>
+    Friend Shared Function MensajeTramitarGls(resultado As ResultadoTramitarEnviosGlsDto, excepcion As Exception) As String
+        Dim texto As New Text.StringBuilder()
+        If resultado.Envios.Count = 1 AndAlso resultado.Tramitados = 1 AndAlso excepcion Is Nothing Then
+            Return resultado.Envios(0).Mensaje
+        End If
+        Dim unused = texto.Append(If(resultado.Tramitados = 1, "Se ha tramitado 1 envío de GLS.", $"Se han tramitado {resultado.Tramitados} envíos de GLS."))
+        If resultado.YaTramitados > 0 Then
+            unused = texto.Append(If(resultado.YaTramitados = 1, " 1 ya estaba tramitado.", $" {resultado.YaTramitados} ya estaban tramitados."))
+        End If
+        Dim fallidos = resultado.EnviosFallidos.ToList()
+        If fallidos.Count > 0 Then
+            unused = texto.AppendLine().AppendLine().Append(If(fallidos.Count = 1, "No se ha podido tramitar 1 envío:", $"No se han podido tramitar {fallidos.Count} envíos:"))
+            For Each fallido In fallidos
+                unused = texto.AppendLine().Append($"- Pedido {fallido.Pedido} (envío {fallido.Numero}): {fallido.Mensaje}")
+            Next
+        End If
+        If excepcion IsNot Nothing Then
+            unused = texto.AppendLine().AppendLine().Append($"Se ha cortado la tramitación: {excepcion.Message}").AppendLine() _
+                .Append("Vuelva a pulsar «Tramitar todos»: los envíos ya tramitados se saltan y GLS no duplica los que ya tiene.")
+        End If
+        Return texto.ToString()
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#552 (fase 4): la etiqueta de una agencia clásica (TramitarAlCerrar). GLS (agencia 1) con el parámetro GlsPorApi =
+    ''' "API": la monta la API y se manda a la Zebra de GLS; si no, la agencia la monta e imprime como siempre.
+    ''' </summary>
+    Friend Async Function ImprimirEtiquetaClasica(agencia As IAgencia, envio As EnviosAgencia) As Task
+        If Await DebeTramitarGlsPorApi(envio.Agencia) Then
+            Dim etiqueta As EtiquetaEnvioGlsDto = Await _servicio.LeerEtiquetaGls(envio.Numero)
+            Await MandarZplAImpresoraGls(envio, ZplDeLaEtiqueta(etiqueta))
+            Return
+        End If
+        agencia.imprimirEtiqueta(envio)
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#552 (fase 4): la ZPL en texto. La API la manda en base64 con los bytes en ANSI 1252 (^CI27); se pasa a texto con
+    ''' la misma página de códigos para que RawPrinterHelper (que vuelve a ANSI) mande a la Zebra los mismos bytes que AgenciaASM.
+    ''' </summary>
+    Friend Shared Function ZplDeLaEtiqueta(etiqueta As EtiquetaEnvioGlsDto) As String
+        If etiqueta Is Nothing OrElse String.IsNullOrEmpty(etiqueta.EtiquetaContenido) Then
+            Throw New Exception("NestoAPI no ha devuelto la etiqueta de GLS.")
+        End If
+        If Not String.Equals(etiqueta.EtiquetaCodificacion, "base64", StringComparison.OrdinalIgnoreCase) Then
+            Return etiqueta.EtiquetaContenido
+        End If
+        Text.Encoding.RegisterProvider(Text.CodePagesEncodingProvider.Instance)
+        Return Text.Encoding.GetEncoding(1252).GetString(Convert.FromBase64String(etiqueta.EtiquetaContenido))
+    End Function
+
+    ''' <summary>NestoAPI#552 (fase 4): a la Zebra de GLS (ImpresoraAgenciaGLS de la empresa del envío), como AgenciaASM. Sustituible en los tests.</summary>
+    Friend Property MandarZplAImpresoraGls As Func(Of EnviosAgencia, String, Task) =
+        Async Function(envio, zpl)
+            Dim puerto As String = Await _configuracion.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraAgenciaGLS)
+            Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, zpl)
+        End Function
 
     Private _cmdImprimirEtiquetaPedido As ICommand
     Public ReadOnly Property cmdImprimirEtiquetaPedido() As ICommand
@@ -2237,7 +2394,8 @@ Public Class AgenciasViewModel
                     NotificarEntregaAgencia(envioActual)
                 End If
             Else
-                agenciaDelEnvio.imprimirEtiqueta(envioActual)
+                ' NestoAPI#552 (fase 4): la de GLS, con GlsPorApi = "API", la monta la API (sin grabar en GLS).
+                Await ImprimirEtiquetaClasica(agenciaDelEnvio, envioActual)
             End If
 
             If Not _facturarAlImprimirEtiqueta Then

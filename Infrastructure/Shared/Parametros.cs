@@ -37,6 +37,10 @@
             // api/EnviosAgencias/DesdePedido). Cualquier otro valor, sin fila o si no se puede leer = el camino de
             // siempre (InsertarRegistro). Script: NestoAPI Scripts/Nesto595_ParametroInsertarEnvioPorApi.sql.
             public const string InsertarEnvioPorApi = "InsertarEnvioPorApi";
+            // NestoAPI#552 (fase 4): "API" = la etiqueta de GLS (agencia 1) la monta NestoAPI (GET api/EnviosAgencias/{id}/EtiquetaZpl)
+            // y Tramitar / Tramitar todos de GLS van por POST api/EnviosAgencias/TramitarTodos. Cualquier otro valor, sin fila o si
+            // no se puede leer = AgenciaASM como siempre. Script: NestoAPI Scripts/Nesto552_ParametroGlsPorApi.sql.
+            public const string GlsPorApi = "GlsPorApi";
             // Nesto#340 (retirada de flags 20/08 y 21/08/26): MotorPdfExtractoContable, MotorPdfPedidoCompra,
             // MotorPdfPicking y MotorPdfEtiquetasTienda se retiraron — llevaban semanas al 100% en QuestPDF (defecto
             // incluido) y el camino RDLC era código muerto.
