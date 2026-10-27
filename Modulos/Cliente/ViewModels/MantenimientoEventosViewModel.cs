@@ -548,7 +548,7 @@ namespace Nesto.Modulos.Cliente
                 Seleccionado = Eventos.FirstOrDefault(e => e.Id == guardado?.Id);
                 // Nesto#545: si con lo guardado ya está completo y no se ha anunciado, la pregunta hace de aviso de guardado.
                 guardadoParaAnunciar = guardado;
-                if (!HayQuePreguntarSiAnunciar(guardado))
+                if (!TocaPreguntarSiAnunciar(guardado))
                 {
                     _dialogService.ShowNotification("Evento guardado", $"Guardado el evento «{guardado?.Titulo}» del {guardado?.Fecha:dd/MM/yyyy}.");
                 }
@@ -675,6 +675,16 @@ namespace Nesto.Modulos.Cliente
         public static bool HayQuePreguntarSiAnunciar(EventoModel evento) =>
             evento != null && evento.Id > 0 && evento.Completo && !evento.AnunciadoFecha.HasValue;
 
+        /// <summary>
+        /// Carlos (27/10/26): una pregunta por evento. Si se contesta «No», no se vuelve a preguntar en cada guardado de
+        /// ese evento en esta sesión de Nesto; queda «Anunciar otra vez…» (o volver a abrir Nesto) para hacerlo después.
+        /// </summary>
+        private readonly HashSet<int> _eventosQueNoQuisieronAnunciar = new HashSet<int>();
+
+        /// <summary>Si toca preguntar por este evento ahora: está completo, sin anunciar y no se ha dicho ya que no.</summary>
+        public bool TocaPreguntarSiAnunciar(EventoModel evento) =>
+            HayQuePreguntarSiAnunciar(evento) && !_eventosQueNoQuisieronAnunciar.Contains(evento.Id);
+
         public const string TITULO_ANUNCIAR = "Anunciar el evento";
         public const string PREGUNTA_ANUNCIAR = "El evento está completo. ¿Quiere anunciarlo en las apps?";
 
@@ -684,9 +694,13 @@ namespace Nesto.Modulos.Cliente
         /// </summary>
         private async Task ProponerAnunciarAsync(EventoModel evento)
         {
-            if (!HayQuePreguntarSiAnunciar(evento)
-                || !_dialogService.ShowConfirmationAnswer(TITULO_ANUNCIAR, PREGUNTA_ANUNCIAR, porDefectoNo: true))
+            if (!TocaPreguntarSiAnunciar(evento))
             {
+                return;
+            }
+            if (!_dialogService.ShowConfirmationAnswer(TITULO_ANUNCIAR, PREGUNTA_ANUNCIAR, porDefectoNo: true))
+            {
+                _eventosQueNoQuisieronAnunciar.Add(evento.Id);
                 return;
             }
             await AnunciarAsync(evento.Id, otraVez: false, reclamo: null);

@@ -81,6 +81,23 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async Task Guardar_ConNo_NoVuelveAPreguntarPorEseEventoEnLaSesion()
+        {
+            // Carlos (27/10/26): una pregunta por evento. Tras decir «No», los guardados siguientes no insisten.
+            var vm = await Mantenimiento(Evento(completo: true));
+            ResponderPregunta(false);
+
+            await vm.GuardarAsync();
+            await vm.GuardarAsync();
+            await vm.GuardarAsync();
+
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, MantenimientoEventosViewModel.PREGUNTA_ANUNCIAR, A<bool>.Ignored))
+                .MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowNotification("Evento guardado", A<string>.Ignored)).MustHaveHappenedTwiceExactly();
+            A.CallTo(() => eventos.Anunciar(A<int>.Ignored, A<bool>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
         public async Task Guardar_ConNo_NoLlamaAAnunciar()
         {
             var vm = await Mantenimiento(Evento(completo: true));
