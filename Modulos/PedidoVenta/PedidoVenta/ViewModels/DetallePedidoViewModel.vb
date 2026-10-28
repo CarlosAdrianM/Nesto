@@ -2139,6 +2139,10 @@ Public Class DetallePedidoViewModel
         If avisos Is Nothing Then
             Return
         End If
+        ' NestoAPI#722: se ha aplazado la fecha de una línea con picking; el almacén ya tiene la campana
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = "AplazadoConPicking")
+            dialogService.ShowNotification("Pedido aplazado con picking en curso", aviso.Mensaje)
+        Next
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "ReembolsoEnvioSinAjustar")
             Dim envioNumero As Integer? = aviso.Datos?("Envio")?.ToObject(Of Integer)()
             Dim comision As Decimal? = aviso.Datos?("ComisionQuitada")?.ToObject(Of Decimal)()
