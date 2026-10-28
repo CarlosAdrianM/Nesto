@@ -300,6 +300,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of MotivoCambioEstadoDialog, MotivoCambioEstadoDialogViewModel)
         ' Nesto#564 (NestoAPI#725): aviso en rojo del cambio de un envío registrado que no llega a la agencia
         registro.RegistrarDialogo(Of CambioSinAgenciaDialog, CambioSinAgenciaDialogViewModel)
+        ' Nesto#563 (NestoAPI#724): enviar por correo el pedido, el mandato SEPA o la factura sin descargarlos
+        registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar y se pide por su tipo concreto
         ' La campana de la ventana principal (la recibe MainWindow por constructor)
