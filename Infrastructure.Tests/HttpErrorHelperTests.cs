@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Shared;
 
 namespace Infrastructure.Tests
@@ -71,6 +71,16 @@ namespace Infrastructure.Tests
                 HttpErrorHelper.ParsearErrorHttp(string.Empty));
             Assert.AreEqual("Error desconocido al comunicarse con el servidor",
                 HttpErrorHelper.ParsearErrorHttp((string)null));
+        }
+
+        [TestMethod]
+        public void ParsearErrorHttp_CadenaJson_DevuelveElTextoSinComillas()
+        {
+            // NestoAPI#723: Content(HttpStatusCode.Forbidden, "texto") llega como "\"texto\""
+            string json = "\"Solo Administración, Dirección o Informática pueden cambiar el P.O. de una factura emitida.\"";
+
+            Assert.AreEqual("Solo Administración, Dirección o Informática pueden cambiar el P.O. de una factura emitida.",
+                HttpErrorHelper.ParsearErrorHttp(json));
         }
     }
 }

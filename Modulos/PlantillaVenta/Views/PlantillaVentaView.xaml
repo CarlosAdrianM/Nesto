@@ -588,10 +588,38 @@
                                     </ItemsControl>
                                 </StackPanel>
                             </Border>
-                            <DockPanel Margin="0,0,0,5">
-                                <TextBlock DockPanel.Dock="Left" Text="Su Pedido / P.O.:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBox Text="{Binding SuPedido, UpdateSourceTrigger=PropertyChanged}"/>
+                            <!-- Nesto#562 (NestoAPI#723): si el cliente exige el P.O., la etiqueta lleva asterisco y, sin P.O., el campo sale en rojo -->
+                            <DockPanel Margin="0,0,0,5" ToolTip="{Binding TooltipSuPedido}">
+                                <TextBlock DockPanel.Dock="Left" Text="{Binding EtiquetaSuPedido}" VerticalAlignment="Center" Margin="0,0,5,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SuPedidoObligatorio}" Value="True">
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding FaltaSuPedido}" Value="True">
+                                                    <Setter Property="Foreground" Value="Red"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBox Text="{Binding SuPedido, UpdateSourceTrigger=PropertyChanged}" MaxLength="50">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FaltaSuPedido}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="Red"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                    <Setter Property="Background" Value="#FFF0F0"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
                             </DockPanel>
+                            <TextBlock Text="Este cliente exige el P.O. en todos sus pedidos: sin él no se podrá grabar el pedido." Foreground="Red" TextWrapping="Wrap" Margin="0,0,0,5"
+                                       Visibility="{Binding FaltaSuPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
                             <TextBox Text="{Binding ComentarioPicking}"/>
                         </StackPanel>

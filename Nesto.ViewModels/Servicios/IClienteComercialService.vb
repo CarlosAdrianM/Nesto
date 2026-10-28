@@ -47,4 +47,10 @@ Public Interface IClienteComercialService
     ''' no sale (502), devuelve el resultado con Enviado = False y el mensaje.
     ''' </summary>
     Function EnviarFacturasPorCorreo(empresa As String, facturas As List(Of String), correos As String) As Task(Of ResultadoEnvioFacturasCorreo)
+    ''' <summary>
+    ''' Nesto#562 (NestoAPI#723): marca (o quita) que el cliente exige el P.O. («Su pedido») en todos sus pedidos
+    ''' (PUT Clientes/{empresa}/{cliente}/SuPedidoObligatorio). Vale para todos sus contactos. Si la API lo rechaza
+    ''' (403 sin permiso, 400...), lanza la excepción con su motivo.
+    ''' </summary>
+    Function PonerSuPedidoObligatorio(empresa As String, cliente As String, exige As Boolean) As Task
 End Interface

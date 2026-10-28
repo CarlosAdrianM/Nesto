@@ -167,7 +167,10 @@ Public Class PedidoVentaWrapper
             Return Model.suPedido
         End Get
         Set(value As String)
-            Model.suPedido = value
+            If Not String.Equals(Model.suPedido, value) Then
+                Model.suPedido = value
+                OnPropertyChanged(NameOf(suPedido)) ' Nesto#562: «Poner P.O.» lo cambia desde el ViewModel y la marca de obligatorio lo mira
+            End If
         End Set
     End Property
     Public Property CrearEfectosManualmente As Boolean

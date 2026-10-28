@@ -217,6 +217,49 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' Nesto#562 (NestoAPI#723): la marca solo viene en la ficha (GET Clientes con empresa y cliente; sin contacto, el principal).
+    Public Async Function LeerSuPedidoObligatorio(empresa As String, cliente As String) As Task(Of Boolean) Implements IPedidoVentaService.LeerSuPedidoObligatorio
+        If String.IsNullOrWhiteSpace(cliente) Then
+            Return False
+        End If
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                Dim url As String = "Clientes?empresa=" & Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) &
+                    "&cliente=" & Uri.EscapeDataString(cliente.Trim()) & "&contacto="
+                Dim response As HttpResponseMessage = Await client.GetAsync(url)
+                If Not response.IsSuccessStatusCode Then
+                    Return False
+                End If
+                Dim ficha As JObject = JObject.Parse(Await response.Content.ReadAsStringAsync())
+                Dim valor As JToken = ficha("suPedidoObligatorio")
+                Return valor IsNot Nothing AndAlso valor.Type = JTokenType.Boolean AndAlso valor.Value(Of Boolean)()
+            End Using
+        Catch ex As Exception
+            Return False
+        End Try
+    End Function
+
+    ' Nesto#562 (NestoAPI#723): P.O. en una factura ya emitida. Solo Administración, Dirección e Informática (403 si no).
+    Public Async Function PonerSuPedidoFactura(empresa As String, numeroFactura As String, suPedido As String) As Task(Of SuPedidoFacturaModel) Implements IPedidoVentaService.PonerSuPedidoFactura
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url As String = $"Facturas/{Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))}/{Uri.EscapeDataString(If(numeroFactura?.Trim(), String.Empty))}/SuPedido"
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(New With {.SuPedido = suPedido?.Trim()}), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PutAsync(url, content)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If response.StatusCode = Net.HttpStatusCode.NotFound AndAlso String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se encuentra la factura {numeroFactura?.Trim()}.")
+                End If
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"El servidor ha contestado {CInt(response.StatusCode)}.")
+                End If
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(body))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of SuPedidoFacturaModel)(body),
+                New SuPedidoFacturaModel With {.Empresa = empresa, .Numero = numeroFactura, .SuPedido = suPedido?.Trim()})
+        End Using
+    End Function
+
     ' NestoAPI#698: retener el pedido hasta nuevo aviso (o hasta una fecha). La API decide si se puede.
     Public Async Function RetenerPedido(empresa As String, numero As Integer, motivo As String, hastaFecha As Date?) As Task(Of RetencionPedidoDTO) Implements IPedidoVentaService.RetenerPedido
         Dim peticion As New RetenerPedidoRequest With {

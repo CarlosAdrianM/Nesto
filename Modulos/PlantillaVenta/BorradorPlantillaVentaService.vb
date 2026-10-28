@@ -1,4 +1,4 @@
-Imports System.IO
+﻿Imports System.IO
 Imports Nesto.Infrastructure.Contracts
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -223,6 +223,7 @@ Public Class BorradorPlantillaVentaService
             .PlazosPago = pedido.PlazosPago,
             .ComentarioPicking = pedido.ComentarioPicking,
             .ComentarioRuta = pedido.Comentarios,
+            .SuPedido = pedido.SuPedido, ' Nesto#562: si no, modificar con la plantilla dejaba el pedido sin P.O.
             .AlmacenCodigo = pedido.Almacen,
             .ServirJunto = pedido.ServirJunto,
             .ModoServicio = pedido.ModoServicio,

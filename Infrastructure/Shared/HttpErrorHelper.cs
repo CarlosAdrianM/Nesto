@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 
 namespace Nesto.Infrastructure.Shared
@@ -134,7 +134,18 @@ namespace Nesto.Infrastructure.Shared
 
             try
             {
-                var detallesError = JObject.Parse(respuestaError);
+                // NestoAPI#723: Content(HttpStatusCode.Forbidden, "texto") llega como una cadena JSON ("\"texto\""):
+                // se devuelve el texto sin las comillas.
+                var token = JToken.Parse(respuestaError);
+                if (token.Type == JTokenType.String)
+                {
+                    return token.ToString();
+                }
+                var detallesError = token as JObject;
+                if (detallesError == null)
+                {
+                    return respuestaError;
+                }
                 return ParsearErrorHttp(detallesError);
             }
             catch

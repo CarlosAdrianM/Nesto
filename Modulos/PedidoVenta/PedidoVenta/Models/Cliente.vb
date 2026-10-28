@@ -33,6 +33,11 @@ Public Class ClienteJson
     Public Property noComisiona() As Double
     Public Property servirJunto() As Boolean
     Public Property mantenerJunto() As Boolean
+    ''' <summary>
+    ''' Nesto#562 (NestoAPI#723): el cliente exige el P.O. («Su pedido») en todos sus pedidos. Solo lo trae la ficha
+    ''' (GET Clientes?empresa=&amp;cliente=&amp;contacto=), no las listas; se cambia con PUT Clientes/{empresa}/{cliente}/SuPedidoObligatorio.
+    ''' </summary>
+    Public Property suPedidoObligatorio() As Boolean
     Public ReadOnly Property poblacionConCodigoPostal As String
         Get
             Return String.Format("{0} {1} ({2})", codigoPostal?.Trim(), poblacion?.Trim(), provincia?.Trim())

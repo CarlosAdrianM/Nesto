@@ -1956,6 +1956,88 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>
+    ''' «Su pedido / P.O.» del cliente. Delegado a Estado. Nesto#562: la vista ya bindeaba SuPedido, pero el ViewModel no
+    ''' tenía la propiedad (solo Estado), así que lo escrito en la plantilla no llegaba nunca al pedido.
+    ''' </summary>
+    Public Property SuPedido As String
+        Get
+            Return Estado.SuPedido
+        End Get
+        Set(value As String)
+            If Not String.Equals(Estado.SuPedido, value) Then
+                Estado.SuPedido = value
+                OnPropertyChanged()
+                OnPropertyChanged(NameOf(FaltaSuPedido))
+            End If
+        End Set
+    End Property
+
+#Region "Nesto#562 (NestoAPI#723): P.O. obligatorio por cliente"
+    Private _versionSuPedido As Integer
+    Private _suPedidoObligatorio As Boolean
+    ''' <summary>El cliente elegido exige el P.O. en todos sus pedidos: «Su pedido» se resalta. Quien manda al grabar es el servidor (400).</summary>
+    Public Property SuPedidoObligatorio As Boolean
+        Get
+            Return _suPedidoObligatorio
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_suPedidoObligatorio, value) Then
+                OnPropertyChanged(NameOf(EtiquetaSuPedido))
+                OnPropertyChanged(NameOf(TooltipSuPedido))
+                OnPropertyChanged(NameOf(FaltaSuPedido))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property EtiquetaSuPedido As String
+        Get
+            Return If(SuPedidoObligatorio, ReglaSuPedidoObligatorio.TEXTO_ETIQUETA_OBLIGATORIO, ReglaSuPedidoObligatorio.TEXTO_ETIQUETA_NORMAL)
+        End Get
+    End Property
+
+    Public ReadOnly Property TooltipSuPedido As String
+        Get
+            Return If(SuPedidoObligatorio, ReglaSuPedidoObligatorio.TOOLTIP_OBLIGATORIO, Nothing)
+        End Get
+    End Property
+
+    ''' <summary>El cliente exige el P.O. y todavía no está escrito (el campo sale en rojo).</summary>
+    Public ReadOnly Property FaltaSuPedido As Boolean
+        Get
+            Return ReglaSuPedidoObligatorio.Falta(SuPedidoObligatorio, SuPedido)
+        End Get
+    End Property
+
+    Private Async Sub CargarSuPedidoObligatorio()
+        Try
+            Await CargarSuPedidoObligatorioAsync()
+        Catch ex As Exception
+            ' Es una ayuda: si algo falla, el campo no se resalta y el servidor sigue mandando
+        End Try
+    End Sub
+
+    ''' <summary>Pregunta si el cliente elegido exige el P.O. Si mientras tanto se elige otro cliente, la respuesta se descarta.</summary>
+    Friend Async Function CargarSuPedidoObligatorioAsync() As Task
+        _versionSuPedido += 1
+        Dim version As Integer = _versionSuPedido
+        Dim cliente As ClienteJson = clienteSeleccionado
+        SuPedidoObligatorio = cliente IsNot Nothing AndAlso cliente.suPedidoObligatorio
+        If cliente Is Nothing OrElse servicioPedidosVenta Is Nothing OrElse String.IsNullOrWhiteSpace(cliente.cliente) Then
+            Return
+        End If
+        Dim exige As Boolean
+        Try
+            exige = Await servicioPedidosVenta.LeerSuPedidoObligatorio(cliente.empresa, cliente.cliente)
+        Catch ex As Exception
+            Return
+        End Try
+        If version = _versionSuPedido Then
+            SuPedidoObligatorio = exige
+        End If
+    End Function
+#End Region
+
+    ''' <summary>
     ''' Comentario para la ruta de entrega. Delegado a Estado.
     ''' </summary>
     Public Property ComentarioRuta As String
@@ -5702,6 +5784,7 @@ Public Class PlantillaVentaViewModel
         ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: con otro cliente se vuelve a avisar de todo
         CargarChequeRegalo() ' NestoAPI#593 (c5): sin esperar; una vez por cliente
         CargarCupon() ' Nesto#518: sin esperar; una vez por cliente
+        CargarSuPedidoObligatorio() ' Nesto#562: sin esperar; no lanza
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
@@ -5734,6 +5817,7 @@ Public Class PlantillaVentaViewModel
         ' el cupón se busca entre todos y la casilla sale marcada si ya están en ese pedido.
         CargarChequeRegalo(forzar:=True)
         CargarCupon(forzar:=True)
+        CargarSuPedidoObligatorio() ' Nesto#562
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
         ' Sincronizar datos del cliente con Estado
@@ -6065,6 +6149,7 @@ Public Class PlantillaVentaViewModel
             .NombreCliente = Estado.NombreCliente,
             .ComentarioRuta = Estado.ComentarioRuta,
             .ComentarioPicking = Estado.ComentarioPicking,
+            .SuPedido = Estado.SuPedido, ' Nesto#562
             .EsPresupuesto = Estado.EsPresupuesto,
             .FormaVenta = Estado.FormaVenta,
             .FormaVentaOtrasCodigo = Estado.FormaVentaOtrasCodigo,
@@ -6283,6 +6368,9 @@ Public Class PlantillaVentaViewModel
             End If
             If Not String.IsNullOrEmpty(borrador.ComentarioPicking) Then
                 ComentarioPicking = borrador.ComentarioPicking
+            End If
+            If Not String.IsNullOrWhiteSpace(borrador.SuPedido) Then
+                SuPedido = borrador.SuPedido ' Nesto#562: el P.O. del pedido que se modifica (o del borrador)
             End If
             EsPresupuesto = borrador.EsPresupuesto
 

@@ -1,4 +1,4 @@
-''' <summary>
+﻿''' <summary>
 ''' Modelo para guardar borradores de PlantillaVenta localmente.
 ''' Issue #286: Borradores de PlantillaVenta
 '''
@@ -139,6 +139,12 @@ Public Class BorradorPlantillaVenta
     ''' Comentario de picking introducido por el usuario
     ''' </summary>
     Public Property ComentarioPicking As String
+
+    ''' <summary>
+    ''' Nesto#562 (NestoAPI#723): «Su pedido / P.O.» del cliente. Antes no se guardaba en el borrador, y al modificar un
+    ''' pedido con la plantilla se perdía.
+    ''' </summary>
+    Public Property SuPedido As String
 
     ' ========== Envío y cobro (Issue #288) ==========
     ''' <summary>

@@ -209,9 +209,35 @@
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
-                                    <DockPanel DockPanel.Dock="Top" Margin="3,0">
-                                        <TextBlock DockPanel.Dock="Left" Text="Su Pedido / P.O.:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                        <TextBox Text="{Binding pedido.suPedido, UpdateSourceTrigger=PropertyChanged}" Padding="3"/>
+                                    <!-- Nesto#562 (NestoAPI#723): si el cliente exige el P.O., la etiqueta lleva asterisco y, sin P.O., el campo sale en rojo -->
+                                    <DockPanel DockPanel.Dock="Top" Margin="3,0" ToolTip="{Binding TooltipSuPedido}">
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding EtiquetaSuPedido}" VerticalAlignment="Center" Margin="0,0,5,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SuPedidoObligatorio}" Value="True">
+                                                            <Setter Property="FontWeight" Value="Bold"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding FaltaSuPedido}" Value="True">
+                                                            <Setter Property="Foreground" Value="Red"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox Text="{Binding pedido.suPedido, UpdateSourceTrigger=PropertyChanged}" Padding="3" MaxLength="50">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding FaltaSuPedido}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="Red"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                            <Setter Property="Background" Value="#FFF0F0"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
                                     </DockPanel>
                                     <TextBox DockPanel.Dock="Bottom" Text="{Binding pedido.comentarioPicking}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
                                 </DockPanel>
@@ -877,6 +903,9 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
+                    <!-- Nesto#562 (NestoAPI#723): P.O. en la factura de la línea seleccionada (y en su pedido), sin abonarla -->
+                    <Button Command="{Binding PonerSuPedidoFacturaCommand}" Visibility="{Binding PuedePonerSuPedidoFactura, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTip="Pone o cambia el P.O. («Su pedido») de la factura de la línea seleccionada, y el del pedido, sin abonarla. Al volver a imprimirla o enviarla ya sale con él.">Poner P.O.</Button>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <CheckBox IsChecked="{Binding PapelConMembrete}">Membrete</CheckBox>
                         <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>

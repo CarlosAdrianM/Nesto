@@ -122,4 +122,10 @@ Public Interface IPedidoVentaService
     ''' <summary>Nesto#510: lo que viaja hacia ese almacén en una reposición (pendiente de recibir o en preparación),
     ''' de esos productos. Lista vacía si no hay nada; lanza una excepción si la API falla.</summary>
     Function LeerEnTransito(empresa As String, almacen As String, productos As IEnumerable(Of String)) As Task(Of List(Of ProductoEnTransito))
+    ''' <summary>Nesto#562 (NestoAPI#723): si el cliente exige el P.O. («Su pedido») en todos sus pedidos (lo lee de la ficha,
+    ''' GET Clientes). Es una ayuda para resaltar el campo: si algo falla, devuelve False y el servidor sigue mandando.</summary>
+    Function LeerSuPedidoObligatorio(empresa As String, cliente As String) As Task(Of Boolean)
+    ''' <summary>Nesto#562 (NestoAPI#723): pone el P.O. en una factura ya emitida, y en su pedido (PUT Facturas/{empresa}/{numero}/SuPedido).
+    ''' Devuelve el P.O. puesto y el que tenía; lanza una excepción con el motivo de la API (403, 404, 400...).</summary>
+    Function PonerSuPedidoFactura(empresa As String, numeroFactura As String, suPedido As String) As Task(Of SuPedidoFacturaModel)
 End Interface

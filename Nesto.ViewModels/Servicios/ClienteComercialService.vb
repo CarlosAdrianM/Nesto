@@ -192,6 +192,21 @@ Public Class ClienteComercialService
             Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
         End Using
     End Function
+
+    Public Async Function PonerSuPedidoObligatorio(empresa As String, cliente As String, exige As Boolean) As Task Implements IClienteComercialService.PonerSuPedidoObligatorio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url As String = $"Clientes/{Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))}/{Uri.EscapeDataString(If(cliente?.Trim(), String.Empty))}/SuPedidoObligatorio"
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(New With {.Exige = exige}), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PutAsync(url, content)
+            If Not response.IsSuccessStatusCode Then
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                If String.IsNullOrWhiteSpace(respuesta) Then
+                    Throw New Exception($"El servidor ha contestado {CInt(response.StatusCode)}.")
+                End If
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+            End If
+        End Using
+    End Function
 End Class
 
 ''' <summary>Nesto#259: lo que contesta POST Facturas/EnviarPorCorreo.</summary>

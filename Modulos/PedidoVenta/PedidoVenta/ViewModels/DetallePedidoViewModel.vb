@@ -136,6 +136,7 @@ Public Class DetallePedidoViewModel
         CopiarEnlaceCommand = New RelayCommand(Of String)(AddressOf OnCopiarEnlace)
         AbrirFacturarRutasCommand = New RelayCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
         CopiarFacturaCommand = New RelayCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
+        PonerSuPedidoFacturaCommand = New AsyncRelayCommand(AddressOf PonerSuPedidoFacturaAsync, AddressOf CanImprimirFactura) ' Nesto#562
 
         ' Carlos 01/10/26: Administración también crea albaranes y facturas de venta
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) OrElse
@@ -548,6 +549,7 @@ Public Class DetallePedidoViewModel
             ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
+            PonerSuPedidoFacturaCommand?.NotifyCanExecuteChanged() ' Nesto#562
         End Set
     End Property
 
@@ -608,6 +610,7 @@ Public Class DetallePedidoViewModel
                 Dim unusedFecha = CargarFechaEntregaAgenciaAsync() ' NestoAPI#606: sin esperar, la carga sigue
                 Dim unusedCheque = CargarChequeRegaloAsync() ' NestoAPI#593 (c5): sin esperar, la carga sigue
                 Dim unusedCupon = CargarCuponAsync() ' Nesto#518: sin esperar, la carga sigue
+                Dim unusedSuPedido = CargarSuPedidoObligatorioAsync() ' Nesto#562: sin esperar, no lanza
                 Dim unusedBultos = BultosPedido?.Cargar(_pedido.empresa, _pedido.numero) ' Nesto#522: sin esperar, no lanza
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
@@ -2896,6 +2899,113 @@ Public Class DetallePedidoViewModel
         NotificarCupon()
     End Function
 
+#Region "Nesto#562 (NestoAPI#723): P.O. obligatorio por cliente"
+    Private _versionSuPedido As Integer
+    Private _suPedidoObligatorio As Boolean
+    ''' <summary>El cliente del pedido exige el P.O. («Su pedido») en todos sus pedidos: se resalta el campo.</summary>
+    Public Property SuPedidoObligatorio As Boolean
+        Get
+            Return _suPedidoObligatorio
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_suPedidoObligatorio, value) Then
+                OnPropertyChanged(NameOf(EtiquetaSuPedido))
+                OnPropertyChanged(NameOf(TooltipSuPedido))
+                OnPropertyChanged(NameOf(FaltaSuPedido))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property EtiquetaSuPedido As String
+        Get
+            Return If(SuPedidoObligatorio, ReglaSuPedidoObligatorio.TEXTO_ETIQUETA_OBLIGATORIO, ReglaSuPedidoObligatorio.TEXTO_ETIQUETA_NORMAL)
+        End Get
+    End Property
+
+    Public ReadOnly Property TooltipSuPedido As String
+        Get
+            Return If(SuPedidoObligatorio, ReglaSuPedidoObligatorio.TOOLTIP_OBLIGATORIO, Nothing)
+        End Get
+    End Property
+
+    ''' <summary>El cliente exige el P.O. y el pedido no lo tiene (el campo se marca en rojo).</summary>
+    Public ReadOnly Property FaltaSuPedido As Boolean
+        Get
+            Return ReglaSuPedidoObligatorio.Falta(SuPedidoObligatorio, pedido?.suPedido)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Pregunta a la API si el cliente del pedido exige el P.O. Si mientras tanto se abre otro pedido, la respuesta del
+    ''' anterior se descarta. Nunca lanza: es una ayuda; quien manda al grabar y al facturar es el servidor.
+    ''' </summary>
+    Friend Async Function CargarSuPedidoObligatorioAsync() As Task
+        _versionSuPedido += 1
+        Dim version As Integer = _versionSuPedido
+        Dim empresa As String = pedido?.empresa
+        Dim cliente As String = pedido?.cliente
+        SuPedidoObligatorio = False
+        If servicio Is Nothing OrElse String.IsNullOrWhiteSpace(cliente) Then
+            Return
+        End If
+        Dim exige As Boolean
+        Try
+            exige = Await servicio.LeerSuPedidoObligatorio(empresa, cliente)
+        Catch ex As Exception
+            exige = False
+        End Try
+        If version = _versionSuPedido Then
+            SuPedidoObligatorio = exige
+        End If
+    End Function
+
+    ''' <summary>Solo Administración, Dirección e Informática pueden poner el P.O. en una factura emitida (la API contesta 403 a los demás).</summary>
+    Public ReadOnly Property PuedePonerSuPedidoFactura As Boolean
+        Get
+            Return configuracion IsNot Nothing AndAlso
+                (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
+                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA))
+        End Get
+    End Property
+
+    Public Property PonerSuPedidoFacturaCommand As AsyncRelayCommand
+
+    ''' <summary>
+    ''' Botón «Poner P.O.»: pide el P.O. y lo pone en la factura de la línea seleccionada, y en su pedido, sin abonarla
+    ''' (PUT Facturas/{empresa}/{numero}/SuPedido). Al reimprimirla ya sale con él.
+    ''' </summary>
+    Public Async Function PonerSuPedidoFacturaAsync() As Task
+        Dim factura As String = lineaActual?.Factura?.Trim()
+        If pedido Is Nothing OrElse String.IsNullOrWhiteSpace(factura) Then
+            Return
+        End If
+        Dim texto As String = dialogService.GetText("Poner P.O. en la factura",
+            $"Escriba el P.O. («Su pedido») que debe llevar la factura {factura}. También se pondrá en el pedido {pedido.numero}.",
+            If(pedido.suPedido?.Trim(), String.Empty))
+        If String.IsNullOrWhiteSpace(texto) Then
+            Return ' canceló o lo dejó en blanco: no se toca nada
+        End If
+        texto = texto.Trim()
+        If texto.Length > ReglaSuPedidoObligatorio.LONGITUD_MAXIMA Then
+            dialogService.ShowError($"El P.O. no puede tener más de {ReglaSuPedidoObligatorio.LONGITUD_MAXIMA} caracteres (tiene {texto.Length}).")
+            Return
+        End If
+        Try
+            Dim respuesta As SuPedidoFacturaModel = Await servicio.PonerSuPedidoFactura(pedido.empresa, factura, texto)
+            Dim puesto As String = If(String.IsNullOrWhiteSpace(respuesta?.SuPedido), texto, respuesta.SuPedido.Trim())
+            ' El servidor también lo ha puesto en el pedido: así un «Guardar» posterior no lo vuelve a dejar como estaba
+            pedido.suPedido = puesto
+            If _snapshotPedidoGuardado IsNot Nothing Then
+                _snapshotPedidoGuardado.suPedido = puesto
+            End If
+            dialogService.ShowNotification("P.O. puesto", ReglaSuPedidoObligatorio.TextoPuesto(respuesta, factura))
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido poner el P.O. en la factura {factura}: {If(ex.InnerException?.Message, ex.Message)}")
+        End Try
+    End Function
+#End Region
+
     ''' <summary>La línea del cupón del pedido (la del producto del cupón), o nada.</summary>
     Friend ReadOnly Property LineaCupon As LineaPedidoVentaWrapper
         Get
@@ -3426,6 +3536,10 @@ Public Class DetallePedidoViewModel
     ' Carlos 09/12/25: Issue #245 - Actualizar EsSerieCursos cuando cambia la serie
     ' Carlos 09/12/25: Issue #253/#52 - Reinicializar FormaVenta y Almacén cuando cambia la serie
     Private Sub OnPedidoPropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(pedido.suPedido) OrElse e.PropertyName = String.Empty Then
+            OnPropertyChanged(NameOf(FaltaSuPedido)) ' Nesto#562
+        End If
+
         ' Sugerencia 396: los datos de transferencia se ofrecen solo en prepago por transferencia de un pedido guardado
         If e.PropertyName = NameOf(pedido.formaPago) OrElse
            e.PropertyName = NameOf(pedido.plazosPago) OrElse

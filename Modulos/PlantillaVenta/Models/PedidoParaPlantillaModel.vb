@@ -1,4 +1,4 @@
-''' <summary>
+﻿''' <summary>
 ''' Nesto#397: el pedido YA en forma de plantilla, tal y como lo devuelve
 ''' GET api/PedidosVenta/ParaPlantilla. La inversión (colapsar ofertas, clasificar Ganavisiones)
 ''' la hace NestoAPI; aquí solo se deserializa y se mapea a BorradorPlantillaVenta.
@@ -13,6 +13,8 @@ Public Class PedidoParaPlantillaModel
     Public Property FormaPago As String
     Public Property PlazosPago As String
     Public Property ComentarioPicking As String
+    ''' <summary>Nesto#562 (NestoAPI#723): «Su pedido / P.O.». Mientras NestoAPI no lo mande en ParaPlantilla, llega a Nothing.</summary>
+    Public Property SuPedido As String
     Public Property Comentarios As String
     Public Property Ruta As String
     Public Property ServirJunto As Boolean

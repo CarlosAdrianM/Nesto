@@ -54,6 +54,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -99,7 +100,14 @@
                                             IsEnabled="{Binding PuedeEditarComercial}" ToolTip="País fiscal del cliente (no el de la cuenta bancaria)"/>
                     <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2"
                             IsEnabled="{Binding PuedeEditarComercial}" ToolTip="{Binding MotivoComercialBloqueado}" ToolTipService.ShowOnDisabled="True">Guardar</Button>
-                    <DataGrid Name="dgrPersonasContacto" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
+                    <!-- Nesto#562 (NestoAPI#723): el cliente exige el P.O. («Su pedido») en todos sus pedidos. Se guarda al
+                         marcarla (no con el botón Guardar) y vale para todos los contactos. Solo Administración, Dirección e Informática. -->
+                    <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" Margin="2,4" VerticalAlignment="Center"
+                              Content="Exige P.O. en todos los pedidos"
+                              IsChecked="{Binding ExigeSuPedido, Mode=TwoWay}"
+                              IsEnabled="{Binding PuedeCambiarSuPedidoObligatorio}"
+                              ToolTip="{Binding TooltipSuPedidoObligatorio}" ToolTipService.ShowOnDisabled="True"/>
+                    <DataGrid Name="dgrPersonasContacto" Grid.Row="4" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
@@ -113,7 +121,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Column="5" Grid.RowSpan="4" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Column="5" Grid.RowSpan="5" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
                 </Grid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                     <!-- Seguimientos -->

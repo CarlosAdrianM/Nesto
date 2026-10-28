@@ -243,6 +243,7 @@ Public Class ClientesViewModel
             ' Nesto#458: el permiso depende de quién lleva el cliente que se está mirando
             OnPropertyChanged(NameOf(PuedeEditarComercial))
             OnPropertyChanged(NameOf(MotivoComercialBloqueado))
+            OnPropertyChanged(NameOf(ExigeSuPedido)) ' Nesto#562
         End Set
     End Property
 
@@ -293,6 +294,64 @@ Public Class ClientesViewModel
             Return $"El cliente lo lleva {clienteServidor?.vendedor?.Trim()}, que no es de tu equipo: no puedes cambiarlo"
         End Get
     End Property
+
+    ''' <summary>
+    ''' Nesto#562 (NestoAPI#723): solo Administración, Dirección e Informática pueden cambiar si el cliente exige el P.O.
+    ''' (el servidor contesta 403 a los demás). Para el resto la casilla es de solo lectura.
+    ''' </summary>
+    Public ReadOnly Property PuedeCambiarSuPedidoObligatorio As Boolean
+        Get
+            Return configuracion IsNot Nothing AndAlso
+                (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
+                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA))
+        End Get
+    End Property
+
+    Public ReadOnly Property TooltipSuPedidoObligatorio As String
+        Get
+            Return If(PuedeCambiarSuPedidoObligatorio,
+                "Si está marcada, no se puede grabar ningún pedido de este cliente (de ninguno de sus contactos) sin «Su pedido / P.O.», ni facturarlo. Se guarda al marcarla o desmarcarla.",
+                "Solo Administración, Dirección o Informática pueden cambiar si el cliente exige el P.O.")
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#562 (NestoAPI#723): la casilla «Exige P.O. en todos los pedidos». Al cambiarla se guarda en el momento
+    ''' (PUT Clientes/{empresa}/{cliente}/SuPedidoObligatorio), sin esperar al botón Guardar; si falla, vuelve a como estaba.
+    ''' </summary>
+    Public Property ExigeSuPedido As Boolean
+        Get
+            Return clienteServidor IsNot Nothing AndAlso clienteServidor.suPedidoObligatorio
+        End Get
+        Set(value As Boolean)
+            If clienteServidor Is Nothing OrElse clienteServidor.suPedidoObligatorio = value Then
+                Return
+            End If
+            Dim unused = CambiarSuPedidoObligatorioAsync(value)
+        End Set
+    End Property
+
+    Public Async Function CambiarSuPedidoObligatorioAsync(exige As Boolean) As Task
+        Dim ficha As ClienteJson = clienteServidor
+        If ficha Is Nothing OrElse String.IsNullOrWhiteSpace(ficha.cliente) OrElse ficha.suPedidoObligatorio = exige Then
+            Return
+        End If
+        If Not PuedeCambiarSuPedidoObligatorio Then
+            OnPropertyChanged(NameOf(ExigeSuPedido)) ' la casilla vuelve a lo que había
+            Return
+        End If
+        Dim anterior As Boolean = ficha.suPedidoObligatorio
+        ficha.suPedidoObligatorio = exige
+        OnPropertyChanged(NameOf(ExigeSuPedido))
+        Try
+            Await servicio.PonerSuPedidoObligatorio(ficha.empresa, ficha.cliente, exige)
+        Catch ex As Exception
+            ficha.suPedidoObligatorio = anterior
+            OnPropertyChanged(NameOf(ExigeSuPedido))
+            dialogService?.ShowError($"No se ha podido cambiar si el cliente {ficha.cliente.Trim()} exige el P.O.: {If(ex.InnerException?.Message, ex.Message)}")
+        End Try
+    End Function
 
     Private Function ConjuntoEquipoComercial() As List(Of String)
         Dim conjunto As New List(Of String)(EquipoUsuario)
