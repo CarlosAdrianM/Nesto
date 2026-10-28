@@ -3180,10 +3180,50 @@ Public Class AgenciasViewModel
 
         ' Consolidación A2 (20/08/26): sin este Try, el PUT fallido escapaba al handler global.
         Try
-            _servicio.Modificar(envioActual)
+            If Not GuardarConfirmandoConLaAgencia(envioActual) Then
+                ' Nesto#564: no se ha guardado nada; la fila vuelve a lo que hay en la base de datos.
+                RecargarEnvioActual()
+            End If
         Catch ex As Exception
             _dialogService.ShowError($"No se pudo modificar el envío: {ex.Message}")
         End Try
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#725 / Nesto#564 (Carlos, 28/10/26, envío 249990): guarda el envío con el PUT genérico. Si está registrado en
+    ''' CTT/Innovatrans y cambia algún dato que viajó a la agencia, la API contesta 409 (<see cref="CambioSinAgenciaException"/>)
+    ''' y se pide confirmación en rojo dos veces, la segunda con quién se habló en la agencia y cuándo; con ella se repite el PUT
+    ''' marcado como confirmado por la agencia. Devuelve False si la persona no lo confirma (no se ha guardado nada). Los demás
+    ''' errores se lanzan, como antes.
+    ''' </summary>
+    Friend Function GuardarConfirmandoConLaAgencia(envio As EnviosAgencia) As Boolean
+        Try
+            _servicio.Modificar(envio)
+            Return True
+        Catch ex As CambioSinAgenciaException
+            Dim confirmacion As String = PeticionCambioSinAgencia.Pedir(_dialogService, ex.Campos)
+            If String.IsNullOrWhiteSpace(confirmacion) Then
+                _dialogService.ShowNotification("Modificar Envío", $"No se ha guardado ningún cambio del envío {envio.Numero}.")
+                Return False
+            End If
+            _servicio.ModificarConfirmadoConLaAgencia(envio, confirmacion)
+            _dialogService.ShowNotification("Modificar Envío",
+                $"Cambio del envío {envio.Numero} guardado SOLO en nuestro sistema ({String.Join(", ", ex.Campos)}). " &
+                $"Queda registrado en el historial del envío como confirmado por la agencia: «{confirmacion}».")
+            Return True
+        End Try
+    End Function
+
+    ''' <summary>Nesto#564: deshace lo editado en la fila de En curso volviendo a leer los envíos de la agencia.</summary>
+    Private Sub RecargarEnvioActual()
+        If agenciaSeleccionada Is Nothing Then
+            Return
+        End If
+        Dim numero As Integer = If(envioActual?.Numero, 0)
+        listaEnvios = _servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
+        If listaEnvios IsNot Nothing Then
+            envioActual = listaEnvios.FirstOrDefault(Function(e) e.Numero = numero)
+        End If
     End Sub
 
 
@@ -3543,8 +3583,9 @@ Public Class AgenciasViewModel
             Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
             If EnvioPendienteSeleccionado.Numero = 0 Then
                 Dim unused1 = _servicio.Insertar(envio)
-            Else
-                _servicio.Modificar(envio)
+            ElseIf Not GuardarConfirmandoConLaAgencia(envio) Then
+                ' Nesto#564: ya registrado en la agencia y sin su confirmación: no se ha guardado nada (sigue con cambios sin guardar).
+                Return
             End If
             Dim unused = listaPendientes.Remove(EnvioPendienteSeleccionado)
             Dim envioGuardado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)

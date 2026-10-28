@@ -694,6 +694,7 @@ namespace Nesto.Tests
             "ParametrosUsuarioDialog | ParametrosUsuarioDialog | ParametrosUsuarioDialogViewModel",
             "RevisionConceptoDialog | RevisionConceptoDialog | RevisionConceptoDialogViewModel",
             "MotivoCambioEstadoDialog | MotivoCambioEstadoDialog | MotivoCambioEstadoDialogViewModel", // Nesto#558
+            "CambioSinAgenciaDialog | CambioSinAgenciaDialog | CambioSinAgenciaDialogViewModel", // Nesto#564
             "ElegirEventoCursoDialog | ElegirEventoCursoDialog | ElegirEventoCursoDialogViewModel",
             "ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialogViewModel",
             "PickingPopupView | PickingPopupView | PickingPopupViewModel",

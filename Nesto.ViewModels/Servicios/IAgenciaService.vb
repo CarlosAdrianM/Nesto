@@ -7,6 +7,8 @@ Public Interface IAgenciaService
     ' Nesto#340 (A2): GetEnvioById eliminado — no lo llamaba nadie.
     Function Insertar(envio As EnviosAgencia) As EnviosAgencia
     Sub Modificar(envio As EnviosAgencia)
+    ''' <summary>NestoAPI#725 / Nesto#564: el PUT de un envío ya registrado en la agencia, guardado solo en Nesto con la confirmación de la agencia por teléfono.</summary>
+    Sub ModificarConfirmadoConLaAgencia(envio As EnviosAgencia, confirmacionAgencia As String)
     Sub Borrar(Id As Integer)
     ' Nesto#340 (A3): el pedido de Agencias ya no es la entidad EF CabPedidoVta, sino un POCO
     ' que viene de GET api/PedidosVenta/ParaAgencia. Los cuatro modos cubren los cuatro caminos
