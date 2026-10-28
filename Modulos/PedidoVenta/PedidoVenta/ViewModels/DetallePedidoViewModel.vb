@@ -3929,6 +3929,8 @@ Public Class DetallePedidoViewModel
     ''' cambia el modo de servicio y así no se pierden cambios sin guardar (un «Guardar» posterior manda el 5, que la API
     ''' acepta mientras siga retenido). Friend para los tests.
     ''' </summary>
+    Friend Const TITULO_AVISO_PICKING_EN_CURSO As String = "Pedido retenido con picking en curso"
+
     Friend Async Function RetenerPedidoAsync() As Task
         If Not PuedeRetenerPedido Then
             Return
@@ -3964,6 +3966,10 @@ Public Class DetallePedidoViewModel
             }
         End If
         AplicarRetencion(retencion, ModosServicio.RETENIDO)
+        If Not String.IsNullOrWhiteSpace(retencion.Aviso) Then
+            ' NestoAPI#698 (28/10/26): el pedido ya tenía picking en el almacén; el modo 5 no lo para solo y el servidor ha avisado a Almacén
+            dialogService.ShowNotification(TITULO_AVISO_PICKING_EN_CURSO, retencion.Aviso)
+        End If
     End Function
 
     ''' <summary>Confirma, llama a la API y devuelve el pedido a su modo anterior. Friend para los tests.</summary>
