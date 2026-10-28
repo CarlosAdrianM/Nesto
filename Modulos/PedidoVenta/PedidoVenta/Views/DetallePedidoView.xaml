@@ -273,6 +273,10 @@
                                 <!-- Nesto#563 (NestoAPI#724): el mismo PDF que «Descargar PDF», por correo, sin pasar por el escritorio -->
                                 <Button Grid.Row="2" Grid.Column="1" Command="{Binding EnviarPedidoPorCorreoCommand}"
                                         ToolTip="Mandar el PDF del pedido por correo al cliente (se proponen sus personas de contacto)">Enviar por correo…</Button>
+                                <!-- Fila 2: NestoAPI#727, facturar el fin de mes por la API (Administración, Dirección e Informática) -->
+                                <Button Grid.Row="2" Grid.Column="2" Command="{Binding AbrirFacturarFinDeMesCommand}"
+                                        Visibility="{Binding PuedeFacturarFinDeMes, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Reunir y facturar los albaranes de fin de mes (los pedidos con P.O. no entran)">Facturar Fin de Mes</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>

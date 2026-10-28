@@ -702,6 +702,7 @@ namespace Nesto.Tests
             "SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopupViewModel",
             "FacturarRutasPopup | FacturarRutasPopup | FacturarRutasPopupViewModel",
             "ErroresFacturacionRutasPopup | ErroresFacturacionRutasPopup | ErroresFacturacionRutasPopupViewModel",
+            "FacturarFinDeMesDialog | FacturarFinDeMesDialog | FacturarFinDeMesDialogViewModel", // NestoAPI#727
             "CopiarFacturaView | CopiarFacturaView | CopiarFacturaViewModel",
             "SelectorGrupoComisionDialog | SelectorGrupoComisionDialog | SelectorGrupoComisionDialogViewModel",
             "RetenerPedidoDialog | RetenerPedidoDialog | RetenerPedidoDialogViewModel", // NestoAPI#698

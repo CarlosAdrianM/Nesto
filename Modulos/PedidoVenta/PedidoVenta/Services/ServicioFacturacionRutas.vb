@@ -166,5 +166,47 @@ Namespace Services
                 End Try
             End Using
         End Function
+
+        ''' <summary>
+        ''' NestoAPI#727: facturar el fin de mes por la API. Los 400 (interruptor apagado, fecha no válida…) y el 403 llegan
+        ''' como excepción con el texto de la API tal cual, sin adornos, para enseñárselo al usuario.
+        ''' </summary>
+        Public Async Function FacturarFinDeMes(request As FacturarFinDeMesRequestDTO) As Task(Of ResultadoFacturacionFinDeMesDTO) Implements IServicioFacturacionRutas.FacturarFinDeMes
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                ' Todos los clientes de fin de mes de una vez: puede tardar bastante más que una ruta.
+                client.Timeout = TimeSpan.FromMinutes(20)
+
+                If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+                Dim baseUrl As String = configuracion.servidorAPI.TrimEnd("/"c)
+                Dim response As HttpResponseMessage = Await client.PostAsync($"{baseUrl}/FacturacionRutas/FinDeMes", content)
+
+                If response.StatusCode = Net.HttpStatusCode.Unauthorized Then
+                    servicioAutenticacion.LimpiarToken()
+                    Throw New UnauthorizedAccessException("Token de autenticación inválido")
+                End If
+
+                Dim responseBody As String = If(response.Content Is Nothing, Nothing, Await response.Content.ReadAsStringAsync())
+                If Not response.IsSuccessStatusCode Then
+                    Throw New InvalidOperationException(MensajeErrorFinDeMes(response.StatusCode, responseBody))
+                End If
+
+                Return JsonConvert.DeserializeObject(Of ResultadoFacturacionFinDeMesDTO)(responseBody)
+            End Using
+        End Function
+
+        ''' <summary>NestoAPI#727: el texto que se enseña cuando la API no factura el fin de mes.</summary>
+        Public Shared Function MensajeErrorFinDeMes(estado As Net.HttpStatusCode, cuerpo As String) As String
+            If String.IsNullOrWhiteSpace(cuerpo) Then
+                If estado = Net.HttpStatusCode.Forbidden Then
+                    Return "No tiene permiso para facturar el fin de mes: solo pueden hacerlo Administración, Dirección e Informática."
+                End If
+                Return $"La API no ha podido facturar el fin de mes ({CInt(estado)} {estado})."
+            End If
+            Return HttpErrorHelper.ParsearErrorHttp(cuerpo)
+        End Function
     End Class
 End Namespace
