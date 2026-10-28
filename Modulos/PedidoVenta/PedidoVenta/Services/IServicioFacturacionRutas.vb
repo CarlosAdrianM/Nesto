@@ -32,5 +32,12 @@ Namespace Services
         ''' </summary>
         ''' <returns>Lista de tipos de ruta con ID y nombre</returns>
         Function ObtenerTiposRuta() As Task(Of List(Of TipoRutaInfoDTO))
+
+        ''' <summary>
+        ''' NestoAPI#727: reúne en un pedido del contacto principal los albaranes de fin de mes (sin P.O.) hasta la fecha de
+        ''' corte y los factura (POST api/FacturacionRutas/FinDeMes). Si la API dice que no (400/403), lanza una excepción
+        ''' con su texto tal cual.
+        ''' </summary>
+        Function FacturarFinDeMes(request As FacturarFinDeMesRequestDTO) As Task(Of ResultadoFacturacionFinDeMesDTO)
     End Interface
 End Namespace

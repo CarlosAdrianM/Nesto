@@ -135,6 +135,7 @@ Public Class DetallePedidoViewModel
         ImprimirAlbaranDirectoCommand = New RelayCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New RelayCommand(Of String)(AddressOf OnCopiarEnlace)
         AbrirFacturarRutasCommand = New RelayCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
+        AbrirFacturarFinDeMesCommand = New RelayCommand(AddressOf OnAbrirFacturarFinDeMes, Function() PuedeFacturarFinDeMes) ' NestoAPI#727
         CopiarFacturaCommand = New RelayCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
         PonerSuPedidoFacturaCommand = New AsyncRelayCommand(AddressOf PonerSuPedidoFacturaAsync, AddressOf CanImprimirFactura) ' Nesto#562
 
@@ -2308,6 +2309,22 @@ Public Class DetallePedidoViewModel
                                                                     System.Diagnostics.Debug.WriteLine($"=== Diálogo cerrado. Result: {result.Result} ===")
                                                                 End Sub)
     End Sub
+    ''' <summary>
+    ''' NestoAPI#727: «Fin de mes…» abre la ventana de facturar el fin de mes por la API. Solo Administración, Dirección e
+    ''' Informática (los mismos grupos que exige la API).
+    ''' </summary>
+    Public ReadOnly Property PuedeFacturarFinDeMes As Boolean
+        Get
+            Return FacturarFinDeMesDialogViewModel.TienePermiso(configuracion)
+        End Get
+    End Property
+
+    Public ReadOnly Property AbrirFacturarFinDeMesCommand As RelayCommand
+
+    Private Sub OnAbrirFacturarFinDeMes()
+        dialogService.ShowDialog(FacturarFinDeMesDialogViewModel.NOMBRE, Nothing, Nothing)
+    End Sub
+
     Private Function CanAbrirFacturarRutas() As Boolean
         ' Carlos 12/01/25: Solo el grupo Dirección puede acceder a facturar rutas
         Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)

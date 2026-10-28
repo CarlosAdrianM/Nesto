@@ -13,6 +13,8 @@ Public Class PedidoVenta
         registro.RegistrarDialogo(Of SugerenciasRutaPickingPopup, SugerenciasRutaPickingPopupViewModel)(SugerenciasRutaPickingPopupViewModel.NOMBRE)
         registro.RegistrarDialogo(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
         registro.RegistrarDialogo(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
+        ' NestoAPI#727: facturar el fin de mes por la API (sustituye al Nesto viejo)
+        registro.RegistrarDialogo(Of FacturarFinDeMesDialog, FacturarFinDeMesDialogViewModel)(FacturarFinDeMesDialogViewModel.NOMBRE)
         registro.RegistrarDialogo(Of CopiarFacturaView, CopiarFacturaViewModel)
         ' NestoAPI#352: pregunta el grupo de comisión de las líneas de inmovilizado al guardar
         registro.RegistrarDialogo(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
