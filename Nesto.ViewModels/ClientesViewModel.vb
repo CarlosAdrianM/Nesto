@@ -1681,6 +1681,61 @@ Public Class ClientesViewModel
 
 
 
+    ' Nesto#563 (NestoAPI#724, sugerencia 831): el mandato por correo, sin descargarlo (Outlook web no adjunta
+    ' ficheros del escritorio remoto). Mismo diálogo que el pedido y la factura.
+    Private _envioPorCorreo As ControlesUsuario.Services.IEnvioDocumentoPorCorreo
+    ''' <summary>Nesto#563: el diálogo de envío + la llamada a la API. Friend para los tests.</summary>
+    Friend Property EnvioPorCorreo As ControlesUsuario.Services.IEnvioDocumentoPorCorreo
+        Get
+            If _envioPorCorreo Is Nothing Then
+                ' Con el constructor sin parámetros (la ficha) no llega el servicio de diálogos: se pide al contenedor
+                Dim dialogos As IServicioDialogos = dialogService
+                If dialogos Is Nothing Then
+                    Try
+                        dialogos = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioDialogos)), IServicioDialogos)
+                    Catch
+                        dialogos = Nothing
+                    End Try
+                End If
+                If dialogos IsNot Nothing AndAlso _clienteApiFactory IsNot Nothing Then
+                    _envioPorCorreo = New ControlesUsuario.Services.EnvioDocumentoPorCorreo(
+                        New ControlesUsuario.Services.ServicioEnvioCorreoDocumentos(_clienteApiFactory), dialogos)
+                End If
+            End If
+            Return _envioPorCorreo
+        End Get
+        Set(value As ControlesUsuario.Services.IEnvioDocumentoPorCorreo)
+            _envioPorCorreo = value
+        End Set
+    End Property
+
+    Private _enviarMandatoPorCorreoCommand As ICommand
+    ''' <summary>Nesto#563: «Enviar por correo…» junto a «Imprimir» del mandato SEPA de la cuenta activa.</summary>
+    Public ReadOnly Property EnviarMandatoPorCorreoCommand() As ICommand
+        Get
+            If _enviarMandatoPorCorreoCommand Is Nothing Then
+                _enviarMandatoPorCorreoCommand = New RelayCommandLegado(AddressOf OnEnviarMandatoPorCorreo, AddressOf CanImprimirMandato)
+            End If
+            Return _enviarMandatoPorCorreoCommand
+        End Get
+    End Property
+    Private Async Sub OnEnviarMandatoPorCorreo(ByVal param As Object)
+        Try
+            Await EnviarMandatoPorCorreoAsync()
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException?.Message, ex.Message)
+        End Try
+    End Sub
+
+    Friend Async Function EnviarMandatoPorCorreoAsync() As Task
+        If Not CanImprimirMandato(Nothing) OrElse EnvioPorCorreo Is Nothing Then
+            Return
+        End If
+        ' El mismo motor que al imprimirlo (parámetro MotorPdfMandatoSepa del usuario)
+        Dim motorPdf As String = Await LeerMotorPdfMandato()
+        Await EnvioPorCorreo.EnviarMandato(empresaActual?.Trim(), clienteActual?.Trim(), contactoActual?.Trim(), cuentaActiva.Número?.Trim(), motorPdf)
+    End Function
+
     ''' <summary>Nesto#490: URL del PDF del mandato SEPA. Solo con motor "QuestPDF" se añade &amp;motor=QuestPDF.</summary>
     Public Shared Function ConstruirUrlMandatoPdf(servidorAPI As String, empresa As String, cliente As String, contacto As String, ccc As String, motorPdf As String) As String
         Dim url As String = $"{servidorAPI}Clientes/MandatoPDF?empresa={empresa?.Trim}&cliente={cliente?.Trim}&contacto={contacto?.Trim}&ccc={ccc?.Trim}"

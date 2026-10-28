@@ -298,6 +298,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of RevisionConceptoDialog, RevisionConceptoDialogViewModel)
         ' Nesto#558 (NestoAPI#716): motivo y comentario al cambiar el estado de un cliente (ficha y dejar de visitar)
         registro.RegistrarDialogo(Of MotivoCambioEstadoDialog, MotivoCambioEstadoDialogViewModel)
+        ' Nesto#563 (NestoAPI#724): enviar por correo el pedido, el mandato SEPA o la factura sin descargarlos
+        registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar y se pide por su tipo concreto
         ' La campana de la ventana principal (la recibe MainWindow por constructor)

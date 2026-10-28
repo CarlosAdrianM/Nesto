@@ -108,6 +108,11 @@ Public Class DetallePedidoViewModel
         AceptarPresupuestoCommand = New RelayCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
         PasarAPresupuestoCommand = New RelayCommand(AddressOf OnPasarAPresupuesto, AddressOf CanPasarAPresupuesto)
         DescargarPresupuestoCommand = New RelayCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
+        ' Nesto#563 (NestoAPI#724): mandar el pedido y la factura por correo sin descargarlos (sugerencia 831)
+        EnvioPorCorreo = New ControlesUsuario.Services.EnvioDocumentoPorCorreo(New ControlesUsuario.Services.ServicioEnvioCorreoDocumentos(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
+        EnviarPedidoPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarPedidoPorCorreoAsync, AddressOf CanDescargarPresupuesto)
+        EnviarFacturaPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorCorreoAsync, AddressOf CanImprimirFactura)
         cmdActualizarTotales = New RelayCommand(AddressOf OnActualizarTotales)
         cmdCambiarFechaEntrega = New RelayCommand(AddressOf OnCambiarFechaEntrega)
         cmdCambiarIva = New RelayCommand(AddressOf OnCambiarIva)
@@ -546,6 +551,7 @@ Public Class DetallePedidoViewModel
             OnPropertyChanged(NameOf(pedido))
             ImprimirFacturaCommand.NotifyCanExecuteChanged()
             ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
+            EnviarFacturaPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
             ImprimirAlbaranCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
         End Set
@@ -644,6 +650,7 @@ Public Class DetallePedidoViewModel
             AceptarPresupuestoCommand.NotifyCanExecuteChanged()
             PasarAPresupuestoCommand.NotifyCanExecuteChanged()
             DescargarPresupuestoCommand.NotifyCanExecuteChanged()
+            EnviarPedidoPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
             CopiarAlPortapapelesCommand.NotifyCanExecuteChanged() ' Nesto#385
             CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
             CrearFacturaVentaCommand.NotifyCanExecuteChanged()
@@ -2404,6 +2411,29 @@ Public Class DetallePedidoViewModel
             textoBusyIndicator = String.Empty
         End Try
     End Sub
+
+    ''' <summary>Nesto#563 (NestoAPI#724): el diálogo de envío + la llamada a la API. Friend para los tests.</summary>
+    Friend Property EnvioPorCorreo As ControlesUsuario.Services.IEnvioDocumentoPorCorreo
+
+    ''' <summary>Nesto#563: «Enviar por correo…» junto a «Descargar PDF»: el mismo PDF, sin pasar por el escritorio.</summary>
+    Public Property EnviarPedidoPorCorreoCommand As AsyncRelayCommand
+
+    Friend Async Function EnviarPedidoPorCorreoAsync() As Task
+        If pedido Is Nothing OrElse EnvioPorCorreo Is Nothing Then
+            Return
+        End If
+        Await EnvioPorCorreo.EnviarPedido(pedido.empresa?.Trim(), pedido.numero, pedido.cliente?.Trim(), pedido.contacto?.Trim())
+    End Function
+
+    ''' <summary>Nesto#563: la factura de la línea, por correo (en el menú de «Imprimir Factura», junto a «Descargar PDF»).</summary>
+    Public Property EnviarFacturaPorCorreoCommand As AsyncRelayCommand
+
+    Friend Async Function EnviarFacturaPorCorreoAsync() As Task
+        If Not CanImprimirFactura() OrElse EnvioPorCorreo Is Nothing Then
+            Return
+        End If
+        Await EnvioPorCorreo.EnviarFactura(pedido.empresa?.Trim(), lineaActual.Factura?.Trim(), pedido.cliente?.Trim(), pedido.contacto?.Trim())
+    End Function
 
     Private _enviarCobroTarjetaCommand As RelayCommand
     Public Property EnviarCobroTarjetaCommand As RelayCommand
