@@ -1,0 +1,42 @@
+<UserControl x:Class="ControlesUsuario.Dialogs.CambioSinAgenciaDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="460" MaxWidth="640" Background="White">
+    <!-- Nesto#564 (NestoAPI#725): aviso EN ROJO de que el cambio de un envío ya registrado en la agencia (CTT, Innovatrans)
+         solo se hace en NUESTRO sistema. Primera vez: Sí/No; segunda: con quién se habló y cuándo (obligatorio).
+         Esc es «No»; Intro no acepta la primera pregunta (esto no se hace por inercia) y en la segunda solo con el texto. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisible" />
+    </UserControl.Resources>
+    <Border BorderBrush="#C62828" BorderThickness="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#C62828" Padding="12,10">
+                <TextBlock Text="⚠ ATENCIÓN: LA AGENCIA NO RECIBIRÁ ESTE CAMBIO ⚠" Foreground="White" FontWeight="Bold" FontSize="16"
+                           TextWrapping="Wrap" HorizontalAlignment="Center"/>
+            </Border>
+
+            <TextBlock Grid.Row="1" Text="{Binding Message}" TextWrapping="Wrap" Foreground="#B71C1C" FontSize="13"
+                       FontWeight="SemiBold" Margin="15,15,15,10"/>
+
+            <TextBox Grid.Row="2" x:Name="TextoConfirmacion" Margin="15,0,15,0" MinHeight="48" Padding="5"
+                     Text="{Binding Texto, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     TextWrapping="Wrap" AcceptsReturn="False" MaxLength="200" SpellCheck.IsEnabled="True"
+                     Foreground="Black" Background="White" BorderBrush="#C62828" BorderThickness="2"
+                     Visibility="{Binding PedirTexto, Converter={StaticResource BoolAVisible}}"/>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="15,20,15,15">
+                <Button Content="{Binding TextoBotonAceptar}" Command="{Binding AceptarCommand}" MinWidth="120" Padding="8,3"
+                        Margin="0,0,10,0" Foreground="White" Background="#C62828" IsDefault="{Binding PedirTexto}"/>
+                <Button Content="No, cancelar" Command="{Binding CancelarCommand}" MinWidth="100" Padding="8,3"
+                        IsCancel="True"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

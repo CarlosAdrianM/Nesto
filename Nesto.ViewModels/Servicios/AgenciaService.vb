@@ -48,6 +48,31 @@ Public Class AgenciaService
     }
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
+        PutEnvio(envio, RutaModificar(envio.Numero, Nothing))
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#725 / Nesto#564: el mismo PUT, para un envío ya registrado en CTT/Innovatrans cuyo cambio NO se reenvía a la
+    ''' agencia porque el usuario confirma que la agencia se lo ha confirmado por teléfono (<paramref name="confirmacionAgencia"/>:
+    ''' con quién habló y cuándo). El servidor lo deja marcado en el historial del envío y en Modificaciones.
+    ''' </summary>
+    Public Sub ModificarConfirmadoConLaAgencia(envio As EnviosAgencia, confirmacionAgencia As String) Implements IAgenciaService.ModificarConfirmadoConLaAgencia
+        If String.IsNullOrWhiteSpace(confirmacionAgencia) Then
+            Throw New ArgumentException("Falta con quién ha hablado en la agencia y cuándo.", NameOf(confirmacionAgencia))
+        End If
+        PutEnvio(envio, RutaModificar(envio.Numero, confirmacionAgencia))
+    End Sub
+
+    ''' <summary>PUT api/EnviosAgencias/{id}; con confirmación, ?confirmadoConLaAgencia=true&amp;confirmacionAgencia=... (NestoAPI#725).</summary>
+    Friend Shared Function RutaModificar(numeroEnvio As Integer, confirmacionAgencia As String) As String
+        Dim ruta As String = $"EnviosAgencias/{numeroEnvio}"
+        If String.IsNullOrWhiteSpace(confirmacionAgencia) Then
+            Return ruta
+        End If
+        Return $"{ruta}?confirmadoConLaAgencia=true&confirmacionAgencia={Uri.EscapeDataString(confirmacionAgencia.Trim())}"
+    End Function
+
+    Private Sub PutEnvio(envio As EnviosAgencia, ruta As String)
         Dim rowVersionNueva As Byte() = Task.Run(
             Async Function() As Task(Of Byte())
                 Using client As HttpClient = _clienteApiFactory.Crear()
@@ -56,9 +81,14 @@ Public Class AgenciaService
                     End If
                     Dim json As String = JsonConvert.SerializeObject(envio, _jsonSinNavegaciones)
                     Dim content As HttpContent = New StringContent(json, Encoding.UTF8, "application/json")
-                    Dim response As HttpResponseMessage = Await client.PutAsync($"EnviosAgencias/{envio.Numero}", content)
+                    Dim response As HttpResponseMessage = Await client.PutAsync(ruta, content)
                     Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
                     If Not response.IsSuccessStatusCode Then
+                        ' NestoAPI#725: el 409 CAMBIO_SIN_AGENCIA es una pregunta al usuario, no un error.
+                        Dim cambioSinAgencia = CambioSinAgenciaException.DesdeRespuesta(envio.Numero, CInt(response.StatusCode), cuerpo)
+                        If cambioSinAgencia IsNot Nothing Then
+                            Throw cambioSinAgencia
+                        End If
                         Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({CInt(response.StatusCode)}): {cuerpo}")
                     End If
                     Dim refrescado = JsonConvert.DeserializeAnonymousType(cuerpo, New With {Key .RowVersion = CType(Nothing, Byte())})

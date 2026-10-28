@@ -493,7 +493,9 @@
                             <ComboBox Grid.Row="1" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
                             <TextBox Grid.Row="2" Grid.Column="2" IsEnabled="{Binding sePuedeModificarEstado}"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
                             <DatePicker Grid.Row="3" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" SelectedDate="{Binding fechaEntregaModificar}" Margin="3"></DatePicker>
-                            <Button Grid.Row="4" Grid.Column="2" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
+                            <Button Grid.Row="4" Grid.Column="2" Margin="3" Command="{Binding cmdModificarEnvio}" ToolTip="Anula el envío en la agencia y lo registra de nuevo con estos datos (o le dice qué hacer si ya no se puede)">
+                                <TextBlock Text="Modificar datos y reenviar a la agencia" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
                             <TextBox Grid.RowSpan="5" Grid.Column="3" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
                         </Grid>
                     </DockPanel>
