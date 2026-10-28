@@ -456,18 +456,21 @@ Public Class RapportService
                 Dim urlConsulta As String = $"SeguimientosClientes/Resumen?empresa={empresa}&cliente={cliente}&contacto={contacto}"
 
                 response = Await client.GetAsync(urlConsulta)
-
-                respuestaJson = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), String.Empty)
-
+                respuestaJson = Await response.Content.ReadAsStringAsync()
             Catch ex As Exception
                 Throw New Exception($"No se ha podido recuperar el resumen de los rapports del cliente {cliente}/{contacto}", ex)
-            Finally
-
             End Try
 
+            ' Sugerencia 830 (Javier): con un error del servidor se leía una respuesta vacía y salía
+            ' «Object variable or With block variable not set». Ahora se enseña el motivo que manda la API.
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MotivoResumen(respuestaJson, CInt(response.StatusCode)))
+            End If
             Dim resultado As Object = JsonConvert.DeserializeObject(Of Object)(respuestaJson)
-            Dim resumen As String = resultado("Resumen").ToString()
-
+            Dim resumen As String = If(resultado?("Resumen")?.ToString(), String.Empty)
+            If String.IsNullOrWhiteSpace(resumen) Then
+                Throw New Exception("El servidor no ha devuelto ningún resumen. Vuelva a intentarlo en un momento.")
+            End If
             Return resumen
         End Using
     End Function
@@ -603,5 +606,19 @@ Public Class RapportService
             End If
             Return pdf
         End Using
+    End Function
+    ''' <summary>Sugerencia 830: el texto que manda la API en un error (cadena JSON, {Message} o texto plano), o uno genérico con el código.</summary>
+    Friend Shared Function MotivoResumen(cuerpo As String, codigo As Integer) As String
+        If Not String.IsNullOrWhiteSpace(cuerpo) Then
+            Try
+                Dim token = Newtonsoft.Json.Linq.JToken.Parse(cuerpo)
+                If token.Type = Newtonsoft.Json.Linq.JTokenType.String Then Return token.ToString()
+                Dim mensaje = token("Message")?.ToString()
+                If Not String.IsNullOrWhiteSpace(mensaje) Then Return mensaje
+            Catch
+                Return cuerpo.Trim()
+            End Try
+        End If
+        Return $"No se ha podido generar el resumen (error {codigo} del servidor)."
     End Function
 End Class
