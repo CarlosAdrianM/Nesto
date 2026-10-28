@@ -7,6 +7,7 @@ using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 
 namespace ClienteTests
 {
@@ -899,5 +900,71 @@ namespace ClienteTests
                 .MustHaveHappenedOnceExactly();
             Assert.AreEqual("4480-670", vm.ClienteCodigoPostal);
         }
+
+        // Nesto#555 (sugerencia 770): alumna y público final en «Datos Comisiones»
+
+        [TestMethod]
+        public void MarcarAlumna_QuitaEsteticaYPeluqueria_YDejaAvanzar()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            vm.ClienteTieneEstetica = true;
+            vm.ClienteTienePeluqueria = true;
+
+            vm.ClienteEsAlumna = true;
+
+            Assert.IsFalse(vm.ClienteTieneEstetica);
+            Assert.IsFalse(vm.ClienteTienePeluqueria);
+            Assert.IsTrue(vm.SePuedeAvanzarADatosPago, "sin estética ni peluquería, pero es alumna");
+        }
+
+        [TestMethod]
+        public void AlumnaYPublico_SonExcluyentes_YEsteticaLasQuita()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            vm.ClienteEsAlumna = true;
+            vm.ClienteEsPublico = true;
+            Assert.IsFalse(vm.ClienteEsAlumna, "público quita alumna");
+            Assert.IsTrue(vm.ClienteEsPublico);
+
+            vm.ClienteTieneEstetica = true;
+            Assert.IsFalse(vm.ClienteEsPublico, "un centro con estética no es público final");
+            Assert.IsTrue(vm.ClienteTieneEstetica);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task CrearCliente_Alumna_MandaLaMarcaYVendedorNV()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+            vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.ClienteVendedorEstetica = "JE";
+            vm.ClienteTieneEstetica = true;
+            vm.ClienteEsAlumna = true;
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.CrearCliente(A<ClienteCrear>.That.Matches(c =>
+                c.Alumna && !c.Publico && !c.Estetica && !c.Peluqueria
+                && c.VendedorEstetica == Constantes.Vendedores.VENDEDOR_POR_DEFECTO
+                && c.VendedorPeluqueria == Constantes.Vendedores.VENDEDOR_POR_DEFECTO)))
+                .MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task CrearCliente_Publico_MandaLaMarca()
+        {
+            var vm = ConDireccionElegidaDeGoogleAsync_Preparar();
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ480" });
+            vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.ClienteEsPublico = true;
+
+            vm.CrearClienteCommand.Execute(null);
+            await System.Threading.Tasks.Task.Delay(300);
+
+            A.CallTo(() => Servicio.CrearCliente(A<ClienteCrear>.That.Matches(c => c.Publico && !c.Alumna))).MustHaveHappened();
+        }
+
     }
 }

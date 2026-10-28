@@ -560,7 +560,11 @@ namespace Nesto.Modulos.Cliente
         public bool ClienteTieneEstetica {
             get { return clienteTieneEstetica; }
             set {
-                SetProperty(ref clienteTieneEstetica, value);
+                if (SetProperty(ref clienteTieneEstetica, value) && value)
+                {
+                    ClienteEsAlumna = false; // Nesto#555: un centro con estética no es alumna ni público
+                    ClienteEsPublico = false;
+                }
                 OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
@@ -568,7 +572,45 @@ namespace Nesto.Modulos.Cliente
         public bool ClienteTienePeluqueria {
             get { return clienteTienePeluqueria; }
             set {
-                SetProperty(ref clienteTienePeluqueria, value);
+                if (SetProperty(ref clienteTienePeluqueria, value) && value)
+                {
+                    ClienteEsAlumna = false;
+                    ClienteEsPublico = false;
+                }
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
+            }
+        }
+        // Nesto#555 (sugerencia 770 de Paloma): alumna de cursos y eventos. La API la graba con estado 10 (Alumna) y
+        // vendedor NV; aquí solo se marca. Excluyente con estética, peluquería y público.
+        private bool clienteEsAlumna;
+        public bool ClienteEsAlumna
+        {
+            get { return clienteEsAlumna; }
+            set
+            {
+                if (SetProperty(ref clienteEsAlumna, value) && value)
+                {
+                    ClienteEsPublico = false;
+                    ClienteTieneEstetica = false;
+                    ClienteTienePeluqueria = false;
+                }
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
+            }
+        }
+        // Nesto#555 (Laura, comentario 411): público final (profesional de otro sector que pide factura). La API lo graba
+        // con estado 8 y vendedor NV. Excluyente con estética, peluquería y alumna.
+        private bool clienteEsPublico;
+        public bool ClienteEsPublico
+        {
+            get { return clienteEsPublico; }
+            set
+            {
+                if (SetProperty(ref clienteEsPublico, value) && value)
+                {
+                    ClienteEsAlumna = false;
+                    ClienteTieneEstetica = false;
+                    ClienteTienePeluqueria = false;
+                }
                 OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
@@ -749,7 +791,7 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                if (ClienteTieneEstetica || ClienteTienePeluqueria)
+                if (ClienteTieneEstetica || ClienteTienePeluqueria || ClienteEsAlumna || ClienteEsPublico)
                 {
                     return true;
                 }
@@ -862,6 +904,7 @@ namespace Nesto.Modulos.Cliente
             }
 
             // Issue #315: Si no marcó estética ni peluquería, asignar vendedor por defecto
+            // (Nesto#555: alumna y público tampoco tienen vendedor; la API pone estado y NV de todas formas)
             string vendedorEstetica = ClienteVendedorEstetica;
             string vendedorPeluqueria = ClienteVendedorPeluqueria;
             if (!ClienteTieneEstetica && !ClienteTienePeluqueria)
@@ -886,6 +929,8 @@ namespace Nesto.Modulos.Cliente
                 Estado = ClienteEstado,
                 Estetica = ClienteTieneEstetica,
                 Peluqueria = ClienteTienePeluqueria,
+                Alumna = ClienteEsAlumna, // Nesto#555
+                Publico = ClienteEsPublico,
                 FormaPago = ClienteFormaPago,
                 Iban = FormaPagoRecibo ? ClienteIban : "",
                 Nif = ClienteNif,

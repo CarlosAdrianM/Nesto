@@ -192,7 +192,7 @@
                     </xctk:WizardPage>
                     <xctk:WizardPage x:Name="DatosComisiones" 
                                        Title="Datos Comisiones"
-                                       Description="Dependiendo del tipo de centro que sea, se le asignará vendedor de estética, de peluquería o ambos"
+                                       Description="Dependiendo del tipo de centro que sea, se le asignará vendedor de estética, de peluquería o ambos. Las alumnas y el público final no llevan vendedor."
                                      CanSelectPreviousPage="True"
                                        CanSelectNextPage="{Binding SePuedeAvanzarADatosPago}" Enter="DatosComisiones_Enter">
 
@@ -201,6 +201,10 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="12"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
@@ -219,6 +223,9 @@
                             <CheckBox Name="chkTieneEstetica" Grid.Column="3" Grid.Row="1" IsChecked="{Binding ClienteTieneEstetica}">¿Tiene Estética?</CheckBox>
                             <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding VendedorPeluqueriaMostrar}" Visibility="{Binding ClienteTienePeluqueria,Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="Green" HorizontalAlignment="Right"></TextBlock>
                             <CheckBox Name="chkTienePeluqueria" Grid.Column="3" Grid.Row="3" IsChecked="{Binding ClienteTienePeluqueria}">¿Tiene Peluquería?</CheckBox>
+                            <!-- Nesto#555 (sugerencia 770): sin vendedor; el estado (10 alumna, 8 público) lo pone la API -->
+                            <CheckBox Name="chkEsAlumna" Grid.Column="3" Grid.Row="5" Grid.ColumnSpan="2" IsChecked="{Binding ClienteEsAlumna}" ToolTip="Alumna de cursos y eventos: queda con estado Alumna y sin vendedor (NV)">¿Es alumna? (cursos y eventos)</CheckBox>
+                            <CheckBox Name="chkEsPublico" Grid.Column="3" Grid.Row="7" Grid.ColumnSpan="2" IsChecked="{Binding ClienteEsPublico}" ToolTip="Profesional de otro sector que pide factura: queda como público final y sin vendedor (NV)">¿Es público final? (otro sector, pide factura)</CheckBox>
 
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>

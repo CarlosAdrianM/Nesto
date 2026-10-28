@@ -19,6 +19,10 @@ namespace Nesto.Modulos.Cliente
         public bool EsContacto { get; set; }
         public short? Estado { get; set; }
         public bool Estetica { get; set; }
+        // Nesto#555 (sugerencia 770): alumna de cursos y eventos → la API la graba con estado 10 y vendedor NV.
+        public bool Alumna { get; set; }
+        // Nesto#555 (Laura, 411): público final (otro sector, pide factura) → estado 8 y vendedor NV. Excluyente con Alumna.
+        public bool Publico { get; set; }
         public string FormaPago { get; set; }
         public string Iban { get; set; }
         public string Nif { get; set; }
