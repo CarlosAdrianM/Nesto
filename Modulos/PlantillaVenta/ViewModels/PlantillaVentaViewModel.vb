@@ -2078,6 +2078,15 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar datos de dirección con Estado
             If value IsNot Nothing Then
                 Estado.Contacto = value.contacto
+                ' Pedido 929498 (MariaJose, 28/10/26): el IVA del pedido es el del CONTACTO de entrega (cada contacto es una ficha
+                ' con su régimen: el 1 era de recargo, E52, y el pedido salió con el G21 del contacto 0). Si el usuario quitó el
+                ' IVA a mano (Nothing, botón «Cambiar IVA») se respeta; al restaurar un borrador manda lo guardado.
+                If Not mismoContacto AndAlso _borradorEnRestauracion Is Nothing AndAlso
+                    Not String.IsNullOrWhiteSpace(value.iva) AndAlso Estado.IvaCliente IsNot Nothing AndAlso
+                    Not String.Equals(Estado.IvaCliente?.Trim(), value.iva.Trim(), StringComparison.OrdinalIgnoreCase) Then
+                    Estado.IvaCliente = value.iva.Trim()
+                    iva = Estado.IvaCliente
+                End If
                 Estado.Vendedor = value.vendedor
                 Estado.PeriodoFacturacion = value.periodoFacturacion
                 Estado.Ruta = value.ruta
@@ -2488,6 +2497,12 @@ Public Class PlantillaVentaViewModel
                 End If
                 If fechaReferencia < Value Then
                     fechaEntrega = Value
+                End If
+                ' Sugerencia 832: el mínimo NUNCA sube por encima de la fecha que tiene la vista (el DateTimePicker de Xceed
+                ' revienta al tachar el día seleccionado). El borrador vuelve a poner la suya al terminar de restaurarse.
+                If Estado.FechaEntrega < Value Then
+                    Estado.FechaEntrega = Value
+                    OnPropertyChanged(NameOf(fechaEntrega))
                 End If
                 Dim unused1 = SetProperty(_fechaMinimaEntrega, Value)
             End If
@@ -6160,6 +6175,10 @@ Public Class PlantillaVentaViewModel
             ' no la pise con Date.Today
             If borrador.FechaEntrega > Date.MinValue Then
                 Estado.FechaEntrega = borrador.FechaEntrega
+                ' Sugerencia 832 (Lidia, 28/10/26): avisar a la vista YA. Si no, el DateTimePicker sigue con la fecha de antes y,
+                ' cuando fechaMinimaEntrega sube por encima de ella, Xceed revienta (CalendarBlackoutDatesCollection.InsertItem:
+                ' no puede tachar el día seleccionado) y Nesto enseña «Specified argument was out of the range of valid values».
+                OnPropertyChanged(NameOf(fechaEntrega))
             End If
 
             ' Verificar que tiene datos válidos
