@@ -31,7 +31,8 @@
             <RadioButton Grid.Column="0" Grid.Row="1" Content="Cliente" IsChecked="{Binding esPickingCliente, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
             <TextBox Grid.Column="1" Grid.Row="1" Name="txtCliente" Text="{Binding numeroClientePicking}"></TextBox>
             <RadioButton Grid.Column="0" Grid.Row="2" Content="Rutas" IsChecked="{Binding esPickingRutas, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
-            <TextBlock Grid.Column="0" Grid.Row="3"></TextBlock>
+            <RadioButton Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Content="Solo nuestra ruta (AT y 16)" IsChecked="{Binding esPickingRutasPropias, Mode=TwoWay}" GroupName="TipoPicking"
+                         ToolTip="Solo los pedidos con ruta AT o 16 y entrega hasta hoy: el picking de primera hora. El de las 11 saca el resto."></RadioButton>
 
             <Button Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Command="{Binding cmdSacarPicking}" CommandParameter="{Binding pedidoPicking}">Aceptar</Button>
 

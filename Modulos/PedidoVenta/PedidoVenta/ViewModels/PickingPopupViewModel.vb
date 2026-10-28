@@ -86,6 +86,25 @@ Public Class PickingPopupViewModel
         End Set
     End Property
 
+    Private _esPickingRutasPropias As Boolean
+    ''' <summary>
+    ''' Sugerencia 854 (decisión de Carlos 28/10/26): picking de primera hora «Solo nuestra ruta». Saca solo los pedidos con
+    ''' ruta propia (AT y 16) y entrega hasta hoy, para que los repartidores salgan a las 9; el picking automático de las 11
+    ''' saca después todo lo demás. Es excluyente con los otros tres tipos de picking.
+    ''' </summary>
+    Public Property esPickingRutasPropias As Boolean
+        Get
+            Return _esPickingRutasPropias
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_esPickingRutasPropias, value) AndAlso value Then
+                esPickingPedido = False
+                esPickingCliente = False
+                esPickingRutas = False
+            End If
+        End Set
+    End Property
+
     Private _estaSacandoPicking As Boolean
     Public Property estaSacandoPicking() As Boolean
         Get
@@ -262,7 +281,9 @@ Public Class PickingPopupViewModel
                     Return New List(Of SugerenciaRutaPicking)
                 End If
                 sugerencias = Await servicio.LeerSugerenciasRutaPicking(Nothing, 0, numeroClientePicking)
-            ElseIf esPickingRutas Then
+            ElseIf esPickingRutas OrElse esPickingRutasPropias Then
+                ' Sugerencia 854: en el de «Solo nuestra ruta» el aviso es el mismo que en el de rutas (pedidos de OnTime que
+                ' seguramente irían por AT/16): si almacén los pasa a nuestra ruta, salen ya en este picking de primera hora.
                 sugerencias = Await servicio.LeerSugerenciasRutaPicking(Nothing, 0, Nothing)
             Else
                 Return New List(Of SugerenciaRutaPicking)
@@ -474,6 +495,8 @@ Public Class PickingPopupViewModel
                 End If
             ElseIf esPickingCliente Then
                 Await servicio.sacarPickingPedido(numeroClientePicking)
+            ElseIf esPickingRutasPropias Then
+                Await servicio.sacarPickingRutasPropias()
             ElseIf esPickingRutas Then
                 Await servicio.sacarPickingPedido()
             Else
@@ -484,6 +507,8 @@ Public Class PickingPopupViewModel
                 textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
             ElseIf esPickingCliente Then
                 textoMensaje = "Se ha asignado el picking correctamente al cliente " + numeroClientePicking
+            ElseIf esPickingRutasPropias Then
+                textoMensaje = "Se ha asignado el picking correctamente a nuestra ruta (AT y 16)"
             ElseIf esPickingRutas Then
                 textoMensaje = "Se ha asignado el picking correctamente a las rutas"
             Else
@@ -498,6 +523,8 @@ Public Class PickingPopupViewModel
                 tituloError = "Error Picking pedido " + numeroPedidoPicking.ToString
             ElseIf esPickingCliente Then
                 tituloError = "Error Picking cliente " + numeroClientePicking
+            ElseIf esPickingRutasPropias Then
+                tituloError = "Error Picking Solo nuestra ruta"
             ElseIf esPickingRutas Then
                 tituloError = "Error Picking Rutas"
             Else

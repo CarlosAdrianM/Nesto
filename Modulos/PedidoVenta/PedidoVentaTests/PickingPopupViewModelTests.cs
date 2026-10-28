@@ -319,5 +319,47 @@ namespace PedidoVentaTests
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
             A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
         }
+
+        // ===== Sugerencia 854 (28/10/26): picking de primera hora «Solo nuestra ruta» (AT y 16, entrega hasta hoy). El de las
+        // 11 saca el resto. Va por su propio endpoint; «Rutas» sigue llamando al de siempre.
+
+        [TestMethod]
+        public async Task SacarPicking_SoloNuestraRuta_LlamaAlServicioDeRutasPropiasYNoAlDeRutas()
+        {
+            var (vm, _, _) = PickingConKits();
+            vm.esPickingRutasPropias = true;
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _servicioPedido.sacarPickingRutasPropias()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustNotHaveHappened();
+            A.CallTo(() => _servicioPedido.LeerSugerenciasRutaPicking(null, 0, null)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogService.ShowNotification("Picking", A<string>.That.Contains("nuestra ruta"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task SacarPicking_Rutas_SigueLlamandoAlDeSiempreYNoAlDeRutasPropias()
+        {
+            var (vm, _, _) = PickingConKits();
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicioPedido.sacarPickingRutasPropias()).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void SoloNuestraRuta_EsExcluyenteConLosOtrosTipos()
+        {
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.esPickingCliente = true;
+            vm.esPickingRutas = true;
+
+            vm.esPickingRutasPropias = true;
+
+            Assert.IsFalse(vm.esPickingPedido);
+            Assert.IsFalse(vm.esPickingCliente);
+            Assert.IsFalse(vm.esPickingRutas);
+        }
     }
 }

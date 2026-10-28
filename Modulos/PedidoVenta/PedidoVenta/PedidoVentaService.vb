@@ -554,6 +554,28 @@ Public Class PedidoVentaService
     End Function
 
     ''' <summary>
+    ''' Sugerencia 854: picking de primera hora «Solo nuestra ruta». Solo los pedidos con ruta AT o 16 y entrega hasta hoy,
+    ''' para que los repartidores salgan a las 9; el picking automático de las 11 saca el resto.
+    ''' </summary>
+    Public Async Function sacarPickingRutasPropias() As Task Implements IPedidoVentaService.sacarPickingRutasPropias
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
+                Dim response As HttpResponseMessage = Await client.GetAsync("Picking/RutasPropias")
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                If Not response.IsSuccessStatusCode Then
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+                End If
+            Catch ex As Exception
+                Throw New Exception("No se ha podido sacar el picking de nuestra ruta (AT y 16)" + vbCr + vbCr + ex.Message)
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
     ''' Sugerencia 575 (Alfredo): GET api/Picking/SugerenciasRuta con el mismo alcance que el picking que se va a sacar.
     ''' </summary>
     Public Async Function LeerSugerenciasRutaPicking(empresa As String, numeroPedido As Integer, cliente As String) As Task(Of List(Of SugerenciaRutaPicking)) Implements IPedidoVentaService.LeerSugerenciasRutaPicking
