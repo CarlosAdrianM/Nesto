@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace Nesto.Infrastructure.Models
@@ -52,5 +53,21 @@ namespace Nesto.Infrastructure.Models
 
         /// <summary>El código HTTP con el que ha contestado la API.</summary>
         public int Codigo { get; }
+    }
+    /// <summary>
+    /// NestoAPI#693 (Carlos, 28/10/26): qué avisos de pedidos en riesgo recibe el usuario (GET/PUT api/PedidosVenta/PromesaEnRiesgo/Avisos):
+    /// Todo | SoloCorreo | SoloCampana | Nada, con el texto de cada opción para el desplegable.
+    /// </summary>
+    public class AvisosPromesaRiesgo
+    {
+        public string Valor { get; set; }
+        public string Texto { get; set; }
+        public List<OpcionAvisosPromesaRiesgo> Opciones { get; set; } = new List<OpcionAvisosPromesaRiesgo>();
+    }
+
+    public class OpcionAvisosPromesaRiesgo
+    {
+        public string Valor { get; set; }
+        public string Texto { get; set; }
     }
 }

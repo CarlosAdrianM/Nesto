@@ -146,6 +146,65 @@ namespace Nesto.Modulos.Cliente
 
         public ObservableCollection<FilaPedidoPromesaRiesgo> Pedidos { get; } = new ObservableCollection<FilaPedidoPromesaRiesgo>();
 
+        // ---------- NestoAPI#693 (Carlos, 28/10/26): qué avisos recibe el usuario ----------
+        /// <summary>Las opciones que da la API (Todo, SoloCorreo, SoloCampana, Nada), con su texto.</summary>
+        public ObservableCollection<OpcionAvisosPromesaRiesgo> OpcionesAvisos { get; } = new ObservableCollection<OpcionAvisosPromesaRiesgo>();
+
+        private bool _avisosListos;
+        private string _avisos;
+        /// <summary>Lo elegido. Al cambiarlo desde el desplegable se guarda en el servidor; al cargar no.</summary>
+        public string Avisos
+        {
+            get => _avisos;
+            set
+            {
+                if (SetProperty(ref _avisos, value) && _avisosListos && !string.IsNullOrWhiteSpace(value))
+                {
+                    _ = GuardarAvisosAsync(value);
+                }
+            }
+        }
+
+        private async Task CargarAvisosAsync()
+        {
+            try
+            {
+                AvisosPromesaRiesgo avisos = await _servicio.LeerAvisos().ConfigureAwait(true);
+                if (avisos == null)
+                {
+                    return;
+                }
+                _avisosListos = false;
+                OpcionesAvisos.Clear();
+                foreach (OpcionAvisosPromesaRiesgo opcion in avisos.Opciones ?? new List<OpcionAvisosPromesaRiesgo>())
+                {
+                    OpcionesAvisos.Add(opcion);
+                }
+                Avisos = avisos.Valor;
+            }
+            catch (Exception)
+            {
+                // Sin preferencia no pasa nada: la ventana sigue; el desplegable queda vacío
+            }
+            finally
+            {
+                _avisosListos = OpcionesAvisos.Count > 0;
+            }
+        }
+
+        private async Task GuardarAvisosAsync(string valor)
+        {
+            try
+            {
+                AvisosPromesaRiesgo guardado = await _servicio.GuardarAvisos(valor).ConfigureAwait(true);
+                Mensaje = $"Avisos de pedidos en riesgo: {guardado?.Texto ?? valor}.";
+            }
+            catch (Exception ex)
+            {
+                Mensaje = "No se ha podido guardar qué avisos recibe: " + ex.Message;
+            }
+        }
+
         private string _filtro = FILTRO_PENDIENTES;
         /// <summary>Pendientes (por defecto), Resueltos o Todos. Al cambiarlo se vuelve a leer.</summary>
         public string Filtro
@@ -270,6 +329,10 @@ namespace Nesto.Modulos.Cliente
             {
                 List<PedidoPromesaRiesgo> leidos = await _servicio.Leer(Empresa, Filtro != FILTRO_PENDIENTES).ConfigureAwait(true) ?? new List<PedidoPromesaRiesgo>();
                 Poner(leidos);
+                if (OpcionesAvisos.Count == 0)
+                {
+                    await CargarAvisosAsync().ConfigureAwait(true); // NestoAPI#693: una vez por ventana
+                }
                 if (_pedidoAElegir.HasValue && Seleccionado == null && Filtro == FILTRO_PENDIENTES)
                 {
                     // El aviso habla de un pedido que ya no está pendiente (se ha resuelto entretanto): se enseña con los resueltos

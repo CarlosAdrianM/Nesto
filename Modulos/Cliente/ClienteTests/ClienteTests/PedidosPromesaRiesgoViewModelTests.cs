@@ -58,6 +58,37 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async Task Cargar_LeeQueAvisosRecibeElUsuario_YCambiarloLoGuarda_693()
+        {
+            LaApiDevuelve(false, Riesgo(928908, PROMETIDA.AddDays(2)));
+            A.CallTo(() => servicio.LeerAvisos()).Returns(Task.FromResult(new AvisosPromesaRiesgo
+            {
+                Valor = "Todo",
+                Texto = "Campana y correo resumen",
+                Opciones = new List<OpcionAvisosPromesaRiesgo>
+                {
+                    new OpcionAvisosPromesaRiesgo { Valor = "Todo", Texto = "Campana y correo resumen" },
+                    new OpcionAvisosPromesaRiesgo { Valor = "SoloCorreo", Texto = "Solo el correo resumen" }
+                }
+            }));
+            A.CallTo(() => servicio.GuardarAvisos("SoloCorreo")).Returns(Task.FromResult(new AvisosPromesaRiesgo { Valor = "SoloCorreo", Texto = "Solo el correo resumen" }));
+            PedidosPromesaRiesgoViewModel vm = Crear();
+
+            await vm.CargarAsync();
+            Assert.AreEqual("Todo", vm.Avisos);
+            Assert.AreEqual(2, vm.OpcionesAvisos.Count);
+            A.CallTo(() => servicio.GuardarAvisos(A<string>._)).MustNotHaveHappened();
+
+            vm.Avisos = "SoloCorreo";
+            await Task.Delay(50);
+            A.CallTo(() => servicio.GuardarAvisos("SoloCorreo")).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(vm.Mensaje, "Solo el correo resumen");
+
+            await vm.CargarAsync();
+            A.CallTo(() => servicio.LeerAvisos()).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
         public async Task Cargar_PorDefectoPideSoloPendientes_YPintaLasFilas()
         {
             LaApiDevuelve(false, Riesgo(928908, PROMETIDA.AddDays(2)), Riesgo(929000, null));

@@ -38,6 +38,10 @@
                       DisplayMemberPath="Texto" SelectedValuePath="Valor" SelectedValue="{Binding Filtro}"
                       ToolTip="Pendientes: siguen en riesgo. Resueltos: los de los últimos días que ya cumplen, se sirvieron o se renegociaron." />
             <TextBlock Text="{Binding Resumen}" VerticalAlignment="Center" Margin="16,0,0,0" FontWeight="SemiBold" />
+            <!-- NestoAPI#693 (28/10/26): qué avisos recibe el usuario; la ventana enseña siempre todo lo que le toca -->
+            <TextBlock Text="Avisos:" VerticalAlignment="Center" Margin="24,0,6,0" />
+            <ComboBox Width="200" ItemsSource="{Binding OpcionesAvisos}" DisplayMemberPath="Texto" SelectedValuePath="Valor" SelectedValue="{Binding Avisos}"
+                      ToolTip="Qué avisos de pedidos en riesgo recibe usted: la campana al detectarse y/o el correo resumen de las 9:00 y las 15:00. Esta ventana enseña siempre todos los que le tocan." />
         </StackPanel>
 
         <!-- Doble clic en una fila: abre el pedido (code-behind → AbrirPedidoCommand) -->
