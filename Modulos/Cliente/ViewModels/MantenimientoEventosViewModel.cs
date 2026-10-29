@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
@@ -831,7 +831,7 @@ namespace Nesto.Modulos.Cliente
         }
 
         /// <summary>«Anunciar otra vez»: solo de un evento guardado que ya se anunció.</summary>
-        public bool PuedeAnunciarOtraVez => _idEdicion > 0 && AnunciadoFecha.HasValue;
+        public bool PuedeAnunciarOtraVez => _idEdicion > 0 && AnunciadoFecha.HasValue && PuedeAnunciar(Configuracion);
 
         private void PonerEstadoAnuncio(EventoModel evento)
         {
@@ -878,7 +878,16 @@ namespace Nesto.Modulos.Cliente
 
         /// <summary>Si toca preguntar por este evento ahora: está completo, sin anunciar y no se ha dicho ya que no.</summary>
         public bool TocaPreguntarSiAnunciar(EventoModel evento) =>
-            HayQuePreguntarSiAnunciar(evento) && !_eventosQueNoQuisieronAnunciar.Contains(evento.Id);
+            PuedeAnunciar(Configuracion) && HayQuePreguntarSiAnunciar(evento) && !_eventosQueNoQuisieronAnunciar.Contains(evento.Id);
+
+        /// <summary>
+        /// Carlos (29/10/26): anuncian Tienda online o Dirección (e Informática), no las tiendas ni Administración. Tienda online
+        /// es quien completa el evento con la foto; a los demás no se les pregunta (la API lo rechazaría).
+        /// </summary>
+        public static bool PuedeAnunciar(IConfiguracion configuracion) =>
+            configuracion != null && (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
 
         public const string TITULO_ANUNCIAR = "Anunciar el evento";
         public const string PREGUNTA_ANUNCIAR = "El evento está completo. ¿Quiere anunciarlo en las apps?";

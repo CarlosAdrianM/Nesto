@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
@@ -32,6 +32,8 @@ namespace ClienteTests
             A.CallTo(() => dialogos.ShowError(A<string>.Ignored)).Invokes((string m) => errores.Add(m));
             A.CallTo(() => dialogos.ShowNotification(A<string>.Ignored, A<string>.Ignored)).Invokes((string t, string m) => notificaciones.Add(m));
             A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)).Returns(true);
+            // Carlos (29/10/26): anuncian Tienda online o Dirección; estos tests son de un usuario que puede anunciar.
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)).Returns(true);
             A.CallTo(() => configuracion.leerParametro(A<string>.Ignored, Parametros.Claves.AlmacenPedidoVta)).Returns("REI");
             A.CallTo(() => eventos.LeerInscripciones(A<int>.Ignored)).Returns(new List<InscripcionEventoModel>());
         }
@@ -94,6 +96,18 @@ namespace ClienteTests
             A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, MantenimientoEventosViewModel.PREGUNTA_ANUNCIAR, A<bool>.Ignored))
                 .MustHaveHappenedOnceExactly();
             A.CallTo(() => dialogos.ShowNotification("Evento guardado", A<string>.Ignored)).MustHaveHappenedTwiceExactly();
+            A.CallTo(() => eventos.Anunciar(A<int>.Ignored, A<bool>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Guardar_UsuarioSoloDeTienda_NoPreguntaNiAnuncia()
+        {
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)).Returns(false);
+            var vm = await Mantenimiento(Evento(completo: true));
+
+            Assert.IsFalse(vm.TocaPreguntarSiAnunciar(Evento(completo: true)), "La tienda no anuncia: lo hacen Tienda online o Dirección");
+            await vm.GuardarAsync();
+
             A.CallTo(() => eventos.Anunciar(A<int>.Ignored, A<bool>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
         }
 
