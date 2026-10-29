@@ -180,8 +180,8 @@ Partial Class MainWindow
 
     ''' <summary>
     ''' Nesto#490 (panel lateral, tramo 1): con el piloto NavegacionLateral, esconde la cinta (que sigue existiendo: el
-    ''' catálogo enlaza con sus botones) y pone el menú lateral en la columna 0 y, encima de MainRegion, una cabecera con
-    ''' el título y la campana (con su DataContext de siempre). Se llama una vez, después de que los módulos hayan puesto su
+    ''' catálogo enlaza con sus botones) y pone el menú lateral en la columna 0 y, encima de MainRegion, una cabecera mínima
+    ''' con la campana (con su DataContext de siempre). Se llama una vez, después de que los módulos hayan puesto su
     ''' menú y antes de Show. Devuelve el panel creado.
     ''' </summary>
     Public Function MontarNavegacionLateral(catalogo As CatalogoMenu, conmutador As ConmutadorNavegacionLateral) As PanelNavegacionLateral
@@ -193,15 +193,11 @@ Partial Class MainWindow
         ' La campana sale de la cinta (HelpPaneContent) y va a la cabecera; su DataContext es suyo (CampanaNotificacionesViewModel)
         MainMenu.HelpPaneContent = Nothing
 
-        Dim cabecera As New DockPanel With {.LastChildFill = True, .Margin = New Thickness(8, 4, 8, 0)}
+        ' Nesto#560: solo la campana, en una línea mínima. El título con la versión ya está en la barra de la ventana; aquí
+        ' (con letra 16 y márgenes) quitaba unos 40 px de alto a las pantallas.
+        Dim cabecera As New DockPanel With {.LastChildFill = False, .Margin = New Thickness(0, 1, 8, 0)}
         DockPanel.SetDock(Campana, Dock.Right)
         cabecera.Children.Add(Campana)
-        cabecera.Children.Add(New TextBlock With {
-            .Text = tituloVentana,
-            .FontSize = 16,
-            .Foreground = Brushes.DarkSlateGray,
-            .VerticalAlignment = VerticalAlignment.Center
-        })
         Grid.SetRow(cabecera, 0)
         Grid.SetColumn(cabecera, 1)
         Raiz.Children.Add(cabecera)

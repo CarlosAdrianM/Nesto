@@ -61,6 +61,9 @@ Public NotInheritable Class PanelNavegacionLateral
         SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush")
         SetResourceReference(BorderBrushProperty, "ControlStrokeColorDefaultBrush")
         BorderThickness = New Thickness(0, 0, 1, 0)
+        ' Nesto#560: el defecto de TextBlock vuelve a ser el de Windows para todo Nesto (CompensacionTextoWpfUi); el panel se
+        ' queda con el 14 de WPF-UI, como lo diseñó
+        TextElement.SetFontSize(Me, CompensacionTextoWpfUi.TAMANO_WPF_UI)
 
         Navegacion = New Ui.NavigationView With {
             .PaneDisplayMode = Ui.NavigationViewPaneDisplayMode.Left,

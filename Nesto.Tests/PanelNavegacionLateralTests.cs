@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -174,10 +175,12 @@ namespace Nesto.Tests
                     Assert.IsNull(m.BotonFuera.TryFindResource("ApplicationBackgroundBrush"), "Ni los colores del tema");
                     // El hallazgo del spike: el primer SymbolIcon crea un Wpf.Ui.Controls.TextBlock y su constructor estático
                     // cambia, para todo el proceso, el tamaño POR DEFECTO de los TextBlock (12 → 14). No es un estilo: es
-                    // metadata del tipo, y un valor por defecto no se hereda
+                    // metadata del tipo. Nesto#560: la compensación (como en MainWindow.MontarNavegacionLateral) lo devuelve al
+                    // de Windows
                     double tamanoTextBlockDespues = (double)TextBlock.FontSizeProperty.GetMetadata(typeof(TextBlock)).DefaultValue;
                     Console.WriteLine($"TextBlock.FontSize por defecto: antes {tamanoTextBlockAntes}, después {tamanoTextBlockDespues}");
-                    Assert.AreEqual(14d, tamanoTextBlockDespues, "Si WPF-UI deja de hacerlo, se puede quitar CompensacionTextoWpfUi");
+                    Assert.AreEqual(SystemFonts.MessageFontSize, tamanoTextBlockDespues, "El defecto de TextBlock, el de Windows otra vez");
+                    Assert.AreEqual(CompensacionTextoWpfUi.TAMANO_WPF_UI, TextElement.GetFontSize(m.Panel), "El panel, con el 14 de WPF-UI");
                     // Con la compensación, el texto de fuera sigue con el tamaño de Windows (lo hereda de la ventana)
                     Assert.AreEqual(SystemFonts.MessageFontSize, m.TextoFuera.FontSize, "El texto de fuera del panel, con el tamaño de siempre");
                     // Y también en una ventana que se abra después (un diálogo)
@@ -199,6 +202,126 @@ namespace Nesto.Tests
                 finally
                 {
                     m.Ventana.Close();
+                }
+            });
+        }
+
+        public sealed class FilaBanco
+        {
+            public string Concepto { get; set; }
+            public decimal Importe { get; set; }
+        }
+
+        private static DataGrid RejillaBanco() => new DataGrid
+        {
+            AutoGenerateColumns = true,
+            ItemsSource = new List<FilaBanco>
+            {
+                new FilaBanco { Concepto = "ABONARÉS - ENTREGAS - INGRESOS", Importe = 304m },
+                new FilaBanco { Concepto = "TARJETAS DE CRÉDITO - TARJETAS DÉBITO", Importe = -7.01m },
+            }
+        };
+
+        private static List<TextBlock> TextosDe(DependencyObject raiz)
+        {
+            var textos = new List<TextBlock>();
+            void Recorrer(DependencyObject nodo)
+            {
+                if (nodo is TextBlock texto)
+                {
+                    textos.Add(texto);
+                }
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(nodo); i++)
+                {
+                    Recorrer(VisualTreeHelper.GetChild(nodo, i));
+                }
+            }
+            Recorrer(raiz);
+            return textos;
+        }
+
+        private static void ComprobarTamanoDeSiempre(DependencyObject raiz, string donde)
+        {
+            List<TextBlock> textos = TextosDe(raiz);
+            Assert.IsTrue(textos.Count > 0, "No hay textos que mirar en " + donde);
+            var distintos = textos.Where(t => t.FontSize != SystemFonts.MessageFontSize)
+                .Select(t => $"«{t.Text}» {t.FontSize} ({DependencyPropertyHelper.GetValueSource(t, TextBlock.FontSizeProperty).BaseValueSource})")
+                .ToList();
+            Assert.AreEqual(0, distintos.Count, $"{donde}: textos que no salen con el tamaño de la cinta ({SystemFonts.MessageFontSize}):\n" + string.Join("\n", distintos));
+        }
+
+        /// <summary>
+        /// Nesto#560: con el panel lateral las rejillas, las pestañas y las etiquetas salían a 14 (filas de ~22 px en vez de
+        /// ~19) y Carlos no podía cuadrar el banco. La compensación ponía en la ventana el MISMO valor que ya tenía (12), WPF
+        /// no bajaba ese «cambio» más allá del primer Control (el TabControl MainRegion, que ya valía 12 por su defecto) y los
+        /// TextBlock de debajo usaban su defecto de WPF-UI (14). Aquí, montado como MainWindow (la ventana ya construida
+        /// cuando se monta el panel, una pantalla abierta antes y otra después, y un diálogo), todos los textos deben salir
+        /// con el tamaño de siempre, el de la cinta.
+        /// </summary>
+        [TestMethod]
+        public void Nesto560_ConElPanelLateral_LasPantallasYLosDialogos_TienenLaLetraDeLaCinta()
+        {
+            EnSta(() =>
+            {
+                // WPF-UI cargado (como al crear el panel): sin compensar, TextBlock pasaría a 14 por defecto para todo el proceso
+                _ = new Ui.TextBlock();
+
+                // Como MainWindow.xaml: Grid > Border > TabControl (MainRegion), ya construido antes de montar el panel
+                var region = new TabControl();
+                _ = region.Items.Add(new TabItem { Header = "Bancos", Content = new UserControl { Content = RejillaBanco() } });
+                region.SelectedIndex = 0;
+                var raiz = new Grid();
+                raiz.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                raiz.RowDefinitions.Add(new RowDefinition());
+                var borde = new Border { Child = region };
+                Grid.SetRow(borde, 1);
+                raiz.Children.Add(borde);
+                var ventana = new Window
+                {
+                    Content = raiz, Width = 900, Height = 600, Left = -20000, Top = -20000,
+                    ShowInTaskbar = false, ShowActivated = false, WindowStyle = WindowStyle.None
+                };
+                Window dialogo = null;
+                try
+                {
+                    // MainWindow.MontarNavegacionLateral
+                    CompensacionTextoWpfUi.Aplicar(ventana);
+                    Assert.AreEqual(SystemFonts.MessageFontSize, (double)TextBlock.FontSizeProperty.GetMetadata(typeof(TextBlock)).DefaultValue,
+                        "El defecto de TextBlock, como sin WPF-UI");
+                    Assert.AreEqual(SystemFonts.MessageFontSize, (double)TextBlock.FontSizeProperty.GetMetadata(typeof(Ui.TextBlock)).DefaultValue,
+                        "También para los TextBlock de WPF-UI, que comparten la metadata");
+                    ventana.Show();
+                    Bombear();
+                    ComprobarTamanoDeSiempre(ventana, "La pantalla abierta al montar el panel");
+
+                    // Una pantalla que se abre después (como Bancos desde el menú)
+                    var botonera = new StackPanel();
+                    botonera.Children.Add(new Button { Content = "Puntear automáticamente" });
+                    botonera.Children.Add(new Label { Content = "Banco:" });
+                    botonera.Children.Add(RejillaBanco());
+                    var otra = new TabItem { Header = "Bancos (2)", Content = new UserControl { Content = botonera } };
+                    _ = region.Items.Add(otra);
+                    region.SelectedItem = otra;
+                    Bombear();
+                    ComprobarTamanoDeSiempre(ventana, "Una pantalla abierta después");
+
+                    // Y un diálogo con botones
+                    var contenido = new StackPanel();
+                    contenido.Children.Add(new Label { Content = "¿Desea continuar?" });
+                    contenido.Children.Add(new Button { Content = "Aceptar" });
+                    dialogo = new Window
+                    {
+                        Content = contenido, Left = -20000, Top = -20000, Width = 300, Height = 150,
+                        ShowInTaskbar = false, ShowActivated = false
+                    };
+                    dialogo.Show();
+                    Bombear();
+                    ComprobarTamanoDeSiempre(dialogo, "Un diálogo");
+                }
+                finally
+                {
+                    dialogo?.Close();
+                    ventana.Close();
                 }
             });
         }
