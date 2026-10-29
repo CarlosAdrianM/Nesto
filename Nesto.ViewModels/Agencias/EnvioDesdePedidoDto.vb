@@ -1,6 +1,18 @@
 ﻿Imports Nesto.Models.Nesto.Models
 
 ''' <summary>
+''' Nesto#568: no se tramita el envío de este pedido y ya se le ha dicho al usuario por qué (consulta a Administración
+''' enviada o abierta): quien inserta no enseña más mensajes.
+''' </summary>
+Public Class EnvioNoTramitadoException
+    Inherits Exception
+
+    Public Sub New(mensaje As String)
+        MyBase.New(mensaje)
+    End Sub
+End Class
+
+''' <summary>
 ''' NestoAPI#595 (slice 2): cuerpo de POST api/EnviosAgencias/DesdePedido. El servidor parte de su propuesta, aplica
 ''' los valores de la pantalla (<see cref="Cambios"/>, que se mandan SIEMPRE todos), pide lo que falte (409) y graba el
 ''' envío. Los nombres son el contrato con CrearEnvioDesdePedidoDTO del servidor (ver AgenciaServiceEnvioDesdePedidoTests).
@@ -48,6 +60,8 @@ Public Class AvisoEnvioDesdePedidoDto
     Public Property Codigo As String
     Public Property Texto As String
     Public Property Tipo As String
+    ''' <summary>NestoAPI#734: lo que puede hacer el cliente con el aviso («ConsultarAdministracion»); Nothing en el resto.</summary>
+    Public Property Accion As String
 End Class
 
 ''' <summary>NestoAPI#595 (slice 2): la respuesta 200 (EnvioDesdePedidoDTO del servidor).</summary>

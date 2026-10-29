@@ -8,6 +8,7 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json
 
 Public Class AgenciaService
@@ -1333,6 +1334,41 @@ Public Class AgenciaService
         End If
         Dim texto As String = JsonConvert.DeserializeObject(Of String)(cuerpo)
         Return If(String.IsNullOrWhiteSpace(texto), Nothing, texto)
+    End Function
+
+    ''' <summary>Nesto#568 (NestoAPI#734): como <see cref="AvisoEnlacePagoPendiente"/>, pero con el aviso entero (con su Accion).</summary>
+    Public Async Function AvisoEnlacePagoPendienteDetalle(empresa As String, pedido As Integer) As Task(Of AvisoEnvioDesdePedidoDto) Implements IAgenciaService.AvisoEnlacePagoPendienteDetalle
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync($"EnviosAgencias/Propuesta?empresa={empresa.Trim}&pedido={pedido}")
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se ha podido leer la propuesta de envío del pedido ({CInt(response.StatusCode)})")
+            End If
+            Return AvisoEnlacePagoDeLaPropuesta(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#568: de la propuesta (JSON), el aviso «ConsultaReembolsoAbierta» si lo trae (el pedido está retenido esperando a
+    ''' Administración) o, si no, «EnlacePagoPendiente». Nothing si no trae ninguno.
+    ''' </summary>
+    Friend Shared Function AvisoEnlacePagoDeLaPropuesta(cuerpo As String) As AvisoEnvioDesdePedidoDto
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Dim avisos = JsonConvert.DeserializeObject(Of PropuestaEnvioAvisosDto)(cuerpo)?.AvisosDetalle
+        If avisos Is Nothing Then
+            Return Nothing
+        End If
+        Dim abierta = avisos.FirstOrDefault(Function(a) a IsNot Nothing AndAlso a.Codigo = ConsultaReembolso.AVISO_CONSULTA_ABIERTA AndAlso Not String.IsNullOrWhiteSpace(a.Texto))
+        Return If(abierta, avisos.FirstOrDefault(Function(a) a IsNot Nothing AndAlso a.Codigo = ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE AndAlso Not String.IsNullOrWhiteSpace(a.Texto)))
+    End Function
+
+    ''' <summary>Nesto#568 (NestoAPI#734): POST api/PedidosVenta/{empresa}/{numero}/ConsultaReembolso.</summary>
+    Public Function ConsultarReembolsoAdministracion(empresa As String, pedido As Integer, comentario As String) As Task(Of RespuestaConsultaReembolsoModel) Implements IAgenciaService.ConsultarReembolsoAdministracion
+        Return New ConsultaReembolsoService(configuracion, _servicioAutenticacion).Consultar(empresa, pedido, comentario)
     End Function
 
     ''' <summary>NestoAPI#679: el texto del aviso «EnlacePagoPendiente» de la propuesta (JSON); Nothing si no lo trae.</summary>

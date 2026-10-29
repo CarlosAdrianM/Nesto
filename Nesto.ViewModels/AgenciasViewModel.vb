@@ -745,18 +745,64 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado Is Nothing OrElse reembolso <= 0D Then
             Return True
         End If
-        Dim texto As String
+        Dim aviso As AvisoEnvioDesdePedidoDto
         Try
-            texto = Await _servicio.AvisoEnlacePagoPendiente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
+            aviso = Await _servicio.AvisoEnlacePagoPendienteDetalle(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
         Catch ex As Exception
             Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ConfirmarEnlacesPagoPendientes")
             Return True
         End Try
-        If String.IsNullOrWhiteSpace(texto) Then
+        If aviso Is Nothing OrElse String.IsNullOrWhiteSpace(aviso.Texto) Then
             Return True
         End If
-        Return _dialogService.ShowConfirmationAnswer(TituloPendienteEnvio(ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE),
-            $"{texto}{vbCrLf}{vbCrLf}¿Desea continuar?")
+        Return Await ResolverEnlacePagoPendienteAsync(aviso)
+    End Function
+
+    ''' <summary>Nesto#568: el aviso del enlace de pago pide consultar a Administración, o ya hay una consulta abierta.</summary>
+    Friend Shared Function EsAvisoConsultaReembolso(aviso As AvisoEnvioDesdePedidoDto) As Boolean
+        Return aviso IsNot Nothing AndAlso
+            (aviso.Codigo = ConsultaReembolso.AVISO_CONSULTA_ABIERTA OrElse
+             (aviso.Codigo = ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE AndAlso
+              String.Equals(aviso.Accion?.Trim(), ConsultaReembolso.ACCION_CONSULTAR_ADMINISTRACION, StringComparison.OrdinalIgnoreCase)))
+    End Function
+
+    ''' <summary>
+    ''' Nesto#568 (NestoAPI#734): el almacén no sabe si cobrar un pedido contra reembolso que tiene enlaces de pago pendientes.
+    ''' <list type="bullet">
+    ''' <item>Con una consulta abierta (Bloqueante): se dice y no se tramita.</item>
+    ''' <item>Con la acción «ConsultarAdministracion»: en vez de sí/no, «Retener y consultar a Administración» (POST
+    ''' …/ConsultaReembolso, que retiene el pedido y avisa a Administración) o «No tramitar ahora». En los dos casos no se
+    ''' sigue con este pedido.</item>
+    ''' <item>Sin acción (API de antes): el sí/no de siempre (True = seguir).</item>
+    ''' </list>
+    ''' Cuando no se sigue y ya se ha dicho por qué, lanza <see cref="EnvioNoTramitadoException"/> (sin más mensajes).
+    ''' </summary>
+    Friend Async Function ResolverEnlacePagoPendienteAsync(aviso As AvisoEnvioDesdePedidoDto) As Task(Of Boolean)
+        If aviso Is Nothing Then
+            Return True
+        End If
+        If aviso.Codigo = ConsultaReembolso.AVISO_CONSULTA_ABIERTA OrElse aviso.Tipo = ConsultaReembolso.TIPO_BLOQUEANTE Then
+            _dialogService.ShowNotification(ConsultaReembolso.TITULO, aviso.Texto)
+            Throw New EnvioNoTramitadoException(aviso.Texto)
+        End If
+        If Not EsAvisoConsultaReembolso(aviso) Then
+            Return _dialogService.ShowConfirmationAnswer(TituloPendienteEnvio(ContratoEnvioDesdePedido.AVISO_ENLACE_PAGO_PENDIENTE),
+                $"{aviso.Texto}{vbCrLf}{vbCrLf}¿Desea continuar?")
+        End If
+        Dim pregunta As String = $"{aviso.Texto}{vbCrLf}{vbCrLf}Si no sabe si cobrarlo, retenga el pedido y pregunte a Administración si sale con o sin reembolso: " &
+            "el pedido no saldrá hasta que contesten y la respuesta le llegará a la campana."
+        If Not ConfirmacionConBotones.Preguntar(_dialogService, ConsultaReembolso.TITULO, pregunta,
+                                                ConsultaReembolso.TEXTO_BOTON_CONSULTAR, ConsultaReembolso.TEXTO_BOTON_CANCELAR) Then
+            Throw New EnvioNoTramitadoException("No se ha tramitado el envío.")
+        End If
+        Dim numero As Integer = pedidoSeleccionado.Número
+        Try
+            Dim respuesta As RespuestaConsultaReembolsoModel = Await _servicio.ConsultarReembolsoAdministracion(pedidoSeleccionado.Empresa, numero, Nothing)
+            _dialogService.ShowNotification(ConsultaReembolso.TITULO, ConsultaReembolso.TextoConsultaEnviada(respuesta, numero))
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+        End Try
+        Throw New EnvioNoTramitadoException("Pedido retenido a la espera de Administración.")
     End Function
 
     ''' <summary>
@@ -2592,6 +2638,8 @@ Public Class AgenciasViewModel
     Private Async Sub OnInsertar(arg As Object)
         Try
             Await InsertarEnvioAsync()
+        Catch e As EnvioNoTramitadoException
+            imprimirEtiqueta = False ' Nesto#568: ya se ha dicho por qué no se tramita
         Catch e As Exception
             imprimirEtiqueta = False
             _dialogService.ShowError(e.Message)
@@ -2731,6 +2779,10 @@ Public Class AgenciasViewModel
                     Throw New Exception(resultado.MensajeError)
                 Case Else
                     For Each pendiente As AvisoEnvioDesdePedidoDto In resultado.Pendientes
+                        ' Nesto#568: retener y consultar a Administración (o ya consultado): no se sigue con este pedido.
+                        If EsAvisoConsultaReembolso(pendiente) OrElse pendiente.Tipo = ConsultaReembolso.TIPO_BLOQUEANTE Then
+                            Await ResolverEnlacePagoPendienteAsync(pendiente)
+                        End If
                         If Not ResolverPendienteEnvio(pendiente, peticion) Then
                             Throw New Exception("Cancelado por el usuario")
                         End If
@@ -2920,6 +2972,9 @@ Public Class AgenciasViewModel
                 cmdImprimirEtiquetaPedido.Execute(Nothing)
                 Return
             End If
+        Catch ex As EnvioNoTramitadoException
+            imprimirEtiqueta = False ' Nesto#568: ya se ha dicho por qué no se tramita
+            Return
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
             Return

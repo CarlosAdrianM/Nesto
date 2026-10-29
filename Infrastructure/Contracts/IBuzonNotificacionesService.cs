@@ -55,6 +55,16 @@ namespace Nesto.Infrastructure.Contracts
         public const string PARAMETRO_PROMESA_EMPRESA = "empresa";
 
         /// <summary>
+        /// Nesto#568 (NestoAPI#734): el almacén pregunta a Administración si un pedido con enlaces de pago pendientes sale con o
+        /// sin reembolso (Datos["accion"] = <see cref="ACCION_CONSULTA_REEMBOLSO_CONSULTA"/>: abre <see cref="DIALOGO_CONSULTA_REEMBOLSO"/>
+        /// con Datos["empresa"] y Datos["pedido"]), o Administración contesta («respuesta»: abre el pedido, como cualquier aviso de un pedido).
+        /// </summary>
+        public const string TIPO_CONSULTA_REEMBOLSO = "ConsultaReembolso";
+        public const string ACCION_CONSULTA_REEMBOLSO_CONSULTA = "consulta";
+        /// <summary>Nesto#568: el diálogo (módulo PedidoVenta) con el que Administración contesta.</summary>
+        public const string DIALOGO_CONSULTA_REEMBOLSO = "ConsultaReembolsoDialog";
+
+        /// <summary>
         /// Nesto#509 (Ariadna#8): un mozo dice que un dato de la ficha de un producto está mal. Trae Datos["avisoId"] y
         /// Datos["producto"]; se cierra con <see cref="RESULTADO_AVISO_CAMBIADO"/> o <see cref="RESULTADO_AVISO_ESTABA_BIEN"/>.
         /// </summary>
