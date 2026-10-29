@@ -211,8 +211,32 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonIgnore]
         public string ClienteContacto => $"{Cliente?.Trim()}/{Contacto?.Trim()}";
 
+        /// <summary>«Teléfono» con tilde; «Cobro» (llegó el cobro sin inscripción previa) y los demás, tal cual.</summary>
         [JsonIgnore]
-        public string TextoOrigen => Origen == "Telefono" ? "Teléfono" : Origen;
+        public string TextoOrigen => Origen switch
+        {
+            ORIGEN_TELEFONO => "Teléfono",
+            ORIGEN_COBRO => "Cobro",
+            _ => Origen
+        };
+
+        public const string ORIGEN_TELEFONO = "Telefono";
+        /// <summary>NestoAPI (29/10/26): la inscripción la creó la API al llegar el cobro sin inscripción previa.</summary>
+        public const string ORIGEN_COBRO = "Cobro";
+
+        // Carlos 29/10/26: copiar el enlace de pago desde la lista para reenviarlo.
+
+        /// <summary>Tiene enlace de pago pendiente (la API solo lo manda mientras se puede pagar).</summary>
+        [JsonIgnore]
+        public bool TieneEnlacePago => !string.IsNullOrWhiteSpace(UrlPago);
+
+        /// <summary>El aviso tras copiar el enlace desde una lista.</summary>
+        [JsonIgnore]
+        public string TextoEnlaceCopiado => string.IsNullOrWhiteSpace(Nombre)
+            ? "Enlace copiado: péguelo en WhatsApp o donde quiera."
+            : $"Enlace de {Nombre.Trim()} copiado: péguelo en WhatsApp o donde quiera.";
+
+        public const string ERROR_COPIAR_ENLACE = "Windows no ha dejado copiar el enlace (puede que otro programa esté usando el portapapeles). Vuelva a intentarlo.";
 
         [JsonIgnore]
         public bool EstaReservada => Estado == RESERVADA;

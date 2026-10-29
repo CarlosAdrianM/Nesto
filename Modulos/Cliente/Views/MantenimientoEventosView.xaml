@@ -12,26 +12,33 @@
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
-        <Grid Margin="10">
+        <!-- Sugerencia 871 (Pilar, 29/10/26): con ventanas pequeñas el título salía de 2 letras, «Marcar pagada» se descolocaba
+             y la lista de inscritos desaparecía. El contenido ocupa la ventana, pero nunca menos de 1000x600: por debajo salen
+             barras de desplazamiento en vez de aplastar las columnas y filas en estrella (Width/Height = el hueco visible;
+             MinWidth/MinHeight mandan cuando el hueco es menor). -->
+        <ScrollViewer x:Name="desplazamiento" Margin="10" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Grid MinWidth="980" MinHeight="580"
+              Width="{Binding ViewportWidth, ElementName=desplazamiento}" Height="{Binding ViewportHeight, ElementName=desplazamiento}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="2*"/>
+                <RowDefinition Height="*" MinHeight="140"/>
+                <RowDefinition Height="2*" MinHeight="300"/>
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Text="Eventos" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                <Button Content="Nuevo evento" Command="{Binding NuevoCommand}" Padding="15,2" FontWeight="Bold"/>
-                <Button Content="Recargar" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="15,2"/>
+            <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="True">
+                <Button DockPanel.Dock="Left" Content="Nuevo evento" Command="{Binding NuevoCommand}" Padding="15,2" FontWeight="Bold"/>
+                <Button DockPanel.Dock="Left" Content="Recargar" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="15,2"/>
                 <TextBlock Text="Cursos y masterclass de cada tienda. Se inscribe al cliente sin pedido; con la señal pagada tiene la plaza."
                            Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
+            </DockPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Eventos}" AutoGenerateColumns="False"
-                      SelectedItem="{Binding Seleccionado}"
-                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
+                      SelectedItem="{Binding Seleccionado}" FrozenColumnCount="2"
+                      HorizontalScrollBarVisibility="Auto" MinColumnWidth="40"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
                         <Style.Triggers>
@@ -43,32 +50,32 @@
                     </Style>
                 </DataGrid.RowStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}"/>
-                    <DataGridTextColumn Header="Horario" Binding="{Binding TextoHorario}"/>
-                    <DataGridTextColumn Header="Título" Binding="{Binding Titulo}" Width="*"/>
-                    <DataGridTextColumn Header="Tienda" Binding="{Binding NombreTienda}"/>
-                    <DataGridTextColumn Header="Curso" Binding="{Binding ProductoCurso}"/>
-                    <DataGridTextColumn Header="Señal (reemb. / no reemb.)" Binding="{Binding TextoSenales}"/>
-                    <DataGridTextColumn Header="Ponente" Binding="{Binding Ponente}"/>
-                    <DataGridTextColumn Header="Plazas" Binding="{Binding TextoPlazas}"/>
-                    <DataGridTextColumn Header="Lugar" Binding="{Binding Lugar}"/>
-                    <DataGridCheckBoxColumn Header="Activo" Binding="{Binding Activo}"/>
-                    <DataGridTextColumn Header="Lista pasada" Binding="{Binding FechaListaAsistencia, StringFormat=g}"/>
-                    <DataGridTextColumn Header="Modificado por" Binding="{Binding Usuario}"/>
-                    <DataGridTextColumn Header="El" Binding="{Binding FechaModificacion, StringFormat=g}"/>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}" Width="80"/>
+                    <DataGridTextColumn Header="Título" Binding="{Binding Titulo}" Width="3*" MinWidth="220"/>
+                    <DataGridTextColumn Header="Horario" Binding="{Binding TextoHorario}" Width="95"/>
+                    <DataGridTextColumn Header="Tienda" Binding="{Binding NombreTienda}" Width="90"/>
+                    <DataGridTextColumn Header="Plazas" Binding="{Binding TextoPlazas}" Width="60"/>
+                    <DataGridTextColumn Header="Señal (reemb. / no reemb.)" Binding="{Binding TextoSenales}" Width="150"/>
+                    <DataGridTextColumn Header="Curso" Binding="{Binding ProductoCurso}" Width="100"/>
+                    <DataGridTextColumn Header="Ponente" Binding="{Binding Ponente}" Width="*" MinWidth="120"/>
+                    <DataGridTextColumn Header="Lugar" Binding="{Binding Lugar}" Width="*" MinWidth="110"/>
+                    <DataGridCheckBoxColumn Header="Activo" Binding="{Binding Activo}" Width="50"/>
+                    <DataGridTextColumn Header="Lista pasada" Binding="{Binding FechaListaAsistencia, StringFormat=g}" Width="110"/>
+                    <DataGridTextColumn Header="Modificado por" Binding="{Binding Usuario}" Width="130"/>
+                    <DataGridTextColumn Header="El" Binding="{Binding FechaModificacion, StringFormat=g}" Width="110"/>
                 </DataGrid.Columns>
             </DataGrid>
 
             <Grid Grid.Row="3" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" MaxWidth="480"/>
+                    <ColumnDefinition Width="*" MinWidth="480"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Ficha del evento -->
                 <Border Grid.Column="0" BorderBrush="LightGray" BorderThickness="0,1,1,0" Padding="0,10,10,0"
                         IsEnabled="{Binding Editando}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock Text="Nuevo evento" FontWeight="Bold" Margin="0,0,0,6">
                                 <TextBlock.Style>
@@ -218,24 +225,32 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock Text="Inscritos" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding ResumenInscripciones}" Foreground="DimGray" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                        <Button Content="Inscribir cliente…" Command="{Binding InscribirCommand}" Margin="15,0,0,0" Padding="10,1" FontWeight="Bold"/>
-                        <Button Content="Recargar" Command="{Binding RecargarInscripcionesCommand}" Margin="6,0,0,0" Padding="10,1"/>
-                        <Button Content="Anular" Command="{Binding AnularInscripcionCommand}" Margin="6,0,0,0" Padding="10,1"
+                    <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Inscritos" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,2,0,2"/>
+                        <TextBlock Text="{Binding ResumenInscripciones}" Foreground="DimGray" VerticalAlignment="Center" Margin="10,2,15,2"/>
+                        <Button Content="Inscribir cliente…" Command="{Binding InscribirCommand}" Margin="0,2,6,2" Padding="10,1" FontWeight="Bold"/>
+                        <Button Content="Recargar" Command="{Binding RecargarInscripcionesCommand}" Margin="0,2,6,2" Padding="10,1"/>
+                        <Button Content="Anular" Command="{Binding AnularInscripcionCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Anula la inscripción sin pagar (o la gratuita) y libera la plaza"/>
-                        <Button Content="Confirma asistencia" Command="{Binding ConfirmaAsistenciaCommand}" Margin="6,0,0,0" Padding="10,1"
+                        <Button Content="Confirma asistencia" Command="{Binding ConfirmaAsistenciaCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Apunta que el cliente le ha dicho que viene"/>
-                        <Button Content="No podrá ir" Command="{Binding NoPodraIrCommand}" Margin="6,0,0,0" Padding="10,1"
+                        <Button Content="No podrá ir" Command="{Binding NoPodraIrCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Apunta que el cliente le ha dicho que no puede ir (no anula la inscripción)"/>
-                        <Button Content="Facturar curso" Command="{Binding FacturarCommand}" Margin="6,0,0,0" Padding="10,1"
+                        <Button Content="Facturar curso" Command="{Binding FacturarCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Relanza la facturación del curso (pedido, factura exenta y liquidación) desde donde se quedó"/>
-                    </StackPanel>
+                        <Button Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Margin="0,2,6,2" Padding="10,1"
+                                ToolTip="Copia el enlace de pago de la inscripción seleccionada para reenviárselo al cliente"/>
+                    </WrapPanel>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Inscripciones}" AutoGenerateColumns="False"
-                              SelectedItem="{Binding InscripcionSeleccionada}"
-                              CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" ColumnWidth="Auto">
+                    <DataGrid x:Name="gridInscritos" Grid.Row="1" ItemsSource="{Binding Inscripciones}" AutoGenerateColumns="False"
+                              SelectedItem="{Binding InscripcionSeleccionada}" FrozenColumnCount="3"
+                              HorizontalScrollBarVisibility="Auto" MinHeight="90"
+                              CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copiar enlace de pago" Command="{Binding CopiarEnlaceCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
@@ -257,7 +272,7 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Vino">
+                            <DataGridTemplateColumn Header="Vino" Width="45">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding Asistio, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"
@@ -266,10 +281,22 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True" Width="75"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" MinWidth="200" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True" Width="85"/>
+                            <!-- Carlos 29/10/26: copiar el enlace de pago pendiente para reenviarlo -->
+                            <DataGridTemplateColumn Header="Enlace de pago" Width="105" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Copiar enlace" Padding="6,0" Margin="2,1"
+                                                Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" ToolTip="{Binding UrlPago}"
+                                                Visibility="{Binding TieneEnlacePago, Converter={StaticResource BoolAVisibilidad}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <!-- Nesto#566 (NestoAPI#731): la persona que asiste se elige entre las personas de contacto; correo y dirección, de la ficha -->
-                            <DataGridTemplateColumn Header="Asiste" MinWidth="140">
+                            <DataGridTemplateColumn Header="Asiste" Width="150">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding TextoAsiste}" VerticalAlignment="Center"
@@ -283,51 +310,46 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Correo" Binding="{Binding Correo}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" IsReadOnly="True" MaxWidth="320"/>
-                            <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="El" Binding="{Binding FechaPago, StringFormat=dd/MM/yyyy}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Origen" Binding="{Binding TextoOrigen}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Inscrito por" Binding="{Binding UsuarioCreacion}" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Pedido que lo justifica" Binding="{Binding PedidoJustificante}" IsReadOnly="True"/>
-                            <DataGridTemplateColumn Header="Enlace de pago" Width="200">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBox Text="{Binding UrlPago, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                                                 ToolTip="Seleccione y copie el enlace para mandárselo al cliente"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Correo" Binding="{Binding Correo}" IsReadOnly="True" Width="170"/>
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" IsReadOnly="True" Width="220"/>
+                            <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True" Width="90"/>
+                            <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True" Width="95"/>
+                            <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" IsReadOnly="True" Width="105"/>
+                            <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" IsReadOnly="True" Width="95"/>
+                            <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}" IsReadOnly="True" Width="80"/>
+                            <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}" IsReadOnly="True" Width="75"/>
+                            <DataGridTextColumn Header="El" Binding="{Binding FechaPago, StringFormat=dd/MM/yyyy}" IsReadOnly="True" Width="80"/>
+                            <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}" IsReadOnly="True" Width="150"/>
+                            <DataGridTextColumn Header="Origen" Binding="{Binding TextoOrigen}" IsReadOnly="True" Width="85"/>
+                            <DataGridTextColumn Header="Inscrito por" Binding="{Binding UsuarioCreacion}" IsReadOnly="True" Width="130"/>
+                            <DataGridTextColumn Header="Pedido que lo justifica" Binding="{Binding PedidoJustificante}" IsReadOnly="True" Width="90"/>
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Row="2" Text="{Binding MensajeFacturacion}" Foreground="#C62828" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <StackPanel Grid.Row="2" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding MensajeFacturacion}" Foreground="#C62828" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding AvisoEnlace}" Foreground="#1B5E20" FontWeight="Bold" TextWrapping="Wrap"/>
+                    </StackPanel>
 
-                    <Grid Grid.Row="3" Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
+                    <!-- Sugerencia 871: antes iban lado a lado y, en ventanas pequeñas, el texto de la lista de asistencia se
+                         partía letra a letra y estiraba «Marcar pagada» hasta tapar la lista de inscritos. Ahora uno debajo
+                         de otro y con los controles centrados (no se estiran). -->
+                    <StackPanel Grid.Row="3" Margin="0,6,0,0">
                         <!-- Marcar pagada a mano: la API no contabiliza nada (el efectivo, a la caja de la tienda) -->
-                        <GroupBox Grid.Column="0" Header="Marcar pagada" Padding="6">
-                            <StackPanel Orientation="Horizontal">
-                                <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPagoPago}" Width="110"/>
-                                <xctk:DecimalUpDown Value="{Binding ImportePago}" FormatString="C2" Minimum="0" Width="90" Margin="6,0,0,0"
+                        <GroupBox Header="Marcar pagada" Padding="6,3">
+                            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPagoPago}" Width="120"
+                                          VerticalAlignment="Center" Margin="0,2,6,2"/>
+                                <xctk:DecimalUpDown Value="{Binding ImportePago}" FormatString="C2" Minimum="0" Width="95"
+                                                    VerticalAlignment="Center" Margin="0,2,6,2"
                                                     ToolTip="Lo que ha pagado (vacío: la señal del evento)"/>
-                                <DatePicker SelectedDate="{Binding FechaPagoEdicion}" Width="115" Margin="6,0,0,0"/>
-                                <Button Content="Marcar pagada" Command="{Binding MarcarPagadaCommand}" Margin="6,0,0,0" Padding="10,1"/>
-                            </StackPanel>
+                                <DatePicker SelectedDate="{Binding FechaPagoEdicion}" Width="120" VerticalAlignment="Center" Margin="0,2,6,2"/>
+                                <Button Content="Marcar pagada" Command="{Binding MarcarPagadaCommand}" Padding="10,1"
+                                        VerticalAlignment="Center" Margin="0,2,6,2"/>
+                            </WrapPanel>
                         </GroupBox>
 
-                        <GroupBox Grid.Column="1" Header="Lista de asistencia" Padding="6" Margin="10,0,0,0">
+                        <GroupBox Header="Lista de asistencia" Padding="6,3" Margin="0,6,0,0">
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Content="Guardar lista" Command="{Binding GuardarAsistenciaCommand}" Padding="10,1"
                                         FontWeight="Bold" VerticalAlignment="Center"/>
@@ -335,9 +357,10 @@
                                            Margin="0,0,10,0"/>
                             </DockPanel>
                         </GroupBox>
-                    </Grid>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Grid>
+        </ScrollViewer>
     </xctk:BusyIndicator>
 </UserControl>
