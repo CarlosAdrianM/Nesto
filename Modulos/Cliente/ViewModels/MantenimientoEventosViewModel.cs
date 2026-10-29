@@ -250,6 +250,17 @@ namespace Nesto.Modulos.Cliente
             set => SetProperty(ref _importeSenalNoReembolsableEdicion, value);
         }
 
+        private decimal _pedidoMinimoCuponEdicion;
+        /// <summary>
+        /// NestoAPI#613: el pedido mínimo (IVA incluido, solo productos) para usar el cupón de la señal reembolsable. 0 = cualquier
+        /// importe (por defecto y con la API de antes).
+        /// </summary>
+        public decimal PedidoMinimoCuponEdicion
+        {
+            get => _pedidoMinimoCuponEdicion;
+            set => SetProperty(ref _pedidoMinimoCuponEdicion, value);
+        }
+
         private string _imagenUrl;
         /// <summary>NestoAPI#690: la imagen del evento seleccionado (solo se enseña; la subida está pendiente del contrato).</summary>
         public string ImagenUrl
@@ -418,6 +429,7 @@ namespace Nesto.Modulos.Cliente
             FechaEdicion = DateTime.Today;
             ImporteSenalEdicion = SENAL_REEMBOLSABLE_DEFECTO;
             ImporteSenalNoReembolsableEdicion = SENAL_NO_REEMBOLSABLE_DEFECTO;
+            PedidoMinimoCuponEdicion = 0;
             HoraInicioEdicion = null;
             HoraFinEdicion = null;
             PonenteEdicion = null;
@@ -460,6 +472,7 @@ namespace Nesto.Modulos.Cliente
             HoraFinEdicion = evento.HoraFin?.Trim();
             PonenteEdicion = evento.Ponente;
             ImporteSenalNoReembolsableEdicion = evento.ImporteSenalNoReembolsable;
+            PedidoMinimoCuponEdicion = evento.PedidoMinimoCupon ?? 0;
             ImagenUrl = string.IsNullOrWhiteSpace(evento.ImagenUrl) ? null : evento.ImagenUrl.Trim();
             PonerEstadoAnuncio(evento);
             Editando = true;
@@ -507,6 +520,11 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("El importe de la señal no reembolsable no puede ser negativo.");
                 return;
             }
+            if (PedidoMinimoCuponEdicion < 0)
+            {
+                _dialogService.ShowError("El pedido mínimo para usar el cupón no puede ser negativo (0 = con cualquier importe).");
+                return;
+            }
             if (!LeerHora(HoraInicioEdicion, out TimeSpan? horaInicio) || !LeerHora(HoraFinEdicion, out TimeSpan? horaFin))
             {
                 _dialogService.ShowError("Escriba las horas como 10:00.");
@@ -544,6 +562,7 @@ namespace Nesto.Modulos.Cliente
                     HoraFin = horaFin.HasValue ? horaFin.Value.ToString(@"hh\:mm") : null,
                     Ponente = Limpiar(PonenteEdicion),
                     ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
+                    PedidoMinimoCupon = PedidoMinimoCuponEdicion,
                     ProductosRequeridos = ProductosRequeridosParaGuardar(),
                     ProductosRequeridosModo = ModoProductosParaGuardar()
                 });
