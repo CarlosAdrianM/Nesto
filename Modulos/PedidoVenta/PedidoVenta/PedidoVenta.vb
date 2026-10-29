@@ -20,6 +20,9 @@ Public Class PedidoVenta
         registro.RegistrarDialogo(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
         ' NestoAPI#698: motivo y fecha al retener un pedido hasta nuevo aviso
         registro.RegistrarDialogo(Of RetenerPedidoDialog, RetenerPedidoDialogViewModel)(RetenerPedidoDialogViewModel.NOMBRE)
+        ' Nesto#568 (NestoAPI#734): Administración contesta si un pedido sale con o sin reembolso (desde la campana)
+        registro.RegistrarDialogo(Of ConsultaReembolsoDialog, ConsultaReembolsoDialogViewModel)(ConsultaReembolsoDialogViewModel.NOMBRE)
+        registro.Singleton(Of IConsultaReembolsoService, ConsultaReembolsoService)()
 
         ' Registrar servicios del módulo
         registro.Singleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)()

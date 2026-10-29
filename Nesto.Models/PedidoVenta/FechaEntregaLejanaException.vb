@@ -59,4 +59,8 @@ Public Class GuardadoCanceladoPorFechaEntregaException
     Public Sub New()
         MyBase.New("Revise la fecha de entrega de las líneas.")
     End Sub
+
+    Protected Sub New(mensaje As String)
+        MyBase.New(mensaje)
+    End Sub
 End Class

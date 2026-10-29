@@ -13,8 +13,8 @@
             <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
         </ScrollViewer>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Command="{Binding CloseDialogCommand}" CommandParameter="true" Content="Sí" Width="75" Height="25" HorizontalAlignment="Right" Margin="0,10,0,0" IsDefault="{Binding PorDefectoSi}" />
-            <Button Command="{Binding CloseDialogCommand}" CommandParameter="false" Content="No" Width="75" Height="25" HorizontalAlignment="Right" Margin="10,10,0,0" IsDefault="{Binding PorDefectoNo}" />
+            <Button Command="{Binding CloseDialogCommand}" CommandParameter="true" Content="{Binding TextoSi}" MinWidth="75" Padding="8,0" Height="25" HorizontalAlignment="Right" Margin="0,10,0,0" IsDefault="{Binding PorDefectoSi}" />
+            <Button Command="{Binding CloseDialogCommand}" CommandParameter="false" Content="{Binding TextoNo}" MinWidth="75" Padding="8,0" Height="25" HorizontalAlignment="Right" Margin="10,10,0,0" IsDefault="{Binding PorDefectoNo}" />
         </StackPanel>
     </Grid>
 </UserControl>

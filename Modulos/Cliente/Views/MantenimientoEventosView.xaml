@@ -167,6 +167,25 @@
                                     <Button Content="Quitar" Command="{Binding QuitarImagenCommand}" Padding="8,1" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </StackPanel>
+                            <!-- Nesto#567 (NestoAPI#732): gratuitos por compra -->
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Hay que comprar:" VerticalAlignment="Top" Width="110"
+                                           ToolTip="Para apuntarse, el cliente tiene que haber comprado o pedido estos productos"/>
+                                <StackPanel>
+                                    <ListBox ItemsSource="{Binding ProductosRequeridosEdicion}" SelectedItem="{Binding ProductoRequeridoSeleccionado}"
+                                             DisplayMemberPath="Texto" Width="320" Height="60"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBox Text="{Binding ProductoRequeridoNuevo, UpdateSourceTrigger=PropertyChanged}" Width="110" MaxLength="15"
+                                                 VerticalContentAlignment="Center" ToolTip="Referencia del producto"/>
+                                        <Button Content="Añadir" Command="{Binding AnadirProductoRequeridoCommand}" Margin="6,0,0,0" Padding="8,1"/>
+                                        <Button Content="Quitar" Command="{Binding QuitarProductoRequeridoCommand}" Margin="6,0,0,0" Padding="8,1"/>
+                                    </StackPanel>
+                                    <ComboBox ItemsSource="{Binding ModosProductosRequeridos}" SelectedItem="{Binding ModoProductosEdicion}" Width="320"
+                                              HorizontalAlignment="Left" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Text="Vacía: no exige compra. Con productos, solo se puede apuntar quien los haya comprado o pedido; si se borra el pedido o se le quita la línea, se pregunta y se anula la inscripción. Se guarda con «Guardar»."
+                                       Foreground="DimGray" TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Margin="110,2,0,0"/>
                             <CheckBox Content="Activo (admite inscripciones y sale al marcar señales)" IsChecked="{Binding ActivoEdicion}" Margin="110,8,0,0"/>
                             <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="110,12,0,0" Padding="20,3"
                                     FontWeight="Bold" HorizontalAlignment="Left"/>
@@ -243,6 +262,23 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" IsReadOnly="True"/>
+                            <!-- Nesto#566 (NestoAPI#731): la persona que asiste se elige entre las personas de contacto; correo y dirección, de la ficha -->
+                            <DataGridTemplateColumn Header="Asiste" MinWidth="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TextoAsiste}" VerticalAlignment="Center"
+                                                   ToolTip="Haga doble clic para elegir la persona de contacto que asiste"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding PersonasDisponibles}" DisplayMemberPath="Texto" SelectedValuePath="Numero"
+                                                  SelectedValue="{Binding NumeroPersonaAsiste, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Correo" Binding="{Binding Correo}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" IsReadOnly="True" MaxWidth="320"/>
                             <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True"/>
@@ -254,6 +290,7 @@
                             <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Origen" Binding="{Binding TextoOrigen}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Inscrito por" Binding="{Binding UsuarioCreacion}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Pedido que lo justifica" Binding="{Binding PedidoJustificante}" IsReadOnly="True"/>
                             <DataGridTemplateColumn Header="Enlace de pago" Width="200">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

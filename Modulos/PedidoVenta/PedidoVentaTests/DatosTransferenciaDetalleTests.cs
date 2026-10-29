@@ -50,11 +50,14 @@ namespace PedidoVentaTests
         #region Cuándo se ofrece
 
         [TestMethod]
-        public void EsPrepagoPorTransferencia_SoloConTrnYPre_ConRellenoYMayusculasDaIgual()
+        public void EsPrepagoPorTransferencia_ConTrnYPreOContado_ConRellenoYMayusculasDaIgual()
         {
             Assert.IsTrue(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TRN", "PRE"));
             Assert.IsTrue(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TRN ", "pre       "));
-            Assert.IsFalse(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TRN", "CONTADO"));
+            // Sugerencia 864 (Paloma): también al contado
+            Assert.IsTrue(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TRN", "CONTADO"));
+            Assert.IsTrue(DatosTransferenciaPedido.EsPrepagoPorTransferencia("trn", "contado "));
+            Assert.IsFalse(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TRN", "1/30"));
             Assert.IsFalse(DatosTransferenciaPedido.EsPrepagoPorTransferencia("TAR", "PRE"));
             Assert.IsFalse(DatosTransferenciaPedido.EsPrepagoPorTransferencia("RCB", "1/30"));
             Assert.IsFalse(DatosTransferenciaPedido.EsPrepagoPorTransferencia(null, null));
@@ -79,9 +82,19 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void Detalle_TransferenciaSinPrepago_NoSeOfrece()
+        public void Detalle_TransferenciaAlContado_TambienSeOfrece()
         {
+            // Sugerencia 864 (Paloma)
             var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(plazosPago: "CONTADO"));
+
+            Assert.IsTrue(vm.EsPrepagoPorTransferencia);
+            Assert.IsTrue(vm.CopiarDatosTransferenciaCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void Detalle_TransferenciaAPlazos_NoSeOfrece()
+        {
+            var vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(plazosPago: "1/30"));
 
             Assert.IsFalse(vm.EsPrepagoPorTransferencia);
             Assert.IsFalse(vm.CopiarDatosTransferenciaCommand.CanExecute(null));

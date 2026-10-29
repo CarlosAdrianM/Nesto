@@ -93,6 +93,24 @@ namespace Nesto.Modulos.Cliente.Models
         public string AnunciadoUsuario { get; set; }
         public bool ShouldSerializeAnunciadoUsuario() => false;
 
+        // Nesto#567 (NestoAPI#732): gratuitos por compra. Al leer, siempre una lista (vacía si no exige compra; null con la
+        // API de antes). Al guardar solo se mandan si se han tocado: la lista sustituye a la que hubiera y [] quita el requisito.
+
+        public const string MODO_PRODUCTOS_ALGUNO = "Alguno";
+        public const string MODO_PRODUCTOS_TODOS = "Todos";
+
+        /// <summary>Los productos que hay que haber comprado o pedido para apuntarse. Null = no se manda (no se toca).</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<ProductoRequeridoEventoModel> ProductosRequeridos { get; set; }
+
+        /// <summary>«Alguno» (basta con uno, por defecto y con la API de antes) o «Todos». Null = no se manda.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string ProductosRequeridosModo { get; set; }
+
+        /// <summary>El modo leído: «Todos» o, en cualquier otro caso, «Alguno».</summary>
+        [JsonIgnore]
+        public bool HacenFaltaTodos => string.Equals(ProductosRequeridosModo?.Trim(), MODO_PRODUCTOS_TODOS, StringComparison.OrdinalIgnoreCase);
+
         /// <summary>El de la API o, con la de antes, el de las dos señales a 0.</summary>
         [JsonIgnore]
         public bool EsGratuito => Gratuito || (ImporteSenal == 0 && ImporteSenalNoReembolsable == 0);
@@ -119,6 +137,20 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>«3 / 12», «3» si no hay límite (columna de la lista).</summary>
         [JsonIgnore]
         public string TextoPlazas => Plazas.HasValue ? $"{PlazasOcupadas} / {Plazas.Value}" : PlazasOcupadas.ToString();
+    }
+
+    /// <summary>Nesto#567 (NestoAPI#732): un producto que hay que haber comprado o pedido para apuntarse (EventoDTO.ProductosRequeridos).</summary>
+    public class ProductoRequeridoEventoModel
+    {
+        public string Producto { get; set; }
+        /// <summary>Solo lectura (la API lo ignora al guardar).</summary>
+        public string Nombre { get; set; }
+
+        /// <summary>«45363 - LIFTING COREANO» o solo la referencia.</summary>
+        [JsonIgnore]
+        public string Texto => string.IsNullOrWhiteSpace(Nombre) ? Producto?.Trim() : $"{Producto?.Trim()} - {Nombre.Trim()}";
+
+        public override string ToString() => Texto;
     }
 
     /// <summary>Nesto#517: una tienda donde se hacen eventos (combo del mantenimiento). Código null = sin tienda.</summary>

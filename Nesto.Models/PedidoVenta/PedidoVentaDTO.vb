@@ -108,6 +108,11 @@ Public Class PedidoVentaDTO
     ''' Lo ponen el detalle de pedido y la plantilla al guardar.
     ''' </summary>
     Public Property ConfirmarFechaEntregaLejana As Boolean?
+    ''' <summary>
+    ''' Nesto#567 (NestoAPI#732): el PUT quita los productos que justifican una inscripción gratuita por compra. Nothing o False =
+    ''' la API pregunta (409 PEDIDO_JUSTIFICA_INSCRIPCIONES_EVENTO); True = el usuario ya ha dicho que sí y se anulan.
+    ''' </summary>
+    Public Property ConfirmarAnularInscripcionesEventos As Boolean?
     ' Issue #159: el vendedor puede marcar que no se cobre la comisión por contra reembolso.
     ' El backend ignora este flag a partir de 2026-09-01.
     Public Property NoCobrarComisionReembolso As Boolean

@@ -387,6 +387,48 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public async Task PulsarLaConsultaDeReembolso_AbreElDialogoParaContestar_EnEsePedido()
+        {
+            // Nesto#568 (NestoAPI#734): Administración contesta en el diálogo, no se abre el pedido suelto
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 21,
+                Titulo = "Pedido 929300: ¿sale con o sin reembolso?",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "ConsultaReembolso", ["accion"] = "consulta", ["consulta"] = "3", ["empresa"] = "1", ["pedido"] = "929300", ["cliente"] = "40026" }
+            });
+            vm.PanelAbierto = true;
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog("ConsultaReembolsoDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string _, ParametrosDialogo p, Action<ResultadoDialogo> _) => parametros = p);
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            Assert.IsFalse(vm.PanelAbierto);
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual(929300, parametros.GetValue<int>("pedido"));
+            Assert.AreEqual("1", parametros.GetValue<string>("empresa"));
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task PulsarLaRespuestaDeLaConsultaDeReembolso_AbreElPedido()
+        {
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 22,
+                Titulo = "Pedido 929300: sale con reembolso",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "ConsultaReembolso", ["accion"] = "respuesta", ["empresa"] = "1", ["pedido"] = "929300", ["conReembolso"] = "true" }
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => abridorPedidos.Abrir("1", 929300)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog("ConsultaReembolsoDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
         public void ParametrosPromesaRiesgo_SinPedido_VanVacios_YSinEmpresaLaPonePorDefecto()
         {
             Assert.AreEqual(0, CampanaNotificacionesViewModel.ParametrosPromesaRiesgo(new NotificacionBuzon { Datos = new Dictionary<string, string> { ["tipo"] = "PromesaEnRiesgo" } }).Count);

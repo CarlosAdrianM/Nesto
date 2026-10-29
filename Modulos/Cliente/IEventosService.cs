@@ -65,5 +65,15 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Marca la señal como a mano; las demás propuestas del cobro quedan descartadas.</summary>
         Task<SenalEventoModel> ConfirmarPropuesta(int id);
         Task DescartarPropuesta(int id);
+
+        // Nesto#566 (NestoAPI#731): la persona que asiste (una persona de contacto del cliente).
+
+        /// <summary>
+        /// GET api/Eventos/PersonasContacto: las personas de contacto del cliente (con <paramref name="contacto"/>, solo las de
+        /// esa dirección). Lista vacía con una API que todavía no tiene la ruta.
+        /// </summary>
+        Task<List<PersonaContactoEventoModel>> LeerPersonasContacto(string empresa, string cliente, string contacto);
+        /// <summary>PUT api/Eventos/Inscripciones/{id}/PersonaContacto; null o vacío = quitarla. Devuelve la inscripción.</summary>
+        Task<InscripcionEventoModel> CambiarPersonaContacto(int id, string numeroPersona);
     }
 }

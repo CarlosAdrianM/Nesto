@@ -335,6 +335,23 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO, ParametrosPromesaRiesgo(item.Notificacion));
                 return;
             }
+            // Nesto#568 (NestoAPI#734): el almacén pregunta si el pedido sale con o sin reembolso: Administración contesta en el
+            // diálogo del pedido. Va antes del salto genérico al pedido porque también trae Datos["pedido"]; la respuesta
+            // (accion «respuesta») sí abre el pedido.
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO
+                && string.Equals(item.Notificacion.Dato("accion"), NotificacionBuzon.ACCION_CONSULTA_REEMBOLSO_CONSULTA, StringComparison.OrdinalIgnoreCase)
+                && item.Notificacion.DatoEntero("pedido") is int pedidoConsulta && pedidoConsulta > 0
+                && _dialogService != null)
+            {
+                PanelAbierto = false;
+                string empresaConsulta = item.Notificacion.Dato("empresa");
+                _dialogService.ShowDialog(NotificacionBuzon.DIALOGO_CONSULTA_REEMBOLSO, new ParametrosDialogo
+                {
+                    { "empresa", string.IsNullOrWhiteSpace(empresaConsulta) ? EMPRESA_POR_DEFECTO : empresaConsulta.Trim() },
+                    { "pedido", pedidoConsulta }
+                }, _ => { });
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");

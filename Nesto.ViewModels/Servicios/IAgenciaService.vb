@@ -108,6 +108,11 @@ Public Interface IAgenciaService
     ' enlaces de pago sin pagar y sale contra reembolso. Nothing si no hay aviso. Lo cobrado con enlaces ya va dentro de
     ' ImportePrepagosPendientes.
     Function AvisoEnlacePagoPendiente(empresa As String, pedido As Integer) As Task(Of String)
+    ' Nesto#568 (NestoAPI#734): el aviso entero de la propuesta (con su Accion): «ConsultaReembolsoAbierta» (Bloqueante) si hay
+    ' una consulta abierta a Administración; si no, «EnlacePagoPendiente». Nothing si no hay ninguno.
+    Function AvisoEnlacePagoPendienteDetalle(empresa As String, pedido As Integer) As Task(Of AvisoEnvioDesdePedidoDto)
+    ' Nesto#568 (NestoAPI#734): retiene el pedido y pregunta a Administración si sale con o sin reembolso (idempotente).
+    Function ConsultarReembolsoAdministracion(empresa As String, pedido As Integer, comentario As String) As Task(Of Nesto.Modulos.PedidoVenta.RespuestaConsultaReembolsoModel)
     ' NestoAPI#686: el aviso de la propuesta cuando el pedido es al contado con «Mantener junto» y le quedan líneas
     ' pendientes (el envío sale sin reembolso). Nothing si no hay aviso.
     Function AvisoContadoMantenerJunto(empresa As String, pedido As Integer) As Task(Of String)

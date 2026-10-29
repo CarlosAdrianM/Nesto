@@ -569,7 +569,7 @@
                                 <xctk:WatermarkTextBox Grid.Row="1" Text="{Binding CobroTarjetaMovil, UpdateSourceTrigger=PropertyChanged}" Watermark="Móvil para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Importe para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <Button Grid.Row="3" Command="{Binding EnviarCobroTarjetaCommand}">Mandar enlace pago</Button>
-                                <!-- Sugerencia 396: en prepago por transferencia, copiar IBAN, beneficiario, concepto e importe para el cliente -->
+                                <!-- Sugerencia 396 (y 864: también al contado): en transferencia PRE o CONTADO, copiar IBAN, beneficiario, concepto e importe para el cliente -->
                                 <Button Grid.Row="4" Margin="0,3,0,0" Command="{Binding CopiarDatosTransferenciaCommand}"
                                         Visibility="{Binding EsPrepagoPorTransferencia, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Copia al portapapeles el IBAN, el beneficiario, el concepto y el importe para que el cliente haga la transferencia">

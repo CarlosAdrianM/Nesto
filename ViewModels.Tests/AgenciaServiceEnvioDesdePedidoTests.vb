@@ -32,7 +32,7 @@ Public Class AgenciaServiceEnvioDesdePedidoTests
     Public Sub Respuestas_MismosNombresQueElServidor()
         CollectionAssert.AreEqual({"Avisos", "CorreoEnviado", "Envio", "EnvioOrigen", "EtiquetaEnNesto", "Flujo", "HayQueImprimir", "Origen"},
                                   Nombres(GetType(EnvioDesdePedidoDto)))
-        CollectionAssert.AreEqual({"Codigo", "Texto", "Tipo"}, Nombres(GetType(AvisoEnvioDesdePedidoDto)))
+        CollectionAssert.AreEqual({"Accion", "Codigo", "Texto", "Tipo"}, Nombres(GetType(AvisoEnvioDesdePedidoDto))) ' Nesto#568: Accion de NestoAPI#734
         CollectionAssert.AreEqual({"Codigo", "Message"}, Nombres(GetType(ErrorEnvioDesdePedidoDto)))
     End Sub
 

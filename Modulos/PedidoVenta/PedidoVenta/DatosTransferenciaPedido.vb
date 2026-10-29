@@ -13,10 +13,14 @@ Public NotInheritable Class DatosTransferenciaPedido
     Public Const TITULO As String = "Datos de transferencia"
     Public Const MENSAJE_COPIADOS As String = "Datos de transferencia copiados al portapapeles:"
 
-    ''' <summary>Solo con forma de pago transferencia (TRN) y plazos prepago (PRE).</summary>
+    ''' <summary>
+    ''' Con forma de pago transferencia (TRN) y plazos prepago (PRE) o, desde la sugerencia 864 (Paloma), al contado
+    ''' (CONTADO): en los dos casos el cliente tiene que hacer la transferencia.
+    ''' </summary>
     Public Shared Function EsPrepagoPorTransferencia(formaPago As String, plazosPago As String) As Boolean
         Return String.Equals(formaPago?.Trim(), Constantes.FormasPago.TRANSFERENCIA, StringComparison.OrdinalIgnoreCase) AndAlso
-               String.Equals(plazosPago?.Trim(), Constantes.PlazosPago.PREPAGO, StringComparison.OrdinalIgnoreCase)
+               (String.Equals(plazosPago?.Trim(), Constantes.PlazosPago.PREPAGO, StringComparison.OrdinalIgnoreCase) OrElse
+                String.Equals(plazosPago?.Trim(), Constantes.PlazosPago.CONTADO, StringComparison.OrdinalIgnoreCase))
     End Function
 End Class
 

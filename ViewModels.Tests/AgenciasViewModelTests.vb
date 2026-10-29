@@ -1933,7 +1933,7 @@ Public Class AgenciaViewModelTests
         viewModel.pedidoSeleccionado = PedidoParaPrepagos()
         viewModel.reembolso = 258.56D
         Const TEXTO As String = "Este pedido tiene un enlace de pago pendiente de 252,94 € (enviado el 16/10/2026): ¿seguro que sale contra reembolso?"
-        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Returns(Task.FromResult(TEXTO))
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Returns(Task.FromResult(New AvisoEnvioDesdePedidoDto With {.Codigo = "EnlacePagoPendiente", .Tipo = "Confirmar", .Texto = TEXTO}))
         A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
 
         Dim seguir As Boolean = Await viewModel.ConfirmarEnlacesPagoPendientesAsync()
@@ -1949,7 +1949,7 @@ Public Class AgenciaViewModelTests
         viewModel.reembolso = 0D
 
         Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
-        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
     End Function
 
     <TestMethod()>
@@ -1957,14 +1957,107 @@ Public Class AgenciaViewModelTests
         viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.pedidoSeleccionado = PedidoParaPrepagos()
         viewModel.reembolso = 258.56D
-        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Returns(Task.FromResult(Of String)(Nothing))
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Returns(Task.FromResult(Of AvisoEnvioDesdePedidoDto)(Nothing))
         Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
 
-        A.CallTo(Function() servicio.AvisoEnlacePagoPendiente("1", 12345)).Throws(New Exception("sin red"))
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Throws(New Exception("sin red"))
         Assert.IsTrue(Await viewModel.ConfirmarEnlacesPagoPendientesAsync())
 
         A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
     End Function
+
+    ' Nesto#568 (NestoAPI#734): con la acción «ConsultarAdministracion», «Retener y consultar a Administración» en vez del sí/no.
+
+    Private Const TEXTO_ENLACE As String = "Este pedido tiene un enlace de pago pendiente de 252,94 €: ¿seguro que sale contra reembolso?"
+
+    Private Shared Function AvisoConsultar() As AvisoEnvioDesdePedidoDto
+        Return New AvisoEnvioDesdePedidoDto With {.Codigo = "EnlacePagoPendiente", .Tipo = "Confirmar", .Texto = TEXTO_ENLACE, .Accion = "ConsultarAdministracion"}
+    End Function
+
+    ''' <summary>El diálogo de confirmación con botones a medida contesta <paramref name="pulsaConsultar"/>.</summary>
+    Private Sub DialogoConBotonesContesta(pulsaConsultar As Boolean)
+        A.CallTo(Sub() dialogService.ShowDialog("ConfirmationDialog", A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).
+            Invokes(Sub(nombre As String, parametros As ParametrosDialogo, callback As Action(Of ResultadoDialogo))
+                        callback(New ResultadoDialogo(If(pulsaConsultar, ResultadoBoton.OK, ResultadoBoton.Cancel)))
+                    End Sub)
+    End Sub
+
+    <TestMethod()>
+    Public Async Function ConsultaReembolso_RetenerYConsultar_LlamaALaApiAvisaYNoSigue() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Returns(Task.FromResult(AvisoConsultar()))
+        A.CallTo(Function() servicio.ConsultarReembolsoAdministracion("1", 12345, Nothing)).
+            Returns(Task.FromResult(New RespuestaConsultaReembolsoModel With {.Avisos = New List(Of String) From {"No se ha podido avisar a Administración."}}))
+        DialogoConBotonesContesta(True)
+
+        Await Assert.ThrowsExceptionAsync(Of EnvioNoTramitadoException)(Function() viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Sub() dialogService.ShowDialog("ConfirmationDialog", A(Of ParametrosDialogo).That.Matches(
+            Function(p) p.GetValue(Of String)("textoSi") = "Retener y consultar a Administración" AndAlso p.GetValue(Of String)("message").Contains(TEXTO_ENLACE)),
+            A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() servicio.ConsultarReembolsoAdministracion("1", 12345, Nothing)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification("Enlace de pago pendiente", A(Of String).That.Contains("queda retenido"))).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification("Enlace de pago pendiente", A(Of String).That.Contains("No se ha podido avisar"))).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ConsultaReembolso_NoTramitarAhora_NiConsultaNiSigue() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Returns(Task.FromResult(AvisoConsultar()))
+        DialogoConBotonesContesta(False)
+
+        Await Assert.ThrowsExceptionAsync(Of EnvioNoTramitadoException)(Function() viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Function() servicio.ConsultarReembolsoAdministracion(A(Of String).Ignored, A(Of Integer).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ConsultaReembolso_SiLaApiNoDeja_EnsenaSuMensaje() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).Returns(Task.FromResult(AvisoConsultar()))
+        A.CallTo(Function() servicio.ConsultarReembolsoAdministracion("1", 12345, Nothing)).
+            Throws(New Exception("No se ha podido consultar a Administración: Solo Almacén, Tiendas o Dirección pueden consultar a Administración si un pedido sale con reembolso."))
+        DialogoConBotonesContesta(True)
+
+        Await Assert.ThrowsExceptionAsync(Of EnvioNoTramitadoException)(Function() viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("Solo Almacén, Tiendas o Dirección"))).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ConsultaReembolso_ConsultaAbierta_LoDiceYNoSigue() As Task
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.pedidoSeleccionado = PedidoParaPrepagos()
+        viewModel.reembolso = 258.56D
+        Const TEXTO As String = "El pedido está retenido: Alfredo consultó a Administración el 29/10/2026 si sale con o sin reembolso. Espere a que contesten."
+        A.CallTo(Function() servicio.AvisoEnlacePagoPendienteDetalle("1", 12345)).
+            Returns(Task.FromResult(New AvisoEnvioDesdePedidoDto With {.Codigo = "ConsultaReembolsoAbierta", .Tipo = "Bloqueante", .Texto = TEXTO}))
+
+        Await Assert.ThrowsExceptionAsync(Of EnvioNoTramitadoException)(Function() viewModel.ConfirmarEnlacesPagoPendientesAsync())
+
+        A.CallTo(Sub() dialogService.ShowNotification("Enlace de pago pendiente", TEXTO)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() servicio.ConsultarReembolsoAdministracion(A(Of String).Ignored, A(Of Integer).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Sub ConsultaReembolso_LaPropuestaPrefiereLaConsultaAbiertaAlEnlace()
+        Dim cuerpo As String = "{""AvisosDetalle"":[{""Codigo"":""EnlacePagoPendiente"",""Texto"":""enlace"",""Tipo"":""Confirmar"",""Accion"":""ConsultarAdministracion""}," &
+            "{""Codigo"":""ConsultaReembolsoAbierta"",""Texto"":""retenido"",""Tipo"":""Bloqueante"",""Accion"":null}]}"
+        Assert.AreEqual("ConsultaReembolsoAbierta", AgenciaService.AvisoEnlacePagoDeLaPropuesta(cuerpo).Codigo)
+
+        Dim soloEnlace As String = "{""AvisosDetalle"":[{""Codigo"":""EnlacePagoPendiente"",""Texto"":""enlace"",""Tipo"":""Confirmar"",""Accion"":""ConsultarAdministracion""}]}"
+        Dim aviso = AgenciaService.AvisoEnlacePagoDeLaPropuesta(soloEnlace)
+        Assert.AreEqual("ConsultarAdministracion", aviso.Accion)
+        Assert.IsTrue(AgenciasViewModel.EsAvisoConsultaReembolso(aviso))
+        Assert.IsNull(AgenciaService.AvisoEnlacePagoDeLaPropuesta("{""AvisosDetalle"":[]}"))
+    End Sub
 
     ' NestoAPI#686 (pedido 928220): el primer envío de un contado con «Mantener junto» salió con reembolso 0 en silencio.
 

@@ -184,6 +184,8 @@ Public Class PedidoVentaService
                 Throw ' Nesto#489: el ViewModel ofrece pedirle el cambio a almacén
             Catch ex As FechaEntregaLejanaException
                 Throw ' NestoAPI#712: el ViewModel pregunta si la fecha es correcta y reintenta
+            Catch ex As InscripcionesEventoAnularException
+                Throw ' Nesto#567 (NestoAPI#732): el ViewModel pregunta si anula las inscripciones y reintenta
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -416,6 +418,9 @@ Public Class PedidoVentaService
         ElseIf errorCode = FechaEntregaLejanaException.CODIGO_ERROR Then
             ' NestoAPI#712: alguna línea va a más de 60 días; se pregunta y se repite confirmando.
             Return FechaEntregaLejanaException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = InscripcionesEventoAnularException.CODIGO_ERROR Then
+            ' Nesto#567 (NestoAPI#732): el pedido justifica inscripciones gratuitas por compra; se pregunta y se repite confirmando.
+            Return InscripcionesEventoAnularException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
