@@ -256,6 +256,35 @@ namespace Nesto.Modulos.Cliente
             _ = await Enviar(c => c.PostAsync($"Eventos/Senales/Propuestas/{id}/Descartar", Json(new { })), "No se pudo descartar la propuesta");
         }
 
+        // ---------------- Nesto#566 (NestoAPI#731) ----------------
+
+        public async Task<List<PersonaContactoEventoModel>> LeerPersonasContacto(string empresa, string cliente, string contacto)
+        {
+            string body = await Enviar(c => c.GetAsync(UrlPersonasContacto(empresa, cliente, contacto)),
+                "No se pudieron cargar las personas de contacto del cliente", vacioSiApiVieja: true);
+            return Lista<PersonaContactoEventoModel>(body);
+        }
+
+        /// <summary>«Eventos/PersonasContacto?empresa=1&amp;cliente=15191&amp;contacto=0» (sin contacto, las de todas las direcciones).</summary>
+        public static string UrlPersonasContacto(string empresa, string cliente, string contacto)
+        {
+            string empresaUrl = Uri.EscapeDataString(string.IsNullOrWhiteSpace(empresa) ? Constantes.Empresas.EMPRESA_DEFECTO : empresa.Trim());
+            string url = $"Eventos/PersonasContacto?empresa={empresaUrl}&cliente={Uri.EscapeDataString(cliente?.Trim() ?? string.Empty)}";
+            if (!string.IsNullOrWhiteSpace(contacto))
+            {
+                url += $"&contacto={Uri.EscapeDataString(contacto.Trim())}";
+            }
+            return url;
+        }
+
+        public async Task<InscripcionEventoModel> CambiarPersonaContacto(int id, string numeroPersona)
+        {
+            string body = await Enviar(c => c.PutAsync($"Eventos/Inscripciones/{id}/PersonaContacto",
+                    Json(new CambiarPersonaContactoModel { PersonaContacto = string.IsNullOrWhiteSpace(numeroPersona) ? null : numeroPersona.Trim() })),
+                "No se pudo cambiar la persona que asiste");
+            return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
+        }
+
         private static List<T> Lista<T>(string body) =>
             string.IsNullOrWhiteSpace(body) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 

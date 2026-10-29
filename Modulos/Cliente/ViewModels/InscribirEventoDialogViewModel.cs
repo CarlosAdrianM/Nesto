@@ -154,12 +154,93 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref _cliente, value))
                 {
                     InscribirCommand.NotifyCanExecuteChanged();
+                    ProgramarCargaPersonas();
                 }
             }
         }
 
         private string _contacto;
-        public string Contacto { get => _contacto; set => SetProperty(ref _contacto, value); }
+        public string Contacto
+        {
+            get => _contacto;
+            set
+            {
+                if (SetProperty(ref _contacto, value))
+                {
+                    ProgramarCargaPersonas();
+                }
+            }
+        }
+
+        // ---------------- Nesto#566 (NestoAPI#731): la persona que asiste (opcional) ----------------
+
+        /// <summary>«(sin indicar)» y las personas de contacto del cliente (de su contacto, si se ha escrito).</summary>
+        public ObservableCollection<PersonaContactoEventoModel> Personas { get; } = new() { InscripcionEventoModel.SIN_PERSONA };
+
+        private PersonaContactoEventoModel _personaAsiste = InscripcionEventoModel.SIN_PERSONA;
+        /// <summary>La persona que asiste; «(sin indicar)» = no se manda.</summary>
+        public PersonaContactoEventoModel PersonaAsiste
+        {
+            get => _personaAsiste;
+            set => SetProperty(ref _personaAsiste, value ?? InscripcionEventoModel.SIN_PERSONA);
+        }
+
+        /// <summary>Se espera un poco tras teclear el cliente o el contacto para no pedir las personas en cada tecla.</summary>
+        public int EsperaCargaPersonasMs { get; set; } = 400;
+
+        private int _versionPersonas;
+
+        private void ProgramarCargaPersonas()
+        {
+            int version = ++_versionPersonas;
+            _ = EsperarYCargarPersonasAsync(version);
+        }
+
+        private async Task EsperarYCargarPersonasAsync(int version)
+        {
+            if (EsperaCargaPersonasMs > 0)
+            {
+                await Task.Delay(EsperaCargaPersonasMs);
+            }
+            if (version == _versionPersonas)
+            {
+                await CargarPersonasAsync();
+            }
+        }
+
+        /// <summary>
+        /// Lee las personas de contacto del cliente (GET api/Eventos/PersonasContacto). Un fallo no molesta: el combo se queda
+        /// en «(sin indicar)» y se puede inscribir igual.
+        /// </summary>
+        public async Task CargarPersonasAsync()
+        {
+            int version = _versionPersonas;
+            string numeroAnterior = PersonaAsiste?.Numero;
+            List<PersonaContactoEventoModel> personas = new();
+            if (!string.IsNullOrWhiteSpace(Cliente))
+            {
+                try
+                {
+                    personas = await _servicio.LeerPersonasContacto(Empresa, Cliente, Contacto) ?? new List<PersonaContactoEventoModel>();
+                }
+                catch
+                {
+                    personas = new List<PersonaContactoEventoModel>();
+                }
+            }
+            if (version != _versionPersonas)
+            {
+                return; // Han cambiado el cliente o el contacto mientras se leía.
+            }
+            Personas.Clear();
+            Personas.Add(InscripcionEventoModel.SIN_PERSONA);
+            foreach (PersonaContactoEventoModel persona in personas.Where(p => p != null && !string.IsNullOrWhiteSpace(p.Numero)))
+            {
+                Personas.Add(persona);
+            }
+            PersonaAsiste = Personas.FirstOrDefault(p => !string.IsNullOrEmpty(numeroAnterior) && p.Numero?.Trim() == numeroAnterior.Trim())
+                ?? InscripcionEventoModel.SIN_PERSONA;
+        }
 
         private string _nombreCliente;
         public string NombreCliente { get => _nombreCliente; private set => SetProperty(ref _nombreCliente, value); }
@@ -331,7 +412,8 @@ namespace Nesto.Modulos.Cliente
                     // Con la API de antes de #690 (el evento no trae Modalidades) no se manda la modalidad.
                     Modalidad = Evento.Modalidades != null && Evento.Modalidades.Any() ? Modalidad?.Valor : null,
                     GenerarEnlacePago = EsTarjeta && GenerarEnlacePago,
-                    Correo = EsTarjeta && GenerarEnlacePago && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null
+                    Correo = EsTarjeta && GenerarEnlacePago && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null,
+                    PersonaContacto = string.IsNullOrWhiteSpace(PersonaAsiste?.Numero) ? null : PersonaAsiste.Numero.Trim()
                 });
             }
             catch (Exception ex)

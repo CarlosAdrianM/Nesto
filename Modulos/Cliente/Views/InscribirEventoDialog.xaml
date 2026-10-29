@@ -34,6 +34,14 @@
                 <TextBlock Text="{Binding NombreCliente}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold"/>
             </StackPanel>
 
+            <!-- Nesto#566 (NestoAPI#731): la persona de contacto que asiste (opcional) -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Text="Asiste:" Width="110" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding Personas}" SelectedItem="{Binding PersonaAsiste}" DisplayMemberPath="Texto" Width="360"
+                          IsEnabled="{Binding SinInscribir}"
+                          ToolTip="Opcional: la persona de contacto del cliente que va a asistir. Si no está, dé de alta a la persona en la ficha del cliente"/>
+            </StackPanel>
+
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="Se inscribe por:" Width="110" VerticalAlignment="Center"/>
                 <ComboBox ItemsSource="{Binding Origenes}" SelectedItem="{Binding Origen}" Width="240"/>

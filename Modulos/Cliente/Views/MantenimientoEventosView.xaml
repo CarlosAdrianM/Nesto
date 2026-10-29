@@ -243,6 +243,23 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" IsReadOnly="True"/>
+                            <!-- Nesto#566 (NestoAPI#731): la persona que asiste se elige entre las personas de contacto; correo y dirección, de la ficha -->
+                            <DataGridTemplateColumn Header="Asiste" MinWidth="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TextoAsiste}" VerticalAlignment="Center"
+                                                   ToolTip="Haga doble clic para elegir la persona de contacto que asiste"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding PersonasDisponibles}" DisplayMemberPath="Texto" SelectedValuePath="Numero"
+                                                  SelectedValue="{Binding NumeroPersonaAsiste, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Correo" Binding="{Binding Correo}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" IsReadOnly="True" MaxWidth="320"/>
                             <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True"/>

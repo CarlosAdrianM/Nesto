@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Nesto.Modulos.Cliente.Models
 {
@@ -81,6 +82,89 @@ namespace Nesto.Modulos.Cliente.Models
         /// Solo en la respuesta de inscribir; null en el resto y con la API de antes.
         /// </summary>
         public List<string> Avisos { get; set; }
+
+        // Nesto#566 (NestoAPI#731): la persona que asiste, y el correo y la dirección de la ficha (solo lectura).
+
+        /// <summary>La persona de contacto que asiste; null si no se ha indicado. Si se borró de la ficha, solo Contacto y Numero.</summary>
+        public PersonaContactoEventoModel PersonaContacto { get; set; }
+        /// <summary>Solo lectura: el correo de la persona que asiste o, si no tiene, el de otra persona del cliente.</summary>
+        public string Correo { get; set; }
+        /// <summary>Solo lectura: «Calle, CP Población (Provincia)» de la ficha del contacto.</summary>
+        public string Direccion { get; set; }
+
+        /// <summary>Nesto#567 (NestoAPI#732): el pedido que justifica la inscripción gratuita por compra; null en el resto.</summary>
+        public int? PedidoJustificante { get; set; }
+
+        /// <summary>Opción «nadie indicado» del combo «Asiste».</summary>
+        public static readonly PersonaContactoEventoModel SIN_PERSONA = new() { Numero = string.Empty, Nombre = "(sin indicar)" };
+
+        private List<PersonaContactoEventoModel> _personasDisponibles;
+        /// <summary>
+        /// Lo que se puede elegir en el combo «Asiste»: «(sin indicar)», la persona actual y, cuando se han cargado, las
+        /// personas de contacto del cliente y contacto de la inscripción.
+        /// </summary>
+        [JsonIgnore]
+        public List<PersonaContactoEventoModel> PersonasDisponibles
+        {
+            get => _personasDisponibles ??= OpcionesPersona(null);
+            set => SetProperty(ref _personasDisponibles, value);
+        }
+
+        /// <summary>«(sin indicar)», las personas cargadas y, si no está entre ellas, la persona actual (para que se vea).</summary>
+        public List<PersonaContactoEventoModel> OpcionesPersona(IEnumerable<PersonaContactoEventoModel> personas)
+        {
+            var lista = new List<PersonaContactoEventoModel> { SIN_PERSONA };
+            if (personas != null)
+            {
+                lista.AddRange(personas.Where(p => p != null && !string.IsNullOrWhiteSpace(p.Numero)));
+            }
+            string actual = PersonaContacto?.Numero?.Trim();
+            if (!string.IsNullOrEmpty(actual) && !lista.Any(p => p.Numero?.Trim() == actual))
+            {
+                lista.Add(PersonaContacto);
+            }
+            return lista;
+        }
+
+        private string _numeroPersonaAsiste;
+        /// <summary>El Número de la persona elegida en el combo «Asiste» («» = sin indicar).</summary>
+        [JsonIgnore]
+        public string NumeroPersonaAsiste
+        {
+            get => _numeroPersonaAsiste ?? PersonaContacto?.Numero?.Trim() ?? string.Empty;
+            set => SetProperty(ref _numeroPersonaAsiste, value ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Copia de la inscripción que devuelve la API (el PUT de la persona) la persona, el correo y la dirección, sin
+        /// sustituir la fila (la lista puede estar en edición).
+        /// </summary>
+        public void ActualizarPersona(InscripcionEventoModel guardada)
+        {
+            if (guardada == null)
+            {
+                return;
+            }
+            PersonaContacto = guardada.PersonaContacto;
+            Correo = guardada.Correo;
+            Direccion = guardada.Direccion;
+            _numeroPersonaAsiste = null;
+            if (PersonasDisponibles.All(p => p.Numero?.Trim() != NumeroPersonaAsiste))
+            {
+                PersonasDisponibles = OpcionesPersona(PersonasDisponibles.Where(p => p != SIN_PERSONA));
+            }
+            OnPropertyChanged(nameof(PersonaContacto));
+            OnPropertyChanged(nameof(Correo));
+            OnPropertyChanged(nameof(Direccion));
+            OnPropertyChanged(nameof(NumeroPersonaAsiste));
+            OnPropertyChanged(nameof(TextoAsiste));
+        }
+
+        /// <summary>Lo que se ve en la columna «Asiste» fuera de edición.</summary>
+        [JsonIgnore]
+        public string TextoAsiste => PersonaContacto == null
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(PersonaContacto.Nombre) ? $"Persona {PersonaContacto.Numero?.Trim()} (ya no está en la ficha)" : PersonaContacto.Nombre.Trim();
 
         [JsonIgnore]
         public bool EsGratuita => Modalidad == InscribirEventoModel.MODALIDAD_GRATUITA || Estado == INSCRITA;
@@ -230,6 +314,33 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>NestoAPI#690 (provisional): Reembolsable, NoReembolsable o Gratuita. Null = no se manda (API de antes).</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Modalidad { get; set; }
+        /// <summary>Nesto#566 (NestoAPI#731): el Número de la persona de contacto que asiste. Opcional (null = no se manda).</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string PersonaContacto { get; set; }
+    }
+
+    /// <summary>Nesto#566 (NestoAPI#731): una persona de contacto del cliente (PersonaContactoEventoDTO).</summary>
+    public class PersonaContactoEventoModel
+    {
+        /// <summary>El contacto (dirección) del cliente al que pertenece.</summary>
+        public string Contacto { get; set; }
+        /// <summary>Lo que se manda al inscribir y en el PUT.</summary>
+        public string Numero { get; set; }
+        public string Nombre { get; set; }
+        public string Correo { get; set; }
+        public string Telefono { get; set; }
+
+        /// <summary>«ANA LUNA (ana@luna.es)», «ANA LUNA» o «(sin indicar)».</summary>
+        [JsonIgnore]
+        public string Texto => string.IsNullOrWhiteSpace(Correo) ? Nombre?.Trim() ?? Numero?.Trim() : $"{Nombre?.Trim()} ({Correo.Trim()})";
+
+        public override string ToString() => Texto;
+    }
+
+    /// <summary>Nesto#566 (NestoAPI#731): cuerpo de PUT api/Eventos/Inscripciones/{id}/PersonaContacto.</summary>
+    public class CambiarPersonaContactoModel
+    {
+        public string PersonaContacto { get; set; }
     }
 
     /// <summary>Nesto#517: cuerpo de POST api/Eventos/Inscripciones/{id}/Pago (marcar pagada a mano).</summary>

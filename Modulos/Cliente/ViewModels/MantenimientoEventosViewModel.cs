@@ -919,7 +919,118 @@ namespace Nesto.Modulos.Cliente
                     }
                     NotificarComandosInscripcion();
                     OnPropertyChanged(nameof(MensajeFacturacion));
+                    if (value != null)
+                    {
+                        _ = CargarPersonasContactoAsync(value);
+                    }
                 }
+            }
+        }
+
+        // ---------------- Nesto#566 (NestoAPI#731): la persona que asiste ----------------
+
+        /// <summary>Las personas de contacto ya leídas, por «empresa/cliente/contacto» (no se piden otra vez en la sesión de la pantalla).</summary>
+        private readonly Dictionary<string, List<PersonaContactoEventoModel>> _personasPorContacto = new();
+
+        private static string ClavePersonas(InscripcionEventoModel inscripcion) =>
+            $"{inscripcion.Empresa?.Trim()}/{inscripcion.Cliente?.Trim()}/{inscripcion.Contacto?.Trim()}";
+
+        /// <summary>
+        /// Rellena el combo «Asiste» de la inscripción con las personas de contacto de su cliente y contacto (GET
+        /// api/Eventos/PersonasContacto). Un fallo no molesta: el combo se queda con la persona que ya tuviera.
+        /// </summary>
+        public async Task CargarPersonasContactoAsync(InscripcionEventoModel inscripcion)
+        {
+            if (inscripcion == null || string.IsNullOrWhiteSpace(inscripcion.Cliente))
+            {
+                return;
+            }
+            string clave = ClavePersonas(inscripcion);
+            if (!_personasPorContacto.TryGetValue(clave, out List<PersonaContactoEventoModel> personas))
+            {
+                try
+                {
+                    personas = await _servicio.LeerPersonasContacto(inscripcion.Empresa, inscripcion.Cliente, inscripcion.Contacto)
+                        ?? new List<PersonaContactoEventoModel>();
+                    _personasPorContacto[clave] = personas;
+                }
+                catch
+                {
+                    return;
+                }
+            }
+            PonerPersonasDisponibles(inscripcion, personas);
+        }
+
+        private void PonerPersonasDisponibles(InscripcionEventoModel inscripcion, List<PersonaContactoEventoModel> personas)
+        {
+            _poniendoPersona = true;
+            try
+            {
+                string elegida = inscripcion.NumeroPersonaAsiste;
+                inscripcion.PersonasDisponibles = inscripcion.OpcionesPersona(personas);
+                inscripcion.NumeroPersonaAsiste = elegida;
+            }
+            finally
+            {
+                _poniendoPersona = false;
+            }
+        }
+
+        /// <summary>Mientras se rellena el combo desde aquí, el cambio no se guarda.</summary>
+        private bool _poniendoPersona;
+
+        private void Inscripcion_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_poniendoPersona || e.PropertyName != nameof(InscripcionEventoModel.NumeroPersonaAsiste) || sender is not InscripcionEventoModel inscripcion)
+            {
+                return;
+            }
+            _ = CambiarPersonaAsisteAsync(inscripcion);
+        }
+
+        /// <summary>
+        /// Guarda la persona elegida en el combo «Asiste» (PUT api/Eventos/Inscripciones/{id}/PersonaContacto; «(sin indicar)»
+        /// la quita). Si la API no la acepta, enseña su mensaje y el combo vuelve a la que había.
+        /// </summary>
+        public async Task CambiarPersonaAsisteAsync(InscripcionEventoModel inscripcion)
+        {
+            string nueva = inscripcion?.NumeroPersonaAsiste?.Trim() ?? string.Empty;
+            string actual = inscripcion?.PersonaContacto?.Numero?.Trim() ?? string.Empty;
+            if (inscripcion == null || nueva == actual)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                InscripcionEventoModel guardada = await _servicio.CambiarPersonaContacto(inscripcion.Id, nueva);
+                _poniendoPersona = true;
+                try
+                {
+                    inscripcion.ActualizarPersona(guardada);
+                }
+                finally
+                {
+                    _poniendoPersona = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                _poniendoPersona = true;
+                try
+                {
+                    inscripcion.NumeroPersonaAsiste = actual;
+                }
+                finally
+                {
+                    _poniendoPersona = false;
+                }
+            }
+            finally
+            {
+                EstaOcupado = false;
             }
         }
 
@@ -978,9 +1089,19 @@ namespace Nesto.Modulos.Cliente
         private void PonerInscripciones(IEnumerable<InscripcionEventoModel> lista)
         {
             int? anterior = InscripcionSeleccionada?.Id;
+            foreach (InscripcionEventoModel vieja in Inscripciones ?? Enumerable.Empty<InscripcionEventoModel>())
+            {
+                vieja.PropertyChanged -= Inscripcion_PropertyChanged;
+            }
             foreach (InscripcionEventoModel inscripcion in lista)
             {
                 inscripcion.Asistio = inscripcion.Estado == InscripcionEventoModel.ASISTIO;
+                if (_personasPorContacto.TryGetValue(ClavePersonas(inscripcion), out List<PersonaContactoEventoModel> personas))
+                {
+                    PonerPersonasDisponibles(inscripcion, personas);
+                }
+                inscripcion.PropertyChanged -= Inscripcion_PropertyChanged;
+                inscripcion.PropertyChanged += Inscripcion_PropertyChanged;
             }
             Inscripciones = new ObservableCollection<InscripcionEventoModel>(lista);
             InscripcionSeleccionada = Inscripciones.FirstOrDefault(i => i.Id == anterior);
