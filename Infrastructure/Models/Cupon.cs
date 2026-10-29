@@ -69,6 +69,10 @@ namespace Nesto.Infrastructure.Models
         public string Motivo { get; set; }
         /// <summary>Opcional: si no va, hoy.</summary>
         public DateTime? ValidoDesde { get; set; }
+        /// <summary>
+        /// Carlos 29/10/26: el pedido mínimo (€, productos con IVA) para usar el cupón. Opcional: si no va, la API pone 200.
+        /// </summary>
+        public decimal? PedidoMinimo { get; set; }
     }
 
     /// <summary>Nesto#518: <c>POST api/Cupones/{codigo}/Anular</c> (Administración y Dirección).</summary>

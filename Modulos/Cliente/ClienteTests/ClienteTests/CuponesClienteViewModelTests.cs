@@ -224,5 +224,75 @@ namespace ClienteTests
 
             Assert.AreEqual("EV-2610-BBBB", vm.Cupones.Single().Codigo);
         }
+
+        // ---------------- Carlos 29/10/26: pedido mínimo del cupón manual (200 € por defecto) ----------------
+
+        private CrearCuponManualDTO EmitirConPedidoMinimo(string escrito)
+        {
+            EnGrupo(Constantes.GruposSeguridad.DIRECCION);
+            Devuelve();
+            A.CallTo(() => dialogos.GetAmount(A<string>._, A<string>._)).Returns(30M);
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("Compensación");
+            A.CallTo(() => dialogos.GetText("Cupón manual", A<string>.That.Contains("Pedido mínimo (€)"), "200")).Returns(escrito);
+            CrearCuponManualDTO enviado = null;
+            A.CallTo(() => servicio.CrearManual(A<CrearCuponManualDTO>._))
+                .Invokes((CrearCuponManualDTO p) => enviado = p)
+                .Returns(Task.FromResult(new CuponDTO { Codigo = "MN-2611-AB2C" }));
+            var vm = Vm();
+            vm.CargarAsync("1", "15191", "0").GetAwaiter().GetResult();
+            vm.EmitirManualAsync().GetAwaiter().GetResult();
+            return enviado;
+        }
+
+        [TestMethod]
+        public void EmitirManual_PideElPedidoMinimoCon200PorDefecto_YLoManda()
+        {
+            CrearCuponManualDTO enviado = EmitirConPedidoMinimo("200");
+
+            Assert.AreEqual(200M, enviado.PedidoMinimo);
+            A.CallTo(() => dialogos.ShowConfirmationAnswer("Cupón manual", A<string>.That.Contains("al menos 200 €"))).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public void EmitirManual_ConOtroPedidoMinimo_MandaEse()
+        {
+            Assert.AreEqual(150.5M, EmitirConPedidoMinimo("150,50 €").PedidoMinimo);
+        }
+
+        [TestMethod]
+        public void EmitirManual_PedidoMinimoQueNoEsUnNumero_NoLlamaALaApi()
+        {
+            Assert.IsNull(EmitirConPedidoMinimo("doscientos"));
+            StringAssert.Contains(errores.Single(), "no es un importe válido");
+        }
+
+        [TestMethod]
+        public void EmitirManual_CancelarElPedidoMinimo_NoLlamaALaApi()
+        {
+            Assert.IsNull(EmitirConPedidoMinimo(null));
+            Assert.AreEqual(0, errores.Count);
+        }
+
+        [DataTestMethod]
+        [DataRow("", "200")]
+        [DataRow("  ", "200")]
+        [DataRow("0", "0")]
+        [DataRow("150", "150")]
+        [DataRow("150,5", "150.5")]
+        [DataRow("150.5", "150.5")]
+        [DataRow("1.500,25", "1500.25")]
+        [DataRow("90 €", "90")]
+        public void LeerPedidoMinimo_EntiendeLoQueSeEscribe(string texto, string esperado)
+        {
+            Assert.AreEqual(decimal.Parse(esperado, System.Globalization.CultureInfo.InvariantCulture), CuponesClienteViewModel.LeerPedidoMinimo(texto));
+        }
+
+        [DataTestMethod]
+        [DataRow("abc")]
+        [DataRow("-5")]
+        public void LeerPedidoMinimo_NoValido_EsNull(string texto)
+        {
+            Assert.IsNull(CuponesClienteViewModel.LeerPedidoMinimo(texto));
+        }
     }
 }
