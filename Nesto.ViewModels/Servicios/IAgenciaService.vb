@@ -78,6 +78,11 @@ Public Interface IAgenciaService
     ' NestoAPI#676: da por cerrado un envío incidentado que la agencia nunca cerró (POST api/EnviosAgencias/{id}/DarPorCerrado,
     ' motivo obligatorio). Lanza con el motivo del servidor si lo rechaza (ya no está incidentado, falta el motivo).
     Function DarPorCerradoEnvio(numeroEnvio As Integer, motivo As String) As Task
+    ' Nesto#571 (NestoAPI#739): la prueba de entrega de un envío del reparto propio (GET api/RepartoPropio/Envios/{id}/
+    ' PruebaEntrega). Nothing si el envío no la tiene (204). Lanza con el motivo del servidor si falla.
+    Function LeerPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of PruebaEntregaRepartoDto)
+    ' Nesto#571: la firma de esa prueba de entrega (…/PruebaEntrega/Firma, image/png). Nothing si no hay firma.
+    Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte())
     ' Nesto#415 / Nesto#340 (Agencias, slice A4.3): la agencia paga los reembolsos que cobró. El
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).

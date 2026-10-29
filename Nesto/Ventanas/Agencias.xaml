@@ -614,6 +614,11 @@
                                 Content="Actualizar estado"
                                 Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático."/>
+                        <!-- Nesto#571: solo para los envíos entregados del reparto propio (el CanExecute lo filtra). -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Ver prueba de entrega"
+                                Command="{Binding VerPruebaEntregaCommand}"
+                                ToolTip="Muestra quién recogió el envío del reparto propio, su DNI, cuándo, cómo se cobró el reembolso y la firma."/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
                     </DockPanel>
                 </Grid>

@@ -1,4 +1,4 @@
-Imports Azure.Identity
+﻿Imports Azure.Identity
 Imports CommunityToolkit.Mvvm.Messaging
 Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
@@ -300,6 +300,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of MotivoCambioEstadoDialog, MotivoCambioEstadoDialogViewModel)
         ' Nesto#564 (NestoAPI#725): aviso en rojo del cambio de un envío registrado que no llega a la agencia
         registro.RegistrarDialogo(Of CambioSinAgenciaDialog, CambioSinAgenciaDialogViewModel)
+        ' Nesto#571 (NestoAPI#739): prueba de entrega (firma, DNI, cobro del reembolso) de un envío del reparto propio
+        registro.RegistrarDialogo(Of PruebaEntregaDialog, PruebaEntregaDialogViewModel)
         ' Nesto#563 (NestoAPI#724): enviar por correo el pedido, el mandato SEPA o la factura sin descargarlos
         registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
 
