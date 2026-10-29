@@ -2487,6 +2487,64 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+#Region "Datos de transferencia al terminar (sugerencia 864)"
+    ''' <summary>
+    ''' Sugerencia 864 (Paloma): el pedido se paga por transferencia (TRN con plazos PRE o CONTADO), así que al terminar se
+    ''' ofrecen los datos para que el cliente la haga (los mismos que «Copiar datos transferencia» del pedido, sugerencia 396).
+    ''' </summary>
+    Public ReadOnly Property EsTransferencia As Boolean
+        Get
+            Return DatosTransferenciaPedido.EsPrepagoPorTransferencia(FormaPagoSeleccionada?.formaPago, plazoPagoSeleccionado?.plazoPago)
+        End Get
+    End Property
+
+    Private _copiarDatosTransferencia As Boolean = True
+    ''' <summary>Marcada de entrada: al terminar se copian los datos de transferencia al portapapeles y se enseñan.</summary>
+    Public Property CopiarDatosTransferencia As Boolean
+        Get
+            Return _copiarDatosTransferencia AndAlso EsTransferencia
+        End Get
+        Set(value As Boolean)
+            If _copiarDatosTransferencia <> value Then
+                _copiarDatosTransferencia = value
+                OnPropertyChanged()
+            End If
+        End Set
+    End Property
+
+    Private Sub NotificarCambioTransferencia()
+        OnPropertyChanged(NameOf(EsTransferencia))
+        OnPropertyChanged(NameOf(CopiarDatosTransferencia))
+    End Sub
+
+    ''' <summary>Dónde se copian los datos de transferencia. Se cambia en los tests para no tocar el portapapeles de verdad.</summary>
+    Public Property PortapapelesTransferencia As IPortapapelesTexto = New PortapapelesTextoWpf()
+
+    ''' <summary>
+    ''' Pide a la API los datos de transferencia del pedido recién guardado (GET PedidosVenta/{empresa}/{numero}/DatosTransferencia),
+    ''' los copia y los enseña. Nunca lanza: el pedido ya está guardado.
+    ''' </summary>
+    Friend Async Function CopiarDatosTransferenciaAlTerminarAsync(empresa As String, numPedido As String) As Task(Of String)
+        Dim numero As Integer
+        If Not Integer.TryParse(numPedido?.Trim(), numero) OrElse numero <= 0 Then
+            Return Nothing
+        End If
+        Try
+            Dim datos As DatosTransferenciaPedidoModel = Await servicioPedidosVenta.LeerDatosTransferencia(empresa, numero)
+            If datos Is Nothing OrElse String.IsNullOrWhiteSpace(datos.Texto) Then
+                dialogService.ShowError($"El pedido {numero} se ha guardado, pero no se han podido leer sus datos de transferencia. Cópielos desde el pedido.")
+                Return Nothing
+            End If
+            PortapapelesTransferencia.CopiarTexto(datos.Texto)
+            dialogService.ShowNotification(DatosTransferenciaPedido.TITULO, DatosTransferenciaPedido.MENSAJE_COPIADOS & vbCrLf & vbCrLf & datos.Texto)
+            Return datos.Texto
+        Catch ex As Exception
+            dialogService.ShowError($"El pedido {numero} se ha guardado, pero no se han podido copiar sus datos de transferencia: {ex.Message}")
+            Return Nothing
+        End Try
+    End Function
+#End Region
+
     ''' <summary>
     ''' Nesto#486: con recibo bancario el paso de finalizar enseña el SelectorCCC (cuenta a cargar
     ''' y aviso si el cliente no tiene ninguna válida). Misma regla que el detalle de pedido.
@@ -2661,6 +2719,7 @@ Public Class PlantillaVentaViewModel
             cmdCrearPedido.NotifyCanExecuteChanged()
             OnPropertyChanged(NameOf(SePuedeFinalizar))
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
+            NotificarCambioTransferencia() ' Sugerencia 864
             OnPropertyChanged(NameOf(EsReciboBancario)) ' Nesto#486
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
             OnPropertyChanged(NameOf(TieneSaldoAFavor))
@@ -3297,6 +3356,7 @@ Public Class PlantillaVentaViewModel
             cmdCrearPedido.NotifyCanExecuteChanged()
             OnPropertyChanged(NameOf(SePuedeFinalizar))
             OnPropertyChanged(NameOf(EsTarjetaPrepago))
+            NotificarCambioTransferencia() ' Sugerencia 864
             OnPropertyChanged(NameOf(MandarCobroTarjeta))
             OnPropertyChanged(NameOf(TieneSaldoAFavor))
             If Not IsNothing(_plazoPagoSeleccionado) Then
@@ -4588,6 +4648,11 @@ Public Class PlantillaVentaViewModel
                         dialogService.ShowNotification("Cobro tarjeta", aviso)
                     End If
                 End If
+            End If
+
+            ' Sugerencia 864 (Paloma): con transferencia (PRE o CONTADO), los datos para que el cliente la haga, como el enlace
+            If CopiarDatosTransferencia Then
+                Await CopiarDatosTransferenciaAlTerminarAsync(pedido.empresa, numPedido)
             End If
 
             ' Nesto#543: si la API ha separado los cursos en otro pedido (serie CV), se dice
