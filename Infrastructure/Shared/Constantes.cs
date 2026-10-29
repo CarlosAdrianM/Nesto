@@ -11,6 +11,11 @@ namespace Nesto.Infrastructure.Shared
             public const string AGENCIA_DEFECTO = "ASM";
             public const string AGENCIA_INTERNACIONAL = "ASM"; // String.Empty para no usar ninguna
             public const string AGENCIA_REEMBOLSOS = "Correos Express"; // String.Empty para no usar ninguna
+            // Nesto#571 (NestoAPI#739): el reparto con nuestras furgonetas como una agencia más (AgenciasTransporte 14,
+            // empresa 1). Complementa a la ruta propia (AT, 16): Facturar rutas no cambia. Espejo de
+            // Constantes.Agencias.AGENCIA_REPARTO_PROPIO de NestoAPI.
+            public const int AGENCIA_REPARTO_PROPIO = 14;
+            public const string NOMBRE_AGENCIA_REPARTO_PROPIO = "Reparto propio";
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;
             // Estados de seguimiento (#247/#248), los rellena el poll del servidor por agencia.

@@ -1,0 +1,77 @@
+<UserControl x:Class="ControlesUsuario.Dialogs.PruebaEntregaDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="420" MaxWidth="600" Background="White">
+    <!-- Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio. Solo lectura. La firma llega en bytes (PNG) y el
+         Image la pinta con el conversor de WPF; si no hay, se ve el texto de TextoSinFirma. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisible" />
+        <Style x:Key="Etiqueta" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#555555"/>
+            <Setter Property="Margin" Value="0,3,12,3"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="Valor" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="{Binding Cabecera}" FontSize="15" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Recogió:" Style="{StaticResource Etiqueta}"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Receptor}" Style="{StaticResource Valor}"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="DNI:" Style="{StaticResource Etiqueta}"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Dni}" Style="{StaticResource Valor}"/>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Fecha y hora:" Style="{StaticResource Etiqueta}"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding FechaHora}" Style="{StaticResource Valor}"/>
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Reembolso:" Style="{StaticResource Etiqueta}"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Cobro}" Style="{StaticResource Valor}"/>
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Registrado por:" Style="{StaticResource Etiqueta}"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Usuario}" Style="{StaticResource Valor}"/>
+        </Grid>
+
+        <Border Grid.Row="2" Margin="0,12,0,0" BorderBrush="#BBBBBB" BorderThickness="1" Background="White" MinHeight="120">
+            <Grid>
+                <Image Source="{Binding Firma}" MaxHeight="220" Stretch="Uniform" Margin="6"
+                       Visibility="{Binding HayFirma, Converter={StaticResource BoolAVisible}}"/>
+                <TextBlock Text="{Binding TextoSinFirma}" Foreground="#777777" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextWrapping="Wrap" Margin="10">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HayFirma}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <Button Grid.Row="3" Content="Cerrar" Command="{Binding CerrarCommand}" MinWidth="90" Padding="8,3" Margin="0,15,0,0"
+                HorizontalAlignment="Right" IsDefault="True" IsCancel="True"/>
+    </Grid>
+</UserControl>

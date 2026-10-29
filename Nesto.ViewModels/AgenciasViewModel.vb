@@ -116,6 +116,7 @@ Public Class AgenciasViewModel
         cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
         VerFotosBultosAriadnaCommand = New RelayCommand(AddressOf OnVerFotosBultosAriadna, AddressOf CanVerFotosBultosAriadna)
+        VerPruebaEntregaCommand = New RelayCommand(AddressOf OnVerPruebaEntrega, AddressOf CanVerPruebaEntrega) ' Nesto#571
         ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
         CopiarNumeroEnvioCommand = New RelayCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
         CopiarCampoCommand = New RelayCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
@@ -131,6 +132,8 @@ Public Class AgenciasViewModel
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
         factory.Add("Innovatrans", Function() New AgenciaInnovatrans()) ' registrar al imprimir (DataTrans, server-side)
         factory.Add("CTT", Function() New AgenciaCTT()) ' NestoAPI#493: registrar al imprimir (API REST, server-side); oculta mientras sea sombra
+        ' Nesto#571 (NestoAPI#739): nuestras furgonetas como agencia; registrar al imprimir, la etiqueta la monta la API
+        factory.Add(Constantes.Agencias.NOMBRE_AGENCIA_REPARTO_PROPIO, Function() New AgenciaRepartoPropio())
 
 
     End Sub
@@ -1141,6 +1144,7 @@ Public Class AgenciasViewModel
                     cmdActualizarSeguimiento.NotifyCanExecuteChanged()
                 End If
                 DarPorCerradoCommand?.NotifyCanExecuteChanged()
+                VerPruebaEntregaCommand?.NotifyCanExecuteChanged() ' Nesto#571
 
                 ' Nesto#418/#422: el menú contextual de copiar depende del envío seleccionado.
                 If Not IsNothing(CopiarNumeroPedidoCommand) Then
@@ -3887,7 +3891,10 @@ Public Class AgenciasViewModel
     ' agencia y persiste), sin esperar al job de Hangfire de cada 2h. Útil sobre todo en Incidentados.
     Public Property cmdActualizarSeguimiento As RelayCommand
     Private Function CanActualizarSeguimiento() As Boolean
-        Return envioActual IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras)
+        ' Nesto#571: el reparto propio no tiene agencia a la que preguntar: su estado lo pone Ariadna al entregar o al
+        ' registrar la incidencia.
+        Return envioActual IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras) AndAlso
+            Not EsRepartoPropio(envioActual)
     End Function
     Private Async Sub OnActualizarSeguimiento()
         If envioActual Is Nothing Then
@@ -3970,6 +3977,77 @@ Public Class AgenciasViewModel
         Finally
             EstaOcupado = False
         End Try
+    End Function
+
+    ' ===== Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio =====
+
+    Friend Shared Function EsRepartoPropio(envio As EnviosAgencia) As Boolean
+        Return envio IsNot Nothing AndAlso envio.Agencia = Constantes.Agencias.AGENCIA_REPARTO_PROPIO
+    End Function
+
+    Friend Const TITULO_PRUEBA_ENTREGA As String = "Prueba de entrega"
+    Friend Const SIN_PRUEBA_ENTREGA As String = "Este envío no tiene prueba de entrega."
+
+    Public Property VerPruebaEntregaCommand As RelayCommand
+    Private Function CanVerPruebaEntrega() As Boolean
+        Return EsRepartoPropio(envioActual) AndAlso envioActual.Estado = Constantes.Agencias.ESTADO_ENTREGADO_ENVIO
+    End Function
+    Private Async Sub OnVerPruebaEntrega()
+        Await VerPruebaEntregaSeleccionada()
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#571: quién recogió, DNI, cuándo, cómo se cobró el reembolso, quién lo registró y la firma. Si la firma no se
+    ''' puede leer, se enseña lo demás (la firma es un extra; los datos son lo importante). Friend para probarlo sin UI.
+    ''' </summary>
+    Friend Async Function VerPruebaEntregaSeleccionada() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If Not EsRepartoPropio(envio) Then
+            Return
+        End If
+        Dim prueba As PruebaEntregaRepartoDto = Nothing
+        Dim firma As Byte() = Nothing
+        Dim mensajeError As String = Nothing
+        Try
+            EstaOcupado = True
+            prueba = Await _servicio.LeerPruebaEntregaReparto(envio.Numero)
+            If prueba IsNot Nothing AndAlso prueba.TieneFirma Then
+                Try
+                    firma = Await _servicio.LeerFirmaPruebaEntregaReparto(envio.Numero)
+                Catch exFirma As Exception
+                    Dim unused = RegistrarErrorAgenciaEnElmah(exFirma, "AgenciasViewModel.VerPruebaEntrega (firma)")
+                End Try
+            End If
+        Catch ex As Exception
+            Dim unused2 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.VerPruebaEntrega")
+            mensajeError = ex.Message
+        Finally
+            EstaOcupado = False
+        End Try
+
+        If mensajeError IsNot Nothing Then
+            _dialogService.ShowError($"No se ha podido leer la prueba de entrega del envío {envio.Numero}:" & vbCr & mensajeError)
+        ElseIf prueba Is Nothing Then
+            _dialogService.ShowNotification(TITULO_PRUEBA_ENTREGA, SIN_PRUEBA_ENTREGA)
+        Else
+            _dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, ParametrosPruebaEntrega(envio, prueba, firma), Sub(r)
+                                                                                                                         End Sub)
+        End If
+    End Function
+
+    Friend Shared Function ParametrosPruebaEntrega(envio As EnviosAgencia, prueba As PruebaEntregaRepartoDto, firma As Byte()) As ParametrosDialogo
+        Return New ParametrosDialogo From {
+            {PruebaEntregaDialogViewModel.PARAMETRO_ENVIO, envio.Numero},
+            {PruebaEntregaDialogViewModel.PARAMETRO_PEDIDO, If(envio.Pedido.HasValue, envio.Pedido.Value.ToString(), String.Empty)},
+            {PruebaEntregaDialogViewModel.PARAMETRO_FECHA_HORA, prueba.FechaHora},
+            {PruebaEntregaDialogViewModel.PARAMETRO_RECEPTOR, prueba.Receptor},
+            {PruebaEntregaDialogViewModel.PARAMETRO_DNI, prueba.DniReceptor},
+            {PruebaEntregaDialogViewModel.PARAMETRO_COBRO_REEMBOLSO, prueba.CobroReembolso},
+            {PruebaEntregaDialogViewModel.PARAMETRO_IMPORTE_COBRADO, prueba.ImporteCobrado},
+            {PruebaEntregaDialogViewModel.PARAMETRO_USUARIO, prueba.Usuario},
+            {PruebaEntregaDialogViewModel.PARAMETRO_TIENE_FIRMA, prueba.TieneFirma},
+            {PruebaEntregaDialogViewModel.PARAMETRO_FIRMA, firma}
+        }
     End Function
 #End Region
 
