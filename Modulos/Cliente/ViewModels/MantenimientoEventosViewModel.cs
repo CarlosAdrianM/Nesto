@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
@@ -24,12 +25,15 @@ namespace Nesto.Modulos.Cliente
     {
         private readonly IEventosService _servicio;
         private readonly IServicioDialogos _dialogService;
+        private readonly IServicioPortapapeles _portapapeles;
 
-        public MantenimientoEventosViewModel(IEventosService servicio, IConfiguracion configuracion, IServicioDialogos dialogService)
+        public MantenimientoEventosViewModel(IEventosService servicio, IConfiguracion configuracion, IServicioDialogos dialogService,
+            IServicioPortapapeles portapapeles = null)
         {
             _servicio = servicio;
             Configuracion = configuracion;
             _dialogService = dialogService;
+            _portapapeles = portapapeles ?? new ServicioPortapapeles();
             Titulo = "Eventos";
             Tiendas = new List<TiendaEvento>
             {
@@ -62,6 +66,35 @@ namespace Nesto.Modulos.Cliente
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
             RecargarInscripcionesCommand = new AsyncRelayCommand(CargarInscripcionesAsync, () => Seleccionado?.Id > 0);
             AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
+            CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace,
+                i => (i ?? InscripcionSeleccionada)?.TieneEnlacePago == true);
+        }
+
+        // ---------------- Carlos 29/10/26: copiar el enlace de pago de un inscrito para reenviarlo ----------------
+
+        /// <summary>Con la fila del botón, o la seleccionada (menú contextual).</summary>
+        public RelayCommand<InscripcionEventoModel> CopiarEnlaceCommand { get; }
+
+        private string _avisoEnlace;
+        /// <summary>«Enlace de … copiado: péguelo en WhatsApp o donde quiera.» (se ve junto a los inscritos).</summary>
+        public string AvisoEnlace { get => _avisoEnlace; private set => SetProperty(ref _avisoEnlace, value); }
+
+        public void CopiarEnlace(InscripcionEventoModel inscripcion)
+        {
+            inscripcion ??= InscripcionSeleccionada;
+            if (inscripcion?.TieneEnlacePago != true)
+            {
+                return;
+            }
+            if (_portapapeles.Copiar(inscripcion.UrlPago.Trim()))
+            {
+                AvisoEnlace = inscripcion.TextoEnlaceCopiado;
+            }
+            else
+            {
+                AvisoEnlace = null;
+                _dialogService.ShowError(InscripcionEventoModel.ERROR_COPIAR_ENLACE);
+            }
         }
 
         public IConfiguracion Configuracion { get; }
@@ -1298,6 +1331,7 @@ namespace Nesto.Modulos.Cliente
             NoPodraIrCommand.NotifyCanExecuteChanged();
             MarcarPagadaCommand.NotifyCanExecuteChanged();
             FacturarCommand.NotifyCanExecuteChanged();
+            CopiarEnlaceCommand.NotifyCanExecuteChanged();
         }
 
         public AsyncRelayCommand InscribirCommand { get; }

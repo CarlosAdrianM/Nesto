@@ -23,7 +23,7 @@
                     ToolTip="Vuelve a leer los cupones del cliente."/>
             <Button Content="Emitir cupón manual…" Command="{Binding EmitirManualCommand}" Padding="8,1" Margin="0,0,6,0"
                     Visibility="{Binding PuedeEmitirManual, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ToolTip="Cupón sin evento, solo Dirección: importe con el IVA incluido y motivo obligatorio. Pedido mínimo el doble; caduca a los 6 meses."/>
+                    ToolTip="Cupón sin evento, solo Dirección: importe con el IVA incluido y motivo obligatorio. Pedido mínimo: 200 € si no dice otro; caduca a los 6 meses."/>
             <Button Content="Anular cupón…" Command="{Binding AnularCommand}" Padding="8,1"
                     Visibility="{Binding PuedeAnular, Converter={StaticResource BooleanToVisibilityConverter}}"
                     ToolTip="Anula el cupón seleccionado si no se ha usado (por ejemplo, por la devolución del curso)."/>

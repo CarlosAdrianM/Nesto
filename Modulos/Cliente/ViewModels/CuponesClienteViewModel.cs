@@ -7,6 +7,7 @@ using Nesto.Infrastructure.Shared;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -192,9 +193,32 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        /// <summary>Carlos 29/10/26: el pedido mínimo que se propone al emitir un cupón manual (y el que pone la API si no va).</summary>
+        public const decimal PEDIDO_MINIMO_POR_DEFECTO = 200M;
+
         /// <summary>
-        /// Cupón manual (solo Dirección): importe IVA incluido, motivo obligatorio y desde cuándo vale (hoy si no se dice). Las
-        /// demás reglas son las de siempre: pedido mínimo el doble y caduca a los 6 meses.
+        /// Lo escrito en «Pedido mínimo (€)»: vacío = el de por defecto; «150», «150,50», «150.5» o «150 €». Null si no es un
+        /// número o es negativo.
+        /// </summary>
+        internal static decimal? LeerPedidoMinimo(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return PEDIDO_MINIMO_POR_DEFECTO;
+            }
+            string limpio = texto.Replace("€", string.Empty).Trim();
+            if (limpio.Contains('.') && !limpio.Contains(','))
+            {
+                limpio = limpio.Replace('.', ',');
+            }
+            return decimal.TryParse(limpio, NumberStyles.Number, CultureInfo.GetCultureInfo("es-ES"), out decimal valor) && valor >= 0
+                ? valor
+                : null;
+        }
+
+        /// <summary>
+        /// Cupón manual (solo Dirección): importe IVA incluido, motivo obligatorio, pedido mínimo (200 € por defecto, Carlos
+        /// 29/10/26) y desde cuándo vale (hoy si no se dice). Caduca a los 6 meses.
         /// </summary>
         public async Task EmitirManualAsync()
         {
@@ -222,10 +246,23 @@ namespace Nesto.Modulos.Cliente
                 _dialogos.ShowError("El cupón manual necesita un motivo.");
                 return;
             }
+            string textoMinimo = _dialogos.GetText("Cupón manual",
+                "Pedido mínimo (€) de productos, con el IVA incluido, para poder usar el cupón:",
+                PEDIDO_MINIMO_POR_DEFECTO.ToString("0", CultureInfo.GetCultureInfo("es-ES")));
+            if (textoMinimo == null)
+            {
+                return;
+            }
+            decimal? pedidoMinimo = LeerPedidoMinimo(textoMinimo);
+            if (pedidoMinimo == null)
+            {
+                _dialogos.ShowError($"«{textoMinimo.Trim()}» no es un importe válido para el pedido mínimo. Escriba un número, como 200.");
+                return;
+            }
             DateTime? validoDesde = _dialogos.GetDate("Cupón manual", "¿Desde qué día vale el cupón? Si no lo sabe, vale desde hoy.", DateTime.Today);
             DateTime desde = (validoDesde ?? DateTime.Today).Date;
             string confirmacion = $"Se va a emitir un cupón de {ReglasCupon.Euros(importe.Value)} (IVA incluido) para el cliente {Cliente}, " +
-                $"válido desde el {ReglasCupon.Fecha(desde)} y durante 6 meses, para un pedido de al menos {ReglasCupon.Euros(importe.Value * 2)} de productos.\n\n" +
+                $"válido desde el {ReglasCupon.Fecha(desde)} y durante 6 meses, para un pedido de al menos {ReglasCupon.Euros(pedidoMinimo.Value)} de productos.\n\n" +
                 $"Motivo: {motivo.Trim()}\n\n¿Lo emite?";
             if (!_dialogos.ShowConfirmationAnswer("Cupón manual", confirmacion))
             {
@@ -241,7 +278,8 @@ namespace Nesto.Modulos.Cliente
                     Contacto = Contacto,
                     Importe = importe.Value,
                     Motivo = motivo.Trim(),
-                    ValidoDesde = desde
+                    ValidoDesde = desde,
+                    PedidoMinimo = pedidoMinimo.Value
                 });
                 _dialogos.ShowNotification("Cupón manual", $"Se ha emitido el cupón {cupon?.Codigo?.Trim()} de {ReglasCupon.Euros(importe.Value)}.");
             }

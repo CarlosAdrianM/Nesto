@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario;
 using ControlesUsuario.Dialogs;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
@@ -17,16 +19,22 @@ namespace Nesto.Modulos.Cliente
     /// con tarjeta se genera el enlace de pago (opcional), por transferencia o en efectivo en la tienda; en los dos últimos la
     /// inscripción se queda Reservada hasta que alguien la marque como pagada. Tras inscribir se queda abierto enseñando el
     /// enlace para copiarlo, y al cerrar devuelve «inscripcion» (InscripcionEventoModel).
+    /// <para>Carlos 29/10/26: el cliente y el contacto con el selector de clientes de Nesto; el correo se elige entre los de las
+    /// personas de contacto (SelectorCorreo) o se escribe; y, lo más importante, el enlace de pago se copia solo al portapapeles
+    /// al inscribir y no se puede cerrar el diálogo sin haberlo copiado (al segundo intento sí, avisado: queda en los inscritos).
+    /// Cerrar con la X después de inscribir devuelve también la inscripción.</para>
     /// </summary>
     public class InscribirEventoDialogViewModel : DialogoNestoBase
     {
         public const string NOMBRE = "InscribirEventoDialog";
 
         private readonly IEventosService _servicio;
+        private readonly IServicioPortapapeles _portapapeles;
 
-        public InscribirEventoDialogViewModel(IEventosService servicio)
+        public InscribirEventoDialogViewModel(IEventosService servicio, IServicioPortapapeles portapapeles = null)
         {
             _servicio = servicio;
+            _portapapeles = portapapeles ?? new ServicioPortapapeles();
             Title = "Inscribir en un evento";
             Origenes = new List<OpcionEvento>
             {
@@ -43,6 +51,7 @@ namespace Nesto.Modulos.Cliente
             _formaPago = FormasPago[0];
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, PuedeInscribir);
             CerrarCommand = new RelayCommand(Cerrar);
+            CopiarEnlaceCommand = new RelayCommand(CopiarEnlace, () => TieneEnlace);
         }
 
         public List<OpcionEvento> Origenes { get; }
@@ -187,7 +196,37 @@ namespace Nesto.Modulos.Cliente
         public PersonaContactoEventoModel PersonaAsiste
         {
             get => _personaAsiste;
-            set => SetProperty(ref _personaAsiste, value ?? InscripcionEventoModel.SIN_PERSONA);
+            set
+            {
+                if (SetProperty(ref _personaAsiste, value ?? InscripcionEventoModel.SIN_PERSONA))
+                {
+                    ActualizarCorreos();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Los correos de las personas de contacto que se ofrecen en el SelectorCorreo; el de la persona que asiste, el primero
+        /// (el selector lo pone solo si el usuario no ha escrito otro).
+        /// </summary>
+        public ObservableCollection<string> Correos { get; } = new();
+
+        private void ActualizarCorreos()
+        {
+            List<string> correos = Personas
+                .Where(p => p != null && p != InscripcionEventoModel.SIN_PERSONA && !string.IsNullOrWhiteSpace(p.Correo))
+                .OrderBy(p => p == PersonaAsiste ? 0 : 1)
+                .Select(p => p.Correo.Trim())
+                .ToList();
+            if (correos.SequenceEqual(Correos))
+            {
+                return;
+            }
+            Correos.Clear();
+            foreach (string correo in correos)
+            {
+                Correos.Add(correo);
+            }
         }
 
         /// <summary>Se espera un poco tras teclear el cliente o el contacto para no pedir las personas en cada tecla.</summary>
@@ -245,6 +284,7 @@ namespace Nesto.Modulos.Cliente
             }
             PersonaAsiste = Personas.FirstOrDefault(p => !string.IsNullOrEmpty(numeroAnterior) && p.Numero?.Trim() == numeroAnterior.Trim())
                 ?? InscripcionEventoModel.SIN_PERSONA;
+            ActualizarCorreos();
         }
 
         private string _nombreCliente;
@@ -252,7 +292,27 @@ namespace Nesto.Modulos.Cliente
 
         /// <summary>Desde la ficha el cliente viene dado y no se cambia.</summary>
         private bool _clienteFijo;
-        public bool ClienteFijo { get => _clienteFijo; private set => SetProperty(ref _clienteFijo, value); }
+        public bool ClienteFijo
+        {
+            get => _clienteFijo;
+            private set
+            {
+                if (SetProperty(ref _clienteFijo, value))
+                {
+                    OnPropertyChanged(nameof(ClienteElegible));
+                    OnPropertyChanged(nameof(TextoClienteFijo));
+                }
+            }
+        }
+
+        /// <summary>Desde el mantenimiento: se busca con el selector de clientes de Nesto (por nombre, número, NIF…).</summary>
+        public bool ClienteElegible => !ClienteFijo;
+
+        /// <summary>«15191/0 · NOMBRE DEL CLIENTE» (desde la ficha).</summary>
+        public string TextoClienteFijo => !ClienteFijo
+            ? string.Empty
+            : $"{Cliente?.Trim()}/{(string.IsNullOrWhiteSpace(Contacto) ? "(principal)" : Contacto.Trim())}"
+              + (string.IsNullOrWhiteSpace(NombreCliente) ? string.Empty : $" · {NombreCliente}");
 
         private OpcionEvento _origen;
         public OpcionEvento Origen { get => _origen; set => SetProperty(ref _origen, value); }
@@ -267,6 +327,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     OnPropertyChanged(nameof(EsTarjeta));
                     OnPropertyChanged(nameof(AvisoFormaPago));
+                    InscribirCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -274,11 +335,38 @@ namespace Nesto.Modulos.Cliente
         public bool EsTarjeta => !EsGratuita && FormaPago?.Valor == MarcarPagoInscripcionModel.TARJETA;
 
         private bool _generarEnlacePago = true;
-        public bool GenerarEnlacePago { get => _generarEnlacePago; set => SetProperty(ref _generarEnlacePago, value); }
+        public bool GenerarEnlacePago
+        {
+            get => _generarEnlacePago;
+            set
+            {
+                if (SetProperty(ref _generarEnlacePago, value))
+                {
+                    InscribirCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
 
         private string _correo;
         /// <summary>Opcional: si se pone, la API manda el enlace de pago a ese correo.</summary>
-        public string Correo { get => _correo; set => SetProperty(ref _correo, value); }
+        public string Correo
+        {
+            get => _correo;
+            set
+            {
+                if (SetProperty(ref _correo, value))
+                {
+                    OnPropertyChanged(nameof(CorreoValido));
+                    InscribirCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>Vacío o con forma de correo (el mismo criterio que el SelectorCorreo).</summary>
+        public bool CorreoValido => CorreosElegibles.EsValido(Correo);
+
+        /// <summary>El correo solo se manda con tarjeta y enlace; si no, da igual lo que ponga.</summary>
+        private bool SeMandaCorreo => EsTarjeta && GenerarEnlacePago;
 
         public string AvisoFormaPago => EsGratuita
             ? "Evento gratuito: el cliente no paga nada y pasa directamente a la lista de asistencia."
@@ -319,7 +407,9 @@ namespace Nesto.Modulos.Cliente
                     OnPropertyChanged(nameof(SinInscribir));
                     OnPropertyChanged(nameof(TextoInscrito));
                     OnPropertyChanged(nameof(TieneEnlace));
+                    OnPropertyChanged(nameof(TextoEnlace));
                     OnPropertyChanged(nameof(HayAvisos));
+                    CopiarEnlaceCommand.NotifyCanExecuteChanged();
                     OnPropertyChanged(nameof(TextoAvisos));
                     InscribirCommand.NotifyCanExecuteChanged();
                 }
@@ -345,12 +435,47 @@ namespace Nesto.Modulos.Cliente
             ? string.Empty
             : $"Inscrito en «{Inscripcion.Evento}» del {Inscripcion.FechaEvento:dd/MM/yyyy}: {Inscripcion.EstadoTexto ?? Inscripcion.Estado}" +
               (Inscripcion.FechaLimitePago.HasValue ? $", se puede pagar hasta el {Inscripcion.FechaLimitePago.Value:dd/MM/yyyy}." : ".") +
-              (TieneEnlace ? " Copie el enlace de pago y envíeselo al cliente:" : string.Empty);
+              (TieneEnlace ? " Envíele al cliente el enlace de pago:" : string.Empty);
+
+        private bool _enlaceCopiado;
+        /// <summary>El enlace de pago está en el portapapeles (se copia solo al inscribir, o con «Copiar enlace»).</summary>
+        public bool EnlaceCopiado
+        {
+            get => _enlaceCopiado;
+            private set
+            {
+                if (SetProperty(ref _enlaceCopiado, value))
+                {
+                    OnPropertyChanged(nameof(TextoEnlace));
+                }
+            }
+        }
+
+        /// <summary>El aviso junto al enlace.</summary>
+        public string TextoEnlace => !TieneEnlace
+            ? string.Empty
+            : EnlaceCopiado
+                ? "Enlace copiado: péguelo en WhatsApp o donde quiera."
+                : "No se ha podido copiar el enlace. Pulse «Copiar enlace» antes de cerrar.";
+
+        public RelayCommand CopiarEnlaceCommand { get; }
+
+        private void CopiarEnlace()
+        {
+            if (!TieneEnlace)
+            {
+                return;
+            }
+            bool copiado = _portapapeles.Copiar(Inscripcion.UrlPago.Trim());
+            EnlaceCopiado = copiado || EnlaceCopiado;
+            Mensaje = copiado ? null : "Windows no ha dejado copiar el enlace (puede que otro programa esté usando el portapapeles). Vuelva a intentarlo o selecciónelo y cópielo con Ctrl+C.";
+        }
 
         public AsyncRelayCommand InscribirCommand { get; }
         public RelayCommand CerrarCommand { get; }
 
-        private bool PuedeInscribir() => !EstaOcupado && !Inscrito && Evento != null && !string.IsNullOrWhiteSpace(Cliente);
+        private bool PuedeInscribir() => !EstaOcupado && !Inscrito && Evento != null && !string.IsNullOrWhiteSpace(Cliente)
+            && (!SeMandaCorreo || CorreoValido);
 
         public override void OnDialogOpened(ParametrosDialogo parameters)
         {
@@ -417,9 +542,14 @@ namespace Nesto.Modulos.Cliente
                     // Con la API de antes de #690 (el evento no trae Modalidades) no se manda la modalidad.
                     Modalidad = Evento.Modalidades != null && Evento.Modalidades.Any() ? Modalidad?.Valor : null,
                     GenerarEnlacePago = EsTarjeta && GenerarEnlacePago,
-                    Correo = EsTarjeta && GenerarEnlacePago && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null,
+                    Correo = SeMandaCorreo && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null,
                     PersonaContacto = string.IsNullOrWhiteSpace(PersonaAsiste?.Numero) ? null : PersonaAsiste.Numero.Trim()
                 });
+                if (TieneEnlace)
+                {
+                    // Carlos 29/10/26: lo más importante es que el enlace no se pierda; se copia solo.
+                    EnlaceCopiado = _portapapeles.Copiar(Inscripcion.UrlPago.Trim());
+                }
             }
             catch (Exception ex)
             {
@@ -431,14 +561,66 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        public const string AVISO_ENLACE_SIN_COPIAR = "No ha copiado el enlace de pago. Cópielo con «Copiar enlace» antes de cerrar. " +
+            "Si cierra de todos modos, lo tiene en la lista de inscritos del evento y en la ficha del cliente («Copiar enlace»).";
+
+        /// <summary>Ya se avisó una vez de que el enlace no está copiado: al segundo intento se deja cerrar.</summary>
+        private bool _avisadoEnlaceSinCopiar;
+        private bool _cerrandoConResultado;
+
+        /// <summary>
+        /// Con el enlace sin copiar, el primer intento de cerrar no cierra: avisa. Si no hay inscripción, cierra con Cancel; si
+        /// la hay, con OK y la inscripción (para que quien lo abrió recargue).
+        /// </summary>
         private void Cerrar()
         {
             if (Inscripcion == null)
             {
+                _cerrandoConResultado = true;
                 RaiseRequestClose(ResultadoBoton.Cancel);
                 return;
             }
+            if (!PuedeCerrarSinPerderEnlace())
+            {
+                return;
+            }
+            _cerrandoConResultado = true;
             RaiseRequestClose(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "inscripcion", Inscripcion } }));
+        }
+
+        private bool PuedeCerrarSinPerderEnlace()
+        {
+            if (!TieneEnlace || EnlaceCopiado || _avisadoEnlaceSinCopiar)
+            {
+                return true;
+            }
+            _avisadoEnlaceSinCopiar = true;
+            Mensaje = AVISO_ENLACE_SIN_COPIAR;
+            return false;
+        }
+
+        /// <summary>
+        /// La X de la ventana: sin inscripción, cierra. Con inscripción no se cierra así (se perdería el resultado y quien lo
+        /// abrió no recargaría): si el enlace no está copiado, avisa; si lo está, pide cerrar con el resultado en cuanto termine
+        /// este cierre (no se puede cerrar una ventana mientras se está cerrando).
+        /// </summary>
+        public override bool CanCloseDialog()
+        {
+            if (_cerrandoConResultado || Inscripcion == null)
+            {
+                return true;
+            }
+            if (PuedeCerrarSinPerderEnlace())
+            {
+                _ = CerrarDespuesAsync();
+            }
+            return false;
+        }
+
+        private async Task CerrarDespuesAsync()
+        {
+            await Task.Yield();
+            Cerrar();
         }
     }
 }

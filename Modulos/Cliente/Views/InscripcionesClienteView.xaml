@@ -6,11 +6,17 @@
              mc:Ignorable="d"
              d:DesignHeight="250" d:DesignWidth="800"
              Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
     <!-- El DataContext del ViewModel va en Raiz, no en el UserControl: así Empresa/Cliente/Contacto se enlazan con la ficha. -->
     <DockPanel x:Name="Raiz">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,4,0,0">
             <Button Content="Inscribir en un evento…" Command="{Binding InscribirCommand}" Padding="10,3" FontWeight="Bold"/>
             <Button Content="Recargar" Command="{Binding CargarCommand}" Padding="10,3" Margin="6,0,0,0"/>
+            <Button Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Padding="10,3" Margin="6,0,0,0"
+                    ToolTip="Copia el enlace de pago de la inscripción seleccionada para reenviárselo al cliente"/>
+            <TextBlock Text="{Binding AvisoEnlace}" Foreground="#1B5E20" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0"/>
             <TextBlock Text="Cargando…" Foreground="DimGray" VerticalAlignment="Center" Margin="10,0,0,0">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
@@ -25,7 +31,12 @@
             </TextBlock>
         </StackPanel>
         <DataGrid ItemsSource="{Binding Inscripciones}" SelectedItem="{Binding Seleccionada}" AutoGenerateColumns="False"
-                  IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" ColumnWidth="Auto">
+                  IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HorizontalScrollBarVisibility="Auto">
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Copiar enlace de pago" Command="{Binding CopiarEnlaceCommand}"/>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -41,24 +52,28 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Fecha" Binding="{Binding FechaEvento, StringFormat=dd/MM/yyyy}"/>
-                <DataGridTextColumn Header="Evento" Binding="{Binding Evento}" Width="*"/>
-                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
-                <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}"/>
-                <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}"/>
-                <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}"/>
-                <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}"/>
-                <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}"/>
-                <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}"/>
-                <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}"/>
-                <DataGridTemplateColumn Header="Enlace de pago" Width="220">
+                <DataGridTextColumn Header="Fecha" Binding="{Binding FechaEvento, StringFormat=dd/MM/yyyy}" Width="80"/>
+                <DataGridTextColumn Header="Evento" Binding="{Binding Evento}" Width="*" MinWidth="200"/>
+                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="65"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" Width="85"/>
+                <!-- Carlos 29/10/26: copiar el enlace de pago pendiente para reenviarlo -->
+                <DataGridTemplateColumn Header="Enlace de pago" Width="105">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding UrlPago, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                                     ToolTip="Seleccione y copie el enlace para mandárselo al cliente"/>
+                            <Button Content="Copiar enlace" Padding="6,0" Margin="2,1"
+                                    Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}" ToolTip="{Binding UrlPago}"
+                                    Visibility="{Binding TieneEnlacePago, Converter={StaticResource BoolAVisibilidad}}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" Width="90"/>
+                <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" Width="105"/>
+                <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" Width="95"/>
+                <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}" Width="80"/>
+                <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}" Width="75"/>
+                <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}" Width="150"/>
+                <DataGridTextColumn Header="Origen" Binding="{Binding TextoOrigen}" Width="85"/>
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

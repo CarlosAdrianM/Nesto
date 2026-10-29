@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cliente.Models;
 using System;
@@ -19,13 +20,43 @@ namespace Nesto.Modulos.Cliente
     {
         private readonly IEventosService _servicio;
         private readonly IServicioDialogos _dialogService;
+        private readonly IServicioPortapapeles _portapapeles;
 
-        public InscripcionesClienteViewModel(IEventosService servicio, IServicioDialogos dialogService)
+        public InscripcionesClienteViewModel(IEventosService servicio, IServicioDialogos dialogService, IServicioPortapapeles portapapeles = null)
         {
             _servicio = servicio;
             _dialogService = dialogService;
+            _portapapeles = portapapeles ?? new ServicioPortapapeles();
             CargarCommand = new AsyncRelayCommand(CargarAsync, () => TieneCliente);
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => TieneCliente);
+            CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace, i => (i ?? Seleccionada)?.TieneEnlacePago == true);
+        }
+
+        // ---------------- Carlos 29/10/26: copiar el enlace de pago para reenviarlo ----------------
+
+        /// <summary>Con la fila del botón, o la seleccionada (menú contextual).</summary>
+        public RelayCommand<InscripcionEventoModel> CopiarEnlaceCommand { get; }
+
+        private string _avisoEnlace;
+        /// <summary>«Enlace de … copiado: péguelo en WhatsApp o donde quiera.»</summary>
+        public string AvisoEnlace { get => _avisoEnlace; private set => SetProperty(ref _avisoEnlace, value); }
+
+        public void CopiarEnlace(InscripcionEventoModel inscripcion)
+        {
+            inscripcion ??= Seleccionada;
+            if (inscripcion?.TieneEnlacePago != true)
+            {
+                return;
+            }
+            if (_portapapeles.Copiar(inscripcion.UrlPago.Trim()))
+            {
+                AvisoEnlace = inscripcion.TextoEnlaceCopiado;
+            }
+            else
+            {
+                AvisoEnlace = null;
+                _dialogService.ShowError(InscripcionEventoModel.ERROR_COPIAR_ENLACE);
+            }
         }
 
         public string Empresa { get; private set; }
@@ -82,7 +113,17 @@ namespace Nesto.Modulos.Cliente
         }
 
         private InscripcionEventoModel _seleccionada;
-        public InscripcionEventoModel Seleccionada { get => _seleccionada; set => SetProperty(ref _seleccionada, value); }
+        public InscripcionEventoModel Seleccionada
+        {
+            get => _seleccionada;
+            set
+            {
+                if (SetProperty(ref _seleccionada, value))
+                {
+                    CopiarEnlaceCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
 
         private bool _estaOcupado;
         public bool EstaOcupado { get => _estaOcupado; private set => SetProperty(ref _estaOcupado, value); }
