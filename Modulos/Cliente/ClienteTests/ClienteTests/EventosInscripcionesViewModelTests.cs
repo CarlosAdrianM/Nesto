@@ -575,6 +575,67 @@ namespace ClienteTests
             Assert.AreEqual(ResultadoBoton.Cancel, resultado.Result);
         }
 
+        // ---------------- NestoAPI#741: cada comercial a sus clientes ----------------
+
+        private const string SOLO_SUS_CLIENTES = "Solo puede inscribir a sus clientes (si es jefe de equipo, también a los de su equipo). " +
+            "Para inscribir a este cliente, pídaselo a su comercial o a Administración.";
+
+        [TestMethod]
+        public void Dialogo_403DeLaApi_SeEnseñaTalCual()
+        {
+            InscribirEventoDialogViewModel vm = Dialogo(Evento(7, DateTime.Today.AddDays(5)));
+            A.CallTo(() => eventos.Inscribir(A<int>.Ignored, A<InscribirEventoModel>.Ignored))
+                .Throws(new Exception(EventosService.MensajeError(403, JsonConvert.SerializeObject(new { Message = SOLO_SUS_CLIENTES }),
+                    "No se pudo inscribir al cliente")));
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "cliente", "20000" } });
+
+            vm.InscribirCommand.Execute(null);
+
+            Assert.AreEqual(SOLO_SUS_CLIENTES, vm.Mensaje);
+            Assert.IsFalse(vm.Inscrito);
+        }
+
+        [TestMethod]
+        public void MensajeError_403TalCual_ElRestoConQueNoSePudo()
+        {
+            string negocio = JsonConvert.SerializeObject(new { error = new { message = SOLO_SUS_CLIENTES } });
+            Assert.AreEqual(SOLO_SUS_CLIENTES, EventosService.MensajeError(403, negocio, "No se pudo inscribir al cliente"));
+            Assert.AreEqual(SOLO_SUS_CLIENTES, EventosService.MensajeError(403, JsonConvert.SerializeObject(new { Message = SOLO_SUS_CLIENTES }), "No se pudo inscribir al cliente"));
+            Assert.AreEqual("No se pudo inscribir al cliente: no tiene permiso.", EventosService.MensajeError(403, "", "No se pudo inscribir al cliente"));
+            Assert.AreEqual("No se pudo inscribir al cliente: No quedan plazas.",
+                EventosService.MensajeError(400, JsonConvert.SerializeObject(new { Message = "No quedan plazas." }), "No se pudo inscribir al cliente"));
+        }
+
+        [TestMethod]
+        public void Dialogo_ModalidadDePago_EnlaceDePagoMarcadoPorDefecto()
+        {
+            EventoModel gratuito = Evento(7, DateTime.Today.AddDays(5));
+            gratuito.Modalidades = new List<string> { InscribirEventoModel.MODALIDAD_GRATUITA };
+            EventoModel dePago = Evento(8, DateTime.Today.AddDays(9));
+            dePago.Modalidades = new List<string> { InscribirEventoModel.MODALIDAD_REEMBOLSABLE, InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE };
+            InscribirEventoDialogViewModel vm = Dialogo(gratuito, dePago);
+            ((IDialogoNesto)vm).OnDialogOpened(new ParametrosDialogo { { "eventoId", 8 }, { "cliente", "15191" } });
+
+            Assert.IsTrue(vm.HayQuePagar);
+            Assert.IsTrue(vm.EsTarjeta);
+            Assert.IsTrue(vm.GenerarEnlacePago, "Al abrir con un evento de pago");
+
+            vm.GenerarEnlacePago = false;
+            vm.Evento = vm.Eventos.Single(e => e.Id == 7);
+            Assert.IsTrue(vm.EsGratuita);
+            vm.Evento = vm.Eventos.Single(e => e.Id == 8);
+            Assert.IsTrue(vm.GenerarEnlacePago, "Al volver a una modalidad de pago");
+
+            vm.GenerarEnlacePago = false;
+            vm.Modalidad = vm.Modalidades.Single(m => m.Valor == InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE);
+            Assert.IsTrue(vm.GenerarEnlacePago, "Al cambiar a otra modalidad de pago");
+
+            vm.InscribirCommand.Execute(null);
+            A.CallTo(() => eventos.Inscribir(8, A<InscribirEventoModel>.That.Matches(p =>
+                p.GenerarEnlacePago && p.FormaPago == "Tarjeta" && p.Modalidad == InscribirEventoModel.MODALIDAD_NO_REEMBOLSABLE)))
+                .MustHaveHappenedOnceExactly();
+        }
+
         // ---------------- Sugerencia 776: avisos de la ficha al inscribir ----------------
 
         private const string FALTA_TELEFONO = "A la ficha de la clienta le falta el teléfono: añádalo para poder avisarla del evento.";

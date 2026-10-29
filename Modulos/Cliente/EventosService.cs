@@ -313,9 +313,23 @@ namespace Nesto.Modulos.Cliente
                 {
                     throw new Exception($"{mensajeError}: la API todavía no tiene las inscripciones a eventos. Avise a Informática.");
                 }
-                throw new Exception($"{mensajeError}: {ExtraerMensaje(body)}");
+                throw new Exception(MensajeError(estado, body, mensajeError));
             }
             return body;
+        }
+
+        /// <summary>
+        /// El texto del error de la API. NestoAPI#741: un 403 (p. ej. «Solo puede inscribir a sus clientes…») se enseña tal
+        /// cual, que ya dice de usted qué pasa y qué hacer; el resto, con delante qué no se pudo hacer.
+        /// </summary>
+        internal static string MensajeError(int estado, string body, string mensajeError)
+        {
+            string mensaje = string.IsNullOrWhiteSpace(body) ? null : ExtraerMensaje(body)?.Trim();
+            if (estado == 403)
+            {
+                return string.IsNullOrEmpty(mensaje) ? $"{mensajeError}: no tiene permiso." : mensaje;
+            }
+            return $"{mensajeError}: {mensaje}";
         }
 
         /// <summary>

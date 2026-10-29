@@ -85,6 +85,11 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _modalidad, value))
                 {
+                    // NestoAPI#741: con una modalidad de pago, el enlace viene marcado (el pago lo confirma todo solo).
+                    if (value != null && value.Valor != InscribirEventoModel.MODALIDAD_GRATUITA)
+                    {
+                        GenerarEnlacePago = true;
+                    }
                     OnPropertyChanged(nameof(EsGratuita));
                     OnPropertyChanged(nameof(HayQuePagar));
                     OnPropertyChanged(nameof(EsTarjeta));
