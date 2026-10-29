@@ -85,6 +85,29 @@ namespace CanalesExternosTests
             Assert.AreEqual("57200013", cobro.CuentaPrepago);
         }
 
+        // Nesto#565 (28/10/26): Apple Pay y Google Pay cobran en el mismo terminal de Redsys que tarjeta y Bizum;
+        // la tienda guarda la etiqueta corta. Sin reconocerla, entrarian como transferencia y sin prepago.
+
+        [TestMethod]
+        public void ResolverCobro_GooglePay_EsTarjetaPrepagadaEnLa57200013()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Google Pay");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_ApplePay_EsTarjetaPrepagadaEnLa57200013()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Apple Pay");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
         [TestMethod]
         public void ResolverCobro_Redsys_EsTarjetaPrepagadaEnLa57200013()
         {

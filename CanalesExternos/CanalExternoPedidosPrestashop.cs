@@ -34,6 +34,11 @@ namespace Nesto.Modulos.CanalesExternos
         // etiquetas conviven: la larga en los 1.372 pedidos anteriores al 20/08/2026.
         private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
         private const string FORMA_PAGO_BIZUM_IPN = "Bizum";
+        // Nesto#565 (28/10/26): el banco activó Apple Pay y Google Pay en el mismo terminal de Redsys que tarjeta y
+        // Bizum; controllers/front/ipn.php guarda la etiqueta corta de cada uno. Sin ellas, el pedido entraba como
+        // transferencia y SIN prepago (lo mismo que pasó con Bizum).
+        private const string FORMA_PAGO_GOOGLE_PAY = "Google Pay";
+        private const string FORMA_PAGO_APPLE_PAY = "Apple Pay";
         private const string FORMA_PAGO_APLAZAME = "Aplazame";
         private const string FORMA_PAGO_MIRAVIA = "Miravia";
         // Nesto#520: la tienda de Eva Visnú cobra con el módulo de Stripe y por transferencia. Lo que
@@ -120,6 +125,8 @@ namespace Nesto.Modulos.CanalesExternos
             { FORMA_PAGO_REDSYS,                    new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_BIZUM,                     new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_BIZUM_IPN,                 new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_GOOGLE_PAY,                new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_APPLE_PAY,                 new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_AMAZON_PAY,                new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_APLAZAME,                  new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
             { FORMA_PAGO_MIRAVIA,                   new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
