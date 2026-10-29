@@ -125,6 +125,12 @@
                             <TextBlock Text="Las dos señales a 0: el evento es gratuito (se apunta quien quiera, sin pagar)." Foreground="DimGray"
                                        TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Margin="110,2,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Pedido mínimo para usar el cupón (€):" VerticalAlignment="Center" Margin="0,0,5,0"
+                                           ToolTip="Importe mínimo de productos (IVA incluido, sin cursos ni portes) del pedido en el que se use el cupón de la señal reembolsable"/>
+                                <xctk:DecimalUpDown Value="{Binding PedidoMinimoCuponEdicion}" FormatString="C2" Minimum="0" Increment="50" Width="110"
+                                                    ToolTip="0 = con cualquier importe. Se aplica a los cupones que se emitan a partir de ahora"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Referencia curso:" VerticalAlignment="Center" Width="110"/>
                                 <TextBox Text="{Binding ProductoCursoEdicion, UpdateSourceTrigger=PropertyChanged}" Width="140" MaxLength="15"
                                          VerticalContentAlignment="Center"

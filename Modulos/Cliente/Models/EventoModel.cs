@@ -107,6 +107,14 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ProductosRequeridosModo { get; set; }
 
+        /// <summary>
+        /// NestoAPI#613 (Carlos, 29/10/26): el pedido mínimo (IVA incluido, solo productos) para usar el cupón que gana quien paga
+        /// la señal reembolsable; se copia al cupón al emitirlo. 0 = cualquier importe (por defecto). Null con la API de antes: se
+        /// toma como 0. Al guardar se manda siempre (la API de antes lo ignora).
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public decimal? PedidoMinimoCupon { get; set; }
+
         /// <summary>El modo leído: «Todos» o, en cualquier otro caso, «Alguno».</summary>
         [JsonIgnore]
         public bool HacenFaltaTodos => string.Equals(ProductosRequeridosModo?.Trim(), MODO_PRODUCTOS_TODOS, StringComparison.OrdinalIgnoreCase);
