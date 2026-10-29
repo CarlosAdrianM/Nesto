@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Text
 Imports System.Windows
 Imports Nesto.Infrastructure.Shared
@@ -203,7 +203,11 @@ Public MustInherit Class AgenciaGestionadaPorApi
 
     ' ---- IAgencia ----
 
-    Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
+    ''' <summary>
+    ''' El cliente de la agencia con el que se contabilizan sus reembolsos (pestaña Reembolsos de Agencias). Sugerencia 868
+    ''' (Aida, 29/10/26): con CTT por la API salía vacío y había que escribir el 42073 a mano. Cada agencia pone el suyo.
+    ''' </summary>
+    Public Overridable ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
         Get
             Return String.Empty
         End Get

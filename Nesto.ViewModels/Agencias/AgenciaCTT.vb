@@ -1,4 +1,4 @@
-Imports Nesto.Infrastructure.Shared
+﻿Imports Nesto.Infrastructure.Shared
 
 ' CTT Express (NestoAPI#493): agencia "registrar al imprimir", mismo flujo que Innovatrans. La
 ' integración con la API de CTT vive en NestoAPI; aquí solo lo que la distingue.
@@ -72,4 +72,11 @@ Public Class AgenciaCTT
     Protected Overrides Function EnlaceSeguimientoDe(albaran As String) As String
         Return "https://www.cttexpress.com/localizador-de-envios?sc=" & albaran
     End Function
+    ''' <summary>Sugerencia 868 (Aida, 29/10/26): el cliente de CTT para contabilizar sus reembolsos.</summary>
+    Public Overrides ReadOnly Property NumeroCliente As String
+        Get
+            Return "42073"
+        End Get
+    End Property
+
 End Class

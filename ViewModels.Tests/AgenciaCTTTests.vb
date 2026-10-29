@@ -1,4 +1,4 @@
-Imports System.Threading.Tasks
+﻿Imports System.Threading.Tasks
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Models.Nesto.Models
@@ -14,6 +14,12 @@ Public Class AgenciaCTTTests
     Private Shared Function CrearAgencia() As AgenciaCTT
         Return New AgenciaCTT()
     End Function
+
+    ' Sugerencia 868 (Aida, 29/10/26): al contabilizar los reembolsos de CTT el número de cliente salía vacío.
+    <TestMethod()>
+    Public Sub CTT_NumeroClienteParaContabilizarReembolsos()
+        Assert.AreEqual("42073", CrearAgencia().NumeroCliente)
+    End Sub
 
     <TestMethod()>
     Public Sub CTT_FlujoEsRegistrarAlImprimir()
