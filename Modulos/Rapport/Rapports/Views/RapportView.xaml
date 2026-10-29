@@ -64,6 +64,9 @@
     </UserControl.Resources>
     
     
+    <!-- Nesto#569 (sugerencia 865): la casilla de Comentarios crece al escribir; si el panel no da para todo, el panel
+         entero se desplaza (antes la fila de Comentarios era la que se encogía y apenas se veía lo escrito) -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid x:Name="grdRapport">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MinHeight="50"/>
@@ -76,7 +79,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -157,8 +160,9 @@
         
         <DockPanel Grid.Row="10">
             <TextBlock DockPanel.Dock="Top" Text="Comentarios: "></TextBlock>
-            <!-- Sugerencia 761: siempre al menos unas 5 líneas; si hay sitio, crece -->
-            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="Wrap" AcceptsReturn="True" SpellCheck.IsEnabled="True" VerticalScrollBarVisibility="Auto" MinHeight="90"></TextBox>
+            <!-- Sugerencia 761: siempre al menos unas 5 líneas. Nesto#569 (sugerencia 865): crece al escribir hasta unas
+                 15 líneas y, a partir de ahí, barra de desplazamiento dentro de la casilla -->
+            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="Wrap" AcceptsReturn="True" SpellCheck.IsEnabled="True" VerticalScrollBarVisibility="Auto" MinHeight="90" MaxHeight="260"></TextBox>
         </DockPanel>
         <!-- Nesto#558 (NestoAPI#716): resultado del rapport (un chip o ninguno) y próximo contacto, los dos opcionales.
              El chip «Pedido» y el check «Pedido» van a la par (RapportViewModel.SincronizarPedidoConResultado). -->
@@ -208,5 +212,6 @@
             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
         </StackPanel>
     </Grid>
+    </ScrollViewer>
 
 </UserControl>
