@@ -490,7 +490,10 @@ namespace ClienteTests
         private InscribirEventoDialogViewModel Dialogo(params EventoModel[] activos)
         {
             A.CallTo(() => eventos.LeerEventos(true)).Returns(activos.ToList());
-            return new InscribirEventoDialogViewModel(eventos);
+            // Carlos 29/10/26: el enlace se copia al inscribir; sin portapapeles de verdad en las pruebas.
+            ControlesUsuario.Services.IServicioPortapapeles portapapeles = A.Fake<ControlesUsuario.Services.IServicioPortapapeles>();
+            A.CallTo(() => portapapeles.Copiar(A<string>.Ignored)).Returns(true);
+            return new InscribirEventoDialogViewModel(eventos, portapapeles);
         }
 
         [TestMethod]

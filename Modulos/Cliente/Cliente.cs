@@ -23,6 +23,8 @@ namespace Nesto.Modulos.Cliente
             registro.Vista<MantenimientoEventosView>("MantenimientoEventosView");
             registro.Vista<SenalesEventosView>("SenalesEventosView");
             registro.Transitorio<IEventosService, EventosService>();
+            // Carlos 29/10/26: copiar el enlace de pago de las inscripciones (inyectable para las pruebas)
+            registro.Transitorio<ControlesUsuario.Services.IServicioPortapapeles, ControlesUsuario.Services.ServicioPortapapeles>();
             registro.RegistrarDialogo<ElegirEventoDialog, ElegirEventoDialogViewModel>(ElegirEventoDialogViewModel.NOMBRE);
             // Nesto#517: inscribir en un evento (desde el mantenimiento y desde la ficha del cliente)
             registro.RegistrarDialogo<InscribirEventoDialog, InscribirEventoDialogViewModel>(InscribirEventoDialogViewModel.NOMBRE);

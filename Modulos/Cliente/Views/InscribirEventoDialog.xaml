@@ -1,7 +1,9 @@
 <UserControl x:Class="Nesto.Modulos.Cliente.InscribirEventoDialog"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinWidth="520" MinHeight="360"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             x:Name="raizDialogo"
+             MinWidth="560" MinHeight="360"
              Background="White">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
@@ -24,15 +26,25 @@
             </StackPanel>
             <TextBlock Text="{Binding TextoEvento}" Foreground="DimGray" Margin="110,2,0,0"/>
 
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <!-- Carlos 29/10/26: desde la ficha el cliente viene dado; desde el mantenimiento se busca con el selector de Nesto
+                 (por nombre, número, NIF…) y el contacto se elige pinchando en la dirección. -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding ClienteFijo, Converter={StaticResource BoolAVisibilidad}}">
                 <TextBlock Text="Cliente:" Width="110" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding Cliente, UpdateSourceTrigger=PropertyChanged}" Width="80" VerticalContentAlignment="Center"
-                         IsReadOnly="{Binding ClienteFijo}"/>
-                <TextBlock Text="Contacto:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-                <TextBox Text="{Binding Contacto, UpdateSourceTrigger=PropertyChanged}" Width="40" VerticalContentAlignment="Center"
-                         IsReadOnly="{Binding ClienteFijo}" ToolTip="Vacío: el contacto principal del cliente"/>
-                <TextBlock Text="{Binding NombreCliente}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold"/>
+                <TextBlock Text="{Binding TextoClienteFijo}" VerticalAlignment="Center" FontWeight="Bold" TextWrapping="Wrap" MaxWidth="400"/>
             </StackPanel>
+            <Grid Margin="0,8,0,0" Visibility="{Binding ClienteElegible, Converter={StaticResource BoolAVisibilidad}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Cliente:" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                <controles:SelectorCliente Grid.Column="1" Etiqueta="" Width="360" MaxHeight="260" HorizontalAlignment="Left"
+                                           IsEnabled="{Binding DataContext.SinInscribir, ElementName=raizDialogo}"
+                                           Empresa="{Binding DataContext.Empresa, ElementName=raizDialogo, Mode=TwoWay}"
+                                           Cliente="{Binding DataContext.Cliente, ElementName=raizDialogo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                           Contacto="{Binding DataContext.Contacto, ElementName=raizDialogo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                           ToolTip="Busque al cliente por nombre, número, NIF o teléfono. Pinche en la dirección para elegir otro contacto"/>
+            </Grid>
 
             <!-- Nesto#566 (NestoAPI#731): la persona de contacto que asiste (opcional) -->
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -60,9 +72,10 @@
             <StackPanel Margin="110,6,0,0" Visibility="{Binding EsTarjeta, Converter={StaticResource BoolAVisibilidad}}">
                 <CheckBox Content="Generar el enlace de pago" IsChecked="{Binding GenerarEnlacePago}"/>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <TextBlock Text="Mandarlo al correo:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBox Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}" Width="250" VerticalContentAlignment="Center"
-                             ToolTip="Opcional: si escribe un correo, se le manda el enlace de pago al cliente"/>
+                    <TextBlock Text="Mandarlo al correo:" VerticalAlignment="Top" Margin="0,3,5,0"/>
+                    <!-- Carlos 29/10/26: los correos de las personas de contacto del cliente, o uno nuevo -->
+                    <controles:SelectorCorreo Correos="{Binding Correos}" Correo="{Binding Correo, Mode=TwoWay}" Width="270"
+                                              AyudaCorreo="Opcional: elija uno de los correos del cliente o escriba otro; se le manda el enlace de pago. Vacío: no se manda"/>
                 </StackPanel>
             </StackPanel>
             <TextBlock Text="{Binding AvisoFormaPago}" Foreground="DimGray" TextWrapping="Wrap" Margin="110,6,0,0" MaxWidth="400" HorizontalAlignment="Left"/>
@@ -70,10 +83,16 @@
             <!-- Tras inscribir: el estado y el enlace para copiarlo -->
             <Border Margin="0,12,0,0" Padding="8" Background="#E8F5E9" BorderBrush="#A5D6A7" BorderThickness="1"
                     Visibility="{Binding Inscrito, Converter={StaticResource BoolAVisibilidad}}">
-                <StackPanel>
+                <StackPanel MaxWidth="500">
                     <TextBlock Text="{Binding TextoInscrito}" TextWrapping="Wrap"/>
-                    <TextBox Text="{Binding Inscripcion.UrlPago, Mode=OneWay}" IsReadOnly="True" Margin="0,6,0,0"
-                             Visibility="{Binding TieneEnlace, Converter={StaticResource BoolAVisibilidad}}"/>
+                    <!-- Carlos 29/10/26: el enlace se copia solo; aquí se ve y se puede volver a copiar -->
+                    <DockPanel Margin="0,6,0,0" Visibility="{Binding TieneEnlace, Converter={StaticResource BoolAVisibilidad}}">
+                        <Button DockPanel.Dock="Right" Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Padding="10,2"
+                                Margin="6,0,0,0" FontWeight="Bold"/>
+                        <TextBox Text="{Binding Inscripcion.UrlPago, Mode=OneWay}" IsReadOnly="True" VerticalContentAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="{Binding TextoEnlace}" FontWeight="Bold" Foreground="#1B5E20" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Visibility="{Binding TieneEnlace, Converter={StaticResource BoolAVisibilidad}}"/>
                 </StackPanel>
             </Border>
 
