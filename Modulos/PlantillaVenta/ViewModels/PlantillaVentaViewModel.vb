@@ -4470,14 +4470,19 @@ Public Class PlantillaVentaViewModel
                     Return
                 End If
 
+                Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
+                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
                 Catch ex As ModoConPickingException
                     rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
                 End Try
                 If rechazoConPicking IsNot Nothing Then
                     Exit Try ' no se ha guardado nada; se ofrece la solicitud a almacén después del Try
                 End If
+                ' Nesto#567 (NestoAPI#732): si ha dicho que sí a anular inscripciones, la API lo confirma en los avisos.
+                For Each aviso In If(avisosModificacion, New List(Of AvisoPedidoModel)).Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
+                    dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
+                Next
                 numPedido = NumeroPedidoEnEdicion.Value.ToString()
                 NumeroPedidoEnEdicion = Nothing
                 ' Refrescar ListaPedidosVenta (está suscrita, igual que tras modificar en DetallePedido)

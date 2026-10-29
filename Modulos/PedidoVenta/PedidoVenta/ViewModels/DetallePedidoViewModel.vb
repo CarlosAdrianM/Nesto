@@ -2154,6 +2154,10 @@ Public Class DetallePedidoViewModel
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "AplazadoConPicking")
             dialogService.ShowNotification("Pedido aplazado con picking en curso", aviso.Mensaje)
         Next
+        ' Nesto#567 (NestoAPI#732): ha dicho que sí a anular las inscripciones que justificaba el pedido
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
+            dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
+        Next
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "ReembolsoEnvioSinAjustar")
             Dim envioNumero As Integer? = aviso.Datos?("Envio")?.ToObject(Of Integer)()
             Dim comision As Decimal? = aviso.Datos?("ComisionQuitada")?.ToObject(Of Decimal)()
@@ -2270,7 +2274,7 @@ Public Class DetallePedidoViewModel
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
                 ' al guardar cambios pendientes antes de crear albarán/factura).
-                Dim avisosModificacion = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
+                Dim avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
                 Await ProcesarAvisosModificacion(avisosModificacion)
             End If
 
@@ -2703,7 +2707,7 @@ Public Class DetallePedidoViewModel
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    avisosModificacion = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
+                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
                 Catch ex As ValidationException
                     crearModificarEx = ex
                 End Try
@@ -2720,7 +2724,7 @@ Public Class DetallePedidoViewModel
 
                     If confirmar Then
                         pedido.Model.CreadoSinPasarValidacion = True
-                        avisosModificacion = Await servicio.modificarPedido(pedido.Model)
+                        avisosModificacion = Await InscripcionesEventoAnularException.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana) ' Nesto#567
                     Else
                         Throw crearModificarEx
                     End If

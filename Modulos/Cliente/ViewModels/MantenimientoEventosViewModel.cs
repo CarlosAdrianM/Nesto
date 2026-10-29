@@ -429,6 +429,7 @@ namespace Nesto.Modulos.Cliente
             PlazasEdicion = null;
             LugarEdicion = null;
             DescripcionLargaEdicion = null;
+            CargarProductosRequeridos(null);
             PonerEstadoAnuncio(null);
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
@@ -454,6 +455,7 @@ namespace Nesto.Modulos.Cliente
             PlazasEdicion = evento.Plazas;
             LugarEdicion = evento.Lugar;
             DescripcionLargaEdicion = evento.DescripcionLarga;
+            CargarProductosRequeridos(evento);
             HoraInicioEdicion = evento.HoraInicio?.Trim();
             HoraFinEdicion = evento.HoraFin?.Trim();
             PonenteEdicion = evento.Ponente;
@@ -541,7 +543,9 @@ namespace Nesto.Modulos.Cliente
                     HoraInicio = horaInicio.HasValue ? horaInicio.Value.ToString(@"hh\:mm") : null,
                     HoraFin = horaFin.HasValue ? horaFin.Value.ToString(@"hh\:mm") : null,
                     Ponente = Limpiar(PonenteEdicion),
-                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion
+                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
+                    ProductosRequeridos = ProductosRequeridosParaGuardar(),
+                    ProductosRequeridosModo = ModoProductosParaGuardar()
                 });
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
@@ -565,6 +569,145 @@ namespace Nesto.Modulos.Cliente
         }
 
         private static string Limpiar(string texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+
+        // ---------------- Nesto#567 (NestoAPI#732): gratuitos por compra ----------------
+
+        /// <summary>«Basta con uno de estos productos» (Alguno, por defecto) o «Hacen falta todos» (Todos).</summary>
+        public List<OpcionEvento> ModosProductosRequeridos { get; } = new()
+        {
+            new(EventoModel.MODO_PRODUCTOS_ALGUNO, "Basta con uno de estos productos"),
+            new(EventoModel.MODO_PRODUCTOS_TODOS, "Hacen falta todos")
+        };
+
+        private OpcionEvento _modoProductosEdicion;
+        public OpcionEvento ModoProductosEdicion
+        {
+            get => _modoProductosEdicion ?? ModosProductosRequeridos[0];
+            set => SetProperty(ref _modoProductosEdicion, value);
+        }
+
+        /// <summary>Los productos que hay que haber comprado o pedido para apuntarse (vacía = no exige compra).</summary>
+        public ObservableCollection<ProductoRequeridoEventoModel> ProductosRequeridosEdicion { get; } = new();
+
+        private ProductoRequeridoEventoModel _productoRequeridoSeleccionado;
+        public ProductoRequeridoEventoModel ProductoRequeridoSeleccionado
+        {
+            get => _productoRequeridoSeleccionado;
+            set
+            {
+                if (SetProperty(ref _productoRequeridoSeleccionado, value))
+                {
+                    QuitarProductoRequeridoCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _productoRequeridoNuevo;
+        /// <summary>La referencia que se va a añadir a la lista.</summary>
+        public string ProductoRequeridoNuevo
+        {
+            get => _productoRequeridoNuevo;
+            set
+            {
+                if (SetProperty(ref _productoRequeridoNuevo, value))
+                {
+                    AnadirProductoRequeridoCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>Lo leído del evento, para mandar la lista y el modo solo si se han tocado.</summary>
+        private List<string> _productosRequeridosLeidos = new();
+        private string _modoProductosLeido = EventoModel.MODO_PRODUCTOS_ALGUNO;
+
+        private AsyncRelayCommand _anadirProductoRequeridoCommand;
+        public AsyncRelayCommand AnadirProductoRequeridoCommand => _anadirProductoRequeridoCommand ??=
+            new AsyncRelayCommand(AnadirProductoRequeridoAsync, () => !string.IsNullOrWhiteSpace(ProductoRequeridoNuevo));
+
+        private RelayCommand _quitarProductoRequeridoCommand;
+        public RelayCommand QuitarProductoRequeridoCommand => _quitarProductoRequeridoCommand ??=
+            new RelayCommand(() =>
+            {
+                if (ProductoRequeridoSeleccionado != null)
+                {
+                    ProductosRequeridosEdicion.Remove(ProductoRequeridoSeleccionado);
+                    ProductoRequeridoSeleccionado = null;
+                }
+            }, () => ProductoRequeridoSeleccionado != null);
+
+        /// <summary>Añade la referencia (con su nombre) si existe; si ya está en la lista, no la repite.</summary>
+        public async Task AnadirProductoRequeridoAsync()
+        {
+            string referencia = Limpiar(ProductoRequeridoNuevo);
+            if (referencia == null)
+            {
+                return;
+            }
+            if (ProductosRequeridosEdicion.Any(p => string.Equals(p.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)))
+            {
+                ProductoRequeridoNuevo = null;
+                return;
+            }
+            string nombre = null;
+            try
+            {
+                EstaOcupado = true;
+                ProductoCursoModel producto = await _servicio.LeerProductoCurso(referencia);
+                if (producto == null)
+                {
+                    _dialogService.ShowError($"No existe el producto {referencia}: revise la referencia.");
+                    return;
+                }
+                nombre = producto.Nombre?.Trim();
+                referencia = string.IsNullOrWhiteSpace(producto.Producto) ? referencia : producto.Producto.Trim();
+            }
+            catch
+            {
+                // Sin el nombre se añade igual: al guardar, la API comprueba que exista.
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            ProductosRequeridosEdicion.Add(new ProductoRequeridoEventoModel { Producto = referencia, Nombre = nombre });
+            ProductoRequeridoNuevo = null;
+        }
+
+        private void CargarProductosRequeridos(EventoModel evento)
+        {
+            ProductosRequeridosEdicion.Clear();
+            foreach (ProductoRequeridoEventoModel producto in evento?.ProductosRequeridos ?? new List<ProductoRequeridoEventoModel>())
+            {
+                if (!string.IsNullOrWhiteSpace(producto?.Producto))
+                {
+                    ProductosRequeridosEdicion.Add(new ProductoRequeridoEventoModel { Producto = producto.Producto.Trim(), Nombre = producto.Nombre });
+                }
+            }
+            _productosRequeridosLeidos = ProductosRequeridosEdicion.Select(p => p.Producto.ToUpperInvariant()).ToList();
+            _modoProductosLeido = evento?.HacenFaltaTodos == true ? EventoModel.MODO_PRODUCTOS_TODOS : EventoModel.MODO_PRODUCTOS_ALGUNO;
+            ModoProductosEdicion = ModosProductosRequeridos.First(m => m.Valor == _modoProductosLeido);
+            ProductoRequeridoNuevo = null;
+            ProductoRequeridoSeleccionado = null;
+        }
+
+        /// <summary>La lista para el PUT/POST: null si no se ha tocado (la API no la toca); si no, la completa ([] quita el requisito).</summary>
+        public List<ProductoRequeridoEventoModel> ProductosRequeridosParaGuardar()
+        {
+            List<string> ahora = ProductosRequeridosEdicion.Select(p => p.Producto.Trim().ToUpperInvariant()).ToList();
+            bool cambiada = _idEdicion == 0
+                ? ahora.Any()
+                : !ahora.OrderBy(p => p).SequenceEqual(_productosRequeridosLeidos.OrderBy(p => p));
+            return cambiada || ModoProductosParaGuardar() != null
+                ? ProductosRequeridosEdicion.Select(p => new ProductoRequeridoEventoModel { Producto = p.Producto.Trim() }).ToList()
+                : null;
+        }
+
+        /// <summary>El modo para el PUT/POST: null si no ha cambiado (con la API de antes, que no lo conoce, no se manda).</summary>
+        public string ModoProductosParaGuardar()
+        {
+            string modo = ModoProductosEdicion?.Valor ?? EventoModel.MODO_PRODUCTOS_ALGUNO;
+            return modo == _modoProductosLeido ? null : modo;
+        }
 
         // ---------------- Nesto#545 (NestoAPI#692): anunciar el evento en las apps ----------------
 

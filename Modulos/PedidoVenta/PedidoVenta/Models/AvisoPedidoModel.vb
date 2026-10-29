@@ -14,6 +14,9 @@ End Class
 ''' Tipos desconocidos se ignoran sin romper (forward-compatible).
 ''' </summary>
 Public Class AvisoPedidoModel
+    ''' <summary>Nesto#567 (NestoAPI#732): se han anulado inscripciones a eventos que justificaba el pedido (Datos.Inscripciones).</summary>
+    Public Const TIPO_INSCRIPCIONES_EVENTO_ANULADAS As String = "INSCRIPCIONES_EVENTO_ANULADAS"
+
     Public Property Tipo As String
     Public Property Mensaje As String
     Public Property Datos As JObject
