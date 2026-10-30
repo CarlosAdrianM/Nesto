@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="Nesto.Modules.Producto.Views.EnviarReposicionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
@@ -74,6 +75,7 @@
                     Visibility="{Binding MostrarLector, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Leer código:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
+                     escaner:LectorCodigoBarras.AceptaCodigoBarras="True"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: el foco va a su cantidad">
                 <TextBox.InputBindings>
                     <KeyBinding Key="Return" Command="{Binding LeerLecturaCommand}" />

@@ -83,7 +83,7 @@ Partial Public Class DetallePedidoViewModel
                 "El pedido que tiene en pantalla tiene cambios sin guardar y se perderán." & vbCrLf & vbCrLf & "¿Quiere leer la etiqueta de recogida igualmente?") Then
             Return
         End If
-        Dim codigo As String = dialogService.GetText("Leer etiqueta de recogida",
+        Dim codigo As String = dialogService.GetCodigoBarras("Leer etiqueta de recogida",
             "Lea con el lector la etiqueta del bulto (NR…) o escriba el número de la nota de recogida (por ejemplo, NR929554).")
         If String.IsNullOrWhiteSpace(codigo) Then
             Return

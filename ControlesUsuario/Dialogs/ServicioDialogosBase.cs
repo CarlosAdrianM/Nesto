@@ -130,6 +130,9 @@ namespace ControlesUsuario.Dialogs
         public string GetText(string title, string message, string defaultText)
             => LeerTexto(new ParametrosDialogo { { "title", title }, { "message", message }, { "defaultText", defaultText } });
 
+        public string GetCodigoBarras(string title, string message)
+            => LeerTexto(new ParametrosDialogo { { "title", title }, { "message", message }, { InputTextDialogViewModel.PARAMETRO_ACEPTA_CODIGO_BARRAS, true } });
+
         private string LeerTexto(ParametrosDialogo parametros)
         {
             string texto = null;

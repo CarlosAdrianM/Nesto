@@ -67,6 +67,11 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Texto tecleado, o null si el usuario cancela.</summary>
         string GetText(string title, string message);
         string GetText(string title, string message, string defaultText);
+        /// <summary>
+        /// Nesto#589: como <see cref="GetText(string, string)"/>, pero el cuadro acepta códigos de barras: lo leído con Ariadna
+        /// («Escanear para Nesto») se escribe en él y lo acepta, como con el lector USB.
+        /// </summary>
+        string GetCodigoBarras(string title, string message);
 
         /// <summary>
         /// NestoAPI#582: pide una fecha (con la propuesta <paramref name="defaultDate"/>). Null si el usuario

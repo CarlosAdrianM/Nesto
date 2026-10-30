@@ -247,6 +247,8 @@ namespace ControlesUsuario.Behaviors
         protected override void OnAttached()
         {
             base.OnAttached();
+            // Nesto#589: el producto acepta lo leído con el escáner remoto (Ariadna), igual que con el lector USB
+            EscanerRemoto.LectorCodigoBarras.SetAceptaCodigoBarras(AssociatedObject, true);
             AssociatedObject.LostFocus += OnLostFocus;
             AssociatedObject.PreviewKeyDown += OnPreviewKeyDown;
             AssociatedObject.GotFocus += OnGotFocus;

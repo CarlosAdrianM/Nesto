@@ -25,9 +25,14 @@ namespace Nesto.Infrastructure.Shared
     /// - Ariadna#51 (corte 2): en la misma conexión, los grupos del almacén compartidos con Ariadna («AlmacenHub»,
     ///   <see cref="IGruposAlmacenTiempoReal"/>). Se recuerdan los grupos en los que se ha entrado y se vuelve a entrar en cada
     ///   conexión nueva; al recuperar una perdida se avisa de cada grupo (pudo cambiar algo mientras no había conexión).
-    /// Los eventos <see cref="HayNotificacionesNuevas"/>, <see cref="EstadoCambiado"/> y <see cref="GrupoHaCambiado"/> llegan en un hilo que no es el de la UI.
+    /// - Nesto#589 (NestoAPI#768): escáner remoto. En cada conexión (y al recuperarla) Nesto se presenta con
+    ///   «ActividadEscanerRemoto(equipo, conFoco)» y vuelve a llamarlo cada vez que se activa su ventana
+    ///   (<see cref="NotificarActividad"/>); la API le manda «lecturaEscanerRemoto» con lo leído en Ariadna por el mismo usuario
+    ///   (<see cref="LecturaRecibida"/>).
+    /// Los eventos <see cref="HayNotificacionesNuevas"/>, <see cref="EstadoCambiado"/>, <see cref="GrupoHaCambiado"/> y
+    /// <see cref="LecturaRecibida"/> llegan en un hilo que no es el de la UI.
     /// </summary>
-    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IGruposAlmacenTiempoReal, IDisposable
+    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IGruposAlmacenTiempoReal, IEscanerRemoto, IDisposable
     {
         public const string RUTA_HUB = "/signalr";
         public static readonly TimeSpan INTERVALO_REVISION_TOKEN = TimeSpan.FromMinutes(15);
@@ -52,6 +57,58 @@ namespace Nesto.Infrastructure.Shared
         private readonly ConcurrentDictionary<string, int> _grupos = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler HayNotificacionesNuevas;
+
+        /// <summary>Nesto#589: lo leído con Ariadna por el mismo usuario. Llega en un hilo que no es el de la UI.</summary>
+        public event EventHandler<LecturaEscanerRemoto> LecturaRecibida;
+
+        /// <summary>Nesto#589: si alguna ventana de Nesto está delante (se dice al presentarse en cada conexión).</summary>
+        private volatile bool _conFoco;
+
+        /// <summary>Nesto#589: el equipo que se dice a la API («RDS2016»), para que Ariadna enseñe a qué Nesto manda.</summary>
+        internal string Equipo { get; set; } = Environment.MachineName;
+
+        public void NotificarActividad(bool conFoco)
+        {
+            _conFoco = conFoco;
+            if (!conFoco)
+            {
+                // Perder el foco no se dice: manda el último que lo tuvo.
+                return;
+            }
+            IConexionAvisos conexion = Volatile.Read(ref _conexionActual);
+            if (conexion != null)
+            {
+                _ = PresentarSinFallar(conexion, true);
+            }
+        }
+
+        private async Task PresentarSinFallar(IConexionAvisos conexion, bool conFoco)
+        {
+            try
+            {
+                _ = await conexion.ActividadEscanerRemoto(Equipo, conFoco).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Una API sin el escáner remoto (o sin conexión): no pasa nada, simplemente no llegan lecturas.
+            }
+        }
+
+        private void AvisarLectura(LecturaEscanerRemoto lectura)
+        {
+            if (string.IsNullOrWhiteSpace(lectura?.Codigo))
+            {
+                return;
+            }
+            try
+            {
+                LecturaRecibida?.Invoke(this, lectura);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
 
         /// <summary>Ariadna#51: otro equipo ha cambiado algo de un grupo del almacén. Llega en un hilo que no es el de la UI.</summary>
         public event EventHandler<string> GrupoHaCambiado;
@@ -276,6 +333,7 @@ namespace Nesto.Infrastructure.Shared
                     var cerrada = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     conexion.HayNotificacionesNuevas += (s, e) => Avisar();
                     conexion.GrupoHaCambiado += (s, grupo) => AvisarGrupo(grupo);
+                    conexion.LecturaEscanerRemoto += (s, lectura) => AvisarLectura(lectura);
                     conexion.Reconectando += (s, e) => CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Reintentando, ct);
                     conexion.Reconectada += (s, e) =>
                     {
@@ -283,6 +341,8 @@ namespace Nesto.Infrastructure.Shared
                         Avisar();
                         // Ariadna#51: por si la API se ha reciclado y ha olvidado los grupos; y pudo perderse algún aviso
                         _ = EntrarEnTodos(esta).ContinueWith(_ => AvisarTodosLosGrupos(), TaskScheduler.Default);
+                        // Nesto#589: por si la API se ha reciclado y ha olvidado que este Nesto recibe lecturas
+                        _ = PresentarSinFallar(esta, _conFoco);
                     };
                     conexion.Cerrada += (s, e) => cerrada.TrySetResult(true);
 
@@ -295,6 +355,8 @@ namespace Nesto.Infrastructure.Shared
                     fallos = 0;
                     // Ariadna#51: en cada conexión nueva se vuelve a entrar en los grupos del almacén
                     await EntrarEnTodos(conexion).ConfigureAwait(false);
+                    // Nesto#589: en cada conexión nueva, Nesto se presenta para el escáner remoto
+                    await PresentarSinFallar(conexion, _conFoco).ConfigureAwait(false);
                     if (avisarAlConectar)
                     {
                         Avisar();
@@ -466,6 +528,10 @@ namespace Nesto.Infrastructure.Shared
         Task<bool> EntrarEnGrupo(string grupo, string dispositivo);
         /// <summary>Ariadna#51: AlmacenHub.Salir(grupo).</summary>
         Task SalirDeGrupo(string grupo);
+        /// <summary>Nesto#589: el servidor ha llamado a «lecturaEscanerRemoto(lectura)» (lo leído en Ariadna por el mismo usuario).</summary>
+        event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
+        /// <summary>Nesto#589: AvisosHub.ActividadEscanerRemoto(equipo, conFoco). False si el servidor no lo admite.</summary>
+        Task<bool> ActividadEscanerRemoto(string equipo, bool conFoco);
     }
 
     /// <summary>NestoAPI#536: <see cref="IConexionAvisos"/> con el cliente de ASP.NET SignalR 2.</summary>
@@ -482,11 +548,17 @@ namespace Nesto.Infrastructure.Shared
         /// <summary>«haCambiado(grupo, dispositivo)»: otro equipo ha cambiado algo del grupo (sin datos).</summary>
         internal const string METODO_HA_CAMBIADO = "haCambiado";
 
+        // Nesto#589 (NestoAPI#768): el escáner remoto, en el hub de la campana
+        internal const string METODO_LECTURA_ESCANER = "lecturaEscanerRemoto";
+        internal const string METODO_ACTIVIDAD_ESCANER = "ActividadEscanerRemoto";
+
         private readonly HubConnection _conexion;
+        private readonly IHubProxy _avisos;
         private readonly IHubProxy _almacen;
 
         public event EventHandler HayNotificacionesNuevas;
         public event EventHandler<string> GrupoHaCambiado;
+        public event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
         public event EventHandler Reconectando;
         public event EventHandler Reconectada;
         public event EventHandler Cerrada;
@@ -495,7 +567,9 @@ namespace Nesto.Infrastructure.Shared
         {
             _conexion = new HubConnection(urlHub, new Dictionary<string, string> { { "access_token", token } }, useDefaultUrl: false);
             IHubProxy proxy = _conexion.CreateHubProxy(HUB);
+            _avisos = proxy;
             _ = proxy.On(METODO_AVISO, () => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty));
+            _ = proxy.On<LecturaEscanerRemoto>(METODO_LECTURA_ESCANER, lectura => LecturaEscanerRemoto?.Invoke(this, lectura));
             // Ariadna#51: el proxy se crea antes de Start (SignalR 2 se suscribe a los hubs al conectar)
             _almacen = _conexion.CreateHubProxy(HUB_ALMACEN);
             _ = _almacen.On<string, string>(METODO_HA_CAMBIADO, (grupo, dispositivo) => GrupoHaCambiado?.Invoke(this, grupo));
@@ -511,6 +585,8 @@ namespace Nesto.Infrastructure.Shared
         public Task<bool> EntrarEnGrupo(string grupo, string dispositivo) => _almacen.Invoke<bool>(METODO_ENTRAR, grupo, dispositivo);
 
         public Task SalirDeGrupo(string grupo) => _almacen.Invoke(METODO_SALIR, grupo);
+
+        public Task<bool> ActividadEscanerRemoto(string equipo, bool conFoco) => _avisos.Invoke<bool>(METODO_ACTIVIDAD_ESCANER, equipo, conFoco);
 
         public void Dispose()
         {

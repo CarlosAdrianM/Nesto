@@ -1,6 +1,7 @@
 ﻿<UserControl x:Class="Nesto.Modules.Producto.Views.RecibirReposicionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
@@ -78,6 +79,7 @@
                        ToolTip="Lo que lee cada uno se suma y se ve en todos los equipos al momento" />
             <TextBlock Text="Lector:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox x:Name="txtLectura" Width="220" Text="{Binding Lectura, UpdateSourceTrigger=PropertyChanged}"
+                     escaner:LectorCodigoBarras.AceptaCodigoBarras="True"
                      ToolTip="Lee el código de barras (o escribe la referencia) y pulsa Intro: suma una unidad. Si escribes el nombre, elige el producto en la lista: también suma una unidad. La etiqueta de un bulto (R81010-2) abre su reposición">
                 <!-- Sugerencia 545: el buscador de productos de las líneas del pedido. Lo que entra seguido por el lector
                      llega al Intro antes de que el buscador pregunte (espera a que se deje de escribir) -->
