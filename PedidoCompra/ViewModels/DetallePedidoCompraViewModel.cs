@@ -282,10 +282,12 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             {
                 EstaOcupado = true;
                 Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
-                DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
-                Messenger.Send(new PedidoCompraModificadoMensaje(Pedido.Model));
+                // Nesto#585: el pedido ya está creado; se refrescan «Enviar»/«Guardar» antes de avisar a la lista,
+                // para que nada de lo que haga la lista al recibir el mensaje deje el botón de enviar sin habilitar.
                 ((IRelayCommand<PedidoCompraWrapper>)EnviarPedidoCommand).NotifyCanExecuteChanged();
                 ((IRelayCommand)GuardarPedidoCommand).NotifyCanExecuteChanged();
+                DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
+                Messenger.Send(new PedidoCompraModificadoMensaje(Pedido.Model));
             }
             catch (Exception ex)
             {

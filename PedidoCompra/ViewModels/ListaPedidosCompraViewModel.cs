@@ -181,8 +181,17 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 
             }
         }
+        // Nesto#585: el IMessenger es global (WeakReferenceMessenger.Default), así que este mensaje llega también a
+        // las listas de OTRAS pestañas de Pedido Compra (abiertas, o cerradas y aún sin recolectar), que no tienen la
+        // fila «sin crear» de ese proveedor (p. ej. porque no marcaron «Pedidos sin crear»). Antes el Single lanzaba
+        // «Sequence contains no matching element» dentro del Send del detalle: el pedido ya estaba creado, pero salía
+        // el error y no se refrescaba «Enviar pedido». Una lista sin esa fila no tiene nada que sustituir.
         private void ActualizarPedidoLookup(PedidoCompraDTO pedido) {
-            var lookupActual = ListaPedidos.ListaOriginal.Single(p => (p as PedidoCompraLookup).Pedido == 0 && (p as PedidoCompraLookup).Proveedor == pedido.Proveedor);
+            var lookupActual = ListaPedidos?.ListaOriginal?.FirstOrDefault(p => (p as PedidoCompraLookup)?.Pedido == 0 && (p as PedidoCompraLookup).Proveedor == pedido.Proveedor);
+            if (lookupActual == null)
+            {
+                return;
+            }
             var nuevoLookup = new PedidoCompraLookup(pedido);
             int indexActual = ListaPedidos.ListaOriginal.IndexOf(lookupActual);
             if (indexActual != -1)
@@ -190,13 +199,13 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 ListaPedidos.ListaOriginal.Remove(lookupActual);
                 ListaPedidos.ListaOriginal.Add(nuevoLookup);
             }
-            indexActual = ListaPedidos.ListaFijada.IndexOf(lookupActual);
+            indexActual = ListaPedidos.ListaFijada?.IndexOf(lookupActual) ?? -1;
             if (indexActual != -1)
             {
                 ListaPedidos.ListaFijada.Remove(lookupActual);
                 ListaPedidos.ListaFijada.Add(nuevoLookup);
             }
-            indexActual = ListaPedidos.Lista.IndexOf(lookupActual);
+            indexActual = ListaPedidos.Lista?.IndexOf(lookupActual) ?? -1;
             if (indexActual != -1)
             {
                 ListaPedidos.Lista.Remove(lookupActual);
