@@ -9,6 +9,9 @@ Public Interface IAgenciaService
     Sub Modificar(envio As EnviosAgencia)
     ''' <summary>NestoAPI#725 / Nesto#564: el PUT de un envío ya registrado en la agencia, guardado solo en Nesto con la confirmación de la agencia por teléfono.</summary>
     Sub ModificarConfirmadoConLaAgencia(envio As EnviosAgencia, confirmacionAgencia As String)
+    ''' <summary>Sugerencia 906: el PUT de un envío PENDIENTE al que el usuario le quita a mano el retorno (?quitarRetorno=true). Sin
+    ''' ese parámetro la API conserva el retorno del pendiente.</summary>
+    Sub ModificarQuitandoRetorno(envio As EnviosAgencia)
     Sub Borrar(Id As Integer)
     ' Nesto#340 (A3): el pedido de Agencias ya no es la entidad EF CabPedidoVta, sino un POCO
     ' que viene de GET api/PedidosVenta/ParaAgencia. Los cuatro modos cubren los cuatro caminos

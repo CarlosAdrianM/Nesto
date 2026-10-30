@@ -64,6 +64,15 @@ Public Class AgenciaService
         PutEnvio(envio, RutaModificar(envio.Numero, confirmacionAgencia))
     End Sub
 
+    ''' <summary>Sugerencia 906: el usuario ha quitado a mano el retorno de un envío pendiente (si no, la API lo conserva).</summary>
+    Public Sub ModificarQuitandoRetorno(envio As EnviosAgencia) Implements IAgenciaService.ModificarQuitandoRetorno
+        PutEnvio(envio, RutaModificarQuitandoRetorno(envio.Numero))
+    End Sub
+
+    Friend Shared Function RutaModificarQuitandoRetorno(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}?quitarRetorno=true"
+    End Function
+
     ''' <summary>PUT api/EnviosAgencias/{id}; con confirmación, ?confirmadoConLaAgencia=true&amp;confirmacionAgencia=... (NestoAPI#725).</summary>
     Friend Shared Function RutaModificar(numeroEnvio As Integer, confirmacionAgencia As String) As String
         Dim ruta As String = $"EnviosAgencias/{numeroEnvio}"

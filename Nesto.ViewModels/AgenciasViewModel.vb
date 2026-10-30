@@ -290,6 +290,9 @@ Public Class AgenciasViewModel
         Set(value As AgenciasTransporte)
             Try
                 Dim numeroAgenciaAnterior As Integer? = _agenciaSeleccionada?.Numero
+                If numeroAgenciaAnterior <> value?.Numero OrElse numeroAgenciaAnterior.HasValue <> (value IsNot Nothing) Then
+                    AnotarTrazaRetorno($"agencia {If(numeroAgenciaAnterior?.ToString(), "-")}->{If(value?.Numero.ToString(), "-")}")
+                End If
                 Dim unused = SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     ' Nesto#467: TryGetValue, no el indexador. Aunque el desplegable ya solo
@@ -335,12 +338,12 @@ Public Class AgenciasViewModel
                         Dim retornoAnterior As Byte = retornoActual.id
                         Dim servicioAnterior As Byte? = servicioActual?.ServicioId
                         Dim horarioAnterior As Byte = horarioActual.id
-                        retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
+                        PonerRetornoActual(listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno), "defecto de la agencia")
                         servicioActual = listaServicios.Single(Function(s) s.ServicioId = agenciaEspecifica.ServicioDefecto)
                         horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
                         If conservarDatosEnvio Then
                             ' Las listas se acaban de rehacer: se vuelve a buscar cada valor en ellas por su id.
-                            If listaTiposRetorno.Any(Function(r) r.id = retornoAnterior) Then retornoActual = listaTiposRetorno.First(Function(r) r.id = retornoAnterior)
+                            If listaTiposRetorno.Any(Function(r) r.id = retornoAnterior) Then PonerRetornoActual(listaTiposRetorno.First(Function(r) r.id = retornoAnterior), "se conserva")
                             Dim servicioConservado = listaServicios.FirstOrDefault(Function(s) servicioAnterior.HasValue AndAlso s.ServicioId = servicioAnterior.Value)
                             If servicioConservado IsNot Nothing Then servicioActual = servicioConservado
                             If listaHorarios.Any(Function(h) h.id = horarioAnterior) Then horarioActual = listaHorarios.First(Function(h) h.id = horarioAnterior)
@@ -538,6 +541,8 @@ Public Class AgenciasViewModel
                 Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
                 Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
                 _envioPendienteDelPedido = envioPendiente
+                ' Sugerencia 906: lo que eligiera el usuario para otro pedido (o antes de recargar este) ya no vale.
+                _pedidoConRetornoElegidoPorElUsuario = Nothing
 
                 ' Nesto#395: si hay un envío PENDIENTE (etiqueta creada por la tienda online), el destino
                 ' real es el de ESE envío, no el de la ficha del cliente del pedido (que suele ser el
@@ -608,7 +613,7 @@ Public Class AgenciasViewModel
         Dim servicio = listaServicios?.FirstOrDefault(Function(s) s.ServicioId = envioPendiente.Servicio)
         If servicio IsNot Nothing Then servicioActual = servicio
         If listaTiposRetorno IsNot Nothing AndAlso listaTiposRetorno.Any(Function(r) r.id = envioPendiente.Retorno) Then
-            retornoActual = listaTiposRetorno.First(Function(r) r.id = envioPendiente.Retorno)
+            PonerRetornoActual(listaTiposRetorno.First(Function(r) r.id = envioPendiente.Retorno), "del pendiente")
         End If
     End Sub
 
@@ -621,9 +626,25 @@ Public Class AgenciasViewModel
         If agenciaSeleccionada Is Nothing OrElse agenciaSeleccionada.Numero <> numeroAgenciaInsercion Then Return
         If servicioActual IsNot Nothing Then envio.Servicio = servicioActual.ServicioId
         If listaTiposRetorno IsNot Nothing AndAlso listaTiposRetorno.Any(Function(r) r.id = retornoActual.id) Then
-            envio.Retorno = retornoActual.id
+            If PierdeElRetornoSinQueLoPidaElUsuario(envio) Then
+                ' Sugerencia 906 (envíos 250390, 250391, 250271, 250177, 250162, 250161 y 250074): el retorno de un
+                ' pendiente («Recoger producto») SOLO lo quita el usuario eligiéndolo en el combo. Si la pantalla dice
+                ' otra cosa sin que el usuario lo haya tocado, algún setter lo ha pisado por el camino: se conserva el
+                ' del pendiente y queda en ELMAH con la traza para ver qué camino ha sido.
+                RegistrarIncidenciaAgencia($"[Retorno pendiente 906] Envío {envio.Numero} (pedido {envio.Pedido}): la pantalla tenía el retorno " &
+                    $"{retornoActual.id} y el pendiente {envio.Retorno}, sin que el usuario lo cambiara. Se conserva el {envio.Retorno}." &
+                    Environment.NewLine & TrazaRetorno, "AgenciasViewModel.AplicarServicioYRetornoAlPendiente")
+            Else
+                envio.Retorno = retornoActual.id
+            End If
         End If
     End Sub
+
+    ''' <summary>Sugerencia 906: el pendiente tiene retorno y la pantalla otro distinto que el usuario NO ha elegido.</summary>
+    Friend Function PierdeElRetornoSinQueLoPidaElUsuario(envio As EnviosAgencia) As Boolean
+        Return envio IsNot Nothing AndAlso envio.Retorno > 0 AndAlso retornoActual.id <> envio.Retorno AndAlso
+            Not RetornoElegidoPorElUsuario(envio.Pedido)
+    End Function
 
     ' NestoAPI#505: servicio a pedir al calcular el ImporteGasto. Solo cuando el usuario ha forzado en una
     ' agencia gestionada por la API un servicio distinto del defecto (CTT 24h): sin servicio, el servidor
@@ -645,15 +666,62 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    ' Nesto#583 (sugerencia 906, 30/10/26): el setter PÚBLICO es el del combo de la vista, o sea, el usuario. El
+    ' ViewModel pone el retorno SIEMPRE con PonerRetornoActual, para distinguir «lo ha elegido el usuario» de «lo
+    ' ha puesto un setter por el camino» (defectos de la agencia al pasar por otra, comparador, peso...). Solo si lo
+    ' elige el usuario se puede quitar al imprimir el retorno de una etiqueta pendiente (AplicarServicioYRetornoAlPendiente).
     Private _retornoActual As tipoIdDescripcion
     Public Property retornoActual As tipoIdDescripcion
         Get
             Return _retornoActual
         End Get
         Set(value As tipoIdDescripcion)
-            Dim unused = SetProperty(_retornoActual, value)
+            Dim anterior As Byte = _retornoActual.id
+            PonerRetornoActual(value, "combo")
+            If value.id <> anterior AndAlso listaTiposRetorno IsNot Nothing AndAlso listaTiposRetorno.Any(Function(r) r.id = value.id) Then
+                _pedidoConRetornoElegidoPorElUsuario = pedidoSeleccionado?.Número
+            End If
         End Set
     End Property
+
+    ' Pedido para el que el usuario ha elegido a mano el retorno en el combo (Nothing si no lo ha tocado).
+    Private _pedidoConRetornoElegidoPorElUsuario As Integer?
+    ' Las últimas vueltas del retorno y de la agencia en pantalla, para ELMAH si alguna vez hay que conservar el
+    ' retorno de un pendiente (así se ve en producción por qué camino se había perdido).
+    Private ReadOnly _trazaRetorno As New Queue(Of String)
+    Private Const MAXIMO_TRAZA_RETORNO As Integer = 15
+
+    Private Sub PonerRetornoActual(valor As tipoIdDescripcion, origen As String)
+        If valor.id <> _retornoActual.id Then
+            AnotarTrazaRetorno($"retorno {_retornoActual.id}->{valor.id} ({origen})")
+        End If
+        Dim unused = SetProperty(_retornoActual, valor, NameOf(retornoActual))
+    End Sub
+
+    Private Sub AnotarTrazaRetorno(texto As String)
+        Try
+            Dim llamadores As String = String.Join("<", New StackTrace(2, False).GetFrames().
+                Select(Function(f) f.GetMethod()).
+                Where(Function(m) m IsNot Nothing AndAlso m.DeclaringType IsNot Nothing AndAlso m.DeclaringType.FullName.Contains("AgenciasViewModel")).
+                Select(Function(m) m.Name).Take(4))
+            _trazaRetorno.Enqueue($"{Date.Now:HH:mm:ss.fff} {texto} [agencia {If(_agenciaSeleccionada?.Numero.ToString(), "-")}, pestaña {PestannaNombre}, pedido {If(_pedidoSeleccionado?.Número.ToString(), "-")}] {llamadores}")
+            While _trazaRetorno.Count > MAXIMO_TRAZA_RETORNO
+                Dim unused = _trazaRetorno.Dequeue()
+            End While
+        Catch
+            ' La traza es diagnóstico: nunca rompe nada.
+        End Try
+    End Sub
+
+    Friend ReadOnly Property TrazaRetorno As String
+        Get
+            Return String.Join(Environment.NewLine, _trazaRetorno)
+        End Get
+    End Property
+
+    Friend Function RetornoElegidoPorElUsuario(pedido As Integer?) As Boolean
+        Return pedido.HasValue AndAlso _pedidoConRetornoElegidoPorElUsuario.HasValue AndAlso _pedidoConRetornoElegidoPorElUsuario.Value = pedido.Value
+    End Function
 
     Private _reembolso As Decimal
     Public Property reembolso As Decimal
@@ -1455,7 +1523,7 @@ Public Class AgenciasViewModel
                 '    agenciaSeleccionada = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
                 'End If
                 If Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaEspecifica) Then
-                    retornoActual = (From s In listaTiposRetorno Where s.id = agenciaEspecifica.retornoSoloCobros).FirstOrDefault
+                    PonerRetornoActual((From s In listaTiposRetorno Where s.id = agenciaEspecifica.retornoSoloCobros).FirstOrDefault, "solo cobros")
                     servicioActual = (From s In listaServicios Where s.ServicioId = agenciaEspecifica.servicioSoloCobros).FirstOrDefault
                     horarioActual = (From s In listaHorarios Where s.id = agenciaEspecifica.horarioSoloCobros).FirstOrDefault
                     paisActual = (From s In listaPaises Where s.Id = agenciaEspecifica.paisDefecto).SingleOrDefault
@@ -3255,9 +3323,14 @@ Public Class AgenciasViewModel
     ''' marcado como confirmado por la agencia. Devuelve False si la persona no lo confirma (no se ha guardado nada). Los demás
     ''' errores se lanzan, como antes.
     ''' </summary>
-    Friend Function GuardarConfirmandoConLaAgencia(envio As EnviosAgencia) As Boolean
+    Friend Function GuardarConfirmandoConLaAgencia(envio As EnviosAgencia, Optional quitarRetorno As Boolean = False) As Boolean
         Try
-            _servicio.Modificar(envio)
+            ' Sugerencia 906: en Pendientes el retorno lo cambia el usuario en el combo del propio pendiente.
+            If quitarRetorno AndAlso envio.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO AndAlso envio.Retorno = 0 Then
+                _servicio.ModificarQuitandoRetorno(envio)
+            Else
+                _servicio.Modificar(envio)
+            End If
             Return True
         Catch ex As CambioSinAgenciaException
             Dim confirmacion As String = PeticionCambioSinAgencia.Pedir(_dialogService, ex.Campos)
@@ -3642,7 +3715,7 @@ Public Class AgenciasViewModel
             Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
             If EnvioPendienteSeleccionado.Numero = 0 Then
                 Dim unused1 = _servicio.Insertar(envio)
-            ElseIf Not GuardarConfirmandoConLaAgencia(envio) Then
+            ElseIf Not GuardarConfirmandoConLaAgencia(envio, quitarRetorno:=True) Then
                 ' Nesto#564: ya registrado en la agencia y sin su confirmación: no se ha guardado nada (sigue con cambios sin guardar).
                 Return
             End If
@@ -4284,12 +4357,14 @@ Public Class AgenciasViewModel
         ' con la foto tomada aquí (los campos de plaza recalculados antes de este punto se
         ' incluyen en la foto; son metadatos recalculables e inocuos).
         Dim success As Boolean = False
+        Dim retornoDelPendiente As Byte = 0
         Dim fotoEnvioPreexistente As String = If(esAmpliacion,
             JsonConvert.SerializeObject(envioActual, _jsonFotoEnvio), Nothing)
         Try
                 If estabaPendiente Then
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
+                    retornoDelPendiente = envioActual.Retorno
                     AplicarServicioYRetornoAlPendiente(envioActual, agenciaInsercion, If(agenciaTransporteInsercion?.Numero, 0))
                     ' Ya no es pendiente: lo que manda a partir de ahora es lo de la pantalla.
                     _envioPendienteDelPedido = Nothing
@@ -4355,7 +4430,12 @@ Public Class AgenciasViewModel
                 If Not String.IsNullOrEmpty(codigoBarrasCalculado) OrElse String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
                     envioActual.CodigoBarras = codigoBarrasCalculado
                 End If
-                _servicio.Modificar(envioActual)
+                If estabaPendiente AndAlso retornoDelPendiente > 0 AndAlso envioActual.Retorno = 0 Then
+                    ' Sugerencia 906: solo llega aquí si el usuario lo ha quitado a mano (AplicarServicioYRetornoAlPendiente).
+                    _servicio.ModificarQuitandoRetorno(envioActual)
+                Else
+                    _servicio.Modificar(envioActual)
+                End If
 
                 If conEtiquetaRecogida Then
                     ' Realmente no hacemos nada más que aumentar en 1 el contador de Id
@@ -4446,6 +4526,11 @@ Public Class AgenciasViewModel
                 Dim restaurado = JsonConvert.DeserializeObject(Of EnviosAgencia)(fotoEnvioPreexistente)
                 _servicio.Modificar(restaurado)
                 envioActual.RowVersion = restaurado.RowVersion
+                ' Sugerencia 906: si era un pendiente, vuelve a serlo también en la pantalla. Si no, al reintentar
+                ' (tras pasar la pantalla por otra agencia) ya no se recuperaba su retorno y se imprimía sin él.
+                If restaurado.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO Then
+                    _envioPendienteDelPedido = restaurado
+                End If
             End If
         Catch
         End Try
