@@ -4,6 +4,7 @@ Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 ''' <summary>
@@ -45,6 +46,9 @@ Partial Public Class DetallePedidoViewModel
     Public Property CancelarSelectorFacturaOriginalCommand As RelayCommand
     Public Property VincularFacturaOriginalCommand As RelayCommand
     Public Property QuitarFacturaOriginalCommand As RelayCommand
+    Public Property ImprimirNotaCommand As AsyncRelayCommand
+    Public Property VerNotaCommand As AsyncRelayCommand
+    Public Property EtiquetasRecogidaCommand As AsyncRelayCommand
 
     Private Sub InicializarNotaEntrega()
         EsGrupoQuePuedeCrearNotas = PuedeCrearNotas(configuracion)
@@ -53,6 +57,9 @@ Partial Public Class DetallePedidoViewModel
         CancelarSelectorFacturaOriginalCommand = New RelayCommand(Sub() MostrarSelectorFacturaOriginal = False)
         VincularFacturaOriginalCommand = New RelayCommand(AddressOf VincularFacturaOriginal, Function() FacturaOriginalEnLista IsNot Nothing)
         QuitarFacturaOriginalCommand = New RelayCommand(AddressOf QuitarFacturaOriginal, Function() Not String.IsNullOrWhiteSpace(FacturaOriginalNota))
+        ImprimirNotaCommand = New AsyncRelayCommand(AddressOf ImprimirNotaAsync, Function() PuedeImprimirNota)
+        VerNotaCommand = New AsyncRelayCommand(AddressOf VerNotaAsync, Function() PuedeImprimirNota)
+        EtiquetasRecogidaCommand = New AsyncRelayCommand(AddressOf ImprimirEtiquetasRecogidaAsync, Function() PuedeImprimirEtiquetasRecogida)
     End Sub
 
 #Region "Casilla «Nota de entrega»"
@@ -318,6 +325,11 @@ Partial Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(TextoCabeceraNota))
         AbrirSelectorFacturaOriginalCommand?.NotifyCanExecuteChanged()
         QuitarFacturaOriginalCommand?.NotifyCanExecuteChanged()
+        OnPropertyChanged(NameOf(PuedeImprimirNota))
+        OnPropertyChanged(NameOf(PuedeImprimirEtiquetasRecogida))
+        ImprimirNotaCommand?.NotifyCanExecuteChanged()
+        VerNotaCommand?.NotifyCanExecuteChanged()
+        EtiquetasRecogidaCommand?.NotifyCanExecuteChanged()
         If Not EsNotaRecogida AndAlso _mostrarSelectorFacturaOriginal Then
             MostrarSelectorFacturaOriginal = False
         End If
@@ -332,6 +344,158 @@ Partial Public Class DetallePedidoViewModel
         NotificarCambioCabeceraNota()
         NuevaNotaRecogidaCommand?.NotifyCanExecuteChanged()
     End Sub
+#End Region
+
+#Region "Imprimir nota y etiquetas de recogida (Nesto#580)"
+    Private _servicioImpresion As IServicioImpresionDocumentos
+    ''' <summary>Nesto#580: inyectable desde los tests (en producción, la impresora por defecto con PdfiumViewer).</summary>
+    Friend Property ServicioImpresion As IServicioImpresionDocumentos
+        Get
+            If _servicioImpresion Is Nothing Then
+                _servicioImpresion = New ServicioImpresionDocumentos()
+            End If
+            Return _servicioImpresion
+        End Get
+        Set(value As IServicioImpresionDocumentos)
+            _servicioImpresion = value
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' «Imprimir nota» / «Ver nota»: cualquier nota grabada, de entrega o de recogida, también las de Nesto viejo y antes de
+    ''' facturar la ruta (el PDF con el código de barras NE/NR lo hace la API y no crea la parada).
+    ''' </summary>
+    Public ReadOnly Property PuedeImprimirNota As Boolean
+        Get
+            Return EsNotaEntrega AndAlso pedido IsNot Nothing AndAlso pedido.numero <> 0
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' «Etiquetas de recogida»: solo las notas de RECOGIDA grabadas. Las de entrega pasan por el packing y llevan su
+    ''' etiqueta normal (Carlos, 30/10/26).
+    ''' </summary>
+    Public ReadOnly Property PuedeImprimirEtiquetasRecogida As Boolean
+        Get
+            Return EsNotaRecogida AndAlso pedido IsNot Nothing AndAlso pedido.numero <> 0
+        End Get
+    End Property
+
+    Private ReadOnly Property NombreNota As String
+        Get
+            Return If(EsNotaRecogida, "nota de recogida", "nota de entrega")
+        End Get
+    End Property
+
+    ''' <summary>Imprime 2 copias en la bandeja Middle (como las notas de Facturar rutas).</summary>
+    Friend Async Function ImprimirNotaAsync() As Task
+        If Not PuedeImprimirNota Then
+            Return
+        End If
+        Dim empresa As String = pedido.empresa
+        Dim numero As Integer = pedido.numero
+        If Not dialogService.ShowConfirmationAnswer("Imprimir nota", $"¿Desea imprimir la {NombreNota} {numero} directamente en la impresora (2 copias)?") Then
+            Return
+        End If
+        Try
+            Dim bytesPdf As Byte() = Await servicio.CargarDocumentoNotaEntrega(empresa, numero).ConfigureAwait(True)
+            If bytesPdf Is Nothing OrElse bytesPdf.Length = 0 Then
+                dialogService.ShowError($"No se ha podido obtener el documento de la nota {numero}.")
+                Return
+            End If
+            Dim nota As New NotaEntregaCreadaDTO With {
+                .Empresa = empresa,
+                .NumeroPedido = numero,
+                .Tipo = _tipoNota,
+                .DatosImpresion = New DocumentoParaImprimir With {
+                    .BytesPDF = bytesPdf,
+                    .NumeroCopias = 2,
+                    .TipoBandeja = TipoBandejaImpresion.Middle
+                }
+            }
+            Dim resultado As ResultadoImpresion = Await ServicioImpresion.ImprimirNotasEntrega({nota}).ConfigureAwait(True)
+            If resultado IsNot Nothing AndAlso resultado.TieneErrores Then
+                dialogService.ShowError($"No se ha podido imprimir la nota: {resultado.Errores.First().MensajeError}")
+            Else
+                dialogService.ShowNotification($"Nota {numero} enviada a la impresora")
+            End If
+        Catch ex As Exception
+            Dim mensajeError As String = If(ex.InnerException Is Nothing, ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"No se ha podido imprimir la nota: {mensajeError}")
+        End Try
+    End Function
+
+    ''' <summary>Abre el PDF de la nota en pantalla (como los demás PDF del detalle).</summary>
+    Friend Async Function VerNotaAsync() As Task
+        If Not PuedeImprimirNota Then
+            Return
+        End If
+        Try
+            Dim ruta As String = Await servicio.DescargarDocumentoNotaEntrega(pedido.empresa, pedido.numero, pedido.cliente).ConfigureAwait(True)
+            Dim unused = Process.Start(New ProcessStartInfo(ruta) With {.UseShellExecute = True})
+        Catch ex As Exception
+            Dim mensajeError As String = If(ex.InnerException Is Nothing, ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"No se ha podido abrir la nota: {mensajeError}")
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Sin bultos guardados (vacío o 0) hay que preguntarlos: la API imprime una etiqueta NR{Pedido}-{N} por bulto.
+    ''' </summary>
+    Friend ReadOnly Property FaltanBultosNotaRecogida As Boolean
+        Get
+            Dim bultosGuardados As Integer? = pedido?.Model?.bultosNota
+            Return Not bultosGuardados.HasValue OrElse bultosGuardados.Value < 1 OrElse _bultosNota < 1
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' «Etiquetas de recogida»: si la nota no tiene bultos, los pregunta y los guarda por el PUT de la cabecera; luego la API
+    ''' las imprime por la Zebra (POST api/NotasEntrega/{empresa}/{pedido}/EtiquetasRecogida). En Nesto no se genera ZPL.
+    ''' </summary>
+    Friend Async Function ImprimirEtiquetasRecogidaAsync() As Task
+        If Not PuedeImprimirEtiquetasRecogida Then
+            Return
+        End If
+        Await CambioCabeceraNotaEnCurso.ConfigureAwait(True)
+        If Not PuedeImprimirEtiquetasRecogida Then
+            Return
+        End If
+        Dim empresa As String = pedido.empresa
+        Dim numero As Integer = pedido.numero
+
+        If FaltanBultosNotaRecogida Then
+            Dim texto As String = dialogService.GetText("Etiquetas de recogida", "¿Cuántos bultos se recogen? Se imprime una etiqueta por bulto.", Math.Max(_bultosNota, 1).ToString())
+            If texto Is Nothing Then
+                Return
+            End If
+            Dim bultos As Integer
+            If Not Integer.TryParse(texto.Trim(), bultos) OrElse bultos < 1 Then
+                dialogService.ShowError("Escriba un número de bultos mayor que cero.")
+                Return
+            End If
+            Try
+                Dim respuesta As NotaEntregaCabeceraDTO = Await servicio.CambiarCabeceraNotaEntrega(empresa, numero, TiposNotaEntrega.RECOGIDA, bultos, _facturaOriginalNota).ConfigureAwait(True)
+                If pedido Is Nothing OrElse pedido.numero <> numero Then
+                    Return ' el usuario ya está en otro pedido
+                End If
+                _bultosNota = If(respuesta IsNot Nothing AndAlso respuesta.Bultos > 0, respuesta.Bultos, bultos)
+                CopiarCabeceraNotaAlPedido()
+                NotificarCambioCabeceraNota()
+            Catch ex As Exception
+                dialogService.ShowError($"No se han podido guardar los bultos de la nota: {ex.Message}")
+                Return
+            End Try
+        End If
+
+        Try
+            Dim resultado As EtiquetasRecogidaRespuestaDTO = Await servicio.ImprimirEtiquetasRecogida(empresa, numero, Nothing).ConfigureAwait(True)
+            Dim impresas As Integer = If(resultado?.Impresas, 0)
+            dialogService.ShowNotification($"Impresas {impresas} etiqueta{If(impresas = 1, "", "s")} por la Zebra")
+        Catch ex As Exception
+            dialogService.ShowError($"No se han podido imprimir las etiquetas de recogida: {ex.Message}")
+        End Try
+    End Function
 #End Region
 
 #Region "Nueva nota de recogida"

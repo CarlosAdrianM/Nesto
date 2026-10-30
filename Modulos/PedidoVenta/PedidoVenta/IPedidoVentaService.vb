@@ -59,6 +59,15 @@ Public Interface IPedidoVentaService
     ''' (PUT api/NotasEntrega/{empresa}/{pedido}/Cabecera). Devuelve la cabecera como queda; si la API lo rechaza
     ''' (no es nota, recogida sin bultos, factura de otro cliente, parada ya entregada...), lanza una excepción con su mensaje tal cual.</summary>
     Function CambiarCabeceraNotaEntrega(empresa As String, pedido As Integer, tipo As String, bultos As Integer, facturaOriginal As String) As Task(Of NotaEntregaCabeceraDTO)
+    ''' <summary>Nesto#580 / NestoAPI#758: el PDF de la nota de entrega o de recogida con su código de barras NE/NR
+    ''' (GET api/NotasEntrega/{empresa}/{pedido}/Documento). Vale también para las notas de Nesto viejo; no crea la parada.</summary>
+    Function CargarDocumentoNotaEntrega(empresa As String, pedido As Integer) As Task(Of Byte())
+    ''' <summary>Nesto#580: el mismo PDF guardado en Descargas, para abrirlo en pantalla. Devuelve la ruta del fichero.</summary>
+    Function DescargarDocumentoNotaEntrega(empresa As String, pedido As Integer, cliente As String) As Task(Of String)
+    ''' <summary>Nesto#580 / NestoAPI#758: la API imprime por la Zebra las etiquetas de recogida NR{Pedido}-{N}
+    ''' (POST api/NotasEntrega/{empresa}/{pedido}/EtiquetasRecogida). Solo notas de recogida; si la API lo rechaza,
+    ''' lanza una excepción con su mensaje tal cual.</summary>
+    Function ImprimirEtiquetasRecogida(empresa As String, pedido As Integer, impresora As String) As Task(Of EtiquetasRecogidaRespuestaDTO)
     ''' <summary>Nesto#489 / NestoAPI#533: pide a almacén el cambio de modo de un pedido con picking. Devuelve el texto
     ''' de la API para enseñarlo; si la API lo rechaza, lanza una excepción con su mensaje.</summary>
     Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String)
