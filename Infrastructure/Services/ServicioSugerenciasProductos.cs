@@ -24,6 +24,9 @@ namespace Nesto.Infrastructure.Services
         /// últimas trae la sustituta. Null si no se puede.
         /// </summary>
         Task<ResultadoRespuestaSugerenciaProductoDTO> Responder(int idSugerencia, string respuesta, List<ProductoCarritoSugerenciaDTO> productos);
+
+        /// <summary>NestoAPI#751: GET api/SugerenciasProductos/MiResumen (lo del usuario que llama). Null si no se puede.</summary>
+        Task<ResumenSugerenciasVendedorDTO> MiResumen();
     }
 
     public class ServicioSugerenciasProductos : IServicioSugerenciasProductos
@@ -55,6 +58,28 @@ namespace Nesto.Infrastructure.Services
             }
             var cuerpo = new RespuestaSugerenciaProductoDTO { Respuesta = respuesta, Productos = productos };
             return await Post<ResultadoRespuestaSugerenciaProductoDTO>($"SugerenciasProductos/{idSugerencia}/Respuesta", cuerpo).ConfigureAwait(false);
+        }
+
+        public async Task<ResumenSugerenciasVendedorDTO> MiResumen()
+        {
+            try
+            {
+                using (HttpClient client = _clienteApiFactory.Crear())
+                {
+                    client.Timeout = TIEMPO_MAXIMO;
+                    HttpResponseMessage response = await client.GetAsync("SugerenciasProductos/MiResumen").ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return null;
+                    }
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return JsonConvert.DeserializeObject<ResumenSugerenciasVendedorDTO>(json);
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private async Task<T> Post<T>(string url, object cuerpo) where T : class
