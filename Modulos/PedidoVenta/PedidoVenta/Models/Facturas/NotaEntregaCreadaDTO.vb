@@ -32,9 +32,11 @@ Public Class NotaEntregaCreadaDTO
     Public Property CodigoDocumento As String
 
     ''' <summary>
-    ''' Nesto#580 / NestoAPI#758: bultos de la nota (en las recogidas, los que se recogen).
+    ''' Nesto#580 / NestoAPI#758: bultos de la nota (en las recogidas, los que se recogen). La API lo manda a null en las
+    ''' notas de entrega que no van por ruta propia (revisión 30/10/26: con Integer no anulable, Newtonsoft fallaba al leer la
+    ''' respuesta de Facturar rutas y no se imprimía nada).
     ''' </summary>
-    Public Property Bultos As Integer
+    Public Property Bultos As Integer?
 
     ''' <summary>
     ''' Nesto#580 / NestoAPI#758: el envío de la agencia 14 (la parada del reparto propio), si lo hay.

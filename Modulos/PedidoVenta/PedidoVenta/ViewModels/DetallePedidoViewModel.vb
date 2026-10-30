@@ -618,6 +618,10 @@ Public Class DetallePedidoViewModel
             End If
             Dim unused = SetProperty(_pedido, value)
             ComprobadorSustitucion?.Olvidar() ' NestoAPI#581: en otro pedido se vuelve a avisar de todo
+            If _abonoRecogida IsNot Nothing AndAlso (value Is Nothing OrElse value.numero <> _abonoRecogida.Pedido) Then
+                _abonoRecogida = Nothing ' Nesto#581 (revisión 30/10/26): el modo abono solo vale para el pedido del abono; en otro, las líneas nacen en positivo
+                NotificarCambioAbonoRecogida()
+            End If
             If Not IsNothing(_pedido) Then
                 _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
                 ReiniciarModosPermitidos() ' Nesto#484: pedido nuevo en pantalla, se pregunta de nuevo

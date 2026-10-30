@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -63,6 +65,9 @@ namespace ControlesUsuario.EscanerRemoto
             panel.Children.Add(botones);
             Content = panel;
 
+            // Revisión 30/10/26: ShowActivated solo vale para el Show; al pulsar «Copiar» la ventanita se activaba y la
+            // siguiente lectura volvía a caer aquí hasta que el usuario pinchaba en Nesto. Con WS_EX_NOACTIVATE nunca se activa.
+            SourceInitialized += (s, e) => NoActivar();
             Loaded += (s, e) => Colocar();
             Closed += (s, e) =>
             {
@@ -98,6 +103,31 @@ namespace ControlesUsuario.EscanerRemoto
         {
             _codigo.Text = codigo ?? string.Empty;
             _copiar.Content = TEXTO_COPIAR;
+        }
+
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        private void NoActivar()
+        {
+            try
+            {
+                IntPtr handle = new WindowInteropHelper(this).Handle;
+                if (handle != IntPtr.Zero)
+                {
+                    _ = SetWindowLong(handle, GWL_EXSTYLE, GetWindowLong(handle, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
+                }
+            }
+            catch (Exception)
+            {
+                // Sin esto la ventanita funciona igual, solo que se activa al pulsar en ella.
+            }
         }
 
         private void Copiar()

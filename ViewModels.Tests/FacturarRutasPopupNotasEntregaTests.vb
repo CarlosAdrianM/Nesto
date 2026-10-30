@@ -1,4 +1,5 @@
 Imports FakeItEasy
+Imports Newtonsoft.Json
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
@@ -33,6 +34,24 @@ Public Class FacturarRutasPopupNotasEntregaTests
         vm.TipoRutaSeleccionado = New TipoRutaInfoDTO With {.Id = "PROPIA"}
         Return vm
     End Function
+
+    ''' <summary>
+    ''' Revisión 30/10/26: la API manda "Bultos":null en las notas de entrega que no van por ruta propia (y "EnvioId":null).
+    ''' Con Bultos As Integer (no anulable) Newtonsoft fallaba al leer la respuesta de Facturar rutas y no se imprimía nada.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub FacturarRutasResponseDTO_SeDeserializaConBultosYEnvioIdNulos()
+        Dim json = "{""PedidosProcesados"":1,""Albaranes"":[],""Facturas"":[],""PedidosConErrores"":[],""NotasEntrega"":[" &
+            "{""NumeroPedido"":929554,""NumeroLineas"":2,""TeniaLineasYaFacturadas"":false,""BaseImponible"":0.0,""Tipo"":""Entrega""," &
+            """CodigoDocumento"":""NE929554"",""Bultos"":null,""EnvioId"":null,""EtiquetasRecogidaImpresas"":0,""DatosImpresion"":null}]}"
+
+        Dim response = JsonConvert.DeserializeObject(Of FacturarRutasResponseDTO)(json)
+
+        Assert.AreEqual(1, response.NotasEntrega.Count)
+        Assert.IsFalse(response.NotasEntrega(0).Bultos.HasValue)
+        Assert.IsFalse(response.NotasEntrega(0).EnvioId.HasValue)
+        Assert.AreEqual("NE929554", response.NotasEntrega(0).CodigoDocumento)
+    End Sub
 
     Private Shared Function ConPdf() As DocumentoParaImprimir
         Return New DocumentoParaImprimir With {.BytesPDF = {1}, .NumeroCopias = 2, .TipoBandeja = TipoBandejaImpresion.Middle}
