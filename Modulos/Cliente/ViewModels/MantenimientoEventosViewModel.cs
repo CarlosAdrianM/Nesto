@@ -1111,8 +1111,18 @@ namespace Nesto.Modulos.Cliente
             get => _inscripcionSeleccionada;
             set
             {
+                InscripcionEventoModel anterior = _inscripcionSeleccionada;
                 if (SetProperty(ref _inscripcionSeleccionada, value))
                 {
+                    // Nesto#572: la tarjeta seleccionada se despliega y la anterior se pliega (así la lista sigue legible).
+                    if (anterior != null)
+                    {
+                        anterior.Desplegada = false;
+                    }
+                    if (value != null)
+                    {
+                        value.Desplegada = true;
+                    }
                     if (value != null)
                     {
                         FormaPagoPago = value.FormaPago != null && FormasPago.Contains(value.FormaPago.Trim())
@@ -1186,7 +1196,20 @@ namespace Nesto.Modulos.Cliente
 
         private void Inscripcion_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (_poniendoPersona || e.PropertyName != nameof(InscripcionEventoModel.NumeroPersonaAsiste) || sender is not InscripcionEventoModel inscripcion)
+            if (sender is not InscripcionEventoModel inscripcion)
+            {
+                return;
+            }
+            // Nesto#572: desplegar una tarjeta con «Ver detalle» la selecciona (los botones actúan sobre la que se ve abierta).
+            if (e.PropertyName == nameof(InscripcionEventoModel.Desplegada))
+            {
+                if (inscripcion.Desplegada && inscripcion != InscripcionSeleccionada && Inscripciones.Contains(inscripcion))
+                {
+                    InscripcionSeleccionada = inscripcion;
+                }
+                return;
+            }
+            if (_poniendoPersona || e.PropertyName != nameof(InscripcionEventoModel.NumeroPersonaAsiste))
             {
                 return;
             }
