@@ -86,4 +86,15 @@ Public Class PedidoConErrorDTO
     ''' Total del pedido
     ''' </summary>
     Public Property Total As Decimal
+
+    ''' <summary>
+    ''' Nesto#586 / NestoAPI#765: código para saber qué hacer (Nothing en los errores de siempre).
+    ''' «NOTA_SIN_PACKING»: la nota de entrega no ha pasado por el packing; se pregunta y se reintenta saltándolo.
+    ''' </summary>
+    Public Property Codigo As String
 End Class
+
+''' <summary>Nesto#586 / NestoAPI#765: los códigos de PedidoConErrorDTO.Codigo.</summary>
+Public Module CodigosErrorFacturacion
+    Public Const NOTA_SIN_PACKING As String = "NOTA_SIN_PACKING"
+End Module

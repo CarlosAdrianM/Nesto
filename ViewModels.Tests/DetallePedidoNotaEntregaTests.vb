@@ -46,6 +46,23 @@ Public Class DetallePedidoNotaEntregaTests
     End Function
 
     <TestMethod()>
+    Public Async Function ProcesarNotaEntrega_SinPacking_PreguntaDeUstedYReintentaSaltandolo() As Task
+        ' Nesto#586 / NestoAPI#765: la nota de entrega que no ha pasado por el packing se procesa solo si se confirma
+        Dim sinPacking As New FacturarRutasResponseDTO()
+        sinPacking.PedidosConErrores.Add(New PedidoConErrorDTO With {.Codigo = CodigosErrorFacturacion.NOTA_SIN_PACKING, .MensajeError = "sin packing"})
+        A.CallTo(Function() facturacion.FacturarPedido("1", 927519)).Returns(Task.FromResult(sinPacking))
+        A.CallTo(Function() facturacion.FacturarPedido("1", 927519, True)).
+            Returns(Task.FromResult(New FacturarRutasResponseDTO With {.NotasEntrega = New List(Of NotaEntregaCreadaDTO) From {New NotaEntregaCreadaDTO()}}))
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
+
+        Await vm.ProcesarNotaEntregaAsync()
+
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Nota de entrega", A(Of String).That.Contains("¿Quiere procesarla"))).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Nota de entrega", FacturadorPedido.PREGUNTA_SALTAR_PACKING)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() facturacion.FacturarPedido("1", 927519, True)).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
     Public Async Function ProcesarNotaEntrega_NoConfirmada_NoHaceNada() As Task
         A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
 

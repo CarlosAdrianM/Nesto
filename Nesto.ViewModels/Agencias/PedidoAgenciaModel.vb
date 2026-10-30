@@ -47,6 +47,13 @@ Public Class PedidoAgenciaModel
     Public Property ComentarioPicking As String
 
     ''' <summary>
+    ''' Nesto#586 / NestoAPI#765: el pedido es una nota de entrega (sin importes): al montar el envío se avisa de que el
+    ''' reembolso es 0, por si hay que cobrar algo. Una API sin el campo da False (como hasta ahora: sin aviso).
+    ''' </summary>
+    <JsonProperty("notaEntrega")>
+    Public Property NotaEntrega As Boolean
+
+    ''' <summary>
     ''' Ficha del cliente. PUEDE SER NOTHING, y eso importa: Agencias lo usa como señal de pedido
     ''' no utilizable y revierte al pedido anterior. No sustituir por un objeto vacío.
     ''' </summary>

@@ -878,6 +878,21 @@ Public Class AgenciasViewModel
         Throw New EnvioNoTramitadoException("Pedido retenido a la espera de Administración.")
     End Function
 
+    Friend Const PREGUNTA_REEMBOLSO_NOTA As String = "Nota de entrega: reembolso 0. ¿Hay que cobrar algo?"
+    Friend Const TEXTO_PONER_REEMBOLSO_NOTA As String = "Ponga en el reembolso lo que hay que cobrar y vuelva a insertar el envío."
+
+    ''' <summary>
+    ''' Nesto#586 / NestoAPI#765 (decisión 7 de #755): una nota de entrega no lleva importes y su envío sale con reembolso 0. Antes
+    ''' de montarlo se pregunta si hay que cobrar algo: «Sí» para el envío (se pone el reembolso a mano), «No» sigue con 0.
+    ''' True = seguir.
+    ''' </summary>
+    Friend Function ConfirmarReembolsoNotaEntrega() As Boolean
+        If pedidoSeleccionado Is Nothing OrElse Not pedidoSeleccionado.NotaEntrega OrElse reembolso <> 0D Then
+            Return True
+        End If
+        Return Not _dialogService.ShowConfirmationAnswer("Nota de entrega", PREGUNTA_REEMBOLSO_NOTA)
+    End Function
+
     ''' <summary>
     ''' NestoAPI#686 (pedido 928220): en el camino de siempre, si el envío sale SIN reembolso porque el pedido es al contado con
     ''' «Mantener junto» y aún le quedan líneas pendientes, se pregunta (antes salía en silencio y lo de ese envío se quedaba
@@ -2763,6 +2778,10 @@ Public Class AgenciasViewModel
             ' agencia es la más barata (la tarifa depende del peso) y la agencia puede rechazar el envío.
             If Peso <= 0D Then
                 Throw New Exception("Indica el peso del envío antes de imprimir: es necesario para elegir la agencia más barata y para tramitar con la agencia.")
+            End If
+            ' Nesto#586 / NestoAPI#765: una nota de entrega no lleva importes y sale con reembolso 0: ¿hay que cobrar algo?
+            If Not ConfirmarReembolsoNotaEntrega() Then
+                Throw New Exception(TEXTO_PONER_REEMBOLSO_NOTA)
             End If
             ' NestoAPI#595 (slice 2): con el parámetro InsertarEnvioPorApi = "API" el envío lo crea el servidor (propuesta,
             ' confirmaciones, prepagos, coste, plaza, código de barras y aviso al cliente). La red de cobertura se queda
