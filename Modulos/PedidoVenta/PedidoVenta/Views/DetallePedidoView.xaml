@@ -273,6 +273,9 @@
                                 <!-- Nesto#563 (NestoAPI#724): el mismo PDF que «Descargar PDF», por correo, sin pasar por el escritorio -->
                                 <Button Grid.Row="2" Grid.Column="1" Command="{Binding EnviarPedidoPorCorreoCommand}"
                                         ToolTip="Mandar el PDF del pedido por correo al cliente (se proponen sus personas de contacto)">Enviar por correo…</Button>
+                                <!-- Nesto#570 (NestoAPI#737): WhatsApp Web con el mensaje y un enlace de descarga del PDF (30 días) -->
+                                <Button Grid.Row="2" Grid.Column="0" Command="{Binding EnviarPedidoPorWhatsAppCommand}"
+                                        ToolTip="Abrir WhatsApp Web con el mensaje para el cliente y el enlace de descarga del PDF del pedido; solo tiene que pulsar «Enviar»">Enviar por WhatsApp…</Button>
                                 <!-- Fila 2: NestoAPI#727, facturar el fin de mes por la API (Administración, Dirección e Informática) -->
                                 <Button Grid.Row="2" Grid.Column="2" Command="{Binding AbrirFacturarFinDeMesCommand}"
                                         Visibility="{Binding PuedeFacturarFinDeMes, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -903,12 +906,13 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
-                    <Button Command="{Binding ImprimirFacturaDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF o Enviar por correo">
+                    <Button Command="{Binding ImprimirFacturaDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF, Enviar por correo o por WhatsApp">
                         <Button.Content>Imprimir Factura</Button.Content>
                         <Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Descargar PDF" Command="{Binding ImprimirFacturaCommand}"/>
                                 <MenuItem Header="Enviar por correo…" Command="{Binding EnviarFacturaPorCorreoCommand}"/> <!-- Nesto#563 -->
+                                <MenuItem Header="Enviar por WhatsApp…" Command="{Binding EnviarFacturaPorWhatsAppCommand}"/> <!-- Nesto#570 -->
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
