@@ -415,6 +415,26 @@ Public Class ListaPedidosVentaViewModel
 #End Region
 
 #Region "Funciones auxiliares"
+    ''' <summary>
+    ''' Nesto#588 (NestoAPI#764): ¿alguna línea viva (de -1 a 1) tiene fecha de entrega posterior a la fecha mínima del pedido?
+    ''' </summary>
+    Friend Shared Function TieneFechasFuturas(lineas As IEnumerable(Of LineaPedidoVentaDTO), fechaMinima As Date) As Boolean
+        Return lineas IsNot Nothing AndAlso lineas.Any(Function(c) c IsNot Nothing AndAlso c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > fechaMinima)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#588 (NestoAPI#764): la fecha de entrega mínima la calcula la API (con el código postal de entrega: los pedidos de
+    ''' ruta interna con día de reparto van al próximo día de su ruta). Si la API falla, el cálculo de siempre.
+    ''' </summary>
+    Friend Async Function FechaEntregaMinima(ruta As String, codigoPostal As String) As Task(Of Date)
+        Try
+            Return Await servicio.CalcularFechaEntregaAjustada(Date.Now, ruta, String.Empty, codigoPostal)
+        Catch ex As Exception
+            Return FechaEntregaAjustada(Date.Now, ruta)
+        End Try
+    End Function
+
+    ''' <summary>El cálculo viejo (hoy o mañana según la hora): solo si la API no contesta (Nesto#588).</summary>
     Private Function FechaEntregaAjustada(fecha As Date, ruta As String) As Date
         Dim fechaMinima = If(ruta <> Constantes.Pedidos.RUTA_GLOVO AndAlso EsRutaConPortes(ruta),
             DirectCast(IIf(Date.Now.Hour < Constantes.Picking.HORA_MAXIMA_AMPLIAR_PEDIDOS, Date.Today, Date.Today.AddDays(1)), Date),
@@ -425,7 +445,11 @@ Public Class ListaPedidosVentaViewModel
         Return IsNothing(ruta) OrElse ruta.Trim = "FW" OrElse ruta.Trim = "00" OrElse ruta.Trim = "16" OrElse ruta.Trim = "AT" OrElse ruta.Trim = "OT"
     End Function
 
-    Private Sub ActualizarResumen(pedido As PedidoVentaDTO)
+    Private Async Sub ActualizarResumen(pedido As PedidoVentaDTO)
+        Await ActualizarResumenAsync(pedido)
+    End Sub
+
+    Friend Async Function ActualizarResumenAsync(pedido As PedidoVentaDTO) As Task
         If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
@@ -436,10 +460,11 @@ Public Class ListaPedidosVentaViewModel
         resumen.fecha = pedido.fecha
         resumen.cliente = pedido.cliente
         resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-        resumen.tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
         resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
         resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
-    End Sub
+        ' Nesto#588 (NestoAPI#764): la fecha mínima, de la API (el día de reparto de la ruta interna, si lo tiene)
+        resumen.tieneFechasFuturas = TieneFechasFuturas(pedido.Lineas, Await FechaEntregaMinima(pedido.ruta, resumen.codPostal))
+    End Function
 
     Private Async Function CargarResumenSeleccionado() As Task
         ' Nesto#426-patrón: este método se invoca FIRE-AND-FORGET (al seleccionar un pedido en la
@@ -558,7 +583,7 @@ Public Class ListaPedidosVentaViewModel
         OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
     End Sub
 
-    Private Sub OnPedidoCreado(eventArgs As PedidoCreadoEventArgs)
+    Private Async Sub OnPedidoCreado(eventArgs As PedidoCreadoEventArgs)
         ' Usar el ElementoSeleccionado si es un pedido nuevo (numero = 0)
         ' Esto maneja correctamente el caso de estar creando el pedido actual
         Dim resumenEnCreacion As ResumenPedido = Nothing
@@ -596,7 +621,6 @@ Public Class ListaPedidosVentaViewModel
 
         If Not IsNothing(eventArgs.Pedido.Lineas) AndAlso eventArgs.Pedido.Lineas.Any() Then
             resumenEnCreacion.tienePicking = eventArgs.Pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-            resumenEnCreacion.tieneFechasFuturas = eventArgs.Pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, eventArgs.Pedido.ruta))
             resumenEnCreacion.tienePendientes = eventArgs.Pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
         Else
             resumenEnCreacion.tienePicking = False
@@ -608,6 +632,12 @@ Public Class ListaPedidosVentaViewModel
         OnPropertyChanged(NameOf(EstaCreandoPedido))
         OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
         OnPropertyChanged(NameOf(ListaPedidos))
+
+        ' Nesto#588 (NestoAPI#764): la fecha mínima, de la API (el día de reparto de la ruta interna, si lo tiene). Al final, para
+        ' no retrasar lo de arriba por la llamada.
+        If Not IsNothing(eventArgs.Pedido.Lineas) AndAlso eventArgs.Pedido.Lineas.Any() Then
+            resumenEnCreacion.tieneFechasFuturas = TieneFechasFuturas(eventArgs.Pedido.Lineas, Await FechaEntregaMinima(eventArgs.Pedido.ruta, eventArgs.CodigoPostal))
+        End If
     End Sub
 
 #End Region
