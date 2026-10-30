@@ -55,6 +55,10 @@ Public Interface IPedidoVentaService
     ''' (POST api/PedidosVenta/{empresa}/{nota}/ServirPendienteAlHaberStock). Si la API lo rechaza (con picking, sin
     ''' preparar la BD...), lanza una excepción con su mensaje tal cual.</summary>
     Function CambiarServirPendienteNota(empresa As String, nota As Integer, valor As Boolean, usuario As String) As Task
+    ''' <summary>Nesto#579 / NestoAPI#757: cambia tipo, bultos y factura original de una nota de entrega
+    ''' (PUT api/NotasEntrega/{empresa}/{pedido}/Cabecera). Devuelve la cabecera como queda; si la API lo rechaza
+    ''' (no es nota, recogida sin bultos, factura de otro cliente, parada ya entregada...), lanza una excepción con su mensaje tal cual.</summary>
+    Function CambiarCabeceraNotaEntrega(empresa As String, pedido As Integer, tipo As String, bultos As Integer, facturaOriginal As String) As Task(Of NotaEntregaCabeceraDTO)
     ''' <summary>Nesto#489 / NestoAPI#533: pide a almacén el cambio de modo de un pedido con picking. Devuelve el texto
     ''' de la API para enseñarlo; si la API lo rechaza, lanza una excepción con su mensaje.</summary>
     Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String)

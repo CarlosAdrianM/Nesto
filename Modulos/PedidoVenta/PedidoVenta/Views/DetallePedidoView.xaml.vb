@@ -21,11 +21,41 @@ Public Class DetallePedidoView
 
         If oldVm IsNot Nothing Then
             RemoveHandler oldVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
+            RemoveHandler oldVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
         End If
 
         If newVm IsNot Nothing Then
             AddHandler newVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
+            AddHandler newVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
         End If
+    End Sub
+
+    ''' <summary>Nesto#579: «Nueva nota de recogida» deja el foco en el texto de su línea, en la pestaña Líneas.</summary>
+    Private Sub ViewModel_FocoEnTextoDeLineaSolicitado(sender As Object, linea As LineaPedidoVentaWrapper)
+        If linea Is Nothing OrElse grdLineas Is Nothing OrElse TabControl Is Nothing Then
+            Return
+        End If
+        estaEnfocanddoAutomaticamente = True
+        If TabControl.SelectedIndex <> 3 Then
+            TabControl.SelectedIndex = 3
+        End If
+        Dim unused = Dispatcher.BeginInvoke(Sub()
+                                                Try
+                                                    If Not grdLineas.Items.Contains(linea) Then
+                                                        Return
+                                                    End If
+                                                    grdLineas.UpdateLayout()
+                                                    grdLineas.SelectedItem = linea
+                                                    grdLineas.CurrentItem = linea
+                                                    grdLineas.ScrollIntoView(linea)
+                                                    Dim unusedFoco = grdLineas.Focus()
+                                                    MoverAColumnaTexto()
+                                                Catch
+                                                    ' Ignorar errores de visual tree
+                                                Finally
+                                                    estaEnfocanddoAutomaticamente = False
+                                                End Try
+                                            End Sub, DispatcherPriority.Loaded)
     End Sub
 
     Private Sub ViewModel_PropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
