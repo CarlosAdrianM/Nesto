@@ -343,6 +343,7 @@ Partial Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(PuedeElegirModoFacturacion))
         NotificarCambioCabeceraNota()
         NuevaNotaRecogidaCommand?.NotifyCanExecuteChanged()
+        NotificarCambioAbonoRecogida() ' Nesto#581: «Leer etiqueta de recogida» es de los mismos grupos
     End Sub
 #End Region
 

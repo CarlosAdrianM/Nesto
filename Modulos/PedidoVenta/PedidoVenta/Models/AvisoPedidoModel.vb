@@ -16,6 +16,8 @@ End Class
 Public Class AvisoPedidoModel
     ''' <summary>Nesto#567 (NestoAPI#732): se han anulado inscripciones a eventos que justificaba el pedido (Datos.Inscripciones).</summary>
     Public Const TIPO_INSCRIPCIONES_EVENTO_ANULADAS As String = "INSCRIPCIONES_EVENTO_ANULADAS"
+    ''' <summary>Nesto#581 (NestoAPI#760): en el abono de una recogida, productos que no están en su factura original.</summary>
+    Public Const TIPO_ABONO_PRODUCTO_FUERA_DE_FACTURA As String = "ABONO_PRODUCTO_FUERA_DE_FACTURA"
 
     Public Property Tipo As String
     Public Property Mensaje As String
