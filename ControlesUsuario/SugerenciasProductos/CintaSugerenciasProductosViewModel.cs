@@ -43,6 +43,9 @@ namespace ControlesUsuario.SugerenciasProductos
         private string _vendedor;
         private bool _plegadas;
         private readonly string _clavePlegadas;
+        private string _fraseResumen;
+        private string _ayudaResumen;
+        private bool _resumenPedido;
 
         /// <param name="peticion">
         /// Lo que se manda a Calcular (empresa, cliente, contacto, vendedor y carrito), o null si todavía no hay cliente. La sesión
@@ -90,6 +93,31 @@ namespace ControlesUsuario.SugerenciasProductos
         public ObservableCollection<SugerenciaProductoDTO> Sugerencias => _sugerencias;
 
         public bool HaySugerencias => _sugerencias.Any();
+
+        /// <summary>
+        /// NestoAPI#751: en la cabecera, lo que gana el vendedor marcando (su semana, solo lo suyo) o, si aún no ha marcado nada,
+        /// «Cuanto más marque ✓ o ✗, más acierta con sus clientes». Lo monta la API; si falla, no sale nada.
+        /// </summary>
+        public string FraseResumen
+        {
+            get => _fraseResumen;
+            private set
+            {
+                if (SetProperty(ref _fraseResumen, value))
+                {
+                    OnPropertyChanged(nameof(HayResumen));
+                }
+            }
+        }
+
+        /// <summary>NestoAPI#751: la evolución por semanas y para qué sirve marcar (la ayuda de la frase).</summary>
+        public string AyudaResumen
+        {
+            get => _ayudaResumen;
+            private set => SetProperty(ref _ayudaResumen, value);
+        }
+
+        public bool HayResumen => !string.IsNullOrWhiteSpace(_fraseResumen);
 
         /// <summary>La sesión de sugerencias de esta pantalla (la crea la API en la primera respuesta).</summary>
         public Guid? IdSesion { get; set; }
@@ -267,6 +295,38 @@ namespace ControlesUsuario.SugerenciasProductos
                 _sugerencias.Add(sugerencia);
             }
             OnPropertyChanged(nameof(HaySugerencias));
+            if (_sugerencias.Any() && !_resumenPedido)
+            {
+                _resumenPedido = true; // una vez por pantalla; después, solo al contestar
+                _ = CargarResumenAsync();
+            }
+        }
+
+        /// <summary>
+        /// NestoAPI#751: pide el resumen del vendedor a la API la primera vez que hay fichas y después de cada respuesta (para que
+        /// vea al momento que ha contado). Si falla, se queda lo que hubiera. Los fallos no se propagan.
+        /// </summary>
+        public async Task CargarResumenAsync()
+        {
+            if (Servicio == null)
+            {
+                return;
+            }
+            ResumenSugerenciasVendedorDTO resumen;
+            try
+            {
+                resumen = await Servicio.MiResumen().ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+                resumen = null;
+            }
+            if (resumen == null || string.IsNullOrWhiteSpace(resumen.Frase))
+            {
+                return;
+            }
+            FraseResumen = resumen.Frase.Trim();
+            AyudaResumen = string.IsNullOrWhiteSpace(resumen.Ayuda) ? null : resumen.Ayuda.Trim();
         }
 
         /// <summary>Vacía la cinta (deja de verse).</summary>
@@ -435,14 +495,20 @@ namespace ControlesUsuario.SugerenciasProductos
             {
                 return null;
             }
+            ResultadoRespuestaSugerenciaProductoDTO resultado;
             try
             {
-                return await Servicio.Responder(idSugerencia, respuesta, Carrito()).ConfigureAwait(true);
+                resultado = await Servicio.Responder(idSugerencia, respuesta, Carrito()).ConfigureAwait(true);
             }
             catch (Exception)
             {
                 return null;
             }
+            if (resultado != null)
+            {
+                _ = CargarResumenAsync(); // NestoAPI#751: que vea que su respuesta cuenta
+            }
+            return resultado;
         }
 
         /// <summary>"1" = plegada. Sin fila (también si aún no está la de «(defecto)»), otro valor o si no se puede leer: desplegada.</summary>
