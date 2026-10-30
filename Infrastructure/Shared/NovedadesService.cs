@@ -82,14 +82,17 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<ComentarioNovedad>>(json ?? "[]") ?? new List<ComentarioNovedad>();
         }
 
-        public async Task<ComentarioNovedad> Comentar(int novedadId, string texto, byte[] imagenPng)
+        public async Task<ComentarioNovedad> Comentar(int novedadId, string texto, IReadOnlyList<byte[]> capturasPng)
         {
-            string json = await Enviar(HttpMethod.Post, $"Novedades/{novedadId}/Comentarios", CuerpoConCaptura(texto, imagenPng), "publicar el comentario").ConfigureAwait(false);
+            string json = await Enviar(HttpMethod.Post, $"Novedades/{novedadId}/Comentarios", CuerpoConCapturas(texto, capturasPng), "publicar el comentario").ConfigureAwait(false);
             return JsonConvert.DeserializeObject<ComentarioNovedad>(json);
         }
 
         public Task<byte[]> LeerImagenComentario(int comentarioId)
             => LeerImagen($"Novedades/Comentarios/{comentarioId}/Imagen");
+
+        public Task<byte[]> LeerCaptura(int capturaId)
+            => LeerImagen($"Novedades/Capturas/{capturaId}");
 
         public async Task BorrarComentario(int comentarioId)
         {
@@ -104,21 +107,22 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<NovedadUsuario>>(json ?? "[]") ?? new List<NovedadUsuario>();
         }
 
-        public async Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng)
+        public async Task<NovedadUsuario> Sugerir(string texto, IReadOnlyList<byte[]> capturasPng)
         {
-            string json = await Enviar(HttpMethod.Post, "Novedades/Sugerencias", CuerpoConCaptura(texto, imagenPng), "enviar la sugerencia").ConfigureAwait(false);
+            string json = await Enviar(HttpMethod.Post, "Novedades/Sugerencias", CuerpoConCapturas(texto, capturasPng), "enviar la sugerencia").ConfigureAwait(false);
             return JsonConvert.DeserializeObject<NovedadUsuario>(json);
         }
 
-        public async Task<NovedadUsuario> SugerirPrivada(string texto, byte[] imagenPng)
+        public async Task<NovedadUsuario> SugerirPrivada(string texto, IReadOnlyList<byte[]> capturasPng)
         {
             // Nesto#532 (NestoAPI#650): el mismo POST con "Privada": true
-            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            List<string> capturas = CapturasEnBase64(capturasPng);
             var cuerpo = new
             {
                 Texto = texto,
-                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
-                ImagenTipo = conImagen ? "image/png" : null,
+                ImagenBase64 = capturas?[0],
+                ImagenTipo = capturas == null ? null : "image/png",
+                ImagenesBase64 = capturas,
                 VersionCliente = VersionNesto(),
                 Privada = true
             };
@@ -126,15 +130,16 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<NovedadUsuario>(json);
         }
 
-        public async Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, byte[] imagenPng, string pantalla)
+        public async Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, IReadOnlyList<byte[]> capturasPng, string pantalla)
         {
             // NestoAPI#558: el mismo POST que las sugerencias, marcado como incidencia y con la pantalla abierta
-            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            List<string> capturas = CapturasEnBase64(capturasPng);
             var cuerpo = new
             {
                 Texto = texto,
-                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
-                ImagenTipo = conImagen ? "image/png" : null,
+                ImagenBase64 = capturas?[0],
+                ImagenTipo = capturas == null ? null : "image/png",
+                ImagenesBase64 = capturas,
                 VersionCliente = VersionNesto(),
                 EsIncidencia = true,
                 Pantalla = string.IsNullOrWhiteSpace(pantalla) ? null : pantalla.Trim()
@@ -161,17 +166,32 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<Mencionable>>(json ?? "[]") ?? new List<Mencionable>();
         }
 
-        /// <summary>Mismo cuerpo para comentar y para sugerir (NuevoComentarioNovedadDTO en la API).</summary>
-        private static object CuerpoConCaptura(string texto, byte[] imagenPng)
+        /// <summary>
+        /// Mismo cuerpo para comentar y para sugerir (NuevoComentarioNovedadDTO en la API). Nesto#578 (NestoAPI#754): todas
+        /// las capturas van en ImagenesBase64 y la primera, además, en ImagenBase64: una API que aún no conoce la lista
+        /// guarda al menos esa (la nueva no la cuenta dos veces).
+        /// </summary>
+        private static object CuerpoConCapturas(string texto, IReadOnlyList<byte[]> capturasPng)
         {
-            bool conImagen = imagenPng != null && imagenPng.Length > 0;
+            List<string> capturas = CapturasEnBase64(capturasPng);
             return new
             {
                 Texto = texto,
-                ImagenBase64 = conImagen ? Convert.ToBase64String(imagenPng) : null,
-                ImagenTipo = conImagen ? "image/png" : null,
+                ImagenBase64 = capturas?[0],
+                ImagenTipo = capturas == null ? null : "image/png",
+                ImagenesBase64 = capturas,
                 VersionCliente = VersionNesto()
             };
+        }
+
+        /// <summary>Las capturas no vacías en base64, en orden; null si no hay ninguna.</summary>
+        internal static List<string> CapturasEnBase64(IReadOnlyList<byte[]> capturasPng)
+        {
+            List<string> capturas = (capturasPng ?? new List<byte[]>())
+                .Where(c => c != null && c.Length > 0)
+                .Select(Convert.ToBase64String)
+                .ToList();
+            return capturas.Count == 0 ? null : capturas;
         }
 
         private async Task<byte[]> LeerImagen(string url)

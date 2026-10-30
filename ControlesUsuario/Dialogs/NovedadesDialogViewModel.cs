@@ -80,7 +80,7 @@ namespace ControlesUsuario.Dialogs
             AbrirIncidenciaCommand = new AsyncRelayCommand(AbrirOCerrarIncidencia, () => PuedeSugerir);
             EnviarSugerenciaCommand = new AsyncRelayCommand(EnviarSugerencia, () => PuedeSugerir && !string.IsNullOrWhiteSpace(TextoSugerencia) && !EnviandoSugerencia);
             PegarImagenSugerenciaCommand = new RelayCommand(() => PegarImagenSugerencia());
-            QuitarImagenSugerenciaCommand = new RelayCommand(() => ImagenSugerencia = null, () => ImagenSugerencia != null);
+            CapturasSugerencia.Cambiadas += (s, e) => OnPropertyChanged(nameof(TieneImagenSugerencia));
             BuscarCommand = new AsyncRelayCommand(Buscar, () => _servicio != null && !string.IsNullOrWhiteSpace(TextoBusqueda));
             CerrarBusquedaCommand = new RelayCommand(CerrarBusqueda);
         }
@@ -529,8 +529,8 @@ namespace ControlesUsuario.Dialogs
         }
 
         public string TextoAyudaFormulario => FormularioEsIncidencia
-            ? "¿Qué no funciona? Cuéntanos qué estabas haciendo y qué ha pasado (puedes pegar una captura con Ctrl+V):"
-            : "¿Qué echas en falta? Cuéntalo con tus palabras (puedes pegar una captura con Ctrl+V):";
+            ? "¿Qué no funciona? Cuéntenos qué estaba haciendo y qué ha pasado (puede pegar una o varias capturas con Ctrl+V):"
+            : "¿Qué echa en falta? Cuéntelo con sus palabras (puede pegar una o varias capturas con Ctrl+V):";
 
         public string TextoBotonEnviarFormulario => FormularioEsIncidencia ? "Enviar aviso" : "Enviar sugerencia";
 
@@ -568,20 +568,12 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
-        private byte[] _imagenSugerencia;
-        public byte[] ImagenSugerencia
-        {
-            get => _imagenSugerencia;
-            set
-            {
-                if (SetProperty(ref _imagenSugerencia, value))
-                {
-                    OnPropertyChanged(nameof(TieneImagenSugerencia));
-                    QuitarImagenSugerenciaCommand.NotifyCanExecuteChanged();
-                }
-            }
-        }
-        public bool TieneImagenSugerencia => ImagenSugerencia != null;
+        /// <summary>
+        /// Nesto#578 (sugerencia 900): las capturas pegadas en el cuadro de la sugerencia o del aviso (una o varias, cada
+        /// una con su «Quitar»).
+        /// </summary>
+        public CapturasPegadas CapturasSugerencia { get; } = new CapturasPegadas();
+        public bool TieneImagenSugerencia => CapturasSugerencia.HayCapturas;
 
         private bool _enviandoSugerencia;
         public bool EnviandoSugerencia
@@ -600,7 +592,6 @@ namespace ControlesUsuario.Dialogs
         public IAsyncRelayCommand AbrirIncidenciaCommand { get; }
         public IAsyncRelayCommand EnviarSugerenciaCommand { get; }
         public IRelayCommand PegarImagenSugerenciaCommand { get; }
-        public IRelayCommand QuitarImagenSugerenciaCommand { get; }
 
         /// <summary>«Sugerir una mejora»: lleva a Sugerencias y abre (o cierra) el cuadro.</summary>
         internal Task AbrirOCerrarSugerencia() => AbrirOCerrarFormulario(false);
@@ -628,8 +619,8 @@ namespace ControlesUsuario.Dialogs
             FormularioEsIncidencia = incidencia;
             FormularioSugerenciaAbierto = true;
             // Igual que al comentar: si hay una imagen copiada, se ofrece adjuntarla una vez por apertura.
-            if (ImagenSugerencia == null && _portapapeles != null && _portapapeles.HayImagen()
-                && _preguntar("Tienes una imagen copiada en el portapapeles. ¿Quieres adjuntarla a tu "
+            if (!CapturasSugerencia.HayCapturas && _portapapeles != null && _portapapeles.HayImagen()
+                && _preguntar("Tiene una imagen copiada en el portapapeles. ¿Quiere adjuntarla a su "
                     + (incidencia ? "aviso?" : "sugerencia?")))
             {
                 PegarImagenSugerencia();
@@ -640,20 +631,17 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
-        /// <summary>Mismo mecanismo que en los comentarios: true si lo copiado era una imagen (así Ctrl+V solo se «come» la tecla entonces).</summary>
+        /// <summary>
+        /// Mismo mecanismo que en los comentarios: true si lo copiado era una imagen (así Ctrl+V solo se «come» la tecla
+        /// entonces). Nesto#578: cada vez, una captura más.
+        /// </summary>
         internal bool PegarImagenSugerencia()
         {
             if (!CapturaPortapapeles.Leer(_portapapeles, out byte[] png, out string aviso))
             {
                 return false;
             }
-            if (png == null)
-            {
-                MensajeSugerencias = aviso;
-                return true;
-            }
-            ImagenSugerencia = png;
-            MensajeSugerencias = null;
+            MensajeSugerencias = png == null ? aviso : CapturasSugerencia.Anadir(png);
             return true;
         }
 
@@ -663,9 +651,9 @@ namespace ControlesUsuario.Dialogs
             {
                 return;
             }
-            if (ImagenSugerencia != null && ImagenSugerencia.Length > CapturaPortapapeles.TAMANO_MAXIMO_IMAGEN)
+            if (CapturasSugerencia.AlgunaDemasiadoGrande)
             {
-                MensajeSugerencias = "La imagen supera los 2 MB: quítala o haz un recorte más pequeño.";
+                MensajeSugerencias = "Alguna captura supera los 2 MB: quítela o haga un recorte más pequeño.";
                 return;
             }
             bool privada = SugerenciaPrivada && PuedeSerPrivada;
@@ -680,15 +668,15 @@ namespace ControlesUsuario.Dialogs
             MensajeSugerencias = null;
             try
             {
-                byte[] imagen = ImagenSugerencia;
+                IReadOnlyList<byte[]> capturas = CapturasSugerencia.ParaEnviar();
                 bool incidencia = FormularioEsIncidencia;
                 NovedadUsuario creada = incidencia
-                    ? await _servicio.AvisarAlgoNoFunciona(TextoSugerencia.Trim(), imagen, _pantalla)
+                    ? await _servicio.AvisarAlgoNoFunciona(TextoSugerencia.Trim(), capturas, _pantalla)
                     : privada
-                        ? await _servicio.SugerirPrivada(TextoSugerencia.Trim(), imagen)
-                        : await _servicio.Sugerir(TextoSugerencia.Trim(), imagen);
+                        ? await _servicio.SugerirPrivada(TextoSugerencia.Trim(), capturas)
+                        : await _servicio.Sugerir(TextoSugerencia.Trim(), capturas);
                 TextoSugerencia = null;
-                ImagenSugerencia = null;
+                CapturasSugerencia.Vaciar();
                 SugerenciaPrivada = false;
                 FormularioSugerenciaAbierto = false;
                 ListaDeIncidencias = incidencia;
@@ -708,10 +696,7 @@ namespace ControlesUsuario.Dialogs
                     // Arriba del todo: acaba de llegar y así se ve que ya está.
                     _sugerencias.Insert(0, item);
                 }
-                if (creada.TieneImagen && item.ImagenNovedad == null)
-                {
-                    item.ImagenNovedad = imagen;
-                }
+                item.MostrarCapturasEnviadas(capturas);
                 MostrarListaSugerencias();
                 Destacar(item);
                 MensajeSugerencias = incidencia

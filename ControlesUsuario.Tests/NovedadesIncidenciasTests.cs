@@ -90,14 +90,14 @@ namespace ControlesUsuario.Tests
 
             await vm.AbrirOCerrarIncidencia();
 
-            StringAssert.EndsWith(preguntas.Single(), "a tu aviso?");
+            StringAssert.EndsWith(preguntas.Single(), "a su aviso?");
             Assert.IsTrue(vm.TieneImagenSugerencia);
         }
 
         [TestMethod]
         public async Task EnviarAviso_MandaIncidenciaConLaPantallaYLaEnseñaArriba()
         {
-            A.CallTo(() => servicio.AvisarAlgoNoFunciona(A<string>._, A<byte[]>._, A<string>._))
+            A.CallTo(() => servicio.AvisarAlgoNoFunciona(A<string>._, A<IReadOnlyList<byte[]>>._, A<string>._))
                 .Returns(Task.FromResult(I(558, "Se queda colgado al guardar")));
             var vm = AbrirVm("PlantillaVenta");
             await vm.AbrirOCerrarIncidencia();
@@ -106,7 +106,7 @@ namespace ControlesUsuario.Tests
             await vm.EnviarSugerencia();
 
             A.CallTo(() => servicio.AvisarAlgoNoFunciona("Se queda colgado al guardar", null, "PlantillaVenta")).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).MustNotHaveHappened();
             Assert.AreEqual(558, vm.Novedades[0].Id);
             Assert.IsTrue(vm.Novedades[0].EsIncidencia);
             Assert.IsFalse(vm.FormularioSugerenciaAbierto);
@@ -116,7 +116,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task EnviarSugerencia_EnModoSugerencia_SigueSiendoSugerencia()
         {
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._))
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._))
                 .Returns(Task.FromResult(new NovedadUsuario { Id = 60, Titulo = "Duplicar", Categoria = "Nuevo" }));
             var vm = AbrirVm("PlantillaVenta");
             await vm.AbrirOCerrarSugerencia();
@@ -125,7 +125,7 @@ namespace ControlesUsuario.Tests
             await vm.EnviarSugerencia();
 
             A.CallTo(() => servicio.Sugerir("Duplicar", null)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicio.AvisarAlgoNoFunciona(A<string>._, A<byte[]>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.AvisarAlgoNoFunciona(A<string>._, A<IReadOnlyList<byte[]>>._, A<string>._)).MustNotHaveHappened();
         }
 
         [TestMethod]

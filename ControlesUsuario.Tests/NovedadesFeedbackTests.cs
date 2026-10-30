@@ -176,7 +176,7 @@ namespace ControlesUsuario.Tests
             var png = new byte[] { 9, 9 };
             A.CallTo(() => portapapeles.HayImagen()).Returns(true);
             A.CallTo(() => portapapeles.LeerImagenPng()).Returns(png);
-            A.CallTo(() => servicio.Comentar(7, "Va genial", png))
+            A.CallTo(() => servicio.Comentar(7, "Va genial", A<IReadOnlyList<byte[]>>.That.Matches(l => l.Count == 1 && l[0] == png)))
                 .Returns(Task.FromResult(new ComentarioNovedad { Id = 50, NovedadId = 7, NombreVisible = "Carlos", Texto = "Va genial", TieneImagen = true, EsMio = true }));
             var item = Item(ConFeedback(comentarios: 2));
             item.PegarImagen();
@@ -193,7 +193,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task Enviar_SiLaApiRechaza_SeMuestraSuMensajeYNoSePierdeElTexto()
         {
-            A.CallTo(() => servicio.Comentar(A<int>._, A<string>._, A<byte[]>._))
+            A.CallTo(() => servicio.Comentar(A<int>._, A<string>._, A<IReadOnlyList<byte[]>>._))
                 .Throws(new InvalidOperationException("No se pudo publicar el comentario: La imagen supera 2 MB"));
             var item = Item(ConFeedback());
             item.NuevoTexto = "Hola";
@@ -239,7 +239,7 @@ namespace ControlesUsuario.Tests
 
             A.CallTo(() => servicio.LeerImagenComentario(1)).MustHaveHappenedOnceExactly();
             A.CallTo(() => servicio.LeerImagenComentario(2)).MustNotHaveHappened();
-            Assert.IsNotNull(item.Comentarios.Single(c => c.Id == 1).Imagen);
+            Assert.IsNotNull(item.Comentarios.Single(c => c.Id == 1).Imagenes.Single().Imagen);
         }
 
         [TestMethod]
