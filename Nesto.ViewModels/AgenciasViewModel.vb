@@ -507,6 +507,8 @@ Public Class AgenciasViewModel
 
     Private Async Function ActualizarPedidoSeleccionado() As Task
         If Not IsNothing(pedidoSeleccionado) Then
+            ' Nesto#576: la propuesta del servidor se vuelve a pedir para el pedido que se acaba de elegir.
+            _propuestaEnvioTarea = Nothing
             Try
                 Dim cliente = _servicio.LeerPedidoParaAgencia(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número).Clientes
                 reembolso = Await _servicio.ImporteReembolso(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
@@ -4556,6 +4558,11 @@ Public Class AgenciasViewModel
     ' si el servidor falla o tarda, se queda la selección local. No pisa la selección si entretanto cambió
     ' el pedido (evita carreras al cambiar de pedido rápido).
     Private Async Sub AjustarAgenciaConServidor(empresa As String, pedidoNumero As Integer, codigoPostal As String, peso As Decimal, reembolso As Decimal, pais As String)
+        ' Nesto#576 (NestoAPI#750): la agencia la propone NestoAPI (GET EnviosAgencias/Propuesta), que sabe más que el
+        ' comparador (p. ej. que las rutas AT y 16 van por el reparto propio). Si no vale o no se puede leer, lo de antes.
+        If Await AplicarPropuestaDelServidorAsync(empresa, pedidoNumero, codigoPostal, peso, pais) Then
+            Return
+        End If
         Dim mensajeError As String = Nothing
         Try
             Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso, pais)
@@ -4583,6 +4590,87 @@ Public Class AgenciasViewModel
             Await RegistrarShadowEnElmah(mensajeError)
         End If
     End Sub
+
+    ' ===== Nesto#576 (NestoAPI#750): la agencia del envío la propone NestoAPI =====
+
+    ''' <summary>Lo que se enseña en la barra de mensajes si no se puede leer la propuesta del servidor.</summary>
+    Friend Const AVISO_SIN_PROPUESTA_SERVIDOR As String = "No se ha podido leer la agencia que propone NestoAPI: se ha elegido la más económica, como antes. Revise la agencia."
+
+    ' Una sola petición por pedido y peso: ConfigurarAgenciaPedido se llama varias veces seguidas al elegir un pedido.
+    Private _propuestaEnvioClave As String
+    Private _propuestaEnvioTarea As Task(Of PropuestaEnvioDto)
+
+    Private Function LeerPropuestaEnvioAsync(empresa As String, pedido As Integer, peso As Decimal) As Task(Of PropuestaEnvioDto)
+        Dim clave As String = $"{If(empresa, String.Empty).Trim}|{pedido}|{peso.ToString(Globalization.CultureInfo.InvariantCulture)}"
+        If _propuestaEnvioTarea Is Nothing OrElse _propuestaEnvioTarea.IsFaulted OrElse _propuestaEnvioTarea.IsCanceled OrElse clave <> _propuestaEnvioClave Then
+            _propuestaEnvioClave = clave
+            _propuestaEnvioTarea = _servicio.LeerPropuestaEnvio(empresa, pedido, peso)
+        End If
+        Return _propuestaEnvioTarea
+    End Function
+
+    ''' <summary>
+    ''' Nesto#576: la propuesta vale para la pantalla si es un envío NUEVO (los pendientes y las ampliaciones siguen como
+    ''' siempre), con agencia, y calculada para el mismo destino que hay en la pantalla (CP y país: si el usuario ha
+    ''' cambiado el CP, la API no lo sabe).
+    ''' </summary>
+    Friend Shared Function PropuestaValeParaLaPantalla(propuesta As PropuestaEnvioDto, codigoPostal As String, pais As String) As Boolean
+        If propuesta Is Nothing OrElse propuesta.Agencia <= 0 OrElse propuesta.Origen <> ContratoEnvioDesdePedido.ORIGEN_NUEVO Then
+            Return False
+        End If
+        If Not String.Equals(If(propuesta.CodPostal, String.Empty).Trim, If(codigoPostal, String.Empty).Trim, StringComparison.OrdinalIgnoreCase) Then
+            Return False
+        End If
+        Return String.IsNullOrWhiteSpace(propuesta.PaisIso) OrElse
+            String.Equals(propuesta.PaisIso.Trim, If(pais, String.Empty).Trim, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#576: pide la propuesta de envío a NestoAPI y, si vale para la pantalla, pone su agencia, su coste y, si la
+    ''' agencia cambia, su servicio y su horario. El usuario puede cambiarlos a mano después. True = ya está resuelto (o el
+    ''' pedido ha cambiado mientras contestaba); False = hay que elegir como antes (comparador). Si la API falla, se avisa en
+    ''' la barra de mensajes, queda en ELMAH y False.
+    ''' </summary>
+    Friend Async Function AplicarPropuestaDelServidorAsync(empresa As String, pedidoNumero As Integer, codigoPostal As String, peso As Decimal, pais As String) As Task(Of Boolean)
+        Dim propuesta As PropuestaEnvioDto = Nothing
+        Dim fallo As Exception = Nothing
+        Try
+            propuesta = Await LeerPropuestaEnvioAsync(empresa, pedidoNumero, peso)
+        Catch ex As Exception
+            fallo = ex
+        End Try
+        If fallo IsNot Nothing Then
+            mensajeError = AVISO_SIN_PROPUESTA_SERVIDOR
+            Await RegistrarErrorAgenciaEnElmah(fallo, "AgenciasViewModel.PropuestaEnvio")
+            Return False
+        End If
+        If mensajeError = AVISO_SIN_PROPUESTA_SERVIDOR Then
+            mensajeError = String.Empty
+        End If
+
+        ' Como con el comparador: si cambió el pedido o estamos en Pendientes, no se toca la pantalla.
+        If IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedidoNumero OrElse PestannaNombre = Pestannas.PENDIENTES Then
+            Return True
+        End If
+        If Not PropuestaValeParaLaPantalla(propuesta, codigoPostal, pais) OrElse IsNothing(listaAgencias) Then
+            Return False
+        End If
+        Dim empresaAgencia As String = If(String.IsNullOrWhiteSpace(propuesta.Empresa), empresa, propuesta.Empresa)
+        Dim agencia = listaAgencias.FirstOrDefault(Function(a) a.Numero = propuesta.Agencia AndAlso MismaEmpresa(a.Empresa, empresaAgencia))
+        If agencia Is Nothing Then
+            Return False
+        End If
+        CosteEnvio = propuesta.ImporteGasto
+        If IsNothing(agenciaSeleccionada) OrElse agenciaSeleccionada.Numero <> agencia.Numero Then
+            agenciaSeleccionada = agencia
+            ' Si la agencia no cambia, se quedan el servicio y el horario que hay (los defectos o lo elegido a mano).
+            Dim servicio = listaServicios?.FirstOrDefault(Function(s) s.ServicioId = propuesta.Servicio)
+            If servicio IsNot Nothing Then servicioActual = servicio
+            Dim horario = listaHorarios?.FirstOrDefault(Function(h) h.id = propuesta.Horario)
+            If horario IsNot Nothing Then horarioActual = horario
+        End If
+        Return True
+    End Function
 
     ' Nesto#448: registro en ELMAH de excepciones de Agencias que los Catch locales capturan
     ' (el gestor global no las ve porque nunca llegan a escapar). Best-effort: nunca lanza.

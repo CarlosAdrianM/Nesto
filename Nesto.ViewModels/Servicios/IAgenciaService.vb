@@ -117,6 +117,10 @@ Public Interface IAgenciaService
     ' enlaces de pago sin pagar y sale contra reembolso. Nothing si no hay aviso. Lo cobrado con enlaces ya va dentro de
     ' ImportePrepagosPendientes.
     Function AvisoEnlacePagoPendiente(empresa As String, pedido As Integer) As Task(Of String)
+    ' Nesto#576 (NestoAPI#750): la propuesta de envío del servidor (GET api/EnviosAgencias/Propuesta) con el peso de la
+    ' pantalla: Agencias lee de ella la agencia, el servicio y el horario del envío del pedido. Nothing si el pedido no existe
+    ' (404); lanza si el servidor no contesta bien (quien llama hace lo de antes).
+    Function LeerPropuestaEnvio(empresa As String, pedido As Integer, peso As Decimal) As Task(Of PropuestaEnvioDto)
     ' Nesto#568 (NestoAPI#734): el aviso entero de la propuesta (con su Accion): «ConsultaReembolsoAbierta» (Bloqueante) si hay
     ' una consulta abierta a Administración; si no, «EnlacePagoPendiente». Nothing si no hay ninguno.
     Function AvisoEnlacePagoPendienteDetalle(empresa As String, pedido As Integer) As Task(Of AvisoEnvioDesdePedidoDto)

@@ -112,6 +112,32 @@ Public Class PropuestaEnvioAvisosDto
     Public Property AvisosDetalle As New List(Of AvisoEnvioDesdePedidoDto)
 End Class
 
+''' <summary>
+''' Nesto#576 (NestoAPI#750): de GET api/EnviosAgencias/Propuesta (PropuestaEnvioDTO del servidor), lo que Agencias lee para
+''' elegir la agencia del envío de un pedido en vez de calcularla: agencia, servicio, horario y coste, y con qué destino y
+''' origen se ha calculado (para saber si vale para lo que hay en la pantalla).
+''' </summary>
+Public Class PropuestaEnvioDto
+    Inherits PropuestaEnvioAvisosDto
+
+    Public Property Empresa As String
+    Public Property Pedido As Integer
+    ''' <summary>AgenciasTransporte.Numero; 0 si ninguna agencia cubre el destino.</summary>
+    Public Property Agencia As Integer
+    Public Property AgenciaNombre As String
+    Public Property Servicio As Short
+    Public Property Horario As Short
+    Public Property Retorno As Short
+    Public Property Peso As Decimal
+    Public Property CodPostal As String
+    ''' <summary>País del destino en ISO 3166-1 alfa-2 (sale del CP: PT si es portugués).</summary>
+    Public Property PaisIso As String
+    ''' <summary>Coste de la agencia propuesta; 0 si no se puede calcular (el reparto propio no tiene).</summary>
+    Public Property ImporteGasto As Decimal
+    ''' <summary>«Nuevo», «PendienteReutilizado» o «Ampliacion» (<see cref="ContratoEnvioDesdePedido"/>).</summary>
+    Public Property Origen As String
+End Class
+
 ''' <summary>NestoAPI#595 (slice 2): los códigos y tipos del contrato con el servidor que Nesto necesita conocer.</summary>
 Public NotInheritable Class ContratoEnvioDesdePedido
     Public Const AVISO_SIN_PICKING As String = "SinPicking"
