@@ -2,6 +2,8 @@ using ControlesUsuario.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -266,6 +268,98 @@ namespace ControlesUsuario.Tests.Dialogs
         }
 
         // Deja que el Dispatcher procese lo pendiente (el Loaded de la ventana, los bindings).
+        // Nesto#575 (sugerencia 900): un diálogo «sin bloquear» se abre sin bloquear aunque se pida con ShowDialog,
+        // y solo hay uno: pedirlo otra vez trae al frente el que ya estaba.
+        private static Grid VistaSinBloquear(object vm)
+        {
+            var vista = new Grid { DataContext = vm };
+            DialogoNesto.SetSinBloquear(vista, true);
+            return vista;
+        }
+
+        [TestMethod]
+        public void SinBloquear_ShowDialogNoBloqueaYLaVentanaQuedaAbierta()
+        {
+            EjecutarEnSTA(() =>
+            {
+                var vm = new DialogoDePrueba();
+                var servicio = ServicioQueDevuelve(() => VistaSinBloquear(vm));
+                ResultadoDialogo recibido = null;
+
+                servicio.ShowDialog("MiDialogo", null, r => recibido = r); // si fuera modal, el test se quedaría aquí
+                Bombear();
+
+                Window ventana = VentanaAbiertaDe(vm);
+                Assert.IsNotNull(ventana);
+                Assert.IsTrue(ventana.IsVisible);
+                Assert.IsNull(recibido, "El resultado llega al cerrarla, no al abrirla");
+                Assert.IsTrue(servicio.TraerAlFrenteSiYaEstaAbierto("MiDialogo"));
+
+                ventana.Close();
+
+                Assert.AreEqual(ResultadoBoton.None, recibido.Result);
+                Assert.IsFalse(servicio.TraerAlFrenteSiYaEstaAbierto("MiDialogo"), "Al cerrarla deja de contar como abierta");
+            });
+        }
+
+        [TestMethod]
+        public void SinBloquear_PedirloOtraVez_NoAbreOtraYRestauraLaMinimizada()
+        {
+            EjecutarEnSTA(() =>
+            {
+                int vistasCreadas = 0;
+                var vm = new DialogoDePrueba();
+                var servicio = ServicioQueDevuelve(() => { vistasCreadas++; return VistaSinBloquear(vm); });
+                ResultadoDialogo primero = null, segundo = null;
+
+                servicio.ShowDialog("MiDialogo", new ParametrosDialogo { { "message", "uno" } }, r => primero = r);
+                Bombear();
+                Window ventana = VentanaAbiertaDe(vm);
+                ventana.WindowState = WindowState.Minimized;
+                Bombear();
+
+                servicio.ShowDialog("MiDialogo", new ParametrosDialogo { { "message", "dos" } }, r => segundo = r);
+                Bombear();
+
+                Assert.AreEqual(1, vistasCreadas, "No abre una segunda ventana");
+                Assert.AreEqual("uno", vm.Recibidos.GetValue<string>("message"), "La abierta sigue como estaba");
+                Assert.AreEqual(WindowState.Normal, ventana.WindowState, "Vuelve de minimizada");
+                Assert.AreEqual(ResultadoBoton.None, segundo?.Result, "Quien la pidió otra vez no se queda esperando");
+                Assert.IsNull(primero);
+
+                ventana.Close();
+                Assert.AreEqual(ResultadoBoton.None, primero?.Result);
+
+                servicio.Show("MiDialogo", null, null);
+                Bombear();
+                Assert.AreEqual(2, vistasCreadas, "Cerrada, la siguiente vez se abre una nueva");
+                VentanaAbiertaDe(vm).Close();
+            });
+        }
+
+        [TestMethod]
+        public void SinMarcar_ShowNoModal_SigueAbriendoUnaVentanaCadaVez()
+        {
+            EjecutarEnSTA(() =>
+            {
+                var vms = new List<DialogoDePrueba>();
+                var servicio = ServicioQueDevuelve(() => { var vm = new DialogoDePrueba(); vms.Add(vm); return new Grid { DataContext = vm }; });
+
+                servicio.Show("MiDialogo", null, null);
+                servicio.Show("MiDialogo", null, null);
+                Bombear();
+
+                Assert.AreEqual(2, vms.Count, "Los avisos normales no se juntan");
+                Assert.IsFalse(servicio.TraerAlFrenteSiYaEstaAbierto("MiDialogo"));
+                vms.ForEach(vm => VentanaAbiertaDe(vm)?.Close());
+            });
+        }
+
+        private static Window VentanaAbiertaDe(object vm)
+            => PresentationSource.CurrentSources.OfType<System.Windows.Interop.HwndSource>()
+                .Select(f => f.RootVisual as Window)
+                .FirstOrDefault(v => v != null && ReferenceEquals(v.DataContext, vm));
+
         private static void Bombear()
         {
             var marco = new DispatcherFrame();

@@ -2,7 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:ControlesUsuario.Dialogs"
+             local:DialogoNesto.SinBloquear="True"
              Background="White">
+    <!-- Nesto#575 (sugerencia 900): no bloquea Nesto. Se puede minimizar, ir a otra pantalla a hacer la captura
+         y volver desde su botón de la barra de tareas; si se pide abrirla otra vez, se trae al frente la que hay. -->
     <!-- Nesto#513: antes la vista tenía Width="620" fijo y la ventana (ajustada al contenido, con tope de 600)
          la cortaba por la derecha, igual que la barra de botones desde «Algo no funciona». Ahora la ventana nace
          con un tamaño cómodo, se puede agrandar o encoger (hasta un mínimo) y todo el contenido sigue su ancho. -->
@@ -14,6 +17,7 @@
             <Setter Property="Height" Value="700" />
             <Setter Property="MinWidth" Value="560" />
             <Setter Property="MinHeight" Value="420" />
+            <Setter Property="ShowInTaskbar" Value="True" />
         </Style>
     </local:DialogoNesto.EstiloVentana>
     <UserControl.Resources>
@@ -139,7 +143,7 @@
                                   Visibility="{Binding PuedeSerPrivada, Converter={StaticResource BoolAVisible}}" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Pegar imagen" Command="{Binding PegarImagenSugerenciaCommand}" Padding="8,2" Margin="0,0,6,0"
-                                ToolTip="Adjunta la imagen que tengas copiada (por ejemplo, un recorte de pantalla)" />
+                                ToolTip="Adjunta la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
                         <Button Content="{Binding TextoBotonEnviarFormulario}" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
                     </StackPanel>
                     </DockPanel>
@@ -362,7 +366,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <TextBlock Text="Tu comentario (puedes pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
+                                            <TextBlock Text="Su comentario (puede pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
                                             <TextBox Text="{Binding NuevoTexto, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="44" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                                                      PreviewKeyDown="CuadroComentario_PreviewKeyDown"
@@ -376,7 +380,7 @@
                                             </StackPanel>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
                                                 <Button Content="Pegar imagen" Command="{Binding PegarImagenCommand}" Padding="8,2" Margin="0,0,6,0"
-                                                        ToolTip="Adjunta la imagen que tengas copiada (por ejemplo, un recorte de pantalla)" />
+                                                        ToolTip="Adjunta la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
                                                 <Button Content="Enviar" Command="{Binding EnviarComentarioCommand}" Padding="12,2" />
                                             </StackPanel>
                                         </StackPanel>

@@ -1,5 +1,6 @@
 using Nesto.Infrastructure.Contracts;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -39,11 +40,67 @@ namespace ControlesUsuario.Dialogs
         }
 
         public override void ShowDialog(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
-            => PrepararVentana(name, parameters, callback).ShowDialog();
+            => Mostrar(name, parameters, callback, modal: true);
 
         // No modal: por contrato se puede llamar desde cualquier hilo (avisos de tareas en segundo plano).
         public override void Show(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
-            => ServicioDialogosEnHiloUi.EnHiloUi(() => PrepararVentana(name, parameters, callback).Show());
+            => ServicioDialogosEnHiloUi.EnHiloUi(() => Mostrar(name, parameters, callback, modal: false));
+
+        /// <summary>Nesto#575: las ventanas abiertas de los diálogos con <see cref="DialogoNesto.SinBloquearProperty"/>, por nombre.</summary>
+        private readonly Dictionary<string, VentanaDialogo> _abiertasSinBloquear = new Dictionary<string, VentanaDialogo>();
+
+        /// <summary>
+        /// Abre el diálogo modal o no según se pida, salvo que la vista diga <see cref="DialogoNesto.SinBloquearProperty"/>
+        /// (Nesto#575): entonces nunca bloquea y solo hay uno abierto; si ya lo estaba, se trae al frente.
+        /// </summary>
+        internal void Mostrar(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback, bool modal)
+        {
+            if (TraerAlFrenteSiYaEstaAbierto(name))
+            {
+                callback?.Invoke(new ResultadoDialogo(ResultadoBoton.None));
+                return;
+            }
+
+            VentanaDialogo ventana = PrepararVentana(name, parameters, callback);
+            if (ventana.Content is DependencyObject vista && DialogoNesto.GetSinBloquear(vista))
+            {
+                _abiertasSinBloquear[name] = ventana;
+                ventana.Closed += (s, e) =>
+                {
+                    if (_abiertasSinBloquear.TryGetValue(name, out VentanaDialogo abierta) && ReferenceEquals(abierta, ventana))
+                    {
+                        _abiertasSinBloquear.Remove(name);
+                    }
+                };
+                ventana.Show();
+            }
+            else if (modal)
+            {
+                ventana.ShowDialog();
+            }
+            else
+            {
+                ventana.Show();
+            }
+        }
+
+        /// <summary>
+        /// Nesto#575: si ya hay abierta una ventana «sin bloquear» con ese nombre, la restaura (si estaba minimizada)
+        /// y la activa. Devuelve si la había.
+        /// </summary>
+        internal bool TraerAlFrenteSiYaEstaAbierto(string name)
+        {
+            if (name == null || !_abiertasSinBloquear.TryGetValue(name, out VentanaDialogo abierta))
+            {
+                return false;
+            }
+            if (abierta.WindowState == WindowState.Minimized)
+            {
+                abierta.WindowState = WindowState.Normal;
+            }
+            abierta.Activate();
+            return true;
+        }
 
         /// <summary>Crea la ventana con el diálogo dentro, lista para enseñar (modal o no).</summary>
         internal VentanaDialogo PrepararVentana(string name, ParametrosDialogo parameters, Action<ResultadoDialogo> callback)
