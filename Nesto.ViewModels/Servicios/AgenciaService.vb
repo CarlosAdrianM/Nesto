@@ -1391,6 +1391,39 @@ Public Class AgenciaService
     End Function
 
     ''' <summary>
+    ''' Nesto#576 (NestoAPI#750): GET EnviosAgencias/Propuesta con el peso de la pantalla. Nothing con un 404 (el pedido no
+    ''' existe); cualquier otro fallo lanza con el código, para que Agencias siga con lo de antes.
+    ''' </summary>
+    Public Async Function LeerPropuestaEnvio(empresa As String, pedido As Integer, peso As Decimal) As Task(Of PropuestaEnvioDto) Implements IAgenciaService.LeerPropuestaEnvio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaPropuestaEnvio(empresa, pedido, peso))
+            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                Return Nothing
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se ha podido leer la propuesta de envío del pedido {pedido} ({CInt(response.StatusCode)})")
+            End If
+            Return PropuestaEnvioDeJson(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
+    ''' <summary>Nesto#576: la ruta de GET EnviosAgencias/Propuesta (el peso con punto decimal, sea cual sea la cultura).</summary>
+    Friend Shared Function RutaPropuestaEnvio(empresa As String, pedido As Integer, peso As Decimal) As String
+        Return $"EnviosAgencias/Propuesta?empresa={If(empresa, String.Empty).Trim}&pedido={pedido}&peso={peso.ToString(Globalization.CultureInfo.InvariantCulture)}"
+    End Function
+
+    ''' <summary>Nesto#576: el cuerpo de GET EnviosAgencias/Propuesta; Nothing si viene vacío.</summary>
+    Friend Shared Function PropuestaEnvioDeJson(cuerpo As String) As PropuestaEnvioDto
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Return JsonConvert.DeserializeObject(Of PropuestaEnvioDto)(cuerpo)
+    End Function
+
+    ''' <summary>
     ''' NestoAPI#686: GET PedidosVenta/AvisoReembolso, el aviso cuando el pedido es al contado con «Mantener junto» y le quedan
     ''' líneas pendientes (el envío sale sin reembolso). Más ligero que la propuesta entera, porque se pregunta en cada envío
     ''' sin reembolso. Nothing si no hay aviso.
