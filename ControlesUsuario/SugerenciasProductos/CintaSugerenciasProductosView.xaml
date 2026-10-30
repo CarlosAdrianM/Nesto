@@ -26,17 +26,26 @@
             TextElement.Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
             Visibility="{Binding HaySugerencias, Converter={StaticResource VisibleSiCinta}, FallbackValue=Collapsed}">
         <DockPanel LastChildFill="True">
-            <Button DockPanel.Dock="Top" HorizontalAlignment="Left" Padding="2,0" Margin="0,0,0,1"
-                    Background="Transparent" BorderThickness="0"
-                    Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
-                    Command="{Binding PlegarCommand}"
-                    ToolTip="Productos que puede ofrecer a este cliente. Pulse para plegar o desplegar (Alt+O); se recuerda para su usuario.">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding TextoPlegar}" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="💡" FontFamily="Segoe UI Emoji" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                    <AccessText Text="Puede _ofrecer:" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
+            <DockPanel DockPanel.Dock="Top" LastChildFill="True" Margin="0,0,0,1">
+                <Button DockPanel.Dock="Left" HorizontalAlignment="Left" Padding="2,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
+                        Command="{Binding PlegarCommand}"
+                        ToolTip="Productos que puede ofrecer a este cliente. Pulse para plegar o desplegar (Alt+O); se recuerda para su usuario.">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding TextoPlegar}" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="💡" FontFamily="Segoe UI Emoji" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                        <AccessText Text="Puede _ofrecer:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <!-- NestoAPI#751: a la derecha de la cabecera, lo que gana el vendedor marcando ✓/✗ (solo lo suyo; el texto lo
+                     monta la API). En la ayuda, la evolución por semanas. Si la API no lo manda, no sale. -->
+                <TextBlock x:Name="FraseResumen" Margin="8,0,2,0" FontSize="11" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Text="{Binding FraseResumen}" ToolTip="{Binding AyudaResumen}"
+                           ToolTipService.ShowDuration="30000"
+                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                           Visibility="{Binding HayResumen, Converter={StaticResource VisibleSiCinta}, FallbackValue=Collapsed}"/>
+            </DockPanel>
             <!-- Sugerencia 761: en columna (el rapport) las fichas tienen tope de alto (AlturaMaximaFichas) y se desplazan
                  dentro, para que no se coman el sitio de los comentarios. En fila (la plantilla) no cambia nada. -->
             <ItemsControl ItemsSource="{Binding Sugerencias}" Focusable="False"

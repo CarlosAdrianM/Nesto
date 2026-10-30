@@ -206,6 +206,19 @@ namespace Nesto.Infrastructure.Models
         public List<ProductoCarritoSugerenciaDTO> Productos { get; set; }
     }
 
+    /// <summary>
+    /// NestoAPI#751: el resumen personal del vendedor (GET api/SugerenciasProductos/MiResumen) para la cabecera de «Puede
+    /// ofrecer». Solo lo suyo; los textos los monta la API (los mismos en NestoApp). Aquí solo se usan la frase y la ayuda.
+    /// </summary>
+    public class ResumenSugerenciasVendedorDTO
+    {
+        public int? AceptadasDeCadaDiez { get; set; }
+        /// <summary>Una línea: «Esta semana: 3 productos añadidos desde las sugerencias, 120,00 € en ventas. Cuanto más marque...».</summary>
+        public string Frase { get; set; }
+        /// <summary>La evolución por semanas y para qué sirve marcar (va en la ayuda de la cabecera).</summary>
+        public string Ayuda { get; set; }
+    }
+
     /// <summary>Nesto#537: respuesta de .../Respuesta.</summary>
     public class ResultadoRespuestaSugerenciaProductoDTO
     {
