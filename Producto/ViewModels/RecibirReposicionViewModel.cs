@@ -118,9 +118,15 @@ namespace Nesto.Modules.Producto.ViewModels
         /// activos; los alternativos cuentan aunque no tenga principal, como en el servidor (CasadorEscaneos).
         /// </summary>
         internal bool TieneCodigo(string codigo)
+            => TieneCodigoBarras(codigo) || EsSuReferencia(codigo);
+
+        /// <summary>NestoAPI#762: lo leído es uno de sus códigos de barras (no la referencia).</summary>
+        internal bool TieneCodigoBarras(string codigo)
             => (!SinCodigo && string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase))
-               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
                || (CodigosBarras ?? new List<string>()).Any(c => string.Equals(c?.Trim(), codigo, StringComparison.OrdinalIgnoreCase));
+
+        internal bool EsSuReferencia(string codigo)
+            => string.Equals(Producto?.Trim(), codigo?.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -218,6 +224,13 @@ namespace Nesto.Modules.Producto.ViewModels
             ImprimirCommand = new AsyncRelayCommand(ImprimirAsync, () => Seleccionada != null && !EstaOcupado);
             ImprimirEtiquetaCommand = new AsyncRelayCommand<LineaRecibirReposicion>(ImprimirEtiquetaAsync,
                 l => l != null && !string.IsNullOrWhiteSpace(l.Producto) && !EstaOcupado);
+            // NestoAPI#762: recibir solo escaneando
+            SinEtiquetaCommand = new RelayCommand<LineaRecibirReposicion>(EmpezarSinEtiqueta,
+                l => l != null && !l.NoVenia && !string.IsNullOrWhiteSpace(l.Producto) && SoloEscaneando && PuedeLeerProductos && !EstaOcupado);
+            ApuntarSinEtiquetaCommand = new AsyncRelayCommand(ApuntarSinEtiquetaAsync, () => PuedeApuntarSinEtiqueta);
+            CancelarSinEtiquetaCommand = new RelayCommand(CancelarSinEtiqueta, () => LineaSinEtiqueta != null);
+            QuitarUnoCommand = new RelayCommand<LineaRecibirReposicion>(QuitarUno,
+                l => l != null && l.Leido > 0 && SoloEscaneando && PuedeLeerProductos && !EstaOcupado);
             // Sugerencia 545: la grid enseña las líneas filtradas; lo leído está en las líneas, así que filtrar no lo pierde
             var vista = new ListCollectionView(Lineas);
             vista.Filter = l => ((LineaRecibirReposicion)l).CasaConFiltro(Filtro);
@@ -321,6 +334,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     RecibirLoLeidoCommand.NotifyCanExecuteChanged();
                     ImprimirCommand.NotifyCanExecuteChanged();
                     ImprimirEtiquetaCommand.NotifyCanExecuteChanged();
+                    RefrescarSoloEscaneando();
                 }
             }
         }
@@ -420,6 +434,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 // Ariadna#51: lo ya leído (en este u otro equipo) y el IdRecepcion compartido. Null con una API anterior (404)
                 LecturasRecepcionReposicion enCurso = await _servicio.LeerLecturas(Empresa, Almacen, pendiente.Documento).ConfigureAwait(true);
                 SalirDelGrupo();
+                CerrarSinEtiqueta();
                 _recepcion = recepcion;
                 _lecturasEnServidor = enCurso != null && enCurso.IdRecepcion != Guid.Empty;
                 OnPropertyChanged(nameof(LecturasCompartidas));
@@ -543,6 +558,7 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(EsperandoEtiqueta));
             OnPropertyChanged(nameof(PuedeLeerProductos));
             OnPropertyChanged(nameof(TextoBultos));
+            RefrescarSoloEscaneando();
         }
 
         /// <summary>
@@ -636,6 +652,17 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
                 return;
             }
+            if (SoloEscaneando && !Lineas.Any(l => l.TieneCodigoBarras(codigo)))
+            {
+                // NestoAPI#762: la referencia tecleada elige la línea, pero no cuenta (solo cuenta lo escaneado)
+                LineaRecibirReposicion suya = Lineas.FirstOrDefault(l => !l.NoVenia && l.EsSuReferencia(codigo))
+                    ?? Lineas.FirstOrDefault(l => l.NoVenia && l.EsSuReferencia(codigo));
+                if (suya != null)
+                {
+                    ElegirLineaSinContar(suya);
+                    return;
+                }
+            }
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();
             if (candidatas.Count > 1)
             {
@@ -652,8 +679,10 @@ namespace Nesto.Modules.Producto.ViewModels
             LecturaProductoEnCurso = LeerCodigoQueNoEstaAsync(codigo);
         }
 
-        private static string TextoCodigoCompartido(string codigo)
-            => $"El código {codigo} lo comparten varios productos: escriba la cantidad en la columna «Leído» del que es.";
+        private string TextoCodigoCompartido(string codigo)
+            => SoloEscaneando
+                ? $"El código {codigo} lo comparten varios productos: apunte la unidad con «Sin etiqueta» en la línea del que es (motivo «Otro»)."
+                : $"El código {codigo} lo comparten varios productos: escriba la cantidad en la columna «Leído» del que es.";
 
         /// <summary>La búsqueda en la API del último código que no estaba en la reposición (los tests la esperan).</summary>
         internal Task LecturaProductoEnCurso { get; private set; } = Task.CompletedTask;
@@ -702,6 +731,12 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             string referencia = distintos[0].Producto.Trim();
+            if (SoloEscaneando && string.Equals(referencia, codigo, StringComparison.OrdinalIgnoreCase))
+            {
+                // NestoAPI#762: es una referencia tecleada, no una lectura: no cuenta
+                LecturaFallida(TextoNoVieneSoloEscaneando(referencia));
+                return;
+            }
             // Se busca otra vez: mientras se preguntaba, otra lectura del mismo producto ha podido apuntarlo
             LineaRecibirReposicion linea = Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase))
                 ?? Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase));
@@ -736,8 +771,20 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida(TextoLeaEtiqueta(DocumentoAbierto));
                 return;
             }
-            SumarUnaUnidad(Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)),
-                referencia, nombre);
+            LineaRecibirReposicion suya = Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase));
+            if (SoloEscaneando)
+            {
+                // NestoAPI#762: elegir el producto en la lista lleva a su línea, pero no cuenta
+                LineaRecibirReposicion apuntada = suya ?? Lineas.FirstOrDefault(l => l.NoVenia && l.EsSuReferencia(referencia));
+                if (apuntada == null)
+                {
+                    LecturaFallida(TextoNoVieneSoloEscaneando(referencia));
+                    return;
+                }
+                ElegirLineaSinContar(apuntada);
+                return;
+            }
+            SumarUnaUnidad(suya, referencia, nombre);
         }
 
         /// <summary>
@@ -826,6 +873,7 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         private void AlCambiarLeido(LineaRecibirReposicion linea, int diferencia)
         {
+            QuitarUnoCommand?.NotifyCanExecuteChanged();
             if (!_lecturasEnServidor || _pintando || diferencia == 0 || Seleccionada == null || string.IsNullOrWhiteSpace(linea?.Producto))
             {
                 return;
@@ -1167,6 +1215,239 @@ namespace Nesto.Modules.Producto.ViewModels
             }).ConfigureAwait(true);
         }
 
+        // ---------------------------------------------------------------- NestoAPI#762: recibir solo escaneando
+
+        /// <summary>
+        /// NestoAPI#762 (Carlos, 30/10/26, sugerencia 909): la reposición abierta se recibe solo escaneando. «Leído» no se
+        /// teclea (la referencia tecleada solo elige la línea); lo que llegue sin etiqueta se apunta unidad a unidad con
+        /// «Sin etiqueta» y su motivo, y lo leído por error se quita con «−1». False con una API anterior: como siempre.
+        /// </summary>
+        public bool SoloEscaneando => Seleccionada != null && _recepcion?.SoloEscaneando == true;
+
+        /// <summary>La columna «Leído» no se puede teclear: falta la etiqueta del bulto o se recibe solo escaneando.</summary>
+        public bool LeidoSoloLectura => EsperandoEtiqueta || SoloEscaneando;
+
+        private LineaRecibirReposicion _lineaElegida;
+        /// <summary>La línea seleccionada en la rejilla (la que se elige tecleando su referencia).</summary>
+        public LineaRecibirReposicion LineaElegida { get => _lineaElegida; set => SetProperty(ref _lineaElegida, value); }
+
+        /// <summary>«Sin etiqueta» en la línea: pregunta el motivo (debajo de la rejilla) y, si la API lo apunta, cuenta una unidad.</summary>
+        public IRelayCommand<LineaRecibirReposicion> SinEtiquetaCommand { get; }
+        public IAsyncRelayCommand ApuntarSinEtiquetaCommand { get; }
+        public IRelayCommand CancelarSinEtiquetaCommand { get; }
+        /// <summary>«−1»: quita una unidad leída por error (con «Leído» de solo lectura no hay otra forma).</summary>
+        public IRelayCommand<LineaRecibirReposicion> QuitarUnoCommand { get; }
+
+        private LineaRecibirReposicion _lineaSinEtiqueta;
+        /// <summary>La línea a la que se le está apuntando una unidad sin etiqueta. Null: no se está preguntando el motivo.</summary>
+        public LineaRecibirReposicion LineaSinEtiqueta
+        {
+            get => _lineaSinEtiqueta;
+            private set
+            {
+                if (SetProperty(ref _lineaSinEtiqueta, value))
+                {
+                    OnPropertyChanged(nameof(PreguntandoSinEtiqueta));
+                    OnPropertyChanged(nameof(TextoPreguntaSinEtiqueta));
+                    RefrescarPreguntaSinEtiqueta();
+                }
+            }
+        }
+
+        public bool PreguntandoSinEtiqueta => LineaSinEtiqueta != null;
+
+        public string TextoPreguntaSinEtiqueta => LineaSinEtiqueta == null
+            ? null
+            : $"Una unidad sin etiqueta de {LineaSinEtiqueta.Producto} {LineaSinEtiqueta.Descripcion}".TrimEnd() + ". ¿Por qué?";
+
+        private string _motivoSinEtiqueta;
+        /// <summary>
+        /// <see cref="PeticionSinEtiquetaRecepcion.MOTIVO_NO_LLEVA"/>, <see cref="PeticionSinEtiquetaRecepcion.MOTIVO_NO_SE_LEE"/>
+        /// u <see cref="PeticionSinEtiquetaRecepcion.MOTIVO_OTRO"/>. Null: sin elegir.
+        /// </summary>
+        public string MotivoSinEtiqueta
+        {
+            get => _motivoSinEtiqueta;
+            set
+            {
+                if (SetProperty(ref _motivoSinEtiqueta, value))
+                {
+                    OnPropertyChanged(nameof(MotivoNoLleva));
+                    OnPropertyChanged(nameof(MotivoNoSeLee));
+                    OnPropertyChanged(nameof(MotivoOtro));
+                    RefrescarPreguntaSinEtiqueta();
+                }
+            }
+        }
+
+        // Para los botones de opción de la vista
+        public bool MotivoNoLleva
+        {
+            get => MotivoSinEtiqueta == PeticionSinEtiquetaRecepcion.MOTIVO_NO_LLEVA;
+            set { if (value) { MotivoSinEtiqueta = PeticionSinEtiquetaRecepcion.MOTIVO_NO_LLEVA; } }
+        }
+
+        public bool MotivoNoSeLee
+        {
+            get => MotivoSinEtiqueta == PeticionSinEtiquetaRecepcion.MOTIVO_NO_SE_LEE;
+            set { if (value) { MotivoSinEtiqueta = PeticionSinEtiquetaRecepcion.MOTIVO_NO_SE_LEE; } }
+        }
+
+        public bool MotivoOtro
+        {
+            get => MotivoSinEtiqueta == PeticionSinEtiquetaRecepcion.MOTIVO_OTRO;
+            set { if (value) { MotivoSinEtiqueta = PeticionSinEtiquetaRecepcion.MOTIVO_OTRO; } }
+        }
+
+        private string _comentarioSinEtiqueta;
+        /// <summary>Obligatorio con el motivo «Otro».</summary>
+        public string ComentarioSinEtiqueta
+        {
+            get => _comentarioSinEtiqueta;
+            set
+            {
+                if (SetProperty(ref _comentarioSinEtiqueta, value))
+                {
+                    RefrescarPreguntaSinEtiqueta();
+                }
+            }
+        }
+
+        /// <summary>Se puede apuntar: hay motivo y, si es «Otro», comentario.</summary>
+        public bool PuedeApuntarSinEtiqueta => LineaSinEtiqueta != null && !EstaOcupado && !string.IsNullOrEmpty(MotivoSinEtiqueta)
+            && (MotivoSinEtiqueta != PeticionSinEtiquetaRecepcion.MOTIVO_OTRO || !string.IsNullOrWhiteSpace(ComentarioSinEtiqueta));
+
+        internal const string TEXTO_SIN_ETIQUETA_SIN_CONEXION = "No se ha podido apuntar la unidad sin etiqueta: no se puede conectar con el servidor. " +
+            "No se ha contado. Vuelva a intentarlo.";
+
+        internal static string TextoNoVieneSoloEscaneando(string referencia)
+            => $"{referencia} no viene en esta reposición. Con esta reposición solo cuenta lo escaneado: lea su código de barras.";
+
+        internal static string TextoReferenciaNoCuenta(string producto)
+            => $"{producto}: con esta reposición solo cuenta lo escaneado. Lea su código de barras o, si no lleva etiqueta, " +
+               "pulse «Sin etiqueta» en su línea.";
+
+        private void RefrescarSoloEscaneando()
+        {
+            OnPropertyChanged(nameof(SoloEscaneando));
+            OnPropertyChanged(nameof(LeidoSoloLectura));
+            SinEtiquetaCommand?.NotifyCanExecuteChanged();
+            QuitarUnoCommand?.NotifyCanExecuteChanged();
+            RefrescarPreguntaSinEtiqueta();
+        }
+
+        private void RefrescarPreguntaSinEtiqueta()
+        {
+            OnPropertyChanged(nameof(PuedeApuntarSinEtiqueta));
+            ApuntarSinEtiquetaCommand?.NotifyCanExecuteChanged();
+            CancelarSinEtiquetaCommand?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>La referencia tecleada (o elegida en la lista) lleva a su línea sin contar nada.</summary>
+        private void ElegirLineaSinContar(LineaRecibirReposicion linea)
+        {
+            LineaElegida = linea;
+            LecturaFallida(TextoReferenciaNoCuenta(linea.Producto));
+        }
+
+        private void EmpezarSinEtiqueta(LineaRecibirReposicion linea)
+        {
+            if (linea == null || !SoloEscaneando || linea.NoVenia)
+            {
+                return;
+            }
+            LineaElegida = linea;
+            MotivoSinEtiqueta = null;
+            ComentarioSinEtiqueta = null;
+            LineaSinEtiqueta = linea;
+            Mensaje = null;
+        }
+
+        private void CancelarSinEtiqueta()
+        {
+            CerrarSinEtiqueta();
+            PedirFocoEnLector?.Invoke();
+        }
+
+        private void CerrarSinEtiqueta()
+        {
+            LineaSinEtiqueta = null;
+            MotivoSinEtiqueta = null;
+            ComentarioSinEtiqueta = null;
+        }
+
+        /// <summary>
+        /// NestoAPI#762: avisa a la API de la unidad sin etiqueta (ella avisa al origen y a Compras) y, solo si contesta bien,
+        /// la cuenta como una lectura del lector (también en lo leído compartido del servidor). Si no, no cuenta y se dice por qué.
+        /// </summary>
+        internal async Task ApuntarSinEtiquetaAsync()
+        {
+            LineaRecibirReposicion linea = LineaSinEtiqueta;
+            RecepcionPendiente abierta = Seleccionada;
+            if (linea == null || abierta == null || !PuedeApuntarSinEtiqueta)
+            {
+                return;
+            }
+            bool otro = MotivoSinEtiqueta == PeticionSinEtiquetaRecepcion.MOTIVO_OTRO;
+            var peticion = new PeticionSinEtiquetaRecepcion
+            {
+                Producto = linea.Producto?.Trim(),
+                Motivo = MotivoSinEtiqueta,
+                Comentario = otro ? ComentarioSinEtiqueta?.Trim() : null,
+                Unidades = 1,
+                Dispositivo = Environment.MachineName
+            };
+            ResultadoSinEtiquetaRecepcion resultado = null;
+            string error = null;
+            EstaOcupado = true;
+            try
+            {
+                resultado = await _servicio.ApuntarSinEtiqueta(Empresa, Almacen, abierta.Documento, peticion).ConfigureAwait(true);
+            }
+            catch (RecepcionReposicionException ex)
+            {
+                error = ex.Message;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+            {
+                error = TEXTO_SIN_ETIQUETA_SIN_CONEXION;
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            if (Seleccionada != abierta)
+            {
+                // Mientras se apuntaba se ha cerrado o cambiado de reposición
+                return;
+            }
+            if (error != null)
+            {
+                // La pregunta se queda abierta para volver a intentarlo
+                LecturaFallida(error);
+                return;
+            }
+            CerrarSinEtiqueta();
+            SumarUnaUnidad(linea, linea.Producto, null);
+            string apuntada = string.IsNullOrWhiteSpace(resultado?.Mensaje)
+                ? $"Apuntada 1 unidad sin etiqueta de {linea.Producto}."
+                : resultado.Mensaje.Trim();
+            Mensaje = string.IsNullOrWhiteSpace(Mensaje) ? apuntada : $"{apuntada} {Mensaje}";
+        }
+
+        /// <summary>«−1»: quita una unidad leída por error (también de lo leído compartido del servidor).</summary>
+        private void QuitarUno(LineaRecibirReposicion linea)
+        {
+            if (linea == null || linea.Leido <= 0 || !SoloEscaneando)
+            {
+                return;
+            }
+            linea.Leido--;
+            LineaElegida = linea;
+            Mensaje = $"Quitada 1 unidad de {linea.Producto}: leídas {linea.Leido}.";
+            PedirFocoEnLector?.Invoke();
+        }
+
         // ---------------------------------------------------------------- Nesto#534 (NestoAPI#654): etiqueta de producto
 
         /// <summary>
@@ -1266,6 +1547,7 @@ namespace Nesto.Modules.Producto.ViewModels
             TextoOtrosEquipos = null;
             Seleccionada = null;
             _recepcion = null;
+            CerrarSinEtiqueta();
             Lineas.Clear();
             CodigosBulto.Clear();
             RefrescarBultos();
@@ -1324,7 +1606,7 @@ namespace Nesto.Modules.Producto.ViewModels
             if (noVenian.Count > 0)
             {
                 LecturaFallida($"Para dar de alta solo lo leído, todo tiene que venir en la reposición: {string.Join(", ", noVenian)} no venía. " +
-                    "Ponga su «Leído» a 0 o termine la reposición entera.");
+                    (SoloEscaneando ? "Quítelo con «−1» o termine la reposición entera." : "Ponga su «Leído» a 0 o termine la reposición entera."));
                 return;
             }
             List<LineaRecibirReposicion> sobran = Lineas.Where(l => !l.NoVenia && l.Leido > l.Enviado).ToList();

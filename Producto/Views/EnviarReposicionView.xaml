@@ -156,6 +156,11 @@
                             <Setter Property="Opacity" Value="0.45" />
                             <Setter Property="ToolTip" Value="No se manda: se borrará al terminar" />
                         </DataTrigger>
+                        <!-- NestoAPI#762: sin código de barras y sin etiquetas: en negrita (sin colores fijos) -->
+                        <DataTrigger Binding="{Binding FaltanEtiquetas}" Value="True">
+                            <Setter Property="FontWeight" Value="Bold" />
+                            <Setter Property="ToolTip" Value="Este producto no tiene código de barras: imprima sus etiquetas y péguelas en cada unidad antes de enviar (en Algete solo se recibe escaneando)" />
+                        </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
@@ -174,6 +179,21 @@
                 <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
                 <DataGridTextColumn x:Name="colCantidad" Header="Cantidad" Binding="{Binding Cantidad}" />
                 <DataGridTextColumn Header="Stock en la tienda" Binding="{Binding StockOrigen}" IsReadOnly="True" />
+                <!-- NestoAPI#762: el origen etiqueta lo que no tiene código de barras (EAN-13; si no tiene, el interno 290…) -->
+                <DataGridTextColumn Header="Etiquetas" Binding="{Binding CopiasEtiqueta}" />
+                <DataGridTemplateColumn Header="">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Imprimir etiquetas" Padding="8,0" Margin="2,1" Focusable="False"
+                                        Command="{Binding DataContext.ImprimirEtiquetasLineaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Imprime en su impresora de etiquetas las etiquetas de código de barras del producto (las de la columna «Etiquetas»; por defecto, una por unidad). Si no tiene código, se le da uno interno" />
+                                <TextBlock Text="{Binding AvisoEtiquetas}" VerticalAlignment="Center" Margin="8,0,4,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
 
@@ -184,6 +204,12 @@
             </TextBlock>
             <Button Content="Terminar y mandar a Algete" Command="{Binding TerminarCommand}" Padding="16,2" Margin="16,0,0,0"
                     ToolTip="Se pone número de traspaso, sale de la tienda y queda pendiente de recibir en Algete" />
+            <!-- NestoAPI#762: lo que no tiene código de barras se etiqueta aquí, en el origen (sin colores fijos) -->
+            <Button Content="Imprimir etiquetas de lo que no tiene código" Command="{Binding ImprimirEtiquetasSinCodigoCommand}" Padding="12,2" Margin="16,0,0,0"
+                    Visibility="{Binding HayLineasSinEtiquetas, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="Imprime de una vez las etiquetas de todos los productos sin código de barras (por defecto, una por unidad que se manda)" />
+            <TextBlock Text="{Binding AvisoSinCodigo}" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" TextWrapping="Wrap" MaxWidth="420"
+                       Visibility="{Binding HayLineasSinEtiquetas, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
 
         <StackPanel Grid.Row="4">
