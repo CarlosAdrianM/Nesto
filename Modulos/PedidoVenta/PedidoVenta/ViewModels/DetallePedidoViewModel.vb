@@ -2187,6 +2187,10 @@ Public Class DetallePedidoViewModel
         For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
             dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
         Next
+        ' Nesto#588 (NestoAPI#764): va por nuestra ruta y el cliente cierra justo su día de reparto
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = "ClienteCierraDiaReparto")
+            dialogService.ShowNotification("Día de reparto", aviso.Mensaje)
+        Next
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "ReembolsoEnvioSinAjustar")
             Dim envioNumero As Integer? = aviso.Datos?("Envio")?.ToObject(Of Integer)()
             Dim comision As Decimal? = aviso.Datos?("ComisionQuitada")?.ToObject(Of Decimal)()

@@ -219,6 +219,21 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' Nesto#588 (NestoAPI#764): la fecha mínima de la API, con el código postal de entrega (día de reparto de la ruta interna).
+    Public Async Function CalcularFechaEntregaAjustada(fecha As Date, ruta As String, almacen As String, codigoPostal As String) As Task(Of Date) Implements IPedidoVentaService.CalcularFechaEntregaAjustada
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url As String = $"PedidosVenta/FechaAjustada?fecha={fecha:yyyy-MM-ddTHH:mm:ss}" &
+                "&ruta=" & Uri.EscapeDataString(If(ruta?.Trim(), String.Empty)) &
+                "&almacen=" & Uri.EscapeDataString(If(almacen?.Trim(), String.Empty)) &
+                "&codigoPostal=" & Uri.EscapeDataString(If(codigoPostal?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception("Se ha producido un error al calcular la fecha de entrega")
+            End If
+            Return JsonConvert.DeserializeObject(Of Date)(Await response.Content.ReadAsStringAsync())
+        End Using
+    End Function
+
     ' Nesto#562 (NestoAPI#723): la marca solo viene en la ficha (GET Clientes con empresa y cliente; sin contacto, el principal).
     Public Async Function LeerSuPedidoObligatorio(empresa As String, cliente As String) As Task(Of Boolean) Implements IPedidoVentaService.LeerSuPedidoObligatorio
         If String.IsNullOrWhiteSpace(cliente) Then
