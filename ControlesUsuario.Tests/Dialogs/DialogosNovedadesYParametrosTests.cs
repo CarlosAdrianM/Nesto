@@ -154,6 +154,9 @@ namespace ControlesUsuario.Tests.Dialogs
                 Assert.AreEqual("Novedades de Nesto", ventana.Title);
                 Assert.AreEqual(760d, ventana.Width, "Manda el estilo de ventana de la vista");
                 Assert.AreEqual(ResizeMode.CanResize, ventana.ResizeMode);
+                // Nesto#575 (sugerencia 900): se puede minimizar y volver desde la barra de tareas sin bloquear Nesto
+                Assert.IsTrue(DialogoNesto.GetSinBloquear((DependencyObject)ventana.Content));
+                Assert.IsTrue(ventana.ShowInTaskbar);
                 Assert.AreEqual(1, vm.Novedades.Count);
 
                 vm.CloseDialogCommand.Execute(null);
