@@ -1,4 +1,4 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -40,13 +40,14 @@ namespace PedidoVentaTests
             => A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(respuesta);
 
         [TestMethod]
-        public void Abre_ConLaFechaDeCorteEnElUltimoDiaDelMesAnterior()
+        public void Abre_ConLaFechaDeCorteDeHoy_EntranTodosLosAlbaranes()
         {
             var vm = Crear();
 
-            Assert.AreEqual(FacturarFinDeMesDialogViewModel.UltimoDiaDelMesAnterior(DateTime.Today), vm.FechaCorte);
-            Assert.AreEqual(new DateTime(2026, 9, 30), FacturarFinDeMesDialogViewModel.UltimoDiaDelMesAnterior(new DateTime(2026, 10, 28)));
-            Assert.AreEqual(new DateTime(2025, 12, 31), FacturarFinDeMesDialogViewModel.UltimoDiaDelMesAnterior(new DateTime(2026, 1, 1)));
+            // Carlos 30/10/26: no hay fecha de corte que elegir (no puede haber albaranes con fecha futura): entran todos, hasta hoy
+            Assert.AreEqual(DateTime.Today, vm.FechaCorte);
+            Assert.AreEqual(new DateTime(2026, 10, 30), FacturarFinDeMesDialogViewModel.FechaCortePorDefecto(new DateTime(2026, 10, 30, 13, 45, 0)));
+            StringAssert.Contains(vm.TextoConfirmacion(), "todos los albaranes de fin de mes de todos los clientes");
             Assert.AreEqual("Facturar fin de mes", vm.Title);
         }
 
@@ -63,16 +64,15 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void Confirmacion_DiceFechaYClientesYQueLosPOnoEntran()
+        public void Confirmacion_DiceClientesYQueLosPOnoEntran()
         {
             var vm = Crear();
-            vm.FechaCorte = new DateTime(2026, 9, 30);
 
-            Assert.AreEqual("Se van a reunir y facturar los albaranes de fin de mes hasta el 30/09/2026 de todos los clientes. " +
+            Assert.AreEqual("Se van a reunir y facturar todos los albaranes de fin de mes de todos los clientes. " +
                 "Los pedidos con P.O. no entran: se facturan por P.O. cuando están completos. ¿Continúa?", vm.TextoConfirmacion());
 
             vm.Cliente = " 15191 ";
-            StringAssert.Contains(vm.TextoConfirmacion(), "hasta el 30/09/2026 de el cliente 15191.");
+            StringAssert.Contains(vm.TextoConfirmacion(), "todos los albaranes de fin de mes del cliente 15191.");
         }
 
         [TestMethod]

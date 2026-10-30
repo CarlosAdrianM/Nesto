@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Globalization
 Imports CommunityToolkit.Mvvm.Input
 Imports ControlesUsuario.Dialogs
@@ -27,7 +27,7 @@ Public Class FacturarFinDeMesDialogViewModel
 
         Title = TITULO
         PuedeFacturarFinDeMes = TienePermiso(configuracion)
-        _fechaCorte = UltimoDiaDelMesAnterior(Date.Today)
+        _fechaCorte = FechaCortePorDefecto(Date.Today)
 
         Facturas = New ObservableCollection(Of FacturaFinDeMesDTO)()
         Saltados = New ObservableCollection(Of ClienteFinDeMesSaltadoDTO)()
@@ -47,9 +47,13 @@ Public Class FacturarFinDeMesDialogViewModel
             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
     End Function
 
-    ''' <summary>La fecha de corte por defecto (la misma que pone la API si no se le manda ninguna).</summary>
-    Public Shared Function UltimoDiaDelMesAnterior(hoy As Date) As Date
-        Return New Date(hoy.Year, hoy.Month, 1).AddDays(-1)
+    ''' <summary>
+    ''' La fecha de corte por defecto: hoy (la misma que pone la API si no se le manda ninguna). El fin de mes se hace el
+    ''' último día laborable del mes, así que hoy es el final del mes en curso (Carlos, 30/10/26: antes se proponía el
+    ''' último día del mes ANTERIOR y había que cambiarlo a mano).
+    ''' </summary>
+    Public Shared Function FechaCortePorDefecto(hoy As Date) As Date
+        Return hoy.Date
     End Function
 
     Public Overrides Function CanCloseDialog() As Boolean
@@ -172,9 +176,9 @@ Public Class FacturarFinDeMesDialogViewModel
     ''' <summary>El texto de la confirmación previa.</summary>
     Public Function TextoConfirmacion() As String
         Dim quien As String = If(HayCliente,
-            $"el cliente {Cliente.Trim()}" & If(String.IsNullOrWhiteSpace(Contacto), String.Empty, $" (contacto {Contacto.Trim()})"),
-            "todos los clientes")
-        Return $"Se van a reunir y facturar los albaranes de fin de mes hasta el {FechaCorte.Value:dd/MM/yyyy} de {quien}. " &
+            $"del cliente {Cliente.Trim()}" & If(String.IsNullOrWhiteSpace(Contacto), String.Empty, $" (contacto {Contacto.Trim()})"),
+            "de todos los clientes")
+        Return $"Se van a reunir y facturar todos los albaranes de fin de mes {quien}. " &
             "Los pedidos con P.O. no entran: se facturan por P.O. cuando están completos. ¿Continúa?"
     End Function
 
