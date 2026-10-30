@@ -334,7 +334,7 @@ Public Class FacturarRutasPopupViewModel
         End If
 
         If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
-            Dim unused1 = sb.AppendLine($"ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â ⚠ Errores: {response.PedidosConErrores.Count}")
+            Dim unused1 = sb.AppendLine($"⚠ Errores: {response.PedidosConErrores.Count}")
             ColorMensaje = Brushes.Orange
         Else
             ColorMensaje = Brushes.Green
