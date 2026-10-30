@@ -25,7 +25,7 @@ namespace ControlesUsuario.Dialogs
         internal const int INDICE_SUGERENCIAS = -1;
         internal const string TITULO_SUGERENCIAS = "Sugerencias pendientes";
         internal const string TITULO_INCIDENCIAS = "Avisos de cosas que no funcionan";
-        internal const string MENSAJE_SIN_SUGERENCIAS = "Todavía no hay sugerencias pendientes. ¿Echas algo en falta? Cuéntanoslo con «Sugerir una mejora».";
+        internal const string MENSAJE_SIN_SUGERENCIAS = "Todavía no hay sugerencias pendientes. ¿Echa algo en falta? Cuéntenoslo con «Sugerir una mejora».";
         internal const string MENSAJE_SIN_INCIDENCIAS = "No hay avisos pendientes de cosas que no funcionan. Si algo no va bien, cuéntanoslo con «Algo no funciona».";
 
         // NestoAPI#520: feedback de los usuarios (votos y comentarios). Sin servicio (tests antiguos) o si la
@@ -477,8 +477,8 @@ namespace ControlesUsuario.Dialogs
         }
 
         public string TextoCabeceraSugerencias => ListaDeIncidencias
-            ? "Avisos de los usuarios de cosas que no funcionan y aún no están arregladas. Vota las que te pasen a ti también y coméntalas; las más votadas salen arriba."
-            : "Ideas de los usuarios que aún no están hechas. Vota las que te interesen y coméntalas; las más votadas salen arriba.";
+            ? "Avisos de los usuarios de cosas que no funcionan y aún no están arregladas. Vote las que también le pasen a usted y coméntelas; las más votadas salen arriba."
+            : "Ideas de los usuarios que aún no están hechas. Vote las que le interesen y coméntelas; las más votadas salen arriba.";
 
         private string _mensajeListaVacia;
         /// <summary>Lista del modo vacía (ya cargada): qué decir según sea de sugerencias o de avisos.</summary>
@@ -700,7 +700,7 @@ namespace ControlesUsuario.Dialogs
                 MostrarListaSugerencias();
                 Destacar(item);
                 MensajeSugerencias = incidencia
-                    ? "¡Gracias por avisar! Lo revisaremos y te diremos en qué versión queda arreglado."
+                    ? "¡Gracias por avisar! Lo revisaremos y le diremos en qué versión queda arreglado."
                     : privada
                         // Nesto#532: una API que aún no conoce las privadas ignora la casilla y la crea pública
                         ? (creada.Privada ? MENSAJE_PRIVADA_ENVIADA : MENSAJE_PRIVADA_NO_ADMITIDA)

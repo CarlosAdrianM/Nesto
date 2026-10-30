@@ -773,7 +773,7 @@ namespace ControlesUsuario.Dialogs
             {
                 return;
             }
-            if (!_preguntar("¿Borrar tu comentario?"))
+            if (!_preguntar("¿Borrar su comentario?"))
             {
                 return;
             }

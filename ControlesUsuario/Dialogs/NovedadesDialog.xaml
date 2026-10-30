@@ -114,7 +114,7 @@
                  Solo a quien se le filtra algo (Dirección e Informática las ven todas). -->
             <DockPanel Margin="0,0,0,6" Visibility="{Binding MostrarConmutadorPerfiles, Converter={StaticResource BoolAVisible}}">
                 <CheckBox DockPanel.Dock="Right" Content="Ver todas las novedades" IsChecked="{Binding VerTodas}" VerticalAlignment="Center"
-                          Margin="8,0,0,0" ToolTip="Enseña también las novedades que no son de tu puesto" />
+                          Margin="8,0,0,0" ToolTip="Enseña también las novedades que no son de su puesto" />
                 <TextBlock Text="{Binding TextoPerfiles}" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
                            FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
@@ -367,7 +367,7 @@
                                                                     <Button DockPanel.Dock="Right" Content="Borrar" FontSize="11" Padding="6,0"
                                                                             Visibility="{Binding EsMio, Converter={StaticResource BoolAVisible}}"
                                                                             Command="{Binding DataContext.BorrarComentarioCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                            CommandParameter="{Binding}" ToolTip="Borrar tu comentario" />
+                                                                            CommandParameter="{Binding}" ToolTip="Borrar su comentario" />
                                                                     <TextBlock Text="{Binding Cabecera}" FontSize="11" Foreground="#777777" />
                                                                 </DockPanel>
                                                                 <!-- Nesto#491: las @menciones, resaltadas -->
