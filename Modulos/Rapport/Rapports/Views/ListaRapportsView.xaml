@@ -395,11 +395,21 @@
                                 <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaTipos}}" Header="Tipo" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Tipo}"></DataGridComboBoxColumn>
                                 <DataGridTextColumn Binding="{Binding Vendedor}" Width="Auto" Header="Vendedor" />
                                 <DataGridCheckBoxColumn Binding="{Binding Pedido}" Width="Auto" Header="Pedido"/>
-                                <!-- Nesto#558: resultado y próximo contacto que vienen del GET (vacíos en los rapports viejos) -->
-                                <DataGridTextColumn Binding="{Binding Resultado, Converter={StaticResource ResultadoRapportConverter}}" Width="Auto" Header="Resultado" />
-                                <DataGridTextColumn Binding="{Binding ProximoContacto, StringFormat=d}" Width="Auto" Header="Próx. contacto" />
                                 <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaEstados}}" Header="Estado" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Estado}"></DataGridComboBoxColumn>
                                 <DataGridTextColumn Binding="{Binding Comentarios}" Width="*" Header="Comentarios" />
+                                <!-- Nesto#558: resultado y próximo contacto que vienen del GET (vacíos en los rapports viejos).
+                                     Nesto#574 (sugerencia 904): al final, después de Comentarios, y estrechas (cabecera corta, nombre
+                                     completo en el tooltip, ancho ajustado al contenido): Comentarios se queda con el espacio. -->
+                                <DataGridTextColumn Binding="{Binding Resultado, Converter={StaticResource ResultadoRapportConverter}}" Width="Auto">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Result." ToolTip="Resultado de la llamada o visita" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Binding="{Binding ProximoContacto, StringFormat=d}" Width="Auto">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Próx." ToolTip="Próximo contacto" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
