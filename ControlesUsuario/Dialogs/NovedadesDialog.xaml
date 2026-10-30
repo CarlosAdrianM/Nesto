@@ -366,7 +366,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <TextBlock Text="Tu comentario (puedes pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
+                                            <TextBlock Text="Su comentario (puede pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
                                             <TextBox Text="{Binding NuevoTexto, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="44" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                                                      PreviewKeyDown="CuadroComentario_PreviewKeyDown"
