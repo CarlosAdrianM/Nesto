@@ -71,6 +71,11 @@
         </Style>
     </UserControl.Resources>
 
+    <!-- Nesto#581: «Leer etiqueta de recogida…» con teclado (el lector termina en Intro y acepta el cuadro) -->
+    <UserControl.InputBindings>
+        <KeyBinding Key="R" Modifiers="Ctrl+Shift" Command="{Binding LeerEtiquetaRecogidaCommand}"/>
+    </UserControl.InputBindings>
+
     <xctk:BusyIndicator IsBusy="{Binding estaBloqueado}" BusyContent="{Binding textoBusyIndicator}">
         <Grid>
             <Grid.RowDefinitions>
@@ -351,6 +356,7 @@
                                     <RowDefinition/>
                                     <RowDefinition/>
                                     <RowDefinition/>
+                                    <RowDefinition/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
@@ -385,6 +391,10 @@
                                 <Button Grid.Row="2" Grid.Column="3" Command="{Binding NuevaNotaRecogidaCommand}"
                                         Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Crear una nota de recogida para este cliente (1 bulto) con una línea de texto para escribir qué hay que recoger">Nueva nota de recogida</Button>
+                                <!-- Nesto#581 (NestoAPI#760): leer la etiqueta NR del bulto que trae el repartidor crea el abono y lo abre en modo abono -->
+                                <Button Grid.Row="3" Grid.Column="3" Command="{Binding LeerEtiquetaRecogidaCommand}"
+                                        Visibility="{Binding PuedeLeerEtiquetaRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Ctrl+Mayús+R. Leer la etiqueta de recogida (NR…) del bulto que trae el repartidor: se crea el pedido de abono del cliente y se abre con cantidad −1 para ir leyendo los productos">Leer etiqueta de recogida…</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>
@@ -991,6 +1001,11 @@
                 </TabItem>
             </TabControl>
             <StackPanel Grid.Row="1">
+                <!-- Nesto#581 (NestoAPI#760): aviso fijo mientras se rellena el abono de una recogida (visible desde cualquier pestaña) -->
+                <Border Background="#FFE0B2" BorderBrush="#E65100" BorderThickness="1" CornerRadius="3" Padding="8,4" Margin="0,0,0,2"
+                        Visibility="{Binding EsModoAbonoRecogida, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="{Binding TextoAvisoAbonoRecogida}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#7A3A00"/>
+                </Border>
                 <!-- Nesto#485: barra de facturación común a todas las pestañas (antes solo en Cabecera), para
                      facturar desde Líneas sin volver a Cabecera. Mismos comandos y reglas de visibilidad.
                      ConfirmarEdicionLineas_Click confirma antes la celda en edición de Líneas (el Click se

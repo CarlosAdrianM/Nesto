@@ -1299,6 +1299,63 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    Public Async Function LeerRecogida(codigo As String) As Task(Of RecogidaDTO) Implements IPedidoVentaService.LeerRecogida
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response = Await client.GetAsync($"NotasEntrega/Recogidas/{Uri.EscapeDataString(If(codigo, String.Empty).Trim())}")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido leer la recogida {codigo} ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return JsonConvert.DeserializeObject(Of RecogidaDTO)(body)
+        End Using
+    End Function
+
+    Public Async Function CrearAbonoRecogida(codigo As String, forzar As Boolean) As Task(Of AbonoRecogidaDTO) Implements IPedidoVentaService.CrearAbonoRecogida
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim cuerpo = New With {.Codigo = If(codigo, String.Empty).Trim(), .Forzar = forzar}
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("NotasEntrega/Recogidas/Abono", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim noRecogida As RecogidaNoRecogidaException = LeerNoRecogida(CInt(response.StatusCode), body)
+                If noRecogida IsNot Nothing Then
+                    Throw noRecogida
+                End If
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido crear el abono de la recogida {codigo} ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return JsonConvert.DeserializeObject(Of AbonoRecogidaDTO)(body)
+        End Using
+    End Function
+
+    ''' <summary>Nesto#581: el 409 { error: { code: "RECOGIDA_NO_RECOGIDA", message, details: { estado } } } de la API, o Nothing.</summary>
+    Friend Shared Function LeerNoRecogida(estado As Integer, body As String) As RecogidaNoRecogidaException
+        If estado <> 409 OrElse String.IsNullOrWhiteSpace(body) Then
+            Return Nothing
+        End If
+        Try
+            Dim json As JObject = JObject.Parse(body)
+            Dim errorApi As JToken = json("error")
+            If errorApi Is Nothing OrElse errorApi.Type <> JTokenType.Object OrElse
+                Not String.Equals(errorApi.Value(Of String)("code"), RecogidaNoRecogidaException.CODIGO, StringComparison.Ordinal) Then
+                Return Nothing
+            End If
+            Dim detalles As JToken = errorApi("details")
+            Dim estadoEnvio As String = If(detalles IsNot Nothing AndAlso detalles.Type = JTokenType.Object, detalles.Value(Of String)("estado"), Nothing)
+            Dim mensaje As String = If(errorApi.Value(Of String)("message"), json.Value(Of String)("Message"))
+            Return New RecogidaNoRecogidaException(mensaje, estadoEnvio)
+        Catch ex As Newtonsoft.Json.JsonReaderException
+            Return Nothing
+        End Try
+    End Function
+
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

@@ -68,6 +68,13 @@ Public Interface IPedidoVentaService
     ''' (POST api/NotasEntrega/{empresa}/{pedido}/EtiquetasRecogida). Solo notas de recogida; si la API lo rechaza,
     ''' lanza una excepción con su mensaje tal cual.</summary>
     Function ImprimirEtiquetasRecogida(empresa As String, pedido As Integer, impresora As String) As Task(Of EtiquetasRecogidaRespuestaDTO)
+    ''' <summary>Nesto#581 / NestoAPI#760: la nota de recogida de una etiqueta NR{Pedido}-{N} o NR{Pedido}
+    ''' (GET api/NotasEntrega/Recogidas/{codigo}). Si no es una recogida (404) o la API lo rechaza, lanza con su mensaje.</summary>
+    Function LeerRecogida(codigo As String) As Task(Of RecogidaDTO)
+    ''' <summary>Nesto#581 / NestoAPI#760: crea (o devuelve, si ya estaba) el pedido de abono de la recogida
+    ''' (POST api/NotasEntrega/Recogidas/Abono). Si el repartidor no la ha marcado como recogida y no se fuerza, lanza
+    ''' <see cref="RecogidaNoRecogidaException"/>; cualquier otro rechazo, una excepción con el mensaje de la API.</summary>
+    Function CrearAbonoRecogida(codigo As String, forzar As Boolean) As Task(Of AbonoRecogidaDTO)
     ''' <summary>Nesto#489 / NestoAPI#533: pide a almacén el cambio de modo de un pedido con picking. Devuelve el texto
     ''' de la API para enseñarlo; si la API lo rechaza, lanza una excepción con su mensaje.</summary>
     Function SolicitarCambioModo(empresa As String, pedido As Integer, modoDeseado As Byte, comentario As String) As Task(Of String)
