@@ -31,6 +31,34 @@
             <Setter Property="BorderBrush" Value="#CCCCCC" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
+        <!-- Nesto#578 (sugerencia 900): las capturas pegadas, una tras otra (Ctrl+V varias veces), cada una con su «Quitar» -->
+        <DataTemplate x:Key="PlantillaCapturaPegada">
+            <StackPanel Orientation="Horizontal" Margin="0,4,10,0">
+                <Image Source="{Binding Png, Converter={StaticResource BytesAImagen}}" MaxHeight="90" MaxWidth="200" Stretch="Uniform">
+                    <Image.ToolTip>
+                        <Image Source="{Binding Png, Converter={StaticResource BytesAImagen}}" MaxWidth="900" MaxHeight="700" />
+                    </Image.ToolTip>
+                </Image>
+                <Button Content="Quitar" Command="{Binding QuitarCommand}" Margin="4,0,0,0" VerticalAlignment="Top" Padding="6,1"
+                        ToolTip="Quitar esta captura" />
+            </StackPanel>
+        </DataTemplate>
+        <!-- Nesto#578: las capturas de una sugerencia o de un comentario (una o varias); al pasar el ratón, en grande -->
+        <DataTemplate x:Key="PlantillaCapturaVista">
+            <StackPanel Margin="0,4,8,0">
+                <Image Source="{Binding Imagen, Converter={StaticResource BytesAImagen}}" MaxHeight="140" MaxWidth="320"
+                       HorizontalAlignment="Left" Stretch="Uniform">
+                    <Image.ToolTip>
+                        <Image Source="{Binding Imagen, Converter={StaticResource BytesAImagen}}" MaxWidth="900" MaxHeight="700" />
+                    </Image.ToolTip>
+                </Image>
+                <TextBlock Text="(no se pudo cargar la captura)" FontSize="11" Foreground="#999999"
+                           Visibility="{Binding NoDisponible, Converter={StaticResource BoolAVisible}}" />
+            </StackPanel>
+        </DataTemplate>
+        <ItemsPanelTemplate x:Key="PanelCapturas">
+            <WrapPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
     </UserControl.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -86,7 +114,7 @@
                  Solo a quien se le filtra algo (Dirección e Informática las ven todas). -->
             <DockPanel Margin="0,0,0,6" Visibility="{Binding MostrarConmutadorPerfiles, Converter={StaticResource BoolAVisible}}">
                 <CheckBox DockPanel.Dock="Right" Content="Ver todas las novedades" IsChecked="{Binding VerTodas}" VerticalAlignment="Center"
-                          Margin="8,0,0,0" ToolTip="Enseña también las novedades que no son de tu puesto" />
+                          Margin="8,0,0,0" ToolTip="Enseña también las novedades que no son de su puesto" />
                 <TextBlock Text="{Binding TextoPerfiles}" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
                            FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
@@ -130,12 +158,9 @@
                              PreviewKeyDown="CuadroSugerencia_PreviewKeyDown"
                              local:PegarImagenTextBox.Comando="{Binding PegarImagenSugerenciaCommand}"
                              local:MencionesTextBox.Autocompletado="{Binding MencionesSugerencia}" />
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                                Visibility="{Binding TieneImagenSugerencia, Converter={StaticResource BoolAVisible}}">
-                        <Image Source="{Binding ImagenSugerencia, Converter={StaticResource BytesAImagen}}" MaxHeight="90" Stretch="Uniform" />
-                        <Button Content="Quitar imagen" Command="{Binding QuitarImagenSugerenciaCommand}" Margin="8,0,0,0"
-                                VerticalAlignment="Top" Padding="6,1" />
-                    </StackPanel>
+                    <ItemsControl ItemsSource="{Binding CapturasSugerencia.Items}"
+                                  ItemTemplate="{StaticResource PlantillaCapturaPegada}" ItemsPanel="{StaticResource PanelCapturas}"
+                                  Visibility="{Binding TieneImagenSugerencia, Converter={StaticResource BoolAVisible}}" />
                     <DockPanel Margin="0,6,0,0">
                         <!-- Nesto#532 (NestoAPI#650): desmarcada por defecto; al enviar se recomienda dejarla pública -->
                         <CheckBox DockPanel.Dock="Left" Content="Privada" IsChecked="{Binding SugerenciaPrivada}" VerticalAlignment="Center"
@@ -143,7 +168,7 @@
                                   Visibility="{Binding PuedeSerPrivada, Converter={StaticResource BoolAVisible}}" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Pegar imagen" Command="{Binding PegarImagenSugerenciaCommand}" Padding="8,2" Margin="0,0,6,0"
-                                ToolTip="Adjunta la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
+                                ToolTip="Añade la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede pegar varias, una tras otra. Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
                         <Button Content="{Binding TextoBotonEnviarFormulario}" Command="{Binding EnviarSugerenciaCommand}" Padding="12,2" />
                     </StackPanel>
                     </DockPanel>
@@ -217,15 +242,10 @@
                                     <TextBox Text="{Binding Contexto, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
                                              TextWrapping="Wrap" FontFamily="Consolas" FontSize="11" Foreground="#6B2B2B" />
                                 </Border>
-                                <Image Source="{Binding ImagenNovedad, Converter={StaticResource BytesAImagen}}" MaxHeight="160"
-                                       HorizontalAlignment="Left" Stretch="Uniform" Margin="0,4,0,0"
-                                       Visibility="{Binding TieneImagenNovedad, Converter={StaticResource BoolAVisible}}">
-                                    <Image.ToolTip>
-                                        <Image Source="{Binding ImagenNovedad, Converter={StaticResource BytesAImagen}}" MaxWidth="900" MaxHeight="700" />
-                                    </Image.ToolTip>
-                                </Image>
-                                <TextBlock Text="(no se pudo cargar la captura)" FontSize="11" Foreground="#999999"
-                                           Visibility="{Binding ImagenNovedadNoDisponible, Converter={StaticResource BoolAVisible}}" />
+                                <!-- Nesto#578: una o varias capturas -->
+                                <ItemsControl ItemsSource="{Binding ImagenesNovedad}"
+                                              ItemTemplate="{StaticResource PlantillaCapturaVista}" ItemsPanel="{StaticResource PanelCapturas}"
+                                              Visibility="{Binding TieneImagenNovedad, Converter={StaticResource BoolAVisible}}" />
 
                                 <!-- NestoAPI#711: el vídeo corto de la novedad (como mucho uno por versión). No se descarga hasta pulsar el
                                      botón; se ve dentro de Nesto y el fichero temporal se borra al cerrarlo. -->
@@ -347,40 +367,32 @@
                                                                     <Button DockPanel.Dock="Right" Content="Borrar" FontSize="11" Padding="6,0"
                                                                             Visibility="{Binding EsMio, Converter={StaticResource BoolAVisible}}"
                                                                             Command="{Binding DataContext.BorrarComentarioCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                            CommandParameter="{Binding}" ToolTip="Borrar tu comentario" />
+                                                                            CommandParameter="{Binding}" ToolTip="Borrar su comentario" />
                                                                     <TextBlock Text="{Binding Cabecera}" FontSize="11" Foreground="#777777" />
                                                                 </DockPanel>
                                                                 <!-- Nesto#491: las @menciones, resaltadas -->
                                                                 <TextBlock local:TextoConMenciones.Texto="{Binding Texto}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                                                                <Image Source="{Binding Imagen, Converter={StaticResource BytesAImagen}}" MaxHeight="140"
-                                                                       HorizontalAlignment="Left" Stretch="Uniform" Margin="0,4,0,0">
-                                                                    <Image.ToolTip>
-                                                                        <Image Source="{Binding Imagen, Converter={StaticResource BytesAImagen}}" MaxWidth="900" MaxHeight="700" />
-                                                                    </Image.ToolTip>
-                                                                </Image>
-                                                                <TextBlock Text="(no se pudo cargar la imagen)" FontSize="11" Foreground="#999999"
-                                                                           Visibility="{Binding ImagenNoDisponible, Converter={StaticResource BoolAVisible}}" />
+                                                                <!-- Nesto#578: una o varias capturas -->
+                                                                <ItemsControl ItemsSource="{Binding Imagenes}"
+                                                                              ItemTemplate="{StaticResource PlantillaCapturaVista}" ItemsPanel="{StaticResource PanelCapturas}" />
                                                             </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
 
-                                            <TextBlock Text="Su comentario (puede pegar una captura con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
+                                            <TextBlock Text="Su comentario (puede pegar una o varias capturas con Ctrl+V y mencionar a alguien con @):" FontSize="11" Foreground="#555555" Margin="0,6,0,2" />
                                             <TextBox Text="{Binding NuevoTexto, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                                                      TextWrapping="Wrap" MinHeight="44" MaxLength="2000" VerticalScrollBarVisibility="Auto"
                                                      PreviewKeyDown="CuadroComentario_PreviewKeyDown"
                                                      local:PegarImagenTextBox.Comando="{Binding PegarImagenCommand}"
                                                      local:MencionesTextBox.Autocompletado="{Binding MencionesComentario}" />
-                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
-                                                        Visibility="{Binding TieneImagenAdjunta, Converter={StaticResource BoolAVisible}}">
-                                                <Image Source="{Binding ImagenAdjunta, Converter={StaticResource BytesAImagen}}" MaxHeight="90" Stretch="Uniform" />
-                                                <Button Content="Quitar imagen" Command="{Binding QuitarImagenCommand}" Margin="8,0,0,0"
-                                                        VerticalAlignment="Top" Padding="6,1" />
-                                            </StackPanel>
+                                            <ItemsControl ItemsSource="{Binding CapturasComentario.Items}"
+                                                          ItemTemplate="{StaticResource PlantillaCapturaPegada}" ItemsPanel="{StaticResource PanelCapturas}"
+                                                          Visibility="{Binding TieneImagenAdjunta, Converter={StaticResource BoolAVisible}}" />
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
                                                 <Button Content="Pegar imagen" Command="{Binding PegarImagenCommand}" Padding="8,2" Margin="0,0,6,0"
-                                                        ToolTip="Adjunta la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
+                                                        ToolTip="Añade la imagen que tenga copiada (por ejemplo, un recorte de pantalla). Puede pegar varias, una tras otra. Puede minimizar esta ventana para hacer el recorte y volver a ella desde la barra de tareas." />
                                                 <Button Content="Enviar" Command="{Binding EnviarComentarioCommand}" Padding="12,2" />
                                             </StackPanel>
                                         </StackPanel>

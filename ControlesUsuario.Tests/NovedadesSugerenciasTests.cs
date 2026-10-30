@@ -132,7 +132,7 @@ namespace ControlesUsuario.Tests
 
             await vm.IrASugerencias();
 
-            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, vm.Novedades.Single(n => n.Id == 50).ImagenNovedad);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, vm.Novedades.Single(n => n.Id == 50).ImagenesNovedad.Single().Imagen);
             A.CallTo(() => servicio.LeerImagenNovedad(51)).MustNotHaveHappened();
         }
 
@@ -204,7 +204,7 @@ namespace ControlesUsuario.Tests
         public async Task EnviarSugerencia_LaCreaYApareceArribaDeLaListaResaltada()
         {
             A.CallTo(() => servicio.LeerSugerencias()).Returns(Task.FromResult(new List<NovedadUsuario> { S(50, "Una anterior") }));
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).Returns(Task.FromResult(S(60, "Poder duplicar un pedido")));
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(S(60, "Poder duplicar un pedido")));
             var vm = AbrirVm(N(1, "1.10.30.0"));
             await vm.AbrirOCerrarSugerencia();
             vm.TextoSugerencia = "  Poder duplicar un pedido ";
@@ -226,22 +226,22 @@ namespace ControlesUsuario.Tests
             A.CallTo(() => portapapeles.HayImagen()).Returns(true);
             A.CallTo(() => portapapeles.LeerImagenPng()).Returns(new byte[] { 7, 7 });
             var creada = S(60, "Con captura", imagen: true);
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).Returns(Task.FromResult(creada));
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(creada));
             var vm = AbrirVm(N(1, "1.10.30.0"));
             await vm.AbrirOCerrarSugerencia();
             vm.TextoSugerencia = "Con captura";
 
             await vm.EnviarSugerencia();
 
-            A.CallTo(() => servicio.Sugerir("Con captura", A<byte[]>.That.Matches(b => b.Length == 2))).MustHaveHappenedOnceExactly();
-            CollectionAssert.AreEqual(new byte[] { 7, 7 }, vm.Novedades[0].ImagenNovedad);
+            A.CallTo(() => servicio.Sugerir("Con captura", A<IReadOnlyList<byte[]>>.That.Matches(l => l.Count == 1 && l[0].Length == 2))).MustHaveHappenedOnceExactly();
+            CollectionAssert.AreEqual(new byte[] { 7, 7 }, vm.Novedades[0].ImagenesNovedad.Single().Imagen);
             Assert.IsFalse(vm.TieneImagenSugerencia);
         }
 
         [TestMethod]
         public async Task EnviarSugerencia_SiLaApiFalla_SeConservaElTextoYSeDiceElMotivo()
         {
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).Throws(new InvalidOperationException("No se pudo enviar la sugerencia: El texto es obligatorio"));
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).Throws(new InvalidOperationException("No se pudo enviar la sugerencia: El texto es obligatorio"));
             var vm = AbrirVm(N(1, "1.10.30.0"));
             await vm.AbrirOCerrarSugerencia();
             vm.TextoSugerencia = "Algo";

@@ -35,6 +35,11 @@ namespace Nesto.Infrastructure.Contracts
         public string Estado { get; set; }
         /// <summary>La sugerencia lleva captura (se pide aparte con <see cref="INovedadesService.LeerImagenNovedad"/>).</summary>
         public bool TieneImagen { get; set; }
+        /// <summary>
+        /// Nesto#578 (NestoAPI#754): todas sus capturas (cada una con <see cref="INovedadesService.LeerCaptura"/>). null o
+        /// vacía con <see cref="TieneImagen"/> = la imagen única de antes (<see cref="INovedadesService.LeerImagenNovedad"/>).
+        /// </summary>
+        public List<CapturaNovedad> Capturas { get; set; }
 
         /// <summary>NestoAPI#558: «Algo no funciona» (categoría Incidencia), no una idea nueva.</summary>
         public bool EsIncidencia { get; set; }
@@ -91,6 +96,19 @@ namespace Nesto.Infrastructure.Contracts
     }
 
     /// <summary>Nesto#519 (NestoAPI#616): un fichero adjunto a una novedad o sugerencia.</summary>
+    /// <summary>
+    /// Nesto#578 (NestoAPI#754, sugerencia 900): una de las capturas de una sugerencia o de un comentario (sin el
+    /// contenido; se pide con <see cref="INovedadesService.LeerCaptura"/>).
+    /// </summary>
+    public class CapturaNovedad
+    {
+        public int Id { get; set; }
+        /// <summary>image/png o image/jpeg.</summary>
+        public string Tipo { get; set; }
+        public int Bytes { get; set; }
+        public int Orden { get; set; }
+    }
+
     public class AdjuntoNovedad
     {
         public int Id { get; set; }
@@ -141,6 +159,8 @@ namespace Nesto.Infrastructure.Contracts
         public bool TieneImagen { get; set; }
         /// <summary>Lo escribió quien pregunta: puede borrarlo.</summary>
         public bool EsMio { get; set; }
+        /// <summary>Nesto#578 (NestoAPI#754): sus capturas. null o vacía con <see cref="TieneImagen"/> = la imagen única de antes.</summary>
+        public List<CapturaNovedad> Capturas { get; set; }
     }
 
     /// <summary>
@@ -185,27 +205,33 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>1 me gusta, -1 no me gusta, 0 quitar el voto.</summary>
         Task VotarNovedad(int novedadId, short voto);
         Task<List<ComentarioNovedad>> LeerComentarios(int novedadId);
-        /// <summary>Publica un comentario; <paramref name="imagenPng"/> es opcional (captura en PNG).</summary>
-        Task<ComentarioNovedad> Comentar(int novedadId, string texto, byte[] imagenPng);
+        /// <summary>
+        /// Publica un comentario. <paramref name="capturasPng"/> es opcional (Nesto#578: una o varias capturas en PNG, en
+        /// orden; null o vacía = sin capturas).
+        /// </summary>
+        Task<ComentarioNovedad> Comentar(int novedadId, string texto, IReadOnlyList<byte[]> capturasPng);
+        /// <summary>La imagen única de antes de un comentario (o, si ya está en el blob, su primera captura).</summary>
         Task<byte[]> LeerImagenComentario(int comentarioId);
+        /// <summary>Nesto#578 (NestoAPI#754): una captura (GET api/Novedades/Capturas/{id}).</summary>
+        Task<byte[]> LeerCaptura(int capturaId);
         Task BorrarComentario(int comentarioId);
 
         // NestoAPI#526/#527: sugerencias de los usuarios y buscador. También lanzan con el mensaje de la API.
 
         /// <summary>Sugerencias abiertas (sin versión), las más votadas primero.</summary>
         Task<List<NovedadUsuario>> LeerSugerencias();
-        /// <summary>Crea una sugerencia; <paramref name="imagenPng"/> es opcional (captura en PNG).</summary>
-        Task<NovedadUsuario> Sugerir(string texto, byte[] imagenPng);
+        /// <summary>Crea una sugerencia; <paramref name="capturasPng"/> es opcional (una o varias capturas en PNG).</summary>
+        Task<NovedadUsuario> Sugerir(string texto, IReadOnlyList<byte[]> capturasPng);
         /// <summary>
         /// Nesto#532 (NestoAPI#650): como <see cref="Sugerir"/>, pero privada (solo la ven quien la envía y
         /// Dirección / Informática). Lanza con el mensaje de la API (p. ej. si aún no admite privadas).
         /// </summary>
-        Task<NovedadUsuario> SugerirPrivada(string texto, byte[] imagenPng);
+        Task<NovedadUsuario> SugerirPrivada(string texto, IReadOnlyList<byte[]> capturasPng);
         /// <summary>
         /// NestoAPI#558: «Algo no funciona». Mismo formulario que <see cref="Sugerir"/>, pero la API lo guarda
         /// como incidencia y le añade el contexto (versión, <paramref name="pantalla"/> y errores de ELMAH).
         /// </summary>
-        Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, byte[] imagenPng, string pantalla);
+        Task<NovedadUsuario> AvisarAlgoNoFunciona(string texto, IReadOnlyList<byte[]> capturasPng, string pantalla);
         /// <summary>La captura de una sugerencia.</summary>
         Task<byte[]> LeerImagenNovedad(int novedadId);
         /// <summary>Novedades (con versión) y sugerencias (sin versión) que tienen todas las palabras.</summary>

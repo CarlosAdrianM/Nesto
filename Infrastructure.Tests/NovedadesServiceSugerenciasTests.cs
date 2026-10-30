@@ -4,6 +4,7 @@ using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -71,7 +72,7 @@ namespace Infrastructure.Tests
         {
             handler.Respuesta = "{\"Id\":60,\"Titulo\":\"Duplicar\",\"TextoOriginal\":\"Duplicar\",\"TieneImagen\":true}";
 
-            NovedadUsuario creada = await servicio.Sugerir("Duplicar", new byte[] { 1, 2 });
+            NovedadUsuario creada = await servicio.Sugerir("Duplicar", new[] { new byte[] { 1, 2 } });
 
             Assert.AreEqual(HttpMethod.Post, handler.Peticiones[0].Metodo);
             Assert.AreEqual("/api/Novedades/Sugerencias", handler.Peticiones[0].Url);
@@ -147,6 +148,67 @@ namespace Infrastructure.Tests
             await servicio.Buscar("reembolso envío");
 
             Assert.AreEqual("/api/Novedades/Buscar?texto=reembolso%20env%C3%ADo", handler.Peticiones[0].Url);
+        }
+
+        // Nesto#578 (NestoAPI#754): varias capturas. Todas en ImagenesBase64 y la primera también en ImagenBase64, para
+        // que una API que aún no conoce la lista guarde al menos esa.
+        [TestMethod]
+        public async Task Sugerir_VariasCapturas_TodasEnLaListaYLaPrimeraEnImagenBase64()
+        {
+            handler.Respuesta = "{\"Id\":62}";
+            var primera = new byte[] { 1, 2 };
+            var segunda = new byte[] { 3, 4, 5 };
+
+            await servicio.Sugerir("Dos pantallas", new[] { primera, segunda });
+
+            JObject cuerpo = JObject.Parse(handler.Peticiones[0].Cuerpo);
+            Assert.AreEqual(Convert.ToBase64String(primera), (string)cuerpo["ImagenBase64"]);
+            CollectionAssert.AreEqual(new[] { Convert.ToBase64String(primera), Convert.ToBase64String(segunda) },
+                ((JArray)cuerpo["ImagenesBase64"]).Select(t => (string)t).ToList());
+        }
+
+        [TestMethod]
+        public async Task Comentar_SinCapturas_NoMandaImagenes()
+        {
+            handler.Respuesta = "{\"Id\":63}";
+
+            await servicio.Comentar(7, "Sin capturas", new List<byte[]>());
+
+            JObject cuerpo = JObject.Parse(handler.Peticiones[0].Cuerpo);
+            Assert.AreEqual("/api/Novedades/7/Comentarios", handler.Peticiones[0].Url);
+            Assert.AreEqual(JTokenType.Null, cuerpo["ImagenBase64"].Type);
+            Assert.AreEqual(JTokenType.Null, cuerpo["ImagenesBase64"].Type);
+        }
+
+        [TestMethod]
+        public async Task AvisarAlgoNoFunciona_ConCapturas_LasMandaEnLaLista()
+        {
+            handler.Respuesta = "{\"Id\":64}";
+
+            await servicio.AvisarAlgoNoFunciona("Falla", new[] { new byte[] { 1 }, new byte[] { 2 } }, "Pedidos");
+
+            JObject cuerpo = JObject.Parse(handler.Peticiones[0].Cuerpo);
+            Assert.AreEqual(2, ((JArray)cuerpo["ImagenesBase64"]).Count);
+            Assert.IsTrue((bool)cuerpo["EsIncidencia"]);
+        }
+
+        [TestMethod]
+        public async Task LeerCaptura_PideLaCapturaPorSuId()
+        {
+            await servicio.LeerCaptura(15);
+
+            Assert.AreEqual("/api/Novedades/Capturas/15", handler.Peticiones[0].Url);
+        }
+
+        [TestMethod]
+        public async Task LeerSugerencias_DeserializaLasCapturas()
+        {
+            handler.Respuesta = "[{\"Id\":50,\"TieneImagen\":true,\"Capturas\":[{\"Id\":1,\"Tipo\":\"image/png\",\"Bytes\":10,\"Orden\":1},{\"Id\":2,\"Tipo\":\"image/jpeg\",\"Bytes\":20,\"Orden\":2}]}]";
+
+            List<NovedadUsuario> sugerencias = await servicio.LeerSugerencias();
+
+            Assert.AreEqual(2, sugerencias[0].Capturas.Count);
+            Assert.AreEqual("image/jpeg", sugerencias[0].Capturas[1].Tipo);
         }
 
         [TestMethod]

@@ -62,20 +62,20 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task SinMarcar_SeEnviaPublicaSinPreguntar()
         {
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).Returns(Task.FromResult(S(60)));
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(S(60)));
             NovedadesDialogViewModel vm = await AbrirCuadro();
 
             await vm.EnviarSugerencia();
 
             A.CallTo(() => servicio.Sugerir("Que los pedidos de compra avisen", null)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<byte[]>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<IReadOnlyList<byte[]>>._)).MustNotHaveHappened();
             Assert.IsFalse(preguntas.Contains(NovedadesDialogViewModel.AVISO_SUGERENCIA_PRIVADA));
         }
 
         [TestMethod]
         public async Task Marcada_AvisaYSiDiceQueSiLaEnviaPrivada()
         {
-            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<byte[]>._)).Returns(Task.FromResult(S(60, privada: true)));
+            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(S(60, privada: true)));
             NovedadesDialogViewModel vm = await AbrirCuadro();
             vm.SugerenciaPrivada = true;
 
@@ -83,7 +83,7 @@ namespace ControlesUsuario.Tests
 
             CollectionAssert.Contains(preguntas, NovedadesDialogViewModel.AVISO_SUGERENCIA_PRIVADA);
             A.CallTo(() => servicio.SugerirPrivada("Que los pedidos de compra avisen", null)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).MustNotHaveHappened();
             Assert.IsFalse(vm.SugerenciaPrivada, "Para la siguiente, otra vez desmarcada");
             Assert.AreEqual(NovedadesDialogViewModel.MENSAJE_PRIVADA_ENVIADA, vm.MensajeSugerencias);
             Assert.IsTrue(vm.Novedades[0].EsPrivada);
@@ -98,8 +98,8 @@ namespace ControlesUsuario.Tests
 
             await vm.EnviarSugerencia();
 
-            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<byte[]>._)).MustNotHaveHappened();
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<IReadOnlyList<byte[]>>._)).MustNotHaveHappened();
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).MustNotHaveHappened();
             Assert.IsFalse(vm.SugerenciaPrivada);
             Assert.AreEqual("Que los pedidos de compra avisen", vm.TextoSugerencia);
             Assert.IsTrue(vm.FormularioSugerenciaAbierto);
@@ -109,7 +109,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task Marcada_ConUnaApiQueNoConoceLasPrivadas_SeDiceQueHaIdoPublica()
         {
-            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<byte[]>._)).Returns(Task.FromResult(S(60, privada: false)));
+            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(S(60, privada: false)));
             NovedadesDialogViewModel vm = await AbrirCuadro();
             vm.SugerenciaPrivada = true;
 
@@ -121,7 +121,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task Marcada_SiLaApiLaRechaza_SeConservaTodoYSeDiceElMotivo()
         {
-            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<byte[]>._))
+            A.CallTo(() => servicio.SugerirPrivada(A<string>._, A<IReadOnlyList<byte[]>>._))
                 .Throws(new InvalidOperationException("No se pudo enviar la sugerencia: Todavía no se pueden enviar sugerencias privadas."));
             NovedadesDialogViewModel vm = await AbrirCuadro();
             vm.SugerenciaPrivada = true;

@@ -141,7 +141,7 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         public async Task EnviarUnaSugerenciaDesdeLaListaDeAvisos_PasaALaDeSugerencias()
         {
-            A.CallTo(() => servicio.Sugerir(A<string>._, A<byte[]>._)).Returns(Task.FromResult(S(70, "Nueva")));
+            A.CallTo(() => servicio.Sugerir(A<string>._, A<IReadOnlyList<byte[]>>._)).Returns(Task.FromResult(S(70, "Nueva")));
             var vm = AbrirVm();
             await vm.AbrirOCerrarIncidencia();
             await vm.AbrirOCerrarSugerencia(); // con el cuadro abierto, solo cambia de modo

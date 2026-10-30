@@ -92,11 +92,148 @@ namespace ControlesUsuario.Dialogs
             }
             if (leida.Length > TAMANO_MAXIMO_IMAGEN)
             {
-                aviso = $"La imagen copiada ocupa {leida.Length / 1024.0 / 1024.0:0.0} MB y el máximo son 2 MB: haz un recorte más pequeño.";
+                aviso = $"La imagen copiada ocupa {leida.Length / 1024.0 / 1024.0:0.0} MB y el máximo son 2 MB: haga un recorte más pequeño.";
                 return true;
             }
             png = leida;
             return true;
+        }
+    }
+
+    /// <summary>Nesto#578 (sugerencia 900): una captura pegada que aún no se ha enviado (miniatura con «Quitar»).</summary>
+    public class CapturaPegadaItem
+    {
+        public CapturaPegadaItem(byte[] png, Action<CapturaPegadaItem> quitar)
+        {
+            Png = png;
+            QuitarCommand = new RelayCommand(() => quitar?.Invoke(this));
+        }
+
+        public byte[] Png { get; }
+        public IRelayCommand QuitarCommand { get; }
+    }
+
+    /// <summary>
+    /// Nesto#578 (sugerencia 900): las capturas pegadas en un cuadro (comentario, sugerencia o aviso), en el orden en
+    /// que se pegaron. Ctrl+V varias veces añade una más cada vez; cada miniatura tiene su «Quitar».
+    /// </summary>
+    public class CapturasPegadas : ObservableObject
+    {
+        /// <summary>Mismo máximo que la API (NestoAPI#754).</summary>
+        public const int MAXIMO = 10;
+        internal static readonly string AVISO_MAXIMO = $"Como máximo se pueden adjuntar {MAXIMO} capturas.";
+        internal const string AVISO_REPETIDA = "Esa captura ya está adjunta.";
+
+        public CapturasPegadas()
+        {
+            Items.CollectionChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(HayCapturas));
+                OnPropertyChanged(nameof(Numero));
+                Cambiadas?.Invoke(this, EventArgs.Empty);
+            };
+        }
+
+        public ObservableCollection<CapturaPegadaItem> Items { get; } = new ObservableCollection<CapturaPegadaItem>();
+        public bool HayCapturas => Items.Count > 0;
+        public int Numero => Items.Count;
+
+        /// <summary>Se ha añadido o quitado alguna.</summary>
+        public event EventHandler Cambiadas;
+
+        /// <summary>Añade la captura al final. Devuelve null si se ha añadido o, si no, el aviso para el usuario.</summary>
+        public string Anadir(byte[] png)
+        {
+            if (png == null || png.Length == 0)
+            {
+                return null;
+            }
+            if (Items.Count >= MAXIMO)
+            {
+                return AVISO_MAXIMO;
+            }
+            if (Items.Any(i => i.Png.SequenceEqual(png)))
+            {
+                return AVISO_REPETIDA;
+            }
+            Items.Add(new CapturaPegadaItem(png, i => Items.Remove(i)));
+            return null;
+        }
+
+        /// <summary>Lo que se manda a la API: las capturas en orden, o null si no hay ninguna.</summary>
+        public IReadOnlyList<byte[]> ParaEnviar() => Items.Count == 0 ? null : Items.Select(i => i.Png).ToList();
+
+        public bool AlgunaDemasiadoGrande => Items.Any(i => i.Png.Length > CapturaPortapapeles.TAMANO_MAXIMO_IMAGEN);
+
+        public void Vaciar() => Items.Clear();
+    }
+
+    /// <summary>Nesto#578: una captura que se enseña (de una sugerencia o de un comentario); llega aparte.</summary>
+    public class CapturaVistaItem : ObservableObject
+    {
+        private byte[] _imagen;
+        public byte[] Imagen { get => _imagen; set => SetProperty(ref _imagen, value); }
+
+        private bool _noDisponible;
+        public bool NoDisponible { get => _noDisponible; set => SetProperty(ref _noDisponible, value); }
+    }
+
+    /// <summary>
+    /// Nesto#578 (NestoAPI#754): cómo se cargan las capturas de una sugerencia o de un comentario. Con la lista de la API,
+    /// cada una por su Id; sin ella (API vieja o imagen de antes) y con <c>TieneImagen</c>, la única de siempre.
+    /// </summary>
+    internal static class CargaCapturas
+    {
+        public static async Task Cargar(ObservableCollection<CapturaVistaItem> destino, IReadOnlyList<CapturaNovedad> capturas,
+            bool tieneImagen, Func<int, Task<byte[]>> leerCaptura, Func<Task<byte[]>> leerImagenUnica)
+        {
+            var pendientes = new List<(CapturaVistaItem Item, Func<Task<byte[]>> Leer)>();
+            List<CapturaNovedad> lista = (capturas ?? new List<CapturaNovedad>()).Where(c => c != null).OrderBy(c => c.Orden).ThenBy(c => c.Id).ToList();
+            if (lista.Count > 0)
+            {
+                foreach (CapturaNovedad captura in lista)
+                {
+                    int id = captura.Id;
+                    pendientes.Add((new CapturaVistaItem(), () => leerCaptura(id)));
+                }
+            }
+            else if (tieneImagen)
+            {
+                pendientes.Add((new CapturaVistaItem(), leerImagenUnica));
+            }
+            foreach (var (item, _) in pendientes)
+            {
+                destino.Add(item);
+            }
+            foreach (var (item, leer) in pendientes)
+            {
+                try
+                {
+                    item.Imagen = await leer();
+                }
+                catch (Exception)
+                {
+                    item.NoDisponible = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lo recién enviado se enseña con los bytes que ya tenemos. Con una API que aún no conoce la lista (Capturas
+        /// null), solo se ha guardado la primera.
+        /// </summary>
+        public static void MostrarEnviadas(ObservableCollection<CapturaVistaItem> destino, IReadOnlyList<byte[]> enviadas,
+            bool tieneImagen, List<CapturaNovedad> capturasDeLaApi)
+        {
+            if (!tieneImagen || enviadas == null || enviadas.Count == 0)
+            {
+                return;
+            }
+            IEnumerable<byte[]> guardadas = capturasDeLaApi == null ? enviadas.Take(1) : enviadas;
+            foreach (byte[] png in guardadas)
+            {
+                destino.Add(new CapturaVistaItem { Imagen = png });
+            }
         }
     }
 
@@ -153,7 +290,7 @@ namespace ControlesUsuario.Dialogs
             AbrirComentariosCommand = new AsyncRelayCommand(AbrirOCerrarComentarios);
             EnviarComentarioCommand = new AsyncRelayCommand(EnviarComentario, () => !string.IsNullOrWhiteSpace(NuevoTexto) && !Enviando);
             PegarImagenCommand = new RelayCommand(() => PegarImagen());
-            QuitarImagenCommand = new RelayCommand(() => ImagenAdjunta = null, () => ImagenAdjunta != null);
+            CapturasComentario.Cambiadas += (s, e) => OnPropertyChanged(nameof(TieneImagenAdjunta));
             BorrarComentarioCommand = new AsyncRelayCommand<ComentarioItem>(BorrarComentario);
         }
 
@@ -327,28 +464,29 @@ namespace ControlesUsuario.Dialogs
         /// <summary>Los botones de voto: en una privada no se enseñan (la API no admite «Me gusta»).</summary>
         public bool PuedeVotar => !EsPrivada;
 
-        private byte[] _imagenNovedad;
-        /// <summary>La captura de la sugerencia (se pide al enseñar la página de sugerencias).</summary>
-        public byte[] ImagenNovedad { get => _imagenNovedad; internal set => SetProperty(ref _imagenNovedad, value); }
+        /// <summary>
+        /// Nesto#578: las capturas de la sugerencia (una o varias; se piden al enseñar la página de sugerencias). Cada una
+        /// dice si no se ha podido cargar.
+        /// </summary>
+        public ObservableCollection<CapturaVistaItem> ImagenesNovedad { get; } = new ObservableCollection<CapturaVistaItem>();
 
-        private bool _imagenNovedadNoDisponible;
-        public bool ImagenNovedadNoDisponible { get => _imagenNovedadNoDisponible; private set => SetProperty(ref _imagenNovedadNoDisponible, value); }
-
-        /// <summary>Pide la captura una sola vez; si falla se dice, sin romper nada.</summary>
+        /// <summary>Pide las capturas una sola vez; si alguna falla se dice, sin romper nada.</summary>
         internal async Task CargarImagenNovedad()
         {
-            if (!TieneImagenNovedad || _servicio == null || ImagenNovedad != null)
+            if (!TieneImagenNovedad || _servicio == null || ImagenesNovedad.Count > 0)
             {
                 return;
             }
-            try
+            await CargaCapturas.Cargar(ImagenesNovedad, _novedad.Capturas, _novedad.TieneImagen,
+                _servicio.LeerCaptura, () => _servicio.LeerImagenNovedad(Id));
+        }
+
+        /// <summary>Nesto#578: la sugerencia que se acaba de enviar enseña sus capturas sin volver a pedirlas.</summary>
+        internal void MostrarCapturasEnviadas(IReadOnlyList<byte[]> enviadas)
+        {
+            if (ImagenesNovedad.Count == 0)
             {
-                ImagenNovedad = await _servicio.LeerImagenNovedad(Id);
-                ImagenNovedadNoDisponible = false;
-            }
-            catch (Exception)
-            {
-                ImagenNovedadNoDisponible = true;
+                CargaCapturas.MostrarEnviadas(ImagenesNovedad, enviadas, _novedad.TieneImagen, _novedad.Capturas);
             }
         }
 
@@ -455,20 +593,9 @@ namespace ControlesUsuario.Dialogs
             }
         }
 
-        private byte[] _imagenAdjunta;
-        public byte[] ImagenAdjunta
-        {
-            get => _imagenAdjunta;
-            set
-            {
-                if (SetProperty(ref _imagenAdjunta, value))
-                {
-                    OnPropertyChanged(nameof(TieneImagenAdjunta));
-                    QuitarImagenCommand.NotifyCanExecuteChanged();
-                }
-            }
-        }
-        public bool TieneImagenAdjunta => ImagenAdjunta != null;
+        /// <summary>Nesto#578 (sugerencia 900): las capturas pegadas en el cuadro del comentario (una o varias).</summary>
+        public CapturasPegadas CapturasComentario { get; } = new CapturasPegadas();
+        public bool TieneImagenAdjunta => CapturasComentario.HayCapturas;
 
         private bool _enviando;
         public bool Enviando
@@ -504,7 +631,6 @@ namespace ControlesUsuario.Dialogs
         public IAsyncRelayCommand AbrirComentariosCommand { get; }
         public IAsyncRelayCommand EnviarComentarioCommand { get; }
         public IRelayCommand PegarImagenCommand { get; }
-        public IRelayCommand QuitarImagenCommand { get; }
         public IAsyncRelayCommand<ComentarioItem> BorrarComentarioCommand { get; }
 
         internal async Task AbrirOCerrarComentarios()
@@ -526,19 +652,20 @@ namespace ControlesUsuario.Dialogs
         /// <summary>Al abrir el cuadro, UNA vez por apertura: si hay una imagen copiada, se ofrece adjuntarla.</summary>
         private void OfrecerImagenDelPortapapeles()
         {
-            if (ImagenAdjunta != null || _portapapeles == null || !_portapapeles.HayImagen())
+            if (CapturasComentario.HayCapturas || _portapapeles == null || !_portapapeles.HayImagen())
             {
                 return;
             }
-            if (_preguntar("Tienes una imagen copiada en el portapapeles. ¿Quieres adjuntarla a tu comentario?"))
+            if (_preguntar("Tiene una imagen copiada en el portapapeles. ¿Quiere adjuntarla a su comentario?"))
             {
                 PegarImagen();
             }
         }
 
         /// <summary>
-        /// Adjunta la imagen del portapapeles. Devuelve true si había imagen (se haya adjuntado o no por
-        /// tamaño): así Ctrl+V en el cuadro solo se «come» la tecla cuando lo copiado es una imagen.
+        /// Añade la imagen del portapapeles a las capturas del comentario (Nesto#578: cada Ctrl+V, una más). Devuelve
+        /// true si había imagen (se haya adjuntado o no por tamaño): así Ctrl+V en el cuadro solo se «come» la tecla
+        /// cuando lo copiado es una imagen.
         /// </summary>
         internal bool PegarImagen()
         {
@@ -546,13 +673,7 @@ namespace ControlesUsuario.Dialogs
             {
                 return false;
             }
-            if (png == null)
-            {
-                Mensaje = aviso;
-                return true;
-            }
-            ImagenAdjunta = png;
-            Mensaje = null;
+            Mensaje = png == null ? aviso : CapturasComentario.Anadir(png);
             return true;
         }
 
@@ -599,20 +720,11 @@ namespace ControlesUsuario.Dialogs
                     ComentarioDestacado = destacado;
                 }
                 // Las miniaturas se piden al desplegar, no antes (no cargar imágenes que nadie mira).
-                foreach (ComentarioItem c in Comentarios)
+                foreach (ComentarioItem c in Comentarios.ToList())
                 {
-                    if (!c.TieneImagen)
-                    {
-                        continue;
-                    }
-                    try
-                    {
-                        c.Imagen = await _servicio.LeerImagenComentario(c.Id);
-                    }
-                    catch (Exception)
-                    {
-                        c.ImagenNoDisponible = true;
-                    }
+                    int id = c.Id;
+                    await CargaCapturas.Cargar(c.Imagenes, c.Capturas, c.TieneImagen,
+                        _servicio.LeerCaptura, () => _servicio.LeerImagenComentario(id));
                 }
             }
             catch (Exception ex)
@@ -627,21 +739,23 @@ namespace ControlesUsuario.Dialogs
             {
                 return;
             }
-            if (ImagenAdjunta != null && ImagenAdjunta.Length > TAMANO_MAXIMO_IMAGEN)
+            if (CapturasComentario.AlgunaDemasiadoGrande)
             {
-                Mensaje = "La imagen supera los 2 MB: quítala o haz un recorte más pequeño.";
+                Mensaje = "Alguna captura supera los 2 MB: quítela o haga un recorte más pequeño.";
                 return;
             }
             Enviando = true;
             Mensaje = null;
             try
             {
-                ComentarioNovedad creado = await _servicio.Comentar(Id, NuevoTexto.Trim(), ImagenAdjunta);
-                var item = new ComentarioItem(creado) { Imagen = creado.TieneImagen ? ImagenAdjunta : null };
+                IReadOnlyList<byte[]> capturas = CapturasComentario.ParaEnviar();
+                ComentarioNovedad creado = await _servicio.Comentar(Id, NuevoTexto.Trim(), capturas);
+                var item = new ComentarioItem(creado);
+                CargaCapturas.MostrarEnviadas(item.Imagenes, capturas, creado.TieneImagen, creado.Capturas);
                 Comentarios.Add(item);
                 NumeroComentarios++;
                 NuevoTexto = null;
-                ImagenAdjunta = null;
+                CapturasComentario.Vaciar();
             }
             catch (Exception ex)
             {
@@ -659,7 +773,7 @@ namespace ControlesUsuario.Dialogs
             {
                 return;
             }
-            if (!_preguntar("¿Borrar tu comentario?"))
+            if (!_preguntar("¿Borrar su comentario?"))
             {
                 return;
             }
@@ -687,6 +801,7 @@ namespace ControlesUsuario.Dialogs
             Texto = c.Texto;
             TieneImagen = c.TieneImagen;
             EsMio = c.EsMio;
+            Capturas = c.Capturas;
         }
 
         public int Id { get; }
@@ -697,11 +812,11 @@ namespace ControlesUsuario.Dialogs
         public bool EsMio { get; }
         public string Cabecera => $"{NombreVisible} · {Fecha:dd/MM/yyyy HH:mm}";
 
-        private byte[] _imagen;
-        public byte[] Imagen { get => _imagen; set => SetProperty(ref _imagen, value); }
+        /// <summary>Nesto#578: lo que dice la API de sus capturas (null = imagen única de antes, si TieneImagen).</summary>
+        internal List<CapturaNovedad> Capturas { get; }
 
-        private bool _imagenNoDisponible;
-        public bool ImagenNoDisponible { get => _imagenNoDisponible; set => SetProperty(ref _imagenNoDisponible, value); }
+        /// <summary>Nesto#578: sus capturas (una o varias), según llegan.</summary>
+        public ObservableCollection<CapturaVistaItem> Imagenes { get; } = new ObservableCollection<CapturaVistaItem>();
 
         private bool _destacado;
         /// <summary>Nesto#477: el comentario al que lleva la notificación de la campana.</summary>
