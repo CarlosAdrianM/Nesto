@@ -1003,6 +1003,37 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ''' <summary>Nesto#573 (NestoAPI#748): ruta del enlace de seguimiento de un envío.</summary>
+    Friend Shared Function RutaEnlaceSeguimiento(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/EnlaceSeguimiento"
+    End Function
+
+    ''' <summary>Nesto#573: la Url de la respuesta { Numero, Url }; Nothing si viene vacía o sin cuerpo.</summary>
+    Friend Shared Function EnlaceSeguimientoDeRespuesta(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Dim respuesta = JsonConvert.DeserializeObject(Of EnlaceSeguimientoEnvioDto)(cuerpo)
+        Return If(respuesta Is Nothing OrElse String.IsNullOrWhiteSpace(respuesta.Url), Nothing, respuesta.Url.Trim())
+    End Function
+
+    Public Async Function LeerEnlaceSeguimiento(numeroEnvio As Integer) As Task(Of String) Implements IAgenciaService.LeerEnlaceSeguimiento
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaEnlaceSeguimiento(numeroEnvio))
+            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                Return Nothing
+            End If
+            Dim cuerpo As String = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI no ha devuelto el enlace de seguimiento ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+            Return EnlaceSeguimientoDeRespuesta(cuerpo)
+        End Using
+    End Function
+
     Public Async Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte()) Implements IAgenciaService.LeerFirmaPruebaEntregaReparto
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
