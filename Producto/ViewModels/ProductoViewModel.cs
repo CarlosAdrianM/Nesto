@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Contracts;
+﻿using ControlesUsuario.Models;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Models;
 using Nesto.Infrastructure.Services;
@@ -113,7 +114,25 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 EstaCargandoControlesStock = true;
                 ControlStock = null;
-                ProductoActual = await _servicio.LeerProducto(productoId);
+                ProductoModel producto;
+                try
+                {
+                    producto = await _servicio.LeerProducto(productoId);
+                }
+                catch (Exception errorReferencia)
+                {
+                    // Nesto#582 (sugerencia 908): primero la referencia exacta, como siempre; si no existe, el código de barras.
+                    string porCodigoBarras = await ResolverCodigoBarrasAsync(productoId, errorReferencia);
+                    if (porCodigoBarras is null)
+                    {
+                        return;
+                    }
+                    productoId = porCodigoBarras;
+                    producto = await _servicio.LeerProducto(productoId);
+                    _referenciaBuscar = productoId;
+                    OnPropertyChanged(nameof(ReferenciaBuscar));
+                }
+                ProductoActual = producto;
                 if (ProductoActual is not null)
                 {
                     Titulo = "Producto " + ProductoActual.Producto;
@@ -300,6 +319,55 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        /// <summary>
+        /// Nesto#582 (sugerencia 908): lo tecleado o leído en la casilla de referencia no es una referencia. Se busca como código
+        /// de barras (GET api/Productos/PorCodigoBarras): uno → ese producto; varios → se deja elegir (el selector de Nesto#368);
+        /// ninguno → mensaje claro. Null si no hay que cargar nada (se canceló el selector). Si la API no ha podido mirar el
+        /// código, o lo tecleado no parece un código de barras, se queda el error de la referencia, como antes.
+        /// </summary>
+        private async Task<string> ResolverCodigoBarrasAsync(string texto, Exception errorReferencia)
+        {
+            string codigo = texto?.Trim();
+            if (string.IsNullOrEmpty(codigo))
+            {
+                throw errorReferencia;
+            }
+            List<ProductoCodigoBarrasDuplicado> candidatos = await _servicio.BuscarProductosPorCodigoBarras(codigo);
+            if (candidatos is null)
+            {
+                throw errorReferencia;
+            }
+            if (candidatos.Count == 0)
+            {
+                if (PareceCodigoBarras(codigo))
+                {
+                    throw new Exception($"No hay ningún producto con el código de barras {codigo}.");
+                }
+                throw errorReferencia;
+            }
+            if (candidatos.Count == 1)
+            {
+                return candidatos[0].Producto?.Trim();
+            }
+            ResultadoDialogo resultado = await _dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", new ParametrosDialogo
+            {
+                { "title", $"El código de barras {codigo} es de varios productos" },
+                { "candidatos", candidatos }
+            });
+            if (resultado is null || resultado.Result != ResultadoBoton.OK)
+            {
+                return null;
+            }
+            string elegido = resultado.Parameters.GetValue<string>("producto")?.Trim();
+            return string.IsNullOrEmpty(elegido) ? null : elegido;
+        }
+
+        /// <summary>Solo cifras y al menos 8 (EAN-8, UPC, EAN-13, GTIN-14): para no llamar «código de barras» a una referencia mal tecleada.</summary>
+        internal static bool PareceCodigoBarras(string texto)
+        {
+            return !string.IsNullOrEmpty(texto) && texto.Length >= 8 && texto.All(char.IsDigit);
+        }
+
         public ProductoModel ProductoResultadoSeleccionado
         {
             get => _productoResultadoSeleccionado;
@@ -338,8 +406,9 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (value != _referenciaBuscar)
                 {
-                    _ = CargarProducto(value);
+                    // Nesto#582: primero se guarda lo tecleado; si era un código de barras, CargarProducto la cambia por la referencia.
                     _ = SetProperty(ref _referenciaBuscar, value);
+                    _ = CargarProducto(value);
                 }
             }
         }

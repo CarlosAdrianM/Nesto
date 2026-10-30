@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Contracts;
+﻿using ControlesUsuario.Models;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
@@ -6,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -258,6 +260,41 @@ namespace Nesto.Modules.Producto
             {
                 string cuerpo = await response.Content.ReadAsStringAsync();
                 throw new Exception(MotivoDelErrorDeTexto(cuerpo) ?? $"No se ha podido dar de baja el código de barras ({(int)response.StatusCode} {response.StatusCode})");
+            }
+        }
+
+        /// <summary>
+        /// Nesto#582 (sugerencia 908): la casilla de referencia de la ficha acepta un código de barras. Mismo endpoint
+        /// que la plantilla y Ariadna (NestoAPI#605): mira todos los códigos activos, también el principal de la ficha.
+        /// Un producto puede salir varias veces (un código con varias cantidades): se deja una fila por producto.
+        /// Null si la API no ha contestado bien: quien llama se queda con el error de la referencia.
+        /// </summary>
+        public async Task<List<ProductoCodigoBarrasDuplicado>> BuscarProductosPorCodigoBarras(string codigo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                return new List<ProductoCodigoBarrasDuplicado>();
+            }
+            try
+            {
+                using HttpClient client = _clienteApiFactory.Crear();
+                HttpResponseMessage response = await client.GetAsync(
+                    $"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(codigo.Trim())}&empresa={EmpresaDefecto}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                string resultado = await response.Content.ReadAsStringAsync();
+                return (JsonConvert.DeserializeObject<List<ProductoCodigoBarrasDuplicado>>(resultado) ?? new List<ProductoCodigoBarrasDuplicado>())
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Producto))
+                    .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Select(g => new ProductoCodigoBarrasDuplicado { Producto = g.Key, Nombre = g.First().Nombre?.Trim() })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ProductoService] PorCodigoBarras: {ex.Message}");
+                return null;
             }
         }
 

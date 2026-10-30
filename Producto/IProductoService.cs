@@ -1,4 +1,5 @@
 ﻿using Nesto.Modules.Producto.Models;
+using ControlesUsuario.Models;
 using Nesto.Modules.Producto.ViewModels;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -52,5 +53,8 @@ namespace Nesto.Modules.Producto
         Task<RespuestaAnnadirCodigoBarras> AnnadirCodigoBarras(string producto, string codigo, int cantidad, string proveedor, bool permitirCompartido);
         Task HacerPrincipalCodigoBarras(string producto, int id);
         Task DarDeBajaCodigoBarras(string producto, int id);
+        // Nesto#582 (sugerencia 908): los productos que tienen ese código de barras (GET api/Productos/PorCodigoBarras).
+        // Lista vacía si ninguno; null si la API no lo ha podido mirar (y entonces manda el error de siempre).
+        Task<List<ProductoCodigoBarrasDuplicado>> BuscarProductosPorCodigoBarras(string codigo);
     }
 }
