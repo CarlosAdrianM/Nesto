@@ -17,15 +17,6 @@ Public Class NotaEntregaCabeceraDTO
     Public Property CodigoDocumento As String
 End Class
 
-''' <summary>
-''' Nesto#580 / NestoAPI#758: respuesta de POST api/NotasEntrega/{empresa}/{pedido}/EtiquetasRecogida
-''' (las etiquetas NR{Pedido}-{N} que la API ha mandado a la Zebra).
-''' </summary>
-Public Class EtiquetasRecogidaRespuestaDTO
-    Public Property Impresas As Integer
-    Public Property Codigos As List(Of String) = New List(Of String)()
-End Class
-
 ''' <summary>Nesto#579: los tipos de nota de entrega (los mismos textos que guarda la API).</summary>
 Public NotInheritable Class TiposNotaEntrega
     Public Const ENTREGA As String = "Entrega"

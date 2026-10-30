@@ -250,15 +250,7 @@ Public Class FacturarRutasPopupViewModel
         Return Not EstaProcesando AndAlso TipoRutaSeleccionado IsNot Nothing AndAlso PreviewData IsNot Nothing
     End Function
 
-    ''' <summary>Nesto#580: pausas para que el usuario lea el resumen (los tests las ponen a 0).</summary>
-    Friend Property PausaAntesDeCerrarMs As Integer = 2000
-    Friend Property PausaTrasImprimirMs As Integer = 3000
-
     Private Async Sub FacturarRutas()
-        Await FacturarRutasAsync()
-    End Sub
-
-    Friend Async Function FacturarRutasAsync() As Task
         EstaProcesando = True
         MensajeEstado = "Obteniendo pedidos..."
         ColorMensaje = Brushes.Blue
@@ -284,8 +276,8 @@ Public Class FacturarRutasPopupViewModel
             ' Mostrar resultado
             MostrarResumen(response)
 
-            ' Verificar si hay documentos para imprimir (Nesto#580: también las notas de entrega y de recogida)
-            Dim totalDocumentosParaImprimir = response.TotalDocumentosParaImprimir
+            ' Verificar si hay documentos para imprimir
+            Dim totalDocumentosParaImprimir = response.FacturasParaImprimir + response.AlbaranesParaImprimir
             If totalDocumentosParaImprimir > 0 Then
                 Await PreguntarEImprimirDocumentos(response, totalDocumentosParaImprimir)
             End If
@@ -296,7 +288,7 @@ Public Class FacturarRutasPopupViewModel
             Else
                 ' Si todo fue exitoso y no hay documentos que imprimir, esperar 2 segundos y cerrar
                 If totalDocumentosParaImprimir = 0 Then
-                    Await Task.Delay(PausaAntesDeCerrarMs)
+                    Await Task.Delay(2000)
                     Cancelar()
                 End If
             End If
@@ -308,29 +300,20 @@ Public Class FacturarRutasPopupViewModel
         Finally
             EstaProcesando = False
         End Try
-    End Function
+    End Sub
 
     Private Sub MostrarResumen(response As FacturarRutasResponseDTO)
         Dim sb As New System.Text.StringBuilder()
         Dim unused7 = sb.AppendLine($"✓ Procesados: {response.PedidosProcesados}")
         Dim unused6 = sb.AppendLine($"✓ Albaranes: {response.AlbaranesCreados}")
         Dim unused5 = sb.AppendLine($"✓ Facturas: {response.FacturasCreadas}")
-        Dim unused4 = sb.AppendLine($"✓ Notas de entrega: {response.NotasEntregaCreadas - response.NotasRecogidaCreadas}")
-        If response.NotasRecogidaCreadas > 0 Then
-            Dim unusedR = sb.AppendLine($"✓ Notas de recogida: {response.NotasRecogidaCreadas}")
-        End If
-        If response.EtiquetasRecogidaImpresas > 0 Then
-            Dim unusedE = sb.AppendLine($"🏷 Etiquetas de recogida impresas por la Zebra: {response.EtiquetasRecogidaImpresas}")
-        End If
+        Dim unused4 = sb.AppendLine($"✓ Notas de entrega: {response.NotasEntregaCreadas}")
 
         If response.FacturasParaImprimir > 0 Then
             Dim unused3 = sb.AppendLine($"🖨 Facturas para imprimir: {response.FacturasParaImprimir}")
         End If
         If response.AlbaranesParaImprimir > 0 Then
             Dim unused2 = sb.AppendLine($"🖨 Albaranes para imprimir: {response.AlbaranesParaImprimir}")
-        End If
-        If response.NotasEntregaParaImprimir > 0 Then
-            Dim unusedN = sb.AppendLine($"🖨 Notas para imprimir: {response.NotasEntregaParaImprimir}")
         End If
 
         If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
@@ -435,9 +418,21 @@ Public Class FacturarRutasPopupViewModel
     Private Async Function PreguntarEImprimirDocumentos(response As FacturarRutasResponseDTO, totalDocumentos As Integer) As Task
         Try
             ' Preguntar al usuario
-            Dim mensaje As String = MensajeDocumentosParaImprimir(response)
+            Dim mensaje As String = $"Se han generado {totalDocumentos} documentos para imprimir:{Environment.NewLine}"
 
-            If dialogService.ShowConfirmationAnswer("Imprimir documentos", mensaje) Then
+            If response.FacturasParaImprimir > 0 Then
+                mensaje &= $"- {response.FacturasParaImprimir} factura(s){Environment.NewLine}"
+            End If
+
+            If response.AlbaranesParaImprimir > 0 Then
+                mensaje &= $"- {response.AlbaranesParaImprimir} albarán(es){Environment.NewLine}"
+            End If
+
+            mensaje &= $"{Environment.NewLine}¿Desea imprimirlos ahora?"
+
+            Dim resultado = MessageBox.Show(mensaje, "Imprimir documentos", MessageBoxButton.YesNo, MessageBoxImage.Question)
+
+            If resultado = MessageBoxResult.Yes Then
                 ' Imprimir documentos
                 MensajeEstado = "Imprimiendo documentos..."
                 ColorMensaje = Brushes.Blue
@@ -448,7 +443,7 @@ Public Class FacturarRutasPopupViewModel
                 MostrarResultadoImpresion(resultadoImpresion)
 
                 ' Esperar 3 segundos para que el usuario vea el mensaje
-                Await Task.Delay(PausaTrasImprimirMs)
+                Await Task.Delay(3000)
             End If
 
         Catch ex As Exception
@@ -456,32 +451,6 @@ Public Class FacturarRutasPopupViewModel
             ColorMensaje = Brushes.Red
             dialogService.ShowError($"Error al imprimir documentos: {ex.Message}")
         End Try
-    End Function
-
-    ''' <summary>
-    ''' El texto de la pregunta «¿Imprimir?»: facturas, albaranes y (Nesto#580) notas de entrega y de recogida.
-    ''' </summary>
-    Friend Shared Function MensajeDocumentosParaImprimir(response As FacturarRutasResponseDTO) As String
-        Dim mensaje As String = $"Se han generado {response.TotalDocumentosParaImprimir} documentos para imprimir:{Environment.NewLine}"
-
-        If response.FacturasParaImprimir > 0 Then
-            mensaje &= $"- {response.FacturasParaImprimir} factura(s){Environment.NewLine}"
-        End If
-
-        If response.AlbaranesParaImprimir > 0 Then
-            mensaje &= $"- {response.AlbaranesParaImprimir} albarán(es){Environment.NewLine}"
-        End If
-
-        If response.NotasDeEntregaParaImprimir > 0 Then
-            mensaje &= $"- {response.NotasDeEntregaParaImprimir} nota(s) de entrega{Environment.NewLine}"
-        End If
-
-        If response.NotasDeRecogidaParaImprimir > 0 Then
-            mensaje &= $"- {response.NotasDeRecogidaParaImprimir} nota(s) de recogida{Environment.NewLine}"
-        End If
-
-        mensaje &= $"{Environment.NewLine}¿Desea imprimirlos ahora?"
-        Return mensaje
     End Function
 
     ''' <summary>

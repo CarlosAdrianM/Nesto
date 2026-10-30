@@ -1255,50 +1255,6 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function CargarDocumentoNotaEntrega(empresa As String, pedido As Integer) As Task(Of Byte()) Implements IPedidoVentaService.CargarDocumentoNotaEntrega
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
-            End If
-            Dim response = Await client.GetAsync($"NotasEntrega/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{pedido}/Documento")
-            If Not response.IsSuccessStatusCode Then
-                Dim body As String = Await response.Content.ReadAsStringAsync()
-                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
-                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido obtener el documento de la nota {pedido} ({CInt(response.StatusCode)}).", mensaje))
-            End If
-            Return Await response.Content.ReadAsByteArrayAsync()
-        End Using
-    End Function
-
-    Public Async Function DescargarDocumentoNotaEntrega(empresa As String, pedido As Integer, cliente As String) As Task(Of String) Implements IPedidoVentaService.DescargarDocumentoNotaEntrega
-        Dim np As IntPtr
-        Dim unused = SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
-        Dim path As String = Marshal.PtrToStringUni(np)
-        Marshal.FreeCoTaskMem(np)
-
-        Dim documento As Byte() = Await CargarDocumentoNotaEntrega(empresa, pedido)
-        Dim nombreArchivo As String = path + "\Cliente_" + If(cliente, String.Empty).Trim() + "_Nota_" + pedido.ToString() + ".pdf"
-        File.WriteAllBytes(nombreArchivo, documento)
-        Return nombreArchivo
-    End Function
-
-    Public Async Function ImprimirEtiquetasRecogida(empresa As String, pedido As Integer, impresora As String) As Task(Of EtiquetasRecogidaRespuestaDTO) Implements IPedidoVentaService.ImprimirEtiquetasRecogida
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
-            End If
-            Dim cuerpo = New With {.Impresora = If(String.IsNullOrWhiteSpace(impresora), Nothing, impresora.Trim())}
-            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json")
-            Dim response = Await client.PostAsync($"NotasEntrega/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{pedido}/EtiquetasRecogida", contenido)
-            Dim body As String = Await response.Content.ReadAsStringAsync()
-            If Not response.IsSuccessStatusCode Then
-                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
-                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se han podido imprimir las etiquetas de recogida ({CInt(response.StatusCode)}).", mensaje))
-            End If
-            Return If(String.IsNullOrWhiteSpace(body), New EtiquetasRecogidaRespuestaDTO(), JsonConvert.DeserializeObject(Of EtiquetasRecogidaRespuestaDTO)(body))
-        End Using
-    End Function
-
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

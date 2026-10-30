@@ -131,18 +131,6 @@
                                             <Button Content="Quitar" Padding="6,1" Command="{Binding QuitarFacturaOriginalCommand}"
                                                     ToolTip="Dejar la nota sin factura original"/>
                                         </StackPanel>
-                                        <!-- Nesto#580 (NestoAPI#758): el PDF con el código de barras NE/NR (cualquier nota grabada, también de Nesto viejo)
-                                             y las etiquetas NR{Pedido}-{N} por la Zebra (solo recogidas; las entregas llevan la etiqueta del packing) -->
-                                        <StackPanel Orientation="Horizontal" Margin="15,0,0,0"
-                                                    Visibility="{Binding PuedeImprimirNota, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Button Content="Ver nota" Padding="6,1" Margin="0,0,5,0" Command="{Binding VerNotaCommand}"
-                                                    ToolTip="Abrir en pantalla el documento de la nota, con su código de barras"/>
-                                            <Button Content="Imprimir nota" Padding="6,1" Margin="0,0,5,0" Command="{Binding ImprimirNotaCommand}"
-                                                    ToolTip="Imprimir 2 copias del documento de la nota, con su código de barras"/>
-                                            <Button Content="Etiquetas de recogida" Padding="6,1" Command="{Binding EtiquetasRecogidaCommand}"
-                                                    Visibility="{Binding PuedeImprimirEtiquetasRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                    ToolTip="Imprimir por la Zebra una etiqueta por bulto para pegar en lo que se recoge"/>
-                                        </StackPanel>
                                     </WrapPanel>
                                     <!-- El selector (el de Copiar factura, #279) solo existe mientras está abierto: así no pide las facturas en cada nota -->
                                     <ContentControl Content="{Binding}" Focusable="False">
