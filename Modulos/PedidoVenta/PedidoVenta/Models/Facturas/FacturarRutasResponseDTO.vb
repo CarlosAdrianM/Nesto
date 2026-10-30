@@ -31,8 +31,8 @@ Public Class FacturarRutasResponseDTO
     Public Property Facturas As List(Of FacturaCreadaDTO)
 
     ''' <summary>
-    ''' Lista de notas de entrega creadas.
-    ''' Las notas de entrega NO se imprimen directamente (no tienen DatosImpresion).
+    ''' Lista de notas de entrega y de recogida creadas.
+    ''' Nesto#580 / NestoAPI#758: las de ruta propia traen DatosImpresion (PDF con el código de barras NE/NR, 2 copias).
     ''' </summary>
     Public Property NotasEntrega As List(Of NotaEntregaCreadaDTO)
 
@@ -92,6 +92,64 @@ Public Class FacturarRutasResponseDTO
     Public ReadOnly Property NotasEntregaCreadas As Integer
         Get
             Return If(NotasEntrega?.Count, 0)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: notas (de entrega o de recogida) con datos de impresión.
+    ''' </summary>
+    Public ReadOnly Property NotasEntregaParaImprimir As Integer
+        Get
+            Return NotasDeEntregaParaImprimir + NotasDeRecogidaParaImprimir
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: notas de ENTREGA con datos de impresión.
+    ''' </summary>
+    Public ReadOnly Property NotasDeEntregaParaImprimir As Integer
+        Get
+            If NotasEntrega Is Nothing Then Return 0
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.DatosImpresion IsNot Nothing AndAlso Not n.EsRecogida).Count()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: notas de RECOGIDA con datos de impresión.
+    ''' </summary>
+    Public ReadOnly Property NotasDeRecogidaParaImprimir As Integer
+        Get
+            If NotasEntrega Is Nothing Then Return 0
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.DatosImpresion IsNot Nothing AndAlso n.EsRecogida).Count()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: notas de RECOGIDA creadas (con o sin impresión).
+    ''' </summary>
+    Public ReadOnly Property NotasRecogidaCreadas As Integer
+        Get
+            If NotasEntrega Is Nothing Then Return 0
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.EsRecogida).Count()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: etiquetas de recogida (NR{Pedido}-{N}) que la API ha impreso por la Zebra.
+    ''' </summary>
+    Public ReadOnly Property EtiquetasRecogidaImpresas As Integer
+        Get
+            If NotasEntrega Is Nothing Then Return 0
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing).Sum(Function(n) n.EtiquetasRecogidaImpresas)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#580: todo lo que hay que imprimir en papel (facturas, albaranes y notas de entrega / recogida).
+    ''' </summary>
+    Public ReadOnly Property TotalDocumentosParaImprimir As Integer
+        Get
+            Return FacturasParaImprimir + AlbaranesParaImprimir + NotasEntregaParaImprimir
         End Get
     End Property
 End Class
