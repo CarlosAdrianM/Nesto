@@ -36,7 +36,8 @@ Public Class AgenciaRepartoPropio
         }
     End Function
 
-    ' Sin portal de seguimiento externo: lo que pasa con el envío se ve en su historia y en la prueba de entrega.
+    ' Sin portal de seguimiento externo. Nesto#573: el enlace a nuestra página pública (NestoAPI#744) va firmado con una
+    ' clave que solo tiene la API, así que no se calcula aquí: AgenciasViewModel se lo pide a la API al seleccionar el envío.
     Protected Overrides Function EnlaceSeguimientoDe(albaran As String) As String
         Return String.Empty
     End Function

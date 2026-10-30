@@ -83,6 +83,10 @@ Public Interface IAgenciaService
     Function LeerPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of PruebaEntregaRepartoDto)
     ' Nesto#571: la firma de esa prueba de entrega (…/PruebaEntrega/Firma, image/png). Nothing si no hay firma.
     Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte())
+    ' Nesto#573 (NestoAPI#748): el enlace de seguimiento del envío que calcula la API (GET api/EnviosAgencias/{id}/
+    ' EnlaceSeguimiento). El del reparto propio va firmado con una clave que solo tiene la API. Nothing si no hay enlace
+    ' (o el envío no existe); lanza si la API falla.
+    Function LeerEnlaceSeguimiento(numeroEnvio As Integer) As Task(Of String)
     ' Nesto#415 / Nesto#340 (Agencias, slice A4.3): la agencia paga los reembolsos que cobró. El
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).

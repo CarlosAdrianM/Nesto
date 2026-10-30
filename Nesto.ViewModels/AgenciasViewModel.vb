@@ -1159,6 +1159,11 @@ Public Class AgenciasViewModel
                 ' de #387 pueden no coincidir). No depende de listaTiposRetorno: son cosas
                 ' independientes.
                 EnlaceSeguimientoEnvio = CalcularEnlaceSeguimiento(envioActual, ResolverAgenciaDelEnvio(agenciaEnvio))
+                ' Nesto#573: el enlace del reparto propio va firmado con una clave que solo tiene la API (NestoAPI#744):
+                ' se le pide sin bloquear y, si no contesta, el botón se queda desactivado como antes.
+                If String.IsNullOrEmpty(EnlaceSeguimientoEnvio) AndAlso EsRepartoPropio(envioActual) AndAlso envioActual.Numero > 0 Then
+                    CargaEnlaceSeguimiento = CargarEnlaceSeguimientoDesdeApiAsync(envioActual.Numero)
+                End If
 
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
                     reembolsoModificar = envioActual.Reembolso
@@ -1205,6 +1210,27 @@ Public Class AgenciasViewModel
         Catch
             Return String.Empty
         End Try
+    End Function
+
+    ''' <summary>Nesto#573: la última petición del enlace de seguimiento a la API (para esperarla en los tests).</summary>
+    Friend Property CargaEnlaceSeguimiento As Task = Task.CompletedTask
+
+    ''' <summary>
+    ''' Nesto#573 (NestoAPI#748): pide a la API el enlace de seguimiento del envío y lo pone en EnlaceSeguimientoEnvio si
+    ''' el usuario sigue en ese envío (si ya ha cambiado de fila, la respuesta tardía no pisa el enlace del otro). Si la API
+    ''' falla, no está publicada o no hay enlace, no cambia nada: el botón sigue desactivado y no salta ningún error.
+    ''' </summary>
+    Friend Async Function CargarEnlaceSeguimientoDesdeApiAsync(numeroEnvio As Integer) As Task
+        Dim url As String
+        Try
+            url = Await _servicio.LeerEnlaceSeguimiento(numeroEnvio)
+        Catch
+            Return
+        End Try
+        If String.IsNullOrWhiteSpace(url) OrElse envioActual Is Nothing OrElse envioActual.Numero <> numeroEnvio Then
+            Return
+        End If
+        EnlaceSeguimientoEnvio = url
     End Function
 
     ''' <summary>NestoAPI#595 (20/10/26): Correos Express (agencia 8) ya no tiene clase en Nesto.</summary>

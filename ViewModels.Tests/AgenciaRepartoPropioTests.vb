@@ -211,4 +211,84 @@ Public Class AgenciaRepartoPropioTests
         A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("sin permiso"))).MustHaveHappenedOnceExactly()
         A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
     End Function
+
+    ' ---- Nesto#573 (NestoAPI#748): «Abrir seguimiento» con el enlace que firma la API ----
+
+    Private Const URL_SEGUIMIENTO As String = "https://api.nuevavision.es/seguimiento/AAPWbBzS0rOv1Sx4cQ3Rd0F2"
+
+    <TestMethod()>
+    Public Async Function AbrirSeguimiento_RepartoPropio_PideElEnlaceALaApiYActivaElBoton() As Task
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(251500)).Returns(Task.FromResult(URL_SEGUIMIENTO))
+
+        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO))
+        Await viewModel.CargaEnlaceSeguimiento
+
+        Assert.AreEqual(URL_SEGUIMIENTO, viewModel.EnlaceSeguimientoEnvio)
+        Assert.IsTrue(viewModel.AbrirEnlaceSeguimientoCommand.CanExecute(Nothing))
+    End Function
+
+    <TestMethod()>
+    Public Async Function AbrirSeguimiento_RepartoPropio_SiLaApiFallaElBotonSigueDesactivado() As Task
+        ' API caída o aún sin publicar el endpoint: no rompe nada ni enseña errores.
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(251500)).ThrowsAsync(New Exception("NestoAPI no ha devuelto el enlace (500)"))
+
+        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO))
+        Await viewModel.CargaEnlaceSeguimiento
+
+        Assert.AreEqual(String.Empty, viewModel.EnlaceSeguimientoEnvio)
+        Assert.IsFalse(viewModel.AbrirEnlaceSeguimientoCommand.CanExecute(Nothing))
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function AbrirSeguimiento_RepartoPropio_SinEnlaceEnLaApi_BotonDesactivado() As Task
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(251500)).Returns(Task.FromResult(Of String)(Nothing))
+
+        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO))
+        Await viewModel.CargaEnlaceSeguimiento
+
+        Assert.IsFalse(viewModel.AbrirEnlaceSeguimientoCommand.CanExecute(Nothing))
+    End Function
+
+    <TestMethod()>
+    Public Async Function AbrirSeguimiento_RespuestaTardiaDeOtroEnvio_NoPisaElEnlace() As Task
+        Dim lenta As New TaskCompletionSource(Of String)()
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(251500)).Returns(lenta.Task)
+
+        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO))
+        Dim primera As Task = viewModel.CargaEnlaceSeguimiento
+        ' El usuario cambia a un envío de CTT antes de que conteste la API
+        viewModel.envioActual = New EnviosAgencia With {.Numero = 251501, .Agencia = 13, .CodigoBarras = Nothing}
+        lenta.SetResult(URL_SEGUIMIENTO)
+        Await primera
+
+        Assert.AreNotEqual(URL_SEGUIMIENTO, viewModel.EnlaceSeguimientoEnvio)
+    End Function
+
+    <TestMethod()>
+    Public Sub AbrirSeguimiento_OtraAgencia_NoLlamaALaApi()
+        viewModel.envioActual = Envio(13, CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO))
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(A(Of Integer).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Async Function AbrirSeguimiento_PestanaRetrasados_RepartoPropio_ActivaElBoton() As Task
+        A.CallTo(Function() servicio.LeerEnlaceSeguimiento(251500)).Returns(Task.FromResult(URL_SEGUIMIENTO))
+
+        viewModel.envioRetrasadoActual = New EnvioRetrasadoModel With {.Numero = 251500, .Empresa = "1", .Agencia = 14, .CodigoBarras = "RP251500"}
+        Await viewModel.CargaEnlaceSeguimiento
+
+        Assert.AreEqual(URL_SEGUIMIENTO, viewModel.EnlaceSeguimientoEnvio)
+        Assert.IsTrue(viewModel.AbrirEnlaceSeguimientoCommand.CanExecute(Nothing))
+    End Function
+
+    <TestMethod()>
+    Public Sub EnlaceSeguimiento_ContratoConLaApi()
+        Assert.AreEqual("EnviosAgencias/251500/EnlaceSeguimiento", AgenciaService.RutaEnlaceSeguimiento(251500))
+        CollectionAssert.AreEqual({"Numero", "Url"},
+                                  GetType(EnlaceSeguimientoEnvioDto).GetProperties().Select(Function(p) p.Name).OrderBy(Function(n) n, StringComparer.Ordinal).ToArray())
+        Assert.AreEqual(URL_SEGUIMIENTO, AgenciaService.EnlaceSeguimientoDeRespuesta("{""Numero"":251500,""Url"":""" & URL_SEGUIMIENTO & """}"))
+        Assert.IsNull(AgenciaService.EnlaceSeguimientoDeRespuesta("{""Numero"":251500,""Url"":null}"))
+        Assert.IsNull(AgenciaService.EnlaceSeguimientoDeRespuesta(String.Empty))
+    End Sub
 End Class
