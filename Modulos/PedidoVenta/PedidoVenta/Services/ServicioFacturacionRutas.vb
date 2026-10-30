@@ -202,7 +202,7 @@ Namespace Services
         Public Shared Function MensajeErrorFinDeMes(estado As Net.HttpStatusCode, cuerpo As String) As String
             If String.IsNullOrWhiteSpace(cuerpo) Then
                 If estado = Net.HttpStatusCode.Forbidden Then
-                    Return "No tiene permiso para facturar el fin de mes: solo pueden hacerlo Administración, Dirección e Informática."
+                    Return "No tiene permiso para facturar el fin de mes: solo pueden hacerlo Administración, Facturación, Dirección e Informática."
                 End If
                 Return $"La API no ha podido facturar el fin de mes ({CInt(estado)} {estado})."
             End If

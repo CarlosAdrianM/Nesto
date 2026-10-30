@@ -2339,7 +2339,7 @@ Public Class DetallePedidoViewModel
                                                                 End Sub)
     End Sub
     ''' <summary>
-    ''' NestoAPI#727: «Fin de mes…» abre la ventana de facturar el fin de mes por la API. Solo Administración, Dirección e
+    ''' NestoAPI#727: «Fin de mes…» abre la ventana de facturar el fin de mes por la API. Solo Administración, Facturación, Dirección e
     ''' Informática (los mismos grupos que exige la API).
     ''' </summary>
     Public ReadOnly Property PuedeFacturarFinDeMes As Boolean

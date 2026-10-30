@@ -10,7 +10,7 @@ Imports Nesto.Modulos.PedidoVenta.Services
 ''' <summary>
 ''' NestoAPI#727: facturar el fin de mes por la API (sustituye al paso del «Nesto viejo»). Reúne en un pedido del contacto
 ''' principal los albaranes hasta la fecha de corte de los pedidos de fin de mes SIN P.O. de cada cliente y los factura; los
-''' pedidos con P.O. no entran (se facturan por P.O. cuando están completos). Solo Administración, Dirección e Informática.
+''' pedidos con P.O. no entran (se facturan por P.O. cuando están completos). Solo Administración, Facturación, Dirección e Informática.
 ''' </summary>
 Public Class FacturarFinDeMesDialogViewModel
     Inherits DialogoNestoBase
@@ -43,6 +43,7 @@ Public Class FacturarFinDeMesDialogViewModel
             Return False
         End If
         Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
+            configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION) OrElse
             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
     End Function

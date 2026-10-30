@@ -38,7 +38,7 @@
         </StackPanel>
 
         <TextBlock Grid.Row="3" Foreground="DarkRed" TextWrapping="Wrap" Margin="0,0,0,10"
-                   Text="Solo pueden facturar el fin de mes Administración, Dirección e Informática.">
+                   Text="Solo pueden facturar el fin de mes Administración, Facturación, Dirección e Informática.">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
                     <Style.Triggers>

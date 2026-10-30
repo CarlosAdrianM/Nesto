@@ -365,7 +365,7 @@
                                 <!-- Nesto#570 (NestoAPI#737): WhatsApp Web con el mensaje y un enlace de descarga del PDF (30 días) -->
                                 <Button Grid.Row="2" Grid.Column="0" Command="{Binding EnviarPedidoPorWhatsAppCommand}"
                                         ToolTip="Abrir WhatsApp Web con el mensaje para el cliente y el enlace de descarga del PDF del pedido; solo tiene que pulsar «Enviar»">Enviar por WhatsApp…</Button>
-                                <!-- Fila 2: NestoAPI#727, facturar el fin de mes por la API (Administración, Dirección e Informática) -->
+                                <!-- Fila 2: NestoAPI#727, facturar el fin de mes por la API (Administración, Facturación, Dirección e Informática) -->
                                 <Button Grid.Row="2" Grid.Column="2" Command="{Binding AbrirFacturarFinDeMesCommand}"
                                         Visibility="{Binding PuedeFacturarFinDeMes, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Reunir y facturar los albaranes de fin de mes (los pedidos con P.O. no entran)">Facturar Fin de Mes</Button>

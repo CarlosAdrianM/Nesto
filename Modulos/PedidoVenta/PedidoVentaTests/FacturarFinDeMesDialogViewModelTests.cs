@@ -16,7 +16,7 @@ namespace PedidoVentaTests
     /// <summary>
     /// NestoAPI#727: la ventana «Facturar fin de mes» llama a POST api/FacturacionRutas/FinDeMes (sustituye al Nesto viejo):
     /// confirmación previa, fecha de corte por defecto el último día del mes anterior, resultado por cliente en la ventana
-    /// y solo para Administración, Dirección e Informática.
+    /// y solo para Administración, Facturación, Dirección e Informática.
     /// </summary>
     [TestClass]
     public class FacturarFinDeMesDialogViewModelTests
@@ -172,7 +172,7 @@ namespace PedidoVentaTests
         {
             Assert.AreEqual("La fecha de corte (01/12/2026) no puede ser posterior a hoy.",
                 ServicioFacturacionRutas.MensajeErrorFinDeMes(HttpStatusCode.BadRequest, "{\"Message\":\"La fecha de corte (01/12/2026) no puede ser posterior a hoy.\"}"));
-            StringAssert.Contains(ServicioFacturacionRutas.MensajeErrorFinDeMes(HttpStatusCode.Forbidden, ""), "Administración, Dirección e Informática");
+            StringAssert.Contains(ServicioFacturacionRutas.MensajeErrorFinDeMes(HttpStatusCode.Forbidden, ""), "Administración, Facturación, Dirección e Informática");
         }
 
         [TestMethod]
@@ -187,6 +187,7 @@ namespace PedidoVentaTests
 
         [DataTestMethod]
         [DataRow(Constantes.GruposSeguridad.ADMINISTRACION)]
+        [DataRow(Constantes.GruposSeguridad.FACTURACION)] // Carlos 30/10/26: Alfredo (Facturación) lanza el fin de mes
         [DataRow(Constantes.GruposSeguridad.DIRECCION)]
         [DataRow(Constantes.GruposSeguridad.INFORMATICA)]
         public void ConPermiso_ElBotonSeVe(string grupo)
