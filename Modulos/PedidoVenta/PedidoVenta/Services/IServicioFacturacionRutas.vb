@@ -20,6 +20,12 @@ Namespace Services
         Function FacturarPedido(empresa As String, pedido As Integer) As Task(Of FacturarRutasResponseDTO)
 
         ''' <summary>
+        ''' Nesto#586 / NestoAPI#765: lo mismo, diciendo si quien factura ya ha confirmado que una nota de entrega se salta el
+        ''' packing (SaltarPacking). Sin confirmar, la API contesta con el código NOTA_SIN_PACKING en PedidosConErrores.
+        ''' </summary>
+        Function FacturarPedido(empresa As String, pedido As Integer, saltarPacking As Boolean) As Task(Of FacturarRutasResponseDTO)
+
+        ''' <summary>
         ''' Genera un preview (simulación) de facturación SIN crear nada en la BD.
         ''' Muestra qué albaranes, facturas y notas de entrega se crearían con sus importes.
         ''' </summary>

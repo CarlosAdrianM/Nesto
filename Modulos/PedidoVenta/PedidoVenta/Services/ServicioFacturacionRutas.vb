@@ -34,7 +34,14 @@ Namespace Services
         ''' NestoAPI#592: factura un pedido por el mismo camino que la facturación de rutas.
         ''' </summary>
         Public Function FacturarPedido(empresa As String, pedido As Integer) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarPedido
-            Return PostarFacturacion("FacturacionRutas/FacturarPedido", New With {.Empresa = empresa, .Pedido = pedido}, $"Error al facturar el pedido {pedido}")
+            Return FacturarPedido(empresa, pedido, saltarPacking:=False)
+        End Function
+
+        ''' <summary>
+        ''' Nesto#586 / NestoAPI#765: con saltarPacking, la nota de entrega se procesa aunque no haya pasado por el packing.
+        ''' </summary>
+        Public Function FacturarPedido(empresa As String, pedido As Integer, saltarPacking As Boolean) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarPedido
+            Return PostarFacturacion("FacturacionRutas/FacturarPedido", New With {.Empresa = empresa, .Pedido = pedido, .SaltarPacking = saltarPacking}, $"Error al facturar el pedido {pedido}")
         End Function
 
         ' Llamada común de Facturar y FacturarPedido: misma autorización, mismo timeout, misma respuesta.

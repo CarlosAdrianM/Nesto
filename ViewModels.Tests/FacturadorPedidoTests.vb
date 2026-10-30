@@ -89,4 +89,64 @@ Public Class FacturadorPedidoTests
 
         A.CallTo(Function() impresion.ImprimirDocumentos(A(Of FacturarRutasResponseDTO).Ignored)).MustNotHaveHappened()
     End Function
+
+    ' Nesto#586 / NestoAPI#765: una nota de ENTREGA que no ha pasado por el packing no se procesa sin preguntar.
+
+    Private Shared Function RespuestaNotaSinPacking() As FacturarRutasResponseDTO
+        Dim respuesta As New FacturarRutasResponseDTO()
+        respuesta.PedidosConErrores.Add(New PedidoConErrorDTO With {
+            .TipoError = "Nota sin packing", .Codigo = CodigosErrorFacturacion.NOTA_SIN_PACKING,
+            .MensajeError = "La nota de entrega 927519 no ha pasado por el packing."})
+        Return respuesta
+    End Function
+
+    <TestMethod()>
+    Public Async Function NotaSinPacking_Confirmada_ReintentaSaltandoElPacking() As Task
+        Responder(RespuestaNotaSinPacking())
+        Dim procesada As New FacturarRutasResponseDTO()
+        procesada.NotasEntrega.Add(New NotaEntregaCreadaDTO With {.NumeroLineas = 1})
+        A.CallTo(Function() facturacion.FacturarPedido("1", 927519, True)).Returns(Task.FromResult(procesada))
+        A.CallTo(Function() dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
+
+        Await facturador.FacturarAsync("1", 927519, False)
+
+        A.CallTo(Function() dialogos.ShowConfirmationAnswer("Nota de entrega", "Esta nota no ha pasado por el packing: se saltará el reparto. ¿Continúa?")).
+            MustHaveHappenedOnceExactly()
+        A.CallTo(Function() facturacion.FacturarPedido("1", 927519, True)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogos.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogos.ShowNotification("Facturación", "Nota de entrega del pedido 927519 procesada")).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function NotaSinPacking_NoConfirmada_NoHaceNadaMas() As Task
+        Responder(RespuestaNotaSinPacking())
+        A.CallTo(Function() dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
+
+        Await facturador.FacturarAsync("1", 927519, False)
+
+        A.CallTo(Function() facturacion.FacturarPedido(A(Of String).Ignored, A(Of Integer).Ignored, A(Of Boolean).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogos.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogos.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function SinCodigo_NoPregunta() As Task
+        Dim respuesta As New FacturarRutasResponseDTO()
+        respuesta.PedidosConErrores.Add(New PedidoConErrorDTO With {.TipoError = "Visto Bueno", .MensajeError = "sin visto bueno"})
+        Responder(respuesta)
+
+        Await facturador.FacturarAsync("1", 927519, False)
+
+        A.CallTo(Function() dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogos.ShowError("Visto Bueno: sin visto bueno")).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Sub EsNotaSinPacking_LeeElCodigoDeLaApi()
+        Dim respuesta = Newtonsoft.Json.JsonConvert.DeserializeObject(Of FacturarRutasResponseDTO)(
+            "{""PedidosConErrores"":[{""TipoError"":""Nota sin packing"",""Codigo"":""NOTA_SIN_PACKING"",""MensajeError"":""x""}]}")
+        Assert.IsTrue(FacturadorPedido.EsNotaSinPacking(respuesta))
+        Assert.IsFalse(FacturadorPedido.EsNotaSinPacking(New FacturarRutasResponseDTO()))
+        Assert.IsFalse(FacturadorPedido.EsNotaSinPacking(Nothing))
+    End Sub
 End Class

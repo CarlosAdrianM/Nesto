@@ -31,6 +31,17 @@ Namespace Services
                 Throw New InvalidOperationException($"La API no ha devuelto el resultado de facturar el pedido {pedido}")
             End If
 
+            ' Nesto#586 / NestoAPI#765: una nota de entrega que no ha pasado por el packing no se procesa sin preguntar.
+            If EsNotaSinPacking(response) Then
+                If Not _dialogService.ShowConfirmationAnswer("Nota de entrega", PREGUNTA_SALTAR_PACKING) Then
+                    Return
+                End If
+                response = Await _servicioFacturacion.FacturarPedido(empresa, pedido, saltarPacking:=True)
+                If response Is Nothing Then
+                    Throw New InvalidOperationException($"La API no ha devuelto el resultado de facturar el pedido {pedido}")
+                End If
+            End If
+
             ' NestoAPI#327: los avisos de facturación (p. ej. NIF no registrado en la AEAT) le tienen que
             ' saltar al que factura.
             For Each factura In If(response.Facturas, New List(Of FacturaCreadaDTO))
@@ -61,6 +72,14 @@ Namespace Services
             If Not String.IsNullOrEmpty(resumen) Then
                 _dialogService.ShowNotification("Facturación", resumen)
             End If
+        End Function
+
+        ''' <summary>Nesto#586: la pregunta antes de procesar una nota de entrega que no ha pasado por el packing.</summary>
+        Public Const PREGUNTA_SALTAR_PACKING As String = "Esta nota no ha pasado por el packing: se saltará el reparto. ¿Continúa?"
+
+        Friend Shared Function EsNotaSinPacking(response As FacturarRutasResponseDTO) As Boolean
+            Return If(response?.PedidosConErrores, New List(Of PedidoConErrorDTO)).
+                Any(Function(e) String.Equals(e?.Codigo, CodigosErrorFacturacion.NOTA_SIN_PACKING, StringComparison.OrdinalIgnoreCase))
         End Function
 
         Private Shared Function HayAlgoParaImprimir(response As FacturarRutasResponseDTO) As Boolean

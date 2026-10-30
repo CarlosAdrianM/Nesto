@@ -2110,4 +2110,55 @@ Public Class AgenciaViewModelTests
         Return pedido
     End Function
 
+    ' Nesto#586 / NestoAPI#765: una nota de entrega sale con reembolso 0; antes de montar el envío se pregunta si hay que cobrar algo.
+
+    <TestMethod()>
+    Public Sub ReembolsoNotaEntrega_SinReembolso_PreguntaYSiHayQueCobrarNoSigue()
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim nota As PedidoAgenciaModel = PedidoParaPrepagos()
+        nota.NotaEntrega = True
+        viewModel.pedidoSeleccionado = nota
+        viewModel.reembolso = 0D
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Nota de entrega", AgenciasViewModel.PREGUNTA_REEMBOLSO_NOTA)).Returns(True)
+
+        Assert.IsFalse(viewModel.ConfirmarReembolsoNotaEntrega(), "Hay que cobrar: se para para poner el reembolso")
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Nota de entrega", "Nota de entrega: reembolso 0. ¿Hay que cobrar algo?")).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub ReembolsoNotaEntrega_NoHayQueCobrar_Sigue()
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim nota As PedidoAgenciaModel = PedidoParaPrepagos()
+        nota.NotaEntrega = True
+        viewModel.pedidoSeleccionado = nota
+        viewModel.reembolso = 0D
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(False)
+
+        Assert.IsTrue(viewModel.ConfirmarReembolsoNotaEntrega())
+    End Sub
+
+    <TestMethod()>
+    Public Sub ReembolsoNotaEntrega_ConReembolsoOPedidoNormal_NiPregunta()
+        viewModel = New AgenciasViewModel(servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim nota As PedidoAgenciaModel = PedidoParaPrepagos()
+        nota.NotaEntrega = True
+        viewModel.pedidoSeleccionado = nota
+        viewModel.reembolso = 30D
+        Assert.IsTrue(viewModel.ConfirmarReembolsoNotaEntrega(), "Ya lleva reembolso")
+
+        Dim pedido As PedidoAgenciaModel = PedidoParaPrepagos()
+        viewModel.pedidoSeleccionado = pedido
+        viewModel.reembolso = 0D
+        Assert.IsTrue(viewModel.ConfirmarReembolsoNotaEntrega(), "Un pedido normal no es asunto de este aviso")
+
+        A.CallTo(Function() dialogService.ShowConfirmationAnswer("Nota de entrega", A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub PedidoAgenciaModel_LeeNotaEntregaDeLaApi()
+        Dim pedido = Newtonsoft.Json.JsonConvert.DeserializeObject(Of PedidoAgenciaModel)("{""numero"":1,""notaEntrega"":true}")
+        Assert.IsTrue(pedido.NotaEntrega)
+        Assert.IsFalse(Newtonsoft.Json.JsonConvert.DeserializeObject(Of PedidoAgenciaModel)("{""numero"":1}").NotaEntrega, "Una API sin el campo: sin aviso")
+    End Sub
+
 End Class

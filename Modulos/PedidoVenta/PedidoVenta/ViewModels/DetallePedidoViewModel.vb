@@ -1797,7 +1797,7 @@ Public Class DetallePedidoViewModel
     ''' </summary>
     Friend Async Function ProcesarNotaEntregaAsync() As Task
         If Not dialogService.ShowConfirmationAnswer("Nota de entrega",
-                $"El pedido {pedido.numero} es una nota de entrega: no lleva albarán ni factura.{vbCrLf}¿Quieres procesarla como en Facturar rutas?") Then
+                $"El pedido {pedido.numero} es una nota de entrega: no lleva albarán ni factura.{vbCrLf}¿Quiere procesarla como en Facturar rutas?") Then
             Return
         End If
         Try
