@@ -113,6 +113,11 @@ Public Class DetallePedidoViewModel
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
         EnviarPedidoPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarPedidoPorCorreoAsync, AddressOf CanDescargarPresupuesto)
         EnviarFacturaPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorCorreoAsync, AddressOf CanImprimirFactura)
+        ' Nesto#570 (NestoAPI#737): el pedido y la factura por WhatsApp Web, con un enlace de descarga (sugerencias 866/867)
+        EnvioPorWhatsApp = New ControlesUsuario.Services.EnvioDocumentoPorWhatsApp(New ControlesUsuario.Services.ServicioEnlacesDescarga(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
+        EnviarPedidoPorWhatsAppCommand = New AsyncRelayCommand(AddressOf EnviarPedidoPorWhatsAppAsync, AddressOf CanDescargarPresupuesto)
+        EnviarFacturaPorWhatsAppCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorWhatsAppAsync, AddressOf CanImprimirFactura)
         cmdActualizarTotales = New RelayCommand(AddressOf OnActualizarTotales)
         cmdCambiarFechaEntrega = New RelayCommand(AddressOf OnCambiarFechaEntrega)
         cmdCambiarIva = New RelayCommand(AddressOf OnCambiarIva)
@@ -554,6 +559,7 @@ Public Class DetallePedidoViewModel
             ImprimirFacturaCommand.NotifyCanExecuteChanged()
             ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
             EnviarFacturaPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
+            EnviarFacturaPorWhatsAppCommand?.NotifyCanExecuteChanged() ' Nesto#570
             ImprimirAlbaranCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
             PonerSuPedidoFacturaCommand?.NotifyCanExecuteChanged() ' Nesto#562
@@ -655,6 +661,7 @@ Public Class DetallePedidoViewModel
             PasarAPresupuestoCommand.NotifyCanExecuteChanged()
             DescargarPresupuestoCommand.NotifyCanExecuteChanged()
             EnviarPedidoPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
+            EnviarPedidoPorWhatsAppCommand?.NotifyCanExecuteChanged() ' Nesto#570
             CopiarAlPortapapelesCommand.NotifyCanExecuteChanged() ' Nesto#385
             CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
             CrearFacturaVentaCommand.NotifyCanExecuteChanged()
@@ -2457,6 +2464,29 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Await EnvioPorCorreo.EnviarFactura(pedido.empresa?.Trim(), lineaActual.Factura?.Trim(), pedido.cliente?.Trim(), pedido.contacto?.Trim())
+    End Function
+
+    ''' <summary>Nesto#570 (NestoAPI#737): el enlace de descarga + WhatsApp Web. Friend para los tests.</summary>
+    Friend Property EnvioPorWhatsApp As ControlesUsuario.Services.IEnvioDocumentoPorWhatsApp
+
+    ''' <summary>Nesto#570: «Enviar por WhatsApp…» junto a «Enviar por correo…»: abre WhatsApp Web con el mensaje y el enlace del PDF.</summary>
+    Public Property EnviarPedidoPorWhatsAppCommand As AsyncRelayCommand
+
+    Friend Async Function EnviarPedidoPorWhatsAppAsync() As Task
+        If pedido Is Nothing OrElse EnvioPorWhatsApp Is Nothing Then
+            Return
+        End If
+        Await EnvioPorWhatsApp.EnviarPedido(pedido.empresa?.Trim(), pedido.numero)
+    End Function
+
+    ''' <summary>Nesto#570: la factura de la línea, por WhatsApp (en el menú de «Imprimir Factura», junto a «Enviar por correo…»).</summary>
+    Public Property EnviarFacturaPorWhatsAppCommand As AsyncRelayCommand
+
+    Friend Async Function EnviarFacturaPorWhatsAppAsync() As Task
+        If Not CanImprimirFactura() OrElse EnvioPorWhatsApp Is Nothing Then
+            Return
+        End If
+        Await EnvioPorWhatsApp.EnviarFactura(pedido.empresa?.Trim(), lineaActual.Factura?.Trim())
     End Function
 
     Private _enviarCobroTarjetaCommand As RelayCommand
