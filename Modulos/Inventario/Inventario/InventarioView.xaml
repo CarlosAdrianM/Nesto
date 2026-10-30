@@ -7,6 +7,7 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
         mc:Ignorable="d">
 
 
@@ -47,7 +48,7 @@
             <TextBox Name="txtFecha" Grid.Row="1" Grid.Column="1" Text="{Binding fechaSeleccionada, StringFormat=d}"></TextBox>
 
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Producto: "></TextBlock>
-            <TextBox Name="txtProducto" Grid.Row="2" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}"></TextBox>
+            <TextBox Name="txtProducto" Grid.Row="2" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}" escaner:LectorCodigoBarras.AceptaCodigoBarras="True"></TextBox>
 
             <TextBlock Grid.Row="3" Grid.Column="0" Text="Cantidad: "></TextBlock>
             <TextBox Name="txtCantidad" Grid.Row="3" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>

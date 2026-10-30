@@ -64,6 +64,21 @@ namespace Infrastructure.Tests
 
             public void CambiaElGrupo(string grupo) => GrupoHaCambiado?.Invoke(this, grupo);
 
+            // Nesto#589: el escáner remoto
+            public event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
+            public readonly ConcurrentQueue<(string Equipo, bool ConFoco)> Actividades = new ConcurrentQueue<(string, bool)>();
+            public readonly TaskCompletionSource<bool> SeHaPresentado = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            public Exception FalloAlPresentarse;
+
+            public Task<bool> ActividadEscanerRemoto(string equipo, bool conFoco)
+            {
+                Actividades.Enqueue((equipo, conFoco));
+                _ = SeHaPresentado.TrySetResult(true);
+                return FalloAlPresentarse != null ? Task.FromException<bool>(FalloAlPresentarse) : Task.FromResult(true);
+            }
+
+            public void LlegaLectura(LecturaEscanerRemoto lectura) => LecturaEscanerRemoto?.Invoke(this, lectura);
+
             public void LlegaAviso() => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty);
             public void PierdeLaConexion() => Reconectando?.Invoke(this, EventArgs.Empty);
             public void Reconecta() => Reconectada?.Invoke(this, EventArgs.Empty);
@@ -82,6 +97,134 @@ namespace Infrastructure.Tests
 
         /// <summary>Las esperas de revisión del token no terminan nunca (salvo cancelación).</summary>
         private static Task EsperaInfinita(CancellationToken ct) => Task.Delay(Timeout.Infinite, ct);
+
+        [TestMethod]
+        public async Task EscanerRemoto_AlConectarSePresentaConElEquipoYSiTieneElFoco()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null)
+            { Equipo = "RDS2016" };
+
+            avisos.NotificarActividad(true); // la ventana ya estaba delante antes de conectar
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+
+            CollectionAssert.AreEqual(new[] { ("RDS2016", true) }, conexion.Actividades.ToArray());
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task EscanerRemoto_AlActivarseLaVentanaLoDiceYAlPerderElFocoNo()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null)
+            { Equipo = "RDS2016" };
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+
+            avisos.NotificarActividad(false);
+            avisos.NotificarActividad(true);
+            await Task.Delay(50);
+
+            CollectionAssert.AreEqual(new[] { ("RDS2016", false), ("RDS2016", true) }, conexion.Actividades.ToArray(),
+                "Al conectar sin foco se presenta con false; perder el foco no se dice; activarse, sí");
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task EscanerRemoto_TrasRecuperarLaConexionSeVuelveAPresentar()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null)
+            { Equipo = "RDS2016" };
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+
+            conexion.Reconecta();
+            await Task.Delay(50);
+
+            Assert.AreEqual(2, conexion.Actividades.Count);
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task EscanerRemoto_UnaApiSinElMetodo_NoTumbaLaConexion()
+        {
+            var conexion = new ConexionFalsa { FalloAlPresentarse = new InvalidOperationException("Method not found") };
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            int recibidos = 0;
+            avisos.HayNotificacionesNuevas += (s, e) => Interlocked.Increment(ref recibidos);
+
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+            await Task.Delay(50);
+            conexion.LlegaAviso();
+
+            Assert.AreEqual(EstadoConexionTiempoReal.Conectado, avisos.Estado);
+            Assert.AreEqual(1, recibidos, "La campana sigue funcionando");
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task EscanerRemoto_LaLecturaDelServidorLlegaYUnaVaciaNo()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            var recibidas = new ConcurrentQueue<LecturaEscanerRemoto>();
+            avisos.LecturaRecibida += (s, l) => recibidas.Enqueue(l);
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+
+            conexion.LlegaLectura(new LecturaEscanerRemoto { Codigo = "8412345678901", ClaveIdempotencia = "k1", Usuario = "Alfredo" });
+            conexion.LlegaLectura(new LecturaEscanerRemoto { Codigo = "  " });
+            conexion.LlegaLectura(null);
+
+            Assert.AreEqual(1, recibidas.Count);
+            Assert.IsTrue(recibidas.TryPeek(out LecturaEscanerRemoto primera));
+            Assert.AreEqual("8412345678901", primera.Codigo);
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public void EscanerRemoto_SinConexion_NotificarActividadNoLanza()
+        {
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => new ConexionFalsa(), (espera, ct) => EsperaInfinita(ct), null);
+
+            avisos.NotificarActividad(true);
+            avisos.NotificarActividad(false);
+        }
+
+        [TestMethod]
+        public void FiltroLecturasRepetidas_LaMismaClaveSoloUnaVezYSinClaveSiempre()
+        {
+            var filtro = new FiltroLecturasRepetidas();
+
+            Assert.IsTrue(filtro.EsNueva("k1"));
+            Assert.IsFalse(filtro.EsNueva("k1"));
+            Assert.IsFalse(filtro.EsNueva(" k1 "));
+            Assert.IsTrue(filtro.EsNueva("k2"));
+            Assert.IsTrue(filtro.EsNueva(null));
+            Assert.IsTrue(filtro.EsNueva(null));
+        }
+
+        [TestMethod]
+        public void FiltroLecturasRepetidas_OlvidaLasMasAntiguas()
+        {
+            var filtro = new FiltroLecturasRepetidas();
+            for (int i = 0; i <= FiltroLecturasRepetidas.MAXIMO; i++)
+            {
+                Assert.IsTrue(filtro.EsNueva("k" + i));
+            }
+
+            Assert.IsTrue(filtro.EsNueva("k0"), "La primera ya se ha olvidado");
+            Assert.IsFalse(filtro.EsNueva("k" + FiltroLecturasRepetidas.MAXIMO));
+        }
 
         [TestMethod]
         public void EsperaTrasFallos_CreceHastaCincoMinutosYSeQuedaAhi()

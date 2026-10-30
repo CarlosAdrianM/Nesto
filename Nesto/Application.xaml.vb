@@ -54,7 +54,32 @@ Partial Public Class Application
         ' Lo que hacía PrismApplication.OnInitialized: mostrarlo cuando los módulos ya han puesto su menú en la cinta
         shell.Show()
 
+        IniciarEscanerRemoto()
         ObtenerTokenEIniciarAvisos()
+    End Sub
+
+    ' Nesto#589 (NestoAPI#768): el receptor de lo leído con Ariadna («Escanear para Nesto»). Vive toda la aplicación.
+    Private _receptorEscanerRemoto As ControlesUsuario.EscanerRemoto.ReceptorEscanerRemoto
+
+    ''' <summary>
+    ''' Nesto#589 (NestoAPI#768, Carlos 30/10/26): escáner remoto. Lo leído con Ariadna por el mismo usuario llega por la conexión
+    ''' de la campana (AvisosHub) y se escribe en el campo con el foco si acepta códigos de barras (si no, aviso «Último código
+    ''' leído»). Cada vez que Nesto pasa a primer plano se lo dice a la API: con varios Nesto abiertos del mismo usuario, el código
+    ''' va al último que tuvo el foco. Sin temporizadores.
+    ''' </summary>
+    Private Sub IniciarEscanerRemoto()
+        Try
+            Dim escaner = TryCast(Contenedor.Actual.Resolver(Of IAvisosEnTiempoReal)(), IEscanerRemoto)
+            If escaner Is Nothing Then
+                Return
+            End If
+            _receptorEscanerRemoto = New ControlesUsuario.EscanerRemoto.ReceptorEscanerRemoto(escaner, Dispatcher)
+            AddHandler Activated, Sub(s, a) escaner.NotificarActividad(True)
+            AddHandler Deactivated, Sub(s, a) escaner.NotificarActividad(False)
+            escaner.NotificarActividad(Windows.Cast(Of Window)().Any(Function(w) w.IsActive))
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"No se pudo iniciar el escáner remoto: {ex.Message}")
+        End Try
     End Sub
 
     Private Sub OnDispatcherUnhandledException(sender As Object, e As System.Windows.Threading.DispatcherUnhandledExceptionEventArgs)

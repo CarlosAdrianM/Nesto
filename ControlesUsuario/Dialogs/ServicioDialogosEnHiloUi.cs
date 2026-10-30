@@ -88,6 +88,9 @@ namespace ControlesUsuario.Dialogs
         public string GetText(string title, string message, string defaultText)
             => EnHiloUi(() => _interno.GetText(title, message, defaultText));
 
+        public string GetCodigoBarras(string title, string message)
+            => EnHiloUi(() => _interno.GetCodigoBarras(title, message));
+
         public DateTime? GetDate(string title, string message, DateTime? defaultDate)
             => EnHiloUi(() => _interno.GetDate(title, message, defaultDate));
 
