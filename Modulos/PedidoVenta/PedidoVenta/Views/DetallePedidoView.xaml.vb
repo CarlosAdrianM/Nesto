@@ -22,11 +22,13 @@ Public Class DetallePedidoView
         If oldVm IsNot Nothing Then
             RemoveHandler oldVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
             RemoveHandler oldVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
+            RemoveHandler oldVm.FocoEnProductoSolicitado, AddressOf ViewModel_FocoEnProductoSolicitado ' Nesto#581
         End If
 
         If newVm IsNot Nothing Then
             AddHandler newVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
             AddHandler newVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
+            AddHandler newVm.FocoEnProductoSolicitado, AddressOf ViewModel_FocoEnProductoSolicitado ' Nesto#581
         End If
     End Sub
 
@@ -56,6 +58,21 @@ Public Class DetallePedidoView
                                                     estaEnfocanddoAutomaticamente = False
                                                 End Try
                                             End Sub, DispatcherPriority.Loaded)
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#581: el abono por recogida recién abierto deja el cursor en Producto de una línea nueva (pestaña Líneas), para leer
+    ''' con el lector. Al cambiar a la pestaña ya lo hace TabControl_SelectionChanged; si ya estaba en Líneas, aquí.
+    ''' </summary>
+    Private Sub ViewModel_FocoEnProductoSolicitado(sender As Object, e As EventArgs)
+        If grdLineas Is Nothing OrElse TabControl Is Nothing Then
+            Return
+        End If
+        If TabControl.SelectedIndex <> 3 Then
+            TabControl.SelectedIndex = 3
+        Else
+            Dim unused = Dispatcher.BeginInvoke(Sub() EnfocarColumnaProductoInicial(), DispatcherPriority.Loaded)
+        End If
     End Sub
 
     Private Sub ViewModel_PropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
@@ -206,6 +223,14 @@ Public Class DetallePedidoView
 
         ' Heredar tipoLinea del último usado (guardado en CellEditEnding)
         nuevaLinea.tipoLinea = ultimoTipoLineaUsado
+
+        ' Nesto#581: en el abono de una recogida, de producto y con cantidad −1
+        Dim vm As DetallePedidoViewModel = TryCast(DataContext, DetallePedidoViewModel)
+        If vm IsNot Nothing AndAlso vm.EsModoAbonoRecogida Then
+            vm.PrepararLineaNueva(nuevaLinea)
+            ultimoTipoLineaUsado = 1
+            Return
+        End If
 
         ' Si el tipo es 0 (Texto), mover automáticamente a la columna Texto
         If ultimoTipoLineaUsado = 0 Then

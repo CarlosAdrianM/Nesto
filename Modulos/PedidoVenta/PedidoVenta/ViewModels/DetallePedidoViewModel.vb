@@ -153,6 +153,7 @@ Public Class DetallePedidoViewModel
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) OrElse
             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
         InicializarNotaEntrega() ' Nesto#579
+        InicializarAbonoRecogida() ' Nesto#581
 
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
         messenger.Register(Of ProductoSeleccionadoMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).InsertarProducto(m.Value))
@@ -674,6 +675,7 @@ Public Class DetallePedidoViewModel
             NotificarCambioRetencion() ' NestoAPI#698
             NotificarCambioDatosTransferencia() ' Sugerencia 396
             InicializarCabeceraNota() ' Nesto#579
+            NotificarCambioAbonoRecogida() ' Nesto#581: otro pedido en pantalla, otro modo
         End Set
     End Property
 
@@ -1348,6 +1350,11 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Async Sub OnCargarPedido(resumen As ResumenPedido)
+        Await CargarPedidoAsync(resumen)
+    End Sub
+
+    ''' <summary>Nesto#581: la carga de cmdCargarPedido, esperable (el abono por recogida abre el pedido y luego entra en modo abono).</summary>
+    Friend Async Function CargarPedidoAsync(resumen As ResumenPedido) As Task
         Try
             If Not IsNothing(resumen) Then
                 ' CASO 1: Pedido nuevo (numero = 0)
@@ -1382,7 +1389,7 @@ Public Class DetallePedidoViewModel
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         End Try
-    End Sub
+    End Function
 
     Private _cargarProductoCommand As RelayCommand(Of LineaPedidoVentaDTO)
     Public Property CargarProductoCommand As RelayCommand(Of LineaPedidoVentaDTO)
@@ -2171,6 +2178,10 @@ Public Class DetallePedidoViewModel
         ' NestoAPI#722: se ha aplazado la fecha de una línea con picking; el almacén ya tiene la campana
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "AplazadoConPicking")
             dialogService.ShowNotification("Pedido aplazado con picking en curso", aviso.Mensaje)
+        Next
+        ' Nesto#581 (NestoAPI#760): en el abono de una recogida, un producto que no está en la factura original (no bloquea)
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_ABONO_PRODUCTO_FUERA_DE_FACTURA)
+            dialogService.ShowNotification("Producto fuera de la factura", aviso.Mensaje)
         Next
         ' Nesto#567 (NestoAPI#732): ha dicho que sí a anular las inscripciones que justificaba el pedido
         For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
