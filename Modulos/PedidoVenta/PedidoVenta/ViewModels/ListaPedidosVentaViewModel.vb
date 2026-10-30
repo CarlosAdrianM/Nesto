@@ -44,7 +44,7 @@ Public Class ListaPedidosVentaViewModel
         messenger.Register(Of SacarPickingMensaje)(Me, Sub(r, m)
                                                            Dim unused = DirectCast(r, ListaPedidosVentaViewModel).CargarResumenSeleccionado()
                                                        End Sub)
-        messenger.Register(Of PedidoModificadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).ActualizarResumen(m.Value))
+        messenger.Register(Of PedidoModificadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).ActualizarResumen(m.Value, m.EsCarga))
         messenger.Register(Of PedidoCreadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).OnPedidoCreado(m.Value))
 
         ListaPedidos = New ColeccionFiltrable With {
@@ -54,6 +54,7 @@ Public Class ListaPedidosVentaViewModel
 
         'AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado
         AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args)
+                                                                 RecordarResumenDeLaLista()
                                                                  Dim unused = CargarResumenSeleccionado()
                                                              End Sub
 
@@ -445,15 +446,31 @@ Public Class ListaPedidosVentaViewModel
         Return IsNothing(ruta) OrElse ruta.Trim = "FW" OrElse ruta.Trim = "00" OrElse ruta.Trim = "16" OrElse ruta.Trim = "AT" OrElse ruta.Trim = "OT"
     End Function
 
-    Private Async Sub ActualizarResumen(pedido As PedidoVentaDTO)
-        Await ActualizarResumenAsync(pedido)
+    ''' <summary>
+    ''' Nesto#588 (revisión 30/10): el resumen recién seleccionado que viene de la lista de la API, que ya trae «fechas futuras»
+    ''' calculado en el servidor con la misma regla. Al cargarlo en el detalle no hace falta pedir la fecha mínima otra vez.
+    ''' </summary>
+    Private _resumenRecienSeleccionadoDeLaLista As ResumenPedido
+
+    Private Sub RecordarResumenDeLaLista()
+        Dim resumen = TryCast(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+        _resumenRecienSeleccionadoDeLaLista = If(resumen IsNot Nothing AndAlso Not resumen.esNuevo AndAlso resumen.numero > 0 AndAlso
+            ListaPedidos.ListaOriginal IsNot Nothing AndAlso ListaPedidos.ListaOriginal.Contains(resumen), resumen, Nothing)
     End Sub
 
-    Friend Async Function ActualizarResumenAsync(pedido As PedidoVentaDTO) As Task
+    Private Async Sub ActualizarResumen(pedido As PedidoVentaDTO, esCarga As Boolean)
+        Await ActualizarResumenAsync(pedido, esCarga)
+    End Sub
+
+    Friend Async Function ActualizarResumenAsync(pedido As PedidoVentaDTO, Optional esCarga As Boolean = False) As Task
         If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
         Dim resumen = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+        ' Nesto#588 (revisión 30/10): si solo se ha cargado el pedido que se acaba de elegir en la lista, «fechas futuras» ya lo
+        ' mandó la API en la lista; se pide la fecha mínima solo si el pedido ha cambiado (o no viene de la lista).
+        Dim usarElDatoDeLaLista As Boolean = esCarga AndAlso resumen Is _resumenRecienSeleccionadoDeLaLista
+        _resumenRecienSeleccionadoDeLaLista = Nothing
         resumen.baseImponible = pedido.BaseImponible
         resumen.contacto = pedido.contacto
         resumen.vendedor = pedido.vendedor
@@ -463,6 +480,9 @@ Public Class ListaPedidosVentaViewModel
         resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
         resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
         ' Nesto#588 (NestoAPI#764): la fecha mínima, de la API (el día de reparto de la ruta interna, si lo tiene)
+        If usarElDatoDeLaLista Then
+            Return
+        End If
         resumen.tieneFechasFuturas = TieneFechasFuturas(pedido.Lineas, Await FechaEntregaMinima(pedido.ruta, resumen.codPostal))
     End Function
 

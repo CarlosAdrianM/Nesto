@@ -635,7 +635,7 @@ Public Class DetallePedidoViewModel
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
             End If
-            messenger.Send(New PedidoModificadoMensaje(pedido.Model))
+            messenger.Send(New PedidoModificadoMensaje(pedido.Model, esCarga:=True)) ' Nesto#588: solo cargado, no modificado
             estaActualizarFechaActivo = False
             Dim linea As LineaPedidoVentaDTO = pedido.Model.Lineas.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
