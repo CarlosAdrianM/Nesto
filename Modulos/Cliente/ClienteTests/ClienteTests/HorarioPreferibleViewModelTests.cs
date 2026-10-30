@@ -12,7 +12,7 @@ namespace ClienteTests
 {
     /// <summary>
     /// Nesto#584 (NestoAPI#763): el «horario preferible» en la ficha del cliente (editor de días con mañana y tarde, aviso de que
-    /// solo lo respeta nuestra ruta propia, propuesta por revisar) y la lista «Horarios por revisar».
+    /// no hay compromiso de respetarlo, propuesta por revisar) y la lista «Horarios por revisar».
     /// </summary>
     [TestClass]
     public class HorarioPreferibleViewModelTests
@@ -32,7 +32,7 @@ namespace ClienteTests
         private static HorarioPreferibleModel Horario(string texto, params FranjaHorarioPreferibleModel[] franjas) => new()
         {
             Empresa = "1", Cliente = "15191", Contacto = "0", Texto = texto, Franjas = franjas.ToList(),
-            Aviso = "Horario preferible: solo lo respeta nuestra ruta propia. Las agencias externas no tienen obligación de respetarlo.",
+            Aviso = "Horario preferible del cliente: lo intentaremos, pero no hay compromiso de respetarlo.",
             Usuario = "Carlos", FechaModificacion = new DateTime(2026, 10, 30, 12, 0, 0)
         };
 
@@ -52,7 +52,7 @@ namespace ClienteTests
             Assert.AreEqual("17:00", vm.Dias[0].TardeDesde, "La segunda del día, a la tarde");
             Assert.AreEqual("10:00", vm.Dias[5].MananaDesde);
             Assert.IsNull(vm.Dias[2].MananaDesde);
-            StringAssert.Contains(vm.Aviso, "solo lo respeta nuestra ruta propia");
+            StringAssert.Contains(vm.Aviso, "no hay compromiso de respetarlo");
             StringAssert.StartsWith(vm.Resumen, "Guardado: L 10:00-14:00, 17:00-20:00; S 10:00-13:00");
             Assert.IsTrue(vm.TieneHorario);
             Assert.IsFalse(vm.HayPropuesta);
@@ -104,7 +104,7 @@ namespace ClienteTests
             Assert.IsTrue(mandadas.All(f => f.Desde == "09:30" && f.Hasta == "14:00"));
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4, 5 }, mandadas.Select(f => f.DiaSemana).ToList());
             StringAssert.Contains(vm.Resumen, "L-V 09:30-14:00");
-            StringAssert.Contains(vm.Mensaje, "solo lo respeta nuestra ruta propia");
+            StringAssert.Contains(vm.Mensaje, "no hay compromiso de respetarlo");
             Assert.AreEqual(0, errores.Count);
         }
 
@@ -193,7 +193,7 @@ namespace ClienteTests
             Assert.AreEqual("HORARIO DE 10 A 14", vm.Propuestas[0].TextoOrigen);
             Assert.AreSame(vm.Propuestas[0], vm.Seleccionada);
             StringAssert.Contains(vm.Mensaje, "2 por revisar (1 sin propuesta");
-            StringAssert.Contains(vm.Aviso, "solo lo respeta nuestra ruta propia");
+            StringAssert.Contains(vm.Aviso, "no hay compromiso de respetarlo");
         }
 
         [TestMethod]

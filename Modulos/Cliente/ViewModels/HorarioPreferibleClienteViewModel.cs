@@ -51,13 +51,13 @@ namespace Nesto.Modulos.Cliente
 
     /// <summary>
     /// Nesto#584 (NestoAPI#763): pestaña «Horario preferible» de la ficha del cliente. Por cliente y contacto, cada día con una o
-    /// dos franjas (mañana y tarde). Deja claro que SOLO lo respeta nuestra ruta propia: las agencias externas no tienen
-    /// obligación. Si hay una propuesta sacada de los comentarios por revisar, la enseña y se puede usar. Las reglas (franjas que
+    /// dos franjas (mañana y tarde). Deja claro que se intenta respetar, pero sin compromiso
+    /// (ni siquiera de nuestra ruta). Si hay una propuesta sacada de los comentarios por revisar, la enseña y se puede usar. Las reglas (franjas que
     /// se solapan, horas al revés…) las comprueba la API.
     /// </summary>
     public class HorarioPreferibleClienteViewModel : ObservableObject
     {
-        public const string AVISO_POR_DEFECTO = "Horario preferible: solo lo respeta nuestra ruta propia. Las agencias externas no tienen obligación de respetarlo.";
+        public const string AVISO_POR_DEFECTO = "Horario preferible del cliente: lo intentaremos, pero no hay compromiso de respetarlo.";
 
         private readonly IHorarioPreferibleService _servicio;
         private readonly IServicioDialogos _dialogos;
@@ -89,7 +89,7 @@ namespace Nesto.Modulos.Cliente
         public bool HayCliente => !string.IsNullOrWhiteSpace(Cliente);
 
         private string _aviso = AVISO_POR_DEFECTO;
-        /// <summary>Siempre a la vista: solo lo respeta nuestra ruta propia.</summary>
+        /// <summary>Siempre a la vista: se intenta, pero sin compromiso.</summary>
         public string Aviso { get => _aviso; private set => SetProperty(ref _aviso, string.IsNullOrWhiteSpace(value) ? AVISO_POR_DEFECTO : value); }
 
         private string _textoGuardado;
@@ -323,7 +323,7 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
-            await GuardarFranjasAsync(franjas, "Horario preferible guardado. Recuerde: solo lo respeta nuestra ruta propia.");
+            await GuardarFranjasAsync(franjas, "Horario preferible guardado. Recuerde: lo intentaremos, pero no hay compromiso de respetarlo.");
         }
 
         public async Task QuitarAsync()

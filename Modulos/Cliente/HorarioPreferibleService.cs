@@ -12,7 +12,7 @@ namespace Nesto.Modulos.Cliente
 {
     /// <summary>
     /// Nesto#584 (NestoAPI#763): el «horario preferible» de entrega del cliente/contacto y las propuestas sacadas de los
-    /// comentarios. Solo lo respeta nuestra ruta propia; las agencias externas no tienen obligación.
+    /// comentarios. Se intenta respetar, pero sin compromiso.
     /// </summary>
     public interface IHorarioPreferibleService
     {

@@ -6,8 +6,8 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="800"
              Background="White">
-    <!-- Nesto#584 (NestoAPI#763): el «horario preferible» del contacto. SOLO lo respeta nuestra ruta propia (el orden de las
-         paradas de Ariadna avisa de las que llegarían fuera); las agencias externas no tienen obligación. -->
+    <!-- Nesto#584 (NestoAPI#763): el «horario preferible» del contacto. Se intenta respetar (el orden de las
+         paradas de Ariadna avisa de las que llegarían fuera), pero sin compromiso. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>

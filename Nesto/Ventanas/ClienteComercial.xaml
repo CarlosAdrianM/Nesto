@@ -418,8 +418,8 @@
                             <cliente:CuponesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
                                                         Contacto="{Binding clienteActivo.contacto}"/>
                         </TabItem>
-                        <!-- Nesto#584 (NestoAPI#763): horario preferible de entrega del contacto. Solo lo respeta nuestra ruta propia;
-                             las agencias externas no tienen obligación. Lee la API al enseñarse. -->
+                        <!-- Nesto#584 (NestoAPI#763): horario preferible de entrega del contacto. Se intenta respetar, pero
+                             sin compromiso. Lee la API al enseñarse. -->
                         <TabItem Header="Horario preferible">
                             <cliente:HorarioPreferibleClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
                                                                   Contacto="{Binding clienteActivo.contacto}"/>

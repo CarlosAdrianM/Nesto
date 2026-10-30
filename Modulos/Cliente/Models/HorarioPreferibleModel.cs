@@ -13,7 +13,7 @@ namespace Nesto.Modulos.Cliente.Models
         public string Hasta { get; set; }
     }
 
-    /// <summary>El horario preferible de un cliente/contacto (solo lo respeta nuestra ruta propia).</summary>
+    /// <summary>El horario preferible de un cliente/contacto (se intenta respetar, sin compromiso).</summary>
     public class HorarioPreferibleModel
     {
         public string Empresa { get; set; }
@@ -22,7 +22,7 @@ namespace Nesto.Modulos.Cliente.Models
         public List<FranjaHorarioPreferibleModel> Franjas { get; set; } = new();
         /// <summary>«L-V 10:00-14:00, 17:00-20:00; S 10:00-13:00», o vacío.</summary>
         public string Texto { get; set; }
-        /// <summary>El aviso de la API: solo lo respeta nuestra ruta propia, las agencias externas no tienen obligación.</summary>
+        /// <summary>El aviso de la API: se intenta respetar, pero sin compromiso.</summary>
         public string Aviso { get; set; }
         public string Usuario { get; set; }
         public DateTime? FechaModificacion { get; set; }
