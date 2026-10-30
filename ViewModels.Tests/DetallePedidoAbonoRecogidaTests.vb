@@ -84,7 +84,7 @@ Public Class DetallePedidoAbonoRecogidaTests
         ApiLee(Recogida())
         ApiCrea(False, Abono())
         Responde("Crear abono", True)
-        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns(" " & CODIGO & " ")
+        A.CallTo(Function() dialogService.GetCodigoBarras(A(Of String).Ignored, A(Of String).Ignored)).Returns(" " & CODIGO & " ")
         Dim vm = CrearVm()
         Dim focos As Integer = 0
         AddHandler vm.FocoEnProductoSolicitado, Sub(s, e) focos += 1
@@ -118,7 +118,7 @@ Public Class DetallePedidoAbonoRecogidaTests
 
     <TestMethod()>
     Public Async Function Leer_SinCodigo_NoLlamaALaApi() As Task
-        A.CallTo(Function() dialogService.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns(Nothing)
+        A.CallTo(Function() dialogService.GetCodigoBarras(A(Of String).Ignored, A(Of String).Ignored)).Returns(Nothing)
         Dim vm = CrearVm()
 
         Await vm.LeerEtiquetaRecogidaAsync()
