@@ -43,6 +43,40 @@ namespace ClienteTests
             A.CallTo(() => _navegacion.RequestNavigate("MainRegion", vista)).MustHaveHappenedOnceExactly();
         }
 
+        // Revisión 30/10: «Horarios por revisar» solo para Administración, Almacén, Dirección e Informática
+        [DataTestMethod]
+        [DataRow(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION)]
+        [DataRow(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ALMACEN)]
+        [DataRow(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.DIRECCION)]
+        [DataRow(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.INFORMATICA)]
+        public void AbrirHorariosPorRevisar_UsuarioDeUnGrupoPermitido_PuedeAbrirlo(string grupo)
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.UsuarioEnGrupo(grupo)).Returns(true);
+            var vm = new CrearClienteViewModel(_navegacion, configuracion, _servicio, new WeakReferenceMessenger(), A.Fake<IServicioDialogos>());
+
+            Assert.IsTrue(vm.AbrirHorariosPorRevisarCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void AbrirHorariosPorRevisar_UsuarioDeOtroGrupo_NoPuedeAbrirlo()
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.UsuarioEnGrupo(A<string>._)).Returns(false);
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.TIENDA_ON_LINE)).Returns(true);
+            var vm = new CrearClienteViewModel(_navegacion, configuracion, _servicio, new WeakReferenceMessenger(), A.Fake<IServicioDialogos>());
+
+            Assert.IsFalse(vm.AbrirHorariosPorRevisarCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void AbrirHorariosPorRevisar_AbreSuVista()
+        {
+            _vm.AbrirHorariosPorRevisarCommand.Execute(null);
+
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "HorariosPorRevisarView")).MustHaveHappenedOnceExactly();
+        }
+
         [TestMethod]
         public void CrearCliente_SiSeCrea_CierraLaPestanaActiva()
         {
