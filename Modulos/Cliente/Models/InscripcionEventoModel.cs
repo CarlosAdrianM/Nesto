@@ -158,6 +158,8 @@ namespace Nesto.Modulos.Cliente.Models
             OnPropertyChanged(nameof(Direccion));
             OnPropertyChanged(nameof(NumeroPersonaAsiste));
             OnPropertyChanged(nameof(TextoAsiste));
+            OnPropertyChanged(nameof(TelefonoPersona));
+            OnPropertyChanged(nameof(TextoResumen));
         }
 
         /// <summary>Lo que se ve en la columna «Asiste» fuera de edición.</summary>
@@ -267,6 +269,70 @@ namespace Nesto.Modulos.Cliente.Models
             : string.IsNullOrWhiteSpace(Facturacion.Factura)
                 ? Facturacion.TextoEstado
                 : $"{Facturacion.Factura.Trim()} ({Facturacion.TextoEstado})";
+
+        // Nesto#572 (sugerencias 902 y 862): los inscritos en tarjetas que se despliegan.
+
+        private bool _desplegada;
+        /// <summary>La tarjeta enseña el detalle completo (la seleccionada se despliega; se puede plegar con «Ocultar detalle»).</summary>
+        [JsonIgnore]
+        public bool Desplegada
+        {
+            get => _desplegada;
+            set => SetProperty(ref _desplegada, value);
+        }
+
+        /// <summary>El teléfono de la persona que asiste (vacío si no se ha indicado o la API no lo manda).</summary>
+        [JsonIgnore]
+        public string TelefonoPersona => PersonaContacto?.Telefono?.Trim() ?? string.Empty;
+
+        /// <summary>
+        /// La segunda línea de la tarjeta: «Tarjeta · pagado 20,00 € el 12/10/2026 · asistencia: Confirmada · asiste: ANA LUNA».
+        /// Solo lo que tiene valor.
+        /// </summary>
+        [JsonIgnore]
+        public string TextoResumen
+        {
+            get
+            {
+                var partes = new List<string>();
+                if (!string.IsNullOrWhiteSpace(FormaPago) && !EsGratuita)
+                {
+                    partes.Add(FormaPago.Trim());
+                }
+                if (ImportePagado.HasValue && ImportePagado.Value != 0)
+                {
+                    partes.Add(FechaPago.HasValue
+                        ? $"pagado {ImportePagado.Value:C} el {FechaPago.Value:dd/MM/yyyy}"
+                        : $"pagado {ImportePagado.Value:C}");
+                }
+                else if (EsGratuita)
+                {
+                    partes.Add("gratuita");
+                }
+                else if (Estado == RESERVADA && FechaLimitePago.HasValue)
+                {
+                    partes.Add($"pagar hasta {FechaLimitePago.Value:dd/MM/yyyy}");
+                }
+                partes.Add($"asistencia: {TextoAsistencia}");
+                if (!string.IsNullOrWhiteSpace(TextoAsiste))
+                {
+                    partes.Add($"asiste: {TextoAsiste}");
+                }
+                return string.Join(" · ", partes);
+            }
+        }
+
+        /// <summary>«Nesto (MARIA) el 12/10/2026 10:30»: quién y cuándo la inscribió.</summary>
+        [JsonIgnore]
+        public string TextoInscritoPor
+        {
+            get
+            {
+                string quien = UsuarioCreacion?.Trim();
+                string cuando = FechaCreacion == default ? null : FechaCreacion.ToString("dd/MM/yyyy HH:mm");
+                return string.Join(" el ", new[] { quien, cuando }.Where(t => !string.IsNullOrEmpty(t)));
+            }
+        }
 
         private bool _asistio;
         /// <summary>La casilla de la lista de asistencia (empieza marcada si ya consta que vino).</summary>

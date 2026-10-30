@@ -242,17 +242,35 @@
                                 ToolTip="Copia el enlace de pago de la inscripción seleccionada para reenviárselo al cliente"/>
                     </WrapPanel>
 
-                    <DataGrid x:Name="gridInscritos" Grid.Row="1" ItemsSource="{Binding Inscripciones}" AutoGenerateColumns="False"
-                              SelectedItem="{Binding InscripcionSeleccionada}" FrozenColumnCount="3"
-                              HorizontalScrollBarVisibility="Auto" MinHeight="90"
-                              CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single">
-                        <DataGrid.ContextMenu>
+                    <!-- Nesto#572 (sugerencias 902 de Pilar y 862 de Reina): antes era una rejilla de ~20 columnas que salían
+                         estrechísimas. Ahora cada inscrito es una tarjeta con lo básico; la seleccionada se despliega con todo el
+                         detalle (el detalle solo se crea al desplegar, como antes la edición de la celda «Asiste»). -->
+                    <ListBox x:Name="listaInscritos" Grid.Row="1" ItemsSource="{Binding Inscripciones}"
+                             SelectedItem="{Binding InscripcionSeleccionada}" SelectionMode="Single" MinHeight="90"
+                             HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.CanContentScroll="False" BorderBrush="LightGray" Padding="4">
+                        <ListBox.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Copiar enlace de pago" Command="{Binding CopiarEnlaceCommand}"/>
                             </ContextMenu>
-                        </DataGrid.ContextMenu>
-                        <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow">
+                        </ListBox.ContextMenu>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                                <Setter Property="Margin" Value="0,0,0,6"/>
+                                <Setter Property="Padding" Value="8,6"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="2" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Estado}" Value="Caducada">
                                         <Setter Property="Foreground" Value="Gray"/>
@@ -268,63 +286,156 @@
                                     <DataTrigger Binding="{Binding Facturacion.Estado}" Value="NoAutomatizable">
                                         <Setter Property="Background" Value="#FFF8E1"/>
                                     </DataTrigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="#90CAF9"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="BorderBrush" Value="#1976D2"/>
+                                    </Trigger>
                                 </Style.Triggers>
                             </Style>
-                        </DataGrid.RowStyle>
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Vino" Width="45">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding Asistio, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center"
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <!-- Lo básico: siempre a la vista -->
+                                    <DockPanel LastChildFill="True">
+                                        <CheckBox DockPanel.Dock="Left" Content="Vino" VerticalAlignment="Center" Margin="0,0,10,0"
+                                                  IsChecked="{Binding Asistio, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEnabled="{Binding EntraEnListaAsistencia}"
-                                                  ToolTip="Marque a los que han venido al evento"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" IsReadOnly="True" Width="75"/>
-                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" MinWidth="200" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" IsReadOnly="True" Width="85"/>
-                            <!-- Carlos 29/10/26: copiar el enlace de pago pendiente para reenviarlo -->
-                            <DataGridTemplateColumn Header="Enlace de pago" Width="105" IsReadOnly="True">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="Copiar enlace" Padding="6,0" Margin="2,1"
-                                                Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                  ToolTip="Marque a los que han venido al evento (se guarda con «Guardar lista»)"/>
+                                        <Border DockPanel.Dock="Right" Background="#ECEFF1" CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding EstadoTexto}" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <Button DockPanel.Dock="Right" Content="Copiar enlace" Padding="6,0" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                 CommandParameter="{Binding}" ToolTip="{Binding UrlPago}"
                                                 Visibility="{Binding TieneEnlacePago, Converter={StaticResource BoolAVisibilidad}}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <!-- Nesto#566 (NestoAPI#731): la persona que asiste se elige entre las personas de contacto; correo y dirección, de la ficha -->
-                            <DataGridTemplateColumn Header="Asiste" Width="150">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding TextoAsiste}" VerticalAlignment="Center"
-                                                   ToolTip="Haga doble clic para elegir la persona de contacto que asiste"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding PersonasDisponibles}" DisplayMemberPath="Texto" SelectedValuePath="Numero"
-                                                  SelectedValue="{Binding NumeroPersonaAsiste, UpdateSourceTrigger=PropertyChanged}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Correo" Binding="{Binding Correo}" IsReadOnly="True" Width="170"/>
-                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" IsReadOnly="True" Width="220"/>
-                            <DataGridTextColumn Header="Asistencia" Binding="{Binding TextoAsistencia}" IsReadOnly="True" Width="90"/>
-                            <DataGridTextColumn Header="Base imponible del día" Binding="{Binding BaseImponibleDia, StringFormat=c}" IsReadOnly="True" Width="95"/>
-                            <DataGridTextColumn Header="Modalidad" Binding="{Binding TextoModalidad}" IsReadOnly="True" Width="105"/>
-                            <DataGridTextColumn Header="Forma de pago" Binding="{Binding FormaPago}" IsReadOnly="True" Width="95"/>
-                            <DataGridTextColumn Header="Pagar hasta" Binding="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}" IsReadOnly="True" Width="80"/>
-                            <DataGridTextColumn Header="Pagado" Binding="{Binding ImportePagado, StringFormat=c}" IsReadOnly="True" Width="75"/>
-                            <DataGridTextColumn Header="El" Binding="{Binding FechaPago, StringFormat=dd/MM/yyyy}" IsReadOnly="True" Width="80"/>
-                            <DataGridTextColumn Header="Factura" Binding="{Binding TextoFacturacion}" IsReadOnly="True" Width="150"/>
-                            <DataGridTextColumn Header="Origen" Binding="{Binding TextoOrigen}" IsReadOnly="True" Width="85"/>
-                            <DataGridTextColumn Header="Inscrito por" Binding="{Binding UsuarioCreacion}" IsReadOnly="True" Width="130"/>
-                            <DataGridTextColumn Header="Pedido que lo justifica" Binding="{Binding PedidoJustificante}" IsReadOnly="True" Width="90"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                                        <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding Nombre, Mode=OneWay}" FontWeight="Bold" FontSize="13"/>
+                                            <Run Text="  "/>
+                                            <Run Text="{Binding ClienteContacto, Mode=OneWay}" Foreground="DimGray"/>
+                                        </TextBlock>
+                                    </DockPanel>
+                                    <DockPanel Margin="0,3,0,0" LastChildFill="True">
+                                        <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding Desplegada}" Padding="6,0" Margin="8,0,0,0"
+                                                      VerticalAlignment="Top">
+                                            <ToggleButton.Style>
+                                                <Style TargetType="ToggleButton">
+                                                    <Setter Property="Content" Value="Ver detalle"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter Property="Content" Value="Ocultar detalle"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ToggleButton.Style>
+                                        </ToggleButton>
+                                        <TextBlock Text="{Binding TextoResumen}" TextWrapping="Wrap"/>
+                                    </DockPanel>
+
+                                    <!-- El detalle: solo en la tarjeta desplegada -->
+                                    <ContentControl Content="{Binding}" Focusable="False">
+                                        <ContentControl.Style>
+                                            <Style TargetType="ContentControl">
+                                                <Setter Property="ContentTemplate" Value="{x:Null}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Desplegada}" Value="True">
+                                                        <Setter Property="ContentTemplate">
+                                                            <Setter.Value>
+                                                                <DataTemplate>
+                                                                    <Border BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
+                                                                        <Grid>
+                                                                            <Grid.Resources>
+                                                                                <Style TargetType="TextBlock">
+                                                                                    <Setter Property="Margin" Value="0,2,0,2"/>
+                                                                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                                                </Style>
+                                                                                <!-- Para poder seleccionar y copiar (el correo, la dirección...) -->
+                                                                                <Style x:Key="TextoCopiable" TargetType="TextBox">
+                                                                                    <Setter Property="IsReadOnly" Value="True"/>
+                                                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                                                    <Setter Property="Background" Value="Transparent"/>
+                                                                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                                                                    <Setter Property="Padding" Value="0"/>
+                                                                                    <Setter Property="Margin" Value="-2,2,0,2"/>
+                                                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                                                </Style>
+                                                                            </Grid.Resources>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                                <RowDefinition Height="Auto"/>
+                                                                            </Grid.RowDefinitions>
+
+                                                                            <!-- Contacto: lo que Reina usa para encontrar a la clienta cuando viene en persona -->
+                                                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Correo:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Correo, Mode=OneWay}" Style="{StaticResource TextoCopiable}"/>
+                                                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Dirección:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding Direccion, Mode=OneWay}" Style="{StaticResource TextoCopiable}"/>
+                                                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Asiste:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <!-- Nesto#566 (NestoAPI#731): la persona que asiste se elige entre las personas de contacto -->
+                                                                            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding PersonasDisponibles}" DisplayMemberPath="Texto"
+                                                                                      SelectedValuePath="Numero" Margin="0,2,8,2" MaxWidth="320" HorizontalAlignment="Left" MinWidth="180"
+                                                                                      SelectedValue="{Binding NumeroPersonaAsiste, UpdateSourceTrigger=PropertyChanged}"
+                                                                                      ToolTip="La persona de contacto que asiste (se guarda al elegirla)"/>
+                                                                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Teléfono:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding TelefonoPersona, Mode=OneWay}" Style="{StaticResource TextoCopiable}"/>
+
+                                                                            <!-- Inscripción y pago -->
+                                                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Modalidad:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TextoModalidad}"/>
+                                                                            <TextBlock Grid.Row="3" Grid.Column="2" Text="Forma de pago:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding FormaPago}"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Pagar hasta:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding FechaLimitePago, StringFormat=dd/MM/yyyy}"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Pagado:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="4" Grid.Column="3">
+                                                                                <Run Text="{Binding ImportePagado, StringFormat=c, Mode=OneWay}"/>
+                                                                                <Run Text="{Binding FechaPago, StringFormat='el {0:dd/MM/yyyy}', Mode=OneWay}"/>
+                                                                            </TextBlock>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Factura:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding TextoFacturacion}"/>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="2" Text="Base imponible del día:" Foreground="DimGray" Margin="0,2,8,2"
+                                                                                       ToolTip="Lo que ha comprado el cliente el día del evento en Reina o Alcobendas (sin el curso)"/>
+                                                                            <TextBlock Grid.Row="5" Grid.Column="3" Text="{Binding BaseImponibleDia, StringFormat=c}"/>
+
+                                                                            <!-- De dónde viene -->
+                                                                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Origen:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding TextoOrigen}"/>
+                                                                            <TextBlock Grid.Row="6" Grid.Column="2" Text="Inscrito por:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="6" Grid.Column="3" Text="{Binding TextoInscritoPor}"/>
+                                                                            <TextBlock Grid.Row="7" Grid.Column="0" Text="Pedido que lo justifica:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding PedidoJustificante}"/>
+                                                                            <TextBlock Grid.Row="7" Grid.Column="2" Text="Enlace de pago:" Foreground="DimGray" Margin="0,2,8,2"/>
+                                                                            <TextBox Grid.Row="7" Grid.Column="3" Text="{Binding UrlPago, Mode=OneWay}" Style="{StaticResource TextoCopiable}"/>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                    </ContentControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
                     <StackPanel Grid.Row="2" Margin="0,4,0,0">
                         <TextBlock Text="{Binding MensajeFacturacion}" Foreground="#C62828" TextWrapping="Wrap"/>
