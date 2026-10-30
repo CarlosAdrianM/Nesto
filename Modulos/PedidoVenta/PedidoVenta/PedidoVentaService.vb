@@ -1238,6 +1238,23 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    Public Async Function CambiarCabeceraNotaEntrega(empresa As String, pedido As Integer, tipo As String, bultos As Integer, facturaOriginal As String) As Task(Of NotaEntregaCabeceraDTO) Implements IPedidoVentaService.CambiarCabeceraNotaEntrega
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim cuerpo = New With {.Tipo = tipo, .Bultos = bultos, .FacturaOriginal = If(String.IsNullOrWhiteSpace(facturaOriginal), Nothing, facturaOriginal.Trim())}
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json")
+            Dim response = Await client.PutAsync($"NotasEntrega/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{pedido}/Cabecera", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido cambiar la nota de entrega ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return If(String.IsNullOrWhiteSpace(body), Nothing, JsonConvert.DeserializeObject(Of NotaEntregaCabeceraDTO)(body))
+        End Using
+    End Function
+
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

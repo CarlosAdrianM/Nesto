@@ -87,6 +87,93 @@
                                 <TextBlock Text="{Binding TextoRetenido}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#7A4F01"
                                            ToolTip="Mientras esté retenido, el pedido no entra en el picking. Para que salga, pulse «Liberar»."/>
                             </Border>
+                            <!-- Nesto#579 (NestoAPI#757): panel de la nota de entrega. Entrega en azul, recogida en naranja (el mismo criterio que Ariadna).
+                                 Bultos y factura original solo en la recogida: las entregas pasan por el packing. Cada cambio se guarda al momento. -->
+                            <Border BorderThickness="2" CornerRadius="3" Padding="8,5" Margin="0,0,0,6"
+                                    Visibility="{Binding MostrarPanelNotaEntrega, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#DCEBFA"/>
+                                        <Setter Property="BorderBrush" Value="#1565C0"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding EsNotaRecogida}" Value="True">
+                                                <Setter Property="Background" Value="#FFE0B2"/>
+                                                <Setter Property="BorderBrush" Value="#EF6C00"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <WrapPanel>
+                                        <TextBlock Text="{Binding TextoCabeceraNota}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,0,15,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#0D47A1"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding EsNotaRecogida}" Value="True">
+                                                            <Setter Property="Foreground" Value="#BF360C"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="Tipo:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <ComboBox ItemsSource="{x:Static local:DetallePedidoViewModel.TiposNota}" SelectedItem="{Binding TipoNota}" Width="100" VerticalAlignment="Center" Margin="0,0,15,0"
+                                                  ToolTip="Entrega: se lleva algo al cliente (pasa por picking y packing). Recogida: se recoge algo en el cliente."/>
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding EsNotaRecogida, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <TextBlock Text="Bultos:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox Text="{Binding BultosNota}" Width="45" VerticalAlignment="Center" HorizontalContentAlignment="Right" Margin="0,0,15,0"
+                                                     ToolTip="Bultos que hay que recoger (uno o más); cada uno lleva su etiqueta"/>
+                                            <TextBlock Text="Factura original:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding TextoFacturaOriginal}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Button Content="Elegir…" Padding="6,1" Margin="0,0,5,0" Command="{Binding AbrirSelectorFacturaOriginalCommand}"
+                                                    ToolTip="Vincular la factura que se devuelve (opcional)"/>
+                                            <Button Content="Quitar" Padding="6,1" Command="{Binding QuitarFacturaOriginalCommand}"
+                                                    ToolTip="Dejar la nota sin factura original"/>
+                                        </StackPanel>
+                                    </WrapPanel>
+                                    <!-- El selector (el de Copiar factura, #279) solo existe mientras está abierto: así no pide las facturas en cada nota -->
+                                    <ContentControl Content="{Binding}" Focusable="False">
+                                        <ContentControl.Style>
+                                            <Style TargetType="ContentControl">
+                                                <Setter Property="ContentTemplate" Value="{x:Null}"/>
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding MostrarSelectorFacturaOriginal}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Setter Property="ContentTemplate">
+                                                            <Setter.Value>
+                                                                <DataTemplate>
+                                                                    <Border BorderBrush="#EF6C00" BorderThickness="1" Background="White" Padding="4" Margin="0,6,0,0">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="Elija la factura original del cliente:" FontWeight="SemiBold"/>
+                                                                            <controles:SelectorFacturas
+                                                                                Empresa="{Binding pedido.empresa}"
+                                                                                Cliente="{Binding pedido.cliente}"
+                                                                                Contacto="{Binding pedido.contacto}"
+                                                                                FacturaSeleccionada="{Binding FacturaOriginalEnLista, Mode=TwoWay}"
+                                                                                PermitirSeleccionMultiple="False"
+                                                                                MostrarBusqueda="True"
+                                                                                MostrarResumenSeleccion="False"
+                                                                                MostrarSeleccionarTodas="False"
+                                                                                AlturaMaxima="150"
+                                                                                Margin="0,5,0,0"/>
+                                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                                                                <Button Content="Vincular" Padding="10,1" Margin="0,0,5,0" Command="{Binding VincularFacturaOriginalCommand}"/>
+                                                                                <Button Content="Cancelar" Padding="10,1" Command="{Binding CancelarSelectorFacturaOriginalCommand}"/>
+                                                                            </StackPanel>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                    </ContentControl>
+                                </StackPanel>
+                            </Border>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
@@ -151,7 +238,9 @@
                                     </Border>
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
-                                    <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False" Margin="0,5,0,0">Nota de Entrega</CheckBox>
+                                    <!-- Nesto#579: se puede marcar en un pedido nuevo (Almacén, Administración, Dirección e Informática) -->
+                                    <CheckBox IsChecked="{Binding NotaEntregaMarcada}" IsEnabled="{Binding PuedeMarcarNotaEntrega}" Margin="0,5,0,0"
+                                              ToolTip="Una nota de entrega no lleva albarán ni factura. Solo se puede marcar al crear el pedido.">Nota de Entrega</CheckBox>
 
                                     <!-- Carlos 09/12/25: Grid reorganizada para selectores (Issue #245, #252, #253) -->
                                     <!-- Fila 1: Serie, Periodo, Vendedor Pedido, Vendedor Peluquería -->
@@ -280,6 +369,10 @@
                                 <Button Grid.Row="2" Grid.Column="2" Command="{Binding AbrirFacturarFinDeMesCommand}"
                                         Visibility="{Binding PuedeFacturarFinDeMes, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Reunir y facturar los albaranes de fin de mes (los pedidos con P.O. no entran)">Facturar Fin de Mes</Button>
+                                <!-- Nesto#579: nota de recogida nueva para el cliente del pedido en pantalla -->
+                                <Button Grid.Row="2" Grid.Column="3" Command="{Binding NuevaNotaRecogidaCommand}"
+                                        Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Crear una nota de recogida para este cliente (1 bulto) con una línea de texto para escribir qué hay que recoger">Nueva nota de recogida</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>

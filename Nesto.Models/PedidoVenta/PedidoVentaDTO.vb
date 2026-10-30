@@ -100,6 +100,14 @@ Public Class PedidoVentaDTO
     Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
+    ''' <summary>Nesto#579 / NestoAPI#757: tipo de la nota de entrega («Entrega» o «Recogida»). Al leer es de solo lectura (el PUT
+    ''' del pedido lo ignora; se cambia por PUT api/NotasEntrega/{empresa}/{pedido}/Cabecera). Al crear la nota (POST) sí cuenta.
+    ''' Nothing en notas de Nesto viejo = Entrega.</summary>
+    Public Property tipoNotaEntrega As String
+    ''' <summary>Nesto#579 / NestoAPI#757: bultos de la nota (solo se usan en las de recogida). Mismo régimen que tipoNotaEntrega.</summary>
+    Public Property bultosNota As Integer?
+    ''' <summary>Nesto#579 / NestoAPI#757 (solo lectura): la factura original que se devuelve en una recogida, si se vinculó.</summary>
+    Public Property facturaOriginalNota As String
     Public Property Agrupada As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
     ''' <summary>

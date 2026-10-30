@@ -152,6 +152,7 @@ Public Class DetallePedidoViewModel
         ' Carlos 01/10/26: Administración también crea albaranes y facturas de venta
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) OrElse
             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+        InicializarNotaEntrega() ' Nesto#579
 
         ' Nesto#490 (4C.1): Messenger en vez de IEventAggregator (mismo hilo que quien envía, como antes).
         messenger.Register(Of ProductoSeleccionadoMensaje)(Me, Sub(r, m) DirectCast(r, DetallePedidoViewModel).InsertarProducto(m.Value))
@@ -672,6 +673,7 @@ Public Class DetallePedidoViewModel
             AbrirCambioClienteCommand?.NotifyCanExecuteChanged()
             NotificarCambioRetencion() ' NestoAPI#698
             NotificarCambioDatosTransferencia() ' Sugerencia 396
+            InicializarCabeceraNota() ' Nesto#579
         End Set
     End Property
 
@@ -1487,48 +1489,7 @@ Public Class DetallePedidoViewModel
         If Not lineaEditada.Equals(lineaActual) Then
             lineaActual = lineaEditada
         End If
-        If IsNothing(lineaActual.Almacen) Then
-            lineaActual.Almacen = pedido.Lineas.FirstOrDefault()?.Almacen
-        End If
-        If IsNothing(lineaActual.Almacen) Then
-            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
-            lineaActual.Almacen = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(AlmacenSeleccionadoParaLineas) AndAlso AlmacenSeleccionadoParaLineas <> VALOR_VARIOS,
-                                     AlmacenSeleccionadoParaLineas,
-                                     AlmacenUsuario)
-        End If
-        If IsNothing(lineaActual.formaVenta) Then
-            lineaActual.formaVenta = pedido.Lineas.FirstOrDefault()?.formaVenta
-        End If
-        If IsNothing(lineaActual.formaVenta) Then
-            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
-            lineaActual.formaVenta = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(FormaVentaSeleccionadaParaLineas) AndAlso FormaVentaSeleccionadaParaLineas <> VALOR_VARIOS,
-                                        FormaVentaSeleccionadaParaLineas,
-                                        FormaVentaUsuario)
-        End If
-        If IsNothing(lineaActual.delegacion) Then
-            lineaActual.delegacion = pedido.Lineas.FirstOrDefault()?.delegacion
-        End If
-        If IsNothing(lineaActual.delegacion) Then
-            lineaActual.delegacion = DelegacionUsuario
-        End If
-        ' Issue #51: Asignar fecha de entrega a nueva línea
-        If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = Date.MinValue Then
-            If UsarFechasIndividuales Then
-                ' Copiar fecha de la última línea con fecha válida
-                Dim ultimaLineaConFecha = pedido.Lineas.LastOrDefault(Function(l) l.fechaEntrega <> Date.MinValue AndAlso l IsNot lineaActual)
-                lineaActual.fechaEntrega = If(ultimaLineaConFecha IsNot Nothing, ultimaLineaConFecha.fechaEntrega, fechaEntrega)
-            Else
-                ' Usar fecha global
-                lineaActual.fechaEntrega = fechaEntrega
-            End If
-            ' Asegurar que nunca quede en MinValue
-            If lineaActual.fechaEntrega = Date.MinValue Then
-                lineaActual.fechaEntrega = Date.Today
-            End If
-        End If
-        If lineaActual.id = 0 AndAlso Not String.IsNullOrEmpty(VistoBuenoVentas) Then
-            lineaActual.vistoBueno = VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true"
-        End If
+        CompletarDatosLineaNueva(lineaActual) ' Nesto#579: lo mismo sirve para la línea de texto de una nota de recogida
         Dim textoNuevo As String = String.Empty
         Dim esTextBox As Boolean = False
         ' Issue #258: Soporta tanto DataGridTextColumn (TextBox directo) como DataGridTemplateColumn (TextBox dentro de ContentPresenter)
@@ -1577,6 +1538,56 @@ Public Class DetallePedidoViewModel
     Private Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
         Return CargarDatosProductoEnLinea(lineaActual, numeroProducto, cantidad, True) 'la línea se fija aquí aunque cambie la linea actual durante el asíncrono
     End Function
+
+    ''' <summary>Lo que hereda una línea nueva: almacén, forma de venta, delegación, fecha de entrega y visto bueno
+    ''' (solo lo que esté vacío).</summary>
+    Friend Sub CompletarDatosLineaNueva(linea As LineaPedidoVentaWrapper)
+        If linea Is Nothing Then
+            Return
+        End If
+        If IsNothing(linea.Almacen) Then
+            linea.Almacen = pedido.Lineas.FirstOrDefault()?.Almacen
+        End If
+        If IsNothing(linea.Almacen) Then
+            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
+            linea.Almacen = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(AlmacenSeleccionadoParaLineas) AndAlso AlmacenSeleccionadoParaLineas <> VALOR_VARIOS,
+                                     AlmacenSeleccionadoParaLineas,
+                                     AlmacenUsuario)
+        End If
+        If IsNothing(linea.formaVenta) Then
+            linea.formaVenta = pedido.Lineas.FirstOrDefault()?.formaVenta
+        End If
+        If IsNothing(linea.formaVenta) Then
+            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
+            linea.formaVenta = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(FormaVentaSeleccionadaParaLineas) AndAlso FormaVentaSeleccionadaParaLineas <> VALOR_VARIOS,
+                                        FormaVentaSeleccionadaParaLineas,
+                                        FormaVentaUsuario)
+        End If
+        If IsNothing(linea.delegacion) Then
+            linea.delegacion = pedido.Lineas.FirstOrDefault()?.delegacion
+        End If
+        If IsNothing(linea.delegacion) Then
+            linea.delegacion = DelegacionUsuario
+        End If
+        ' Issue #51: Asignar fecha de entrega a nueva línea
+        If IsNothing(linea.fechaEntrega) OrElse linea.fechaEntrega = Date.MinValue Then
+            If UsarFechasIndividuales Then
+                ' Copiar fecha de la última línea con fecha válida
+                Dim ultimaLineaConFecha = pedido.Lineas.LastOrDefault(Function(l) l.fechaEntrega <> Date.MinValue AndAlso l IsNot linea)
+                linea.fechaEntrega = If(ultimaLineaConFecha IsNot Nothing, ultimaLineaConFecha.fechaEntrega, fechaEntrega)
+            Else
+                ' Usar fecha global
+                linea.fechaEntrega = fechaEntrega
+            End If
+            ' Asegurar que nunca quede en MinValue
+            If linea.fechaEntrega = Date.MinValue Then
+                linea.fechaEntrega = Date.Today
+            End If
+        End If
+        If linea.id = 0 AndAlso Not String.IsNullOrEmpty(VistoBuenoVentas) Then
+            linea.vistoBueno = VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true"
+        End If
+    End Sub
 
     Friend Async Function CargarDatosProductoEnLinea(lineaCambio As LineaPedidoVentaWrapper, numeroProducto As String, cantidad As Short, comprobarSustitucion As Boolean) As Task
         ' Issue #258: Ignorar si el número de producto está vacío
@@ -2712,6 +2723,8 @@ Public Class DetallePedidoViewModel
                 End If
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
                 OnPropertyChanged(NameOf(TextoBotonGuardar))
+                NotificarCambioNotaEntrega() ' Nesto#579: la casilla ya no se puede tocar
+                Await VincularFacturaOriginalTrasCrearAsync() ' Nesto#579
 
                 ' Publicar evento con datos completos del cliente
                 ' Calcular tieneProductos desde el wrapper (no desde el modelo)

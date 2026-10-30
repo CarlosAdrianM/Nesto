@@ -373,6 +373,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Boolean)
             Model.notaEntrega = value
+            OnPropertyChanged(NameOf(notaEntrega)) ' Nesto#579: la casilla se puede marcar en un pedido nuevo
         End Set
     End Property
     Public Property Agrupada As Boolean
