@@ -57,6 +57,13 @@ namespace Nesto.Infrastructure.Services
         /// <exception cref="RecepcionReposicionException">La API no la ha guardado.</exception>
         Task<LecturasRecepcionReposicion> GuardarLecturas(string empresa, string almacen, string traspaso,
             List<LecturaEnCursoRecepcion> lecturas, string conexionSignalR);
+        /// <summary>
+        /// NestoAPI#762: ha llegado una unidad sin etiqueta (o con una que no se lee): se apunta con su motivo y la API avisa al
+        /// origen y a Compras (POST api/Almacen/Recepciones/REPO/{traspaso}/SinEtiqueta). La unidad la cuenta quien llama, solo
+        /// si esto acaba bien.
+        /// </summary>
+        /// <exception cref="RecepcionReposicionException">La API no la ha apuntado (motivo no válido, producto que no viene…), con su texto.</exception>
+        Task<ResultadoSinEtiquetaRecepcion> ApuntarSinEtiqueta(string empresa, string almacen, string traspaso, PeticionSinEtiquetaRecepcion peticion);
     }
 
     public class ServicioRecepcionReposiciones : IServicioRecepcionReposiciones
@@ -211,6 +218,22 @@ namespace Nesto.Infrastructure.Services
                 }
                 return JsonConvert.DeserializeObject<LecturasRecepcionReposicion>(json)
                     ?? throw new RecepcionReposicionException("El servidor no ha devuelto lo leído.");
+            }
+        }
+
+        public async Task<ResultadoSinEtiquetaRecepcion> ApuntarSinEtiqueta(string empresa, string almacen, string traspaso, PeticionSinEtiquetaRecepcion peticion)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = $"Almacen/Recepciones/{TIPO_REPOSICION}/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/SinEtiqueta" + Consulta(empresa, almacen);
+                var contenido = new StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(url, contenido).ConfigureAwait(false);
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
+                }
+                return JsonConvert.DeserializeObject<ResultadoSinEtiquetaRecepcion>(json) ?? new ResultadoSinEtiquetaRecepcion();
             }
         }
 

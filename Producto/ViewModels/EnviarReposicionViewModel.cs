@@ -40,15 +40,102 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _cantidad, Math.Max(0, value)))
                 {
                     OnPropertyChanged(nameof(EstaACero));
+                    // NestoAPI#762: sin cambiarlas a mano, las etiquetas siguen a las unidades que se mandan
+                    OnPropertyChanged(nameof(CopiasEtiqueta));
                 }
             }
         }
 
         public bool EstaACero => Cantidad == 0;
 
+        /// <summary>
+        /// NestoAPI#762: todos los códigos activos del producto (también el interno 290… y el que se le asigna al imprimir
+        /// su etiqueta). Con una API anterior, solo el principal.
+        /// </summary>
+        public List<string> CodigosBarras { get; set; } = new List<string>();
+
+        /// <summary>
+        /// NestoAPI#762: el producto no tiene ningún código de barras que se pueda leer: el origen (esta tienda) tiene que
+        /// imprimir sus etiquetas y pegarlas antes de mandarlo, porque en el destino solo se recibe escaneando.
+        /// </summary>
+        public bool SinCodigoBarras { get; set; }
+
+        private int _etiquetasImpresas;
+        /// <summary>NestoAPI#762: las etiquetas EAN-13 de esta línea que han salido por la impresora desde que se abrió.</summary>
+        public int EtiquetasImpresas
+        {
+            get => _etiquetasImpresas;
+            set
+            {
+                if (SetProperty(ref _etiquetasImpresas, Math.Max(0, value)))
+                {
+                    OnPropertyChanged(nameof(FaltanEtiquetas));
+                    OnPropertyChanged(nameof(AvisoEtiquetas));
+                }
+            }
+        }
+
+        private string _codigoEtiqueta;
+        /// <summary>NestoAPI#762: el EAN-13 que llevan las etiquetas impresas (el interno, si se lo ha asignado la API).</summary>
+        public string CodigoEtiqueta
+        {
+            get => _codigoEtiqueta;
+            set
+            {
+                if (SetProperty(ref _codigoEtiqueta, value))
+                {
+                    OnPropertyChanged(nameof(AvisoEtiquetas));
+                }
+            }
+        }
+
+        /// <summary>NestoAPI#762: sin código de barras y sin haber impreso aún sus etiquetas: se marca la línea.</summary>
+        public bool FaltanEtiquetas => SinCodigoBarras && EtiquetasImpresas == 0;
+
+        internal const string TEXTO_SIN_CODIGO = "Sin código de barras: imprima sus etiquetas antes de enviar";
+
+        /// <summary>Lo que se ve en la columna de la etiqueta: el aviso, o cuántas se han impreso. Null si nada.</summary>
+        public string AvisoEtiquetas
+            => FaltanEtiquetas ? TEXTO_SIN_CODIGO
+               : EtiquetasImpresas > 0
+                   ? (EtiquetasImpresas == 1 ? "1 etiqueta impresa" : $"{EtiquetasImpresas} etiquetas impresas")
+                     + (string.IsNullOrWhiteSpace(CodigoEtiqueta) ? string.Empty : $" ({CodigoEtiqueta.Trim()})")
+                   : null;
+
+        private int? _copiasEtiqueta;
+        /// <summary>
+        /// NestoAPI#762: cuántas etiquetas saca su botón. Por defecto, tantas como unidades se mandan; se puede cambiar
+        /// (de 0 a <see cref="EnviarReposicionViewModel.MAXIMO_ETIQUETAS_LINEA"/>).
+        /// </summary>
+        public int CopiasEtiqueta
+        {
+            get => Math.Min(EnviarReposicionViewModel.MAXIMO_ETIQUETAS_LINEA, _copiasEtiqueta ?? Cantidad);
+            set
+            {
+                int nuevas = Math.Max(0, Math.Min(EnviarReposicionViewModel.MAXIMO_ETIQUETAS_LINEA, value));
+                if (_copiasEtiqueta != nuevas)
+                {
+                    _copiasEtiqueta = nuevas;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         internal bool TieneCodigo(string codigo)
             => string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase);
+               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
+               || (CodigosBarras ?? new List<string>()).Any(c => string.Equals(c?.Trim(), codigo, StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// NestoAPI#762: los códigos de la línea que casan al leer. Con la lista de la API (aunque venga vacía) manda ella; con una
+        /// API anterior (sin lista), el principal.
+        /// </summary>
+        internal static List<string> CodigosDe(LineaReposicionEnPreparacion linea)
+            => (linea?.CodigosBarras ?? new List<string> { linea?.CodigoBarras })
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
     }
 
     /// <summary>
@@ -120,20 +207,23 @@ namespace Nesto.Modules.Producto.ViewModels
         private readonly ISonidosLector _sonidos;
         private readonly Action<string> _abrirFichero;
         private readonly IServicioNavegacion _navegacion;
+        private readonly IServicioEtiquetasProducto _etiquetas;
 
         /// <summary>Mientras se ponen las cantidades que manda el servidor (o se deshace un cambio) no se le vuelven a mandar.</summary>
         private bool _aplicandoServidor;
 
         public EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion)
-            : this(servicio, dialogos, configuracion, sonidos, navegacion, null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
+        /// <param name="etiquetas">NestoAPI#762: las etiquetas EAN-13 de lo que no tiene código. Sin él, los botones no hacen nada.</param>
         internal EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null)
         {
+            _etiquetas = etiquetas;
             _servicio = servicio;
             _dialogos = dialogos;
             _configuracion = configuracion;
@@ -162,6 +252,9 @@ namespace Nesto.Modules.Producto.ViewModels
             ReimprimirBultosEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirBultosEnviadaAsync, e => e != null && !EstaOcupado);
             ReimprimirImpresoEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirImpresoEnviadaAsync, e => e != null && !EstaOcupado);
             ReimprimirBultosPorNumeroCommand = new AsyncRelayCommand(ReimprimirBultosPorNumeroAsync, () => MostrarReimprimirPorNumero && LeerNumeroReposicion(NumeroReimprimirBultos) != null && !EstaOcupado);
+            ImprimirEtiquetasLineaCommand = new AsyncRelayCommand<LineaEnviarReposicion>(ImprimirEtiquetasLineaAsync,
+                l => l != null && !string.IsNullOrWhiteSpace(l.Producto) && HayReposicion && !EstaOcupado);
+            ImprimirEtiquetasSinCodigoCommand = new AsyncRelayCommand(ImprimirEtiquetasSinCodigoAsync, () => HayLineasSinEtiquetas && !EstaOcupado);
         }
 
         /// <summary>NestoAPI#577: con qué se crea la reposición (Nesto, Ariadna o el proceso automático).</summary>
@@ -1031,6 +1124,202 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        // ---------------------------------------------------------------- NestoAPI#762: el origen etiqueta lo que no tiene código
+
+        /// <summary>Lo que admite la API en una petición (Copias 1..100): más, en varias.</summary>
+        internal const int MAXIMO_COPIAS_PETICION = 100;
+        /// <summary>Lo más que saca de una vez el botón de una línea.</summary>
+        internal const int MAXIMO_ETIQUETAS_LINEA = 999;
+
+        internal const string TITULO_ETIQUETAS_PRODUCTO = "Etiquetas de código de barras";
+
+        /// <summary>
+        /// NestoAPI#762: imprime las etiquetas EAN-13 de una línea (por defecto, tantas como unidades). Si el producto no tiene
+        /// código, la API le asigna el interno (290…) y lo imprime; se añade a la línea para que la lectura case.
+        /// </summary>
+        public IAsyncRelayCommand<LineaEnviarReposicion> ImprimirEtiquetasLineaCommand { get; }
+
+        /// <summary>NestoAPI#762: «Imprimir etiquetas de lo que no tiene código», todas las líneas pendientes a la vez.</summary>
+        public IAsyncRelayCommand ImprimirEtiquetasSinCodigoCommand { get; }
+
+        /// <summary>Las líneas que se mandan sin código de barras y aún sin etiquetas impresas.</summary>
+        private List<LineaEnviarReposicion> LineasSinEtiquetas() => Lineas.Where(l => l.FaltanEtiquetas && l.Cantidad > 0).ToList();
+
+        /// <summary>Hay algo que se manda sin código de barras y sin etiquetas: se avisa arriba y se ve el botón de imprimirlas todas.</summary>
+        public bool HayLineasSinEtiquetas => HayReposicion && Lineas.Any(l => l.FaltanEtiquetas && l.Cantidad > 0);
+
+        /// <summary>«2 productos no tienen código de barras: imprima sus etiquetas antes de enviar». Null si ninguno.</summary>
+        public string AvisoSinCodigo
+        {
+            get
+            {
+                int cuantos = HayReposicion ? LineasSinEtiquetas().Count : 0;
+                return cuantos == 0 ? null : TextoAvisoSinCodigo(cuantos) + ".";
+            }
+        }
+
+        internal static string TextoAvisoSinCodigo(int productos)
+            => (productos == 1 ? "1 producto no tiene código de barras" : $"{productos} productos no tienen código de barras")
+               + ": imprima sus etiquetas antes de enviar";
+
+        private void RefrescarEtiquetas()
+        {
+            OnPropertyChanged(nameof(HayLineasSinEtiquetas));
+            OnPropertyChanged(nameof(AvisoSinCodigo));
+            ImprimirEtiquetasSinCodigoCommand?.NotifyCanExecuteChanged();
+        }
+
+        internal async Task ImprimirEtiquetasLineaAsync(LineaEnviarReposicion linea)
+        {
+            if (linea == null || string.IsNullOrWhiteSpace(linea.Producto) || _etiquetas == null)
+            {
+                return;
+            }
+            if (linea.CopiasEtiqueta < 1)
+            {
+                Mensaje = $"Ponga cuántas etiquetas quiere imprimir de {linea.Producto}.";
+                return;
+            }
+            Mensaje = null;
+            string error = null;
+            string texto = null;
+            await OcupadoEtiquetas(async () =>
+            {
+                (texto, error) = await ImprimirEtiquetasAsync(linea, linea.CopiasEtiqueta).ConfigureAwait(true);
+            }).ConfigureAwait(true);
+            Mensaje = error ?? texto;
+            if (error != null)
+            {
+                _dialogos.ShowError(error);
+            }
+        }
+
+        internal string TextoConfirmarEtiquetasSinCodigo(List<LineaEnviarReposicion> lineas)
+        {
+            int etiquetas = lineas.Sum(l => l.CopiasEtiqueta);
+            return $"Se imprimen {(etiquetas == 1 ? "1 etiqueta" : $"{etiquetas} etiquetas")} de " +
+                $"{(lineas.Count == 1 ? "1 producto" : $"{lineas.Count} productos")} sin código de barras " +
+                $"({string.Join(", ", lineas.Select(l => l.Producto))}). Péguelas en cada unidad antes de enviar. ¿Imprimir?";
+        }
+
+        internal async Task ImprimirEtiquetasSinCodigoAsync()
+        {
+            if (_etiquetas == null)
+            {
+                return;
+            }
+            List<LineaEnviarReposicion> pendientes = LineasSinEtiquetas().Where(l => l.CopiasEtiqueta > 0).ToList();
+            if (pendientes.Count == 0)
+            {
+                Mensaje = "No queda nada sin código de barras por etiquetar.";
+                return;
+            }
+            if (!await _dialogos.ShowConfirmationAsync(TITULO_ETIQUETAS_PRODUCTO, TextoConfirmarEtiquetasSinCodigo(pendientes)).ConfigureAwait(true))
+            {
+                return;
+            }
+            Mensaje = null;
+            var impresas = new List<string>();
+            var errores = new List<string>();
+            await OcupadoEtiquetas(async () =>
+            {
+                foreach (LineaEnviarReposicion linea in pendientes)
+                {
+                    (string texto, string error) = await ImprimirEtiquetasAsync(linea, linea.CopiasEtiqueta).ConfigureAwait(true);
+                    if (error != null)
+                    {
+                        errores.Add(error);
+                        if (error == TEXTO_SIN_CONEXION_ETIQUETAS)
+                        {
+                            // Sin red no va a salir ninguna más: no se sigue
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        impresas.Add(texto);
+                    }
+                }
+            }).ConfigureAwait(true);
+            Mensaje = string.Join(Environment.NewLine, impresas.Concat(errores));
+            if (errores.Count > 0)
+            {
+                _dialogos.ShowError(string.Join(Environment.NewLine, errores));
+            }
+        }
+
+        internal const string TEXTO_SIN_CONEXION_ETIQUETAS = "No se ha podido conectar con el servidor para imprimir las etiquetas. Vuelva a intentarlo.";
+
+        /// <summary>
+        /// Pide a la API las etiquetas de la línea (de 100 en 100) y apunta en ella las impresas y el código. Devuelve lo que hay
+        /// que decir o el error (con el texto de la API).
+        /// </summary>
+        private async Task<(string Texto, string Error)> ImprimirEtiquetasAsync(LineaEnviarReposicion linea, int copias)
+        {
+            var mensajes = new List<string>();
+            int quedan = copias;
+            while (quedan > 0)
+            {
+                int ahora = Math.Min(MAXIMO_COPIAS_PETICION, quedan);
+                ResultadoEtiquetasProducto resultado;
+                try
+                {
+                    resultado = await _etiquetas.Imprimir(Empresa, linea.Producto, ahora, PeticionEtiquetasProducto.FORMATO_EAN13).ConfigureAwait(true);
+                }
+                catch (EtiquetasProductoException ex)
+                {
+                    return (null, ex.Message);
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+                {
+                    return (null, TEXTO_SIN_CONEXION_ETIQUETAS);
+                }
+                quedan -= ahora;
+                ApuntarImpresas(linea, resultado, ahora);
+                mensajes.Add(string.IsNullOrWhiteSpace(resultado?.Mensaje)
+                    ? $"{(ahora == 1 ? "1 etiqueta" : $"{ahora} etiquetas")} de {linea.Producto} mandadas a la impresora."
+                    : resultado.Mensaje.Trim());
+            }
+            return (string.Join(" ", mensajes), null);
+        }
+
+        /// <summary>
+        /// Lo impreso en la línea: las etiquetas y el código. Si la API se lo acaba de asignar (o no estaba en la lista), se añade
+        /// a sus códigos: así la lectura de la etiqueta casa sin preguntar a la API.
+        /// </summary>
+        private void ApuntarImpresas(LineaEnviarReposicion linea, ResultadoEtiquetasProducto resultado, int pedidas)
+        {
+            int impresas = resultado == null ? pedidas : resultado.Impresas > 0 ? resultado.Impresas : pedidas;
+            string codigo = resultado?.CodigoBarras?.Trim();
+            if (!string.IsNullOrEmpty(codigo))
+            {
+                linea.CodigosBarras ??= new List<string>();
+                if (!linea.TieneCodigo(codigo))
+                {
+                    linea.CodigosBarras.Add(codigo);
+                }
+                linea.CodigoEtiqueta = codigo;
+            }
+            linea.EtiquetasImpresas += impresas;
+            RefrescarEtiquetas();
+        }
+
+        /// <summary>Como <see cref="Ocupado"/>, para las etiquetas (sus errores los dice quien llama).</summary>
+        private async Task OcupadoEtiquetas(Func<Task> accion)
+        {
+            _operacionesEnCurso++;
+            EstaOcupado = true;
+            try
+            {
+                await accion().ConfigureAwait(true);
+            }
+            finally
+            {
+                _operacionesEnCurso--;
+                EstaOcupado = _operacionesEnCurso > 0;
+            }
+        }
+
         // ---------------------------------------------------------------- Nesto#530 (NestoAPI#645): bultos y etiquetas
 
         internal const int MAXIMO_BULTOS = 50;
@@ -1326,7 +1615,14 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         internal string TextoConfirmacion()
-            => $"Se mandan {Unidades} unidades de {Productos} productos a Algete. ¿Terminar?";
+        {
+            string texto = $"Se mandan {Unidades} unidades de {Productos} productos a Algete. ¿Terminar?";
+            // NestoAPI#762: en Algete solo se recibe escaneando: lo que no lleve etiqueta llegará como «Sin etiqueta»
+            List<string> sinEtiquetas = LineasSinEtiquetas().Select(l => l.Producto).ToList();
+            return sinEtiquetas.Count == 0
+                ? texto
+                : $"{TextoAvisoSinCodigo(sinEtiquetas.Count)} ({string.Join(", ", sinEtiquetas)}).{Environment.NewLine}{texto}";
+        }
 
         internal static string TextoResultado(ResultadoTerminarReposicion resultado)
         {
@@ -1351,6 +1647,9 @@ namespace Nesto.Modules.Producto.ViewModels
                     Producto = linea.Producto?.Trim(),
                     Nombre = linea.Nombre?.Trim(),
                     CodigoBarras = linea.CodigoBarras?.Trim(),
+                    CodigosBarras = LineaEnviarReposicion.CodigosDe(linea),
+                    // NestoAPI#762: sin ningún código (la API ya quita los que no son GTIN válidos), el origen tiene que etiquetarlo
+                    SinCodigoBarras = LineaEnviarReposicion.CodigosDe(linea).Count == 0,
                     StockOrigen = linea.StockOrigen,
                     Preparada = linea.Cantidad,
                     Cantidad = linea.Cantidad
@@ -1360,6 +1659,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             HayReposicion = Lineas.Count > 0;
             RefrescarTotales();
+            RefrescarEtiquetas();
         }
 
         /// <summary>Pone lo que contesta el servidor sin rehacer la lista (la rejilla puede estar terminando de editar).</summary>
@@ -1425,6 +1725,7 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             OnPropertyChanged(nameof(Unidades));
             OnPropertyChanged(nameof(Productos));
+            RefrescarEtiquetas();
         }
 
         private void RefrescarEstado()
@@ -1451,6 +1752,8 @@ namespace Nesto.Modules.Producto.ViewModels
             ReimprimirImpresoEnviadaCommand?.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(MostrarReimprimirPorNumero));
             ReimprimirBultosPorNumeroCommand?.NotifyCanExecuteChanged();
+            ImprimirEtiquetasLineaCommand?.NotifyCanExecuteChanged();
+            ImprimirEtiquetasSinCodigoCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>Los errores al escribir (preparar, cambiar, terminar) salen además en un diálogo, con el texto del servidor.</summary>

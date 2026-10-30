@@ -72,6 +72,11 @@
             <TextBlock Text="Lea la etiqueta del bulto (Rxxxxx-n) en el lector" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"
                        Visibility="{Binding EsperandoEtiqueta, Converter={StaticResource BooleanToVisibilityConverter}}" />
             <TextBlock Text="{Binding TextoBultos}" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <!-- NestoAPI#762: nada de cantidades a mano; lo que llegue sin etiqueta, unidad a unidad (sin colores fijos) -->
+            <TextBlock Text="Solo escaneando: lo que llegue sin etiqueta, con «Sin etiqueta» en su línea" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Margin="0,0,12,0"
+                       Visibility="{Binding SoloEscaneando, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       ToolTip="Esta reposición se recibe leyendo el código de barras de cada unidad. La referencia tecleada solo lleva a su línea. Lo leído por error se quita con «−1»" />
             <!-- NestoAPI#673: lo que ya se ha dado de alta de esta reposición -->
             <TextBlock Text="{Binding TextoRecibidaEnParte}" FontStyle="Italic" VerticalAlignment="Center" Margin="0,0,12,0" />
             <!-- Ariadna#51: lo leído está en el servidor; quién más la está recibiendo (Ariadna u otro Nesto) -->
@@ -116,9 +121,10 @@
                 </TextBox.InputBindings>
             </TextBox>
         </WrapPanel>
-        <!-- Nesto#530: hasta leer la etiqueta del bulto no se teclea en «Leído» -->
-        <DataGrid Grid.Row="2" Grid.Column="2" ItemsSource="{Binding LineasVisibles}" AutoGenerateColumns="False"
-                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="{Binding EsperandoEtiqueta}">
+        <!-- Nesto#530: hasta leer la etiqueta del bulto no se teclea en «Leído»; NestoAPI#762: solo escaneando, nunca -->
+        <DataGrid x:Name="grdLineas" Grid.Row="2" Grid.Column="2" ItemsSource="{Binding LineasVisibles}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="{Binding LeidoSoloLectura}"
+                  SelectedItem="{Binding LineaElegida}" SelectionChanged="GrdLineas_SelectionChanged">
             <DataGrid.Columns>
                 <!-- Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto -->
                 <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True">
@@ -161,6 +167,24 @@
                         </Style>
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
+                <!-- NestoAPI#762: solo escaneando, lo que llega sin etiqueta se apunta unidad a unidad, y «−1» quita lo leído por error -->
+                <DataGridTemplateColumn Header="">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal"
+                                        Visibility="{Binding DataContext.SoloEscaneando, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Button Content="Sin etiqueta" Padding="8,0" Margin="2,1" Focusable="False"
+                                        Command="{Binding DataContext.SinEtiquetaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Ha llegado una unidad sin etiqueta (o con una que no se lee): elija el motivo y cuenta una unidad. Se avisa al origen y a Compras" />
+                                <Button Content="−1" Padding="8,0" Margin="2,1" Focusable="False"
+                                        Command="{Binding DataContext.QuitarUnoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Quita una unidad leída por error" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <!-- Nesto#534 (sugerencia 546): la etiqueta de código de barras del producto, en la impresora de etiquetas -->
                 <DataGridTemplateColumn Header="Etiqueta">
                     <DataGridTemplateColumn.CellTemplate>
@@ -175,6 +199,25 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="3">
+            <!-- NestoAPI#762: el motivo de la unidad sin etiqueta (sin colores fijos) -->
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" Padding="8" Margin="0,8,0,0"
+                    Visibility="{Binding PreguntandoSinEtiqueta, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding TextoPreguntaSinEtiqueta}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6" />
+                    <WrapPanel Orientation="Horizontal">
+                        <RadioButton Content="No lleva _etiqueta" GroupName="MotivoSinEtiqueta" IsChecked="{Binding MotivoNoLleva}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                        <RadioButton Content="La etiqueta no se _lee" GroupName="MotivoSinEtiqueta" IsChecked="{Binding MotivoNoSeLee}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                        <RadioButton Content="_Otro:" GroupName="MotivoSinEtiqueta" IsChecked="{Binding MotivoOtro}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBox Width="320" Text="{Binding ComentarioSinEtiqueta, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                                 IsEnabled="{Binding MotivoOtro}" ToolTip="Con «Otro», explique qué pasa (obligatorio)" />
+                        <Button Content="_Apuntar 1 unidad" Command="{Binding ApuntarSinEtiquetaCommand}" Padding="12,2" Margin="16,0,0,0"
+                                ToolTip="Cuenta una unidad de este producto y avisa al origen y a Compras" />
+                        <Button Content="_Cancelar" Command="{Binding CancelarSinEtiquetaCommand}" Padding="12,2" Margin="8,0,0,0" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+        </StackPanel>
     </Grid>
 </UserControl>

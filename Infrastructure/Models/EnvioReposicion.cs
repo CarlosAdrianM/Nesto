@@ -14,6 +14,11 @@ namespace Nesto.Infrastructure.Models
         public string Producto { get; set; }
         public string Nombre { get; set; }
         public string CodigoBarras { get; set; }
+        /// <summary>
+        /// NestoAPI#762: todos los códigos activos del producto (el principal el primero; también el interno 290…). Vacía si el
+        /// producto no tiene ninguno: el origen tiene que etiquetarlo. Null con una API anterior: solo se sabe el principal.
+        /// </summary>
+        public List<string> CodigosBarras { get; set; }
         public int Cantidad { get; set; }
         /// <summary>Stock en la tienda (el almacén de origen).</summary>
         public int StockOrigen { get; set; }

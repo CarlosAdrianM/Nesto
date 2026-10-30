@@ -16,6 +16,13 @@ namespace Nesto.Infrastructure.Services
     {
         /// <exception cref="EtiquetasProductoException">La API no la ha impreso (sin permiso, producto que no existe…).</exception>
         Task<ResultadoEtiquetasProducto> Imprimir(string empresa, string producto, int copias, bool ensayo = false);
+
+        /// <summary>
+        /// NestoAPI#762: como <see cref="Imprimir(string, string, int, bool)"/>, eligiendo la etiqueta
+        /// (<see cref="PeticionEtiquetasProducto.FORMATO_EAN13"/>: la del EAN-13, y si no tiene, la API le asigna el interno).
+        /// </summary>
+        /// <exception cref="EtiquetasProductoException">La API no la ha impreso.</exception>
+        Task<ResultadoEtiquetasProducto> Imprimir(string empresa, string producto, int copias, string formato, bool ensayo = false);
     }
 
     public class ServicioEtiquetasProducto : IServicioEtiquetasProducto
@@ -27,13 +34,21 @@ namespace Nesto.Infrastructure.Services
             _clienteApiFactory = clienteApiFactory;
         }
 
-        public async Task<ResultadoEtiquetasProducto> Imprimir(string empresa, string producto, int copias, bool ensayo = false)
+        public Task<ResultadoEtiquetasProducto> Imprimir(string empresa, string producto, int copias, bool ensayo = false)
+            => Imprimir(empresa, producto, copias, null, ensayo);
+
+        public async Task<ResultadoEtiquetasProducto> Imprimir(string empresa, string producto, int copias, string formato, bool ensayo = false)
         {
             using (HttpClient client = _clienteApiFactory.Crear())
             {
                 string url = "Almacen/EtiquetasProducto/Imprimir?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty)
                     + "&ensayo=" + (ensayo ? "true" : "false");
-                var peticion = new PeticionEtiquetasProducto { Producto = producto?.Trim(), Copias = copias };
+                var peticion = new PeticionEtiquetasProducto
+                {
+                    Producto = producto?.Trim(),
+                    Copias = copias,
+                    Formato = string.IsNullOrWhiteSpace(formato) ? null : formato.Trim()
+                };
                 var contenido = new StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync(url, contenido).ConfigureAwait(false);
                 string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

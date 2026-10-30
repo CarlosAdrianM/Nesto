@@ -49,6 +49,15 @@ namespace Nesto.Modules.Producto.Views
             }
         }
 
+        /// <summary>NestoAPI#762: la línea elegida tecleando su referencia (o con «Sin etiqueta») se ve en la rejilla.</summary>
+        private void GrdLineas_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is DataGrid rejilla && rejilla.SelectedItem != null)
+            {
+                rejilla.ScrollIntoView(rejilla.SelectedItem);
+            }
+        }
+
         /// <summary>Tras abrir la ficha desde la rejilla, al volver a esta pestaña el cursor vuelve al lector.</summary>
         private bool _volverAlLectorAlVerse;
 

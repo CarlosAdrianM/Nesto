@@ -305,5 +305,58 @@ namespace Infrastructure.Tests
                 servicio.GuardarLecturas("1", "REI", "81119", new List<LecturaEnCursoRecepcion>(), null));
             Assert.AreEqual("La reposición ya está recibida", ex.Message);
         }
+
+        // ---- NestoAPI#762: solo escaneando y «Sin etiqueta»
+
+        [TestMethod]
+        public async Task LeerRecepcion_LeeSoloEscaneando_YSinElCampoEsFalse()
+        {
+            var handler = new HandlerFalso { Respuesta = "{\"Tipo\":\"REPO\",\"Documento\":\"81200\",\"SoloEscaneando\":true,\"Lineas\":[]}" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+            Assert.IsTrue((await servicio.LeerRecepcion("1", "REI", "81200")).SoloEscaneando);
+
+            handler.Respuesta = "{\"Tipo\":\"REPO\",\"Documento\":\"81200\",\"Lineas\":[]}";
+            Assert.IsFalse((await servicio.LeerRecepcion("1", "REI", "81200")).SoloEscaneando, "Una API anterior no lo manda: como siempre");
+        }
+
+        [TestMethod]
+        public async Task ApuntarSinEtiqueta_MandaElMotivoALaRecepcionYLeeElMensaje()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Mensaje\":\"Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras.\",\"Avisados\":[\"Algete\",\"Compras\"]}"
+            };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            ResultadoSinEtiquetaRecepcion resultado = await servicio.ApuntarSinEtiqueta("1  ", "REI", " 81200 ", new PeticionSinEtiquetaRecepcion
+            {
+                Producto = "17404",
+                Motivo = PeticionSinEtiquetaRecepcion.MOTIVO_OTRO,
+                Comentario = "Caja rota",
+                Dispositivo = "NESTO-1"
+            });
+
+            Assert.AreEqual("POST /api/Almacen/Recepciones/REPO/81200/SinEtiqueta?almacen=REI&empresa=1", handler.Urls[0]);
+            JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
+            Assert.AreEqual("17404", (string)cuerpo["Producto"]);
+            Assert.AreEqual("Otro", (string)cuerpo["Motivo"]);
+            Assert.AreEqual("Caja rota", (string)cuerpo["Comentario"]);
+            Assert.AreEqual(1, (int)cuerpo["Unidades"], "Siempre unidad a unidad");
+            Assert.AreEqual("NESTO-1", (string)cuerpo["Dispositivo"]);
+            Assert.AreEqual("Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras.", resultado.Mensaje);
+            CollectionAssert.AreEqual(new[] { "Algete", "Compras" }, resultado.Avisados);
+        }
+
+        [TestMethod]
+        public async Task ApuntarSinEtiqueta_SiLaApiDice400_LanzaConSuTexto()
+        {
+            var handler = new HandlerFalso { Codigo = HttpStatusCode.BadRequest, Respuesta = "{\"Message\":\"Con el motivo «Otro» hay que explicar qué pasa.\"}" };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            var ex = await Assert.ThrowsExceptionAsync<RecepcionReposicionException>(() =>
+                servicio.ApuntarSinEtiqueta("1", "REI", "81200", new PeticionSinEtiquetaRecepcion { Producto = "17404", Motivo = "Otro" }));
+
+            Assert.AreEqual("Con el motivo «Otro» hay que explicar qué pasa.", ex.Message);
+        }
     }
 }

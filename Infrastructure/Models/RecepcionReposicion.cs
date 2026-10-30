@@ -109,6 +109,39 @@ namespace Nesto.Infrastructure.Models
         /// a las 14:19 (+1, Paloma), después de enviar la reposición: compruebe que no se cuenta dos veces.»). Vacía con una API anterior.
         /// </summary>
         public List<string> Avisos { get; set; } = new List<string>();
+
+        /// <summary>
+        /// NestoAPI#762: se recibe solo escaneando (true en las reposiciones): nada de teclear cantidades; lo que llegue sin
+        /// etiqueta se apunta unidad a unidad con «Sin etiqueta» y su motivo. False en las compras y con una API anterior.
+        /// </summary>
+        public bool SoloEscaneando { get; set; }
+    }
+
+    /// <summary>
+    /// NestoAPI#762: POST api/Almacen/Recepciones/{tipo}/{documento}/SinEtiqueta. Ha llegado una unidad sin etiqueta (o con
+    /// una que no se lee): se cuenta y la API avisa al origen y a Compras.
+    /// </summary>
+    public class PeticionSinEtiquetaRecepcion
+    {
+        public const string MOTIVO_NO_LLEVA = "NoLleva";
+        public const string MOTIVO_NO_SE_LEE = "NoSeLee";
+        public const string MOTIVO_OTRO = "Otro";
+
+        public string Producto { get; set; }
+        /// <summary><see cref="MOTIVO_NO_LLEVA"/>, <see cref="MOTIVO_NO_SE_LEE"/> u <see cref="MOTIVO_OTRO"/> (con comentario).</summary>
+        public string Motivo { get; set; }
+        /// <summary>Obligatorio con <see cref="MOTIVO_OTRO"/>; null en los demás.</summary>
+        public string Comentario { get; set; }
+        public int Unidades { get; set; } = 1;
+        public string Dispositivo { get; set; }
+    }
+
+    /// <summary>NestoAPI#762: lo que contesta POST …/SinEtiqueta (200).</summary>
+    public class ResultadoSinEtiquetaRecepcion
+    {
+        /// <summary>«Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras.»</summary>
+        public string Mensaje { get; set; }
+        public List<string> Avisados { get; set; } = new List<string>();
     }
 
     public class LecturaRecepcionReposicion
