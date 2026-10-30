@@ -19,6 +19,9 @@
                 <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/NifIncorrectos.png" Command="{Binding AbrirNifIncorrectosCommand}" />
                 <!-- Nesto#442: mantenimiento de códigos postales (solo Dirección y Tienda online) -->
                 <RibbonButton Label="Códigos Postales" LargeImageSource="Images/CodigosPostales.png" Command="{Binding AbrirCodigosPostalesCommand}" />
+                <!-- Nesto#584 (NestoAPI#763): horarios preferibles sacados de los comentarios, por revisar -->
+                <RibbonButton Label="Horarios por revisar" LargeImageSource="Images/HorariosPorRevisar.png" Command="{Binding AbrirHorariosPorRevisarCommand}"
+                              ToolTipDescription="Horarios preferibles de entrega sacados de los comentarios de las fichas. Solo los respeta nuestra ruta propia." />
             </RibbonGroup>
             <RibbonGroup x:Name="grpDocumentos"
                                 Header="Documentos">

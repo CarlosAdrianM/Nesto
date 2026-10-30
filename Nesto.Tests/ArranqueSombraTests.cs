@@ -550,6 +550,7 @@ namespace Nesto.Tests
             "    RibbonButton «Crear Cliente» [CrearClienteViewModel]",
             "    RibbonButton «NIF incorrectos» [CrearClienteViewModel]",
             "    RibbonButton «Códigos Postales» [CrearClienteViewModel]",
+            "    RibbonButton «Horarios por revisar» [CrearClienteViewModel]", // Nesto#584, después de la referencia de Prism
             "  RibbonGroup «Ventas» [PlantillaVentaViewModel]",
             "    RibbonButton «Plantilla» [PlantillaVentaViewModel]",
             "    RibbonButton «Pedidos» [PedidoVentaViewModel]",
@@ -668,6 +669,7 @@ namespace Nesto.Tests
             "MantenimientoEventosView | MantenimientoEventosView | MantenimientoEventosViewModel",
             "SenalesEventosView | SenalesEventosView | SenalesEventosViewModel",
             "PedidosPromesaRiesgoView | PedidosPromesaRiesgoView | PedidosPromesaRiesgoViewModel", // Nesto#546, después de la referencia de Prism
+            "HorariosPorRevisarView | HorariosPorRevisarView | HorariosPorRevisarViewModel", // Nesto#584, después de la referencia de Prism
             "PedidoCompraView | PedidoCompraView | PedidoCompraViewModel",
             "DetallePedidoCompraView | DetallePedidoCompraView | DetallePedidoCompraViewModel",
             "ListaPedidosCompraView | ListaPedidosCompraView | ListaPedidosCompraViewModel",

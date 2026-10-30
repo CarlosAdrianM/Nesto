@@ -42,6 +42,7 @@ namespace Nesto.Modulos.Cliente
             AbrirExtractoClienteCommand = new RelayCommand(OnAbrirExtractoCliente);
             AbrirNifIncorrectosCommand = new RelayCommand(OnAbrirNifIncorrectos);
             AbrirCodigosPostalesCommand = new RelayCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
+            AbrirHorariosPorRevisarCommand = new RelayCommand(() => Navegacion.RequestNavigate("MainRegion", "HorariosPorRevisarView")); // Nesto#584
             AbrirEventosCommand = new RelayCommand(OnAbrirEventos, () => PuedeMantenerEventos); // NestoAPI#591
             AbrirSenalesEventosCommand = new RelayCommand(OnAbrirSenalesEventos, () => PuedeVerSenalesEventos); // NestoAPI#591
             AnnadirPersonaContactoCommand = new RelayCommand(OnAnnadirPersonaContacto);
@@ -841,6 +842,9 @@ namespace Nesto.Modulos.Cliente
         {
             Navegacion.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
         }
+
+        // Nesto#584 (NestoAPI#763): horarios preferibles sacados de los comentarios, por revisar
+        public ICommand AbrirHorariosPorRevisarCommand { get; private set; }
 
         // NestoAPI#591 y Nesto#517: mantenimiento de eventos (cada tienda, Tienda online, Administración, Dirección, Informática)
         public bool PuedeMantenerEventos => MantenimientoEventosViewModel.PuedeMantener(Configuracion);

@@ -102,6 +102,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Clientes", "Mantenimiento", "Crear Cliente"), new DestinoMenu(CLIENTES, "Fichas", 20)),
             (Clave("Clientes", "Mantenimiento", "NIF incorrectos"), new DestinoMenu(CLIENTES, "Fichas", 30)),
             (Clave("Clientes", "Mantenimiento", "Códigos Postales"), new DestinoMenu(CLIENTES, "Fichas", 40)),
+            (Clave("Clientes", "Mantenimiento", "Horarios por revisar"), new DestinoMenu(CLIENTES, "Fichas", 45)), // Nesto#584
             (Clave("Clientes", "Mantenimiento", "Alquileres"), new DestinoMenu(CLIENTES, "Fichas", 50)),
             (Clave("Clientes", "Eventos", "Eventos"), new DestinoMenu(CLIENTES, "Eventos", 60)),
             (Clave("Clientes", "Eventos", "Señales de eventos"), new DestinoMenu(CLIENTES, "Eventos", 70)),

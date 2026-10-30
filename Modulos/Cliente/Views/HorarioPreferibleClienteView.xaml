@@ -1,0 +1,61 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.HorarioPreferibleClienteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="800"
+             Background="White">
+    <!-- Nesto#584 (NestoAPI#763): el «horario preferible» del contacto. SOLO lo respeta nuestra ruta propia (el orden de las
+         paradas de Ariadna avisa de las que llegarían fuera); las agencias externas no tienen obligación. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <Grid x:Name="Raiz" Margin="3">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="6,3" Margin="0,0,0,4">
+            <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+        </Border>
+
+        <TextBlock Grid.Row="1" Text="{Binding Resumen}" Margin="0,0,0,4" TextWrapping="Wrap"/>
+
+        <Border Grid.Row="2" Background="#EAF3FF" BorderBrush="#7FA7D9" BorderThickness="1" Padding="6,3" Margin="0,0,0,4"
+                Visibility="{Binding HayPropuesta, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Usar la propuesta" Command="{Binding UsarPropuestaCommand}" Padding="8,1" Margin="6,0,0,0"
+                        ToolTip="Pone la propuesta en el editor. Revísela y pulse «Guardar» para que valga."/>
+                <TextBlock Text="{Binding TextoPropuesta}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Dias}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  CanUserSortColumns="False" HeadersVisibility="Column" SelectionUnit="Cell" HorizontalAlignment="Left">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Día" Binding="{Binding Nombre}" IsReadOnly="True" Width="90"/>
+                <DataGridTextColumn Header="Mañana desde" Binding="{Binding MananaDesde, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                <DataGridTextColumn Header="Mañana hasta" Binding="{Binding MananaHasta, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                <DataGridTextColumn Header="Tarde desde" Binding="{Binding TardeDesde, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                <DataGridTextColumn Header="Tarde hasta" Binding="{Binding TardeHasta, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,4,0,0">
+            <Button Content="Guardar" Command="{Binding GuardarCommand}" Padding="12,1" Margin="0,0,6,0"
+                    ToolTip="Guarda el horario de este contacto. Las horas, como 10:00; deje vacía la franja que no tenga."/>
+            <Button Content="Copiar el lunes de martes a viernes" Command="{Binding CopiarLunesCommand}" Padding="8,1" Margin="0,0,6,0"/>
+            <Button Content="Quitar el horario" Command="{Binding QuitarCommand}" Padding="8,1" Margin="0,0,6,0"/>
+            <Button Content="Actualizar" Command="{Binding RecargarCommand}" Padding="8,1"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="5" Text="{Binding Mensaje}" FontStyle="Italic" Margin="0,4,0,0" TextWrapping="Wrap"
+                   Visibility="{Binding HayMensaje, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
+</UserControl>
