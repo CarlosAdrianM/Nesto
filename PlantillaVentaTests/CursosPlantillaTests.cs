@@ -379,6 +379,65 @@ namespace PlantillaVentaTests
 
         #endregion
 
+        #region Sugerencia 899: el correo de los cursos se pregunta y se adapta a la forma de pago
+
+        [TestMethod]
+        public void PreguntaCorreoCursos_SegunLaFormaDePago()
+        {
+            StringAssert.Contains(PlantillaVentaViewModel.PreguntaCorreoCursos("TRN"), "por transferencia");
+            StringAssert.Contains(PlantillaVentaViewModel.PreguntaCorreoCursos(" trn "), "por transferencia");
+            StringAssert.Contains(PlantillaVentaViewModel.PreguntaCorreoCursos("EFC"), "en la tienda");
+            StringAssert.Contains(PlantillaVentaViewModel.PreguntaCorreoCursos("TAR"), "con tarjeta");
+            StringAssert.Contains(PlantillaVentaViewModel.PreguntaCorreoCursos(null), "con tarjeta");
+            Assert.IsFalse(PlantillaVentaViewModel.PreguntaCorreoCursos("TRN").Contains("tarjeta"));
+        }
+
+        [TestMethod]
+        public void PreguntarCorreoCursos_SinCursos_NoPreguntaYLaApiHaceLoDeSiempre()
+        {
+            var vm = CrearViewModel();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta { producto = "17404", cantidad = 1, precio = 10M });
+
+            Assert.IsNull(vm.PreguntarCorreoCursos());
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void PreguntarCorreoCursos_PorTransferencia_PreguntaPorLosDatosDeTransferenciaYDevuelveLaRespuesta()
+        {
+            // Regresión sugerencia 899 (pedido 929655): por transferencia se mandaba siempre el enlace de tarjeta
+            var vm = CrearViewModel();
+            PonerPlazo(vm, Constantes.PlazosPago.PREPAGO);
+            vm.FormaPagoSeleccionada = new FormaPago { formaPago = "TRN" };
+            var curso = Curso();
+            PlantillaVentaViewModel.AplicarEventoALinea(curso, Evento(12), Evento(12).Modalidades[0]);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(curso);
+            string pregunta = null;
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer(PlantillaVentaViewModel.TITULO_CORREO_CURSOS, A<string>.Ignored))
+                .ReturnsLazily((string t, string m) => { pregunta = m; return false; });
+
+            Assert.AreEqual(false, vm.PreguntarCorreoCursos());
+            StringAssert.Contains(pregunta, "transferencia");
+
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer(PlantillaVentaViewModel.TITULO_CORREO_CURSOS, A<string>.Ignored)).Returns(true);
+            Assert.AreEqual(true, vm.PreguntarCorreoCursos());
+        }
+
+        [TestMethod]
+        public void PreguntarCorreoCursos_EditandoUnPedido_NoPregunta()
+        {
+            var vm = CrearViewModel();
+            var curso = Curso();
+            PlantillaVentaViewModel.AplicarEventoALinea(curso, Evento(12), Evento(12).Modalidades[0]);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(curso);
+            vm.PedidoPendienteSeleccionado = 927001;
+
+            Assert.IsNull(vm.PreguntarCorreoCursos());
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        #endregion
+
         #region Los cursos no suman al pedido de productos
 
         [TestMethod]

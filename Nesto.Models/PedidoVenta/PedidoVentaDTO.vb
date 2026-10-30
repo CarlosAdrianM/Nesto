@@ -119,6 +119,10 @@ Public Class PedidoVentaDTO
     ''' <summary>Nesto#537 / NestoAPI#670: la sesión de «Puede ofrecer» de la plantilla. Al crear o modificar el pedido, la API
     ''' la enlaza con él y apunta qué sugerencias entraron. Nothing fuera de la plantilla.</summary>
     Public Property IdSesionSugerencias As Guid?
+    ''' <summary>Sugerencia 899 (NestoAPI#753): con cursos, si la API manda al cliente el correo de sus cursos (enlace de tarjeta,
+    ''' datos de la transferencia o «páguela en su tienda», según la forma de pago). La plantilla lo pregunta al grabar.
+    ''' Nothing = sí, como hasta ahora; False = no se manda nada.</summary>
+    Public Property EnviarCorreoCursos As Boolean?
     ''' <summary>NestoAPI#704: de dónde salió el modo de servicio al grabar (OrigenesModoServicio: Usuario, Sugerido, PorDefecto,
     ''' Corregido). Solo se registra en el servidor, no cambia el pedido. Nothing fuera de la plantilla.</summary>
     Public Property OrigenModoServicio As String

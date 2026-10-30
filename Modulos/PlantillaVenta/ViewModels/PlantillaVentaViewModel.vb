@@ -2861,6 +2861,33 @@ Public Class PlantillaVentaViewModel
     Public Const MENSAJE_PREPAGO_FORZADO As String = "Los cursos se pagan por adelantado: se ha puesto el plazo de pago «Prepago». Compruebe la forma de pago, por favor."
     Public Const MENSAJE_PREPAGO_OBLIGATORIO As String = "El pedido lleva un curso y los cursos se pagan por adelantado. Elija el plazo de pago «Prepago» antes de guardar, por favor."
     Public Const MENSAJE_CURSO_EN_AMPLIACION As String = "Los cursos van en un pedido aparte y no se pueden añadir a un pedido que ya existe. Cree un pedido nuevo (sin ampliar el pendiente), por favor."
+    Public Const TITULO_CORREO_CURSOS As String = "Correo de los cursos"
+
+    ''' <summary>
+    ''' Sugerencia 899 (Carlos, 30/10/26): la pregunta de si se le manda al cliente el correo de sus cursos, según la forma de pago
+    ''' del pedido: con transferencia, los datos para transferir; en efectivo, que los paga en la tienda; si no, el enlace de tarjeta.
+    ''' </summary>
+    Public Shared Function PreguntaCorreoCursos(formaPago As String) As String
+        Select Case formaPago?.Trim().ToUpperInvariant()
+            Case Constantes.FormasPago.TRANSFERENCIA
+                Return "¿Le mandamos al cliente un correo con sus cursos y los datos para pagarlos por transferencia (cuenta, concepto e importe)?"
+            Case Constantes.FormasPago.EFECTIVO
+                Return "¿Le mandamos al cliente un correo con sus cursos, diciéndole que los paga en la tienda?"
+            Case Else
+                Return "¿Le mandamos al cliente un correo con sus cursos y el enlace para pagarlos con tarjeta?"
+        End Select
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 899: al grabar un pedido nuevo con cursos se pregunta si se manda el correo al cliente. Nothing si no hay
+    ''' cursos (la API hace lo de siempre); True o False con la respuesta.
+    ''' </summary>
+    Friend Function PreguntarCorreoCursos() As Boolean?
+        If LineasCursoEnElPedido.Count = 0 OrElse NumeroPedidoEnEdicion.HasValue OrElse PedidoPendienteSeleccionado <> 0 Then
+            Return Nothing
+        End If
+        Return dialogService.ShowConfirmationAnswer(TITULO_CORREO_CURSOS, PreguntaCorreoCursos(FormaPagoSeleccionada?.formaPago))
+    End Function
 
     ''' <summary>Nesto#543: quita del pedido las líneas de curso (para todo lo que se pregunta sobre el de productos).</summary>
     Friend Sub QuitarLineasCurso(pedido As PedidoVentaDTO)
@@ -4500,9 +4527,13 @@ Public Class PlantillaVentaViewModel
             ActualizarTotales()
         End If
 
+        ' Sugerencia 899: con cursos, ¿se le manda el correo al cliente? (la API lo adapta a la forma de pago)
+        Dim enviarCorreoCursos As Boolean? = PreguntarCorreoCursos()
+
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()
         pedido.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: se pregunta si alguna línea va a más de 60 días
+        pedido.EnviarCorreoCursos = enviarCorreoCursos
         Dim rechazoConPicking As ModoConPickingException = Nothing ' Nesto#489
         Dim modoGuardado As Byte? = Nothing
 
