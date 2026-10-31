@@ -75,6 +75,58 @@ namespace ControlesUsuario.Notificaciones
             AbrirNovedadesCommand = new AsyncRelayCommand(() => AbrirNovedades(null), () => _abridorNovedades != null);
             CerrarAvisoFichaCambiadoCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => CerrarAvisoFicha(i, NotificacionBuzon.RESULTADO_AVISO_CAMBIADO));
             CerrarAvisoFichaEstabaBienCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => CerrarAvisoFicha(i, NotificacionBuzon.RESULTADO_AVISO_ESTABA_BIEN));
+            AutorizarReembolsoCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => ResponderAutorizacionReembolso(i, true));
+            DenegarReembolsoCommand = new AsyncRelayCommand<NotificacionBuzonItem>(i => ResponderAutorizacionReembolso(i, false));
+        }
+
+        /// <summary>Nesto#591: «Autorizar» en el aviso del repartidor que pide entregar sin cobrar el reembolso.</summary>
+        public IAsyncRelayCommand<NotificacionBuzonItem> AutorizarReembolsoCommand { get; }
+        /// <summary>Nesto#591: «Denegar» (el repartidor tendrá que cobrar o apuntar la incidencia «Reembolso no cobrado»).</summary>
+        public IAsyncRelayCommand<NotificacionBuzonItem> DenegarReembolsoCommand { get; }
+
+        /// <summary>
+        /// Nesto#591 (NestoAPI#773): contesta en la API (al repartidor le llega a la PDA al momento) y lo da por leído. Si la API no deja
+        /// (sin permiso, ya la contestó otro, la autorizaron por teléfono…), se enseña su motivo; si ya está contestada, se cierra igual.
+        /// </summary>
+        internal async Task ResponderAutorizacionReembolso(NotificacionBuzonItem item, bool autorizar)
+        {
+            int? autorizacionId = item?.Notificacion.DatoEntero("autorizacionId");
+            if (!autorizacionId.HasValue)
+            {
+                return;
+            }
+            Mensaje = null;
+            try
+            {
+                await _buzon.ResponderAutorizacionReembolso(autorizacionId.Value, autorizar, null);
+                item.AvisoCerrado = true;
+                Mensaje = autorizar
+                    ? "Autorizado: el repartidor ya puede entregar sin cobrar."
+                    : "Denegado: el repartidor tendrá que cobrarlo o apuntar la incidencia «Reembolso no cobrado».";
+            }
+            catch (Exception ex)
+            {
+                Mensaje = ex.Message;
+                if ((ex.Message ?? string.Empty).IndexOf(" ya ", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    return;
+                }
+                item.AvisoCerrado = true; // ya contestada (por otro o por teléfono): nada más que hacer aquí
+            }
+            if (!item.Leida)
+            {
+                try
+                {
+                    await _buzon.MarcarLeida(item.Id);
+                    item.Leida = true;
+                    NoLeidas--;
+                }
+                catch (Exception)
+                {
+                    // Lo importante (la respuesta) ya está hecho
+                }
+                MarcarTodasLeidasCommand.NotifyCanExecuteChanged();
+            }
         }
 
         public ObservableCollection<NotificacionBuzonItem> Notificaciones { get; } = new ObservableCollection<NotificacionBuzonItem>();
@@ -512,12 +564,20 @@ namespace ControlesUsuario.Notificaciones
                 if (SetProperty(ref _avisoCerrado, value))
                 {
                     OnPropertyChanged(nameof(MostrarBotonesAvisoFicha));
+                    OnPropertyChanged(nameof(MostrarBotonesAutorizacionReembolso));
                 }
             }
         }
 
         /// <summary>Nesto#509: los botones «Cambiado» / «Estaba bien».</summary>
         public bool MostrarBotonesAvisoFicha => EsAvisoFichaProducto && !AvisoCerrado;
+
+        /// <summary>Nesto#591: el repartidor pide entregar sin cobrar el reembolso (se contesta aquí).</summary>
+        public bool EsAutorizacionReembolso => Notificacion.Tipo == NotificacionBuzon.TIPO_AUTORIZACION_REEMBOLSO_REPARTO
+            && Notificacion.DatoEntero("autorizacionId").HasValue;
+
+        /// <summary>Nesto#591: los botones «Autorizar» / «Denegar» (hasta contestar o enterarse de que ya está contestada).</summary>
+        public bool MostrarBotonesAutorizacionReembolso => EsAutorizacionReembolso && !AvisoCerrado;
 
         private bool _desplegada;
         /// <summary>El cuerpo entero (plegada se ven dos líneas).</summary>

@@ -64,6 +64,25 @@ namespace Nesto.Infrastructure.Shared
             return json.TrimStart().StartsWith("\"") ? JsonConvert.DeserializeObject<string>(json) : json;
         }
 
+        public async Task<string> ResponderAutorizacionReembolso(int autorizacionId, bool autorizar, string comentario)
+        {
+            string cuerpo = JsonConvert.SerializeObject(new { Autorizar = autorizar, Comentario = comentario });
+            string json = await Enviar(HttpMethod.Post, $"RepartoPropio/Autorizaciones/{autorizacionId}/Responder",
+                autorizar ? "autorizar la entrega sin cobrar" : "denegar la entrega sin cobrar", cuerpo).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+            try
+            {
+                return Newtonsoft.Json.Linq.JObject.Parse(json)["Estado"]?.ToString();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
         private async Task<string> Enviar(HttpMethod metodo, string url, string accion, string cuerpoJson = null)
         {
             using (var client = _clienteApiFactory.Crear())

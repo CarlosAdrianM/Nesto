@@ -72,6 +72,14 @@ namespace Nesto.Infrastructure.Contracts
         public const string RESULTADO_AVISO_CAMBIADO = "Cambiado";
         public const string RESULTADO_AVISO_ESTABA_BIEN = "EstabaBien";
 
+        /// <summary>
+        /// Nesto#591 (NestoAPI#773): el repartidor pide entregar un reembolso sin cobrarlo. Trae Datos["autorizacionId"],
+        /// Datos["envio"] y Datos["importe"]; Administración o Dirección lo autoriza o lo deniega desde la campana.
+        /// </summary>
+        public const string TIPO_AUTORIZACION_REEMBOLSO_REPARTO = "AutorizacionReembolsoReparto";
+        /// <summary>Nesto#591: lo autorizó alguien por teléfono (solo aviso, para revisarlo).</summary>
+        public const string TIPO_AUTORIZACION_REEMBOLSO_TELEFONICA = "AutorizacionReembolsoTelefonica";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }
@@ -124,5 +132,12 @@ namespace Nesto.Infrastructure.Contracts
         /// Devuelve el texto de la API (lo que ha pasado). Lanza con su motivo (no es del equipo, ya cerrado…).
         /// </summary>
         Task<string> CerrarAvisoFicha(int avisoId, string resultado);
+
+        /// <summary>
+        /// Nesto#591 (NestoAPI#773): autoriza o deniega que el repartidor deje un reembolso sin cobrar
+        /// (POST api/RepartoPropio/Autorizaciones/{id}/Responder). Devuelve el estado que queda («Autorizada» / «Denegada»). Lanza con
+        /// el motivo de la API (sin permiso, ya contestada por otro o autorizada por teléfono…).
+        /// </summary>
+        Task<string> ResponderAutorizacionReembolso(int autorizacionId, bool autorizar, string comentario);
     }
 }
