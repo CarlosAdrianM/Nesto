@@ -79,6 +79,12 @@ namespace Infrastructure.Tests
 
             public void LlegaLectura(LecturaEscanerRemoto lectura) => LecturaEscanerRemoto?.Invoke(this, lectura);
 
+            // Nesto#593: las notificaciones urgentes
+            public event EventHandler NotificacionUrgente;
+            public event EventHandler<NotificacionResuelta> NotificacionResuelta;
+            public void LlegaUrgente() => NotificacionUrgente?.Invoke(this, EventArgs.Empty);
+            public void LlegaResuelta(NotificacionResuelta resuelta) => NotificacionResuelta?.Invoke(this, resuelta);
+
             public void LlegaAviso() => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty);
             public void PierdeLaConexion() => Reconectando?.Invoke(this, EventArgs.Empty);
             public void Reconecta() => Reconectada?.Invoke(this, EventArgs.Empty);
@@ -97,6 +103,36 @@ namespace Infrastructure.Tests
 
         /// <summary>Las esperas de revisión del token no terminan nunca (salvo cancelación).</summary>
         private static Task EsperaInfinita(CancellationToken ct) => Task.Delay(Timeout.Infinite, ct);
+
+        [TestMethod]
+        public async Task Urgentes_AlConectar_AlReconectar_YConElAvisoDelServidor_SeMiranLasPendientes_YLaResueltaLlega()
+        {
+            // Nesto#593 (NestoAPI#775)
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            int urgentes = 0;
+            var resueltas = new ConcurrentQueue<NotificacionResuelta>();
+            avisos.HayNotificacionUrgente += (s, e) => Interlocked.Increment(ref urgentes);
+            avisos.NotificacionResuelta += (s, r) => resueltas.Enqueue(r);
+
+            avisos.Iniciar();
+            await conexion.SeHaPresentado.Task.WaitAsync(TIMEOUT);
+            await Task.Delay(50);
+            Assert.AreEqual(1, urgentes, "Al conectar (al abrir Nesto) se miran las pendientes");
+
+            conexion.LlegaUrgente();
+            conexion.Reconecta();
+            conexion.LlegaResuelta(new NotificacionResuelta { Tipo = "AutorizacionReembolsoReparto", Referencia = "12", Respondio = "Laura", Resultado = "Autorizada" });
+            conexion.LlegaResuelta(null);
+            await Task.Delay(50);
+
+            Assert.AreEqual(3, urgentes);
+            Assert.AreEqual(1, resueltas.Count);
+            Assert.IsTrue(resueltas.TryPeek(out NotificacionResuelta r));
+            Assert.AreEqual("12", r.Referencia);
+            avisos.Detener();
+        }
 
         [TestMethod]
         public async Task EscanerRemoto_AlConectarSePresentaConElEquipoYSiTieneElFoco()

@@ -150,6 +150,12 @@ Partial Public Class Application
             Catch
                 ' Sin parámetro legible se queda el valor por defecto (conectada).
             End Try
+            ' Nesto#593 (NestoAPI#775): las urgentes pendientes salen al abrir Nesto (y, con SignalR, al llegar y al reconectar)
+            Try
+                Contenedor.Actual.Resolver(Of ControlesUsuario.Notificaciones.Urgentes.GestorNotificacionesUrgentes)().Iniciar()
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine($"No se pudieron iniciar las notificaciones urgentes: {ex.Message}")
+            End Try
             If String.Equals(If(valor, String.Empty).Trim(), "NO", StringComparison.OrdinalIgnoreCase) Then
                 Return
             End If
