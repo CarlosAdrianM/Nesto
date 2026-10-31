@@ -141,6 +141,45 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerEstadoPuntual_LeeLosBultosRecogidos_NestoAPI772()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Situacion\":\"Abierta\",\"SePuede\":true,\"BultosRecogidos\":6,\"BultosTotal\":7," +
+                    "\"RepartidorRecogida\":\"Andre\",\"FechaUltimoBultoRecogido\":\"2026-10-31T12:10:00\"}"
+            };
+
+            EstadoReposicionPuntual estado = await new ServicioEnvioReposiciones(new FactoriaFalsa(handler)).LeerEstadoPuntual("1", "ALC");
+
+            Assert.AreEqual(6, estado.BultosRecogidos);
+            Assert.AreEqual(7, estado.BultosTotal);
+            Assert.AreEqual("Andre", estado.RepartidorRecogida);
+            Assert.AreEqual(new DateTime(2026, 10, 31, 12, 10, 0), estado.FechaUltimoBultoRecogido);
+        }
+
+        [TestMethod]
+        public async Task LeerSeguimiento_PideElDelTraspaso_YCon404Null()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Empresa\":\"1\",\"Traspaso\":81010,\"Origen\":\"REI\",\"Destino\":\"ALG\",\"Herramienta\":\"Automatico\"," +
+                    "\"Eventos\":[{\"FechaHora\":\"2026-10-31T09:00:00\",\"Tipo\":\"Creada\",\"Usuario\":\"Automatico\"}]," +
+                    "\"Bultos\":[{\"Codigo\":\"R81010-1\",\"Bulto\":1,\"Total\":1,\"Estado\":\"Recibido\",\"Eventos\":[{\"FechaHora\":\"2026-10-31T12:10:00\"," +
+                    "\"Tipo\":\"Recogido\",\"Usuario\":\"NUEVAVISION\\\\Andre\",\"Origen\":\"Repartidor\"}]}]}"
+            };
+
+            SeguimientoReposicion seguimiento = await new ServicioEnvioReposiciones(new FactoriaFalsa(handler)).LeerSeguimiento("1", 81010);
+
+            Assert.AreEqual("GET /api/Reposiciones/81010/Seguimiento?empresa=1", handler.Urls[0]);
+            Assert.AreEqual("REI", seguimiento.Origen);
+            Assert.AreEqual("Creada", seguimiento.Eventos[0].Tipo);
+            Assert.AreEqual("Recogido", seguimiento.Bultos[0].Eventos[0].Tipo);
+            Assert.AreEqual("Repartidor", seguimiento.Bultos[0].Eventos[0].Origen);
+            var noSabe = new ServicioEnvioReposiciones(new FactoriaFalsa(new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" }));
+            Assert.IsNull(await noSabe.LeerSeguimiento("1", 81999));
+        }
+
+        [TestMethod]
         public async Task MarcarRecogida_PostConLaRuta_YDevuelveElEstadoNuevo_O409ConElMotivo()
         {
             var handler = new HandlerFalso { Respuesta = "{\"Situacion\":\"Recogida\",\"FechaRecogida\":\"2026-10-13T12:10:00\",\"UsuarioRecogida\":\"Paloma\"}" };

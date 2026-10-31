@@ -46,10 +46,11 @@
                         Visibility="{Binding MostrarBotonPuntual, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTipService.ShowOnDisabled="True"
                         ToolTip="{Binding ToolTipPuntual}" />
-                <!-- Sugerencia 581 (Carlos, 13/10/26): el repartidor no pasa siempre a la misma hora: la tienda marca cuándo se la ha llevado -->
-                <Button Content="El repartidor ya se la ha llevado" Command="{Binding MarcarRecogidaCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
-                        Visibility="{Binding MostrarBotonRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        ToolTip="Púlsalo cuando el repartidor se haya llevado la reposición de hoy: desde ese momento ya no se puede hacer otra reposición puntual hoy (lo que quede va en la siguiente)" />
+                <!-- Nesto#590 (NestoAPI#772): ya no se marca a mano. La recogida la dice la API según los bultos que lee el repartidor en
+                     Ariadna («Recogidos 6 de 7 bultos por Andre» / «Recogida por Andre a las 12:10» / «Sin recoger»), al momento por SignalR -->
+                <TextBlock Text="{Binding EstadoRecogida}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="SemiBold"
+                           Visibility="{Binding MostrarEstadoRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           ToolTip="Lo que el repartidor ha leído al llevarse los bultos de las reposiciones de hoy. Se pone al día solo." />
                 <!-- Nesto#530: los bultos están creados pero sus etiquetas no han salido (la impresora ha fallado) -->
                 <Button Content="Reimprimir etiquetas" Command="{Binding ReimprimirEtiquetasCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                         Visibility="{Binding PuedeReimprimirEtiquetas, Converter={StaticResource BooleanToVisibilityConverter}}"
@@ -232,6 +233,10 @@
                 <Button Content="Reimprimir etiquetas de bulto" Command="{Binding ReimprimirBultosPorNumeroCommand}" Padding="12,2" Margin="8,0,0,0"
                         VerticalAlignment="Center"
                         ToolTip="Vuelve a imprimir en su impresora de etiquetas todas las etiquetas de bulto de esa reposición, aunque ya se haya recibido" />
+                <!-- Nesto#590 (NestoAPI#772): la historia de la reposición y de cada bulto (etiquetado, cargado, recogido, descargado, recibido) -->
+                <Button Content="Seguimiento" Command="{Binding SeguimientoPorNumeroCommand}" Padding="12,2" Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        ToolTip="Enseña por dónde va esa reposición y cada uno de sus bultos: preparada, etiquetada, en la furgoneta, entregada, descargada y recibida" />
             </StackPanel>
         </Border>
 
@@ -263,6 +268,10 @@
                                                 Command="{Binding DataContext.ReimprimirImpresoEnviadaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                 CommandParameter="{Binding}"
                                                 ToolTip="Abre el PDF de la reposición (el mismo papel que se imprime para prepararla) para volver a imprimirlo" />
+                                        <Button Content="Seguimiento" Padding="8,0" Margin="6,0,0,0" Focusable="False"
+                                                Command="{Binding DataContext.SeguimientoEnviadaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Enseña por dónde va la reposición y cada uno de sus bultos" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

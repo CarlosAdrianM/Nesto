@@ -66,6 +66,11 @@ namespace Nesto.Infrastructure.Services
         /// <exception cref="EnvioReposicionException">Hoy no hay viaje, la de hoy sin enviar, ya marcada, sin permiso…</exception>
         Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion);
         /// <summary>
+        /// NestoAPI#772 (Nesto#590): la historia de una reposición por traspaso y por bulto (GET api/Reposiciones/{traspaso}/Seguimiento).
+        /// Null si la API no sabe nada de ella (404).
+        /// </summary>
+        Task<SeguimientoReposicion> LeerSeguimiento(string empresa, int traspaso);
+        /// <summary>
         /// Nesto#530 (NestoAPI#645): crea los bultos de la reposición enviada y la API imprime una etiqueta por bulto en la
         /// impresora de etiquetas del usuario (POST api/Reposiciones/{traspaso}/Bultos).
         /// </summary>
@@ -206,6 +211,19 @@ namespace Nesto.Infrastructure.Services
 
         public Task<EstadoReposicionPuntual> MarcarRecogida(MarcarRecogidaReposicion peticion)
             => Enviar<EstadoReposicionPuntual>(HttpMethod.Post, "Reposiciones/Recogida", peticion);
+
+        public async Task<SeguimientoReposicion> LeerSeguimiento(string empresa, int traspaso)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync($"Reposiciones/{traspaso}/Seguimiento" + ConsultaEmpresa(empresa)).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                return await Leer<SeguimientoReposicion>(response).ConfigureAwait(false);
+            }
+        }
 
         public Task<BultosReposicion> CrearBultos(string empresa, string traspaso, int bultos)
             => Enviar<BultosReposicion>(HttpMethod.Post, $"Reposiciones/{Uri.EscapeDataString(traspaso?.Trim() ?? string.Empty)}/Bultos" + ConsultaEmpresa(empresa),

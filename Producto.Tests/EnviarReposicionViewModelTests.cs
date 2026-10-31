@@ -1008,7 +1008,7 @@ namespace Producto.Tests
             Assert.AreEqual(motivo, _vm.AvisoPuntual, "Al lado del botón");
             Assert.AreEqual(motivo, _vm.ToolTipPuntual, "Y en el tooltip");
             Assert.AreEqual(motivo, _vm.Mensaje);
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.IsFalse(_vm.MostrarEstadoRecogida);
         }
 
         [TestMethod]
@@ -1020,7 +1020,7 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.MostrarBotonPuntual);
             Assert.IsFalse(_vm.PuedeEmpezarPuntual);
             Assert.AreEqual("Primero envía la de hoy.", _vm.AvisoPuntual);
-            Assert.IsFalse(_vm.MostrarBotonRecogida, "La recogida, cuando esté enviada");
+            Assert.IsFalse(_vm.MostrarEstadoRecogida, "La recogida, cuando esté enviada");
         }
 
         [TestMethod]
@@ -1036,7 +1036,7 @@ namespace Producto.Tests
             Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual);
             Assert.AreEqual(RECOGIDA_1210, _vm.ToolTipPuntual);
             Assert.AreEqual(RECOGIDA_1210, _vm.Mensaje);
-            Assert.IsFalse(_vm.MostrarBotonRecogida, "Ya está marcada");
+            Assert.AreEqual("Recogida por Paloma a las 12:10", _vm.EstadoRecogida, "Ya está recogida");
         }
 
         [TestMethod]
@@ -1076,87 +1076,101 @@ namespace Producto.Tests
             Assert.IsNull(_vm.AvisoPuntual);
         }
 
-        [TestMethod]
-        public async Task Recogida_ConLaDeHoyEnviada_PideConfirmacion_ApuntaYYaNoDejaHacerPuntual()
+        // ---------------------------------------------------------------- Nesto#590 (NestoAPI#772): la recogida la dice la API, sin botón
+
+        private static EstadoReposicionPuntual EstadoBultos(int? recogidos, int? total, string? repartidor = null, DateTime? fechaRecogida = null)
         {
-            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
-            await _vm.CargarAsync();
-            Assert.IsTrue(_vm.MostrarBotonRecogida);
-            Assert.IsTrue(_vm.MarcarRecogidaCommand.CanExecute(null));
-            MarcarRecogidaReposicion? marcada = null;
-            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._))
-                .Invokes((MarcarRecogidaReposicion p) => marcada = p)
-                .Returns(Estado(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado…",
-                    fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma"));
-
-            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
-
-            A.CallTo(() => _dialogos.ShowConfirmationAsync("El repartidor ya se la ha llevado", EnviarReposicionViewModel.TEXTO_CONFIRMAR_RECOGIDA))
-                .MustHaveHappenedOnceExactly();
-            Assert.AreEqual("ALC", marcada!.Origen);
-            Assert.AreEqual("ALG", marcada.Destino);
-            Assert.AreEqual("1", marcada.Empresa);
-            Assert.AreEqual(RECOGIDA_1210, _vm.Mensaje);
-            Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual);
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
-            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+            EstadoReposicionPuntual estado = Estado(fechaRecogida.HasValue ? EstadoReposicionPuntual.RECOGIDA : EstadoReposicionPuntual.ABIERTA,
+                fechaRecogida: fechaRecogida, usuarioRecogida: fechaRecogida.HasValue ? "NUEVAVISION\\Andre" : null);
+            estado.BultosRecogidos = recogidos;
+            estado.BultosTotal = total;
+            estado.RepartidorRecogida = repartidor;
+            return estado;
         }
 
         [TestMethod]
-        public async Task Recogida_SinConfirmar_NoSeApunta()
+        public async Task Recogida_SinLeerNingunBulto_DiceSinRecoger()
         {
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
-            A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(false);
-            await _vm.CargarAsync();
-
-            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
-
-            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._)).MustNotHaveHappened();
-            Assert.IsTrue(_vm.MostrarBotonRecogida);
-        }
-
-        [TestMethod]
-        public async Task Recogida_SiLaApiNoLaAcepta_DiceElMotivoYEnsenaLoQueHayAhora()
-        {
-            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
-            await _vm.CargarAsync();
-            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._))
-                .ThrowsAsync(new EnvioReposicionException("El repartidor ya se ha llevado la reposición de hoy (a las 12:10): lo que quede va en la siguiente.", 409));
-            HoyEs(EstadoReposicionPuntual.RECOGIDA, "El repartidor ya se ha llevado…",
-                fechaRecogida: new DateTime(2026, 10, 13, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma");
-
-            await _vm.MarcarRecogidaCommand.ExecuteAsync(null);
-
-            StringAssert.StartsWith(_vm.Mensaje, "El repartidor ya se ha llevado la reposición de hoy (a las 12:10)");
-            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustHaveHappenedOnceExactly();
-            Assert.AreEqual(RECOGIDA_1210, _vm.AvisoPuntual, "Relee el estado: lo marcó otra persona");
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
-        }
-
-        [TestMethod]
-        public async Task Recogida_SinElScriptEnLaApi_NoSeVeElBoton()
-        {
-            HoyEs(EstadoReposicionPuntual.ABIERTA, puedeMarcarRecogida: false);
-            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).Returns(EstadoBultos(0, 7));
 
             await _vm.CargarAsync();
 
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.AreEqual("Sin recoger", _vm.EstadoRecogida);
+            Assert.IsTrue(_vm.MostrarEstadoRecogida);
             Assert.IsTrue(_vm.PuedeEmpezarPuntual, "La puntual sigue como hasta ahora");
         }
 
         [TestMethod]
-        public async Task Terminar_LaDeHoy_ReleeElEstado_YYaSeVeElBotonDeLaRecogida()
+        public async Task Recogida_ConParteDeLosBultosLeidos_DiceCuantosYQuien()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).Returns(EstadoBultos(6, 7, "NUEVAVISION\\Andre"));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Recogidos 6 de 7 bultos por Andre", _vm.EstadoRecogida);
+            Assert.IsTrue(_vm.MostrarEstadoRecogida);
+        }
+
+        [TestMethod]
+        public async Task Recogida_ConTodosLeidos_DiceQuienYAQueHora()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._))
+                .Returns(EstadoBultos(7, 7, "Andre", new DateTime(2026, 10, 31, 12, 10, 0)));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Recogida por Andre a las 12:10", _vm.EstadoRecogida);
+            Assert.IsFalse(_vm.PuedeEmpezarPuntual);
+        }
+
+        [TestMethod]
+        public async Task Recogida_ConUnaApiAnterior_SinTextoDeBultosYSinBoton()
+        {
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Task.FromResult<ReposicionEnPreparacion>(null!));
+            HoyEs(EstadoReposicionPuntual.ABIERTA, puedeMarcarRecogida: true);
+
+            await _vm.CargarAsync();
+
+            Assert.IsNull(_vm.EstadoRecogida);
+            Assert.IsFalse(_vm.MostrarEstadoRecogida);
+            A.CallTo(() => _servicio.MarcarRecogida(A<MarcarRecogidaReposicion>._)).MustNotHaveHappened();
+        }
+
+        [DataTestMethod]
+        [DataRow(1, 7, "Andre", "Recogido 1 de 7 bultos por Andre")]
+        [DataRow(2, null, null, "Recogidos 2 bultos")]
+        [DataRow(1, 1, null, "Recogido 1 de 1 bulto")]
+        public void TextoEstadoRecogida_Variantes(int recogidos, int? total, string? repartidor, string esperado)
+        {
+            Assert.AreEqual(esperado, EnviarReposicionViewModel.TextoEstadoRecogida(EstadoBultos(recogidos, total, repartidor)));
+        }
+
+        [TestMethod]
+        public void TextoEstadoRecogida_SinViajeOSinEnviar_NoDiceNada()
+        {
+            EstadoReposicionPuntual estado = Estado(EstadoReposicionPuntual.SIN_ENVIAR);
+            estado.BultosRecogidos = 0;
+            estado.BultosTotal = 0;
+
+            Assert.IsNull(EnviarReposicionViewModel.TextoEstadoRecogida(estado));
+            Assert.IsNull(EnviarReposicionViewModel.TextoEstadoRecogida(null!));
+        }
+
+        [TestMethod]
+        public async Task Terminar_LaDeHoy_ReleeElEstado_YYaDiceSinRecoger()
         {
             await _vm.CargarAsync();
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).Returns(EstadoBultos(0, 3));
             A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).Returns(new ResultadoTerminarReposicion { NumTraspaso = 80947 });
 
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _servicio.LeerEstadoPuntual("1", "ALC")).MustHaveHappenedTwiceExactly();
             Assert.IsFalse(_vm.HayReposicion);
-            Assert.IsTrue(_vm.MostrarBotonRecogida);
+            Assert.AreEqual("Sin recoger", _vm.EstadoRecogida);
             Assert.IsTrue(_vm.PuedeEmpezarPuntual);
         }
 
@@ -1281,7 +1295,7 @@ namespace Producto.Tests
 
             Assert.IsFalse(_vm.EstaOcupado);
             Assert.IsTrue(_vm.PuntualBloqueada, "Manda el estado más nuevo: el repartidor ya ha pasado");
-            Assert.IsFalse(_vm.MostrarBotonRecogida);
+            Assert.AreEqual("Recogida por Paloma a las 12:10", _vm.EstadoRecogida);
             Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
         }
 

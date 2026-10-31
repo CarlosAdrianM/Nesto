@@ -199,7 +199,7 @@ namespace Nesto.Modules.Producto.ViewModels
     /// NestoAPI#577: la reposición la rellena la API sola a la hora de corte del calendario; «Preparar reposición» (rellenarla
     /// a mano) solo lo ven las personas autorizadas (GET api/Reposiciones/PuedeRellenarManual).
     /// </summary>
-    public class EnviarReposicionViewModel : ObservableObject
+    public class EnviarReposicionViewModel : ObservableObject, ITabCloseConfirmation
     {
         private readonly IServicioEnvioReposiciones _servicio;
         private readonly IServicioDialogos _dialogos;
@@ -213,16 +213,20 @@ namespace Nesto.Modules.Producto.ViewModels
         private bool _aplicandoServidor;
 
         public EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas)
-            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas, IAvisosEnTiempoReal avisos)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas, avisos as IGruposAlmacenTiempoReal)
         {
         }
 
         /// <param name="abrirFichero">Abre el PDF descargado (los tests lo cambian). Null: con el visor del sistema.</param>
         /// <param name="etiquetas">NestoAPI#762: las etiquetas EAN-13 de lo que no tiene código. Sin él, los botones no hacen nada.</param>
+        /// <param name="grupos">Nesto#590 (NestoAPI#772): los avisos de SignalR de la recogida. Sin él, no llegan (se relee al abrir y al volver).</param>
         internal EnviarReposicionViewModel(IServicioEnvioReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null,
+            IGruposAlmacenTiempoReal grupos = null)
         {
+            _grupos = grupos;
+            _contextoUI = System.Threading.SynchronizationContext.Current;
             _etiquetas = etiquetas;
             _servicio = servicio;
             _dialogos = dialogos;
@@ -247,7 +251,9 @@ namespace Nesto.Modules.Producto.ViewModels
             CancelarPuntualCommand = new AsyncRelayCommand(CancelarPuntualAsync, () => EnModoPuntual && !EstaOcupado);
             EnviarPuntualCommand = new AsyncRelayCommand(EnviarPuntualAsync, () => EnModoPuntual && UnidadesPuntual > 0 && !EstaOcupado);
             QuitarLineaPuntualCommand = new RelayCommand<LineaPuntualReposicion>(QuitarLineaPuntual, l => l != null && EnModoPuntual && !EstaOcupado);
-            MarcarRecogidaCommand = new AsyncRelayCommand(MarcarRecogidaAsync, () => MostrarBotonRecogida && !EstaOcupado);
+            SeguimientoEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(e => SeguimientoAsync(e?.Traspaso), e => e != null && !EstaOcupado);
+            SeguimientoPorNumeroCommand = new AsyncRelayCommand(() => SeguimientoAsync(LeerNumeroReposicion(NumeroReimprimirBultos)),
+                () => MostrarReimprimirPorNumero && LeerNumeroReposicion(NumeroReimprimirBultos) != null && !EstaOcupado);
             ReimprimirEtiquetasCommand = new AsyncRelayCommand(ReimprimirEtiquetasAsync, () => PuedeReimprimirEtiquetas && !EstaOcupado);
             ReimprimirBultosEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirBultosEnviadaAsync, e => e != null && !EstaOcupado);
             ReimprimirImpresoEnviadaCommand = new AsyncRelayCommand<ReposicionEnviada>(ReimprimirImpresoEnviadaAsync, e => e != null && !EstaOcupado);
@@ -396,13 +402,193 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>El tooltip del botón: el motivo si está desactivado.</summary>
         public string ToolTipPuntual => AvisoPuntual ?? TOOLTIP_PUNTUAL;
 
-        /// <summary>«El repartidor ya se la ha llevado»: con la de hoy enviada y sin marcar (y la API con el script lanzado).</summary>
-        public bool MostrarBotonRecogida => _origenValido && !EnModoPuntual && !HayReposicion && _estadoPuntual?.PuedeMarcarRecogida == true;
+        // ---------------------------------------------------------------- Nesto#590 (NestoAPI#772): la recogida, bulto a bulto
 
-        public IAsyncRelayCommand MarcarRecogidaCommand { get; }
+        /// <summary>
+        /// Nesto#590: lo que ha leído el repartidor al llevarse las reposiciones de hoy (lo dice la API, ya sin botón): «Recogida por
+        /// Andre a las 12:10», «Recogidos 6 de 7 bultos por Andre» o «Sin recoger». Null si hoy no hay nada que recoger (o la API es
+        /// anterior y no lo sabe).
+        /// </summary>
+        public string EstadoRecogida => TextoEstadoRecogida(_estadoPuntual);
 
-        internal const string TEXTO_CONFIRMAR_RECOGIDA = "¿El repartidor ya se ha llevado la reposición de hoy? " +
-            "Desde ahora ya no se podrá hacer otra reposición puntual hoy: lo que quede irá en la siguiente.";
+        /// <summary>El texto de la recogida se ve en la tienda, fuera de la puntual, cuando hay algo que decir.</summary>
+        public bool MostrarEstadoRecogida => _origenValido && !EnModoPuntual && EstadoRecogida != null;
+
+        internal const string TEXTO_SIN_RECOGER = "Sin recoger";
+
+        internal static string TextoEstadoRecogida(EstadoReposicionPuntual estado)
+        {
+            if (estado == null)
+            {
+                return null;
+            }
+            if (estado.FechaRecogida.HasValue)
+            {
+                string quien = SinDominio(string.IsNullOrWhiteSpace(estado.RepartidorRecogida) ? estado.UsuarioRecogida : estado.RepartidorRecogida);
+                return "Recogida" + (string.IsNullOrEmpty(quien) ? string.Empty : $" por {quien}") + $" a las {estado.FechaRecogida.Value:H:mm}";
+            }
+            if (estado.Situacion != EstadoReposicionPuntual.ABIERTA && estado.Situacion != EstadoReposicionPuntual.RECOGIDA)
+            {
+                return null;
+            }
+            if (estado.BultosRecogidos == null && estado.BultosTotal == null)
+            {
+                // Una API anterior a NestoAPI#772: no sabe de bultos (antes se marcaba con el botón)
+                return null;
+            }
+            int recogidos = estado.BultosRecogidos ?? 0;
+            if (recogidos <= 0)
+            {
+                return TEXTO_SIN_RECOGER;
+            }
+            string porQuien = SinDominio(estado.RepartidorRecogida);
+            string cuantos = estado.BultosTotal > 0
+                ? $"{(recogidos == 1 ? "Recogido" : "Recogidos")} {recogidos} de {estado.BultosTotal} {(estado.BultosTotal == 1 ? "bulto" : "bultos")}"
+                : (recogidos == 1 ? "Recogido 1 bulto" : $"Recogidos {recogidos} bultos");
+            return cuantos + (string.IsNullOrEmpty(porQuien) ? string.Empty : $" por {porQuien}");
+        }
+
+        // ---------------------------------------------------------------- Nesto#590: SignalR sin sondeo
+
+        private readonly IGruposAlmacenTiempoReal _grupos;
+        private readonly System.Threading.SynchronizationContext _contextoUI;
+        private string _grupoActual;
+
+        /// <summary>Lo que se está releyendo por un aviso (los tests lo esperan).</summary>
+        internal Task RecargaEnCurso { get; private set; } = Task.CompletedTask;
+
+        /// <summary>Nesto#590: el grupo «Reposiciones:REI» de la tienda (la API avisa cada vez que el repartidor lee un bulto suyo).</summary>
+        private void EntrarEnGrupo()
+        {
+            if (_grupos == null || string.IsNullOrWhiteSpace(Almacen))
+            {
+                return;
+            }
+            string grupo = GruposAlmacen.Reposiciones(Almacen);
+            if (string.Equals(grupo, _grupoActual, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            SalirDelGrupo();
+            _grupoActual = grupo;
+            _grupos.GrupoHaCambiado -= AlCambiarGrupo;
+            _grupos.GrupoHaCambiado += AlCambiarGrupo;
+            _grupos.EntrarEnGrupo(grupo);
+        }
+
+        private void SalirDelGrupo()
+        {
+            if (_grupos == null || _grupoActual == null)
+            {
+                return;
+            }
+            _grupos.GrupoHaCambiado -= AlCambiarGrupo;
+            _grupos.SalirDeGrupo(_grupoActual);
+            _grupoActual = null;
+        }
+
+        /// <summary>El repartidor ha leído un bulto de la tienda (llega en otro hilo): se relee el estado de hoy.</summary>
+        private void AlCambiarGrupo(object sender, string grupo)
+        {
+            string esperado = _grupoActual;
+            if (esperado == null || !string.Equals(grupo?.Trim(), esperado, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            if (_contextoUI != null)
+            {
+                _contextoUI.Post(_ => RecargaEnCurso = LeerEstadoPuntual(), null);
+            }
+            else
+            {
+                RecargaEnCurso = LeerEstadoPuntual();
+            }
+        }
+
+        /// <summary>Nesto#590: al cerrar la pestaña se sale del grupo de SignalR.</summary>
+        public bool ConfirmTabClose()
+        {
+            SalirDelGrupo();
+            return true;
+        }
+
+        // ---------------------------------------------------------------- Nesto#590: seguimiento de una reposición
+
+        public IAsyncRelayCommand<ReposicionEnviada> SeguimientoEnviadaCommand { get; }
+        public IAsyncRelayCommand SeguimientoPorNumeroCommand { get; }
+
+        internal static string TituloSeguimiento(int traspaso) => $"Seguimiento de la reposición {traspaso}";
+
+        internal static string TextoSinSeguimiento(int traspaso) => $"No se sabe nada de la reposición {traspaso}.";
+
+        /// <summary>La historia de la reposición en el diálogo de los avisos (se desplaza si no cabe).</summary>
+        internal async Task SeguimientoAsync(int? traspaso)
+        {
+            if (traspaso == null)
+            {
+                return;
+            }
+            Mensaje = null;
+            await Ocupado(async () =>
+            {
+                SeguimientoReposicion seguimiento = await _servicio.LeerSeguimiento(Empresa, traspaso.Value).ConfigureAwait(true);
+                _dialogos.ShowNotification(TituloSeguimiento(traspaso.Value),
+                    seguimiento == null ? TextoSinSeguimiento(traspaso.Value) : TextoSeguimiento(seguimiento));
+            }).ConfigureAwait(true);
+        }
+
+        /// <summary>
+        /// «Reposición 81010: REI → ALG», los momentos del traspaso y, por cada bulto, su estado y su historia
+        /// («  31/10 12:10  Recogido  Andre»).
+        /// </summary>
+        internal static string TextoSeguimiento(SeguimientoReposicion seguimiento)
+        {
+            var texto = new System.Text.StringBuilder();
+            string ruta = string.Join(" → ", new[] { seguimiento.Origen?.Trim(), seguimiento.Destino?.Trim() }.Where(x => !string.IsNullOrEmpty(x)));
+            texto.Append($"Reposición {seguimiento.Traspaso}");
+            if (!string.IsNullOrEmpty(ruta))
+            {
+                texto.Append($": {ruta}");
+            }
+            texto.AppendLine();
+            foreach (EventoSeguimiento evento in Ordenados(seguimiento.Eventos))
+            {
+                texto.AppendLine(LineaEvento(evento));
+            }
+            List<BultoSeguimiento> bultos = (seguimiento.Bultos ?? new List<BultoSeguimiento>()).Where(b => b != null).OrderBy(b => b.Bulto).ToList();
+            if (bultos.Count == 0)
+            {
+                texto.AppendLine();
+                texto.AppendLine("No tiene etiquetas de bulto.");
+            }
+            foreach (BultoSeguimiento bulto in bultos)
+            {
+                texto.AppendLine();
+                string estado = string.IsNullOrWhiteSpace(bulto.Estado) ? string.Empty : $": {bulto.Estado.Trim()}";
+                texto.AppendLine($"Bulto {bulto.Bulto} de {bulto.Total} ({bulto.Codigo?.Trim()}){estado}");
+                foreach (EventoSeguimiento evento in Ordenados(bulto.Eventos))
+                {
+                    texto.AppendLine(LineaEvento(evento));
+                }
+            }
+            return texto.ToString().TrimEnd();
+        }
+
+        private static IEnumerable<EventoSeguimiento> Ordenados(IEnumerable<EventoSeguimiento> eventos)
+            => (eventos ?? Enumerable.Empty<EventoSeguimiento>()).Where(e => e != null).OrderBy(e => e.FechaHora ?? DateTime.MaxValue);
+
+        /// <summary>«  31/10 12:10  Recogido  Andre (detalle)».</summary>
+        internal static string LineaEvento(EventoSeguimiento evento)
+        {
+            var partes = new List<string>
+            {
+                evento.FechaHora.HasValue ? evento.FechaHora.Value.ToString("dd/MM H:mm", CultureInfo.InvariantCulture) : "¿?",
+                evento.Tipo?.Trim(),
+                SinDominio(evento.Usuario)
+            };
+            string linea = "  " + string.Join("  ", partes.Where(p => !string.IsNullOrEmpty(p)));
+            return string.IsNullOrWhiteSpace(evento.Detalle) ? linea : $"{linea} ({evento.Detalle.Trim()})";
+        }
 
         // Revisión 13/10/26: la versión de la última lectura del estado de la puntual. Si se piden dos seguidas (al volver a
         // la pestaña se carga otra vez) y contesta tarde la primera, su respuesta ya es vieja y no pisa la nueva.
@@ -440,41 +626,6 @@ namespace Nesto.Modules.Producto.ViewModels
             _sonidos?.Error();
             RefrescarEstado();
             return true;
-        }
-
-        private async Task MarcarRecogidaAsync()
-        {
-            if (!MostrarBotonRecogida)
-            {
-                return;
-            }
-            if (!await _dialogos.ShowConfirmationAsync("El repartidor ya se la ha llevado", TEXTO_CONFIRMAR_RECOGIDA).ConfigureAwait(true))
-            {
-                return;
-            }
-            bool hecho = false;
-            await Ocupado(async () =>
-            {
-                EstadoReposicionPuntual estado = await _servicio.MarcarRecogida(new MarcarRecogidaReposicion
-                {
-                    Empresa = Empresa,
-                    Origen = Almacen,
-                    Destino = Destino
-                }).ConfigureAwait(true);
-                // Lo que contesta la API al marcarla manda: una lectura del estado pedida antes ya es vieja
-                _versionEstadoPuntual++;
-                _estadoPuntual = estado;
-                hecho = true;
-                Mensaje = TextoRecogida(_estadoPuntual);
-            }).ConfigureAwait(true);
-            if (!hecho)
-            {
-                // Ya estaba marcada, hay otra en preparación…: lo que diga ahora la API, sin perder el motivo
-                string error = Mensaje;
-                await LeerEstadoPuntual().ConfigureAwait(true);
-                Mensaje = error;
-            }
-            RefrescarEstado();
         }
 
         /// <summary>El cuadro del lector se ve con la reposición del calendario y en la puntual.</summary>
@@ -833,6 +984,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     return;
                 }
                 _origenValido = true;
+                // Nesto#590: los avisos de la recogida de esta tienda (sin sondeo)
+                EntrarEnGrupo();
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
                 await LeerEstadoPuntual().ConfigureAwait(true);
                 await LeerAvisosAutomatica().ConfigureAwait(true);
@@ -1512,6 +1665,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _numeroReimprimirBultos, value))
                 {
                     ReimprimirBultosPorNumeroCommand?.NotifyCanExecuteChanged();
+                    SeguimientoPorNumeroCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -1736,7 +1890,8 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(PuntualBloqueada));
             OnPropertyChanged(nameof(AvisoPuntual));
             OnPropertyChanged(nameof(ToolTipPuntual));
-            OnPropertyChanged(nameof(MostrarBotonRecogida));
+            OnPropertyChanged(nameof(EstadoRecogida));
+            OnPropertyChanged(nameof(MostrarEstadoRecogida));
             OnPropertyChanged(nameof(MostrarLector));
             PrepararCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();
@@ -1745,7 +1900,8 @@ namespace Nesto.Modules.Producto.ViewModels
             CancelarPuntualCommand?.NotifyCanExecuteChanged();
             EnviarPuntualCommand?.NotifyCanExecuteChanged();
             QuitarLineaPuntualCommand?.NotifyCanExecuteChanged();
-            MarcarRecogidaCommand?.NotifyCanExecuteChanged();
+            SeguimientoEnviadaCommand?.NotifyCanExecuteChanged();
+            SeguimientoPorNumeroCommand?.NotifyCanExecuteChanged();
             ReimprimirEtiquetasCommand?.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(HayEnviadas));
             ReimprimirBultosEnviadaCommand?.NotifyCanExecuteChanged();

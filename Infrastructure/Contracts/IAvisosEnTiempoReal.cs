@@ -51,6 +51,13 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>«recepcion:REPO:81119:REI»: la recepción en curso de un documento en un almacén.</summary>
         public static string Recepcion(string tipo, string documento, string almacen)
             => $"recepcion:{(tipo ?? string.Empty).Trim().ToUpperInvariant()}:{(documento ?? string.Empty).Trim()}:{(almacen ?? string.Empty).Trim().ToUpperInvariant()}";
+
+        /// <summary>
+        /// Nesto#590 (NestoAPI#772): «Reposiciones:REI»: las reposiciones de una tienda. La API avisa cada vez que el repartidor
+        /// recoge (o descarga) un bulto de una reposición de esa tienda.
+        /// </summary>
+        public static string Reposiciones(string almacen)
+            => $"Reposiciones:{(almacen ?? string.Empty).Trim().ToUpperInvariant()}";
     }
 
     /// <summary>Nesto#492: estado de la conexión en tiempo real con la API.</summary>
