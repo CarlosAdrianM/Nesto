@@ -141,6 +141,8 @@ Public NotInheritable Class ComposicionNesto
 
         ' Nesto#372: changelog de novedades para el usuario al actualizar
         registro.Singleton(Of INovedadesService)(Function(r) New NovedadesService(r.Resolver(Of IClienteApiFactory)()))
+        ' Nesto#592 (NestoAPI#774): los globos («consejos») de las pantallas; una llamada por pantalla en la sesión
+        registro.Singleton(Of IServicioGlobos)(Function(r) New ServicioGlobos(New ClienteGlobos(r.Resolver(Of IClienteApiFactory)())))
         ' Nesto#519 (NestoAPI#616): adjuntos de las novedades (PDF e imágenes)
         registro.Singleton(Of IServicioAdjuntosNovedades)(Function(r) New ServicioAdjuntosNovedades(r.Resolver(Of IClienteApiFactory)()))
         ' NestoAPI#711: el vídeo de las novedades (como mucho uno por versión)

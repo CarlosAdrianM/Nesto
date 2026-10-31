@@ -56,6 +56,19 @@ Partial Public Class Application
 
         IniciarEscanerRemoto()
         ObtenerTokenEIniciarAvisos()
+        IniciarGlobos()
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#592 (NestoAPI#774): los globos («consejos») de lo nuevo. Una sola pieza para todas las vistas: al cargarse una, pide los
+    ''' suyos (una vez por sesión) y los enseña junto a su control (Globo.Ancla) o centrados. Si algo falla, no hay globos.
+    ''' </summary>
+    Private Sub IniciarGlobos()
+        Try
+            ControlesUsuario.Globos.PresentadorGlobos.Iniciar(Contenedor.Actual.Resolver(Of IServicioGlobos)())
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"No se pudieron iniciar los globos: {ex.Message}")
+        End Try
     End Sub
 
     ' Nesto#589 (NestoAPI#768): el receptor de lo leído con Ariadna («Escanear para Nesto»). Vive toda la aplicación.

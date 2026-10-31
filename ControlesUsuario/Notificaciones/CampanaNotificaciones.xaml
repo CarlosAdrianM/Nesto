@@ -1,7 +1,8 @@
 ﻿<UserControl x:Class="ControlesUsuario.Notificaciones.CampanaNotificaciones"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib">
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:globos="clr-namespace:ControlesUsuario.Globos">
     <!-- Nesto#477: campana del buzón de notificaciones (arriba a la derecha de la cinta) y su panel -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisible" />
@@ -23,7 +24,8 @@
             <TextBlock Text="&#xE789;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,2,0,0"
                        VerticalAlignment="Center" Foreground="#444444" />
         </Button>
-        <ToggleButton x:Name="BotonCampana" Grid.Column="1" IsChecked="{Binding PanelAbierto, Mode=TwoWay}" ToolTip="{Binding TextoToolTip}"
+        <!-- Nesto#592: el globo de las autorizaciones apunta aquí (clave Principal.CampanaAutorizaciones) -->
+        <ToggleButton x:Name="BotonCampana" Grid.Column="1" globos:Globo.Ancla="Principal.CampanaAutorizaciones" IsChecked="{Binding PanelAbierto, Mode=TwoWay}" ToolTip="{Binding TextoToolTip}"
                       Background="Transparent" BorderThickness="0" Padding="4,0" Cursor="Hand" Focusable="False">
             <ToggleButton.Style>
                 <Style TargetType="ToggleButton">
