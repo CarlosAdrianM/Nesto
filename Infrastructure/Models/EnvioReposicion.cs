@@ -159,6 +159,51 @@ namespace Nesto.Infrastructure.Models
         public string UsuarioRecogida { get; set; }
         /// <summary>Se puede pulsar «El repartidor ya se la ha llevado» (la de hoy enviada y sin marcar).</summary>
         public bool PuedeMarcarRecogida { get; set; }
+        /// <summary>
+        /// NestoAPI#772 (Nesto#590): los bultos de las reposiciones del viaje de hoy que el repartidor ya ha leído al recogerlos.
+        /// Null con una API anterior.
+        /// </summary>
+        public int? BultosRecogidos { get; set; }
+        /// <summary>NestoAPI#772: los bultos de las reposiciones del viaje de hoy de la ruta. Null con una API anterior.</summary>
+        public int? BultosTotal { get; set; }
+        /// <summary>NestoAPI#772: el repartidor que los está recogiendo (sin dominio).</summary>
+        public string RepartidorRecogida { get; set; }
+        /// <summary>NestoAPI#772: cuándo leyó el último bulto.</summary>
+        public DateTime? FechaUltimoBultoRecogido { get; set; }
+    }
+
+    /// <summary>NestoAPI#772 (Nesto#590): un momento de la historia de una reposición o de uno de sus bultos.</summary>
+    public class EventoSeguimiento
+    {
+        public DateTime? FechaHora { get; set; }
+        /// <summary>Creada, Preparada, Recogida, Recibida (del traspaso); Etiquetado, Cargado, Entregado, Recogido, Descargado, Recibido (de un bulto).</summary>
+        public string Tipo { get; set; }
+        public string Usuario { get; set; }
+        /// <summary>Repartidor o Almacen.</summary>
+        public string Origen { get; set; }
+        public string Detalle { get; set; }
+    }
+
+    /// <summary>NestoAPI#772: un bulto de la reposición, con su estado y su historia.</summary>
+    public class BultoSeguimiento
+    {
+        public string Codigo { get; set; }
+        public int Bulto { get; set; }
+        public int Total { get; set; }
+        public string Estado { get; set; }
+        public List<EventoSeguimiento> Eventos { get; set; } = new List<EventoSeguimiento>();
+    }
+
+    /// <summary>NestoAPI#772: GET api/Reposiciones/{traspaso}/Seguimiento, la historia de una reposición por traspaso y por bulto.</summary>
+    public class SeguimientoReposicion
+    {
+        public string Empresa { get; set; }
+        public int Traspaso { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public string Herramienta { get; set; }
+        public List<EventoSeguimiento> Eventos { get; set; } = new List<EventoSeguimiento>();
+        public List<BultoSeguimiento> Bultos { get; set; } = new List<BultoSeguimiento>();
     }
 
     /// <summary>Sugerencia 581: POST api/Reposiciones/Recogida, el repartidor ya se ha llevado la de hoy.</summary>
