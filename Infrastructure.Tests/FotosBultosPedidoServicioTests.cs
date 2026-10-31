@@ -49,6 +49,38 @@ namespace Infrastructure.Tests
         private static StringContent Json(string json) => new StringContent(json, Encoding.UTF8, "application/json");
 
         [TestMethod]
+        public async Task NestoAPI771_LeerFotosPackingDelPedido_ConSuRutaPublica_YUnaApiAnteriorDaVacio()
+        {
+            var api = new HandlerFalso
+            {
+                Respuesta = Json("[{\"Id\":40,\"Pedido\":928123,\"Picking\":99970,\"FechaFoto\":\"2026-10-31T10:30:00\",\"RutaFotoPublica\":\"api/Almacen/Fotos/p40-abc\"}]")
+            };
+            var servicio = new ServicioBultosAriadna(new FactoriaFalsa(api));
+
+            List<FotoPackingAriadna> fotos = await servicio.LeerFotosPackingDelPedido(" 1 ", 928123);
+
+            Assert.AreEqual("http://api.test/api/Almacen/Pedidos/928123/FotosPacking?empresa=1", api.Urls[0]);
+            Assert.AreEqual("api/Almacen/Fotos/p40-abc", fotos[0].RutaFotoPublica);
+
+            var anterior = new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = new StringContent("") };
+            Assert.AreEqual(0, (await new ServicioBultosAriadna(new FactoriaFalsa(anterior)).LeerFotosPackingDelPedido("1", 928123)).Count);
+        }
+
+        [TestMethod]
+        public async Task NestoAPI771_DescargarFotoPacking_PideElEnlaceDeLaFotoDelPacking()
+        {
+            var api = new HandlerFalso { Respuesta = Json("{\"Url\":\"https://almacen.test/bultos/x.jpg?sig=1\",\"MinutosDeVigencia\":15}") };
+            var descargas = new HandlerFalso { Respuesta = new ByteArrayContent(new byte[] { 9, 8 }) };
+            var servicio = new ServicioBultosAriadna(new FactoriaFalsa(api), () => new HttpClient(descargas, false));
+
+            byte[] foto = await servicio.DescargarFotoPacking(40);
+
+            Assert.AreEqual("http://api.test/api/Almacen/FotosPacking/40/Foto", api.Urls[0]);
+            Assert.AreEqual("https://almacen.test/bultos/x.jpg?sig=1", descargas.Urls[0]);
+            CollectionAssert.AreEqual(new byte[] { 9, 8 }, foto);
+        }
+
+        [TestMethod]
         public async Task LeerBultosDelPedido_TraeLaRutaPublicaDeLaFoto()
         {
             var api = new HandlerFalso

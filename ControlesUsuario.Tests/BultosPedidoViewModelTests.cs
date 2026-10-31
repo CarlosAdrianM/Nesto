@@ -294,5 +294,69 @@ namespace ControlesUsuario.Tests
             Assert.IsFalse(_vm.HayMensaje);
             Assert.IsFalse(_vm.HayBultos);
         }
+        // ===================================================================== NestoAPI#771: fotos del packing sin caja
+
+        private void ConFotosPacking(params FotoPackingAriadna[] fotos)
+            => A.CallTo(() => _servicio.LeerFotosPackingDelPedido("1", 928123)).Returns(fotos.ToList());
+
+        private static FotoPackingAriadna FotoPacking(int id, int minuto) => new FotoPackingAriadna
+        {
+            Id = id,
+            Pedido = 928123,
+            Picking = 99970,
+            Usuario = @"NUEVAVISION\Andre",
+            FechaFoto = new DateTime(2026, 10, 31, 10, minuto, 0),
+            RutaFotoPublica = $"api/Almacen/Fotos/p{id}-firma"
+        };
+
+        [TestMethod]
+        public async Task NestoAPI771_FotosDelPacking_SeEnsenanAparteConSusAcciones()
+        {
+            ConBultos(Bulto(17, 1, foto: false), Bulto(18, 2, foto: false));
+            ConFotosPacking(FotoPacking(41, 35), FotoPacking(40, 30));
+
+            await _vm.Cargar("1", 928123);
+
+            Assert.IsTrue(_vm.HayBultos);
+            Assert.AreEqual(2, _vm.Grupos.Count);
+            GrupoBultosEnvio fotos = _vm.Grupos.Last();
+            Assert.AreEqual("Fotos del packing", fotos.Titulo);
+            CollectionAssert.AreEqual(new[] { 40, 41 }, fotos.Bultos.Select(b => b.Id).ToList(), "de la más antigua a la más reciente");
+            Assert.AreEqual("Foto del packing 1 · hecha por Andre el 31/10/26 10:30", fotos.Bultos[0].Texto);
+            Assert.IsTrue(fotos.Bultos[0].TieneFoto);
+            Assert.IsTrue(fotos.Bultos[0].TieneEnlacePublico);
+            StringAssert.Contains(_vm.Resumen, "2 bultos (0 con foto) · 2 fotos del packing");
+        }
+
+        [TestMethod]
+        public async Task NestoAPI771_VerYDescargarUnaFotoDelPacking_PorSuEndpoint()
+        {
+            ConBultos();
+            ConFotosPacking(FotoPacking(40, 30));
+            A.CallTo(() => _servicio.DescargarFotoPacking(40)).Returns(new byte[] { 7 });
+            _acciones.RutaElegida = @"C:\Fotos\Pedido_928123_packing_1.jpg";
+            await _vm.Cargar("1", 928123);
+            BultoPedidoItem foto = _vm.Grupos.Single().Bultos.Single();
+
+            await foto.VerFotoCommand.ExecuteAsync(null);
+            await foto.DescargarCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.DescargarFotoPacking(40)).MustHaveHappenedTwiceExactly();
+            A.CallTo(() => _servicio.DescargarFoto(A<int>._)).MustNotHaveHappened();
+            StringAssert.StartsWith(_acciones.Abiertos.Single(), @"C:\Temporal\Pedido_928123_packing_1_");
+            Assert.AreEqual("Ariadna: 1 foto del packing", _vm.Resumen);
+        }
+
+        [TestMethod]
+        public async Task NestoAPI771_SiFallanLasFotosDelPacking_LosBultosSalenIgual()
+        {
+            ConBultos(Bulto(17, 1));
+            A.CallTo(() => _servicio.LeerFotosPackingDelPedido("1", 928123)).ThrowsAsync(new HttpRequestException("500"));
+
+            await _vm.Cargar("1", 928123);
+
+            Assert.AreEqual(17, Unico().Id);
+            Assert.AreEqual("Ariadna: 1 bulto (1 con foto)", _vm.Resumen);
+        }
     }
 }
