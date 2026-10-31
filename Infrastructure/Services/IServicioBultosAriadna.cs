@@ -22,6 +22,15 @@ namespace Nesto.Infrastructure.Services
         Task<byte[]> DescargarFoto(int idBulto);
 
         /// <summary>
+        /// NestoAPI#771: las fotos del packing SIN caja del pedido (desde el 31/10/26 no van ligadas a los bultos). Lista vacía si
+        /// no hay o la API aún no las da.
+        /// </summary>
+        Task<List<FotoPackingAriadna>> LeerFotosPackingDelPedido(string empresa, int pedido);
+
+        /// <summary>NestoAPI#771: la imagen (JPG) de una foto del packing, con un enlace temporal recién pedido. Null si ya no está.</summary>
+        Task<byte[]> DescargarFotoPacking(int idFoto);
+
+        /// <summary>
         /// NestoAPI#646: si alguien está empaquetando ahora mismo el pedido en Ariadna (lecturas o fotos de bulto de los últimos
         /// minutos), el aviso de la API («Lo está empaquetando Pedro (hace 2 min).»); null si nadie, si el pedido no tiene
         /// picking en curso o si la API aún no lo dice.

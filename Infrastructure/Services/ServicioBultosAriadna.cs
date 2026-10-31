@@ -58,9 +58,47 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
+        public async Task<List<FotoPackingAriadna>> LeerFotosPackingDelPedido(string empresa, int pedido)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = $"Almacen/Pedidos/{pedido}/FotosPacking?empresa={Uri.EscapeDataString(empresa?.Trim() ?? string.Empty)}";
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new List<FotoPackingAriadna>(); // una API anterior a NestoAPI#771
+                }
+                _ = response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<List<FotoPackingAriadna>>(json) ?? new List<FotoPackingAriadna>();
+            }
+        }
+
+        public async Task<byte[]> DescargarFotoPacking(int idFoto)
+        {
+            string enlace;
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync($"Almacen/FotosPacking/{idFoto}/Foto").ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                _ = response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                enlace = JsonConvert.DeserializeObject<EnlaceFotoBulto>(json)?.Url;
+            }
+            return await DescargarEnlace(enlace).ConfigureAwait(false);
+        }
+
         public async Task<byte[]> DescargarFoto(int idBulto)
         {
             string enlace = await EnlaceFoto(idBulto).ConfigureAwait(false);
+            return await DescargarEnlace(enlace).ConfigureAwait(false);
+        }
+
+        private async Task<byte[]> DescargarEnlace(string enlace)
+        {
             if (string.IsNullOrWhiteSpace(enlace))
             {
                 return null;

@@ -97,14 +97,40 @@ namespace ControlesUsuario.BultosPedido
             {
                 return;
             }
+            // NestoAPI#771: las fotos del packing sin caja (desde el 31/10/26). Si fallan, los bultos salen igual.
+            List<FotoPackingAriadna> fotos;
+            try
+            {
+                fotos = await _servicio.LeerFotosPackingDelPedido(empresa, pedido) ?? new List<FotoPackingAriadna>();
+            }
+            catch (Exception)
+            {
+                fotos = new List<FotoPackingAriadna>();
+            }
+            if (version != _version)
+            {
+                return;
+            }
             List<BultoAriadna> distintos = bultos.Where(b => b != null).GroupBy(b => b.Id).Select(g => g.First()).ToList();
             foreach (IGrouping<int?, BultoAriadna> envio in distintos.GroupBy(b => b.NumeroEnvio).OrderBy(g => g.Key ?? int.MaxValue))
             {
                 Grupos.Add(new GrupoBultosEnvio(envio.Key, envio.OrderBy(b => b.Bulto).Select(b => new BultoPedidoItem(b, this)).ToList()));
             }
-            Resumen = PropuestaBultosAriadna.Texto(distintos);
+            List<FotoPackingAriadna> fotosDistintas = fotos.Where(f => f != null).GroupBy(f => f.Id).Select(g => g.First())
+                .OrderBy(f => f.FechaFoto ?? DateTime.MaxValue).ThenBy(f => f.Id).ToList();
+            if (fotosDistintas.Count > 0)
+            {
+                Grupos.Add(new GrupoBultosEnvio(null, fotosDistintas.Select((f, i) => new BultoPedidoItem(f, i + 1, this)).ToList(), TITULO_FOTOS_PACKING));
+            }
+            Resumen = PropuestaBultosAriadna.Texto(distintos)
+                + (fotosDistintas.Count == 0 ? string.Empty
+                    : (distintos.Count > 0 ? " · " : "Ariadna: ")
+                      + (fotosDistintas.Count == 1 ? "1 foto del packing" : $"{fotosDistintas.Count} fotos del packing"));
             NotificarGrupos();
         }
+
+        /// <summary>NestoAPI#771: el título del grupo de las fotos del packing (sin caja).</summary>
+        internal const string TITULO_FOTOS_PACKING = "Fotos del packing";
 
         private void Limpiar()
         {
@@ -120,8 +146,13 @@ namespace ControlesUsuario.BultosPedido
             OnPropertyChanged(nameof(HayVariosEnvios));
         }
 
-        /// <summary>«Pedido_928123_bulto_2.jpg».</summary>
-        internal string NombreFichero(BultoPedidoItem bulto) => $"Pedido_{_pedido}_bulto_{bulto.Bulto}.jpg";
+        /// <summary>«Pedido_928123_bulto_2.jpg» (NestoAPI#771: «Pedido_928123_packing_1.jpg» para una foto del packing).</summary>
+        internal string NombreFichero(BultoPedidoItem bulto)
+            => bulto.EsFotoDelPacking ? $"Pedido_{_pedido}_packing_{bulto.Bulto}.jpg" : $"Pedido_{_pedido}_bulto_{bulto.Bulto}.jpg";
+
+        /// <summary>NestoAPI#771: la imagen, por el endpoint de los bultos o por el de las fotos del packing.</summary>
+        private Task<byte[]> BajarImagen(BultoPedidoItem bulto)
+            => bulto.EsFotoDelPacking ? _servicio.DescargarFotoPacking(bulto.Id) : _servicio.DescargarFoto(bulto.Id);
 
         /// <summary>La baja (con un enlace temporal recién pedido) a la carpeta temporal y la abre con el visor del sistema.</summary>
         internal async Task VerFoto(BultoPedidoItem bulto)
@@ -133,10 +164,10 @@ namespace ControlesUsuario.BultosPedido
             Mensaje = null;
             try
             {
-                byte[] foto = await _servicio.DescargarFoto(bulto.Id);
+                byte[] foto = await BajarImagen(bulto);
                 if (foto == null)
                 {
-                    Mensaje = $"El bulto {bulto.Bulto} ya no tiene foto.";
+                    Mensaje = $"{bulto.Nombre} ya no tiene foto.";
                     return;
                 }
                 // Con la hora en el nombre: si la anterior sigue abierta en el visor, no se puede sobrescribir
@@ -147,7 +178,7 @@ namespace ControlesUsuario.BultosPedido
             }
             catch (Exception ex)
             {
-                Mensaje = $"No se ha podido abrir la foto del bulto {bulto.Bulto}: {ex.Message}";
+                Mensaje = $"No se ha podido abrir la foto {bulto.DeQue}: {ex.Message}";
             }
         }
 
@@ -166,10 +197,10 @@ namespace ControlesUsuario.BultosPedido
                 {
                     return;
                 }
-                byte[] foto = await _servicio.DescargarFoto(bulto.Id);
+                byte[] foto = await BajarImagen(bulto);
                 if (foto == null)
                 {
-                    Mensaje = $"El bulto {bulto.Bulto} ya no tiene foto.";
+                    Mensaje = $"{bulto.Nombre} ya no tiene foto.";
                     return;
                 }
                 _acciones.Guardar(ruta, foto);
@@ -177,7 +208,7 @@ namespace ControlesUsuario.BultosPedido
             }
             catch (Exception ex)
             {
-                Mensaje = $"No se ha podido descargar la foto del bulto {bulto.Bulto}: {ex.Message}";
+                Mensaje = $"No se ha podido descargar la foto {bulto.DeQue}: {ex.Message}";
             }
         }
 
@@ -206,15 +237,18 @@ namespace ControlesUsuario.BultosPedido
     /// <summary>Nesto#522: los bultos que salieron en un mismo envío de la agencia.</summary>
     public class GrupoBultosEnvio
     {
-        public GrupoBultosEnvio(int? numeroEnvio, IReadOnlyList<BultoPedidoItem> bultos)
+        public GrupoBultosEnvio(int? numeroEnvio, IReadOnlyList<BultoPedidoItem> bultos, string titulo = null)
         {
             NumeroEnvio = numeroEnvio;
             Bultos = bultos ?? Array.Empty<BultoPedidoItem>();
+            _titulo = titulo;
         }
+
+        private readonly string _titulo;
 
         public int? NumeroEnvio { get; }
         public IReadOnlyList<BultoPedidoItem> Bultos { get; }
-        public string Titulo => NumeroEnvio.HasValue ? $"Envío {NumeroEnvio}" : "Sin envío todavía";
+        public string Titulo => _titulo ?? (NumeroEnvio.HasValue ? $"Envío {NumeroEnvio}" : "Sin envío todavía");
     }
 
     /// <summary>Nesto#522: un bulto del packing en el detalle del pedido.</summary>
@@ -232,17 +266,55 @@ namespace ControlesUsuario.BultosPedido
             TieneEnlacePublico = TieneFoto && padre.EnlacePublico(this) != null;
         }
 
+        /// <summary>
+        /// NestoAPI#771: una foto del packing SIN caja (desde el 31/10/26), con las mismas acciones que la de un bulto. <paramref name="orden"/>
+        /// es su número entre las fotos del pedido («Foto del packing 2»).
+        /// </summary>
+        internal BultoPedidoItem(FotoPackingAriadna foto, int orden, BultosPedidoViewModel padre)
+            : this(new BultoAriadna
+            {
+                Id = foto.Id,
+                Pedido = foto.Pedido,
+                Picking = foto.Picking,
+                Bulto = orden,
+                TieneFoto = true,
+                Usuario = foto.Usuario,
+                FechaFoto = foto.FechaFoto,
+                RutaFotoPublica = foto.RutaFotoPublica
+            }, padre, esFotoDelPacking: true)
+        {
+        }
+
+        private BultoPedidoItem(BultoAriadna bulto, BultosPedidoViewModel padre, bool esFotoDelPacking) : this(bulto, padre)
+        {
+            EsFotoDelPacking = esFotoDelPacking;
+        }
+
         public int Id => _bulto.Id;
         public int Bulto => _bulto.Bulto;
         public bool TieneFoto => _bulto.TieneFoto;
         public string RutaFotoPublica => _bulto.RutaFotoPublica;
         public bool TieneEnlacePublico { get; }
+        /// <summary>NestoAPI#771: es una foto del packing sin caja (no un bulto).</summary>
+        public bool EsFotoDelPacking { get; }
+        /// <summary>«El bulto 2» / «La foto del packing 1».</summary>
+        internal string Nombre => EsFotoDelPacking ? $"La foto del packing {Bulto}" : $"El bulto {Bulto}";
+        /// <summary>«del bulto 2» / «del packing 1».</summary>
+        internal string DeQue => EsFotoDelPacking ? $"del packing {Bulto}" : $"del bulto {Bulto}";
 
-        /// <summary>«Bulto 2 · 3,5 kg · cerrado por juan el 09/10/26 10:32».</summary>
+        /// <summary>«Bulto 2 · 3,5 kg · cerrado por juan el 09/10/26 10:32» (NestoAPI#771: «Foto del packing 1 · hecha por juan el …»).</summary>
         public string Texto
         {
             get
             {
+                if (EsFotoDelPacking)
+                {
+                    string quien = UsuarioSinDominio(_bulto.Usuario);
+                    string cuando = _bulto.FechaFoto?.ToString("dd/MM/yy HH:mm", Espanol);
+                    return $"Foto del packing {Bulto}" + (quien != null || cuando != null
+                        ? " · hecha" + (quien != null ? $" por {quien}" : string.Empty) + (cuando != null ? $" el {cuando}" : string.Empty)
+                        : string.Empty);
+                }
                 var partes = new List<string> { $"Bulto {Bulto}" };
                 if (_bulto.Peso.HasValue && _bulto.Peso.Value > 0)
                 {
