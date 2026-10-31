@@ -83,6 +83,12 @@ namespace Nesto.Infrastructure.Shared
             }
         }
 
+        public async Task<List<NotificacionUrgente>> LeerUrgentes()
+        {
+            string json = await Enviar(HttpMethod.Get, "Notificaciones/Urgentes", "leer las notificaciones urgentes").ConfigureAwait(false);
+            return JsonConvert.DeserializeObject<List<NotificacionUrgente>>(string.IsNullOrWhiteSpace(json) ? "[]" : json) ?? new List<NotificacionUrgente>();
+        }
+
         private async Task<string> Enviar(HttpMethod metodo, string url, string accion, string cuerpoJson = null)
         {
             using (var client = _clienteApiFactory.Crear())

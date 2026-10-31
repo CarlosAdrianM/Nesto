@@ -1,0 +1,79 @@
+<Window x:Class="ControlesUsuario.Notificaciones.Urgentes.AvisoUrgenteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nesto: aviso urgente" Width="400" SizeToContent="Height"
+        WindowStyle="ToolWindow" ResizeMode="NoResize" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        Background="White">
+    <!-- Nesto#593 (NestoAPI#775): la ventana roja de una notificación urgente. No modal, siempre encima, abajo a la derecha (la coloca
+         PresentadorAvisosUrgentesWpf). Solo la cabecera es roja; el resto, fondo blanco. No se activa al abrirse (para no robar el foco
+         a quien está escribiendo): se ve, pita y parpadea la barra de tareas. -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisible" />
+    </Window.Resources>
+    <Border BorderBrush="#C62828" BorderThickness="3">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#C62828" Padding="12,8">
+                <TextBlock Text="{Binding Cabecera}" Foreground="White" FontWeight="Bold" FontSize="15" TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- La autorización del repartidor: los datos para decidir -->
+            <Grid Grid.Row="1" Margin="12,10,12,0" Visibility="{Binding EsAutorizacionReembolso, Converter={StaticResource BoolAVisible}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Repartidor:" Foreground="#555" Margin="0,0,8,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Repartidor}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Cliente:" Foreground="#555" Margin="0,0,8,4"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Cliente}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Sin cobrar:" Foreground="#555" Margin="0,0,8,4"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Importe}" FontWeight="Bold" FontSize="16" Foreground="#B71C1C" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Motivo:" Foreground="#555" Margin="0,0,8,4"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Motivo}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Envio}" Foreground="#555" FontSize="11"/>
+            </Grid>
+
+            <!-- Otra urgente (aún no hay): su texto -->
+            <TextBlock Grid.Row="1" Margin="12,10,12,0" TextWrapping="Wrap" Text="{Binding Cuerpo}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EsAutorizacionReembolso}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <TextBlock Grid.Row="2" Text="{Binding Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#1B5E20" Margin="12,10,12,0"
+                       Visibility="{Binding HayMensaje, Converter={StaticResource BoolAVisible}}"/>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,12,12,12">
+                <Button Content="Autorizar" Command="{Binding AutorizarCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
+                        Foreground="White" Background="#2E7D32" FontWeight="SemiBold"
+                        Visibility="{Binding PuedeContestar, Converter={StaticResource BoolAVisible}}"/>
+                <Button Content="Denegar" Command="{Binding DenegarCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
+                        Foreground="White" Background="#C62828" FontWeight="SemiBold"
+                        Visibility="{Binding PuedeContestar, Converter={StaticResource BoolAVisible}}"/>
+                <Button Content="Más tarde" Command="{Binding OcultarCommand}" MinWidth="85" Padding="8,4"
+                        ToolTip="La cierra aquí; si nadie contesta, vuelve a salir"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

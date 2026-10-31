@@ -139,5 +139,11 @@ namespace Nesto.Infrastructure.Contracts
         /// el motivo de la API (sin permiso, ya contestada por otro o autorizada por teléfono…).
         /// </summary>
         Task<string> ResponderAutorizacionReembolso(int autorizacionId, bool autorizar, string comentario);
+
+        /// <summary>
+        /// Nesto#593 (NestoAPI#775): las notificaciones urgentes del usuario que siguen pendientes (GET api/Notificaciones/Urgentes). Lanza con
+        /// el motivo de la API (quien llama lo calla).
+        /// </summary>
+        Task<List<NotificacionUrgente>> LeerUrgentes();
     }
 }

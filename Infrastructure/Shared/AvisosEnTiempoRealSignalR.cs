@@ -32,7 +32,7 @@ namespace Nesto.Infrastructure.Shared
     /// Los eventos <see cref="HayNotificacionesNuevas"/>, <see cref="EstadoCambiado"/>, <see cref="GrupoHaCambiado"/> y
     /// <see cref="LecturaRecibida"/> llegan en un hilo que no es el de la UI.
     /// </summary>
-    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IGruposAlmacenTiempoReal, IEscanerRemoto, IDisposable
+    public sealed class AvisosEnTiempoRealSignalR : IAvisosEnTiempoReal, IGruposAlmacenTiempoReal, IEscanerRemoto, IAvisosUrgentesTiempoReal, IDisposable
     {
         public const string RUTA_HUB = "/signalr";
         public static readonly TimeSpan INTERVALO_REVISION_TOKEN = TimeSpan.FromMinutes(15);
@@ -57,6 +57,43 @@ namespace Nesto.Infrastructure.Shared
         private readonly ConcurrentDictionary<string, int> _grupos = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public event EventHandler HayNotificacionesNuevas;
+
+        /// <summary>
+        /// Nesto#593 (NestoAPI#775): «hayNotificacionUrgente» de la API y, además, en cada conexión conseguida o recuperada (las urgentes
+        /// pendientes vuelven a salir al abrir y al reconectar, sin sondeo). Llega en un hilo que no es el de la UI.
+        /// </summary>
+        public event EventHandler HayNotificacionUrgente;
+
+        /// <summary>Nesto#593: «notificacionResuelta» (alguien ha contestado una urgente). Llega en un hilo que no es el de la UI.</summary>
+        public event EventHandler<NotificacionResuelta> NotificacionResuelta;
+
+        private void AvisarUrgente()
+        {
+            try
+            {
+                HayNotificacionUrgente?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
+
+        private void AvisarResuelta(NotificacionResuelta resuelta)
+        {
+            if (resuelta == null)
+            {
+                return;
+            }
+            try
+            {
+                NotificacionResuelta?.Invoke(this, resuelta);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
 
         /// <summary>Nesto#589: lo leído con Ariadna por el mismo usuario. Llega en un hilo que no es el de la UI.</summary>
         public event EventHandler<LecturaEscanerRemoto> LecturaRecibida;
@@ -334,11 +371,14 @@ namespace Nesto.Infrastructure.Shared
                     conexion.HayNotificacionesNuevas += (s, e) => Avisar();
                     conexion.GrupoHaCambiado += (s, grupo) => AvisarGrupo(grupo);
                     conexion.LecturaEscanerRemoto += (s, lectura) => AvisarLectura(lectura);
+                    conexion.NotificacionUrgente += (s, e) => AvisarUrgente();
+                    conexion.NotificacionResuelta += (s, resuelta) => AvisarResuelta(resuelta);
                     conexion.Reconectando += (s, e) => CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Reintentando, ct);
                     conexion.Reconectada += (s, e) =>
                     {
                         CambiarEstadoSiEsLaActual(esta, EstadoConexionTiempoReal.Conectado, ct);
                         Avisar();
+                        AvisarUrgente(); // Nesto#593: pudo llegar alguna urgente mientras no había conexión
                         // Ariadna#51: por si la API se ha reciclado y ha olvidado los grupos; y pudo perderse algún aviso
                         _ = EntrarEnTodos(esta).ContinueWith(_ => AvisarTodosLosGrupos(), TaskScheduler.Default);
                         // Nesto#589: por si la API se ha reciclado y ha olvidado que este Nesto recibe lecturas
@@ -363,6 +403,8 @@ namespace Nesto.Infrastructure.Shared
                         AvisarTodosLosGrupos();
                     }
                     avisarAlConectar = true;
+                    // Nesto#593: en CADA conexión (también la primera: al abrir Nesto) se miran las urgentes pendientes
+                    AvisarUrgente();
 
                     renovarToken = await EsperarCierreOTokenNuevo(cerrada.Task, token, ct).ConfigureAwait(false);
                 }
@@ -532,6 +574,10 @@ namespace Nesto.Infrastructure.Shared
         event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
         /// <summary>Nesto#589: AvisosHub.ActividadEscanerRemoto(equipo, conFoco). False si el servidor no lo admite.</summary>
         Task<bool> ActividadEscanerRemoto(string equipo, bool conFoco);
+        /// <summary>Nesto#593 (NestoAPI#775): el servidor ha llamado a «hayNotificacionUrgente».</summary>
+        event EventHandler NotificacionUrgente;
+        /// <summary>Nesto#593 (NestoAPI#775): el servidor ha llamado a «notificacionResuelta(resuelta)».</summary>
+        event EventHandler<NotificacionResuelta> NotificacionResuelta;
     }
 
     /// <summary>NestoAPI#536: <see cref="IConexionAvisos"/> con el cliente de ASP.NET SignalR 2.</summary>
@@ -552,6 +598,10 @@ namespace Nesto.Infrastructure.Shared
         internal const string METODO_LECTURA_ESCANER = "lecturaEscanerRemoto";
         internal const string METODO_ACTIVIDAD_ESCANER = "ActividadEscanerRemoto";
 
+        // Nesto#593 (NestoAPI#775): las notificaciones urgentes, en el hub de la campana
+        internal const string METODO_URGENTE = "hayNotificacionUrgente";
+        internal const string METODO_RESUELTA = "notificacionResuelta";
+
         private readonly HubConnection _conexion;
         private readonly IHubProxy _avisos;
         private readonly IHubProxy _almacen;
@@ -559,6 +609,8 @@ namespace Nesto.Infrastructure.Shared
         public event EventHandler HayNotificacionesNuevas;
         public event EventHandler<string> GrupoHaCambiado;
         public event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
+        public event EventHandler NotificacionUrgente;
+        public event EventHandler<NotificacionResuelta> NotificacionResuelta;
         public event EventHandler Reconectando;
         public event EventHandler Reconectada;
         public event EventHandler Cerrada;
@@ -570,6 +622,8 @@ namespace Nesto.Infrastructure.Shared
             _avisos = proxy;
             _ = proxy.On(METODO_AVISO, () => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty));
             _ = proxy.On<LecturaEscanerRemoto>(METODO_LECTURA_ESCANER, lectura => LecturaEscanerRemoto?.Invoke(this, lectura));
+            _ = proxy.On(METODO_URGENTE, () => NotificacionUrgente?.Invoke(this, EventArgs.Empty));
+            _ = proxy.On<NotificacionResuelta>(METODO_RESUELTA, resuelta => NotificacionResuelta?.Invoke(this, resuelta));
             // Ariadna#51: el proxy se crea antes de Start (SignalR 2 se suscribe a los hubs al conectar)
             _almacen = _conexion.CreateHubProxy(HUB_ALMACEN);
             _ = _almacen.On<string, string>(METODO_HA_CAMBIADO, (grupo, dispositivo) => GrupoHaCambiado?.Invoke(this, grupo));

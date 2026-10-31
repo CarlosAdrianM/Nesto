@@ -178,6 +178,12 @@ Public NotInheritable Class ComposicionNesto
                 Return New AvisosEnTiempoRealSignalR(cfg.servidorAPI, auth,
                     Sub(ex) errores.RegistrarErrorAsync(ex, "AvisosEnTiempoReal"))
             End Function)
+        ' Nesto#593 (NestoAPI#775): las notificaciones urgentes (ventana roja con pitido), por la misma conexión de SignalR.
+        ' Se arranca en IniciarAvisosEnTiempoReal (Application.xaml.vb).
+        registro.Singleton(Of ControlesUsuario.Notificaciones.Urgentes.GestorNotificacionesUrgentes)(
+            Function(r) New ControlesUsuario.Notificaciones.Urgentes.GestorNotificacionesUrgentes(
+                r.Resolver(Of IBuzonNotificacionesService)(), r.Resolver(Of IAvisosEnTiempoReal)(),
+                New ControlesUsuario.Notificaciones.Urgentes.PresentadorAvisosUrgentesWpf()))
 
         ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
         registro.Singleton(Of IServicioAgenciasMantenimiento)(Function(r) New AgenciasMantenimientoService(r.Resolver(Of IClienteApiFactory)()))
