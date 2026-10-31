@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Globos;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,17 +16,17 @@ namespace ControlesUsuario.Globos
     /// <summary>
     /// Nesto#592 (NestoAPI#774): pinta los globos. UNA sola pieza para toda la aplicación (no se toca cada vista): escucha la carga
     /// de todas las vistas (UserControl cuyo tipo acaba en «View», y la ventana principal) y, al cargarse una, le pregunta a
-    /// <see cref="IServicioGlobos"/> qué toca en esa pantalla. Cada globo es un Popup con flecha que apunta a su control (el de
+    /// <see cref="ServicioGlobos"/> qué toca en esa pantalla. Cada globo es un Popup con flecha que apunta a su control (el de
     /// <see cref="Globo.AnclaProperty"/>) o, si no está a la vista, una tarjeta centrada en la ventana. De uno en uno:
     /// «Siguiente» / «Entendido» (los marca vistos) y Esc (lo deja para la próxima vez, sin marcar).
     /// </summary>
     public static class PresentadorGlobos
     {
-        private static IServicioGlobos _servicio;
+        private static ServicioGlobos _servicio;
         private static Tanda _actual;
 
         /// <summary>Una vez, al arrancar, con el shell ya creado.</summary>
-        public static void Iniciar(IServicioGlobos servicio)
+        public static void Iniciar(ServicioGlobos servicio)
         {
             if (_servicio != null || servicio == null)
             {
@@ -55,7 +55,7 @@ namespace ControlesUsuario.Globos
         {
             try
             {
-                string pantalla = ClavesPantallaGlobos.DeTipo(vista.GetType().Name, Globo.GetPantalla(vista));
+                string pantalla = PantallasNesto.Clave(vista.GetType().Name, Globo.GetPantalla(vista));
                 if (pantalla == null || _servicio == null || _actual != null)
                 {
                     return;
@@ -92,7 +92,7 @@ namespace ControlesUsuario.Globos
         /// <summary>Los globos seguidos de una pantalla, de uno en uno.</summary>
         private sealed class Tanda
         {
-            private readonly IServicioGlobos _servicio;
+            private readonly ServicioGlobos _servicio;
             private readonly IReadOnlyList<GloboAEnsenar> _globos;
             private readonly FrameworkElement _vista;
             private readonly Action _alTerminar;
@@ -101,7 +101,7 @@ namespace ControlesUsuario.Globos
             private int _indice;
             private bool _terminada;
 
-            public Tanda(IServicioGlobos servicio, IReadOnlyList<GloboAEnsenar> globos, FrameworkElement vista, Action alTerminar)
+            public Tanda(ServicioGlobos servicio, IReadOnlyList<GloboAEnsenar> globos, FrameworkElement vista, Action alTerminar)
             {
                 _servicio = servicio;
                 _globos = globos;
@@ -306,7 +306,7 @@ namespace ControlesUsuario.Globos
 
         public event EventHandler Aceptado;
 
-        public VistaGlobo(GloboNesto globo, FlechaGlobo flecha, string contador, string textoBoton)
+        public VistaGlobo(DatosGlobo globo, FlechaGlobo flecha, string contador, string textoBoton)
         {
             Background = Brushes.Transparent;
             Padding = new Thickness(8);

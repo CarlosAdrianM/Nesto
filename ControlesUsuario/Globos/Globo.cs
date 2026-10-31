@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -88,33 +88,18 @@ namespace ControlesUsuario.Globos
         }
     }
 
-    /// <summary>Nesto#592: la clave de pantalla de una vista (sin WPF, para probarla).</summary>
-    public static class ClavesPantallaGlobos
+    /// <summary>Nesto#592: la clave de pantalla de una vista de Nesto (la regla común está en el núcleo, NucleoGlobos.cs).</summary>
+    public static class PantallasNesto
     {
         public const string PRINCIPAL = "Principal";
-        private const string SUFIJO_VISTA = "View";
 
         /// <summary>
-        /// La que se pone a mano (<see cref="Globo.PantallaProperty"/>) o, si no, la del nombre del tipo: «EnviarReposicionView» →
-        /// «EnviarReposicion»; «MainWindow» → «Principal». Null si no es una pantalla (un control que no acaba en «View»).
+        /// La que se pone a mano (<see cref="Globo.PantallaProperty"/>) o la del tipo sin «View» (EnviarReposicionView →
+        /// EnviarReposicion); «MainWindow» → «Principal». Null si no es una pantalla (un control que no acaba en «View»).
         /// </summary>
-        public static string DeTipo(string nombreTipo, string puesta = null)
-        {
-            if (!string.IsNullOrWhiteSpace(puesta))
-            {
-                return puesta.Trim();
-            }
-            if (string.IsNullOrWhiteSpace(nombreTipo))
-            {
-                return null;
-            }
-            if (nombreTipo == "MainWindow")
-            {
-                return PRINCIPAL;
-            }
-            return nombreTipo.Length > SUFIJO_VISTA.Length && nombreTipo.EndsWith(SUFIJO_VISTA, StringComparison.Ordinal)
-                ? nombreTipo.Substring(0, nombreTipo.Length - SUFIJO_VISTA.Length)
-                : null;
-        }
+        public static string Clave(string nombreTipo, string puesta = null)
+            => string.IsNullOrWhiteSpace(puesta) && nombreTipo == "MainWindow"
+                ? PRINCIPAL
+                : Nesto.Infrastructure.Globos.ClavesPantallaGlobos.DeTipo(nombreTipo, puesta, "View");
     }
 }

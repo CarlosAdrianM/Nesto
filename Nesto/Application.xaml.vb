@@ -65,7 +65,7 @@ Partial Public Class Application
     ''' </summary>
     Private Sub IniciarGlobos()
         Try
-            ControlesUsuario.Globos.PresentadorGlobos.Iniciar(Contenedor.Actual.Resolver(Of IServicioGlobos)())
+            ControlesUsuario.Globos.PresentadorGlobos.Iniciar(Contenedor.Actual.Resolver(Of Nesto.Infrastructure.Globos.ServicioGlobos)())
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"No se pudieron iniciar los globos: {ex.Message}")
         End Try

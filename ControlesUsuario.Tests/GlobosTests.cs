@@ -1,4 +1,4 @@
-using ControlesUsuario.Globos;
+﻿using ControlesUsuario.Globos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading;
@@ -19,7 +19,7 @@ namespace ControlesUsuario.Tests
         [DataRow(null, null, null)]
         public void ClavePantalla(string tipo, string puesta, string esperada)
         {
-            Assert.AreEqual(esperada, ClavesPantallaGlobos.DeTipo(tipo, puesta));
+            Assert.AreEqual(esperada, PantallasNesto.Clave(tipo, puesta));
         }
 
         [TestMethod]
