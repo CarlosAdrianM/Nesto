@@ -95,6 +95,16 @@
                                                         Command="{Binding DataContext.CerrarAvisoFichaEstabaBienCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}" />
                                             </StackPanel>
+                                            <!-- Nesto#591: el repartidor pide entregar sin cobrar el reembolso -->
+                                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="22,0,0,6"
+                                                        Visibility="{Binding MostrarBotonesAutorizacionReembolso, Converter={StaticResource BoolAVisible}}">
+                                                <Button Content="Autorizar" Padding="10,2" Margin="0,0,6,0" ToolTip="El repartidor puede entregar sin cobrar el reembolso"
+                                                        Command="{Binding DataContext.AutorizarReembolsoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Content="Denegar" Padding="10,2" ToolTip="Tiene que cobrarlo (o apuntar la incidencia «Reembolso no cobrado»)"
+                                                        Command="{Binding DataContext.DenegarReembolsoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" />
+                                            </StackPanel>
                                             <Button Style="{StaticResource BotonPlano}" Padding="0"
                                                     Command="{Binding DataContext.AbrirNotificacionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}">
