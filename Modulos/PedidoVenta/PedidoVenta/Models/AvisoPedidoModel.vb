@@ -6,6 +6,8 @@ Imports Newtonsoft.Json.Linq
 ''' </summary>
 Public Class RespuestaModificacionPedidoModel
     Public Property Avisos As List(Of AvisoPedidoModel) = New List(Of AvisoPedidoModel)
+    ''' <summary>Nesto#588: «fechas futuras» del pedido tal como ha quedado (Nothing = la API no lo manda).</summary>
+    Public Property tieneFechasFuturas As Boolean?
 End Class
 
 ''' <summary>

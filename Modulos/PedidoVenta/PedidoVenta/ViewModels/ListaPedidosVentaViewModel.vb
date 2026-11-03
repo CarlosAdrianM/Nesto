@@ -479,7 +479,12 @@ Public Class ListaPedidosVentaViewModel
         resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
         resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
         resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
-        ' Nesto#588 (NestoAPI#764): la fecha mínima, de la API (el día de reparto de la ruta interna, si lo tiene)
+        ' Nesto#588: «fechas futuras» lo manda la API en el pedido (GET, crear y modificar) con la regla de la lista
+        If pedido.tieneFechasFuturas.HasValue Then
+            resumen.tieneFechasFuturas = pedido.tieneFechasFuturas.Value
+            Return
+        End If
+        ' API vieja (o pedido que no viene de la API): como antes, con la fecha mínima de la API (NestoAPI#764)
         If usarElDatoDeLaLista Then
             Return
         End If
@@ -653,8 +658,12 @@ Public Class ListaPedidosVentaViewModel
         OnPropertyChanged(NameOf(EstaCreandoPedidoInvertida))
         OnPropertyChanged(NameOf(ListaPedidos))
 
-        ' Nesto#588 (NestoAPI#764): la fecha mínima, de la API (el día de reparto de la ruta interna, si lo tiene). Al final, para
-        ' no retrasar lo de arriba por la llamada.
+        ' Nesto#588: «fechas futuras» lo manda la API al crear el pedido, con la regla de la lista
+        If eventArgs.Pedido.tieneFechasFuturas.HasValue Then
+            resumenEnCreacion.tieneFechasFuturas = eventArgs.Pedido.tieneFechasFuturas.Value
+            Return
+        End If
+        ' API vieja: como antes, con la fecha mínima de la API (NestoAPI#764). Al final, para no retrasar lo de arriba por la llamada.
         If Not IsNothing(eventArgs.Pedido.Lineas) AndAlso eventArgs.Pedido.Lineas.Any() Then
             resumenEnCreacion.tieneFechasFuturas = TieneFechasFuturas(eventArgs.Pedido.Lineas, Await FechaEntregaMinima(eventArgs.Pedido.ruta, eventArgs.CodigoPostal))
         End If
