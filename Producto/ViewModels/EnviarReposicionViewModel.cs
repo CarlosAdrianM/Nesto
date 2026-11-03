@@ -60,6 +60,15 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         public bool SinCodigoBarras { get; set; }
 
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): muestra (subgrupo MMP) sin código de barras: se manda sin etiqueta (en el destino se cuenta
+        /// tecleando), así que no se marca ni cuenta en el aviso de etiquetas pendientes. False con una API anterior.
+        /// </summary>
+        public bool SinCodigoAdmitido { get; set; }
+
+        /// <summary>Nesto#605: sin código, pero es una muestra: va sin etiqueta y no hay que imprimir nada.</summary>
+        public bool SeMandaSinEtiqueta => SinCodigoBarras && SinCodigoAdmitido;
+
         private int _etiquetasImpresas;
         /// <summary>NestoAPI#762: las etiquetas EAN-13 de esta línea que han salido por la impresora desde que se abrió.</summary>
         public int EtiquetasImpresas
@@ -90,13 +99,15 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         /// <summary>NestoAPI#762: sin código de barras y sin haber impreso aún sus etiquetas: se marca la línea.</summary>
-        public bool FaltanEtiquetas => SinCodigoBarras && EtiquetasImpresas == 0;
+        public bool FaltanEtiquetas => SinCodigoBarras && !SinCodigoAdmitido && EtiquetasImpresas == 0;
 
         internal const string TEXTO_SIN_CODIGO = "Sin código de barras: imprima sus etiquetas antes de enviar";
+        internal const string TEXTO_MUESTRA_SIN_CODIGO = "Muestra sin código de barras: se manda sin etiqueta";
 
         /// <summary>Lo que se ve en la columna de la etiqueta: el aviso, o cuántas se han impreso. Null si nada.</summary>
         public string AvisoEtiquetas
             => FaltanEtiquetas ? TEXTO_SIN_CODIGO
+               : SeMandaSinEtiqueta && EtiquetasImpresas == 0 ? TEXTO_MUESTRA_SIN_CODIGO
                : EtiquetasImpresas > 0
                    ? (EtiquetasImpresas == 1 ? "1 etiqueta impresa" : $"{EtiquetasImpresas} etiquetas impresas")
                      + (string.IsNullOrWhiteSpace(CodigoEtiqueta) ? string.Empty : $" ({CodigoEtiqueta.Trim()})")
@@ -1839,6 +1850,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     CodigosBarras = LineaEnviarReposicion.CodigosDe(linea),
                     // NestoAPI#762: sin ningún código (la API ya quita los que no son GTIN válidos), el origen tiene que etiquetarlo
                     SinCodigoBarras = LineaEnviarReposicion.CodigosDe(linea).Count == 0,
+                    // Nesto#605 (NestoAPI#797): las muestras sin código van sin etiqueta
+                    SinCodigoAdmitido = linea.SinCodigoAdmitido,
                     StockOrigen = linea.StockOrigen,
                     Preparada = linea.Cantidad,
                     Cantidad = linea.Cantidad

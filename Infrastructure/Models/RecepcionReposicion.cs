@@ -48,6 +48,11 @@ namespace Nesto.Infrastructure.Models
         /// </summary>
         public List<string> CodigosBarras { get; set; } = new List<string>();
         public bool SinCodigo { get; set; }
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): producto sin código de barras del subgrupo MMP (muestras): no se etiqueta y, aunque la
+        /// reposición se reciba solo escaneando, cuenta tecleando su referencia o la cantidad. False con una API anterior.
+        /// </summary>
+        public bool SinCodigoAdmitido { get; set; }
         public bool CodigoDuplicado { get; set; }
         /// <summary>Unidades enviadas.</summary>
         public int Cantidad { get; set; }

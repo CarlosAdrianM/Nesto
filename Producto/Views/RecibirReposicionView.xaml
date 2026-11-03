@@ -121,10 +121,11 @@
                 </TextBox.InputBindings>
             </TextBox>
         </WrapPanel>
-        <!-- Nesto#530: hasta leer la etiqueta del bulto no se teclea en «Leído»; NestoAPI#762: solo escaneando, nunca -->
+        <!-- Nesto#530: hasta leer la etiqueta del bulto no se teclea en «Leído»; NestoAPI#762: solo escaneando, nunca
+             (Nesto#605: salvo en las muestras sin código; BeginningEdit lo decide línea a línea) -->
         <DataGrid x:Name="grdLineas" Grid.Row="2" Grid.Column="2" ItemsSource="{Binding LineasVisibles}" AutoGenerateColumns="False"
                   CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="{Binding LeidoSoloLectura}"
-                  SelectedItem="{Binding LineaElegida}" SelectionChanged="GrdLineas_SelectionChanged">
+                  SelectedItem="{Binding LineaElegida}" SelectionChanged="GrdLineas_SelectionChanged" BeginningEdit="GrdLineas_BeginningEdit">
             <DataGrid.Columns>
                 <!-- Sugerencia 599 (Paloma): doble clic en la referencia abre la ficha del producto -->
                 <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" IsReadOnly="True">

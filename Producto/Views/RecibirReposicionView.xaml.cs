@@ -50,6 +50,18 @@ namespace Nesto.Modules.Producto.Views
         }
 
         /// <summary>NestoAPI#762: la línea elegida tecleando su referencia (o con «Sin etiqueta») se ve en la rejilla.</summary>
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): solo escaneando, «Leído» se teclea únicamente en las muestras sin código; en las demás
+        /// líneas no se entra a editar.
+        /// </summary>
+        private void GrdLineas_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+        {
+            if (DataContext is RecibirReposicionViewModel vm && e.Row?.Item is LineaRecibirReposicion linea && !vm.PuedeTeclearLeido(linea))
+            {
+                e.Cancel = true;
+            }
+        }
+
         private void GrdLineas_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (sender is DataGrid rejilla && rejilla.SelectedItem != null)

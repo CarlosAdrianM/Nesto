@@ -320,6 +320,26 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerRecepcion_LeeSinCodigoAdmitido_YSinElCampoEsFalse()
+        {
+            // Nesto#605 (NestoAPI#797): las muestras (MMP) sin código se reciben tecleando
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Tipo\":\"REPO\",\"Documento\":\"81200\",\"SoloEscaneando\":true,\"Lineas\":[" +
+                            "{\"Producto\":\"50001\",\"SinCodigo\":true,\"SinCodigoAdmitido\":true,\"Cantidad\":5}," +
+                            "{\"Producto\":\"17404\",\"SinCodigo\":true,\"SinCodigoAdmitido\":false,\"Cantidad\":3}," +
+                            "{\"Producto\":\"40057\",\"CodigoBarras\":\"8422\",\"Cantidad\":1}]}"
+            };
+            var servicio = new ServicioRecepcionReposiciones(new FactoriaFalsa(handler));
+
+            RecepcionReposicion recepcion = await servicio.LeerRecepcion("1", "REI", "81200");
+
+            Assert.IsTrue(recepcion.Lineas.Single(l => l.Producto == "50001").SinCodigoAdmitido);
+            Assert.IsFalse(recepcion.Lineas.Single(l => l.Producto == "17404").SinCodigoAdmitido);
+            Assert.IsFalse(recepcion.Lineas.Single(l => l.Producto == "40057").SinCodigoAdmitido, "Una API anterior no lo manda: como siempre");
+        }
+
+        [TestMethod]
         public async Task ApuntarSinEtiqueta_MandaElMotivoALaRecepcionYLeeElMensaje()
         {
             var handler = new HandlerFalso
