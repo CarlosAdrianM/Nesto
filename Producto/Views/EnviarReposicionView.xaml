@@ -30,8 +30,8 @@
 
         <StackPanel Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Enviar reposición a Algete" FontSize="20" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Almacen, StringFormat=' desde {0}'}" FontSize="20" />
+                <!-- Nesto#594: desde Algete la reposición se envía en Ariadna; aquí solo se reimprimen las enviadas -->
+                <TextBlock Text="{Binding Cabecera}" FontSize="20" FontWeight="SemiBold" />
                 <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" Margin="16,0,0,0" VerticalAlignment="Center" />
                 <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                         Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"

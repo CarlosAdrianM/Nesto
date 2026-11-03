@@ -58,14 +58,19 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Cargar_DesdeAlgete_NoSeVe()
+        public async Task Cargar_DesdeAlgete_SeVeYReimprime()
         {
+            // Nesto#594: desde Algete se envía en Ariadna, pero si falla la impresora se reimprime aquí (antes no se veía)
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
+            A.CallTo(() => _servicio.ReimprimirBultos(A<string>._, "81256")).Returns(Impresos("81256", 3, "Zebra Algete"));
 
             await _vm.CargarAsync();
+            _vm.NumeroReimprimirBultos = "81256";
 
-            Assert.IsFalse(_vm.MostrarReimprimirPorNumero);
-            Assert.IsFalse(_vm.ReimprimirBultosPorNumeroCommand.CanExecute(null));
+            Assert.IsTrue(_vm.MostrarReimprimirPorNumero);
+            Assert.IsTrue(_vm.ReimprimirBultosPorNumeroCommand.CanExecute(null));
+            await _vm.ReimprimirBultosPorNumeroCommand.ExecuteAsync(null);
+            A.CallTo(() => _servicio.ReimprimirBultos("1", "81256")).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

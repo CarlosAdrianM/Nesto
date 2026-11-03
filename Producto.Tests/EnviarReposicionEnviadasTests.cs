@@ -79,15 +79,84 @@ namespace Producto.Tests
             Assert.AreEqual(0, _vm.Enviadas.Count);
         }
 
-        [TestMethod]
-        public async Task Cargar_DesdeAlgete_NiSeLee()
+        // ---------------------------------------------------------------- Nesto#594: desde Algete también se reimprime
+
+        private void DesdeAlgete(params ReposicionEnviada[] enviadas)
         {
             A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
+            A.CallTo(() => _servicio.LeerEnviadas(A<string>._, "ALG")).Returns(enviadas.ToList());
+        }
+
+        private static ReposicionEnviada EnviadaDesdeAlgete(int traspaso, int bultos) => new()
+        {
+            Traspaso = traspaso, Origen = "ALG", Destino = "ALC", NombreDestino = "Alcobendas", Lineas = 12, Unidades = 40, Bultos = bultos,
+            Fecha = new DateTime(2026, 11, 3)
+        };
+
+        [TestMethod]
+        public async Task Cargar_DesdeAlgete_EnsenaLasEnviadasYElCuadroPorNumero_SinNadaDePreparar()
+        {
+            DesdeAlgete(EnviadaDesdeAlgete(81250, 2), EnviadaDesdeAlgete(81256, 3));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual(EnviarReposicionViewModel.TEXTO_ALGETE, _vm.Mensaje);
+            Assert.AreEqual("Las reposiciones desde Algete se hacen en Ariadna.", _vm.Mensaje);
+            Assert.IsTrue(_vm.HayEnviadas);
+            CollectionAssert.AreEqual(new[] { 81256, 81250 }, _vm.Enviadas.Select(e => e.Traspaso).ToArray());
+            Assert.IsTrue(_vm.MostrarReimprimirPorNumero);
+            Assert.AreEqual("81256", _vm.NumeroReimprimirBultos);
+            Assert.AreEqual("Reposiciones enviadas desde Algete", _vm.Cabecera);
+            A.CallTo(() => _servicio.LeerEnviadas("1", "ALG")).MustHaveHappenedOnceExactly();
+            // Lo de preparar y enviar no se ofrece
+            Assert.IsFalse(_vm.HayReposicion);
+            Assert.IsFalse(_vm.PuedePreparar);
+            Assert.IsFalse(_vm.MostrarBotonPuntual);
+            Assert.IsFalse(_vm.MostrarEstadoRecogida);
+            Assert.IsFalse(_vm.MostrarLector);
+            Assert.IsFalse(_vm.EmpezarPuntualCommand.CanExecute(null));
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.PuedeRellenarManual()).MustNotHaveHappened();
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Cargar_DesdeAlgete_SinEnviadas_NoSeVeLaListaPeroSiElCuadro()
+        {
+            DesdeAlgete();
 
             await _vm.CargarAsync();
 
             Assert.IsFalse(_vm.HayEnviadas);
-            A.CallTo(() => _servicio.LeerEnviadas(A<string>._, A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual(0, _vm.Enviadas.Count);
+            Assert.IsTrue(_vm.MostrarReimprimirPorNumero);
+            Assert.AreEqual(EnviarReposicionViewModel.TEXTO_ALGETE, _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task DesdeAlgete_ReimprimirBultosEImpreso_DeUnaEnviada()
+        {
+            DesdeAlgete(EnviadaDesdeAlgete(81256, 3));
+            A.CallTo(() => _servicio.ReimprimirBultos(A<string>._, "81256")).Returns(Impresos("81256", 3));
+            A.CallTo(() => _servicio.DescargarImpresoEnviada(A<string>._, "ALG", 81256)).Returns(new byte[] { 0x25, 0x50, 0x44, 0x46 });
+            await _vm.CargarAsync();
+            ReposicionEnviada enviada = _vm.Enviadas.Single();
+
+            Assert.IsTrue(_vm.ReimprimirBultosEnviadaCommand.CanExecute(enviada));
+            await _vm.ReimprimirBultosEnviadaCommand.ExecuteAsync(enviada);
+            await _vm.ReimprimirImpresoEnviadaCommand.ExecuteAsync(enviada);
+
+            A.CallTo(() => _servicio.ReimprimirBultos("1", "81256")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.DescargarImpresoEnviada("1", "ALG", 81256)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, _abiertos.Count);
+        }
+
+        [TestMethod]
+        public async Task Cargar_EnUnaTienda_LaCabeceraEsLaDeSiempre()
+        {
+            await _vm.CargarAsync();
+
+            Assert.AreEqual("Enviar reposición a Algete desde ALC", _vm.Cabecera);
         }
 
         [TestMethod]

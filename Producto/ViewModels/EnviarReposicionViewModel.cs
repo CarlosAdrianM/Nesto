@@ -278,7 +278,25 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private string _almacen;
         /// <summary>El almacén del usuario (AlmacénPedidoVta): la tienda que manda la reposición.</summary>
-        public string Almacen { get => _almacen; private set => SetProperty(ref _almacen, value); }
+        public string Almacen
+        {
+            get => _almacen;
+            private set
+            {
+                if (SetProperty(ref _almacen, value))
+                {
+                    OnPropertyChanged(nameof(Cabecera));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lo que se lee arriba: «Enviar reposición a Algete desde REI». Nesto#594: desde Algete no se envía aquí (se hace en
+        /// Ariadna), solo se reimprime lo enviado: «Reposiciones enviadas desde Algete».
+        /// </summary>
+        public string Cabecera => Almacen == Constantes.Almacenes.ALMACEN_ALGETE
+            ? "Reposiciones enviadas desde Algete"
+            : "Enviar reposición a Algete" + (string.IsNullOrWhiteSpace(Almacen) ? string.Empty : $" desde {Almacen}");
 
         public ObservableCollection<LineaEnviarReposicion> Lineas { get; } = new ObservableCollection<LineaEnviarReposicion>();
 
@@ -291,7 +309,15 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>La vista vuelve a poner el foco en el cuadro del lector (lo leído no ha entrado).</summary>
         public event Action PedirFocoEnLector;
 
+        /// <summary>Origen válido para PREPARAR y ENVIAR: solo una tienda (desde Algete se envía en Ariadna).</summary>
         private bool _origenValido;
+
+        /// <summary>
+        /// Nesto#594: origen válido para REIMPRIMIR (la lista de enviadas sin recibir y el cuadro por número): una tienda o
+        /// Algete. Desde Algete la reposición se envía en Ariadna, pero si la impresora falla las etiquetas y el impreso se
+        /// reimprimen aquí.
+        /// </summary>
+        private bool _origenReimprimir;
 
         /// <summary>NestoAPI#577: si el usuario puede rellenar la reposición a mano (los demás esperan a que la rellene la API).</summary>
         private bool _puedeRellenarManual;
@@ -963,12 +989,15 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>Sugerencia 564: la reposición en papel, para prepararla a mano.</summary>
         public IAsyncRelayCommand ImprimirCommand { get; }
 
+        internal const string TEXTO_ALGETE = "Las reposiciones desde Algete se hacen en Ariadna.";
+
         public async Task CargarAsync()
         {
             Mensaje = null;
             await Ocupado(async () =>
             {
                 _origenValido = false;
+                _origenReimprimir = false;
                 AvisoAutomatica = null;
                 PonerEnviadas(null);
                 string almacen = (await _configuracion.leerParametro(Empresa, Parametros.Claves.AlmacenPedidoVta).ConfigureAwait(true))?.Trim();
@@ -980,10 +1009,16 @@ namespace Nesto.Modules.Producto.ViewModels
                 Almacen = almacen.ToUpperInvariant();
                 if (Almacen == Constantes.Almacenes.ALMACEN_ALGETE)
                 {
-                    Mensaje = "Las reposiciones desde Algete se hacen en Ariadna.";
+                    Mensaje = TEXTO_ALGETE;
+                    // Nesto#594: no se prepara ni se envía (ni la puntual ni la recogida, que son de la tienda: tampoco el grupo
+                    // de SignalR, que solo relee el estado de la puntual), pero sí se ven las enviadas para reimprimirlas
+                    SalirDelGrupo();
+                    _origenReimprimir = true;
+                    await LeerEnviadas().ConfigureAwait(true);
                     return;
                 }
                 _origenValido = true;
+                _origenReimprimir = true;
                 // Nesto#590: los avisos de la recogida de esta tienda (sin sondeo)
                 EntrarEnGrupo();
                 _puedeRellenarManual = await _servicio.PuedeRellenarManual().ConfigureAwait(true);
@@ -1607,8 +1642,8 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         public ObservableCollection<ReposicionEnviada> Enviadas { get; } = new ObservableCollection<ReposicionEnviada>();
 
-        /// <summary>Se ve la lista: en una tienda, fuera de la puntual y con alguna enviada sin recibir.</summary>
-        public bool HayEnviadas => _origenValido && !EnModoPuntual && Enviadas.Count > 0;
+        /// <summary>Se ve la lista: en una tienda o en Algete (Nesto#594), fuera de la puntual y con alguna enviada sin recibir.</summary>
+        public bool HayEnviadas => _origenReimprimir && !EnModoPuntual && Enviadas.Count > 0;
 
         /// <summary>Reimprime las etiquetas de los bultos; si se mandó sin bultos, pregunta cuántos lleva y las hace.</summary>
         public IAsyncRelayCommand<ReposicionEnviada> ReimprimirBultosEnviadaCommand { get; }
@@ -1670,8 +1705,8 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        /// <summary>Se ve el cuadro para reimprimir por número: en una tienda y fuera de la puntual.</summary>
-        public bool MostrarReimprimirPorNumero => _origenValido && !EnModoPuntual;
+        /// <summary>Se ve el cuadro para reimprimir por número: en una tienda o en Algete (Nesto#594) y fuera de la puntual.</summary>
+        public bool MostrarReimprimirPorNumero => _origenReimprimir && !EnModoPuntual;
 
         /// <summary>Sugerencia 733: reimprime las etiquetas de bulto de la reposición <see cref="NumeroReimprimirBultos"/>.</summary>
         public IAsyncRelayCommand ReimprimirBultosPorNumeroCommand { get; }
