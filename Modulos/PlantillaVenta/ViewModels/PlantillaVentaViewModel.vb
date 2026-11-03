@@ -1761,16 +1761,48 @@ Public Class PlantillaVentaViewModel
         ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
         ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
         ' NotaEntrega no aplica en PlantillaVenta (pedidos nuevos desde cliente).
+        ' Nesto#595: en la pantalla del modo de entrega aún no se han elegido la forma ni los plazos de pago:
+        ' se mandan las condiciones efectivas (las elegidas o, si no, las de la ficha del contacto).
+        Dim condiciones = CondicionesPagoParaValidar()
         Return ServicioServirJunto.Validar(
             almacen,
             productosConCantidad,
             lineasDelPedido,
-            Estado?.FormaPago,
-            Estado?.PlazosPago,
-            Estado?.Ccc,
-            Estado?.PeriodoFacturacion,
+            condiciones.FormaPago,
+            condiciones.PlazosPago,
+            condiciones.Ccc,
+            condiciones.PeriodoFacturacion,
             False,
             modoServicio:=modo) ' NestoAPI#482: el mensaje nombra el modo elegido
+    End Function
+
+    ''' <summary>
+    ''' Nesto#595 (Manuel, pedido 929816, 03/11/26): condiciones de pago con las que se valida el modo de servicio.
+    ''' La forma y los plazos de Estado solo se rellenan en la pantalla de pago (al elegirlos en sus selectores);
+    ''' antes de llegar a ella se usan los de la ficha del contacto, que la plantilla ya tiene en memoria
+    ''' (FormaPagoCliente/PlazoPagoCliente, que salen de direccionEntregaSeleccionada). El CCC sigue la regla de
+    ''' crear el pedido: solo va si la forma de pago lo lleva (elegida: cccObligatorio; de la ficha: recibo
+    ''' bancario, o forma desconocida para no perder el dato).
+    ''' </summary>
+    Friend Function CondicionesPagoParaValidar() As (FormaPago As String, PlazosPago As String, Ccc As String, PeriodoFacturacion As String)
+        Dim contacto As DireccionesEntregaCliente = direccionEntregaSeleccionada
+        Dim formaPago As String = PrimeroNoVacio(Estado?.FormaPago, FormaPagoCliente, contacto?.formaPago)
+        Dim plazosPago As String = PrimeroNoVacio(Estado?.PlazosPago, PlazoPagoCliente, contacto?.plazosPago)
+        Dim periodoFacturacion As String = PrimeroNoVacio(Estado?.PeriodoFacturacion, contacto?.periodoFacturacion)
+        Dim ccc As String
+        If FormaPagoSeleccionada IsNot Nothing Then
+            ' Ya elegida en la pantalla de pago: lo que vaya a llevar el pedido (CccSeleccionado puede estar vacío a propósito).
+            ccc = If(FormaPagoSeleccionada.cccObligatorio, PrimeroNoVacio(Estado?.Ccc), Nothing)
+        ElseIf String.IsNullOrWhiteSpace(formaPago) OrElse ControlesUsuario.ReglaCCCRecibo.EsReciboBancario(formaPago) Then
+            ccc = PrimeroNoVacio(Estado?.Ccc, contacto?.ccc)
+        Else
+            ccc = Nothing
+        End If
+        Return (formaPago, plazosPago, ccc, periodoFacturacion)
+    End Function
+
+    Private Shared Function PrimeroNoVacio(ParamArray valores As String()) As String
+        Return valores.FirstOrDefault(Function(v) Not String.IsNullOrWhiteSpace(v))
     End Function
 
     ''' <summary>
