@@ -1476,6 +1476,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 try
                 {
                     ResultadoEtiquetasProducto resultado = await _etiquetas.Imprimir(Empresa, linea.Producto, CopiasEtiqueta).ConfigureAwait(true);
+                    ApuntarCodigoImpreso(linea, resultado);
                     Mensaje = string.IsNullOrWhiteSpace(resultado?.Mensaje)
                         ? $"Etiqueta de {linea.Producto} mandada a la impresora."
                         : resultado.Mensaje.Trim();
@@ -1486,6 +1487,22 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }).ConfigureAwait(true);
             PedirFocoEnLector?.Invoke();
+        }
+
+        /// <summary>
+        /// Nesto#598 (NestoAPI#791): la etiqueta lleva siempre un EAN-13; si la API se lo acaba de dar (el interno 29…) o no
+        /// estaba en la lista abierta, se añade a los códigos de la línea, como en Enviar reposición: así la lectura de esa
+        /// etiqueta casa en local sin preguntar a la API.
+        /// </summary>
+        internal static void ApuntarCodigoImpreso(LineaRecibirReposicion linea, ResultadoEtiquetasProducto resultado)
+        {
+            string codigo = resultado?.CodigoBarras?.Trim();
+            if (linea == null || string.IsNullOrEmpty(codigo) || linea.TieneCodigoBarras(codigo))
+            {
+                return;
+            }
+            linea.CodigosBarras ??= new List<string>();
+            linea.CodigosBarras.Add(codigo);
         }
 
         private async Task TerminarAsync()

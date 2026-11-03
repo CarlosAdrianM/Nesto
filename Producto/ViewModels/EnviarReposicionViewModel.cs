@@ -1452,7 +1452,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 ResultadoEtiquetasProducto resultado;
                 try
                 {
-                    resultado = await _etiquetas.Imprimir(Empresa, linea.Producto, ahora, PeticionEtiquetasProducto.FORMATO_EAN13).ConfigureAwait(true);
+                    resultado = await _etiquetas.Imprimir(Empresa, linea.Producto, ahora).ConfigureAwait(true);
                 }
                 catch (EtiquetasProductoException ex)
                 {

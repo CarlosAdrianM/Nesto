@@ -20,7 +20,7 @@ namespace Producto.Tests
         private IServicioDialogos _dialogos = null!;
         private IServicioEtiquetasProducto _etiquetas = null!;
         private EnviarReposicionViewModel _vm = null!;
-        private List<(string Producto, int Copias, string Formato)> _impresas = null!;
+        private List<(string Producto, int Copias)> _impresas = null!;
 
         private static ReposicionEnPreparacion Reposicion() => new()
         {
@@ -41,7 +41,7 @@ namespace Producto.Tests
         [TestInitialize]
         public void Preparar()
         {
-            _impresas = new List<(string, int, string)>();
+            _impresas = new List<(string, int)>();
             _servicio = A.Fake<IServicioEnvioReposiciones>();
             _dialogos = A.Fake<IServicioDialogos>();
             _etiquetas = A.Fake<IServicioEtiquetasProducto>();
@@ -50,10 +50,10 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
             A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(true);
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
-            A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<string>._, A<bool>._))
-                .ReturnsLazily((string _, string producto, int copias, string formato, bool _) =>
+            A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<bool>._))
+                .ReturnsLazily((string _, string producto, int copias, bool _) =>
                 {
-                    _impresas.Add((producto, copias, formato));
+                    _impresas.Add((producto, copias));
                     string codigo = producto == "17404" ? "2900000174047" : producto == "33333" ? "2900000333338" : "8411111111110";
                     return Task.FromResult(new ResultadoEtiquetasProducto
                     {
@@ -102,7 +102,7 @@ namespace Producto.Tests
 
             await _vm.ImprimirEtiquetasLineaCommand.ExecuteAsync(Linea("17404"));
 
-            Assert.AreEqual(("17404", 3, PeticionEtiquetasProducto.FORMATO_EAN13), _impresas.Single());
+            Assert.AreEqual(("17404", 3), _impresas.Single());
             Assert.AreEqual("3 etiquetas de 17404 (2900000174047) mandadas a la impresora.", _vm.Mensaje);
             Assert.IsFalse(Linea("17404").FaltanEtiquetas);
             Assert.AreEqual("3 etiquetas impresas (2900000174047)", Linea("17404").AvisoEtiquetas);
@@ -128,7 +128,7 @@ namespace Producto.Tests
 
             await _vm.ImprimirEtiquetasLineaCommand.ExecuteAsync(Linea("40057"));
 
-            Assert.AreEqual(("40057", 1, PeticionEtiquetasProducto.FORMATO_EAN13), _impresas.Single());
+            Assert.AreEqual(("40057", 1), _impresas.Single());
         }
 
         [TestMethod]
@@ -157,7 +157,7 @@ namespace Producto.Tests
         [TestMethod]
         public async Task LaApiNoLaImprime_SuTextoYLaLineaSigueMarcada()
         {
-            A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<string>._, A<bool>._))
+            A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<bool>._))
                 .ThrowsAsync(new EtiquetasProductoException("Su usuario no tiene impresora de etiquetas."));
             await _vm.CargarAsync();
 
@@ -178,7 +178,6 @@ namespace Producto.Tests
             CollectionAssert.AreEquivalent(new[] { "17404", "33333" }, _impresas.Select(i => i.Producto).ToList());
             Assert.AreEqual(3, _impresas.Single(i => i.Producto == "17404").Copias);
             Assert.AreEqual(1, _impresas.Single(i => i.Producto == "33333").Copias);
-            Assert.IsTrue(_impresas.All(i => i.Formato == PeticionEtiquetasProducto.FORMATO_EAN13));
             Assert.IsFalse(_vm.HayLineasSinEtiquetas);
             Assert.IsNull(_vm.AvisoSinCodigo);
             A.CallTo(() => _dialogos.ShowConfirmationAsync(EnviarReposicionViewModel.TITULO_ETIQUETAS_PRODUCTO,
