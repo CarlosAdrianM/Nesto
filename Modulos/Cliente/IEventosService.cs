@@ -32,6 +32,12 @@ namespace Nesto.Modulos.Cliente
         /// <summary>La referencia del curso (nombre e IVA de la ficha); null si no existe.</summary>
         Task<ProductoCursoModel> LeerProductoCurso(string producto);
         /// <summary>
+        /// Nesto#604 (Reina, novedad 975): el producto de «Hay que comprar» por su referencia o, si no es una referencia, por
+        /// cualquiera de sus códigos de barras (GET api/Productos/PorCodigoBarras). Vacía si no es de ninguno; más de uno si el
+        /// código está en varios productos.
+        /// </summary>
+        Task<List<ProductoCursoModel>> BuscarProductoRequerido(string texto);
+        /// <summary>
         /// Nesto#517: crea (o devuelve, si ya existe) la referencia del curso del evento para esa modalidad
         /// (POST api/Eventos/{id}/ProductoCurso): «EVENTO» + Id a 5 cifras la reembolsable; con «NR», la no reembolsable.
         /// </summary>

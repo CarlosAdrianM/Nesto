@@ -82,7 +82,7 @@ namespace ClienteTests
         [TestMethod]
         public async Task AnadirProducto_CompruebaQueExisteYGuardaLaListaCompleta()
         {
-            A.CallTo(() => eventos.LeerProductoCurso("45364")).Returns(new ProductoCursoModel { Producto = "45364", Nombre = "SERUM COREANO" });
+            A.CallTo(() => eventos.BuscarProductoRequerido("45364")).Returns(new List<ProductoCursoModel> { new() { Producto = "45364", Nombre = "SERUM COREANO" } });
             var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel> { new() { Producto = "45363", Nombre = "LIFTING COREANO" } }));
 
             vm.ProductoRequeridoNuevo = " 45364 ";
@@ -97,7 +97,7 @@ namespace ClienteTests
         [TestMethod]
         public async Task AnadirProducto_QueNoExiste_LoDiceYNoLoAnade()
         {
-            A.CallTo(() => eventos.LeerProductoCurso("99999")).Returns((ProductoCursoModel)null);
+            A.CallTo(() => eventos.BuscarProductoRequerido("99999")).Returns(new List<ProductoCursoModel>());
             var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel>()));
 
             vm.ProductoRequeridoNuevo = "99999";
@@ -105,6 +105,49 @@ namespace ClienteTests
 
             Assert.AreEqual(0, vm.ProductosRequeridosEdicion.Count);
             StringAssert.Contains(errores.Single(), "No existe el producto 99999");
+        }
+
+        // Nesto#604 (Reina, novedad 975): leía el EAN-13 en la casilla y le decía que no existía el producto.
+        [TestMethod]
+        public async Task AnadirProducto_PorCodigoDeBarras_AnadeElProductoDelCodigo()
+        {
+            A.CallTo(() => eventos.BuscarProductoRequerido("8435431597201")).Returns(new List<ProductoCursoModel> { new() { Producto = "45364", Nombre = "SERUM COREANO" } });
+            var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel>()));
+
+            vm.ProductoRequeridoNuevo = "8435431597201";
+            await vm.AnadirProductoRequeridoAsync();
+
+            Assert.AreEqual("45364 - SERUM COREANO", vm.ProductosRequeridosEdicion.Single().Texto);
+            Assert.AreEqual(0, errores.Count);
+            Assert.IsNull(vm.ProductoRequeridoNuevo);
+        }
+
+        [TestMethod]
+        public async Task AnadirProducto_CodigoDeBarrasDeUnoQueYaEsta_NoLoRepite()
+        {
+            A.CallTo(() => eventos.BuscarProductoRequerido("8435431597201")).Returns(new List<ProductoCursoModel> { new() { Producto = "45363", Nombre = "LIFTING COREANO" } });
+            var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel> { new() { Producto = "45363", Nombre = "LIFTING COREANO" } }));
+
+            vm.ProductoRequeridoNuevo = "8435431597201";
+            await vm.AnadirProductoRequeridoAsync();
+
+            Assert.AreEqual(1, vm.ProductosRequeridosEdicion.Count);
+        }
+
+        [TestMethod]
+        public async Task AnadirProducto_CodigoDeBarrasEnVariosProductos_PideLaReferenciaYNoAnade()
+        {
+            A.CallTo(() => eventos.BuscarProductoRequerido("8435431594729")).Returns(new List<ProductoCursoModel>
+            {
+                new() { Producto = "45363", Nombre = "LIFTING COREANO" }, new() { Producto = "45364", Nombre = "SERUM COREANO" }
+            });
+            var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel>()));
+
+            vm.ProductoRequeridoNuevo = "8435431594729";
+            await vm.AnadirProductoRequeridoAsync();
+
+            Assert.AreEqual(0, vm.ProductosRequeridosEdicion.Count);
+            StringAssert.Contains(errores.Single(), "varios productos (45363, 45364)");
         }
 
         [TestMethod]

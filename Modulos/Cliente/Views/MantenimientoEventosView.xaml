@@ -191,8 +191,8 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                         <!-- Nesto#604 (Reina, novedad 974): escribía en la lista de arriba; la casilla lleva texto de ayuda y con Intro añade -->
                                         <xctk:WatermarkTextBox Text="{Binding ProductoRequeridoNuevo, UpdateSourceTrigger=PropertyChanged}" Width="190" MaxLength="15"
-                                                               VerticalContentAlignment="Center" Watermark="Referencia del producto…"
-                                                               ToolTip="Escriba la referencia del producto y pulse Intro o «Añadir»">
+                                                               VerticalContentAlignment="Center" Watermark="Referencia o código de barras…"
+                                                               ToolTip="Escriba la referencia o lea el código de barras del producto y pulse Intro o «Añadir»">
                                             <xctk:WatermarkTextBox.InputBindings>
                                                 <KeyBinding Key="Enter" Command="{Binding AnadirProductoRequeridoCommand}"/>
                                             </xctk:WatermarkTextBox.InputBindings>

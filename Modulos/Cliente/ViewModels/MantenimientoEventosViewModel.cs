@@ -687,7 +687,10 @@ namespace Nesto.Modulos.Cliente
                 }
             }, () => ProductoRequeridoSeleccionado != null);
 
-        /// <summary>Añade la referencia (con su nombre) si existe; si ya está en la lista, no la repite.</summary>
+        /// <summary>
+        /// Añade el producto (con su nombre) si existe, por su referencia o por un código de barras (Nesto#604); si ya está en
+        /// la lista, no lo repite.
+        /// </summary>
         public async Task AnadirProductoRequeridoAsync()
         {
             string referencia = Limpiar(ProductoRequeridoNuevo);
@@ -695,7 +698,7 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
-            if (ProductosRequeridosEdicion.Any(p => string.Equals(p.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase)))
+            if (EstaEnProductosRequeridos(referencia))
             {
                 ProductoRequeridoNuevo = null;
                 return;
@@ -704,12 +707,18 @@ namespace Nesto.Modulos.Cliente
             try
             {
                 EstaOcupado = true;
-                ProductoCursoModel producto = await _servicio.LeerProductoCurso(referencia);
-                if (producto == null)
+                List<ProductoCursoModel> encontrados = await _servicio.BuscarProductoRequerido(referencia) ?? new List<ProductoCursoModel>();
+                if (encontrados.Count == 0)
                 {
-                    _dialogService.ShowError($"No existe el producto {referencia}: revise la referencia.");
+                    _dialogService.ShowError($"No existe el producto {referencia}: revise la referencia o el código de barras.");
                     return;
                 }
+                if (encontrados.Count > 1)
+                {
+                    _dialogService.ShowError($"El código {referencia} está en varios productos ({string.Join(", ", encontrados.Select(p => p.Producto?.Trim()))}): escriba la referencia del que quiera.");
+                    return;
+                }
+                ProductoCursoModel producto = encontrados[0];
                 nombre = producto.Nombre?.Trim();
                 referencia = string.IsNullOrWhiteSpace(producto.Producto) ? referencia : producto.Producto.Trim();
             }
@@ -721,9 +730,15 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = false;
             }
-            ProductosRequeridosEdicion.Add(new ProductoRequeridoEventoModel { Producto = referencia, Nombre = nombre });
+            if (!EstaEnProductosRequeridos(referencia))
+            {
+                ProductosRequeridosEdicion.Add(new ProductoRequeridoEventoModel { Producto = referencia, Nombre = nombre });
+            }
             ProductoRequeridoNuevo = null;
         }
+
+        private bool EstaEnProductosRequeridos(string referencia) =>
+            ProductosRequeridosEdicion.Any(p => string.Equals(p.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase));
 
         private void CargarProductosRequeridos(EventoModel evento)
         {

@@ -158,6 +158,48 @@ namespace Nesto.Modulos.Cliente
             return leido;
         }
 
+        public async Task<List<ProductoCursoModel>> BuscarProductoRequerido(string texto)
+        {
+            List<ProductoCursoModel> encontrados = new();
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return encontrados;
+            }
+            string limpio = texto.Trim();
+            ProductoCursoModel porReferencia = await LeerProductoCurso(limpio);
+            if (porReferencia != null)
+            {
+                encontrados.Add(porReferencia);
+                return encontrados;
+            }
+            // Como ServicioProducto (NestoAPI#605): mira TODOS los códigos de barras; un 404 (API sin el endpoint) = ninguno.
+            string body = await Enviar(c => c.GetAsync(
+                    $"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(limpio)}&empresa={Constantes.Empresas.EMPRESA_DEFECTO}"),
+                "No se pudo buscar el código de barras", vacioSiNoExiste: true);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return encontrados;
+            }
+            List<ProductoPorCodigoBarras> filas = JsonConvert.DeserializeObject<List<ProductoPorCodigoBarras>>(body) ?? new();
+            foreach (ProductoPorCodigoBarras fila in filas)
+            {
+                string producto = fila?.Producto?.Trim();
+                if (!string.IsNullOrEmpty(producto) &&
+                    !encontrados.Exists(p => string.Equals(p.Producto, producto, StringComparison.OrdinalIgnoreCase)))
+                {
+                    encontrados.Add(new ProductoCursoModel { Producto = producto, Nombre = fila.Nombre?.Trim() });
+                }
+            }
+            return encontrados;
+        }
+
+        /// <summary>Una fila de GET api/Productos/PorCodigoBarras.</summary>
+        private class ProductoPorCodigoBarras
+        {
+            public string Producto { get; set; }
+            public string Nombre { get; set; }
+        }
+
         public async Task<ProductoCursoCreadoModel> CrearProductoCurso(int eventoId, string modalidad)
         {
             string body = await Enviar(c => c.PostAsync($"Eventos/{eventoId}/ProductoCurso",
