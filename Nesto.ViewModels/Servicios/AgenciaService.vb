@@ -48,9 +48,9 @@ Public Class AgenciaService
         .ContractResolver = New ContractResolverSinNavegaciones()
     }
 
-    Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
-        PutEnvio(envio, RutaModificar(envio.Numero, Nothing))
-    End Sub
+    Public Function Modificar(envio As EnviosAgencia) As IReadOnlyList(Of String) Implements IAgenciaService.Modificar
+        Return PutEnvio(envio, RutaModificar(envio.Numero, Nothing))
+    End Function
 
     ''' <summary>
     ''' NestoAPI#725 / Nesto#564: el mismo PUT, para un envío ya registrado en CTT/Innovatrans cuyo cambio NO se reenvía a la
@@ -61,13 +61,13 @@ Public Class AgenciaService
         If String.IsNullOrWhiteSpace(confirmacionAgencia) Then
             Throw New ArgumentException("Falta con quién ha hablado en la agencia y cuándo.", NameOf(confirmacionAgencia))
         End If
-        PutEnvio(envio, RutaModificar(envio.Numero, confirmacionAgencia))
+        Dim unused = PutEnvio(envio, RutaModificar(envio.Numero, confirmacionAgencia))
     End Sub
 
     ''' <summary>Sugerencia 906: el usuario ha quitado a mano el retorno de un envío pendiente (si no, la API lo conserva).</summary>
-    Public Sub ModificarQuitandoRetorno(envio As EnviosAgencia) Implements IAgenciaService.ModificarQuitandoRetorno
-        PutEnvio(envio, RutaModificarQuitandoRetorno(envio.Numero))
-    End Sub
+    Public Function ModificarQuitandoRetorno(envio As EnviosAgencia) As IReadOnlyList(Of String) Implements IAgenciaService.ModificarQuitandoRetorno
+        Return PutEnvio(envio, RutaModificarQuitandoRetorno(envio.Numero))
+    End Function
 
     Friend Shared Function RutaModificarQuitandoRetorno(numeroEnvio As Integer) As String
         Return $"EnviosAgencias/{numeroEnvio}?quitarRetorno=true"
@@ -82,9 +82,9 @@ Public Class AgenciaService
         Return $"{ruta}?confirmadoConLaAgencia=true&confirmacionAgencia={Uri.EscapeDataString(confirmacionAgencia.Trim())}"
     End Function
 
-    Private Sub PutEnvio(envio As EnviosAgencia, ruta As String)
-        Dim rowVersionNueva As Byte() = Task.Run(
-            Async Function() As Task(Of Byte())
+    Private Function PutEnvio(envio As EnviosAgencia, ruta As String) As IReadOnlyList(Of String)
+        Return Task.Run(
+            Async Function() As Task(Of IReadOnlyList(Of String))
                 Using client As HttpClient = _clienteApiFactory.Crear()
                     If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                         Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
@@ -93,22 +93,66 @@ Public Class AgenciaService
                     Dim content As HttpContent = New StringContent(json, Encoding.UTF8, "application/json")
                     Dim response As HttpResponseMessage = Await client.PutAsync(ruta, content)
                     Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                    If Not response.IsSuccessStatusCode Then
-                        ' NestoAPI#725: el 409 CAMBIO_SIN_AGENCIA es una pregunta al usuario, no un error.
-                        Dim cambioSinAgencia = CambioSinAgenciaException.DesdeRespuesta(envio.Numero, CInt(response.StatusCode), cuerpo)
-                        If cambioSinAgencia IsNot Nothing Then
-                            Throw cambioSinAgencia
-                        End If
-                        Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({CInt(response.StatusCode)}): {cuerpo}")
-                    End If
-                    Dim refrescado = JsonConvert.DeserializeAnonymousType(cuerpo, New With {Key .RowVersion = CType(Nothing, Byte())})
-                    Return refrescado?.RowVersion
+                    Return LeerRespuestaModificar(envio, CInt(response.StatusCode), cuerpo)
                 End Using
             End Function).GetAwaiter().GetResult()
-        If rowVersionNueva IsNot Nothing Then
-            envio.RowVersion = rowVersionNueva
+    End Function
+
+    Friend Class RespuestaModificarDto
+        Public Property RowVersion As Byte()
+        Public Property Reembolso As Decimal?
+        Public Property Avisos As List(Of String)
+    End Class
+
+    ''' <summary>
+    ''' La respuesta del PUT api/EnviosAgencias/{id}, sin HTTP (para los tests):
+    ''' <list type="bullet">
+    ''' <item>2xx: refresca en <paramref name="envio"/> la RowVersion y el Reembolso del cuerpo (NestoAPI#785: el reembolso
+    ''' recalculado de una etiqueta pendiente; lo usa la etiqueta GLS local) y devuelve los Avisos. Con 204 sin cuerpo (API
+    ''' anterior) no toca nada y devuelve una lista vacía.</item>
+    ''' <item>409 CAMBIO_SIN_AGENCIA: <see cref="CambioSinAgenciaException"/> (NestoAPI#725).</item>
+    ''' <item>409 ReembolsoCeroContraReembolso: <see cref="ReembolsoCeroContraReembolsoException"/> (NestoAPI#785).</item>
+    ''' <item>Cualquier otro error: Exception con el estado y el cuerpo.</item>
+    ''' </list>
+    ''' </summary>
+    Friend Shared Function LeerRespuestaModificar(envio As EnviosAgencia, codigoEstado As Integer, cuerpo As String) As IReadOnlyList(Of String)
+        If codigoEstado < 200 OrElse codigoEstado > 299 Then
+            ' NestoAPI#725: el 409 CAMBIO_SIN_AGENCIA es una pregunta al usuario, no un error.
+            Dim cambioSinAgencia = CambioSinAgenciaException.DesdeRespuesta(envio.Numero, codigoEstado, cuerpo)
+            If cambioSinAgencia IsNot Nothing Then
+                Throw cambioSinAgencia
+            End If
+            Dim reembolsoCero = ReembolsoCeroContraReembolsoException.DesdeRespuesta(envio.Numero, codigoEstado, cuerpo)
+            If reembolsoCero IsNot Nothing Then
+                Throw reembolsoCero
+            End If
+            Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({codigoEstado}): {cuerpo}")
         End If
-    End Sub
+        Dim sinAvisos As IReadOnlyList(Of String) = New List(Of String)()
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return sinAvisos
+        End If
+        Dim refrescado As RespuestaModificarDto
+        Try
+            refrescado = JsonConvert.DeserializeObject(Of RespuestaModificarDto)(cuerpo)
+        Catch ex As JsonException
+            ' Ya está guardado: un cuerpo que no se entiende no puede hacer que se dé por fallido.
+            Return sinAvisos
+        End Try
+        If refrescado Is Nothing Then
+            Return sinAvisos
+        End If
+        If refrescado.RowVersion IsNot Nothing Then
+            envio.RowVersion = refrescado.RowVersion
+        End If
+        If refrescado.Reembolso.HasValue Then
+            envio.Reembolso = refrescado.Reembolso.Value
+        End If
+        If refrescado.Avisos Is Nothing Then
+            Return sinAvisos
+        End If
+        Return refrescado.Avisos.Where(Function(a) Not String.IsNullOrWhiteSpace(a)).ToList()
+    End Function
 
     ' Consolidación A2 (20/08/26): esto TRAGABA la excepción (ShowError y devolver como si nada)
     ' y los llamadores quitaban el envío de las listas aunque el DELETE hubiera fallado en el

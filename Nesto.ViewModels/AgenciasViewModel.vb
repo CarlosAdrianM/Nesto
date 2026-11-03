@@ -4477,12 +4477,16 @@ Public Class AgenciasViewModel
                 If Not String.IsNullOrEmpty(codigoBarrasCalculado) OrElse String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
                     envioActual.CodigoBarras = codigoBarrasCalculado
                 End If
+                Dim avisosModificar As IReadOnlyList(Of String)
                 If estabaPendiente AndAlso retornoDelPendiente > 0 AndAlso envioActual.Retorno = 0 Then
                     ' Sugerencia 906: solo llega aquí si el usuario lo ha quitado a mano (AplicarServicioYRetornoAlPendiente).
-                    _servicio.ModificarQuitandoRetorno(envioActual)
+                    avisosModificar = _servicio.ModificarQuitandoRetorno(envioActual)
                 Else
-                    _servicio.Modificar(envioActual)
+                    avisosModificar = _servicio.Modificar(envioActual)
                 End If
+                ' Nesto#603 / NestoAPI#785: el servicio ya ha dejado en envioActual el Reembolso con el que ha quedado (la etiqueta
+                ' GLS local lo lee de ahí); los avisos (p. ej. «se ha recalculado a 134,16 €») se enseñan sin parar la impresión.
+                MostrarAvisosModificar(avisosModificar)
 
                 If conEtiquetaRecogida Then
                     ' Realmente no hacemos nada más que aumentar en 1 el contador de Id
@@ -4532,6 +4536,14 @@ Public Class AgenciasViewModel
                     success = False
                 End If
 
+            Catch ex As ReembolsoCeroContraReembolsoException
+                ' Nesto#603 / NestoAPI#785: contra reembolso, a 0 € y con la factura pendiente de cobro la API no la registra (no ha
+                ' guardado nada). Se deja como estaba (pendiente, también en la pantalla) para que le pongan el reembolso, se enseña
+                ' solo el texto de la API y no se imprime: EnvioNoTramitadoException = «ya se ha dicho por qué».
+                CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
+                imprimirEtiqueta = False
+                _dialogService.ShowError(ex.Message)
+                Throw New EnvioNoTramitadoException(ex.Message)
             Catch ex As Exception
                 CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
                 _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + If(ex.InnerException?.Message, ex.Message))
@@ -4549,6 +4561,14 @@ Public Class AgenciasViewModel
            agenciaInsercion.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir Then
             NotificarEntregaAgencia(envioActual)
         End If
+    End Sub
+
+    ''' <summary>Nesto#603 / NestoAPI#785: los avisos del PUT (reembolso recalculado o respetado), como notificación que no bloquea.</summary>
+    Private Sub MostrarAvisosModificar(avisos As IReadOnlyList(Of String))
+        If avisos Is Nothing OrElse avisos.Count = 0 Then
+            Return
+        End If
+        _dialogService.ShowNotification("Reembolso de la etiqueta", String.Join(vbCrLf, avisos))
     End Sub
 
     ' Nesto#340 (Agencias, slice A2): compensación del antiguo rollback de InsertarRegistro.
