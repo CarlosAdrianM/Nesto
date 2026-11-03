@@ -38,7 +38,7 @@ namespace RapportsTests
       ""Motivo"": ""Compra cada 10 días y lleva 34 días sin hablar contigo; probabilidad de pedido del 72 %"",
       ""Probabilidad"": 0.72, ""DiasDesdeUltimoContacto"": 34, ""DiasDesdeUltimoPedido"": 12, ""DiasDesdeUltimaInteraccion"": 34,
       ""CadenciaDias"": 10, ""PedidosUltimos12Meses"": 36, ""ImporteUltimos12Meses"": 5186.32,
-      ""GrupoSubgrupoMasVendido"": ""COSCRE"", ""Atendida"": true
+      ""GrupoSubgrupoMasVendido"": ""COSCRE"", ""Atendida"": true, ""SinContactoEsteMes"": true
     },
     {
       ""SugerenciaId"": 1235, ""Cliente"": ""20000"", ""Contacto"": ""1"", ""Nombre"": ""ESTÉTICA DOS"",
@@ -76,6 +76,11 @@ namespace RapportsTests
             Assert.IsTrue(primera.Atendida);
             Assert.AreEqual(0.72f, primera.Probabilidad, 0.0001f);
             Assert.IsNull(resultado.Sugerencias[1].DiasDesdeUltimoContacto);
+            // Nesto#587: la primera lo trae; la segunda no (API vieja): sin marca.
+            Assert.AreEqual(true, primera.SinContactoEsteMes);
+            Assert.IsTrue(primera.MarcarSinContactoEsteMes);
+            Assert.IsNull(resultado.Sugerencias[1].SinContactoEsteMes);
+            Assert.IsFalse(resultado.Sugerencias[1].MarcarSinContactoEsteMes);
 
             Assert.IsNotNull(resultado.Ritmo);
             Assert.AreEqual("Hoy 9 · Semana 42 · Mes 79 de 310", resultado.Ritmo.TextoContactos);
@@ -100,6 +105,7 @@ namespace RapportsTests
             Assert.AreEqual(1, resultado.Sugerencias.Count);
             Assert.AreEqual("15191", resultado.Sugerencias[0].cliente);
             Assert.IsFalse(resultado.Sugerencias[0].TienePrioridad);
+            Assert.IsFalse(resultado.Sugerencias[0].MarcarSinContactoEsteMes, "Nesto#587: el endpoint antiguo no lo manda");
             Assert.AreEqual(2, handler.Rutas.Count);
             Assert.IsTrue(handler.Rutas[1].Contains("Clientes/GetClientesProbabilidadVenta"));
         }
@@ -218,6 +224,32 @@ namespace RapportsTests
             Assert.AreEqual(1, vm.ListaClientesProbabilidad.Count);
             Assert.IsNull(vm.RitmoContacto);
             Assert.IsFalse(vm.HayRitmoContacto);
+        }
+
+        [TestMethod]
+        public async Task ActualizarClientesProbabilidad_SinContactoEsteMes_SoloMarcaLosQueLaApiDiceTrue()
+        {
+            // Nesto#587: True → marca; False o sin campo (API vieja) → sin marca. La lista no cambia.
+            var servicio = A.Fake<IRapportService>();
+            A.CallTo(() => servicio.CargarSugerenciasContacto(A<string>._, A<string>._, A<string>._))
+                .Returns(Task.FromResult(new SugerenciasContactoRespuesta
+                {
+                    Ritmo = new RitmoContactoDTO(),
+                    Sugerencias = new List<ClienteProbabilidadVenta>
+                    {
+                        new ClienteProbabilidadVenta { cliente = "A", Orden = 1, Prioridad = "Alta", SinContactoEsteMes = true },
+                        new ClienteProbabilidadVenta { cliente = "B", Orden = 2, Prioridad = "Alta", SinContactoEsteMes = false },
+                        new ClienteProbabilidadVenta { cliente = "C", Orden = 3, Prioridad = "Media" },
+                    }
+                }));
+            var vm = CrearViewModel(servicio);
+
+            await vm.ActualizarClientesProbabilidadAsync("");
+
+            CollectionAssert.AreEqual(new[] { "A", "B", "C" }, vm.ListaClientesProbabilidad.Select(c => c.cliente).ToArray());
+            CollectionAssert.AreEqual(new[] { true, false, false }, vm.ListaClientesProbabilidad.Select(c => c.MarcarSinContactoEsteMes).ToArray());
+            StringAssert.Contains(vm.ListaClientesProbabilidad[0].DiasDesdeUltimoPedidoInteraccionTexto, "Nadie ha hablado con este cliente en lo que va de mes.");
+            Assert.IsFalse(vm.ListaClientesProbabilidad[2].DiasDesdeUltimoPedidoInteraccionTexto.Contains("Nadie ha hablado"));
         }
 
         [TestMethod]

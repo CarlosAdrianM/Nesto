@@ -238,6 +238,7 @@
                                                                 <RowDefinition Height="Auto"/>
                                                                 <RowDefinition Height="Auto"/>
                                                                 <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
                                                             </Grid.RowDefinitions>
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="250"/>
@@ -259,10 +260,17 @@
                                                                 <Run Text=" · " Foreground="Gray"/>
                                                                 <Run Text="{Binding telefono, Mode=OneWay}"/>
                                                             </TextBlock>
-                                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding Motivo}" TextWrapping="Wrap" MaxHeight="32"
+                                                            <!-- Nesto#587: nadie ha hablado con el cliente este mes (solo si la API lo dice) -->
+                                                            <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,1,0,1"
+                                                                        ToolTip="Nadie ha hablado con este cliente desde el día 1 del mes"
+                                                                        Visibility="{Binding MarcarSinContactoEsteMes, Converter={StaticResource BoolToVis}}">
+                                                                <Ellipse Width="7" Height="7" Fill="DarkOrange" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                                <TextBlock Text="Sin contacto este mes" FontSize="11" Foreground="DarkOrange" FontWeight="SemiBold"/>
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding Motivo}" TextWrapping="Wrap" MaxHeight="32"
                                                                        TextTrimming="CharacterEllipsis" FontSize="11" Foreground="DimGray"
                                                                        Visibility="{Binding TieneMotivo, Converter={StaticResource BoolToVis}}"/>
-                                                            <Border Grid.RowSpan="3" Grid.Column="1"
+                                                            <Border Grid.RowSpan="4" Grid.Column="1"
                                                                 CornerRadius="10"
                                                                 Padding="10"
                                                                 Margin="5,0,0,0"
