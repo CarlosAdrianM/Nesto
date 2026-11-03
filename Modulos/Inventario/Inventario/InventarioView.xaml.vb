@@ -15,6 +15,14 @@
 
     Dim teclaSuelta As Boolean = False
 
+    ' Nesto#596: al abrir, si es una tienda sin el inventario del día rellenado, se pregunta si se rellena.
+    Private Async Sub InventarioView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        Dim vm = TryCast(DataContext, InventarioViewModel)
+        If vm IsNot Nothing Then
+            Await vm.ComprobarRellenoAlAbrir()
+        End If
+    End Sub
+
     Private Sub txtProducto_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtProducto.GotFocus
         txtProducto.SelectAll()
     End Sub

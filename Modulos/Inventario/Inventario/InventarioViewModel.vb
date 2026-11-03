@@ -1,10 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Globalization
-Imports System.Net.Http
-Imports System.Text
 Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Modulos.Inventario.InventarioModel
-Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
@@ -14,16 +11,20 @@ Public Class InventarioViewModel
     Private ReadOnly navegacion As IServicioNavegacion
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly dialogService As IServicioDialogos
-    ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
-    Private ReadOnly _clienteApiFactory As IClienteApiFactory
+    ' Nesto#596: las llamadas a api/Inventarios van por el servicio (el HttpClient con JWT lo crea su IClienteApiFactory).
+    Private ReadOnly _servicio As IServicioInventario
+    Private ReadOnly _cargaAlmacen As Task
+    ' Nesto#596: almacén|día que ya sabemos rellenados (hay filas pendientes) y los que ya se preguntaron al abrir.
+    Private ReadOnly _rellenados As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _preguntadosAlAbrir As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
 
     Const EMPRESA_DEFECTO As String = "1"
 
-    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, dialogService As IServicioDialogos, clienteApiFactory As IClienteApiFactory)
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, dialogService As IServicioDialogos, servicio As IServicioInventario)
         Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.dialogService = dialogService
-        _clienteApiFactory = clienteApiFactory
+        _servicio = servicio
 
         cmdAbrirInventario = New RelayCommand(AddressOf OnAbrirInventario)
         cmdActualizarLineaInventario = New RelayCommand(Of InventarioDTO)(AddressOf OnActualizarLineaInventario)
@@ -39,7 +40,7 @@ Public Class InventarioViewModel
 
         movimientosDia = New ObservableCollection(Of Movimiento)
 
-        CargarAlmacenInventario()
+        _cargaAlmacen = CargarAlmacenInventario()
     End Sub
 
     Private Async Function CargarAlmacenInventario() As Task
@@ -170,33 +171,14 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Sub OnActualizarMovimientos()
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            estaOcupado = True
-            Dim response As HttpResponseMessage
-            'Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
-
-            Try
-                Dim culture As New CultureInfo("en-US")
-                Dim cadenaGet As String = "Inventarios?empresa=" + EMPRESA_DEFECTO + "&almacen=" + almacen + "&fecha=" + fechaSeleccionada.ToString("d", culture)
-                response = Await client.GetAsync(cadenaGet)
-
-                If Not response.IsSuccessStatusCode Then
-                    Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
-                Else
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    movimientosTotal = JsonConvert.DeserializeObject(Of ObservableCollection(Of InventarioDTO))(cadenaJson)
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
-
-        End Using
-
+        estaOcupado = True
+        Try
+            movimientosTotal = New ObservableCollection(Of InventarioDTO)(Await _servicio.LeerLineas(EMPRESA_DEFECTO, almacen, fechaSeleccionada))
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaOcupado = False
+        End Try
     End Sub
 
     Private _cmdActualizarLineaInventario As RelayCommand(Of InventarioDTO)
@@ -208,41 +190,32 @@ Public Class InventarioViewModel
             SetProperty(_cmdActualizarLineaInventario, value)
         End Set
     End Property
-    Private Async Function OnActualizarLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            'estaOcupado = True
-            Dim response As HttpResponseMessage
-            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
-            linea.Usuario = configuracion.usuario
-            Try
-                response = Await client.PutAsync("Inventarios/" + linea.NumOrden.ToString, content)
+    Private Function OnActualizarLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
+        Return ActualizarLinea(linea, Nothing)
+    End Function
 
-                If Not response.IsSuccessStatusCode Then
-                    Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
-                Else
-                    movimientoActual = New Movimiento With {
-                        .Cantidad = cantidad,
-                        .Descripcion = linea.Descripcion,
-                        .Familia = linea.Familia,
-                        .Grupo = linea.Grupo,
-                        .Subgrupo = linea.Subgrupo,
-                        .Producto = linea.Producto
-                    }
-                    movimientosDia.Add(movimientoActual)
-                    numeroProducto = String.Empty
-                    cantidad = 1
-                End If
-                Return movimientoActual
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                'estaOcupado = False
-            End Try
-
-        End Using
+    ''' <param name="porCodigoBarras">NestoAPI#788: cómo se ha leído esta vez (Nothing: no se sabe y la API conserva la marca).</param>
+    Private Async Function ActualizarLinea(linea As InventarioDTO, porCodigoBarras As Boolean?) As Task(Of Movimiento)
+        linea.Usuario = configuracion.usuario
+        Try
+            Await _servicio.ActualizarLinea(linea, porCodigoBarras)
+            movimientoActual = New Movimiento With {
+                .Cantidad = cantidad,
+                .Descripcion = linea.Descripcion,
+                .Familia = linea.Familia,
+                .Grupo = linea.Grupo,
+                .Subgrupo = linea.Subgrupo,
+                .Producto = linea.Producto,
+                .Lectura = TextoLectura(porCodigoBarras)
+            }
+            movimientosDia.Add(movimientoActual)
+            numeroProducto = String.Empty
+            cantidad = 1
+            Return movimientoActual
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return Nothing
+        End Try
     End Function
 
     Private _cmdInsertarProducto As RelayCommand(Of String)
@@ -255,29 +228,36 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Function OnInsertarProducto(prod As String) As Task(Of Movimiento)
+        ' Nesto#596: en la tienda no se cuenta nada sin haber rellenado antes el inventario con el stock actual.
+        If Not Await AsegurarRellenado().ConfigureAwait(True) Then
+            Return Nothing
+        End If
 
+        Dim leido As String = If(prod, String.Empty).Trim()
         Dim linea As InventarioDTO
         Try
-            linea = Await buscarInventario(EMPRESA_DEFECTO, almacen, fechaSeleccionada, prod).ConfigureAwait(True)
+            linea = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido).ConfigureAwait(True)
         Catch ex As Exception
-            Exit Function
+            dialogService.ShowError(ex.Message)
+            Return Nothing
         End Try
 
         Dim movimientoModificado As Movimiento
 
         If IsNothing(linea) Then
+            ' La API decide si lo leído es la referencia o un código de barras (NestoAPI#788) y graba PorCodigoBarras.
             linea = New InventarioDTO With {
                 .Empresa = EMPRESA_DEFECTO,
                 .Almacen = almacen,
                 .Fecha = fechaSeleccionada,
-                .Producto = numeroProducto,
+                .Producto = leido,
                 .StockCalculado = 0,
                 .StockReal = cantidad
             }
             movimientoModificado = Await OnCrearLineaInventario(linea) ' AWAIT
         Else
             linea.StockReal += cantidad
-            movimientoModificado = Await OnActualizarLineaInventario(linea) ' AWAIT
+            movimientoModificado = Await ActualizarLinea(linea, EsLecturaPorCodigo(leido, linea.Producto)) ' AWAIT
         End If
         OnPropertyChanged(NameOf(movimientosDia))
         Return movimientoModificado
@@ -293,81 +273,122 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Function OnCrearLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            'estaOcupado = True
-            Dim response As HttpResponseMessage
-
-            'Dim linea As InventarioDTO = arg
-
-            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
-
-            Try
-                Dim nuevoMovimiento As Movimiento
-                response = Await client.PostAsync("Inventarios", content)
-
-                Dim cadenaError As String = Await response.Content.ReadAsStringAsync()
-                Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-
-                If Not response.IsSuccessStatusCode Then
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
-                Else
-                    linea.Producto = detallesError("Número")
-                    linea.Descripcion = detallesError("Descripción")
-                    linea.Familia = detallesError("Familia")
-                    nuevoMovimiento = New Movimiento With {
-                        .Cantidad = cantidad,
-                        .Descripcion = linea.Descripcion,
-                        .Familia = linea.Familia,
-                        .Grupo = linea.Grupo,
-                        .Subgrupo = linea.Subgrupo,
-                        .Producto = linea.Producto
-                    }
-                    movimientosDia.Add(nuevoMovimiento)
-                    OnPropertyChanged(NameOf(movimientosDia))
-                    numeroProducto = String.Empty
-                    cantidad = 1
-                    Return nuevoMovimiento
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                'estaOcupado = False
-            End Try
-
-        End Using
+        Try
+            Dim grabada As InventarioDTO = Await _servicio.CrearLinea(linea)
+            If grabada IsNot Nothing Then
+                linea.Producto = grabada.Producto
+                linea.Descripcion = grabada.Descripcion
+                linea.Familia = grabada.Familia
+                linea.PorCodigoBarras = grabada.PorCodigoBarras
+            End If
+            Dim nuevoMovimiento As New Movimiento With {
+                .Cantidad = cantidad,
+                .Descripcion = linea.Descripcion,
+                .Familia = linea.Familia,
+                .Grupo = linea.Grupo,
+                .Subgrupo = linea.Subgrupo,
+                .Producto = linea.Producto,
+                .Lectura = TextoLectura(linea.PorCodigoBarras)
+            }
+            movimientosDia.Add(nuevoMovimiento)
+            OnPropertyChanged(NameOf(movimientosDia))
+            numeroProducto = String.Empty
+            cantidad = 1
+            Return nuevoMovimiento
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return Nothing
+        End Try
     End Function
 
 
 #End Region
 
 #Region "Funciones Auxiliares"
-    Private Async Function buscarInventario(empresa As String, almacen As String, fecha As DateTime, producto As String) As Task(Of InventarioDTO)
-        Dim linea As InventarioDTO = Nothing
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            'estaOcupado = True
-            Dim response As HttpResponseMessage
-            'Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
+    ''' <summary>Nesto#596: las tiendas (todo lo que no es Algete, que se inventaría por ubicaciones desde Ariadna).</summary>
+    Public Shared Function EsAlmacenDeTienda(almacenInventario As String) As Boolean
+        Return Not String.IsNullOrWhiteSpace(almacenInventario) AndAlso
+            Not String.Equals(almacenInventario.Trim(), Constantes.Almacenes.ALMACEN_ALGETE, StringComparison.OrdinalIgnoreCase)
+    End Function
 
+    ''' <summary>NestoAPI#788: si lo leído no es la referencia que devuelve la API, se ha leído un código de barras.</summary>
+    Public Shared Function EsLecturaPorCodigo(leido As String, referencia As String) As Boolean
+        Return Not String.Equals(If(leido, String.Empty).Trim(), If(referencia, String.Empty).Trim(), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Function ClaveRelleno() As String
+        Return If(almacen, String.Empty).Trim() + "|" + fechaSeleccionada.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#596: al abrir la pantalla (lo llama la vista al cargarse). Si el almacén es de tienda y no hay nada pendiente de
+    ''' la fecha elegida, pregunta si se rellena. Una sola vez por almacén y día aunque la vista se cargue varias veces.
+    ''' </summary>
+    Public Async Function ComprobarRellenoAlAbrir() As Task
+        If _cargaAlmacen IsNot Nothing Then
             Try
-                Dim culture As New CultureInfo("en-US")
-                Dim cadenaGet As String = "Inventarios?empresa=" + EMPRESA_DEFECTO + "&almacen=" + almacen + "&fecha=" + fechaSeleccionada.ToString("d", culture) + "&producto=" + producto
-                response = Await client.GetAsync(cadenaGet)
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    linea = JsonConvert.DeserializeObject(Of InventarioDTO)(cadenaJson)
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                'estaOcupado = False
+                Await _cargaAlmacen
+            Catch
+                ' Sin almacén no hay nada que comprobar.
             End Try
+        End If
+        Dim clave = ClaveRelleno()
+        If Not EsAlmacenDeTienda(almacen) OrElse _preguntadosAlAbrir.Contains(clave) Then
+            Return
+        End If
+        _preguntadosAlAbrir.Add(clave)
+        Await AsegurarRellenado()
+    End Function
 
-        End Using
+    ''' <summary>
+    ''' Nesto#596: True si se puede contar: no es una tienda, ya hay filas pendientes del día o se acaba de rellenar. Si no
+    ''' hay nada, pregunta; con «No» (o si falla) devuelve False y no se graba nada.
+    ''' </summary>
+    Public Async Function AsegurarRellenado() As Task(Of Boolean)
+        If Not EsAlmacenDeTienda(almacen) Then
+            Return True
+        End If
+        Dim clave = ClaveRelleno()
+        If _rellenados.Contains(clave) Then
+            Return True
+        End If
+        Dim almacenTienda = almacen.Trim()
 
-        Return linea
+        Try
+            Dim pendientes = Await _servicio.LeerPendientes(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date)
+            If pendientes IsNot Nothing AndAlso pendientes.Sum(Function(p) p.Filas) > 0 Then
+                _rellenados.Add(clave)
+                Return True
+            End If
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return False
+        End Try
 
+        Dim mensaje = $"Antes de contar hay que rellenar el inventario con el stock actual de {almacenTienda}. ¿Rellenar ahora?"
+        If Not dialogService.ShowConfirmationAnswer("Rellenar inventario", mensaje) Then
+            Return False
+        End If
+
+        estaOcupado = True
+        Try
+            Dim respuesta = Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date)
+            _rellenados.Add(clave)
+            Dim filas = If(respuesta Is Nothing, 0, respuesta.Filas)
+            Dim unidades = If(respuesta Is Nothing, 0, respuesta.Unidades)
+            dialogService.ShowNotification("Inventario rellenado", $"Inventario rellenado: {filas} productos, {unidades} unidades.")
+            Return True
+        Catch ex As InventarioYaRellenadoException
+            ' Lo ha rellenado otro mientras tanto: se puede contar igual.
+            _rellenados.Add(clave)
+            dialogService.ShowNotification("Inventario", ex.Message)
+            Return True
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return False
+        Finally
+            estaOcupado = False
+        End Try
     End Function
 
     Public Async Function InsertarProducto(producto As String) As Task(Of Movimiento)
