@@ -40,6 +40,11 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>NestoAPI#605: todos los códigos activos del producto. Vacía con una API anterior: solo el principal.</summary>
         public List<string> CodigosBarras { get; set; } = new List<string>();
         public bool SinCodigo { get; set; }
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): muestra (subgrupo MMP) sin código de barras: viene sin etiqueta y, aunque se reciba solo
+        /// escaneando, cuenta tecleando su referencia o la cantidad en «Leído». False con una API anterior.
+        /// </summary>
+        public bool SinCodigoAdmitido { get; set; }
         public int Enviado { get; set; }
         /// <summary>Se ha leído y no venía en la reposición.</summary>
         public bool NoVenia { get; set; }
@@ -454,6 +459,7 @@ namespace Nesto.Modules.Producto.ViewModels
                         CodigosBarras = (linea.CodigosBarras ?? new List<string>())
                             .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).ToList(),
                         SinCodigo = linea.SinCodigo,
+                        SinCodigoAdmitido = linea.SinCodigoAdmitido,
                         Enviado = linea.Cantidad
                     });
                 }
@@ -659,6 +665,12 @@ namespace Nesto.Modules.Producto.ViewModels
                     ?? Lineas.FirstOrDefault(l => l.NoVenia && l.EsSuReferencia(codigo));
                 if (suya != null)
                 {
+                    if (suya.SinCodigoAdmitido && !suya.NoVenia)
+                    {
+                        // Nesto#605 (NestoAPI#797): una muestra sin código cuenta tecleando su referencia
+                        SumarUnaUnidad(suya, suya.Producto, null);
+                        return;
+                    }
                     ElegirLineaSinContar(suya);
                     return;
                 }
@@ -779,6 +791,12 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (apuntada == null)
                 {
                     LecturaFallida(TextoNoVieneSoloEscaneando(referencia));
+                    return;
+                }
+                if (apuntada.SinCodigoAdmitido && !apuntada.NoVenia)
+                {
+                    // Nesto#605 (NestoAPI#797): una muestra sin código cuenta al elegirla, como una lectura de su referencia
+                    SumarUnaUnidad(apuntada, apuntada.Producto, nombre);
                     return;
                 }
                 ElegirLineaSinContar(apuntada);
@@ -1224,8 +1242,20 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         public bool SoloEscaneando => Seleccionada != null && _recepcion?.SoloEscaneando == true;
 
-        /// <summary>La columna «Leído» no se puede teclear: falta la etiqueta del bulto o se recibe solo escaneando.</summary>
-        public bool LeidoSoloLectura => EsperandoEtiqueta || SoloEscaneando;
+        /// <summary>
+        /// La columna «Leído» no se puede teclear en ninguna línea: falta la etiqueta del bulto o se recibe solo escaneando y no
+        /// hay muestras sin código (Nesto#605: esas sí se teclean; en qué línea, <see cref="PuedeTeclearLeido"/>).
+        /// </summary>
+        public bool LeidoSoloLectura => EsperandoEtiqueta || (SoloEscaneando && !Lineas.Any(EsMuestraSinCodigo));
+
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): en esta línea se puede teclear la cantidad en «Leído». Solo escaneando, únicamente en las
+        /// muestras sin código (<see cref="LineaRecibirReposicion.SinCodigoAdmitido"/>); si no, en todas.
+        /// </summary>
+        public bool PuedeTeclearLeido(LineaRecibirReposicion linea)
+            => linea != null && !EsperandoEtiqueta && (!SoloEscaneando || EsMuestraSinCodigo(linea));
+
+        private static bool EsMuestraSinCodigo(LineaRecibirReposicion linea) => linea.SinCodigoAdmitido && !linea.NoVenia;
 
         private LineaRecibirReposicion _lineaElegida;
         /// <summary>La línea seleccionada en la rejilla (la que se elige tecleando su referencia).</summary>

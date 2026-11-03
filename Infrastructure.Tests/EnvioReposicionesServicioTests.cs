@@ -62,6 +62,24 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerEnPreparacion_LeeSinCodigoAdmitido_YSinElCampoEsFalse()
+        {
+            // Nesto#605 (NestoAPI#797): las muestras (MMP) sin código se mandan sin etiqueta
+            var handler = new HandlerFalso
+            {
+                Respuesta = "{\"Empresa\":\"1\",\"Origen\":\"ALC\",\"Destino\":\"ALG\",\"Lineas\":[" +
+                            "{\"NumeroOrden\":1,\"Producto\":\"50001\",\"CodigosBarras\":[],\"SinCodigoAdmitido\":true,\"Cantidad\":5}," +
+                            "{\"NumeroOrden\":2,\"Producto\":\"17404\",\"CodigosBarras\":[],\"Cantidad\":3}]}"
+            };
+            var servicio = new ServicioEnvioReposiciones(new FactoriaFalsa(handler));
+
+            ReposicionEnPreparacion reposicion = await servicio.LeerEnPreparacion("1", "ALC");
+
+            Assert.IsTrue(reposicion.Lineas.Single(l => l.Producto == "50001").SinCodigoAdmitido);
+            Assert.IsFalse(reposicion.Lineas.Single(l => l.Producto == "17404").SinCodigoAdmitido, "Una API anterior no lo manda: como siempre");
+        }
+
+        [TestMethod]
         public async Task BuscarProductoPuntual_PideElCodigoConElStockDeLaTienda()
         {
             // Sugerencia 581

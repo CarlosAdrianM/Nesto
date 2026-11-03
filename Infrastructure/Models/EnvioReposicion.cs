@@ -19,6 +19,11 @@ namespace Nesto.Infrastructure.Models
         /// producto no tiene ninguno: el origen tiene que etiquetarlo. Null con una API anterior: solo se sabe el principal.
         /// </summary>
         public List<string> CodigosBarras { get; set; }
+        /// <summary>
+        /// Nesto#605 (NestoAPI#797): producto sin código de barras del subgrupo MMP (muestras): se manda sin etiqueta (en el
+        /// destino se cuenta tecleando). False con una API anterior: como siempre.
+        /// </summary>
+        public bool SinCodigoAdmitido { get; set; }
         public int Cantidad { get; set; }
         /// <summary>Stock en la tienda (el almacén de origen).</summary>
         public int StockOrigen { get; set; }

@@ -25,8 +25,20 @@ namespace Producto.Tests
         private List<PeticionSinEtiquetaRecepcion> _sinEtiqueta = null!;
         private bool _soloEscaneando;
         private bool _lecturasEnServidor;
+        /// <summary>Nesto#605: la reposición lleva además una muestra (MMP) sin código, admitida sin etiqueta.</summary>
+        private bool _conMuestra;
 
-        private RecepcionReposicion Reposicion() => new()
+        private RecepcionReposicion Reposicion()
+        {
+            RecepcionReposicion recepcion = ReposicionBase();
+            if (_conMuestra)
+            {
+                recepcion.Lineas.Add(new() { Producto = "50001", Descripcion = "Muestra crema", SinCodigo = true, SinCodigoAdmitido = true, Cantidad = 5 });
+            }
+            return recepcion;
+        }
+
+        private RecepcionReposicion ReposicionBase() => new()
         {
             Tipo = "REPO",
             Documento = "81200",
@@ -324,6 +336,96 @@ namespace Producto.Tests
             await LeerAsync("8422");
 
             Assert.IsFalse(_vm.QuitarUnoCommand.CanExecute(Linea("40057")), "Sin SoloEscaneando se corrige tecleando en «Leído»");
+        }
+
+        // ---- Nesto#605 (NestoAPI#797): las muestras (MMP) sin código se cuentan tecleando
+
+        [TestMethod]
+        public async Task Muestra_LaReferenciaTecleada_CuentaSinAviso()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            await LeerAsync("50001");
+            await LeerAsync("50001");
+
+            Assert.AreEqual(2, Linea("50001").Leido);
+            Assert.AreEqual(2, _apuntes.Where(a => a.Producto == "50001").Sum(a => a.Cantidad), "Va al servidor como una lectura");
+            Assert.AreEqual(0, _sinEtiqueta.Count, "Sin pasar por «Sin etiqueta»");
+            Assert.IsNull(_vm.Mensaje, "Sin el aviso de que teclear no cuenta");
+            A.CallTo(() => _sonidos.Correcto()).MustHaveHappenedTwiceExactly();
+            A.CallTo(() => _sonidos.Error()).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Muestra_ElegidaEnLaLista_Cuenta()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            _vm.LeerProductoElegido("50001", "Muestra crema");
+            await _vm.EnvioEnCurso;
+
+            Assert.AreEqual(1, Linea("50001").Leido);
+            Assert.IsNull(_vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task Muestra_LeidoSeTecleaSoloEnSuLinea()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.LeidoSoloLectura, "Hay una muestra: la rejilla deja editar y decide línea a línea");
+            Assert.IsTrue(_vm.PuedeTeclearLeido(Linea("50001")));
+            Assert.IsFalse(_vm.PuedeTeclearLeido(Linea("17404")), "Sin código pero no es muestra: con su etiqueta o «Sin etiqueta»");
+            Assert.IsFalse(_vm.PuedeTeclearLeido(Linea("40057")));
+
+            Linea("50001").Leido = 5;
+            await _vm.EnvioEnCurso;
+
+            Assert.AreEqual(5, _apuntes.Where(a => a.Producto == "50001").Sum(a => a.Cantidad), "La cantidad tecleada cuenta");
+        }
+
+        [TestMethod]
+        public async Task Muestra_LasDemasLineasSiguenIgual()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            await LeerAsync("17404");
+
+            Assert.AreEqual(0, Linea("17404").Leido, "La referencia de lo que no es muestra sigue sin contar");
+            Assert.AreEqual(RecibirReposicionViewModel.TextoReferenciaNoCuenta("17404"), _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task SinMuestras_LeidoSigueDeSoloLecturaEnTodas()
+        {
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.LeidoSoloLectura);
+            Assert.IsFalse(_vm.PuedeTeclearLeido(Linea("17404")));
+        }
+
+        [TestMethod]
+        public async Task SinSoloEscaneando_LeidoSeTecleaEnTodas()
+        {
+            _soloEscaneando = false;
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            Assert.IsTrue(_vm.PuedeTeclearLeido(Linea("17404")));
+            Assert.IsTrue(_vm.PuedeTeclearLeido(Linea("50001")));
+        }
+
+        [TestMethod]
+        public void SinCodigoAdmitido_SiNoViene_EsFalse()
+        {
+            LineaRecepcionReposicion linea = Newtonsoft.Json.JsonConvert.DeserializeObject<LineaRecepcionReposicion>(
+                "{\"Producto\":\"50001\",\"SinCodigo\":true,\"Cantidad\":5}")!;
+
+            Assert.IsFalse(linea.SinCodigoAdmitido, "Una API anterior no lo manda: solo escaneando, como hoy");
         }
     }
 }

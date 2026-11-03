@@ -21,8 +21,30 @@ namespace Producto.Tests
         private IServicioEtiquetasProducto _etiquetas = null!;
         private EnviarReposicionViewModel _vm = null!;
         private List<(string Producto, int Copias)> _impresas = null!;
+        /// <summary>Nesto#605: la reposición lleva además una muestra (MMP) sin código, admitida sin etiqueta.</summary>
+        private bool _conMuestra;
+        /// <summary>Nesto#605: solo la muestra.</summary>
+        private bool _soloMuestra;
 
-        private static ReposicionEnPreparacion Reposicion() => new()
+        private ReposicionEnPreparacion Reposicion()
+        {
+            ReposicionEnPreparacion reposicion = ReposicionBase();
+            var muestra = new LineaReposicionEnPreparacion
+            {
+                NumeroOrden = 104, Producto = "50001", Nombre = "Muestra crema", CodigosBarras = new List<string>(), SinCodigoAdmitido = true, Cantidad = 5, StockOrigen = 9
+            };
+            if (_soloMuestra)
+            {
+                reposicion.Lineas = new List<LineaReposicionEnPreparacion> { muestra };
+            }
+            else if (_conMuestra)
+            {
+                reposicion.Lineas.Add(muestra);
+            }
+            return reposicion;
+        }
+
+        private static ReposicionEnPreparacion ReposicionBase() => new()
         {
             Empresa = "1",
             Origen = "ALC",
@@ -47,7 +69,7 @@ namespace Producto.Tests
             _etiquetas = A.Fake<IServicioEtiquetasProducto>();
             var configuracion = A.Fake<IConfiguracion>();
             A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.AlmacenPedidoVta)).Returns("ALC");
-            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(Reposicion());
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).ReturnsLazily(() => Task.FromResult(Reposicion()));
             A.CallTo(() => _servicio.PuedeRellenarManual()).Returns(true);
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(true);
             A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<bool>._))
@@ -224,6 +246,71 @@ namespace Producto.Tests
             await _vm.ImprimirEtiquetasSinCodigoCommand.ExecuteAsync(null);
 
             Assert.AreEqual("Se mandan 6 unidades de 3 productos a Algete. ¿Terminar?", _vm.TextoConfirmacion());
+        }
+
+        // ---- Nesto#605 (NestoAPI#797): las muestras (MMP) sin código se mandan sin etiqueta
+
+        [TestMethod]
+        public async Task MuestraSinCodigo_NoSeMarcaNiCuentaEnElAviso()
+        {
+            _conMuestra = true;
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(Linea("50001").FaltanEtiquetas);
+            Assert.IsTrue(Linea("50001").SeMandaSinEtiqueta);
+            Assert.AreEqual("Muestra sin código de barras: se manda sin etiqueta", Linea("50001").AvisoEtiquetas);
+            Assert.IsTrue(Linea("17404").FaltanEtiquetas, "Lo que no es muestra, como siempre");
+            Assert.AreEqual("2 productos no tienen código de barras: imprima sus etiquetas antes de enviar.", _vm.AvisoSinCodigo,
+                "La muestra no cuenta en el aviso");
+        }
+
+        [TestMethod]
+        public async Task MuestraSinCodigo_NoEntraEnLaConfirmacionNiEnImprimirLoQueNoTieneCodigo()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            StringAssert.StartsWith(_vm.TextoConfirmacion(), "2 productos no tienen código de barras: imprima sus etiquetas antes de enviar (17404, 33333).");
+            await _vm.ImprimirEtiquetasSinCodigoCommand.ExecuteAsync(null);
+
+            CollectionAssert.AreEquivalent(new[] { "17404", "33333" }, _impresas.Select(i => i.Producto).ToList());
+            Assert.AreEqual("Se mandan 11 unidades de 4 productos a Algete. ¿Terminar?", _vm.TextoConfirmacion());
+        }
+
+        [TestMethod]
+        public async Task SoloMuestrasSinCodigo_NoHayNadaQueEtiquetar()
+        {
+            _soloMuestra = true;
+
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.HayLineasSinEtiquetas);
+            Assert.IsNull(_vm.AvisoSinCodigo);
+            Assert.IsFalse(_vm.ImprimirEtiquetasSinCodigoCommand.CanExecute(null));
+            Assert.AreEqual("Se mandan 5 unidades de 1 productos a Algete. ¿Terminar?", _vm.TextoConfirmacion());
+        }
+
+        [TestMethod]
+        public async Task MuestraSinCodigo_SuReferenciaTecleada_EligeLaLinea()
+        {
+            _conMuestra = true;
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("50001");
+
+            Assert.AreSame(Linea("50001"), _vm.Seleccionada);
+            Assert.IsNull(_vm.Mensaje);
+        }
+
+        [TestMethod]
+        public void SinCodigoAdmitido_SiNoViene_EsFalse()
+        {
+            var linea = Newtonsoft.Json.JsonConvert.DeserializeObject<LineaReposicionEnPreparacion>(
+                "{\"NumeroOrden\":1,\"Producto\":\"50001\",\"CodigosBarras\":[],\"Cantidad\":1}")!;
+
+            Assert.IsFalse(linea.SinCodigoAdmitido, "Una API anterior no lo manda: sin código, a etiquetar como siempre");
+            Assert.IsTrue(Newtonsoft.Json.JsonConvert.DeserializeObject<LineaReposicionEnPreparacion>("{\"SinCodigoAdmitido\":true}")!.SinCodigoAdmitido);
         }
     }
 }
