@@ -431,7 +431,7 @@ Public Class ListaPedidosVentaViewModel
         Try
             Return Await servicio.CalcularFechaEntregaAjustada(Date.Now, ruta, String.Empty, codigoPostal)
         Catch ex As Exception
-            Return FechaEntregaAjustada(Date.Now, ruta)
+            Return FechaEntregaAjustada(Date.Today, ruta) ' Date.Today: con Date.Now devolvía la hora de ahora (Nesto#588)
         End Try
     End Function
 
