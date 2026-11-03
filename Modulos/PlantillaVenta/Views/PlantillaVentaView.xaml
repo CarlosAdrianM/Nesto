@@ -805,9 +805,11 @@
                             <TextBlock Text="{Binding AvisoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontWeight="SemiBold" Foreground="DarkOrange"
                                        Visibility="{Binding HayAvisoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                            <!-- Nesto#483: el motivo lo redacta NestoAPI (mismo texto en Nesto, NestoApp y la tienda). -->
+                            <!-- Nesto#483: el motivo lo redacta NestoAPI (mismo texto en Nesto, NestoApp y la tienda).
+                                 Nesto#599: en el tooltip, producto a producto, por qué no sale entero ya (kit, tienda, proveedor). -->
                             <TextBlock Text="{Binding MotivoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontStyle="Italic" Foreground="#555555"
+                                       ToolTip="{Binding DetalleMotivoModoServicio}" ToolTipService.ShowDuration="60000"
                                        Visibility="{Binding HayMotivoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <!-- Nesto#493 / NestoAPI#542: modo de facturación en vez de la casilla «Mantener junto». Bindea al
                                  ViewModel (la casilla colgaba de la dirección de entrega, como pasaba con Servir junto en Nesto#449);

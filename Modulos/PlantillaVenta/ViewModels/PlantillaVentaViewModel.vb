@@ -976,6 +976,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(baseImponibleParaPortes))
             OnPropertyChanged(NameOf(MotivoModoServicio)) ' Novedad 731: «Recomendado: …» solo si lo elegido no es lo recomendado
             OnPropertyChanged(NameOf(HayMotivoModoServicio))
+            OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) AndAlso Not _restaurandoModoGuardado Then
                 OnValidarServirJunto()
             End If
@@ -1275,6 +1276,22 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>
+    ''' Nesto#599 (Carlos, novedad 962, pedido 929816): el tooltip del motivo del modo de servicio, producto a producto
+    ''' («44873: 1 unidad sale desmontando el kit 43165.», «45363: 2 unidades en Reina: llegan con la reposición…»), para que
+    ''' el usuario sepa por qué el pedido sale «Todo junto» y no piense que falla. Sale del desglose de la fecha de entrega a la
+    ''' agencia (POST api/PedidosVenta/FechaEntregaAgencia, el mismo pedido). Nothing si no hay motivo que enseñar (el texto
+    ''' está oculto), si todo está en Algete o si la API es anterior al desglose.
+    ''' </summary>
+    Public ReadOnly Property DetalleMotivoModoServicio As String
+        Get
+            If Not HayMotivoModoServicio Then
+                Return Nothing
+            End If
+            Return FechaEntregaAgencia.DetallePorLinea
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Nesto#484 / NestoAPI#518: las opciones del combo «Servir». Las que no tienen sentido para el pedido
     ''' (según la API) salen deshabilitadas con su motivo. Sin respuesta del servidor, todas habilitadas.
     ''' </summary>
@@ -1429,7 +1446,10 @@ Public Class PlantillaVentaViewModel
     Friend Function RefrescarFechaEntregaAgencia() As Task
         Return _peticionesFechaEntregaAgencia.EjecutarAsync(Of PedidoVentaDTO)(
             AddressOf PedidoParaFechaEntregaAgencia, AddressOf HuellaPedidoSugerencias,
-            Sub() FechaEntregaAgencia.Limpiar(), AddressOf PedirFechaEntregaAgenciaAlServidor)
+            Sub()
+                FechaEntregaAgencia.Limpiar()
+                OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
+            End Sub, AddressOf PedirFechaEntregaAgenciaAlServidor)
     End Function
 
     ''' <summary>El pedido con líneas (si no, no hay nada que entregar), con el número si se está modificando uno: así la
@@ -1449,6 +1469,7 @@ Public Class PlantillaVentaViewModel
         End If
         Dim fecha = Await servicioFecha.CalcularPlantilla(pedido).ConfigureAwait(True)
         FechaEntregaAgencia.Aplicar(fecha, Hoy.Invoke())
+        OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
     End Function
 
 #End Region
@@ -1466,6 +1487,7 @@ Public Class PlantillaVentaViewModel
         AvisoModoServicio = Nothing
         OnPropertyChanged(NameOf(MotivoModoServicio))
         OnPropertyChanged(NameOf(HayMotivoModoServicio))
+        OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
     End Sub
 
     Friend Sub AplicarSugerenciaModoServicio(sugerencia As ModoServicioSugeridoDTO)
@@ -1475,6 +1497,7 @@ Public Class PlantillaVentaViewModel
         _sugerenciaModoServicio = sugerencia
         OnPropertyChanged(NameOf(MotivoModoServicio))
         OnPropertyChanged(NameOf(HayMotivoModoServicio))
+        OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
         AplicarModosPermitidos(sugerencia)
 
         ' Nesto#484: si el usuario ELIGIÓ un modo que ya no se puede elegir, se pasa al sugerido y se le avisa.
