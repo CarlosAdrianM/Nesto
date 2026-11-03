@@ -32,7 +32,7 @@ Public Class NavegacionViewModelsTests
 
     <TestMethod()>
     Public Sub Inventario_Abrir_AbreLaVistaDeInventario()
-        Dim vm As New InventarioViewModel(_navegacion, A.Fake(Of IConfiguracion)(), A.Fake(Of IServicioDialogos)(), A.Fake(Of IClienteApiFactory)())
+        Dim vm As New InventarioViewModel(_navegacion, A.Fake(Of IConfiguracion)(), A.Fake(Of IServicioDialogos)(), A.Fake(Of IServicioInventario)())
 
         vm.cmdAbrirInventario.Execute(Nothing)
 

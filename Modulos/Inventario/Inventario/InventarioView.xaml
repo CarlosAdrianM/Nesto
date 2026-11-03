@@ -63,6 +63,7 @@
                         <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
                         <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
                         <DataGridTextColumn Header="Stock" Binding="{Binding Cantidad}" Width="Auto"/>
+                        <DataGridTextColumn Header="Leído" Binding="{Binding Lectura}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -76,6 +77,7 @@
                                 <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
                                 <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
                                 <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" Width="Auto"/>
+                                <DataGridTextColumn Header="Leído" Binding="{Binding Lectura}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
