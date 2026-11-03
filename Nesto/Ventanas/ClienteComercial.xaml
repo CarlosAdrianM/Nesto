@@ -102,11 +102,17 @@
                             IsEnabled="{Binding PuedeEditarComercial}" ToolTip="{Binding MotivoComercialBloqueado}" ToolTipService.ShowOnDisabled="True">Guardar</Button>
                     <!-- Nesto#562 (NestoAPI#723): el cliente exige el P.O. («Su pedido») en todos sus pedidos. Se guarda al
                          marcarla (no con el botón Guardar) y vale para todos los contactos. Solo Administración, Dirección e Informática. -->
-                    <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" Margin="2,4" VerticalAlignment="Center"
+                    <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="2,4" VerticalAlignment="Center"
                               Content="Exige P.O. en todos los pedidos"
                               IsChecked="{Binding ExigeSuPedido, Mode=TwoWay}"
                               IsEnabled="{Binding PuedeCambiarSuPedidoObligatorio}"
                               ToolTip="{Binding TooltipSuPedidoObligatorio}" ToolTipService.ShowOnDisabled="True"/>
+                    <!-- Nesto#606 (NestoAPI#799): día de reparto propio de ESTA dirección de entrega (excepción al de su código
+                         postal). Se guarda al elegir el día (no con el botón Guardar). Solo Dirección, Almacén y Administración;
+                         el resto lo ve en texto. Con la API vieja no se ve. -->
+                    <cliente:DiaRepartoClienteView Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="4" Margin="2,2" VerticalAlignment="Center"
+                                                   Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
+                                                   Contacto="{Binding clienteActivo.contacto}"/>
                     <DataGrid Name="dgrPersonasContacto" Grid.Row="4" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
