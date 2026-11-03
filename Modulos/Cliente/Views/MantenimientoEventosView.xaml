@@ -186,10 +186,17 @@
                                            ToolTip="Para apuntarse, el cliente tiene que haber comprado o pedido estos productos"/>
                                 <StackPanel>
                                     <ListBox ItemsSource="{Binding ProductosRequeridosEdicion}" SelectedItem="{Binding ProductoRequeridoSeleccionado}"
-                                             DisplayMemberPath="Texto" Width="320" Height="60"/>
+                                             DisplayMemberPath="Texto" Width="320" Height="60"
+                                             ToolTip="Productos que hay que haber comprado para venir al evento; añádalos con la casilla de abajo"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <TextBox Text="{Binding ProductoRequeridoNuevo, UpdateSourceTrigger=PropertyChanged}" Width="110" MaxLength="15"
-                                                 VerticalContentAlignment="Center" ToolTip="Referencia del producto"/>
+                                        <!-- Nesto#604 (Reina, novedad 974): escribía en la lista de arriba; la casilla lleva texto de ayuda y con Intro añade -->
+                                        <xctk:WatermarkTextBox Text="{Binding ProductoRequeridoNuevo, UpdateSourceTrigger=PropertyChanged}" Width="190" MaxLength="15"
+                                                               VerticalContentAlignment="Center" Watermark="Referencia o código de barras…"
+                                                               ToolTip="Escriba la referencia o lea el código de barras del producto y pulse Intro o «Añadir»">
+                                            <xctk:WatermarkTextBox.InputBindings>
+                                                <KeyBinding Key="Enter" Command="{Binding AnadirProductoRequeridoCommand}"/>
+                                            </xctk:WatermarkTextBox.InputBindings>
+                                        </xctk:WatermarkTextBox>
                                         <Button Content="Añadir" Command="{Binding AnadirProductoRequeridoCommand}" Margin="6,0,0,0" Padding="8,1"/>
                                         <Button Content="Quitar" Command="{Binding QuitarProductoRequeridoCommand}" Margin="6,0,0,0" Padding="8,1"/>
                                     </StackPanel>
