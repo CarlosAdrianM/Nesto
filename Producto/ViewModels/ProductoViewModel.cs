@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -1688,14 +1689,41 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 ResultadoEtiquetasProducto resultado = await ServicioEtiquetasProducto
                     .Imprimir(Constantes.Empresas.EMPRESA_DEFECTO, producto, CopiasEtiquetaCodigoBarras).ConfigureAwait(true);
-                _dialogService.ShowNotification(string.IsNullOrWhiteSpace(resultado?.Mensaje)
-                    ? $"Etiqueta de {producto} mandada a la impresora."
-                    : resultado.Mensaje.Trim());
+                _dialogService.ShowNotification(TextoEtiquetaImpresa(producto, resultado));
+                if (resultado?.CodigoAsignado == true && !string.IsNullOrWhiteSpace(resultado.CodigoBarras))
+                {
+                    // Nesto#598: el código interno recién dado tiene que salir en la lista de códigos de la ficha
+                    await CargarCodigosBarrasAsync().ConfigureAwait(true);
+                }
             }
             catch (Exception ex)
             {
                 _dialogService.ShowError($"No se ha podido imprimir la etiqueta.\n{ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Nesto#598 (NestoAPI#791): lo que dice la API, el código impreso (si su texto no lo lleva) y, si la API se lo acaba de
+        /// dar, que es el código interno nuevo del producto.
+        /// </summary>
+        internal static string TextoEtiquetaImpresa(string producto, ResultadoEtiquetasProducto resultado)
+        {
+            var texto = new StringBuilder(string.IsNullOrWhiteSpace(resultado?.Mensaje)
+                ? $"Etiqueta de {producto} mandada a la impresora."
+                : resultado.Mensaje.Trim());
+            string codigo = resultado?.CodigoBarras?.Trim();
+            if (!string.IsNullOrEmpty(codigo))
+            {
+                if (resultado.CodigoAsignado)
+                {
+                    texto.Append($"\nEl producto no tenía código de barras: se le ha dado el código interno {codigo}.");
+                }
+                else if (!texto.ToString().Contains(codigo))
+                {
+                    texto.Append($"\nCódigo impreso: {codigo}.");
+                }
+            }
+            return texto.ToString();
         }
 
         #endregion

@@ -5,22 +5,14 @@ namespace Nesto.Infrastructure.Models
 {
     /// <summary>
     /// Nesto#534 (NestoAPI#654): de qué producto se pide la etiqueta de código de barras a la API
-    /// (POST api/Almacen/EtiquetasProducto/Imprimir) y cuántas.
+    /// (POST api/Almacen/EtiquetasProducto/Imprimir) y cuántas. Desde NestoAPI#791 la etiqueta es siempre la del EAN-13 de la
+    /// unidad (si el producto no tiene código, la API le da el interno 29… al imprimir): ya no se elige formato.
     /// </summary>
     public class PeticionEtiquetasProducto
     {
         public string Producto { get; set; }
         /// <summary>Sin él (0), una.</summary>
         public int Copias { get; set; }
-        /// <summary>
-        /// NestoAPI#762: qué etiqueta. Null o <see cref="FORMATO_REFERENCIA"/>, la de siempre (Code128 con la referencia);
-        /// <see cref="FORMATO_EAN13"/>, la del EAN-13 de la unidad (si el producto no tiene, la API le asigna el interno 290…).
-        /// Una API anterior lo ignora e imprime la de la referencia.
-        /// </summary>
-        public string Formato { get; set; }
-
-        public const string FORMATO_REFERENCIA = "Referencia";
-        public const string FORMATO_EAN13 = "Ean13";
     }
 
     public class ResultadoEtiquetasProducto
@@ -34,13 +26,13 @@ namespace Nesto.Infrastructure.Models
         /// <summary>La impresora de etiquetas de producto del usuario (ImpresoraCodBarras).</summary>
         public string Impresora { get; set; }
         public string Mensaje { get; set; }
-        /// <summary>NestoAPI#762 (formato Ean13): el EAN-13 impreso. Null con el formato de siempre o con una API anterior.</summary>
+        /// <summary>NestoAPI#762/#791: el EAN-13 impreso (el del fabricante o el interno 29…).</summary>
         public string CodigoBarras { get; set; }
         /// <summary>NestoAPI#762: el código impreso es el interno (290… o 299…), no el del fabricante.</summary>
         public bool CodigoInterno { get; set; }
         /// <summary>
-        /// NestoAPI#762: el código se acaba de crear. La lista abierta no lo tiene: hay que añadirlo a los códigos de la línea
-        /// para que la lectura de la etiqueta case.
+        /// NestoAPI#762/#791: el código interno se acaba de crear al imprimir. La lista abierta no lo tiene: hay que añadirlo a
+        /// los códigos de la línea (o de la ficha) para que la lectura de la etiqueta case.
         /// </summary>
         public bool CodigoAsignado { get; set; }
     }

@@ -65,21 +65,22 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
-        public async Task Imprimir_SinFormato_NoPideNingunoComoSiempre()
+        public async Task Imprimir_NoMandaFormato()
         {
+            // NestoAPI#791: la etiqueta es siempre la del EAN-13; no hay formato que elegir
             var handler = new HandlerFalso();
             var servicio = new ServicioEtiquetasProducto(new FactoriaFalsa(handler));
 
             _ = await servicio.Imprimir("1", "17404", 1);
 
             JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
-            Assert.AreEqual(JTokenType.Null, cuerpo["Formato"].Type, "La de siempre (la referencia): la API no cambia nada");
+            Assert.IsNull(cuerpo["Formato"]);
         }
 
         [TestMethod]
-        public async Task Imprimir_Ean13_MandaElFormatoYLeeElCodigoQueHaImpreso()
+        public async Task Imprimir_LeeElCodigoQueHaImpresoYSiSeAcabaDeAsignar()
         {
-            // NestoAPI#762: la etiqueta del EAN-13; si no tiene, la API le asigna el interno (290…) y lo dice
+            // NestoAPI#762/#791: la etiqueta del EAN-13; si no tiene, la API le asigna el interno (290…) y lo dice
             var handler = new HandlerFalso
             {
                 Respuesta = "{\"Producto\":\"17404\",\"Lineas\":[\"ROLLO PAPEL CAMILLA\"],\"Copias\":3,\"Impresas\":3,\"Impresora\":\"etiquetas4\","
@@ -88,25 +89,24 @@ namespace Infrastructure.Tests
             };
             var servicio = new ServicioEtiquetasProducto(new FactoriaFalsa(handler));
 
-            ResultadoEtiquetasProducto resultado = await servicio.Imprimir("1", "17404", 3, PeticionEtiquetasProducto.FORMATO_EAN13);
+            ResultadoEtiquetasProducto resultado = await servicio.Imprimir("1", "17404", 3);
 
             Assert.AreEqual("POST /api/Almacen/EtiquetasProducto/Imprimir?empresa=1&ensayo=false", handler.Urls[0]);
             JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
             Assert.AreEqual("17404", (string)cuerpo["Producto"]);
             Assert.AreEqual(3, (int)cuerpo["Copias"]);
-            Assert.AreEqual("Ean13", (string)cuerpo["Formato"]);
             Assert.AreEqual("2900000174047", resultado.CodigoBarras);
             Assert.IsTrue(resultado.CodigoInterno);
             Assert.IsTrue(resultado.CodigoAsignado);
         }
 
         [TestMethod]
-        public async Task Imprimir_Ean13_ConUnaApiAnterior_SinLosCamposNuevos()
+        public async Task Imprimir_ConUnaApiAnterior_SinLosCamposNuevos()
         {
             var handler = new HandlerFalso { Respuesta = "{\"Producto\":\"17404\",\"Copias\":1,\"Impresas\":1}" };
             var servicio = new ServicioEtiquetasProducto(new FactoriaFalsa(handler));
 
-            ResultadoEtiquetasProducto resultado = await servicio.Imprimir("1", "17404", 1, PeticionEtiquetasProducto.FORMATO_EAN13);
+            ResultadoEtiquetasProducto resultado = await servicio.Imprimir("1", "17404", 1);
 
             Assert.IsNull(resultado.CodigoBarras);
             Assert.IsFalse(resultado.CodigoInterno);
