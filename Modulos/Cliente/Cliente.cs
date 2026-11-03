@@ -37,6 +37,8 @@ namespace Nesto.Modulos.Cliente
             // Nesto#584 (NestoAPI#763): horario preferible (pestaña de la ficha y lista de propuestas por revisar)
             registro.Transitorio<IHorarioPreferibleService, HorarioPreferibleService>();
             registro.Vista<HorariosPorRevisarView>("HorariosPorRevisarView");
+            // Nesto#606 (NestoAPI#799): día de reparto propio del contacto (excepción al de su código postal)
+            registro.Transitorio<IDiaRepartoClienteService, DiaRepartoClienteService>();
             registro.Transitorio<HorariosPorRevisarViewModel>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
