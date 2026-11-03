@@ -23,6 +23,18 @@ Public Interface IServicioInventario
     Function CrearLinea(linea As InventarioDTO) As Task(Of InventarioDTO)
     ''' <summary>PUT api/Inventarios/{NºOrden}?porCodigoBarras=</summary>
     Function ActualizarLinea(linea As InventarioDTO, porCodigoBarras As Boolean?) As Task
+    ''' <summary>NestoAPI#790: GET api/Inventarios/Comprobaciones (bloqueantes, avisos y recuento por usuario).</summary>
+    Function Comprobaciones(empresa As String, almacen As String, fecha As Date) As Task(Of ComprobacionesInventarioDTO)
+    ''' <summary>
+    ''' NestoAPI#790: POST api/Inventarios/Contabilizar. Con bloqueantes (409) no lanza: devuelve sus comprobaciones en
+    ''' <see cref="ResultadoContabilizarInventario.Bloqueado"/>. Los demás errores (400 sin pendientes, 403…) sí lanzan.
+    ''' </summary>
+    Function Contabilizar(empresa As String, almacen As String, fecha As Date) As Task(Of ResultadoContabilizarInventario)
+    ''' <summary>
+    ''' NestoAPI#790: GET api/Inventarios/Diferencias. Con <paramref name="traspasos"/>, los contabilizados en ellos; sin ellos,
+    ''' las filas pendientes de <paramref name="fecha"/>. La valoración (PVP o coste) la decide la API.
+    ''' </summary>
+    Function Diferencias(empresa As String, almacen As String, fecha As Date?, traspasos As IEnumerable(Of Integer)) As Task(Of DiferenciasInventarioDTO)
 End Interface
 
 ''' <summary>NestoAPI#789: el inventario ya tenía filas pendientes ese día (lo ha rellenado otro mientras tanto).</summary>
@@ -119,6 +131,58 @@ Public Class ServicioInventario
             If Not response.IsSuccessStatusCode Then
                 Throw New Exception(HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync()))
             End If
+        End Using
+    End Function
+
+    Public Async Function Comprobaciones(empresa As String, almacen As String, fecha As Date) As Task(Of ComprobacionesInventarioDTO) Implements IServicioInventario.Comprobaciones
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url = $"Inventarios/Comprobaciones?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}"
+            Dim response = Await client.GetAsync(url)
+            Dim cuerpo = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of ComprobacionesInventarioDTO)(cuerpo), New ComprobacionesInventarioDTO With {.Almacen = almacen, .Fecha = fecha})
+        End Using
+    End Function
+
+    Public Async Function Contabilizar(empresa As String, almacen As String, fecha As Date) As Task(Of ResultadoContabilizarInventario) Implements IServicioInventario.Contabilizar
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim peticion = New With {.Empresa = empresa, .Almacen = almacen, .Fecha = fecha.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Inventarios/Contabilizar", content)
+            Dim cuerpo = Await response.Content.ReadAsStringAsync()
+            If response.StatusCode = HttpStatusCode.Conflict Then
+                Dim bloqueado = JsonConvert.DeserializeObject(Of ComprobacionesInventarioDTO)(cuerpo)
+                If bloqueado Is Nothing Then
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+                End If
+                Return New ResultadoContabilizarInventario With {.Bloqueado = bloqueado}
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return New ResultadoContabilizarInventario With {
+                .Contabilizacion = If(JsonConvert.DeserializeObject(Of ContabilizacionInventarioDTO)(cuerpo), New ContabilizacionInventarioDTO With {.Almacen = almacen, .Fecha = fecha})
+            }
+        End Using
+    End Function
+
+    Public Async Function Diferencias(empresa As String, almacen As String, fecha As Date?, traspasos As IEnumerable(Of Integer)) As Task(Of DiferenciasInventarioDTO) Implements IServicioInventario.Diferencias
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim url = $"Inventarios/Diferencias?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}"
+            If fecha.HasValue Then
+                url += "&fecha=" + TextoFecha(fecha.Value)
+            End If
+            For Each traspaso In If(traspasos, Enumerable.Empty(Of Integer)())
+                url += "&traspaso=" + traspaso.ToString(CultureInfo.InvariantCulture)
+            Next
+            Dim response = Await client.GetAsync(url)
+            Dim cuerpo = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of DiferenciasInventarioDTO)(cuerpo), New DiferenciasInventarioDTO With {.Almacen = almacen, .Fecha = fecha})
         End Using
     End Function
 

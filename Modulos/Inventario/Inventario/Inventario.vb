@@ -1,4 +1,5 @@
-﻿Imports Nesto.Contratos
+﻿Imports ControlesUsuario.Dialogs
+Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 
 Public Class Inventario
@@ -6,6 +7,10 @@ Public Class Inventario
 
     Public Sub Registrar(registro As IRegistroNesto) Implements IModuloNesto.Registrar
         registro.Vista(Of InventarioView)("InventarioView")
+        ' Nesto#597: las diferencias del inventario (pestaña nueva) y las comprobaciones de antes de contabilizar.
+        registro.Vista(Of DiferenciasInventarioView)(DiferenciasInventarioViewModel.NOMBRE_VISTA)
+        registro.Transitorio(Of DiferenciasInventarioViewModel)()
+        registro.RegistrarDialogo(Of ComprobacionesInventarioDialog, ComprobacionesInventarioDialogViewModel)(ComprobacionesInventarioDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar
         registro.Transitorio(Of InventarioMenuBar)()

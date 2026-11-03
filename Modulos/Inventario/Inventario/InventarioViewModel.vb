@@ -32,6 +32,9 @@ Public Class InventarioViewModel
 
         cmdCrearLineaInventario = New RelayCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario)
         cmdInsertarProducto = New RelayCommand(Of String)(AddressOf OnInsertarProducto)
+        ' Nesto#597: contabilizar y ver las diferencias (NestoAPI#790).
+        cmdContabilizarInventario = New AsyncRelayCommand(AddressOf ContabilizarInventario)
+        cmdVerDiferencias = New RelayCommand(AddressOf OnVerDiferencias)
 
         Titulo = "Inventario Tienda"
 
@@ -302,6 +305,189 @@ Public Class InventarioViewModel
     End Function
 
 
+#End Region
+
+#Region "Contabilizar (Nesto#597)"
+    ''' <summary>Nesto#597: Tiendas (la suya), Administración, Dirección e Informática; la API lo vuelve a comprobar.</summary>
+    Public ReadOnly Property PuedeContabilizar As Boolean
+        Get
+            Return EnAlgunGrupo(Constantes.GruposSeguridad.TIENDAS, Constantes.GruposSeguridad.ADMINISTRACION,
+                                Constantes.GruposSeguridad.DIRECCION, Constantes.GruposSeguridad.INFORMATICA)
+        End Get
+    End Property
+
+    ''' <summary>Nesto#597: además, Compras y Almacén pueden ver las diferencias (a coste).</summary>
+    Public ReadOnly Property PuedeVerDiferencias As Boolean
+        Get
+            Return PuedeContabilizar OrElse EnAlgunGrupo(Constantes.GruposSeguridad.COMPRAS, Constantes.GruposSeguridad.ALMACEN)
+        End Get
+    End Property
+
+    Private Function EnAlgunGrupo(ParamArray grupos As String()) As Boolean
+        Try
+            Return grupos.Any(Function(g) configuracion.UsuarioEnGrupo(g))
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private _cmdContabilizarInventario As AsyncRelayCommand
+    Public Property cmdContabilizarInventario As AsyncRelayCommand
+        Get
+            Return _cmdContabilizarInventario
+        End Get
+        Private Set(value As AsyncRelayCommand)
+            SetProperty(_cmdContabilizarInventario, value)
+        End Set
+    End Property
+
+    Private _cmdVerDiferencias As RelayCommand
+    Public Property cmdVerDiferencias As RelayCommand
+        Get
+            Return _cmdVerDiferencias
+        End Get
+        Private Set(value As RelayCommand)
+            SetProperty(_cmdVerDiferencias, value)
+        End Set
+    End Property
+
+    Private Sub OnVerDiferencias()
+        AbrirDiferencias(If(almacen, String.Empty).Trim(), fechaSeleccionada.Date, Nothing)
+    End Sub
+
+    Private Sub AbrirDiferencias(almacenInventario As String, fecha As Date, traspasos As List(Of Integer))
+        Dim parametros As New ParametrosNavegacion From {
+            {DiferenciasInventarioViewModel.PARAMETRO_ALMACEN, almacenInventario}
+        }
+        If traspasos IsNot Nothing AndAlso traspasos.Any() Then
+            parametros.Add(DiferenciasInventarioViewModel.PARAMETRO_TRASPASOS, traspasos)
+        Else
+            parametros.Add(DiferenciasInventarioViewModel.PARAMETRO_FECHA, fecha)
+        End If
+        navegacion.RequestNavigate("MainRegion", DiferenciasInventarioViewModel.NOMBRE_VISTA, parametros)
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#597 (NestoAPI#790): comprueba, enseña bloqueantes y avisos, confirma, contabiliza (un traspaso por usuario) y abre
+    ''' las diferencias de los traspasos. Con bloqueantes no se contabiliza; si la API los encuentra al contabilizar (409), se
+    ''' vuelven a enseñar.
+    ''' </summary>
+    Public Async Function ContabilizarInventario() As Task
+        If Not PuedeContabilizar Then
+            Return
+        End If
+        If _cargaAlmacen IsNot Nothing Then
+            Try
+                Await _cargaAlmacen
+            Catch
+                ' Se avisa abajo si no hay almacén.
+            End Try
+        End If
+        If String.IsNullOrWhiteSpace(almacen) Then
+            dialogService.ShowError("Indique el almacén del inventario.")
+            Return
+        End If
+        Dim almacenInventario = almacen.Trim()
+        Dim fecha = fechaSeleccionada.Date
+        Dim textoDia = fecha.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+
+        Dim comprobaciones As ComprobacionesInventarioDTO
+        estaOcupado = True
+        Try
+            comprobaciones = Await _servicio.Comprobaciones(EMPRESA_DEFECTO, almacenInventario, fecha)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return
+        Finally
+            estaOcupado = False
+        End Try
+        If comprobaciones Is Nothing Then
+            Return
+        End If
+
+        If HayComprobaciones(comprobaciones) Then
+            If Not Await MostrarComprobaciones(comprobaciones) Then
+                Return
+            End If
+        End If
+
+        Dim recuento = If(comprobaciones.Recuento, New List(Of RecuentoUsuarioInventarioDTO))
+        Dim filas = recuento.Sum(Function(r) r.Filas)
+        If filas = 0 Then
+            dialogService.ShowNotification("Contabilizar inventario", $"No hay filas pendientes de contabilizar en {almacenInventario} el {textoDia}.")
+            Return
+        End If
+        Dim mensaje = $"Se va a contabilizar el inventario de {almacenInventario} del {textoDia}: {TextoFilas(filas)} de {TextoUsuarios(recuento.Count)}. ¿Continuar?"
+        If Not dialogService.ShowConfirmationAnswer("Contabilizar inventario", mensaje, True) Then
+            Return
+        End If
+
+        Dim resultado As ResultadoContabilizarInventario
+        estaOcupado = True
+        Try
+            resultado = Await _servicio.Contabilizar(EMPRESA_DEFECTO, almacenInventario, fecha)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return
+        Finally
+            estaOcupado = False
+        End Try
+        If resultado Is Nothing Then
+            Return
+        End If
+        If resultado.Bloqueado IsNot Nothing Then
+            ' Algo ha cambiado desde las comprobaciones: no se ha tocado nada.
+            Await MostrarComprobaciones(resultado.Bloqueado)
+            Return
+        End If
+
+        Dim contabilizacion = If(resultado.Contabilizacion, New ContabilizacionInventarioDTO)
+        dialogService.ShowNotification("Inventario contabilizado", TextoContabilizacion(contabilizacion))
+        Dim traspasos = If(contabilizacion.Contabilizados, New List(Of UsuarioContabilizadoInventarioDTO)).
+            Where(Function(c) c.Traspaso.HasValue).Select(Function(c) c.Traspaso.Value).Distinct().ToList()
+        If traspasos.Any() Then
+            AbrirDiferencias(almacenInventario, fecha, traspasos)
+        End If
+    End Function
+
+    Private Shared Function HayComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Boolean
+        Return (comprobaciones.Bloqueantes IsNot Nothing AndAlso comprobaciones.Bloqueantes.Any()) OrElse
+            (comprobaciones.Avisos IsNot Nothing AndAlso comprobaciones.Avisos.Any())
+    End Function
+
+    ''' <summary>True si se puede seguir: no hay bloqueantes y el usuario ha pulsado «Continuar».</summary>
+    Private Async Function MostrarComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Task(Of Boolean)
+        Dim parametros As New ParametrosDialogo From {
+            {ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES, comprobaciones}
+        }
+        Dim respuesta = Await dialogService.ShowDialogAsync(ComprobacionesInventarioDialogViewModel.NOMBRE, parametros)
+        Dim hayBloqueantes = comprobaciones.Bloqueantes IsNot Nothing AndAlso comprobaciones.Bloqueantes.Any()
+        Return Not hayBloqueantes AndAlso respuesta IsNot Nothing AndAlso respuesta.Result = ResultadoBoton.OK
+    End Function
+
+    ''' <summary>«Contabilizado: • Paloma: 64 filas, traspaso 77263 …» y, si los hay, los usuarios que han fallado.</summary>
+    Public Shared Function TextoContabilizacion(contabilizacion As ContabilizacionInventarioDTO) As String
+        Dim lineas As New List(Of String)
+        Dim contabilizados = If(contabilizacion?.Contabilizados, New List(Of UsuarioContabilizadoInventarioDTO))
+        Dim errores = If(contabilizacion?.Errores, New List(Of ErrorContabilizarInventarioDTO))
+        If contabilizados.Any() Then
+            lineas.Add("Contabilizado:")
+            For Each c In contabilizados
+                Dim traspaso = If(c.Traspaso.HasValue, $", traspaso {c.Traspaso.Value}", String.Empty)
+                lineas.Add($"  • {c.Usuario?.Trim()}: {TextoFilas(c.Filas)}{traspaso}")
+            Next
+        End If
+        If errores.Any() Then
+            If lineas.Any() Then
+                lineas.Add(String.Empty)
+            End If
+            lineas.Add("No se ha podido contabilizar:")
+            For Each fallo In errores
+                lineas.Add($"  • {fallo.Usuario?.Trim()}: {fallo.Mensaje}")
+            Next
+        End If
+        Return String.Join(Environment.NewLine, lineas)
+    End Function
 #End Region
 
 #Region "Funciones Auxiliares"

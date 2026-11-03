@@ -640,6 +640,7 @@ namespace Nesto.Tests
         {
             "PlantillaVentaView | PlantillaVentaView | PlantillaVentaViewModel",
             "InventarioView | InventarioView | InventarioViewModel",
+            "DiferenciasInventarioView | DiferenciasInventarioView | DiferenciasInventarioViewModel", // Nesto#597, después de la referencia de Prism
             "CarteraPagosView | CarteraPagosView | CarteraPagosViewModel",
             "PedidoVentaView | PedidoVentaView | PedidoVentaViewModel",
             "DetallePedidoView | DetallePedidoView | DetallePedidoViewModel",
@@ -701,6 +702,7 @@ namespace Nesto.Tests
             "EnviarPorCorreoDialog | EnviarPorCorreoDialog | EnviarPorCorreoDialogViewModel", // Nesto#563
             "ElegirEventoCursoDialog | ElegirEventoCursoDialog | ElegirEventoCursoDialogViewModel",
             "ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialogViewModel",
+            "ComprobacionesInventarioDialog | ComprobacionesInventarioDialog | ComprobacionesInventarioDialogViewModel", // Nesto#597
             "PickingPopupView | PickingPopupView | PickingPopupViewModel",
             "SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopupViewModel",
             "FacturarRutasPopup | FacturarRutasPopup | FacturarRutasPopupViewModel",
