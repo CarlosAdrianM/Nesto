@@ -18,6 +18,7 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" VerticalAlignment="Center">
             <Grid.Resources>
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
                 <Style TargetType="TextBlock">
                     <Setter Property="FontSize" Value="48" />
                     <Setter Property="HorizontalAlignment" Value="Right"/>
@@ -39,6 +40,7 @@
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Almacén: "></TextBlock>
@@ -54,6 +56,16 @@
             <TextBox Name="txtCantidad" Grid.Row="3" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>
 
             <CheckBox Name="chkCantidad" Grid.Row="4" Grid.Column="1" Content="Activar Cantidad" IsChecked="{Binding estaCantidadActiva}"></CheckBox>
+
+            <!-- Nesto#597 (NestoAPI#790): contabilizar desde aquí (con las comprobaciones) y ver las diferencias valoradas. -->
+            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                <Button Content="Contabilizar inventario" Command="{Binding cmdContabilizarInventario}" FontSize="16" Padding="14,6" Margin="0,0,12,0"
+                        Visibility="{Binding PuedeContabilizar, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Comprueba el inventario del almacén y la fecha y, si no hay nada que lo impida, lo contabiliza"/>
+                <Button Content="Ver diferencias" Command="{Binding cmdVerDiferencias}" FontSize="16" Padding="14,6"
+                        Visibility="{Binding PuedeVerDiferencias, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Las diferencias valoradas del inventario de esta fecha (lo pendiente) o de los traspasos que indique"/>
+            </StackPanel>
         </Grid>
         <TabControl Name="tclMovimientos" Grid.Column="1" TabStripPlacement="Bottom">
             <TabItem Name="tabRecientes" Header="Recientes">
