@@ -22,6 +22,19 @@ Public Class ClienteProbabilidadVenta
     Public Property ImporteUltimos12Meses As Decimal?
     Public Property GrupoSubgrupoMasVendido As String
     Public Property Atendida As Boolean
+    ''' <summary>
+    ''' Nesto#587 (sugerencia 911): True si nadie ha hablado con el cliente desde el día 1 del mes en curso (rapports
+    ''' de cualquier usuario; la API no cuenta los «no contestó» ni las gestiones administrativas). Nothing con una API
+    ''' que aún no manda el campo o con el endpoint antiguo: sin marca.
+    ''' </summary>
+    Public Property SinContactoEsteMes As Boolean?
+
+    ''' <summary>Nesto#587: la tarjeta lleva la marca «Sin contacto este mes» solo si la API dice True.</summary>
+    Public ReadOnly Property MarcarSinContactoEsteMes As Boolean
+        Get
+            Return SinContactoEsteMes.GetValueOrDefault()
+        End Get
+    End Property
 
     Public ReadOnly Property TienePrioridad As Boolean
         Get
@@ -58,6 +71,9 @@ Public Class ClienteProbabilidadVenta
             End If
             If TieneMotivo Then
                 texto = Motivo & vbCr & texto
+            End If
+            If MarcarSinContactoEsteMes Then
+                texto &= $"{vbCr}Nadie ha hablado con este cliente en lo que va de mes."
             End If
             If Atendida Then
                 texto &= $"{vbCr}Ya atendida hoy."
