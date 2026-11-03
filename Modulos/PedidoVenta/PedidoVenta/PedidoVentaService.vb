@@ -151,6 +151,7 @@ Public Class PedidoVentaService
                 pedido.Efectos.ImporteTotal = pedido.Total
                 pedido.Efectos.CuadrarEfectos()
             End If
+            pedido.tieneFechasFuturas = Nothing ' Nesto#588: el de antes ya no vale; lo dice la respuesta
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try
@@ -163,6 +164,7 @@ Public Class PedidoVentaService
                     If Not String.IsNullOrWhiteSpace(respuesta) Then
                         Try
                             Dim avisos = JsonConvert.DeserializeObject(Of RespuestaModificacionPedidoModel)(respuesta)
+                            pedido.tieneFechasFuturas = avisos?.tieneFechasFuturas ' Nesto#588
                             If avisos?.Avisos IsNot Nothing Then
                                 Return avisos.Avisos
                             End If
@@ -1062,6 +1064,25 @@ Public Class PedidoVentaService
         Return nombreArchivo
     End Function
 
+    ''' <summary>
+    ''' Nesto#588: «tieneFechasFuturas» del pedido que devuelve el POST (la regla de la lista, calculada en la API). Nothing si no
+    ''' viene (API vieja) o el cuerpo no se entiende: entonces se calcula como antes. Nunca lanza.
+    ''' </summary>
+    Friend Shared Function LeerTieneFechasFuturas(cuerpo As String) As Boolean?
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim valor = TryCast(JToken.Parse(cuerpo), JObject)?("tieneFechasFuturas")
+            If valor Is Nothing OrElse valor.Type <> JTokenType.Boolean Then
+                Return Nothing
+            End If
+            Return valor.Value(Of Boolean)()
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer) Implements IPedidoVentaService.CrearPedido
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -1072,12 +1093,14 @@ Public Class PedidoVentaService
                 pedido.Efectos.ImporteTotal = pedido.Total
                 pedido.Efectos.CuadrarEfectos()
             End If
+            pedido.tieneFechasFuturas = Nothing ' Nesto#588: lo dice la respuesta
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try
                 Dim response As HttpResponseMessage = Await client.PostAsync("PedidosVenta", content)
 
                 If response.IsSuccessStatusCode Then
+                    pedido.tieneFechasFuturas = LeerTieneFechasFuturas(Await response.Content.ReadAsStringAsync()) ' Nesto#588
                     ' El número del pedido viene en el Location header
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numeroPedidoStr = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)

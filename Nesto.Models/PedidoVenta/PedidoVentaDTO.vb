@@ -136,6 +136,11 @@ Public Class PedidoVentaDTO
     Public Property OrigenModoServicio As String
     ''' <summary>NestoAPI#704: el modo que sugirió el servidor (ModoServicioSugerido) y estaba en pantalla al grabar, si lo hubo.</summary>
     Public Property ModoServicioSugerido As Byte?
+    ''' <summary>Nesto#588: «fechas futuras» del pedido, calculado por la API con la regla de la lista de pedidos (ruta interna con su
+    ''' día de reparto, NestoAPI#764). Lo traen el GET del pedido y las respuestas de crearlo y modificarlo; Nothing = la API no lo
+    ''' manda (versión vieja) y Nesto lo calcula como antes. Solo de salida: no se envía si es Nothing.</summary>
+    <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
+    Public Property tieneFechasFuturas As Boolean?
 
     Public ReadOnly Property Bruto As Decimal
         Get
