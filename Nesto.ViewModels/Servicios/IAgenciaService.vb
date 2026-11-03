@@ -6,12 +6,16 @@ Public Interface IAgenciaService
     Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper)
     ' Nesto#340 (A2): GetEnvioById eliminado — no lo llamaba nadie.
     Function Insertar(envio As EnviosAgencia) As EnviosAgencia
-    Sub Modificar(envio As EnviosAgencia)
+    ''' <summary>PUT api/EnviosAgencias/{id}. Refresca en <paramref name="envio"/> la RowVersion y el Reembolso con los que ha quedado
+    ''' y devuelve los avisos de la API para el usuario (Nesto#603 / NestoAPI#785: p. ej. el reembolso recalculado al registrar una
+    ''' etiqueta pendiente); vacío si no hay o si la API es anterior (204 sin cuerpo). Al registrar una etiqueta pendiente contra
+    ''' reembolso a 0 € con la factura pendiente de cobro lanza <see cref="ReembolsoCeroContraReembolsoException"/> (no se guarda nada).</summary>
+    Function Modificar(envio As EnviosAgencia) As IReadOnlyList(Of String)
     ''' <summary>NestoAPI#725 / Nesto#564: el PUT de un envío ya registrado en la agencia, guardado solo en Nesto con la confirmación de la agencia por teléfono.</summary>
     Sub ModificarConfirmadoConLaAgencia(envio As EnviosAgencia, confirmacionAgencia As String)
     ''' <summary>Sugerencia 906: el PUT de un envío PENDIENTE al que el usuario le quita a mano el retorno (?quitarRetorno=true). Sin
     ''' ese parámetro la API conserva el retorno del pendiente.</summary>
-    Sub ModificarQuitandoRetorno(envio As EnviosAgencia)
+    Function ModificarQuitandoRetorno(envio As EnviosAgencia) As IReadOnlyList(Of String)
     Sub Borrar(Id As Integer)
     ' Nesto#340 (A3): el pedido de Agencias ya no es la entidad EF CabPedidoVta, sino un POCO
     ' que viene de GET api/PedidosVenta/ParaAgencia. Los cuatro modos cubren los cuatro caminos
