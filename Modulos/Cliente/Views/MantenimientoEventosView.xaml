@@ -346,9 +346,13 @@
                                     <ContentControl Content="{Binding}" Focusable="False">
                                         <ContentControl.Style>
                                             <Style TargetType="ContentControl">
+                                                <!-- Novedad 961 (Carlos, 03/11/26): sin plantilla, WPF pintaba el ToString() del modelo
+                                                     («Modulos.Cliente.Models.Inscripcion…») bajo cada tarjeta plegada. Plegada = oculto. -->
                                                 <Setter Property="ContentTemplate" Value="{x:Null}"/>
+                                                <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Desplegada}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
                                                         <Setter Property="ContentTemplate">
                                                             <Setter.Value>
                                                                 <DataTemplate>
