@@ -95,6 +95,38 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>Nesto#567 (NestoAPI#732): el pedido que justifica la inscripción gratuita por compra; null en el resto.</summary>
         public int? PedidoJustificante { get; set; }
 
+        // Nesto#614 (NestoAPI#811): una inscripción es de un centro y puede traer varias personas (ocupa tantas plazas).
+
+        /// <summary>Cuántas personas vienen con esta inscripción. Null con la API de antes de NestoAPI#811 (= 1).</summary>
+        public int? Asistentes { get; set; }
+
+        /// <summary>Los asistentes que cuentan: los de la API si son 1 o más; si no, 1.</summary>
+        [JsonIgnore]
+        public int NumeroAsistentes => Asistentes.HasValue && Asistentes.Value >= 1 ? Asistentes.Value : 1;
+
+        /// <summary>«1 asistente», «2 asistentes».</summary>
+        [JsonIgnore]
+        public string TextoAsistentes => TextoPersonas(NumeroAsistentes);
+
+        public static string TextoPersonas(int n) => n == 1 ? "1 asistente" : $"{n} asistentes";
+
+        /// <summary>«8897/0 · 2 asistentes» (la cabecera de la tarjeta de los inscritos).</summary>
+        [JsonIgnore]
+        public string ClienteContactoAsistentes => $"{ClienteContacto} · {TextoAsistentes}";
+
+        private int? _asistentesEdicion;
+        /// <summary>El número que se está escribiendo en la ficha (empieza con los que tiene); se guarda con «Cambiar».</summary>
+        [JsonIgnore]
+        public int? AsistentesEdicion
+        {
+            get => _asistentesEdicion ?? NumeroAsistentes;
+            set => SetProperty(ref _asistentesEdicion, value);
+        }
+
+        /// <summary>Solo se cambian en las que ocupan plaza (no en las caducadas ni en las anuladas); la API lo vuelve a mirar.</summary>
+        [JsonIgnore]
+        public bool SePuedenCambiarAsistentes => Estado != null && Estado != CADUCADA && Estado != ANULADA;
+
         /// <summary>Opción «nadie indicado» del combo «Asiste».</summary>
         public static readonly PersonaContactoEventoModel SIN_PERSONA = new() { Numero = string.Empty, Nombre = "(sin indicar)" };
 
@@ -407,6 +439,18 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>Nesto#566 (NestoAPI#731): el Número de la persona de contacto que asiste. Opcional (null = no se manda).</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string PersonaContacto { get; set; }
+        /// <summary>
+        /// Nesto#614 (NestoAPI#811): cuántas personas vienen (mínimo 1; ocupan tantas plazas y, en un evento «gratuito por
+        /// compra», hace falta una unidad comprada por asistente). Null = no se manda (la API pone 1).
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? Asistentes { get; set; }
+    }
+
+    /// <summary>Nesto#614 (NestoAPI#811): cuerpo de PUT api/Eventos/Inscripciones/{id}/Asistentes.</summary>
+    public class CambiarAsistentesInscripcionModel
+    {
+        public int? Asistentes { get; set; }
     }
 
     /// <summary>Nesto#566 (NestoAPI#731): una persona de contacto del cliente (PersonaContactoEventoDTO).</summary>
