@@ -1,0 +1,6 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.NuevaNotaCobroBoton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Button x:Name="Boton" Content="Nueva nota de cobro…" Padding="8,1" Click="Boton_Click"
+            ToolTip="Crear una nota de solo cobro para este cliente: el repartidor pasa a cobrar los efectos que marque (o un importe) sin llevar nada"/>
+</UserControl>

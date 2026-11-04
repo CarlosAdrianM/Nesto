@@ -82,6 +82,10 @@
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding descripcionEstadoCCC}" />
                     <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding deudaVencida, StringFormat=c}" Foreground="Red"/>
+                    <!-- Nesto#618 (NestoAPI#786): nota de solo cobro para el reparto propio (Almacén, Administración, Dirección e Informática) -->
+                    <cliente:NuevaNotaCobroBoton Grid.Row="2" Grid.Column="5" Margin="2" HorizontalAlignment="Left"
+                                                 Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
+                                                 Contacto="{Binding clienteActivo.contacto}" Nombre="{Binding clienteActivo.nombre}"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor en Ficha:</TextBlock>
                     <!-- Nesto#458: para un jefe de ventas el combo se filtra a su equipo (+NV) y,
                          si el cliente lo lleva alguien de fuera, los campos se deshabilitan con

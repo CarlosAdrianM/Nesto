@@ -362,4 +362,36 @@ Public Class DetallePedidoNotaEntregaCabeceraTests
     End Function
 #End Region
 
+#Region "Nueva nota de cobro (Nesto#618)"
+    <TestMethod()>
+    Public Async Function NuevaNotaCobro_AbreElDialogoConElClienteYContactoDelPedidoSinTocarElPedido() As Task
+        Dim vm = CrearVm(Constantes.GruposSeguridad.ADMINISTRACION)
+        vm.pedido = PedidoNormal(927520)
+        Dim parametros As ParametrosDialogo = Nothing
+        A.CallTo(Function() dialogService.ShowDialogAsync(PermisosNotasEntrega.DIALOGO_NOTA_COBRO, A(Of ParametrosDialogo).Ignored)).
+            ReturnsLazily(Function(nombre As String, p As ParametrosDialogo)
+                              parametros = p
+                              Return Task.FromResult(New ResultadoDialogo(ResultadoBoton.Cancel))
+                          End Function)
+
+        Assert.IsTrue(vm.NuevaNotaCobroCommand.CanExecute(Nothing))
+        Await vm.NuevaNotaCobroAsync()
+
+        Assert.IsNotNull(parametros)
+        Assert.AreEqual("15191", parametros.GetValue(Of String)("cliente"))
+        Assert.AreEqual("0", parametros.GetValue(Of String)("contacto"))
+        Assert.AreEqual("1", parametros.GetValue(Of String)("empresa"))
+        Assert.AreEqual(927520, vm.pedido.numero, "El pedido en pantalla no cambia")
+    End Function
+
+    <TestMethod()>
+    Public Sub NuevaNotaCobro_LosMismosPermisosQueLaDeRecogida()
+        Dim vm = CrearVm(Constantes.GruposSeguridad.TIENDAS)
+        vm.pedido = PedidoNormal(927520)
+
+        Assert.IsFalse(vm.NuevaNotaCobroCommand.CanExecute(Nothing))
+        Assert.IsFalse(vm.NuevaNotaRecogidaCommand.CanExecute(Nothing))
+    End Sub
+#End Region
+
 End Class

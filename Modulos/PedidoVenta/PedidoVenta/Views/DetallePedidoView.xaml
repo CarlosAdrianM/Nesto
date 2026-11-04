@@ -391,6 +391,10 @@
                                 <Button Grid.Row="2" Grid.Column="3" Command="{Binding NuevaNotaRecogidaCommand}"
                                         Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Crear una nota de recogida para este cliente (1 bulto) con una línea de texto para escribir qué hay que recoger">Nueva nota de recogida</Button>
+                                <!-- Nesto#618 (NestoAPI#786): nota de solo cobro (parada del reparto propio sin bultos) para el cliente del pedido -->
+                                <Button Grid.Row="3" Grid.Column="2" Command="{Binding NuevaNotaCobroCommand}"
+                                        Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Crear una nota de solo cobro para este cliente: el repartidor pasa a cobrar los efectos que marque (o un importe) sin llevar nada">Nueva nota de cobro…</Button>
                                 <!-- Nesto#581 (NestoAPI#760): leer la etiqueta NR del bulto que trae el repartidor crea el abono y lo abre en modo abono -->
                                 <Button Grid.Row="3" Grid.Column="3" Command="{Binding LeerEtiquetaRecogidaCommand}"
                                         Visibility="{Binding PuedeLeerEtiquetaRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"

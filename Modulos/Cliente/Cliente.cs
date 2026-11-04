@@ -40,6 +40,9 @@ namespace Nesto.Modulos.Cliente
             // Nesto#606 (NestoAPI#799): día de reparto propio del contacto (excepción al de su código postal)
             registro.Transitorio<IDiaRepartoClienteService, DiaRepartoClienteService>();
             registro.Transitorio<HorariosPorRevisarViewModel>();
+            // Nesto#618 (NestoAPI#786): «Nueva nota de cobro» (desde la ficha del cliente y desde el detalle del pedido)
+            registro.Transitorio<INotaCobroService, NotaCobroService>();
+            registro.RegistrarDialogo<NotaCobroDialog, NotaCobroDialogViewModel>(NotaCobroDialogViewModel.NOMBRE);
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ClienteMenuBar>();

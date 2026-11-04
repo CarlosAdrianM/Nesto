@@ -20,13 +20,7 @@ Partial Public Class DetallePedidoViewModel
 
     ''' <summary>Quién puede crear notas de entrega y de recogida (los mismos grupos que deja la API).</summary>
     Public Shared Function PuedeCrearNotas(configuracion As IConfiguracion) As Boolean
-        If configuracion Is Nothing Then
-            Return False
-        End If
-        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-            configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
-            configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-            configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
+        Return PermisosNotasEntrega.Puede(configuracion)
     End Function
 
     Private _esGrupoQuePuedeCrearNotas As Boolean
@@ -42,6 +36,7 @@ Partial Public Class DetallePedidoViewModel
     End Property
 
     Public Property NuevaNotaRecogidaCommand As AsyncRelayCommand
+    Public Property NuevaNotaCobroCommand As AsyncRelayCommand
     Public Property AbrirSelectorFacturaOriginalCommand As RelayCommand
     Public Property CancelarSelectorFacturaOriginalCommand As RelayCommand
     Public Property VincularFacturaOriginalCommand As RelayCommand
@@ -53,6 +48,7 @@ Partial Public Class DetallePedidoViewModel
     Private Sub InicializarNotaEntrega()
         EsGrupoQuePuedeCrearNotas = PuedeCrearNotas(configuracion)
         NuevaNotaRecogidaCommand = New AsyncRelayCommand(AddressOf NuevaNotaRecogidaAsync, Function() PuedeCrearNotaRecogida)
+        NuevaNotaCobroCommand = New AsyncRelayCommand(AddressOf NuevaNotaCobroAsync, Function() PuedeCrearNotaCobro)
         AbrirSelectorFacturaOriginalCommand = New RelayCommand(Sub() MostrarSelectorFacturaOriginal = True, Function() EsNotaRecogida)
         CancelarSelectorFacturaOriginalCommand = New RelayCommand(Sub() MostrarSelectorFacturaOriginal = False)
         VincularFacturaOriginalCommand = New RelayCommand(AddressOf VincularFacturaOriginal, Function() FacturaOriginalEnLista IsNot Nothing)
@@ -343,6 +339,7 @@ Partial Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(PuedeElegirModoFacturacion))
         NotificarCambioCabeceraNota()
         NuevaNotaRecogidaCommand?.NotifyCanExecuteChanged()
+        NuevaNotaCobroCommand?.NotifyCanExecuteChanged()
         NotificarCambioAbonoRecogida() ' Nesto#581: «Leer etiqueta de recogida» es de los mismos grupos
     End Sub
 #End Region
@@ -554,6 +551,37 @@ Partial Public Class DetallePedidoViewModel
             RaiseEvent FocoEnTextoDeLineaSolicitado(Me, linea)
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido preparar la nota de recogida: {ex.Message}")
+        End Try
+    End Function
+#End Region
+
+#Region "Nueva nota de cobro (Nesto#618)"
+    ''' <summary>Los mismos grupos que «Nueva nota de recogida»; hace falta un cliente en pantalla.</summary>
+    Public ReadOnly Property PuedeCrearNotaCobro As Boolean
+        Get
+            Return EsGrupoQuePuedeCrearNotas AndAlso pedido IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(pedido.cliente)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#618 (NestoAPI#786): «Nueva nota de cobro». Abre el diálogo (módulo Cliente) con el cliente y el contacto del pedido en
+    ''' pantalla propuestos; allí se marcan los efectos, el importe, el día y el comentario, y se crea con POST api/NotasEntrega/Cobro.
+    ''' No toca el pedido en pantalla.
+    ''' </summary>
+    Friend Async Function NuevaNotaCobroAsync() As Task
+        If Not PuedeCrearNotaCobro Then
+            Return
+        End If
+        Dim parametros As New ParametrosDialogo From {
+            {"empresa", If(String.IsNullOrWhiteSpace(pedido.empresa), EMPRESA_POR_DEFECTO, pedido.empresa.Trim())},
+            {"cliente", pedido.cliente?.Trim()},
+            {"contacto", pedido.contacto?.Trim()},
+            {"nombre", ClienteCompleto?.nombre?.Trim()}
+        }
+        Try
+            Await dialogService.ShowDialogAsync(PermisosNotasEntrega.DIALOGO_NOTA_COBRO, parametros)
+        Catch ex As Exception
+            dialogService.ShowError($"No se ha podido abrir la nota de cobro: {ex.Message}")
         End Try
     End Function
 #End Region
