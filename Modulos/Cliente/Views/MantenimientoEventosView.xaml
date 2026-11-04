@@ -35,8 +35,14 @@
             <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="True">
                 <Button DockPanel.Dock="Left" Content="Nuevo evento" Command="{Binding NuevoCommand}" Padding="15,2" FontWeight="Bold"/>
                 <Button DockPanel.Dock="Left" Content="Recargar" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="15,2"/>
-                <TextBlock Text="Cursos y masterclass de cada tienda. Se inscribe al cliente sin pedido; con la señal pagada tiene la plaza."
-                           Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap"/>
+                <StackPanel VerticalAlignment="Center" Margin="15,0,0,0">
+                    <TextBlock Text="Cursos y masterclass de cada tienda. Se inscribe al cliente sin pedido; con la señal pagada tiene la plaza."
+                               Foreground="DimGray" TextWrapping="Wrap"/>
+                    <!-- Nesto#619 (sugerencia 1021 de Sancho): la pantalla es para todos; sin permisos, de consulta -->
+                    <TextBlock Text="{x:Static local:MantenimientoEventosViewModel.AVISO_SOLO_CONSULTA}" Foreground="#1565C0"
+                               TextWrapping="Wrap" Margin="0,2,0,0"
+                               Visibility="{Binding SoloConsulta, Converter={StaticResource BoolAVisibilidad}}"/>
+                </StackPanel>
             </DockPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Eventos}" AutoGenerateColumns="False"
@@ -77,10 +83,11 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Ficha del evento -->
-                <Border Grid.Column="0" BorderBrush="LightGray" BorderThickness="0,1,1,0" Padding="0,10,10,0"
-                        IsEnabled="{Binding Editando}">
+                <!-- Nesto#619: de consulta (sin permisos de mantenimiento) la ficha se ve pero no se toca; el ScrollViewer sigue
+                     activo para poder leerla entera. -->
+                <Border Grid.Column="0" BorderBrush="LightGray" BorderThickness="0,1,1,0" Padding="0,10,10,0">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                        <StackPanel>
+                        <StackPanel IsEnabled="{Binding SePuedeEditar}">
                             <TextBlock Text="Nuevo evento" FontWeight="Bold" Margin="0,0,0,6">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -249,6 +256,10 @@
                     <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
                         <TextBlock Text="Inscritos" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="0,2,0,2"/>
                         <TextBlock Text="{Binding ResumenInscripciones}" Foreground="DimGray" VerticalAlignment="Center" Margin="10,2,15,2"/>
+                        <!-- Nesto#619: cada comercial ve a sus clientes (los de su equipo, si es jefe de equipo) -->
+                        <CheckBox Content="Solo mis clientes" IsChecked="{Binding SoloMisClientes}" VerticalAlignment="Center" Margin="0,2,12,2"
+                                  ToolTip="Solo los inscritos de los que es usted el vendedor (o alguien de su equipo, si es jefe de equipo)"
+                                  Visibility="{Binding HayFiltroMisClientes, Converter={StaticResource BoolAVisibilidad}}"/>
                         <Button Content="Inscribir cliente…" Command="{Binding InscribirCommand}" Margin="0,2,6,2" Padding="10,1" FontWeight="Bold"/>
                         <Button Content="Recargar" Command="{Binding RecargarInscripcionesCommand}" Margin="0,2,6,2" Padding="10,1"/>
                         <Button Content="Anular" Command="{Binding AnularInscripcionCommand}" Margin="0,2,6,2" Padding="10,1"
@@ -266,7 +277,7 @@
                     <!-- Nesto#572 (sugerencias 902 de Pilar y 862 de Reina): antes era una rejilla de ~20 columnas que salían
                          estrechísimas. Ahora cada inscrito es una tarjeta con lo básico; la seleccionada se despliega con todo el
                          detalle (el detalle solo se crea al desplegar, como antes la edición de la celda «Asiste»). -->
-                    <ListBox x:Name="listaInscritos" Grid.Row="1" ItemsSource="{Binding Inscripciones}"
+                    <ListBox x:Name="listaInscritos" Grid.Row="1" ItemsSource="{Binding InscripcionesVisibles}"
                              SelectedItem="{Binding InscripcionSeleccionada}" SelectionMode="Single" MinHeight="90"
                              HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                              ScrollViewer.CanContentScroll="False" BorderBrush="LightGray" Padding="4">
@@ -324,6 +335,7 @@
                                         <CheckBox DockPanel.Dock="Left" Content="Vino" VerticalAlignment="Center" Margin="0,0,10,0"
                                                   IsChecked="{Binding Asistio, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEnabled="{Binding EntraEnListaAsistencia}"
+                                                  Visibility="{Binding DataContext.TieneAcceso, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolAVisibilidad}}"
                                                   ToolTip="Marque a los que han venido al evento (se guarda con «Guardar lista»)"/>
                                         <Border DockPanel.Dock="Right" Background="#ECEFF1" CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
                                                 VerticalAlignment="Center">
@@ -338,6 +350,8 @@
                                             <Run Text="  "/>
                                             <!-- Nesto#614: «8897/0 · 2 asistentes» -->
                                             <Run Text="{Binding ClienteContactoAsistentes, Mode=OneWay}" Foreground="DimGray"/>
+                                            <!-- Nesto#619: « · Vendedor: JE» -->
+                                            <Run Text="{Binding TextoVendedores, Mode=OneWay}" Foreground="DimGray"/>
                                         </TextBlock>
                                     </DockPanel>
                                     <DockPanel Margin="0,3,0,0" LastChildFill="True">
@@ -418,6 +432,7 @@
                                                                             <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding PersonasDisponibles}" DisplayMemberPath="Texto"
                                                                                       SelectedValuePath="Numero" Margin="0,2,8,2" MaxWidth="320" HorizontalAlignment="Left" MinWidth="180"
                                                                                       SelectedValue="{Binding NumeroPersonaAsiste, UpdateSourceTrigger=PropertyChanged}"
+                                                                                      IsEnabled="{Binding DataContext.TieneAcceso, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                                                       ToolTip="La persona de contacto que asiste (se guarda al elegirla)"/>
                                                                             <TextBlock Grid.Row="2" Grid.Column="2" Text="Teléfono:" Foreground="DimGray" Margin="0,2,8,2"/>
                                                                             <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding TelefonoPersona, Mode=OneWay}" Style="{StaticResource TextoCopiable}"/>
@@ -452,7 +467,8 @@
 
                                                                             <!-- Nesto#614 (NestoAPI#811, Reina): cuántas personas vienen con esta inscripción -->
                                                                             <TextBlock Grid.Row="8" Grid.Column="0" Text="Asistentes:" Foreground="DimGray" Margin="0,2,8,2"/>
-                                                                            <StackPanel Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2">
+                                                                            <StackPanel Grid.Row="8" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,2"
+                                                                                        IsEnabled="{Binding DataContext.TieneAcceso, RelativeSource={RelativeSource AncestorType=ListBox}}">
                                                                                 <xctk:IntegerUpDown Value="{Binding AsistentesEdicion, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Width="60"
                                                                                                     IsEnabled="{Binding SePuedenCambiarAsistentes}"
                                                                                                     ToolTip="Cuántas personas vienen con esta inscripción: ocupan tantas plazas y, si el evento pide comprar un producto, hace falta una unidad comprada por asistente"/>
@@ -479,12 +495,14 @@
                     <StackPanel Grid.Row="2" Margin="0,4,0,0">
                         <TextBlock Text="{Binding MensajeFacturacion}" Foreground="#C62828" TextWrapping="Wrap"/>
                         <TextBlock Text="{Binding AvisoEnlace}" Foreground="#1B5E20" FontWeight="Bold" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding AvisoFiltroMisClientes}" Foreground="DimGray" TextWrapping="Wrap"/>
                     </StackPanel>
 
                     <!-- Sugerencia 871: antes iban lado a lado y, en ventanas pequeñas, el texto de la lista de asistencia se
                          partía letra a letra y estiraba «Marcar pagada» hasta tapar la lista de inscritos. Ahora uno debajo
                          de otro y con los controles centrados (no se estiran). -->
-                    <StackPanel Grid.Row="3" Margin="0,6,0,0">
+                    <!-- Nesto#619: pagos y lista, solo quien mantiene eventos (de consulta no se enseñan) -->
+                    <StackPanel Grid.Row="3" Margin="0,6,0,0" Visibility="{Binding TieneAcceso, Converter={StaticResource BoolAVisibilidad}}">
                         <!-- Marcar pagada a mano: la API no contabiliza nada (el efectivo, a la caja de la tienda) -->
                         <GroupBox Header="Marcar pagada" Padding="6,3">
                             <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">

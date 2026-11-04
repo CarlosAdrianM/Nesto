@@ -35,7 +35,7 @@
             <RibbonGroup x:Name="grpEventos"
                                 Header="Eventos">
                 <RibbonButton Label="Eventos" LargeImageSource="Images/Eventos.png" Command="{Binding AbrirEventosCommand}"
-                              Visibility="{Binding PuedeMantenerEventos, Converter={StaticResource BoolAVisibilidad}}" />
+                              Visibility="{Binding PuedeVerEventos, Converter={StaticResource BoolAVisibilidad}}" />
                 <RibbonButton Label="Señales de eventos" LargeImageSource="Images/SenalesEventos.png" Command="{Binding AbrirSenalesEventosCommand}"
                               Visibility="{Binding PuedeVerSenalesEventos, Converter={StaticResource BoolAVisibilidad}}" />
             </RibbonGroup>

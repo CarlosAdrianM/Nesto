@@ -381,11 +381,32 @@ namespace Nesto.Modulos.Cliente
             {
                 return mensaje;
             }
-            if (estado == 403)
+            if (estado == 403 || estado == 401)
             {
-                return string.IsNullOrEmpty(mensaje) ? $"{mensajeError}: no tiene permiso." : mensaje;
+                // Nesto#619: la pantalla de eventos es para todos; lo que no puede hacer cada uno lo dice la API (de usted).
+                // Sin su mensaje (o con el genérico en inglés de Web API), «No tiene permiso para guardar el evento.».
+                bool sinMensajeUtil = string.IsNullOrEmpty(mensaje)
+                    || mensaje.IndexOf("Authorization has been denied", StringComparison.OrdinalIgnoreCase) >= 0;
+                return sinMensajeUtil ? SinPermisoPara(mensajeError) : mensaje;
             }
             return $"{mensajeError}: {mensaje}";
+        }
+
+        /// <summary>
+        /// Nesto#619: «No se pudo guardar el evento» → «No tiene permiso para guardar el evento.»; «No se pudieron cargar los
+        /// eventos» → «No tiene permiso para cargar los eventos.». Otro texto: «No tiene permiso para hacerlo (texto).».
+        /// </summary>
+        internal static string SinPermisoPara(string mensajeError)
+        {
+            string texto = mensajeError?.Trim().TrimEnd('.') ?? string.Empty;
+            foreach (string prefijo in new[] { "No se pudieron ", "No se pudo " })
+            {
+                if (texto.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+                {
+                    return $"No tiene permiso para {texto.Substring(prefijo.Length)}.";
+                }
+            }
+            return string.IsNullOrEmpty(texto) ? "No tiene permiso para hacerlo." : $"No tiene permiso para hacerlo ({texto}).";
         }
 
         /// <summary>

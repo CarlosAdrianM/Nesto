@@ -110,6 +110,32 @@ namespace Nesto.Modulos.Cliente.Models
 
         public static string TextoPersonas(int n) => n == 1 ? "1 asistente" : $"{n} asistentes";
 
+        // Nesto#619 (sugerencia 1021 de Sancho): de quién es el cliente, para que cada comercial vea a los suyos.
+
+        /// <summary>Los vendedores del cliente (estética y peluquería). Solo en los inscritos del evento; null con la API de antes.</summary>
+        public List<string> Vendedores { get; set; }
+
+        /// <summary>
+        /// Es de los clientes del usuario (su vendedor o, si es jefe de equipo, de su equipo; lo calcula la API). Null con la API
+        /// de antes o fuera de la lista de inscritos del evento.
+        /// </summary>
+        public bool? EsDeMisClientes { get; set; }
+
+        /// <summary>« · Vendedor: JE» o « · Vendedores: JE, PA» (en la cabecera de la tarjeta); vacío si no se sabe.</summary>
+        [JsonIgnore]
+        public string TextoVendedores
+        {
+            get
+            {
+                List<string> vendedores = Vendedores?.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v.Trim()).ToList();
+                if (vendedores == null || !vendedores.Any())
+                {
+                    return string.Empty;
+                }
+                return $" · {(vendedores.Count == 1 ? "Vendedor" : "Vendedores")}: {string.Join(", ", vendedores)}";
+            }
+        }
+
         /// <summary>«8897/0 · 2 asistentes» (la cabecera de la tarjeta de los inscritos).</summary>
         [JsonIgnore]
         public string ClienteContactoAsistentes => $"{ClienteContacto} · {TextoAsistentes}";

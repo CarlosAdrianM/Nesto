@@ -49,28 +49,37 @@ namespace Nesto.Modulos.Cliente
             _formatoEdicion = Formatos[0];
             FormasPago = MarcarPagoInscripcionModel.FORMAS_PAGO.ToList();
             CargarCommand = new AsyncRelayCommand(CargarAsync);
-            NuevoCommand = new RelayCommand(OnNuevo);
-            GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => Editando);
+            // Nesto#619: crear, modificar, pagos, lista, imagen y lo que cambia una inscripción, solo quien mantiene eventos
+            // (TieneAcceso); la API lo vuelve a comprobar (403 → su mensaje). Inscribir y copiar el enlace, todos.
+            NuevoCommand = new RelayCommand(OnNuevo, () => TieneAcceso);
+            GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => SePuedeEditar);
             ComprobarProductoCommand = new AsyncRelayCommand(ComprobarProductoAsync, () => !string.IsNullOrWhiteSpace(ProductoCursoEdicion));
-            CrearProductoCursoCommand = new AsyncRelayCommand(CrearProductoCursoAsync, () => Editando && _idEdicion > 0 && !TieneReferenciaForzada);
+            CrearProductoCursoCommand = new AsyncRelayCommand(CrearProductoCursoAsync, () => SePuedeEditar && _idEdicion > 0 && !TieneReferenciaForzada);
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => Seleccionado?.Id > 0);
-            AnularInscripcionCommand = new AsyncRelayCommand(AnularInscripcionAsync, () => InscripcionSeleccionada?.SePuedeAnular == true);
+            AnularInscripcionCommand = new AsyncRelayCommand(AnularInscripcionAsync, () => SePuedeAnularSeleccionada);
             ConfirmaAsistenciaCommand = new AsyncRelayCommand(() => ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.CONFIRMA),
-                () => InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
+                () => TieneAcceso && InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
             NoPodraIrCommand = new AsyncRelayCommand(() => ConfirmarAsistenciaAsync(AsistenciaConfirmadaModel.NO_PODRA_IR),
-                () => InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
-            SubirImagenCommand = new AsyncRelayCommand(SubirImagenAsync, () => Editando && _idEdicion > 0);
-            QuitarImagenCommand = new AsyncRelayCommand(QuitarImagenAsync, () => Editando && _idEdicion > 0 && !string.IsNullOrWhiteSpace(ImagenUrl));
-            MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => InscripcionSeleccionada?.SePuedeMarcarPagada == true);
-            FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => InscripcionSeleccionada?.SePuedeFacturar == true);
+                () => TieneAcceso && InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
+            SubirImagenCommand = new AsyncRelayCommand(SubirImagenAsync, () => SePuedeEditar && _idEdicion > 0);
+            QuitarImagenCommand = new AsyncRelayCommand(QuitarImagenAsync, () => SePuedeEditar && _idEdicion > 0 && !string.IsNullOrWhiteSpace(ImagenUrl));
+            MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeMarcarPagada == true);
+            FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
             RecargarInscripcionesCommand = new AsyncRelayCommand(CargarInscripcionesAsync, () => Seleccionado?.Id > 0);
             AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
             CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace,
                 i => (i ?? InscripcionSeleccionada)?.TieneEnlacePago == true);
             CambiarAsistentesCommand = new AsyncRelayCommand<InscripcionEventoModel>(i => CambiarAsistentesAsync(i ?? InscripcionSeleccionada),
-                i => (i ?? InscripcionSeleccionada)?.SePuedenCambiarAsistentes == true);
+                i => TieneAcceso && (i ?? InscripcionSeleccionada)?.SePuedenCambiarAsistentes == true);
         }
+
+        /// <summary>
+        /// Nesto#619: anular una inscripción sin pagar, quien mantiene eventos o el comercial de ese cliente (la inscribe él);
+        /// la API deja anular a cualquiera de la casa.
+        /// </summary>
+        public bool SePuedeAnularSeleccionada => InscripcionSeleccionada?.SePuedeAnular == true
+            && (TieneAcceso || InscripcionSeleccionada.EsDeMisClientes == true);
 
         // ---------------- Carlos 29/10/26: copiar el enlace de pago de un inscrito para reenviarlo ----------------
 
@@ -114,7 +123,98 @@ namespace Nesto.Modulos.Cliente
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
 
+        /// <summary>
+        /// Nesto#619 (sugerencia 1021 de Sancho, Carlos 04/11/26): la pantalla de eventos la ve cualquier usuario de Nesto: la
+        /// lista de eventos y la de inscritos son de consulta para todos e «Inscribir» también (la API acota a quién: cada
+        /// comercial a sus clientes, NestoAPI#741). Lo demás (crear y modificar eventos, pagos, lista, imagen…), quien
+        /// <see cref="PuedeMantener"/>.
+        /// </summary>
+        public static bool PuedeVer(IConfiguracion configuracion) => configuracion != null;
+
+        /// <summary>Puede crear y modificar eventos, marcar pagos, pasar lista… (si no, la pantalla es de consulta).</summary>
         public bool TieneAcceso => PuedeMantener(Configuracion);
+
+        /// <summary>Nesto#619: sin permisos de mantenimiento, la pantalla es de consulta (con el aviso de qué puede hacer).</summary>
+        public bool SoloConsulta => !TieneAcceso;
+
+        public const string AVISO_SOLO_CONSULTA =
+            "Puede consultar los eventos y sus inscritos, e inscribir a sus clientes. Crear o modificar eventos, marcar pagos y " +
+            "pasar lista lo hacen las tiendas, Administración y Dirección.";
+
+        public const string SIN_PERMISO_MANTENER =
+            "No tiene permiso para modificar eventos: los mantiene cada tienda (los de Reina, Reina; los de Alcobendas, Alcobendas), Administración y Dirección.";
+
+        public const string SIN_PERMISO_INSCRIPCION =
+            "No tiene permiso para cambiar esta inscripción: lo hacen la tienda del evento, Administración y Dirección.";
+
+        /// <summary>La ficha del evento se puede tocar: hay uno elegido (o nuevo) y quien mira lo mantiene.</summary>
+        public bool SePuedeEditar => Editando && TieneAcceso;
+
+        // ---------------- Nesto#619: «Solo mis clientes» en los inscritos ----------------
+
+        private bool _soloMisClientes;
+        private bool _soloMisClientesDecidido;
+        /// <summary>
+        /// Solo los inscritos que son clientes del usuario (su vendedor o, si es jefe de equipo, de su equipo; lo calcula la
+        /// API en EsDeMisClientes). Por defecto, marcado para los comerciales sin permisos de mantenimiento y desmarcado para
+        /// las tiendas, Administración, Dirección… (y para quien no es comercial).
+        /// </summary>
+        public bool SoloMisClientes
+        {
+            get => _soloMisClientes;
+            set
+            {
+                _soloMisClientesDecidido = true;
+                if (SetProperty(ref _soloMisClientes, value))
+                {
+                    AplicarFiltroInscripciones();
+                }
+            }
+        }
+
+        /// <summary>La API dice de quién es cada inscrito (con una API anterior a Nesto#619 no: el filtro no se enseña).</summary>
+        public bool HayFiltroMisClientes => Inscripciones?.Any(i => i.EsDeMisClientes.HasValue) == true;
+
+        private ObservableCollection<InscripcionEventoModel> _inscripcionesVisibles = new();
+        /// <summary>Las tarjetas que se ven: todas o, con <see cref="SoloMisClientes"/>, las de sus clientes.</summary>
+        public ObservableCollection<InscripcionEventoModel> InscripcionesVisibles
+        {
+            get => _inscripcionesVisibles;
+            private set => SetProperty(ref _inscripcionesVisibles, value);
+        }
+
+        private bool FiltroMisClientesActivo => SoloMisClientes && HayFiltroMisClientes;
+
+        /// <summary>«Ninguno de sus clientes está inscrito en este evento.» cuando el filtro deja la lista vacía.</summary>
+        public string AvisoFiltroMisClientes => FiltroMisClientesActivo && !InscripcionesVisibles.Any() && Inscripciones.Any()
+            ? "Ninguno de sus clientes está inscrito en este evento. Quite «Solo mis clientes» para ver a todos."
+            : string.Empty;
+
+        public static IEnumerable<InscripcionEventoModel> FiltrarMisClientes(IEnumerable<InscripcionEventoModel> lista, bool soloMisClientes) =>
+            (lista ?? Enumerable.Empty<InscripcionEventoModel>()).Where(i => !soloMisClientes || i.EsDeMisClientes != false);
+
+        private void AplicarFiltroInscripciones()
+        {
+            InscripcionesVisibles = new ObservableCollection<InscripcionEventoModel>(FiltrarMisClientes(Inscripciones, FiltroMisClientesActivo));
+            if (InscripcionSeleccionada != null && !InscripcionesVisibles.Contains(InscripcionSeleccionada))
+            {
+                InscripcionSeleccionada = null;
+            }
+            OnPropertyChanged(nameof(HayFiltroMisClientes));
+            OnPropertyChanged(nameof(AvisoFiltroMisClientes));
+            OnPropertyChanged(nameof(SePuedePasarLista));
+            OnPropertyChanged(nameof(AvisoListaAsistencia));
+            GuardarAsistenciaCommand?.NotifyCanExecuteChanged();
+        }
+
+        /// <summary>
+        /// El valor inicial de «Solo mis clientes»: marcado si el usuario es comercial (tiene vendedor en sus parámetros) y no
+        /// mantiene eventos. Si ya lo ha tocado, no se cambia.
+        /// </summary>
+        public static bool SoloMisClientesPorDefecto(bool mantieneEventos, string vendedorUsuario) =>
+            !mantieneEventos && !string.IsNullOrWhiteSpace(vendedorUsuario);
+
+        private string _vendedorUsuario;
 
         public void AlLlegar(ParametrosNavegacion parametros)
         {
@@ -183,6 +283,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _editando, value))
                 {
+                    OnPropertyChanged(nameof(SePuedeEditar));
                     GuardarCommand.NotifyCanExecuteChanged();
                     SubirImagenCommand?.NotifyCanExecuteChanged();
                     CrearProductoCursoCommand?.NotifyCanExecuteChanged();
@@ -439,6 +540,23 @@ namespace Nesto.Modulos.Cliente
                         _almacenUsuario = string.Empty;
                     }
                 }
+                if (_vendedorUsuario == null && Configuracion != null)
+                {
+                    try
+                    {
+                        _vendedorUsuario = (await Configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.Vendedor))?.Trim() ?? string.Empty;
+                    }
+                    catch
+                    {
+                        _vendedorUsuario = string.Empty;
+                    }
+                    if (!_soloMisClientesDecidido)
+                    {
+                        _soloMisClientes = SoloMisClientesPorDefecto(TieneAcceso, _vendedorUsuario);
+                        OnPropertyChanged(nameof(SoloMisClientes));
+                        AplicarFiltroInscripciones();
+                    }
+                }
                 int? idSeleccionado = Seleccionado?.Id;
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
@@ -527,7 +645,7 @@ namespace Nesto.Modulos.Cliente
             }
             if (!TieneAcceso)
             {
-                _dialogService.ShowError("Los eventos los mantiene cada tienda (los de Reina, Reina; los de Alcobendas, Alcobendas), Administración y Dirección.");
+                _dialogService.ShowError(SIN_PERMISO_MANTENER);
                 return;
             }
             if (string.IsNullOrWhiteSpace(TituloEdicion))
@@ -1121,6 +1239,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _inscripciones, value))
                 {
+                    AplicarFiltroInscripciones();
                     OnPropertyChanged(nameof(ResumenInscripciones));
                     OnPropertyChanged(nameof(SePuedePasarLista));
                     OnPropertyChanged(nameof(AvisoListaAsistencia));
@@ -1252,6 +1371,21 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
+            if (!TieneAcceso)
+            {
+                // Nesto#619: de consulta, el combo no se puede usar; si se llega aquí, se avisa y vuelve a la que había.
+                _dialogService.ShowError(SIN_PERMISO_INSCRIPCION);
+                _poniendoPersona = true;
+                try
+                {
+                    inscripcion.NumeroPersonaAsiste = actual;
+                }
+                finally
+                {
+                    _poniendoPersona = false;
+                }
+                return;
+            }
             try
             {
                 EstaOcupado = true;
@@ -1305,7 +1439,10 @@ namespace Nesto.Modulos.Cliente
                 // Nesto#614: si alguna trae a más de una persona, cuántas personas son en total.
                 int personas = vivas.Sum(i => i.NumeroAsistentes);
                 string asistentes = personas != vivas.Count ? $" ({InscripcionEventoModel.TextoPersonas(personas)})" : string.Empty;
-                return $"{vivas.Count} inscritos{asistentes}: {string.Join(", ", partes)}.";
+                // Nesto#619: cuántos son de los clientes del usuario (si tiene alguno)
+                int mios = vivas.Count(i => i.EsDeMisClientes == true);
+                string deSusClientes = mios > 0 ? $" De sus clientes: {mios}." : string.Empty;
+                return $"{vivas.Count} inscritos{asistentes}: {string.Join(", ", partes)}.{deSusClientes}";
             }
         }
 
@@ -1616,7 +1753,8 @@ namespace Nesto.Modulos.Cliente
 
         // Lista de asistencia: desde el día del evento; las pagadas marcadas pasan a Asistió y el resto a No asistió (pierden el cupón).
 
-        public bool SePuedePasarLista => Seleccionado != null && Seleccionado.Fecha.Date <= DateTime.Today
+        /// <summary>Nesto#619: quien mantiene eventos y con la lista entera (con «Solo mis clientes», los ocultos se quedarían sin marcar).</summary>
+        public bool SePuedePasarLista => TieneAcceso && !FiltroMisClientesActivo && Seleccionado != null && Seleccionado.Fecha.Date <= DateTime.Today
             && (Inscripciones?.Any(i => i.EntraEnListaAsistencia) ?? false);
 
         public string AvisoListaAsistencia
@@ -1626,6 +1764,14 @@ namespace Nesto.Modulos.Cliente
                 if (Seleccionado == null)
                 {
                     return string.Empty;
+                }
+                if (!TieneAcceso)
+                {
+                    return "La lista de asistencia la pasan la tienda del evento, Administración y Dirección.";
+                }
+                if (FiltroMisClientesActivo)
+                {
+                    return "Quite «Solo mis clientes» para pasar lista: se pasa con todos los inscritos.";
                 }
                 if (Seleccionado.Fecha.Date > DateTime.Today)
                 {

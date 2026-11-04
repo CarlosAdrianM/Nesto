@@ -604,7 +604,7 @@ namespace ClienteTests
             string negocio = JsonConvert.SerializeObject(new { error = new { message = SOLO_SUS_CLIENTES } });
             Assert.AreEqual(SOLO_SUS_CLIENTES, EventosService.MensajeError(403, negocio, "No se pudo inscribir al cliente"));
             Assert.AreEqual(SOLO_SUS_CLIENTES, EventosService.MensajeError(403, JsonConvert.SerializeObject(new { Message = SOLO_SUS_CLIENTES }), "No se pudo inscribir al cliente"));
-            Assert.AreEqual("No se pudo inscribir al cliente: no tiene permiso.", EventosService.MensajeError(403, "", "No se pudo inscribir al cliente"));
+            Assert.AreEqual("No tiene permiso para inscribir al cliente.", EventosService.MensajeError(403, "", "No se pudo inscribir al cliente")); // Nesto#619
             Assert.AreEqual("No se pudo inscribir al cliente: No quedan plazas.",
                 EventosService.MensajeError(400, JsonConvert.SerializeObject(new { Message = "No quedan plazas." }), "No se pudo inscribir al cliente"));
         }
