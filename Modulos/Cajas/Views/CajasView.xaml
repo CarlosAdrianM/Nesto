@@ -65,6 +65,8 @@
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     <DataGrid.Columns>
+                        <!-- Nesto#561: cada efecto se cobra (y se vuelca a la caja) en su empresa -->
+                        <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa}"/>
                         <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
                         <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}"/>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>

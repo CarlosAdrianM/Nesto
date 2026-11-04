@@ -109,5 +109,53 @@ namespace CajasTests
             Assert.AreEqual(201.00M, lineas.Single(l => l.Cuenta == CUENTA_BANCO && l.Empresa == "1").Debe);
             Assert.AreEqual(33.67M, lineas.Single(l => l.Cuenta == CUENTA_BANCO && l.Empresa == "3").Debe);
         }
+
+        // Nesto#561 (Reina, 28/10/26, cliente 11276): el abono «A CUENTA» de 2,10 de la empresa 1 + la GB2601662 de 11,90 de
+        // la empresa 3, cobrando 9,80 desde la caja de la empresa 1. Nesto manda todas las líneas en una llamada, cada una con
+        // su empresa y su efecto, y la API contabiliza cada empresa por separado (antes solo la de la primera línea).
+        [TestMethod]
+        public void ContabilizarCobro_AbonoDeLa1YFacturaDeLa3_CadaLineaConSuEmpresaYSuEfectoEnUnaSolaLlamada()
+        {
+            var (sut, enviadas) = Preparar();
+            var abono = Factura(3058952, "1", "A CUENTA", -2.10M);
+            var factura = Factura(3058956, "3  ", "GB2601662", 11.90M);
+            sut.SeleccionarDeudasCommand.Execute(new List<object> { factura, abono });
+            sut.TotalCobrado = 9.80M;
+
+            sut.ContabilizarCobroCommand.Execute(null);
+
+            var lineas = enviadas()!;
+            AssertCuadraPorEmpresa(lineas);
+            var lineaAbono = lineas.Single(l => l.Liquidado == 3058952);
+            var lineaFactura = lineas.Single(l => l.Liquidado == 3058956);
+            Assert.AreEqual("1", lineaAbono.Empresa);
+            Assert.AreEqual(2.10M, lineaAbono.Debe);
+            Assert.AreEqual("3", lineaFactura.Empresa, "La GB2601662 es de la empresa 3: se liquida en la 3 aunque la caja abierta sea la de la 1");
+            Assert.AreEqual(11.90M, lineaFactura.Haber);
+            Assert.AreEqual(2.10M, lineas.Single(l => l.Cuenta == CUENTA_BANCO && l.Empresa == "1").Haber);
+            Assert.AreEqual(11.90M, lineas.Single(l => l.Cuenta == CUENTA_BANCO && l.Empresa == "3").Debe, "Lo de la 3 va a la caja de la empresa 3");
+        }
+
+        [TestMethod]
+        public void ContabilizarCobro_FacturaDeLa3ConACuentaEnLaCajaDeLa3_UnaSolaContrapartidaDeLa3()
+        {
+            // EMPRESA_ESPEJO es "3  ": lo «a cuenta» iba con relleno y salían dos contrapartidas de la 3
+            var (sut, enviadas) = Preparar();
+            // La caja de la 3 obliga a efectivo y busca la caja por defecto en las listas
+            sut.ListaCuentasCaja = new System.Collections.ObjectModel.ObservableCollection<CuentaContableDTO> { new() { Cuenta = null } };
+            sut.ListaFormaPago = new List<FormaPago> { new() { formaPago = "EFC" } };
+            sut.CambiarEmpresaTraspasoCommand.Execute(null);
+            Assert.AreEqual("3  ", sut.EmpresaTraspaso, "EMPRESA_ESPEJO lleva relleno");
+            sut.CuentaCobro = new CuentaContableDTO { Cuenta = CUENTA_BANCO };
+            sut.SeleccionarDeudasCommand.Execute(new List<object> { Factura(3058956, "3", "GB2601662", 11.90M) });
+            sut.TotalCobrado = 20.00M;
+
+            sut.ContabilizarCobroCommand.Execute(null);
+
+            var lineas = enviadas()!;
+            Assert.IsTrue(lineas.All(l => l.Empresa == "3"), string.Join(",", lineas.Select(l => $"[{l.Empresa}]")));
+            AssertCuadraPorEmpresa(lineas);
+            Assert.AreEqual(20.00M, lineas.Single(l => l.Cuenta == CUENTA_BANCO).Debe);
+        }
     }
 }
