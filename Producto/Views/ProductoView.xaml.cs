@@ -71,6 +71,12 @@ namespace Nesto.Modulos.Producto
         {
             if (e.Key == Key.Enter)
             {
+                // Nesto#617: una referencia o un código de barras abre directamente su ficha; se selecciona para la siguiente
+                if (DataContext is ProductoViewModel vm && vm.AbrirReferenciaDelFiltroNombre())
+                {
+                    txtFiltroNombre.SelectAll();
+                    return;
+                }
                 _ = txtFiltroFamilia.Focus();
             }
         }
