@@ -30,6 +30,8 @@ namespace ClienteTests
                 Movimiento(102, "3", 50M, new DateTime(2026, 9, 15)),
                 Movimiento(103, "1", 20.5M, new DateTime(2026, 11, 2))
             });
+            // NestoAPI#786: con un solo repartidor, propuesto
+            A.CallTo(() => servicio.LeerRepartidores()).Returns(new List<RepartidorModel> { MIGUEL });
             A.CallTo(() => servicio.CrearNotaCobro(A<CrearNotaCobroModel>._)).ReturnsLazily((CrearNotaCobroModel n) =>
             {
                 enviada = n;
@@ -42,10 +44,14 @@ namespace ClienteTests
                     CodigoDocumento = "NC929700",
                     Importe = n.Importe ?? 0,
                     Fecha = new DateTime(2026, 11, 6),
-                    Texto = "Cobro de 134,16 €"
+                    Texto = "Cobro de 134,16 €",
+                    Repartidor = n.Repartidor
                 });
             });
         }
+
+        private static readonly RepartidorModel MIGUEL = new() { Usuario = "miguel", Nombre = "Miguel" };
+        private static readonly RepartidorModel ANDRE = new() { Usuario = "Andre", Nombre = "Andre" };
 
         private static ExtractoClienteModel Movimiento(int id, string empresa, decimal pendiente, DateTime vencimiento) => new()
         {
@@ -190,7 +196,7 @@ namespace ClienteTests
             await vm.CrearAsync();
 
             Assert.IsTrue(vm.Creada);
-            Assert.AreEqual("Nota de cobro NC929700 creada: parada en el reparto del 06/11/26 por 134,16 €", vm.TextoCreada);
+            Assert.AreEqual("Nota de cobro NC929700 creada: parada en el reparto del 06/11/26 por 134,16 € para Miguel", vm.TextoCreada);
             Assert.IsFalse(vm.CrearCommand.CanExecute(null), "Ya creada, no se crea otra");
         }
 
@@ -236,6 +242,51 @@ namespace ClienteTests
 
             Assert.AreEqual(0, vm.Efectos.Count);
             Assert.AreEqual(0, vm.EfectosMarcados.Count);
+        }
+
+        // ---------------- Repartidor (NestoAPI#786) ----------------
+
+        [TestMethod]
+        public async Task Repartidor_ConUnoSolo_SePropone_YSeMandaSuUsuario()
+        {
+            NotaCobroDialogViewModel vm = await Abierto();
+            Efecto(vm, 101).Marcado = true;
+
+            Assert.AreSame(MIGUEL, vm.Repartidor);
+            await vm.CrearAsync();
+
+            Assert.AreEqual("miguel", enviada.Repartidor);
+        }
+
+        [TestMethod]
+        public async Task Repartidor_ConVarios_NoSePropone_YSinElegirNoSePuedeCrear()
+        {
+            A.CallTo(() => servicio.LeerRepartidores()).Returns(new List<RepartidorModel> { ANDRE, MIGUEL });
+            NotaCobroDialogViewModel vm = await Abierto();
+            Efecto(vm, 101).Marcado = true;
+
+            Assert.IsNull(vm.Repartidor);
+            Assert.AreEqual(2, vm.Repartidores.Count);
+            Assert.IsFalse(vm.CrearCommand.CanExecute(null));
+            Assert.AreEqual("Elija el repartidor que va a ir a cobrar.", vm.MotivoNoCrear);
+
+            vm.Repartidor = ANDRE;
+            Assert.IsTrue(vm.CrearCommand.CanExecute(null));
+            await vm.CrearAsync();
+
+            Assert.AreEqual("Andre", enviada.Repartidor);
+            StringAssert.EndsWith(vm.TextoCreada, " para Andre");
+        }
+
+        [TestMethod]
+        public async Task Repartidor_SiNoSePuedenLeer_SeEnseñaElErrorYNoSePuedeCrear()
+        {
+            A.CallTo(() => servicio.LeerRepartidores()).ThrowsAsync(new Exception("Su usuario no tiene permiso para el reparto propio."));
+            NotaCobroDialogViewModel vm = await Abierto();
+            Efecto(vm, 101).Marcado = true;
+
+            Assert.AreEqual("Su usuario no tiene permiso para el reparto propio.", vm.Mensaje);
+            Assert.IsFalse(vm.CrearCommand.CanExecute(null));
         }
 
         [TestMethod]

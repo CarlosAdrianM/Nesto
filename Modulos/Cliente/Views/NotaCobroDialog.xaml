@@ -88,6 +88,9 @@
                 <TextBlock Text="Día del cobro:" Margin="20,0,6,0" VerticalAlignment="Center"/>
                 <DatePicker SelectedDate="{Binding Fecha}" DisplayDateStart="{Binding Hoy, Mode=OneWay}" Width="130"
                             ToolTip="El día en que el repartidor pasa a cobrar (desde ese día sale en el reparto)"/>
+                <TextBlock Text="Repartidor:" Margin="20,0,6,0" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding Repartidores}" SelectedItem="{Binding Repartidor}" DisplayMemberPath="Nombre" Width="140"
+                          ToolTip="Quién va a cobrarla: solo a él le sale en «Mis envíos» de Ariadna"/>
             </StackPanel>
             <DockPanel Margin="0,8,0,0">
                 <TextBlock Text="Comentario:" Width="70" VerticalAlignment="Top" Margin="0,3,0,0"/>

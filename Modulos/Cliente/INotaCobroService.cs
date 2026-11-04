@@ -1,4 +1,5 @@
 using Nesto.Modulos.Cliente.Models;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cliente
@@ -11,5 +12,11 @@ namespace Nesto.Modulos.Cliente
         /// (ya viene de usted).
         /// </summary>
         Task<NotaCobroCreadaModel> CrearNotaCobro(CrearNotaCobroModel nota);
+
+        /// <summary>
+        /// NestoAPI#786: GET api/RepartoPropio/Repartidores, a quién se puede asignar la nota (los que han repartido en los últimos
+        /// 90 días y el propio usuario). Si la API dice que no, lanza Exception con su «Message».
+        /// </summary>
+        Task<List<RepartidorModel>> LeerRepartidores();
     }
 }

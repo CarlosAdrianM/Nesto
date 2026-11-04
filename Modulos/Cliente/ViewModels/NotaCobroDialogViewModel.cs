@@ -20,6 +20,7 @@ namespace Nesto.Modulos.Cliente
     /// y 3) en el orden en que se quieren cobrar; el importe se propone como la suma de lo pendiente de lo marcado (se puede cambiar,
     /// o dar solo importe sin efectos); el día (por defecto hoy) y un comentario para el repartidor. «Crear» → POST
     /// api/NotasEntrega/Cobro. Los errores de la API se enseñan tal cual. Al cerrar tras crear devuelve «nota» (NotaCobroCreadaModel).
+    /// NestoAPI#786 (04/11/26): la nota se asigna a un repartidor (obligatorio; si solo hay uno, propuesto) y solo él la ve en Ariadna.
     /// </summary>
     public class NotaCobroDialogViewModel : DialogoNestoBase
     {
@@ -193,6 +194,49 @@ namespace Nesto.Modulos.Cliente
             NotificarCrear();
         }
 
+        // ---------------- Repartidor (NestoAPI#786) ----------------
+
+        /// <summary>A quién se puede asignar (GET api/RepartoPropio/Repartidores).</summary>
+        public ObservableCollection<RepartidorModel> Repartidores { get; } = new();
+
+        private RepartidorModel _repartidor;
+        /// <summary>El que va a cobrarla: solo él la ve en «Mis envíos» de Ariadna. Obligatorio.</summary>
+        public RepartidorModel Repartidor
+        {
+            get => _repartidor;
+            set
+            {
+                if (SetProperty(ref _repartidor, value))
+                {
+                    NotificarCrear();
+                }
+            }
+        }
+
+        /// <summary>Lee los repartidores; si solo hay uno, lo propone. Si falla, el error en <see cref="Mensaje"/>.</summary>
+        public async Task CargarRepartidoresAsync()
+        {
+            List<RepartidorModel> repartidores;
+            try
+            {
+                repartidores = (await _servicio.LeerRepartidores() ?? new List<RepartidorModel>())
+                    .Where(r => r != null && !string.IsNullOrWhiteSpace(r.Usuario)).ToList();
+            }
+            catch (Exception ex)
+            {
+                Mensaje = ex.Message;
+                return;
+            }
+            string anterior = Repartidor?.Usuario;
+            Repartidores.Clear();
+            foreach (RepartidorModel repartidor in repartidores)
+            {
+                Repartidores.Add(repartidor);
+            }
+            Repartidor = Repartidores.FirstOrDefault(r => string.Equals(r.Usuario, anterior, StringComparison.OrdinalIgnoreCase))
+                ?? (Repartidores.Count == 1 ? Repartidores[0] : null);
+        }
+
         // ---------------- Importe, fecha y comentario ----------------
 
         private decimal? _importe;
@@ -268,10 +312,25 @@ namespace Nesto.Modulos.Cliente
         public bool Creada => NotaCreada != null;
         public bool SinCrear => NotaCreada == null;
 
-        /// <summary>«Nota de cobro NC929700 creada: parada en el reparto del 06/11/26 por 134,16 €».</summary>
+        /// <summary>«Nota de cobro NC929700 creada: parada en el reparto del 06/11/26 por 134,16 € para Miguel».</summary>
         public string TextoCreada => NotaCreada == null
             ? string.Empty
-            : $"Nota de cobro {CodigoDocumento(NotaCreada)} creada: parada en el reparto del {NotaCreada.Fecha.ToString("dd/MM/yy", ES)} por {NotaCreada.Importe.ToString("N2", ES)} €";
+            : $"Nota de cobro {CodigoDocumento(NotaCreada)} creada: parada en el reparto del {NotaCreada.Fecha.ToString("dd/MM/yy", ES)} por {NotaCreada.Importe.ToString("N2", ES)} €" +
+                (string.IsNullOrWhiteSpace(NombreRepartidorCreada) ? string.Empty : $" para {NombreRepartidorCreada}");
+
+        /// <summary>El nombre del repartidor de la nota creada (el de la lista; si no está, el usuario que devuelve la API).</summary>
+        private string NombreRepartidorCreada
+        {
+            get
+            {
+                string usuario = NotaCreada?.Repartidor?.Trim();
+                if (string.IsNullOrEmpty(usuario))
+                {
+                    return Repartidor?.Nombre;
+                }
+                return Repartidores.FirstOrDefault(r => string.Equals(r.Usuario, usuario, StringComparison.OrdinalIgnoreCase))?.Nombre ?? usuario;
+            }
+        }
 
         private static string CodigoDocumento(NotaCobroCreadaModel nota)
             => string.IsNullOrWhiteSpace(nota.CodigoDocumento) ? $"NC{nota.Pedido}" : nota.CodigoDocumento.Trim();
@@ -284,6 +343,10 @@ namespace Nesto.Modulos.Cliente
                 if (string.IsNullOrWhiteSpace(Cliente))
                 {
                     return "Indique el cliente.";
+                }
+                if (Repartidor == null)
+                {
+                    return "Elija el repartidor que va a ir a cobrar.";
                 }
                 if (_marcados.Count == 0 && (!Importe.HasValue || Importe.Value <= 0))
                 {
@@ -323,6 +386,7 @@ namespace Nesto.Modulos.Cliente
             Efectos = _marcados.Select(e => e.Id).ToList(),
             Importe = Importe,
             Fecha = Fecha?.Date,
+            Repartidor = Repartidor?.Usuario?.Trim(),
             Comentario = string.IsNullOrWhiteSpace(Comentario)
                 ? null
                 : Comentario.Trim().Length > MAXIMO_COMENTARIO ? Comentario.Trim().Substring(0, MAXIMO_COMENTARIO) : Comentario.Trim()
@@ -381,6 +445,7 @@ namespace Nesto.Modulos.Cliente
             NombreCliente = nombre?.Trim();
             NotificarCrear();
             await CargarExtractoAsync();
+            await CargarRepartidoresAsync();
         }
     }
 }

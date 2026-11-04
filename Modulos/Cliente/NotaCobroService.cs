@@ -3,6 +3,7 @@ using Nesto.Modulos.Cliente.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cliente
 {
-    /// <summary>Nesto#618 (NestoAPI#786): POST api/NotasEntrega/Cobro.</summary>
+    /// <summary>Nesto#618 (NestoAPI#786): POST api/NotasEntrega/Cobro y GET api/RepartoPropio/Repartidores.</summary>
     public class NotaCobroService : INotaCobroService
     {
         private readonly IConfiguracion _configuracion;
@@ -47,6 +48,29 @@ namespace Nesto.Modulos.Cliente
                     throw new Exception(mensaje);
                 }
                 return JsonConvert.DeserializeObject<NotaCobroCreadaModel>(body);
+            }
+        }
+
+        public async Task<List<RepartidorModel>> LeerRepartidores()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
+                HttpResponseMessage response = await client.GetAsync("RepartoPropio/Repartidores");
+                string body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    string mensaje = ExtraerMensaje(body);
+                    throw new Exception(string.IsNullOrWhiteSpace(mensaje)
+                        ? $"No se han podido leer los repartidores ({(int)response.StatusCode})."
+                        : mensaje);
+                }
+                return JsonConvert.DeserializeObject<List<RepartidorModel>>(body) ?? new List<RepartidorModel>();
             }
         }
 

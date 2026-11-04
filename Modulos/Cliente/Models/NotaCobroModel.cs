@@ -22,6 +22,16 @@ namespace Nesto.Modulos.Cliente.Models
         public DateTime? Fecha { get; set; }
         /// <summary>Para el repartidor (máx. 500).</summary>
         public string Comentario { get; set; }
+        /// <summary>NestoAPI#786: el repartidor que va a cobrarla (Usuario de GET api/RepartoPropio/Repartidores). Obligatorio.</summary>
+        public string Repartidor { get; set; }
+    }
+
+    /// <summary>NestoAPI#786: un repartidor de GET api/RepartoPropio/Repartidores (RepartidorDTO de NestoAPI).</summary>
+    public class RepartidorModel
+    {
+        /// <summary>El usuario sin dominio («Miguel»): lo que se manda en <see cref="CrearNotaCobroModel.Repartidor"/>.</summary>
+        public string Usuario { get; set; }
+        public string Nombre { get; set; }
     }
 
     /// <summary>Nesto#618: la respuesta (201) de POST api/NotasEntrega/Cobro (NotaCobroDTO de NestoAPI).</summary>
@@ -41,6 +51,8 @@ namespace Nesto.Modulos.Cliente.Models
         public DateTime Fecha { get; set; }
         /// <summary>Lo que ve el repartidor.</summary>
         public string Texto { get; set; }
+        /// <summary>NestoAPI#786: el repartidor al que se ha asignado (sin dominio).</summary>
+        public string Repartidor { get; set; }
     }
 
     /// <summary>Nesto#618: un efecto de la nota de cobro creada (EfectoNotaCobroDTO de NestoAPI).</summary>
