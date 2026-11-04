@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -367,6 +368,35 @@ namespace Nesto.Modules.Producto.ViewModels
         internal static bool PareceCodigoBarras(string texto)
         {
             return !string.IsNullOrEmpty(texto) && texto.Length >= 8 && texto.All(char.IsDigit);
+        }
+
+        /// <summary>
+        /// Nesto#617: lo que en la ficha se trata como referencia y no como nombre: solo cifras, es decir, una referencia numérica
+        /// o un código de barras leído con la pistola. En la casilla de la referencia no abre la lista del autocompletado de
+        /// productos (AutocompleteBehavior, PatronSinBusqueda), para que el Intro cargue ese producto y no el primero de la lista;
+        /// en el filtro de nombre, con Intro abre directamente su ficha (<see cref="AbrirReferenciaDelFiltroNombre"/>).
+        /// </summary>
+        public const string PATRON_REFERENCIA = @"^\d+$";
+
+        /// <summary>Nesto#617: lo escrito es una referencia (o un código de barras), no un trozo del nombre.</summary>
+        internal static bool EsReferencia(string texto)
+        {
+            return !string.IsNullOrWhiteSpace(texto) && Regex.IsMatch(texto.Trim(), PATRON_REFERENCIA);
+        }
+
+        /// <summary>
+        /// Nesto#617: Intro en el filtro de nombre. Si lo tecleado es una referencia o un código de barras, se abre ese producto
+        /// como si se hubiera puesto en la casilla de la referencia (la misma carga, con el respaldo del código de barras de
+        /// Nesto#582), sin pasar por la lista de resultados. Devuelve false si no es una referencia: la vista sigue como siempre.
+        /// </summary>
+        public bool AbrirReferenciaDelFiltroNombre()
+        {
+            if (!EsReferencia(FiltroNombre))
+            {
+                return false;
+            }
+            ReferenciaBuscar = FiltroNombre.Trim();
+            return true;
         }
 
         public ProductoModel ProductoResultadoSeleccionado

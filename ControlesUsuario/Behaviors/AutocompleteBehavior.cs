@@ -193,6 +193,24 @@ namespace ControlesUsuario.Behaviors
         }
 
         /// <summary>
+        /// Nesto#617: solo se busca (y se abre la lista) si el TextBox tiene el foco. En la ficha de producto la casilla de la
+        /// referencia también la rellena el programa (al elegir un resultado o abrir otra ficha) y no debe abrirse la lista.
+        /// Por defecto false: como siempre (en las celdas de los DataGrid no se toca).
+        /// </summary>
+        public static readonly DependencyProperty SoloConFocoProperty =
+            DependencyProperty.Register(
+                nameof(SoloConFoco),
+                typeof(bool),
+                typeof(AutocompleteBehavior),
+                new PropertyMetadata(false));
+
+        public bool SoloConFoco
+        {
+            get => (bool)GetValue(SoloConFocoProperty);
+            set => SetValue(SoloConFocoProperty, value);
+        }
+
+        /// <summary>
         /// Incidencia 787 (Paloma, 27/10/26): expresión regular de lo que NO se busca. En «Recibir reposición» la etiqueta
         /// de un bulto tecleada a mano («R81177-1») abría la lista y el Intro cogía el primer producto en vez de la etiqueta.
         /// Null o vacío: se busca todo, como siempre.
@@ -352,7 +370,8 @@ namespace ControlesUsuario.Behaviors
             var texto = AssociatedObject.Text;
 
             // Verificar mínimo de caracteres (y lo que no se busca: incidencia 787)
-            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda))
+            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda)
+                || (SoloConFoco && !AssociatedObject.IsKeyboardFocusWithin))
             {
                 _debounceTimer?.Stop();
                 CerrarPopup();
@@ -390,7 +409,8 @@ namespace ControlesUsuario.Behaviors
             if (AssociatedObject == null) return;
 
             var texto = AssociatedObject.Text;
-            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda))
+            if (string.IsNullOrEmpty(texto) || texto.Length < MinChars || EsTextoSinBusqueda(texto, PatronSinBusqueda)
+                || (SoloConFoco && !AssociatedObject.IsKeyboardFocusWithin))
             {
                 CerrarPopup();
                 return;
