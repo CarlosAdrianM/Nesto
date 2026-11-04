@@ -211,5 +211,36 @@ namespace ClienteTests
 
             Assert.AreEqual("Para apuntarse hay que haber comprado 45363.", EventosService.ExtraerMensaje(body));
         }
+
+        [TestMethod]
+        public void Nesto608_LaPistolaOLaReferenciaNoAbrenLaLista_ElNombreSi()
+        {
+            // Si el código de barras abriera la lista, el Intro del lector cogería el primer producto de la lista (incidencia 787)
+            string patron = MantenimientoEventosViewModel.PATRON_SIN_LISTA_PRODUCTOS_REQUERIDOS;
+
+            Assert.IsTrue(ControlesUsuario.Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("8412345678901", patron), "código de barras");
+            Assert.IsTrue(ControlesUsuario.Behaviors.AutocompleteBehavior.EsTextoSinBusqueda(" 45363 ", patron), "referencia numérica");
+            Assert.IsFalse(ControlesUsuario.Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("lifting", patron), "el nombre abre la lista");
+            Assert.IsFalse(ControlesUsuario.Behaviors.AutocompleteBehavior.EsTextoSinBusqueda("AB123", patron));
+        }
+
+        [TestMethod]
+        public async Task Nesto608_ElegidoDeLaLista_SeAnadePorSuReferenciaConSuNombre()
+        {
+            // El autocompletado deja en la casilla la referencia del producto elegido y ejecuta «Añadir»
+            A.CallTo(() => eventos.BuscarProductoRequerido("45363")).Returns(Task.FromResult(new List<ProductoCursoModel>
+            {
+                new ProductoCursoModel { Producto = "45363", Nombre = "LIFTING COREANO" }
+            }));
+            var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos, null);
+            vm.ProductoRequeridoNuevo = "45363";
+
+            Assert.IsTrue(vm.AnadirProductoRequeridoCommand.CanExecute(null));
+            await vm.AnadirProductoRequeridoAsync();
+
+            Assert.AreEqual("45363", vm.ProductosRequeridosEdicion.Single().Producto);
+            Assert.AreEqual("LIFTING COREANO", vm.ProductosRequeridosEdicion.Single().Nombre);
+            Assert.IsNull(vm.ProductoRequeridoNuevo);
+        }
     }
 }

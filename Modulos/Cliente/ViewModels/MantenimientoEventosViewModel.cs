@@ -668,6 +668,13 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        /// <summary>
+        /// Nesto#608: lo que NO abre la lista del autocompletado de productos de «Hay que comprar» (AutocompleteBehavior,
+        /// PatronSinBusqueda): solo cifras, es decir, una referencia numérica o un código de barras leído con la pistola.
+        /// Así el Intro del lector añade ese producto directamente y no el primero de la lista.
+        /// </summary>
+        public const string PATRON_SIN_LISTA_PRODUCTOS_REQUERIDOS = @"^\d+$";
+
         /// <summary>Lo leído del evento, para mandar la lista y el modo solo si se han tocado.</summary>
         private List<string> _productosRequeridosLeidos = new();
         private string _modoProductosLeido = EventoModel.MODO_PRODUCTOS_ALGUNO;
