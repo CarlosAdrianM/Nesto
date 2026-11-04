@@ -1,0 +1,69 @@
+<UserControl x:Class="ControlesUsuario.Dialogs.ReenviarEnvioDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="460" MaxWidth="620" Background="White">
+    <!-- NestoAPI#699 (corte 2): el cliente sigue queriendo el pedido de un envío devuelto. La dirección y los teléfonos del
+         envío devuelto, editables, y la casilla de portes (desmarcada: los portes del reenvío nos los comemos). -->
+    <UserControl.Resources>
+        <Style x:Key="Etiqueta" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#555555"/>
+            <Setter Property="Margin" Value="0,5,12,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="Padding" Value="2"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="{Binding Cabecera}" FontSize="15" FontWeight="Bold" Margin="0,0,0,6" TextWrapping="Wrap"/>
+        <TextBlock Grid.Row="1" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="Se creará un envío nuevo del mismo pedido, sin abono, sin picking y sin factura. Corrija la dirección o los teléfonos si hace falta; la etiqueta se imprime cuando llegue la caja."/>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Dirección:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="TextoDireccion" Text="{Binding Direccion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Código postal:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CodPostal, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Width="120" HorizontalAlignment="Left"/>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Población:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Poblacion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"/>
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Provincia:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Provincia, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"/>
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Teléfono:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Telefono, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="15" Width="160" HorizontalAlignment="Left"/>
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Móvil:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Movil, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="15" Width="160" HorizontalAlignment="Left"/>
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Observaciones:" Style="{StaticResource Etiqueta}"/>
+            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Observaciones, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"/>
+        </Grid>
+
+        <CheckBox Grid.Row="3" Content="Cobrar los portes del reenvío" IsChecked="{Binding IncluirPortes, Mode=TwoWay}" Margin="0,12,0,0"
+                  ToolTip="Añade al pedido una línea de portes que se factura con el reenvío. Normalmente no se cobran."/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Content="Volver a enviar" Command="{Binding AceptarCommand}" MinWidth="110" Padding="8,3" Margin="0,0,10,0" IsDefault="True"/>
+            <Button Content="Cancelar" Command="{Binding CancelarCommand}" MinWidth="90" Padding="8,3" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

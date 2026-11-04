@@ -85,6 +85,13 @@ Public Interface IAgenciaService
     ' NestoAPI#676: da por cerrado un envío incidentado que la agencia nunca cerró (POST api/EnviosAgencias/{id}/DarPorCerrado,
     ' motivo obligatorio). Lanza con el motivo del servidor si lo rechaza (ya no está incidentado, falta el motivo).
     Function DarPorCerradoEnvio(numeroEnvio As Integer, motivo As String) As Task
+    ' NestoAPI#699 (corte 2): los envíos devueltos e incidentados de los últimos 60 días con su decisión (GET api/EnviosAgencias/
+    ' Devueltos). Lanza con el motivo del servidor (p. ej. falta el script de la tabla).
+    Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel))
+    ' NestoAPI#699: el cliente lo sigue queriendo: envío nuevo del mismo pedido (POST api/EnviosAgencias/{id}/Reenviar).
+    Function ReenviarEnvioDevuelto(numeroEnvio As Integer, peticion As ReenvioEnvioPeticion) As Task(Of DecisionReenvioModel)
+    ' NestoAPI#699: el cliente no lo quiere: solo se apunta; el abono, con Copiar factura (POST api/EnviosAgencias/{id}/Abonar).
+    Function AbonarEnvioDevuelto(numeroEnvio As Integer) As Task(Of DecisionReenvioModel)
     ' Nesto#571 (NestoAPI#739): la prueba de entrega de un envío del reparto propio (GET api/RepartoPropio/Envios/{id}/
     ' PruebaEntrega). Nothing si el envío no la tiene (204). Lanza con el motivo del servidor si falla.
     Function LeerPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of PruebaEntregaRepartoDto)
