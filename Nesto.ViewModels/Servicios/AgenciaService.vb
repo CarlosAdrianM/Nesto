@@ -1024,6 +1024,86 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ' ===== NestoAPI#699 (corte 2): devueltos, «volver a enviar» y «abonar» =====
+
+    Friend Shared Function RutaDevueltos(empresa As String) As String
+        Return $"EnviosAgencias/Devueltos?empresa={Uri.EscapeDataString(If(empresa, String.Empty).Trim())}"
+    End Function
+
+    Friend Shared Function RutaReenviar(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/Reenviar"
+    End Function
+
+    Friend Shared Function RutaAbonarDevuelto(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/Abonar"
+    End Function
+
+    Friend Shared Function CuerpoReenviar(peticion As ReenvioEnvioPeticion) As String
+        Return JsonConvert.SerializeObject(If(peticion, New ReenvioEnvioPeticion()))
+    End Function
+
+    ''' <summary>
+    ''' El texto de un error de la API para el usuario: el «Message» del JSON ({"Message": "..."} de BadRequest), la cadena
+    ''' si viene una cadena JSON (los 409 de Content(Conflict, texto)) o, si no, el cuerpo tal cual.
+    ''' </summary>
+    Friend Shared Function MensajeErrorApi(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return String.Empty
+        End If
+        Try
+            Dim token = Newtonsoft.Json.Linq.JToken.Parse(cuerpo)
+            If token.Type = Newtonsoft.Json.Linq.JTokenType.String Then
+                Return CStr(token)
+            End If
+            If token.Type = Newtonsoft.Json.Linq.JTokenType.Object Then
+                Dim mensaje As String = CStr(token("Message"))
+                If Not String.IsNullOrWhiteSpace(mensaje) Then
+                    Return mensaje
+                End If
+            End If
+        Catch ex As JsonException
+            ' No es JSON: se enseña en bruto
+        End Try
+        Return cuerpo
+    End Function
+
+    Public Async Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel)) Implements IAgenciaService.CargarListaDevueltos
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaDevueltos(empresa))
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeErrorApi(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of EnvioDevueltoModel))(cuerpo), New List(Of EnvioDevueltoModel))
+        End Using
+    End Function
+
+    Public Function ReenviarEnvioDevuelto(numeroEnvio As Integer, peticion As ReenvioEnvioPeticion) As Task(Of DecisionReenvioModel) Implements IAgenciaService.ReenviarEnvioDevuelto
+        Return PostDecisionReenvio(RutaReenviar(numeroEnvio), CuerpoReenviar(peticion))
+    End Function
+
+    Public Function AbonarEnvioDevuelto(numeroEnvio As Integer) As Task(Of DecisionReenvioModel) Implements IAgenciaService.AbonarEnvioDevuelto
+        Return PostDecisionReenvio(RutaAbonarDevuelto(numeroEnvio), "{}")
+    End Function
+
+    Private Async Function PostDecisionReenvio(ruta As String, cuerpoPeticion As String) As Task(Of DecisionReenvioModel)
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim content As HttpContent = New StringContent(cuerpoPeticion, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(ruta, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeErrorApi(cuerpo))
+            End If
+            Return JsonConvert.DeserializeObject(Of DecisionReenvioModel)(cuerpo)
+        End Using
+    End Function
+
     ' ===== Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio =====
 
     Friend Shared Function RutaPruebaEntregaReparto(numeroEnvio As Integer) As String

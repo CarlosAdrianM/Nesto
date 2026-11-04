@@ -313,6 +313,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of CambioSinAgenciaDialog, CambioSinAgenciaDialogViewModel)
         ' Nesto#571 (NestoAPI#739): prueba de entrega (firma, DNI, cobro del reembolso) de un envío del reparto propio
         registro.RegistrarDialogo(Of PruebaEntregaDialog, PruebaEntregaDialogViewModel)
+        ' NestoAPI#699 (corte 2): «volver a enviar» un envío devuelto (dirección corregible y casilla de portes)
+        registro.RegistrarDialogo(Of ReenviarEnvioDialog, ReenviarEnvioDialogViewModel)(ReenviarEnvioDialogViewModel.NOMBRE)
         ' Nesto#563 (NestoAPI#724): enviar por correo el pedido, el mandato SEPA o la factura sin descargarlos
         registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
 

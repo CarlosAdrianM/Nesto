@@ -113,6 +113,10 @@ Public Class AgenciasViewModel
         AbrirEnlaceSeguimientoCommand = New RelayCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         DarPorCerradoCommand = New RelayCommand(AddressOf OnDarPorCerrado, AddressOf CanDarPorCerrado)
+        ' NestoAPI#699 (corte 2): pestaña Devueltos
+        ReenviarDevueltoCommand = New RelayCommand(AddressOf OnReenviarDevuelto, AddressOf CanDecidirDevuelto)
+        AbonarDevueltoCommand = New RelayCommand(AddressOf OnAbonarDevuelto, AddressOf CanDecidirDevuelto)
+        CargarDevueltosCommand = New RelayCommand(AddressOf OnCargarDevueltos)
         cmdCargarRetrasados = New RelayCommand(AddressOf CargarRetrasados)
         cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
@@ -1657,6 +1661,10 @@ Public Class AgenciasViewModel
             ' #387: Incidentados = todos los Estado=3 de la empresa, sin filtro de fecha ni agencia.
             If PestannaNombre = Pestannas.INCIDENTADOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
+            End If
+            ' NestoAPI#699: Devueltos = devueltos e incidentados de 60 días con su decisión.
+            If PestannaNombre = Pestannas.DEVUELTOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                Dim unusedDevueltos = CargarDevueltos()
             End If
             ' Nesto#468: Retrasados = tramitados sin estado terminal, de todas las empresas.
             If PestannaNombre = Pestannas.RETRASADOS Then
@@ -4093,6 +4101,151 @@ Public Class AgenciasViewModel
         End Try
     End Function
 
+    ' ===== NestoAPI#699 (corte 2): pestaña Devueltos, «volver a enviar» y «abonar» =====
+    ' La agencia devuelve un envío (o lo deja incidentado) y el almacén o el vendedor dicen si el cliente lo sigue queriendo.
+    ' «Volver a enviar» crea en la API un envío NUEVO del mismo pedido (en curso, sin etiqueta: se tramita e imprime como
+    ' cualquier otro cuando llega la caja); «Abonar» solo lo apunta (el abono se hace con Copiar factura).
+
+    Private _listaDevueltos As ObservableCollection(Of EnvioDevueltoModel)
+    Public Property listaDevueltos As ObservableCollection(Of EnvioDevueltoModel)
+        Get
+            Return _listaDevueltos
+        End Get
+        Set(value As ObservableCollection(Of EnvioDevueltoModel))
+            Dim unused = SetProperty(_listaDevueltos, value)
+        End Set
+    End Property
+
+    Private _devueltoSeleccionado As EnvioDevueltoModel
+    Public Property DevueltoSeleccionado As EnvioDevueltoModel
+        Get
+            Return _devueltoSeleccionado
+        End Get
+        Set(value As EnvioDevueltoModel)
+            If SetProperty(_devueltoSeleccionado, value) Then
+                ReenviarDevueltoCommand?.NotifyCanExecuteChanged()
+                AbonarDevueltoCommand?.NotifyCanExecuteChanged()
+            End If
+        End Set
+    End Property
+
+    Public Property ReenviarDevueltoCommand As RelayCommand
+    Public Property AbonarDevueltoCommand As RelayCommand
+    Public Property CargarDevueltosCommand As RelayCommand
+
+    ''' <summary>Solo se decide una vez: con la fila sin decidir.</summary>
+    Private Function CanDecidirDevuelto() As Boolean
+        Return DevueltoSeleccionado IsNot Nothing AndAlso DevueltoSeleccionado.SinDecidir
+    End Function
+
+    Private Async Sub OnCargarDevueltos()
+        Await CargarDevueltos()
+    End Sub
+
+    Private Async Sub OnReenviarDevuelto()
+        Await ReenviarDevueltoSeleccionado()
+    End Sub
+
+    Private Async Sub OnAbonarDevuelto()
+        Await AbonarDevueltoSeleccionado()
+    End Sub
+
+    Friend Async Function CargarDevueltos() As Task
+        If empresaSeleccionada Is Nothing Then
+            Return
+        End If
+        Dim numeroSeleccionado As Integer? = DevueltoSeleccionado?.Numero
+        Try
+            Dim lista As List(Of EnvioDevueltoModel) = Await _servicio.CargarListaDevueltos(empresaSeleccionada.Número)
+            listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel)(If(lista, New List(Of EnvioDevueltoModel)))
+            DevueltoSeleccionado = If(listaDevueltos.FirstOrDefault(Function(d) numeroSeleccionado.HasValue AndAlso d.Numero = numeroSeleccionado.Value),
+                                      listaDevueltos.FirstOrDefault())
+        Catch ex As Exception
+            listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel)
+            _dialogService.ShowError("No se pudieron cargar los envíos devueltos: " & ex.Message)
+        End Try
+    End Function
+
+    Friend Shared Function ParametrosReenvio(devuelto As EnvioDevueltoModel) As ParametrosDialogo
+        Return New ParametrosDialogo From {
+            {ReenviarEnvioDialogViewModel.PARAMETRO_ENVIO, devuelto.Numero},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_PEDIDO, If(devuelto.Pedido.HasValue, devuelto.Pedido.Value.ToString(), String.Empty)},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_NOMBRE, devuelto.Nombre},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_DIRECCION, devuelto.Direccion},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_COD_POSTAL, devuelto.CodPostal},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_POBLACION, devuelto.Poblacion},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_PROVINCIA, devuelto.Provincia},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_TELEFONO, devuelto.Telefono},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_MOVIL, devuelto.Movil},
+            {ReenviarEnvioDialogViewModel.PARAMETRO_OBSERVACIONES, devuelto.Observaciones}
+        }
+    End Function
+
+    Friend Shared Function PeticionReenvio(parametros As ParametrosDialogo) As ReenvioEnvioPeticion
+        Return New ReenvioEnvioPeticion With {
+            .Direccion = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_DIRECCION),
+            .CodPostal = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_COD_POSTAL),
+            .Poblacion = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_POBLACION),
+            .Provincia = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_PROVINCIA),
+            .Telefono = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_TELEFONO),
+            .Movil = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_MOVIL),
+            .Observaciones = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_OBSERVACIONES),
+            .IncluirPortes = parametros.GetValue(Of Boolean)(ReenviarEnvioDialogViewModel.PARAMETRO_INCLUIR_PORTES)
+        }
+    End Function
+
+    ''' <summary>«El cliente lo sigue queriendo: volver a enviar…». Friend para probar el flujo sin UI.</summary>
+    Friend Async Function ReenviarDevueltoSeleccionado() As Task
+        Dim devuelto As EnvioDevueltoModel = DevueltoSeleccionado
+        If devuelto Is Nothing OrElse Not devuelto.SinDecidir Then
+            Return
+        End If
+        Dim resultado As ResultadoDialogo = Await _dialogService.ShowDialogAsync(ReenviarEnvioDialogViewModel.NOMBRE, ParametrosReenvio(devuelto))
+        If resultado Is Nothing OrElse resultado.Result <> ResultadoBoton.OK Then
+            Return ' cancelado
+        End If
+        Dim peticion As ReenvioEnvioPeticion = PeticionReenvio(resultado.Parameters)
+        Try
+            EstaOcupado = True
+            Dim decision As DecisionReenvioModel = Await _servicio.ReenviarEnvioDevuelto(devuelto.Numero, peticion)
+            Dim mensaje As String = If(decision?.Mensaje, $"Envío nuevo {decision?.EnvioNuevo} creado: imprima la etiqueta cuando llegue la caja.")
+            If decision?.Avisos IsNot Nothing AndAlso decision.Avisos.Any() Then
+                mensaje &= vbCr & vbCr & String.Join(vbCr, decision.Avisos)
+            End If
+            _dialogService.ShowNotification("Volver a enviar", mensaje)
+            Await CargarDevueltos()
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ReenviarDevueltoSeleccionado")
+            _dialogService.ShowError($"No se ha podido volver a enviar el envío {devuelto.Numero}:" & vbCr & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Function
+
+    ''' <summary>«No lo quiere: abonar». Solo lo apunta: el abono se hace con Copiar factura.</summary>
+    Friend Async Function AbonarDevueltoSeleccionado() As Task
+        Dim devuelto As EnvioDevueltoModel = DevueltoSeleccionado
+        If devuelto Is Nothing OrElse Not devuelto.SinDecidir Then
+            Return
+        End If
+        Dim descripcion As String = If(devuelto.Pedido.HasValue, $"el pedido {devuelto.Pedido}", $"el envío {devuelto.Numero}")
+        If Not _dialogService.ShowConfirmationAnswer("Abonar", $"¿Confirma que el cliente no quiere {descripcion} y hay que abonarlo?") Then
+            Return
+        End If
+        Try
+            EstaOcupado = True
+            Dim decision As DecisionReenvioModel = Await _servicio.AbonarEnvioDevuelto(devuelto.Numero)
+            _dialogService.ShowNotification("Abonar",
+                If(decision?.Mensaje, "Marcado para abonar: hágalo con Copiar factura (abono + rehacer si hiciera falta)."))
+            Await CargarDevueltos()
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AbonarDevueltoSeleccionado")
+            _dialogService.ShowError($"No se ha podido marcar para abonar {descripcion}:" & vbCr & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Function
+
     ' ===== Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio =====
 
     Friend Shared Function EsRepartoPropio(envio As EnviosAgencia) As Boolean
@@ -5121,6 +5274,7 @@ Public Class Pestannas
     Public Const EN_CURSO As String = "tabCurso"
     Public Const TRAMITADOS As String = "tabTramitados"
     Public Const INCIDENTADOS As String = "tabIncidentados"
+    Public Const DEVUELTOS As String = "tabDevueltos" ' NestoAPI#699
     Public Const RETRASADOS As String = "tabRetrasados"
     Public Const REEMBOLSOS As String = "tabReembolsos"
     Public Const RETORNOS As String = "tabRetornos"

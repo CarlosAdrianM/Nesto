@@ -698,6 +698,65 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+            <!-- NestoAPI#699 (corte 2): devueltos e incidentados de 60 días con la decisión (sin decidir primero). «Volver a enviar»
+                 crea un envío nuevo del mismo pedido (en curso: sale en la pestaña En curso para tramitar e imprimir); «Abonar»
+                 solo lo apunta (el abono, con Copiar factura). -->
+            <TabItem Name="tabDevueltos" Header="Devueltos">
+                <DockPanel Background="White">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
+                        <Button Content="Actualizar lista" MinWidth="110" Margin="3" Command="{Binding CargarDevueltosCommand}"/>
+                        <Button Content="El cliente lo sigue queriendo: volver a enviar…" MinWidth="120" Margin="3" Command="{Binding ReenviarDevueltoCommand}"
+                                ToolTip="Crea un envío nuevo del mismo pedido, sin abono, sin picking y sin factura. Podrá corregir la dirección. La etiqueta se imprime cuando llegue la caja."/>
+                        <Button Content="No lo quiere: abonar" MinWidth="120" Margin="3" Command="{Binding AbonarDevueltoCommand}"
+                                ToolTip="Lo marca para abonar. El abono se hace con Copiar factura, como siempre."/>
+                    </StackPanel>
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaDevueltos}" SelectedItem="{Binding DevueltoSeleccionado}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SinDecidir}" Value="True">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Envío" Binding="{Binding Numero}" Width="Auto"/>
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                            <DataGridTextColumn Header="Agencia" Binding="{Binding NombreAgencia}" Width="Auto"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding TextoEstado}" Width="Auto"/>
+                            <DataGridTextColumn Header="Motivo" Binding="{Binding DetalleEstado}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#B34700"/>
+                                        <Setter Property="ToolTip" Value="{Binding DetalleEstado}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Decisión" Binding="{Binding TextoDecision}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="ToolTip">
+                                            <Setter.Value>
+                                                <TextBlock>
+                                                    <Run Text="{Binding UsuarioDecision, Mode=OneWay}"/>
+                                                    <Run Text="{Binding FechaDecision, Mode=OneWay, StringFormat=g}"/>
+                                                </TextBlock>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="Auto"/>
+                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº seguimiento" Binding="{Binding CodigoBarras}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
             <!-- Nesto#468: envíos que salieron hace días y la agencia no ha dado por entregados (NestoAPI#173).
                  Selección → envioActual, así valen "Abrir seguimiento", "Actualizar estado" y el menú de copiar. -->
             <TabItem Name="tabRetrasados" Header="Retrasados">

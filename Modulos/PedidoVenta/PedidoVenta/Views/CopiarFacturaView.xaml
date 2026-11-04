@@ -136,6 +136,20 @@
                           Style="{StaticResource CheckBoxStyle}"
                           ToolTip="Crea una rectificativa al cliente origen y una factura nueva al cliente destino en un solo clic. Útil para corregir errores de dirección."/>
 
+                <!-- NestoAPI#699: pedido devuelto por la agencia que el cliente sigue queriendo -->
+                <CheckBox Content="El cliente lo sigue queriendo: rehacer el pedido"
+                          IsChecked="{Binding RehacerPedido}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          ToolTip="Hace el abono de la factura y, en el mismo paso, un pedido nuevo para el mismo cliente con las mismas líneas, precios, forma de pago y dirección de entrega. El pedido nuevo queda pendiente de servir y sale por el picking normal."/>
+                <CheckBox Content="Cobrar otra vez los portes al cliente"
+                          IsChecked="{Binding IncluirPortes}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          Margin="20,0,0,8"
+                          Visibility="{Binding RehacerPedido, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          ToolTip="Si no se marca, los portes del reenvío no se cobran: la línea de portes pasa al pedido nuevo con un 100 % de descuento."/>
+                <TextBlock TextWrapping="Wrap" Foreground="Gray" Margin="0,0,0,8"
+                           Text="¿El abono ya está hecho y ahora el cliente lo quiere? Desmarque «Invertir cantidades» y deje el cliente destino vacío: se crea un pedido nuevo con las mismas líneas, pendiente de servir, sin albarán ni factura."/>
+
                 <CheckBox Content="Mantener condiciones originales (precios, descuentos)"
                           IsChecked="{Binding MantenerCondicionesOriginales}"
                           Style="{StaticResource CheckBoxStyle}"/>

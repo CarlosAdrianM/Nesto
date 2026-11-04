@@ -120,8 +120,57 @@ Public Class CopiarFacturaViewModel
             Return _crearAbonoYCargo
         End Get
         Set(value As Boolean)
-            SetProperty(_crearAbonoYCargo, value)
+            If SetProperty(_crearAbonoYCargo, value) AndAlso value Then
+                ' NestoAPI#699: abono y cargo (a otro cliente) y rehacer el pedido (mismo cliente) se excluyen
+                RehacerPedido = False
+            End If
         End Set
+    End Property
+
+    Private _rehacerPedido As Boolean = False
+    ''' <summary>
+    ''' NestoAPI#699: la agencia devuelve el pedido y el cliente lo sigue queriendo. Hace el abono y,
+    ''' en el mismo paso, un pedido nuevo para el mismo cliente, pendiente de servir.
+    ''' </summary>
+    Public Property RehacerPedido As Boolean
+        Get
+            Return _rehacerPedido
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_rehacerPedido, value) AndAlso value Then
+                CrearAbonoYCargo = False
+                InvertirCantidades = True ' el primer paso es el abono
+                AnadirAPedidoOriginal = False
+            End If
+        End Set
+    End Property
+
+    Private _incluirPortes As Boolean = False
+    ''' <summary>
+    ''' NestoAPI#699: si se marca, los portes del reenvío se cobran otra vez. Por defecto no («nos los comemos»).
+    ''' </summary>
+    Public Property IncluirPortes As Boolean
+        Get
+            Return _incluirPortes
+        End Get
+        Set(value As Boolean)
+            SetProperty(_incluirPortes, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' NestoAPI#699: el pedido que abre «Abrir pedido»: el rehecho si lo hay; si no, el de la copia.
+    ''' </summary>
+    Public ReadOnly Property NumeroPedidoAAbrir As Integer
+        Get
+            If Resultado Is Nothing Then
+                Return 0
+            End If
+            If Resultado.PedidoRehecho IsNot Nothing AndAlso Resultado.PedidoRehecho.NumeroPedido > 0 Then
+                Return Resultado.PedidoRehecho.NumeroPedido
+            End If
+            Return Resultado.NumeroPedido
+        End Get
     End Property
 
     Private _comentarios As String
@@ -216,6 +265,7 @@ Public Class CopiarFacturaViewModel
             OnPropertyChanged(NameOf(MostrarResultado))
             OnPropertyChanged(NameOf(TieneAlbaran))
             OnPropertyChanged(NameOf(TieneFactura))
+            OnPropertyChanged(NameOf(NumeroPedidoAAbrir))
         End Set
     End Property
 
@@ -437,12 +487,19 @@ Public Class CopiarFacturaViewModel
                 .Comentarios = Comentarios,
                 .ClienteDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ClienteDestino, Nothing),
                 .ContactoDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ContactoDestino, Nothing),
-                .UsarVendedorFacturaOriginal = UsarVendedorFacturaOriginal
+                .UsarVendedorFacturaOriginal = UsarVendedorFacturaOriginal,
+                .RehacerPedido = RehacerPedido,
+                .IncluirPortes = RehacerPedido AndAlso IncluirPortes
             }
 
             Resultado = Await _servicio.CopiarFactura(request)
 
-            If Resultado.Exitoso Then
+            If Resultado.Exitoso AndAlso RehacerPedido AndAlso Resultado.PedidoRehecho Is Nothing Then
+                ' Un servidor sin NestoAPI#699 ignora la opción y solo hace el abono: que no parezca que está rehecho
+                Mensaje = $"{Resultado.Mensaje}{Environment.NewLine}ATENCIÓN: el abono está hecho, pero el servidor no ha rehecho el pedido. " &
+                    "Rehágalo con «Copiar factura» de la misma factura sin invertir cantidades."
+                AbrirPedidoCommand.NotifyCanExecuteChanged()
+            ElseIf Resultado.Exitoso Then
                 Mensaje = Resultado.Mensaje
                 AbrirPedidoCommand.NotifyCanExecuteChanged()
             Else
@@ -465,13 +522,13 @@ Public Class CopiarFacturaViewModel
     End Sub
 
     Private Function CanAbrirPedido() As Boolean
-        Return Resultado IsNot Nothing AndAlso Resultado.Exitoso AndAlso Resultado.NumeroPedido > 0
+        Return Resultado IsNot Nothing AndAlso Resultado.Exitoso AndAlso NumeroPedidoAAbrir > 0
     End Function
 
     Private Sub OnAbrirPedido()
-        ' Cerrar y devolver el numero de pedido para que el llamador lo abra
+        ' Cerrar y devolver el numero de pedido para que el llamador lo abra (NestoAPI#699: el rehecho si lo hay)
         Dim parametros As New ParametrosDialogo From {
-            {"numeroPedido", Resultado.NumeroPedido}
+            {"numeroPedido", NumeroPedidoAAbrir}
         }
         RaiseRequestClose(New ResultadoDialogo(ResultadoBoton.OK, parametros))
     End Sub
