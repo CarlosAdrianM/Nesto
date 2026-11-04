@@ -1,6 +1,7 @@
 Imports System
 Imports System.Collections.Generic
 Imports System.Linq
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 
 ''' <summary>
 ''' Respuesta de facturación masiva de pedidos por rutas
@@ -11,6 +12,7 @@ Public Class FacturarRutasResponseDTO
         Albaranes = New List(Of AlbaranCreadoDTO)()
         Facturas = New List(Of FacturaCreadaDTO)()
         NotasEntrega = New List(Of NotaEntregaCreadaDTO)()
+        ReembolsosDesfasados = New List(Of ReembolsoDesfasadoDTO)()
     End Sub
 
     ''' <summary>
@@ -45,6 +47,12 @@ Public Class FacturarRutasResponseDTO
     ''' Tiempo total del proceso
     ''' </summary>
     Public Property TiempoTotal As TimeSpan
+
+    ''' <summary>
+    ''' Nesto#615 (NestoAPI#810): envíos del reparto propio sin entregar de los pedidos facturados cuyo reembolso no es lo que
+    ''' queda por cobrar de sus facturas. No se cambian solos: ResolutorReembolsosDesfasados pregunta y llama al PUT.
+    ''' </summary>
+    Public Property ReembolsosDesfasados As List(Of ReembolsoDesfasadoDTO)
 
     ' Propiedades de conveniencia para contadores (compatibilidad con código existente)
 

@@ -27,6 +27,8 @@ Public Class PedidoVenta
         ' Registrar servicios del módulo
         registro.Singleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)()
         registro.Singleton(Of IServicioImpresionDocumentos, ServicioImpresionDocumentos)()
+        ' Nesto#615: PUT api/EnviosAgencias/{id}/Reembolso (reembolso desfasado al facturar)
+        registro.Singleton(Of Services.IServicioReembolsoEnvios, Services.ServicioReembolsoEnvios)()
 
         ' Issue #263: Servicios de autocomplete
         registro.Transitorio(Of ServicioBusquedaProductos)()
