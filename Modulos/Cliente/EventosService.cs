@@ -327,13 +327,22 @@ namespace Nesto.Modulos.Cliente
             return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
         }
 
+        public async Task<InscripcionEventoModel> CambiarAsistentes(int id, int asistentes)
+        {
+            // Nesto#614: el mensaje de la API («solo quedan 1 plaza libre…», «ha comprado 1 unidad…») ya dice qué pasa; tal cual.
+            string body = await Enviar(c => c.PutAsync($"Eventos/Inscripciones/{id}/Asistentes",
+                    Json(new CambiarAsistentesInscripcionModel { Asistentes = asistentes })),
+                "No se pudo cambiar el número de asistentes", mensajeTalCual: true);
+            return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
+        }
+
         private static List<T> Lista<T>(string body) =>
             string.IsNullOrWhiteSpace(body) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 
         /// <param name="vacioSiApiVieja">Nesto#517: con una API sin la ruta (el 404 de Web API) devuelve "" en vez de fallar.</param>
         /// <param name="vacioSiNoExiste">Cualquier 404 devuelve "" (lo que se busca no existe).</param>
         private async Task<string> Enviar(Func<HttpClient, Task<HttpResponseMessage>> llamada, string mensajeError,
-            bool vacioSiApiVieja = false, bool vacioSiNoExiste = false)
+            bool vacioSiApiVieja = false, bool vacioSiNoExiste = false, bool mensajeTalCual = false)
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(configuracion.servidorAPI);
@@ -355,7 +364,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     throw new Exception($"{mensajeError}: la API todavía no tiene las inscripciones a eventos. Avise a Informática.");
                 }
-                throw new Exception(MensajeError(estado, body, mensajeError));
+                throw new Exception(MensajeError(estado, body, mensajeError, mensajeTalCual));
             }
             return body;
         }
@@ -364,9 +373,14 @@ namespace Nesto.Modulos.Cliente
         /// El texto del error de la API. NestoAPI#741: un 403 (p. ej. «Solo puede inscribir a sus clientes…») se enseña tal
         /// cual, que ya dice de usted qué pasa y qué hacer; el resto, con delante qué no se pudo hacer.
         /// </summary>
-        internal static string MensajeError(int estado, string body, string mensajeError)
+        /// <param name="talCual">Nesto#614: el mensaje de la API sin nada delante (si lo hay), también en un 400.</param>
+        internal static string MensajeError(int estado, string body, string mensajeError, bool talCual = false)
         {
             string mensaje = string.IsNullOrWhiteSpace(body) ? null : ExtraerMensaje(body)?.Trim();
+            if (talCual && !string.IsNullOrEmpty(mensaje) && estado >= 400 && estado < 500)
+            {
+                return mensaje;
+            }
             if (estado == 403)
             {
                 return string.IsNullOrEmpty(mensaje) ? $"{mensajeError}: no tiene permiso." : mensaje;

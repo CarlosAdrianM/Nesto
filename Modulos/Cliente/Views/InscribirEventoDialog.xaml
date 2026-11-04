@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              x:Name="raizDialogo"
              MinWidth="560" MinHeight="360"
              Background="White">
@@ -46,12 +47,17 @@
                                            ToolTip="Busque al cliente por nombre, número, NIF o teléfono. Pinche en la dirección para elegir otro contacto"/>
             </Grid>
 
-            <!-- Nesto#566 (NestoAPI#731): la persona de contacto que asiste (opcional) -->
+            <!-- Nesto#566 (NestoAPI#731): la persona de contacto que asiste (opcional).
+                 Nesto#614 (NestoAPI#811, Reina): y cuántas personas vienen (un centro que compra 2 kits trae 2 personas). -->
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="Asiste:" Width="110" VerticalAlignment="Center"/>
-                <ComboBox ItemsSource="{Binding Personas}" SelectedItem="{Binding PersonaAsiste}" DisplayMemberPath="Texto" Width="360"
+                <ComboBox ItemsSource="{Binding Personas}" SelectedItem="{Binding PersonaAsiste}" DisplayMemberPath="Texto" Width="250"
                           IsEnabled="{Binding SinInscribir}"
                           ToolTip="Opcional: la persona de contacto del cliente que va a asistir. Si no está, dé de alta a la persona en la ficha del cliente"/>
+                <TextBlock Text="Asistentes:" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                <xctk:IntegerUpDown Value="{Binding Asistentes, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Width="60"
+                                    IsEnabled="{Binding SinInscribir}"
+                                    ToolTip="Cuántas personas vienen con esta inscripción: ocupan tantas plazas y, si el evento pide comprar un producto, hace falta una unidad comprada por asistente"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">

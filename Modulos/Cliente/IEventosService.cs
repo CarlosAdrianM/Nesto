@@ -81,5 +81,13 @@ namespace Nesto.Modulos.Cliente
         Task<List<PersonaContactoEventoModel>> LeerPersonasContacto(string empresa, string cliente, string contacto);
         /// <summary>PUT api/Eventos/Inscripciones/{id}/PersonaContacto; null o vacío = quitarla. Devuelve la inscripción.</summary>
         Task<InscripcionEventoModel> CambiarPersonaContacto(int id, string numeroPersona);
+
+        // Nesto#614 (NestoAPI#811): cuántas personas vienen con la inscripción.
+
+        /// <summary>
+        /// PUT api/Eventos/Inscripciones/{id}/Asistentes. Devuelve la inscripción completa (con Avisos). Si no caben o no ha
+        /// comprado tantas unidades, la excepción lleva el mensaje de la API tal cual.
+        /// </summary>
+        Task<InscripcionEventoModel> CambiarAsistentes(int id, int asistentes);
     }
 }

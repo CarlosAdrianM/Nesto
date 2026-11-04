@@ -56,6 +56,8 @@
                 <DataGridTextColumn Header="Evento" Binding="{Binding Evento}" Width="*" MinWidth="200"/>
                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="65"/>
                 <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" Width="85"/>
+                <!-- Nesto#614: cuántas personas vienen con la inscripción -->
+                <DataGridTextColumn Header="Asistentes" Binding="{Binding NumeroAsistentes, Mode=OneWay}" Width="70"/>
                 <!-- Carlos 29/10/26: copiar el enlace de pago pendiente para reenviarlo -->
                 <DataGridTemplateColumn Header="Enlace de pago" Width="105">
                     <DataGridTemplateColumn.CellTemplate>

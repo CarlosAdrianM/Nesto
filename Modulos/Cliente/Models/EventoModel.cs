@@ -28,7 +28,10 @@ namespace Nesto.Modulos.Cliente.Models
         public string ProductoCurso { get; set; }
         /// <summary>Plazas del evento; null = sin límite.</summary>
         public int? Plazas { get; set; }
-        /// <summary>Solo lectura: inscripciones que ocupan plaza (todas menos caducadas y anuladas).</summary>
+        /// <summary>
+        /// Solo lectura: plazas ocupadas por las inscripciones que ocupan plaza (todas menos caducadas y anuladas). Nesto#614
+        /// (NestoAPI#811): la API ya suma los asistentes de cada inscripción; aquí no se calcula.
+        /// </summary>
         public int PlazasOcupadas { get; set; }
         public string Lugar { get; set; }
         /// <summary>

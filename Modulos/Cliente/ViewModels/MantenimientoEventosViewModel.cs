@@ -68,6 +68,8 @@ namespace Nesto.Modulos.Cliente
             AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
             CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace,
                 i => (i ?? InscripcionSeleccionada)?.TieneEnlacePago == true);
+            CambiarAsistentesCommand = new AsyncRelayCommand<InscripcionEventoModel>(i => CambiarAsistentesAsync(i ?? InscripcionSeleccionada),
+                i => (i ?? InscripcionSeleccionada)?.SePuedenCambiarAsistentes == true);
         }
 
         // ---------------- Carlos 29/10/26: copiar el enlace de pago de un inscrito para reenviarlo ----------------
@@ -1300,7 +1302,10 @@ namespace Nesto.Modulos.Cliente
                 }
                 IEnumerable<string> partes = vivas.GroupBy(i => (i.EstadoTexto ?? i.Estado)?.ToLowerInvariant())
                     .Select(g => $"{g.Count()} {g.Key}");
-                return $"{vivas.Count} inscritos: {string.Join(", ", partes)}.";
+                // Nesto#614: si alguna trae a más de una persona, cuántas personas son en total.
+                int personas = vivas.Sum(i => i.NumeroAsistentes);
+                string asistentes = personas != vivas.Count ? $" ({InscripcionEventoModel.TextoPersonas(personas)})" : string.Empty;
+                return $"{vivas.Count} inscritos{asistentes}: {string.Join(", ", partes)}.";
             }
         }
 
@@ -1386,6 +1391,7 @@ namespace Nesto.Modulos.Cliente
             MarcarPagadaCommand.NotifyCanExecuteChanged();
             FacturarCommand.NotifyCanExecuteChanged();
             CopiarEnlaceCommand.NotifyCanExecuteChanged();
+            CambiarAsistentesCommand.NotifyCanExecuteChanged();
         }
 
         public AsyncRelayCommand InscribirCommand { get; }
@@ -1524,6 +1530,57 @@ namespace Nesto.Modulos.Cliente
             finally
             {
                 EstaOcupado = false;
+            }
+        }
+
+        // ---------------- Nesto#614 (NestoAPI#811): cuántas personas vienen con la inscripción ----------------
+
+        public AsyncRelayCommand<InscripcionEventoModel> CambiarAsistentesCommand { get; }
+
+        /// <summary>
+        /// Guarda el número de asistentes escrito en la ficha (PUT api/Eventos/Inscripciones/{id}/Asistentes). Si la API no lo
+        /// acepta (no caben, no ha comprado tantas unidades…), enseña su mensaje tal cual y vuelve al número que tenía. Si va
+        /// bien, recarga los eventos para que las plazas ocupadas (que suma la API) estén al día, y enseña los avisos.
+        /// </summary>
+        public async Task CambiarAsistentesAsync(InscripcionEventoModel inscripcion)
+        {
+            if (inscripcion == null || !inscripcion.SePuedenCambiarAsistentes)
+            {
+                return;
+            }
+            int nuevos = inscripcion.AsistentesEdicion ?? 0;
+            if (nuevos < 1)
+            {
+                _dialogService.ShowError("El número de asistentes tiene que ser al menos 1.");
+                inscripcion.AsistentesEdicion = null;
+                return;
+            }
+            if (nuevos == inscripcion.NumeroAsistentes)
+            {
+                return;
+            }
+            InscripcionEventoModel guardada;
+            try
+            {
+                EstaOcupado = true;
+                guardada = await _servicio.CambiarAsistentes(inscripcion.Id, nuevos);
+            }
+            catch (Exception ex)
+            {
+                inscripcion.AsistentesEdicion = null;
+                _dialogService.ShowError(ex.Message);
+                return;
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            Reemplazar(guardada);
+            await CargarAsync(); // Las plazas ocupadas del evento (la API suma los asistentes)
+            List<string> avisos = guardada?.Avisos?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList();
+            if (avisos != null && avisos.Any())
+            {
+                _dialogService.ShowNotification("Asistentes", string.Join(Environment.NewLine, avisos));
             }
         }
 

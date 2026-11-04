@@ -287,6 +287,20 @@ namespace Nesto.Modulos.Cliente
             ActualizarCorreos();
         }
 
+        // ---------------- Nesto#614 (NestoAPI#811): cuántas personas vienen ----------------
+
+        private int? _asistentes = 1;
+        /// <summary>
+        /// Cuántas personas vienen con la inscripción (un centro que compra 2 kits trae 2 personas). 1 por defecto; vacío o
+        /// menos de 1 cuenta como 1. Ocupan tantas plazas y, en un evento «gratuito por compra», hace falta una unidad comprada
+        /// por asistente (lo comprueba la API).
+        /// </summary>
+        public int? Asistentes
+        {
+            get => _asistentes;
+            set => SetProperty(ref _asistentes, value.HasValue && value.Value < 1 ? 1 : value);
+        }
+
         private string _nombreCliente;
         public string NombreCliente { get => _nombreCliente; private set => SetProperty(ref _nombreCliente, value); }
 
@@ -543,7 +557,8 @@ namespace Nesto.Modulos.Cliente
                     Modalidad = Evento.Modalidades != null && Evento.Modalidades.Any() ? Modalidad?.Valor : null,
                     GenerarEnlacePago = EsTarjeta && GenerarEnlacePago,
                     Correo = SeMandaCorreo && !string.IsNullOrWhiteSpace(Correo) ? Correo.Trim() : null,
-                    PersonaContacto = string.IsNullOrWhiteSpace(PersonaAsiste?.Numero) ? null : PersonaAsiste.Numero.Trim()
+                    PersonaContacto = string.IsNullOrWhiteSpace(PersonaAsiste?.Numero) ? null : PersonaAsiste.Numero.Trim(),
+                    Asistentes = Asistentes.HasValue && Asistentes.Value >= 1 ? Asistentes.Value : 1
                 });
                 if (TieneEnlace)
                 {
