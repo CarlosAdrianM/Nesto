@@ -18,6 +18,7 @@ Public Class MenuBarView
         {"Agencias", GetType(Agencias)},
         {"AgenciasMantenimiento", GetType(AgenciasMantenimiento)},
         {"FamiliasMantenimiento", GetType(FamiliasMantenimiento)},
+        {"Festivos", GetType(Festivos)},
         {"Comisiones", GetType(Comisiones)},
         {"ClienteComercial", GetType(ClienteComercial)},
         {"PlanesVentajas", GetType(PlanesVentajas)}
@@ -34,6 +35,7 @@ Public Class MenuBarView
         registro.Transitorio(Of AgenciasViewModel)()
         registro.Transitorio(Of AgenciasMantenimientoViewModel)()
         registro.Transitorio(Of FamiliasMantenimientoViewModel)()
+        registro.Transitorio(Of FestivosViewModel)()
         registro.Transitorio(Of ComisionesViewModel)()
         registro.Transitorio(Of PlanesVentajasViewModel)()
     End Sub

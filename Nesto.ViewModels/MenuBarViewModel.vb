@@ -58,6 +58,7 @@ Public Class MenuBarViewModel
         AgenciasMantenimientoCommand = New RelayCommand(AddressOf OnAgenciasMantenimiento)
         FamiliasMantenimientoCommand = New RelayCommand(AddressOf OnFamiliasMantenimiento)
         VideosCommand = New RelayCommand(AddressOf OnVideos)
+        FestivosCommand = New RelayCommand(AddressOf OnFestivos, AddressOf PuedeMantenerFestivos)
         NovedadesCommand = New RelayCommand(AddressOf OnNovedades)
         VendedoresComisionesCommand = New RelayCommand(AddressOf OnVendedoresComisiones)
         VendedoresClientesCommand = New RelayCommand(AddressOf OnVendedoresClientes)
@@ -111,6 +112,17 @@ Public Class MenuBarViewModel
         End Get
         Set(value As Visibility)
             SetProperty(_videosVisible, value)
+        End Set
+    End Property
+
+    ' Nesto#616 (NestoAPI#779): el mantenimiento de festivos, solo Administración, Dirección e Informática
+    Private _festivosVisible As Visibility = Visibility.Collapsed
+    Public Property FestivosVisible As Visibility
+        Get
+            Return _festivosVisible
+        End Get
+        Set(value As Visibility)
+            SetProperty(_festivosVisible, value)
         End Set
     End Property
 
@@ -176,6 +188,7 @@ Public Class MenuBarViewModel
     Public Property AgenciasMantenimientoCommand As ICommand
     Public Property FamiliasMantenimientoCommand As ICommand
     Public Property VideosCommand As ICommand
+    Public Property FestivosCommand As ICommand
     Public Property NovedadesCommand As ICommand
     Public Property VendedoresComisionesCommand As ICommand
     Public Property VendedoresClientesCommand As ICommand
@@ -214,7 +227,18 @@ Public Class MenuBarViewModel
         If _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE) Then
             VideosVisible = Visibility.Visible
         End If
+
+        If PuedeMantenerFestivos() Then
+            FestivosVisible = Visibility.Visible
+        End If
     End Sub
+
+    ''' <summary>Nesto#616: los mismos grupos que dejan escribir en api/Festivos (la API lo vuelve a comprobar: 403).</summary>
+    Private Function PuedeMantenerFestivos() As Boolean
+        Return _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
+            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
+    End Function
 
     Private Async Function ComprobarSiEsJefeDeVentas() As Task
         _listaVendedoresEquipo = Await _servicioComisiones.LeerVendedores()
@@ -328,6 +352,11 @@ Public Class MenuBarViewModel
         NavegarAVista("FamiliasMantenimiento")
     End Sub
 
+
+    ' Nesto#616 (NestoAPI#779): festivos en la tabla, mantenidos desde aquí
+    Private Sub OnFestivos()
+        NavegarAVista("Festivos")
+    End Sub
 
     Private Sub OnVideos()
         _navegacion.RequestNavigate("MainRegion", "VideosView")

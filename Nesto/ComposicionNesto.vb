@@ -223,6 +223,8 @@ Public NotInheritable Class ComposicionNesto
 
         ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
         registro.Singleton(Of IServicioFamiliasMantenimiento)(Function(r) New FamiliasMantenimientoService(r.Resolver(Of IClienteApiFactory)()))
+        ' Nesto#616 (NestoAPI#779): festivos en la tabla, contra api/Festivos
+        registro.Singleton(Of IServicioFestivos)(Function(r) New ServicioFestivos(r.Resolver(Of IClienteApiFactory)()))
 
         registro.Transitorio(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         registro.Transitorio(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))

@@ -1,0 +1,76 @@
+<UserControl x:Class="Festivos" Name="Festivos"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    Background="White">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <!-- Nesto#616 (NestoAPI#779): calendario de festivos en la tabla Festivos -->
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="Festivos" FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
+                <TextBlock TextWrapping="Wrap" Foreground="#555"
+                           Text="Los días que no se trabaja: cuentan para las remesas, las fechas de entrega, el picking de nuestras rutas y los avisos. Dé de alta los del año que viene antes de enero (el calendario laboral de la Comunidad de Madrid sale en el BOCM)."/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Content="◀" Command="{Binding AnioAnteriorCommand}" Width="30" Height="26" ToolTip="Año anterior"/>
+                <TextBlock Text="{Binding Anio}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"
+                           Width="60" TextAlignment="Center"/>
+                <Button Content="Año siguiente" Command="{Binding AnioSiguienteCommand}" Height="26" Padding="10,0"/>
+                <Button Content="Actualizar" Command="{Binding CargarCommand}" Height="26" Padding="10,0" Margin="10,0,0,0"/>
+                <TextBlock Text="{Binding Resumen}" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#555"/>
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8" Margin="0,0,0,8"
+                    Visibility="{Binding VienenDelCodigo, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding AvisoOrigen}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#8A4B00"/>
+            </Border>
+
+            <DataGrid Grid.Row="3" ItemsSource="{Binding Festivos}" SelectedItem="{Binding FestivoSeleccionado, Mode=TwoWay}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                      SelectionMode="Single" HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}" Width="100"/>
+                    <DataGridTextColumn Header="Día" Binding="{Binding DiaSemana}" Width="100"/>
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="110"/>
+                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>
+                    <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="80"/>
+                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="140"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Grid Grid.Row="4" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <DatePicker Grid.Column="0" SelectedDate="{Binding NuevaFecha, Mode=TwoWay}" Width="130" VerticalAlignment="Center"
+                            ToolTip="Fecha del festivo"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Tipos}" SelectedItem="{Binding NuevoTipo, Mode=TwoWay}"
+                          Width="120" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Tipo de festivo"/>
+                <TextBox Grid.Column="2" Text="{Binding NuevaDescripcion, UpdateSourceTrigger=PropertyChanged}"
+                         MaxLength="{Binding LongitudDescripcion}" Margin="8,0,0,0" VerticalAlignment="Center"
+                         ToolTip="Descripción (por ejemplo, San José)"/>
+                <Button Grid.Column="3" Content="Dar de alta" Command="{Binding AnadirCommand}" Width="110" Height="28" Margin="8,0,0,0"/>
+                <Button Grid.Column="4" Content="Dar de baja" Command="{Binding BorrarCommand}" Width="110" Height="28" Margin="8,0,0,0"
+                        ToolTip="Da de baja el festivo seleccionado (solo los de la tabla)"/>
+            </Grid>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
