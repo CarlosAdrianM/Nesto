@@ -58,6 +58,11 @@ namespace Nesto.Infrastructure.Models
         public List<LineaCrearReposicion> Lineas { get; set; }
         /// <summary>NestoAPI#577: quién la crea ('Nesto' | 'Ariadna' | 'Automatico'). Nesto manda siempre «Nesto».</summary>
         public string Herramienta { get; set; }
+        /// <summary>
+        /// NestoAPI#814, solo en la puntual: el compañero que la lleva a Algete (texto libre, «Manuel»). Null: el repartidor. Con
+        /// compañero queda recogida en el acto, sin leer bultos.
+        /// </summary>
+        public string LaLleva { get; set; }
     }
 
     /// <summary>
@@ -110,6 +115,10 @@ namespace Nesto.Infrastructure.Models
         public string DiarioEntrada { get; set; }
         public List<LineaTraspasoTerminado> Lineas { get; set; } = new List<LineaTraspasoTerminado>();
         public int Unidades => (Lineas ?? new List<LineaTraspasoTerminado>()).Sum(l => l.Cantidad);
+        /// <summary>NestoAPI#814: en la puntual, el compañero que la lleva (null: el repartidor).</summary>
+        public string LaLleva { get; set; }
+        /// <summary>NestoAPI#814: cuándo se le entregó al compañero.</summary>
+        public DateTime? FechaRecogida { get; set; }
     }
 
     /// <summary>
@@ -175,6 +184,10 @@ namespace Nesto.Infrastructure.Models
         public string RepartidorRecogida { get; set; }
         /// <summary>NestoAPI#772: cuándo leyó el último bulto.</summary>
         public DateTime? FechaUltimoBultoRecogido { get; set; }
+        /// <summary>NestoAPI#814: la puntual se puede mandar con un compañero (está el script de la columna LaLleva).</summary>
+        public bool PuedeLlevarlaCompanero { get; set; }
+        /// <summary>NestoAPI#814: el repartidor ya ha pasado: la puntual solo puede ir con un compañero.</summary>
+        public bool SoloConCompanero { get; set; }
     }
 
     /// <summary>NestoAPI#772 (Nesto#590): un momento de la historia de una reposición o de uno de sus bultos.</summary>
@@ -207,6 +220,8 @@ namespace Nesto.Infrastructure.Models
         public string Origen { get; set; }
         public string Destino { get; set; }
         public string Herramienta { get; set; }
+        /// <summary>NestoAPI#814: el compañero que lleva la puntual (null: el repartidor).</summary>
+        public string LaLleva { get; set; }
         public List<EventoSeguimiento> Eventos { get; set; } = new List<EventoSeguimiento>();
         public List<BultoSeguimiento> Bultos { get; set; } = new List<BultoSeguimiento>();
     }
@@ -260,6 +275,19 @@ namespace Nesto.Infrastructure.Models
         public int Unidades { get; set; }
         /// <summary>Cuántas etiquetas de bulto tiene; 0 si se mandó sin bultos.</summary>
         public int Bultos { get; set; }
+        /// <summary>NestoAPI#814: la puntual la lleva un compañero («Manuel»). Null: el repartidor.</summary>
+        public string LaLleva { get; set; }
+        /// <summary>NestoAPI#814: cuándo se le entregó.</summary>
+        public DateTime? FechaEntregada { get; set; }
+
+        /// <summary>NestoAPI#814: «Entregada a Manuel a las 13:10». Null si la lleva el repartidor.</summary>
+        public string Entrega => TextoEntregadaA(LaLleva, FechaEntregada);
+
+        /// <summary>NestoAPI#814: «Entregada a Manuel a las 13:10» (el mismo texto que la API). Null sin compañero.</summary>
+        public static string TextoEntregadaA(string laLleva, DateTime? fecha)
+            => string.IsNullOrWhiteSpace(laLleva)
+                ? null
+                : $"Entregada a {laLleva.Trim()}" + (fecha.HasValue ? $" a las {fecha.Value:H:mm}" : string.Empty);
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>

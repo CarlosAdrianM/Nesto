@@ -1065,6 +1065,123 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.EnModoPuntual, "Se queda con lo puesto: puede cancelar");
         }
 
+        // ---------------------------------------------------------------- NestoAPI#814 (Carlos, 04/11/26): la puntual que lleva un compañero
+
+        /// <summary>La API de NestoAPI#814: con la de hoy recogida se puede, pero solo con un compañero.</summary>
+        private void HoyRecogidaConApiNueva()
+        {
+            EstadoReposicionPuntual estado = Estado(EstadoReposicionPuntual.RECOGIDA,
+                "El repartidor ya se ha llevado la reposición de hoy (a las 12:10): lo que quede va en la siguiente.",
+                fechaRecogida: new DateTime(2026, 11, 4, 12, 10, 0), usuarioRecogida: "NUEVAVISION\\Paloma");
+            estado.SePuede = true;
+            estado.SoloConCompanero = true;
+            estado.PuedeLlevarlaCompanero = true;
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).Returns(estado);
+        }
+
+
+        [TestMethod]
+        public async Task Puntual_YaRecogidaConLaApiNueva_DejaEmpezar_SoloConUnCompanero_YAvisaDeLaRecogida()
+        {
+            HoyRecogidaConApiNueva();
+
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsTrue(_vm.EnModoPuntual, "La recogida ya no bloquea la puntual");
+            Assert.IsTrue(_vm.MostrarQuienLaLleva);
+            Assert.IsFalse(_vm.PuedeElegirRepartidor, "El repartidor ya ha pasado");
+            Assert.IsTrue(_vm.LaLlevaCompanero, "Sale elegido «Un compañero»");
+            Assert.AreEqual("Recogida por Paloma a las 12:10", _vm.EstadoRecogida);
+            _vm.CancelarPuntualCommand.Execute(null);
+            Assert.AreEqual(RECOGIDA_1210 + " Si la lleva un compañero, puede mandar una puntual.", _vm.AvisoPuntual, "Se mantiene el aviso");
+            Assert.IsTrue(_vm.PuedeEmpezarPuntual);
+        }
+
+        [TestMethod]
+        public async Task Puntual_ConUnCompanero_SinNombre_NoSeManda()
+        {
+            HoyRecogidaConApiNueva();
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+            _vm.NombreCompanero = "   ";
+
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).MustNotHaveHappened();
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("Mandar a Algete", A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual("El repartidor ya se ha llevado la de hoy: indique qué compañero la lleva.", _vm.Mensaje);
+            Assert.IsTrue(_vm.EnModoPuntual);
+        }
+
+        [TestMethod]
+        public async Task Puntual_ConUnCompanero_MandaLaLleva_YLoDiceAlConfirmarYAlTerminar()
+        {
+            HoyRecogidaConApiNueva();
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+            _vm.NombreCompanero = " Manuel ";
+            CrearReposicion? mandada = null;
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._))
+                .Invokes((CrearReposicion p) => mandada = p)
+                .Returns(new ResultadoTerminarReposicion
+                {
+                    NumTraspaso = 81030, LaLleva = "Manuel", FechaRecogida = new DateTime(2026, 11, 4, 13, 10, 0),
+                    Lineas = new List<LineaTraspasoTerminado> { new() { Producto = "41980", Cantidad = 1 } }
+                });
+
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("Manuel", mandada?.LaLleva);
+            A.CallTo(() => _dialogos.ShowConfirmationAsync("Mandar a Algete",
+                "Se mandan 1 unidades de 1 productos a Algete en una reposición aparte de la del calendario. " +
+                "La lleva Manuel (queda entregada ya, sin leer bultos). ¿Mandar?")).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(_vm.Mensaje, "Entregada a Manuel a las 13:10: désela con las etiquetas de bulto puestas.");
+            Assert.IsFalse(_vm.EnModoPuntual);
+        }
+
+        [TestMethod]
+        public async Task Puntual_ConElRepartidor_NoMandaLaLleva_AunqueSeHayaEscritoUnNombre()
+        {
+            A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._))
+                .ReturnsLazily(() => { var e = Estado(EstadoReposicionPuntual.ABIERTA); e.PuedeLlevarlaCompanero = true; return e; });
+            await EmpezarPuntualSinReposicionAsync();
+            Assert.IsTrue(_vm.PuedeElegirRepartidor);
+            Assert.IsFalse(_vm.LaLlevaCompanero, "Por defecto, el repartidor");
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._)).Returns(new List<ProductoReposicionPuntual> { Guantes() });
+            await _vm.LeerPuntualAsync("41980");
+            _vm.NombreCompanero = "Manuel";
+            CrearReposicion? mandada = null;
+            A.CallTo(() => _servicio.CrearPuntual(A<CrearReposicion>._)).Invokes((CrearReposicion p) => mandada = p)
+                .Returns(new ResultadoTerminarReposicion { NumTraspaso = 81031 });
+
+            await _vm.EnviarPuntualCommand.ExecuteAsync(null);
+
+            Assert.IsNotNull(mandada);
+            Assert.IsNull(mandada!.LaLleva);
+        }
+
+        [TestMethod]
+        public async Task Puntual_ConUnaApiAnterior_NoSeVeElQuienLaLleva()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+
+            Assert.IsTrue(_vm.EnModoPuntual);
+            Assert.IsFalse(_vm.MostrarQuienLaLleva, "Sin PuedeLlevarlaCompanero, como antes");
+            Assert.IsFalse(_vm.LaLlevaCompanero);
+        }
+
+        [DataTestMethod]
+        [DataRow(null, null)]
+        [DataRow(" Manuel ", "Entregada a Manuel a las 13:10")]
+        public void Enviada_Entrega_DiceAQuienYAQueHora(string? laLleva, string? esperado)
+        {
+            var enviada = new ReposicionEnviada { Traspaso = 81030, LaLleva = laLleva, FechaEntregada = new DateTime(2026, 11, 4, 13, 10, 0) };
+
+            Assert.AreEqual(esperado, enviada.Entrega);
+        }
+
         [TestMethod]
         public async Task Puntual_SiLaApiNoSabeElEstado_SinRestricciones()
         {

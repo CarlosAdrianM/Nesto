@@ -141,6 +141,22 @@
             <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
                 <Run Text="Total: " /><Run Text="{Binding UnidadesPuntual, Mode=OneWay}" /><Run Text=" unidades de " /><Run Text="{Binding ProductosPuntual, Mode=OneWay}" /><Run Text=" productos" />
             </TextBlock>
+            <!-- NestoAPI#814 (Carlos, 04/11/26): ¿quién la lleva? El repartidor (como siempre, lee los bultos con Ariadna) o un
+                 compañero que pasa por la tienda y va a Algete (texto libre; queda entregada ya, sin leer bultos) -->
+            <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding MostrarQuienLaLleva, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="¿Quién la lleva?" VerticalAlignment="Center" FontWeight="SemiBold" />
+                <RadioButton Content="El repartidor" GroupName="QuienLaLleva" Margin="12,0,0,0" VerticalAlignment="Center"
+                             IsChecked="{Binding LaLlevaRepartidor}" IsEnabled="{Binding PuedeElegirRepartidor}"
+                             ToolTipService.ShowOnDisabled="True"
+                             ToolTip="Como siempre: va en la caja del repartidor, que lee los bultos con Ariadna. Si ya ha pasado hoy, no se puede." />
+                <RadioButton Content="Un c_ompañero:" GroupName="QuienLaLleva" Margin="12,0,0,0" VerticalAlignment="Center"
+                             IsChecked="{Binding LaLlevaCompanero}"
+                             ToolTip="Un compañero que pasa por la tienda y va a Algete. Queda entregada al mandarla, sin leer ningún bulto." />
+                <TextBox Text="{Binding NombreCompanero, UpdateSourceTrigger=PropertyChanged}" Width="160" Margin="6,0,0,0" MaxLength="50"
+                         VerticalAlignment="Center" IsEnabled="{Binding LaLlevaCompanero}"
+                         ToolTip="El nombre del compañero que la lleva (por ejemplo, Manuel). Obligatorio." />
+            </StackPanel>
             <Button Content="_Mandar a Algete" Command="{Binding EnviarPuntualCommand}" Padding="16,2" Margin="16,0,0,0"
                     ToolTip="Se crea y se termina de una vez: sale de la tienda y queda pendiente de recibir en Algete, aparte de la del calendario. Alt+M" />
             <Button Content="_Cancelar" Command="{Binding CancelarPuntualCommand}" Padding="16,2" Margin="12,0,0,0"
@@ -258,6 +274,8 @@
                         <DataGridTextColumn Header="Productos" Binding="{Binding Lineas}" />
                         <DataGridTextColumn Header="Unidades" Binding="{Binding Unidades}" />
                         <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" />
+                        <!-- NestoAPI#814: «Entregada a Manuel a las 13:10» cuando la lleva un compañero -->
+                        <DataGridTextColumn Header="Quién la lleva" Binding="{Binding Entrega, Mode=OneWay}" />
                         <DataGridTemplateColumn Header="">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

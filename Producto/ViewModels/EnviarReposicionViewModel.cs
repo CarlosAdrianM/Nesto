@@ -423,7 +423,10 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 if (_estadoPuntual?.Situacion == EstadoReposicionPuntual.RECOGIDA)
                 {
-                    return TextoRecogida(_estadoPuntual);
+                    // NestoAPI#814: si la API ya deja mandarla con un compañero, lo dice
+                    return _estadoPuntual.SePuede && _estadoPuntual.FechaRecogida != null
+                        ? TextoRecogida(_estadoPuntual) + TEXTO_SI_LA_LLEVA_UN_COMPANERO
+                        : TextoRecogida(_estadoPuntual);
                 }
                 if (HayReposicion)
                 {
@@ -434,10 +437,101 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         internal const string TOOLTIP_PUNTUAL = "Mandar a Algete solo unos productos concretos, aparte de la reposición del calendario " +
-            "(por ejemplo, si te lo piden después de enviar la de hoy), hasta que el repartidor se la lleve. Alt+P";
+            "(por ejemplo, si se los piden después de enviar la de hoy). La lleva el repartidor o, si ya ha pasado, un compañero. Alt+P";
 
         /// <summary>El tooltip del botón: el motivo si está desactivado.</summary>
         public string ToolTipPuntual => AvisoPuntual ?? TOOLTIP_PUNTUAL;
+
+        // ---------------------------------------------------------------- NestoAPI#814 (Carlos, 04/11/26): ¿quién la lleva?
+
+        internal const string TEXTO_SI_LA_LLEVA_UN_COMPANERO = " Si la lleva un compañero, puede mandar una puntual.";
+        internal const string TEXTO_FALTA_COMPANERO = "Escriba el nombre del compañero que la lleva.";
+        internal const string TEXTO_SOLO_COMPANERO = "El repartidor ya se ha llevado la de hoy: indique qué compañero la lleva.";
+        internal const int LARGO_NOMBRE_COMPANERO = 50;
+
+        private bool _laLlevaCompanero;
+        /// <summary>
+        /// NestoAPI#814: la puntual la lleva un compañero que pasa por la tienda y va a Algete (no tiene Ariadna: no lee nada). Si no,
+        /// el repartidor, como siempre.
+        /// </summary>
+        public bool LaLlevaCompanero
+        {
+            get => _laLlevaCompanero;
+            set
+            {
+                if (SetProperty(ref _laLlevaCompanero, value))
+                {
+                    OnPropertyChanged(nameof(LaLlevaRepartidor));
+                }
+            }
+        }
+
+        /// <summary>La otra opción del «¿Quién la lleva?» (para los dos botones de radio).</summary>
+        public bool LaLlevaRepartidor
+        {
+            get => !LaLlevaCompanero;
+            set => LaLlevaCompanero = !value;
+        }
+
+        private string _nombreCompanero;
+        /// <summary>NestoAPI#814: el nombre del compañero, texto libre («Manuel»). Obligatorio si la lleva un compañero.</summary>
+        public string NombreCompanero { get => _nombreCompanero; set => SetProperty(ref _nombreCompanero, value); }
+
+        /// <summary>El repartidor ya ha pasado: solo puede llevarla un compañero.</summary>
+        public bool PuedeElegirRepartidor => _estadoPuntual?.SoloConCompanero != true;
+
+        /// <summary>La API admite un compañero (una API anterior, o sin el script, no).</summary>
+        public bool PuedeElegirCompanero => _estadoPuntual?.PuedeLlevarlaCompanero == true;
+
+        /// <summary>El «¿Quién la lleva?» se ve en la puntual si la API admite el compañero.</summary>
+        public bool MostrarQuienLaLleva => EnModoPuntual && PuedeElegirCompanero;
+
+        /// <summary>Al empezar la puntual: el repartidor, salvo que ya haya pasado.</summary>
+        private void PrepararQuienLaLleva()
+        {
+            NombreCompanero = string.Empty;
+            LaLlevaCompanero = !PuedeElegirRepartidor && PuedeElegirCompanero;
+            RefrescarQuienLaLleva();
+        }
+
+        private void RefrescarQuienLaLleva()
+        {
+            if (!PuedeElegirRepartidor && PuedeElegirCompanero)
+            {
+                LaLlevaCompanero = true;
+            }
+            else if (!PuedeElegirCompanero)
+            {
+                LaLlevaCompanero = false;
+            }
+            OnPropertyChanged(nameof(PuedeElegirRepartidor));
+            OnPropertyChanged(nameof(PuedeElegirCompanero));
+            OnPropertyChanged(nameof(MostrarQuienLaLleva));
+        }
+
+        /// <summary>El nombre que se manda (null: el repartidor).</summary>
+        internal string LaLlevaParaMandar => LaLlevaCompanero && !string.IsNullOrWhiteSpace(NombreCompanero) ? NombreCompanero.Trim() : null;
+
+        /// <summary>
+        /// Lo que falta para poder mandarla según quién la lleve (lo dice en el Mensaje). Null si está bien.
+        /// </summary>
+        internal string ComprobarQuienLaLleva()
+        {
+            if (!PuedeElegirRepartidor && !LaLlevaCompanero)
+            {
+                LaLlevaCompanero = true;
+                return TEXTO_SOLO_COMPANERO;
+            }
+            if (LaLlevaCompanero && string.IsNullOrWhiteSpace(NombreCompanero))
+            {
+                return !PuedeElegirRepartidor ? TEXTO_SOLO_COMPANERO : TEXTO_FALTA_COMPANERO;
+            }
+            if (LaLlevaCompanero && NombreCompanero.Trim().Length > LARGO_NOMBRE_COMPANERO)
+            {
+                return $"El nombre del compañero no puede pasar de {LARGO_NOMBRE_COMPANERO} caracteres.";
+            }
+            return null;
+        }
 
         // ---------------------------------------------------------------- Nesto#590 (NestoAPI#772): la recogida, bulto a bulto
 
@@ -649,6 +743,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             _estadoPuntual = estado;
+            RefrescarQuienLaLleva();
             RefrescarEstado();
         }
 
@@ -696,6 +791,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             LimpiarPuntual();
+            PrepararQuienLaLleva();
             EnModoPuntual = true;
             Mensaje = TEXTO_PUNTUAL;
             PedirFocoEnLector?.Invoke();
@@ -857,13 +953,19 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         internal string TextoConfirmacionPuntual()
-            => $"Se mandan {UnidadesPuntual} unidades de {ProductosPuntual} productos a Algete en una reposición aparte de la del calendario. ¿Mandar?";
+            => LaLlevaParaMandar == null
+                ? $"Se mandan {UnidadesPuntual} unidades de {ProductosPuntual} productos a Algete en una reposición aparte de la del calendario. ¿Mandar?"
+                : $"Se mandan {UnidadesPuntual} unidades de {ProductosPuntual} productos a Algete en una reposición aparte de la del calendario. " +
+                  $"La lleva {LaLlevaParaMandar} (queda entregada ya, sin leer bultos). ¿Mandar?";
 
         internal static string TextoResultadoPuntual(ResultadoTerminarReposicion resultado)
         {
             int productos = resultado?.Lineas?.Count ?? 0;
+            string entrega = ReposicionEnviada.TextoEntregadaA(resultado?.LaLleva, resultado?.FechaRecogida);
             return $"Reposición puntual enviada: traspaso {resultado?.NumTraspaso}, {resultado?.Unidades ?? 0} unidades de {productos} productos camino de Algete. " +
-                "Ponlas en la caja que se lleva el repartidor.";
+                (entrega == null
+                    ? "Ponlas en la caja que se lleva el repartidor."
+                    : $"{entrega}: désela con las etiquetas de bulto puestas.");
         }
 
         private async Task EnviarPuntualAsync()
@@ -890,10 +992,19 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            // NestoAPI#814: ¿quién la lleva? Con compañero, su nombre es obligatorio; si el repartidor ya ha pasado, solo compañero
+            string falta = ComprobarQuienLaLleva();
+            if (falta != null)
+            {
+                Mensaje = falta;
+                _sonidos?.Error();
+                return;
+            }
             if (!await _dialogos.ShowConfirmationAsync("Mandar a Algete", TextoConfirmacionPuntual()).ConfigureAwait(true))
             {
                 return;
             }
+            string laLleva = LaLlevaParaMandar;
             ResultadoTerminarReposicion enviada = null;
             await Ocupado(async () =>
             {
@@ -902,7 +1013,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     Empresa = Empresa,
                     Origen = Almacen,
                     Destino = Destino,
-                    Lineas = conCantidad.Select(l => new LineaCrearReposicion { Producto = l.Producto, Cantidad = l.Cantidad }).ToList()
+                    Lineas = conCantidad.Select(l => new LineaCrearReposicion { Producto = l.Producto, Cantidad = l.Cantidad }).ToList(),
+                    LaLleva = laLleva
                 }).ConfigureAwait(true);
                 string texto = TextoResultadoPuntual(resultado);
                 SalirDePuntual();
@@ -1936,6 +2048,7 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(PuedeEmpezarPuntual));
             OnPropertyChanged(nameof(MostrarBotonPuntual));
             OnPropertyChanged(nameof(PuntualBloqueada));
+            OnPropertyChanged(nameof(MostrarQuienLaLleva));
             OnPropertyChanged(nameof(AvisoPuntual));
             OnPropertyChanged(nameof(ToolTipPuntual));
             OnPropertyChanged(nameof(EstadoRecogida));
