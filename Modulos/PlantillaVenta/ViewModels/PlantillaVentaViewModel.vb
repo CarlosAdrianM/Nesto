@@ -3384,6 +3384,10 @@ Public Class PlantillaVentaViewModel
                 ' que es «antes de guardar») se pide ya lo que calcula el servidor, sin esperar al reloj.
                 PedirSugerenciasConDebounce()
                 PedirModoFacturacionConDebounce() ' Nesto#493
+                ' Nesto#612: el cheque se pudo generar después de elegir el cliente: se vuelve a mirar al finalizar
+                If value?.Name = PAGINA_FINALIZAR Then
+                    RefrescarChequeRegaloAlFinalizar()
+                End If
             End If
         End Set
     End Property
@@ -4518,6 +4522,11 @@ Public Class PlantillaVentaViewModel
             (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva) OrElse EsPresupuesto)
     End Function
     Private Async Sub OnCrearPedido()
+        Await CrearPedidoAsync()
+    End Sub
+
+    ''' <summary>Crea, modifica (Nesto#397) o amplía el pedido.</summary>
+    Friend Async Function CrearPedidoAsync() As Task
 
         If IsNothing(FormaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
             dialogService.ShowError("Compruebe que tiene seleccionados plazos y forma de pago, por favor.")
@@ -4528,6 +4537,13 @@ Public Class PlantillaVentaViewModel
         Dim errorCursos As String = ErrorCursosAlGuardar()
         If errorCursos IsNot Nothing Then
             dialogService.ShowError(errorCursos)
+            Return
+        End If
+
+        ' Nesto#612: antes de grabar se vuelve a mirar el cheque regalo. Si la casilla cambia sola (cheque recién
+        ' generado o que ya no vale), no se graba sin que el vendedor lo vea.
+        If Await RefrescarChequeRegaloAsync() Then
+            dialogService.ShowNotification("Cheque regalo", TextoCambioChequeAlGrabar())
             Return
         End If
 
@@ -4792,7 +4808,16 @@ Public Class PlantillaVentaViewModel
             Await ResolverModoConPickingAsync(rechazoConPicking, pedido.empresa, pedido.numero,
                 ModosServicio.Efectivo(pedido.modoServicio, pedido.servirJunto), modoGuardado)
         End If
-    End Sub
+    End Function
+
+    ''' <summary>Nesto#612: por qué no se ha grabado todavía cuando la casilla del cheque cambia sola al grabar.</summary>
+    Private Function TextoCambioChequeAlGrabar() As String
+        If UsarChequeRegalo Then
+            Return $"El cliente tiene disponible un cheque regalo de {Nesto.Infrastructure.Models.ReglasChequeRegalo.Euros(ChequeRegalo.Importe)} y se ha marcado «Usar el cheque regalo». " &
+                "Revise el total y vuelva a pulsar para grabar el pedido."
+        End If
+        Return "El cheque regalo del cliente ya no se puede usar y se ha quitado del pedido. Revise el total y vuelva a pulsar para grabar el pedido."
+    End Function
 
     ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
     Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
@@ -5543,6 +5568,7 @@ Public Class PlantillaVentaViewModel
         _versionChequeRegalo += 1
         Dim version As Integer = _versionChequeRegalo
         _usarChequeRegalo = False
+        _chequeRegaloDecididoPorUsuario = False ' Nesto#612: otro cliente u otro pedido, otra decisión
         ChequeRegalo.Limpiar()
         NotificarChequeRegalo()
 
@@ -5564,6 +5590,83 @@ Public Class PlantillaVentaViewModel
         ' PUT no lo suelte (la plantilla no carga las líneas ficticias del pedido).
         _usarChequeRegalo = ChequeEstaEnElPedidoEnEdicion
         NotificarChequeRegalo()
+    End Function
+
+    ''' <summary>
+    ''' Nesto#612: el usuario ha marcado o desmarcado a mano la casilla del cheque en esta plantilla. Desde entonces la
+    ''' plantilla no la vuelve a marcar sola (solo la quita si el cheque deja de poder usarse).
+    ''' </summary>
+    Private _chequeRegaloDecididoPorUsuario As Boolean
+
+    Private Async Sub RefrescarChequeRegaloAlFinalizar()
+        Try
+            Await RefrescarChequeRegaloAsync()
+        Catch ex As Exception
+            ' Es una ayuda: si algo falla, se queda lo que había
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#612 (clienta 9238, pedido 929678): el cheque se leía UNA vez al elegir el cliente y, si se generaba después
+    ''' (3 minutos antes de grabar), la casilla no salía. Al llegar a Finalizar y antes de grabar se vuelve a pedir
+    ''' (como CargarChequeRegaloAsync con forzar), pero sin perder lo que haya marcado el usuario. Si no lo ha tocado y
+    ''' el cheque está «Disponible» y la base computable supera el mínimo, la casilla sale MARCADA (decisión de Carlos,
+    ''' 04/11/26). Devuelve True si la casilla ha cambiado. Si la API falla, se queda lo que había.
+    ''' </summary>
+    Friend Async Function RefrescarChequeRegaloAsync() As Task(Of Boolean)
+        Dim cliente As ClienteJson = clienteSeleccionado
+        Dim servicioCheques = ServicioChequesRegalo
+        If cliente Is Nothing OrElse servicioCheques Is Nothing OrElse String.IsNullOrWhiteSpace(cliente.cliente) Then
+            Return False
+        End If
+        Dim clave As String = $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}"
+        If clave <> _clienteChequeRegalo Then
+            _chequeRegaloDecididoPorUsuario = False ' cliente nuevo para el cheque: no hay decisión que respetar
+        End If
+        _versionChequeRegalo += 1
+        Dim version As Integer = _versionChequeRegalo
+        Dim cheque As Nesto.Infrastructure.Models.ChequeRegaloClienteDTO
+        Try
+            cheque = Await servicioCheques.LeerDelCliente(cliente.empresa, cliente.cliente)
+        Catch ex As Exception
+            Return False
+        End Try
+        If version <> _versionChequeRegalo OrElse Not Object.Equals(cliente, clienteSeleccionado) Then
+            Return False
+        End If
+        _clienteChequeRegalo = clave
+        Dim antes As Boolean = _usarChequeRegalo
+        ChequeRegalo.Aplicar(cheque)
+        If Not PuedeUsarChequeRegalo Then
+            _usarChequeRegalo = False
+        ElseIf Not _chequeRegaloDecididoPorUsuario Then
+            _usarChequeRegalo = ChequeEstaEnElPedidoEnEdicion OrElse DebeMarcarseChequeRegaloPorDefecto()
+        End If
+        NotificarChequeRegalo()
+        Return antes <> _usarChequeRegalo
+    End Function
+
+    ''' <summary>
+    ''' Nesto#612: cheque «Disponible» y la base computable de la plantilla (la de <see cref="BaseComputableChequeRegalo"/>:
+    ''' sin «PACK 26», sin el grupo PEL, sin cursos ni el propio cheque) SUPERA el mínimo. Si con el cheque los regalos
+    ''' elegidos dejaran de caber en los Ganavisiones, no se marca solo (lo decide el vendedor, con el aviso de siempre).
+    ''' </summary>
+    Private Function DebeMarcarseChequeRegaloPorDefecto() As Boolean
+        Dim cheque = ChequeRegalo.Cheque
+        If cheque Is Nothing OrElse Not cheque.SePuedeUsar OrElse
+            Not String.Equals(cheque.Estado, Nesto.Infrastructure.Models.ChequeRegaloClienteDTO.ESTADO_DISPONIBLE, StringComparison.OrdinalIgnoreCase) OrElse
+            BaseComputableChequeRegalo <= cheque.MinimoCanje Then
+            Return False
+        End If
+        Dim anterior As Boolean = _usarChequeRegalo
+        _usarChequeRegalo = True
+        Dim excedidos As Boolean
+        Try
+            excedidos = GanavisionesExcedidos
+        Finally
+            _usarChequeRegalo = anterior
+        End Try
+        Return Not excedidos
     End Function
 
     ''' <summary>El cheque ya está en el pedido que se está modificando con la plantilla (Nesto#397).</summary>
@@ -5604,6 +5707,7 @@ Public Class PlantillaVentaViewModel
                 value = False
             End If
             If SetProperty(_usarChequeRegalo, value) Then
+                _chequeRegaloDecididoPorUsuario = True ' Nesto#612: no se vuelve a marcar sola en esta plantilla
                 NotificarTotalesChequeRegalo()
                 ' NestoAPI#593 (Ganavisiones): con el cheque la base bonificable baja; si ya había regalos elegidos, puede que no quepan
                 If value AndAlso GanavisionesExcedidos Then
