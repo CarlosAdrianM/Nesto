@@ -216,7 +216,8 @@ namespace Producto.Tests
             LecturaEnCursoRecepcion apunte = _apuntes.Single();
             Assert.AreEqual("17404", apunte.Producto);
             Assert.AreEqual(1, apunte.Cantidad, "Va a lo leído en curso del servidor, como una lectura del lector");
-            Assert.AreEqual("Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras.", _vm.Mensaje);
+            Assert.AreEqual("Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras. (si ha sido un error, pulse «−1»)", _vm.Mensaje,
+                "Nesto#610: pulsarlo sin querer avisa a Algete y a Compras; el aviso dice cómo quitarla");
             Assert.IsFalse(_vm.PreguntandoSinEtiqueta);
         }
 
