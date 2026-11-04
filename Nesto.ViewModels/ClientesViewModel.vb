@@ -41,13 +41,33 @@ Public Class ClientesViewModel
     ' servicio de pedidos) llega por el constructor. Con el constructor de los tests los tres quedan a Nothing, igual que
     ' antes el contenedor.
     Private ReadOnly abridorPedidos As IAbridorPedidos
-    Private ReadOnly servicioErrores As IServicioRegistroErrores
+    Private servicioErrores As IServicioRegistroErrores
     Private ReadOnly Property dialogService As IServicioDialogos
     Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
     Private ReadOnly Property servicioAutenticacion As IServicioAutenticacion
     ' Nesto#369: factoría que crea HttpClient con AuthTokenHandler (adjunta el JWT → usuario en ELMAH).
     Private _clienteApiFactory As IClienteApiFactory
+
+    ''' <summary>Nesto#611: para que los tests pongan una API falsa (el constructor de tests no crea la factoría).</summary>
+    Friend Property ClienteApiFactory As IClienteApiFactory
+        Get
+            Return _clienteApiFactory
+        End Get
+        Set(value As IClienteApiFactory)
+            _clienteApiFactory = value
+        End Set
+    End Property
+
+    ''' <summary>Nesto#611: para que los tests comprueben qué se registra en ELMAH.</summary>
+    Friend Property RegistroErrores As IServicioRegistroErrores
+        Get
+            Return servicioErrores
+        End Get
+        Set(value As IServicioRegistroErrores)
+            servicioErrores = value
+        End Set
+    End Property
 
     Private ruta As String
     Private EsUsuarioAdministracion As Boolean = False
@@ -1838,22 +1858,60 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Async Sub OnReclamarDeuda()
-        Dim errorReclamacion As Exception = Nothing
+    ''' <summary>Nesto#611: título del cuadro que pide el concepto cuando el enlace no liquida efectos.</summary>
+    Public Const TITULO_PEDIR_CONCEPTO_PAGO As String = "Concepto del pago"
+    ''' <summary>Nesto#611: qué se pide y por qué, con los mismos ejemplos que da la API.</summary>
+    Public Const TEXTO_PEDIR_CONCEPTO_PAGO As String =
+        "El enlace no liquida efectos concretos (no hay ninguno marcado o su suma no coincide con el importe), así que el " &
+        "concepto es lo único que dirá qué ha pagado el cliente: se contabiliza tal cual en su extracto." & vbCrLf & vbCrLf &
+        "Escriba un concepto que identifique el pago, por ejemplo «Pago pedido 123456» o «Pago señal curso quiromasaje»."
+
+    ''' <summary>Nesto#611: como la API (FormateadorConcepto.EsGenericoOVacio): vacío o el asunto por defecto no identifican el pago.</summary>
+    Friend Shared Function EsConceptoGenericoOVacio(concepto As String) As Boolean
+        Return String.IsNullOrWhiteSpace(concepto) OrElse
+            String.Equals(concepto.Trim(), ASUNTO_PAGO_POR_DEFECTO, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#611: el mensaje de una validación de la API (400), tal cual: el "Message" del JSON de BadRequest o, si no
+    ''' viene así, el cuerpo entero.
+    ''' </summary>
+    Friend Shared Function MensajeValidacionApi(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return "La solicitud de pago no es válida."
+        End If
         Try
-            ' NestoAPI#609: el concepto elegido (corregido o el mío) queda en el cuadro y es el que se manda.
-            If RevisorConceptoPago IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(AsuntoReclamarDeuda) AndAlso
-                    AsuntoReclamarDeuda.Trim() <> ASUNTO_PAGO_POR_DEFECTO Then
-                AsuntoReclamarDeuda = Await RevisorConceptoPago.ElegirConcepto(AsuntoReclamarDeuda,
-                    clienteActivo?.empresa?.Trim(), clienteActivo?.cliente?.Trim())
+            Dim json = Newtonsoft.Json.Linq.JToken.Parse(cuerpo)
+            If json.Type = Newtonsoft.Json.Linq.JTokenType.String Then
+                Return json.ToString().Trim()
             End If
-
-            Using client As HttpClient = _clienteApiFactory.Crear()
-
-            If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            Dim objeto = TryCast(json, Newtonsoft.Json.Linq.JObject)
+            Dim mensaje As String = objeto?("Message")?.ToString()
+            If Not String.IsNullOrWhiteSpace(mensaje) Then
+                Return mensaje.Trim()
             End If
+        Catch ex As JsonException
+            ' No es JSON: el texto tal cual
+        End Try
+        Return cuerpo.Trim()
+    End Function
 
+    ''' <summary>Nesto#611: la API ha rechazado la solicitud (400): es una validación, no un error de la aplicación.</summary>
+    Private Class ValidacionPagoException
+        Inherits Exception
+        Public Sub New(mensaje As String)
+            MyBase.New(mensaje)
+        End Sub
+    End Class
+
+    Private Async Sub OnReclamarDeuda()
+        Await ReclamarDeudaAsync()
+    End Sub
+
+    Friend Async Function ReclamarDeudaAsync() As Task
+        Dim errorReclamacion As Exception = Nothing
+        Dim errorValidacion As String = Nothing
+        Try
             ' Siempre crear PagoTPV con efectos (auditoría + URL propia)
             Dim efectosSeleccionados = ListaDeudas?.Where(Function(l) l.Seleccionada).ToList()
 
@@ -1883,6 +1941,30 @@ Public Class ClientesViewModel
                 efectosSeleccionados.Sum(Function(l) l.ImportePendiente))
             If efectos.Any() AndAlso sumaEfectos <> ImporteReclamarDeuda Then
                 efectos.Clear()
+            End If
+
+            ' Nesto#611 (Reina, 03/11/26: cinco veces «Indique un concepto…»): sin efectos que liquidar la API exige un
+            ' concepto real; se pide aquí antes de llamarla. Pasa también con efectos marcados cuyo importe no cuadra
+            ' (Nesto#438: van sin efectos) y el asunto por defecto en el cuadro. Si no se escribe nada, no se crea el enlace.
+            If Not efectos.Any() AndAlso EsConceptoGenericoOVacio(AsuntoReclamarDeuda) Then
+                Dim concepto As String = dialogService.GetText(TITULO_PEDIR_CONCEPTO_PAGO, TEXTO_PEDIR_CONCEPTO_PAGO)
+                If EsConceptoGenericoOVacio(concepto) Then
+                    Return
+                End If
+                AsuntoReclamarDeuda = concepto.Trim()
+            End If
+
+            ' NestoAPI#609: el concepto elegido (corregido o el mío) queda en el cuadro y es el que se manda.
+            If RevisorConceptoPago IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(AsuntoReclamarDeuda) AndAlso
+                    AsuntoReclamarDeuda.Trim() <> ASUNTO_PAGO_POR_DEFECTO Then
+                AsuntoReclamarDeuda = Await RevisorConceptoPago.ElegirConcepto(AsuntoReclamarDeuda,
+                    clienteActivo?.empresa?.Trim(), clienteActivo?.cliente?.Trim())
+            End If
+
+            Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
             Dim solicitud = New With {
@@ -1936,19 +2018,33 @@ Public Class ClientesViewModel
                     End If
                 Else
                     Dim errorMsg = Await response.Content.ReadAsStringAsync()
+                    If response.StatusCode = Net.HttpStatusCode.BadRequest Then
+                        ' Nesto#611: validación de la API (concepto, importe...): el mensaje tal cual, sin prefijos
+                        Throw New ValidacionPagoException(MensajeValidacionApi(errorMsg))
+                    End If
                     Throw New Exception($"Error al crear enlace de pago: {errorMsg}")
                 End If
 
+            Catch ex As ValidacionPagoException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se ha podido procesar el enlace de pago: " & ex.Message)
             End Try
             End Using
+        Catch ex As ValidacionPagoException
+            ' Nesto#611: no es un error de la aplicación: ni ELMAH ni prefijo técnico
+            errorValidacion = ex.Message
         Catch ex As Exception
             ' En vez de crashear la aplicación (Async Sub sin manejo => excepción no observada),
             ' capturamos el error para informar al usuario y registrarlo en ELMAH.
             ' (VB no permite Await dentro de un Catch, por eso se trata fuera del Try).
             errorReclamacion = ex
         End Try
+
+        If errorValidacion IsNot Nothing Then
+            dialogService.ShowError(errorValidacion)
+            Return
+        End If
 
         If errorReclamacion IsNot Nothing Then
             Try
@@ -1966,7 +2062,7 @@ Public Class ClientesViewModel
             dialogService.ShowDialog("NotificationDialog", p, Sub(r)
                                                               End Sub)
         End If
-    End Sub
+    End Function
 
     Public Property AbrirEnlaceReclamacionCommand As RelayCommand
     Private Function CanAbrirEnlaceReclamacion() As Boolean
