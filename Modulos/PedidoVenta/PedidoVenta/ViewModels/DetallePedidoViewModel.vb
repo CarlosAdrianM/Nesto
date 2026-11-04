@@ -101,7 +101,8 @@ Public Class DetallePedidoViewModel
         ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' Nesto#518
         AnadirCuponCommand = New RelayCommand(AddressOf AnadirCupon, Function() MostrarAvisoCupon) ' Nesto#518
         QuitarCuponCommand = New RelayCommand(AddressOf QuitarCupon, Function() SePuedeQuitarCupon) ' Nesto#518
-        Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService)
+        Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService,
+                                          New ResolutorReembolsosDesfasados(New ServicioReembolsoEnvios(configuracion, servicioAutenticacion), dialogService))
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
         cmdAbrirPicking = New RelayCommand(AddressOf OnAbrirPicking)

@@ -18,11 +18,20 @@ Namespace Services
         Private ReadOnly _servicioFacturacion As IServicioFacturacionRutas
         Private ReadOnly _servicioImpresion As IServicioImpresionDocumentos
         Private ReadOnly _dialogService As IServicioDialogos
+        Private ReadOnly _resolutorReembolsos As ResolutorReembolsosDesfasados
 
         Public Sub New(servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, dialogService As IServicioDialogos)
+            Me.New(servicioFacturacion, servicioImpresion, dialogService, Nothing)
+        End Sub
+
+        ''' <param name="resolutorReembolsos">Nesto#615: pregunta por los envíos del reparto propio con el reembolso desfasado
+        ''' de lo facturado. Nothing = no se pregunta.</param>
+        Public Sub New(servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, dialogService As IServicioDialogos,
+                       resolutorReembolsos As ResolutorReembolsosDesfasados)
             _servicioFacturacion = servicioFacturacion
             _servicioImpresion = servicioImpresion
             _dialogService = dialogService
+            _resolutorReembolsos = resolutorReembolsos
         End Sub
 
         Public Async Function FacturarAsync(empresa As String, pedido As Integer, imprimirDocumentos As Boolean) As Task
@@ -71,6 +80,11 @@ Namespace Services
             Dim resumen = TextoResumen(response, pedido)
             If Not String.IsNullOrEmpty(resumen) Then
                 _dialogService.ShowNotification("Facturación", resumen)
+            End If
+
+            ' Nesto#615 (NestoAPI#810): el envío del reparto propio que lleva un reembolso distinto de lo facturado.
+            If _resolutorReembolsos IsNot Nothing Then
+                Await _resolutorReembolsos.ResolverAsync(response)
             End If
         End Function
 

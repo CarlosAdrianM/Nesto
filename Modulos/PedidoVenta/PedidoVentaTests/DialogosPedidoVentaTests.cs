@@ -66,7 +66,7 @@ namespace PedidoVentaTests
                 new() { Id = "AGENCIA" }
             }));
             return new FacturarRutasPopupViewModel(A.Fake<IConfiguracion>(), A.Fake<IServicioDialogos>(), servicio,
-                A.Fake<IServicioImpresionDocumentos>());
+                A.Fake<IServicioImpresionDocumentos>(), A.Fake<IServicioReembolsoEnvios>());
         }
 
         [TestMethod]

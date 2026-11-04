@@ -16,18 +16,20 @@ Public Class FacturarRutasPopupNotasEntregaTests
     Private dialogService As IServicioDialogos
     Private facturacion As IServicioFacturacionRutas
     Private impresion As IServicioImpresionDocumentos
+    Private reembolsos As IServicioReembolsoEnvios
 
     <TestInitialize()>
     Public Sub Initialize()
         dialogService = A.Fake(Of IServicioDialogos)
         facturacion = A.Fake(Of IServicioFacturacionRutas)
         impresion = A.Fake(Of IServicioImpresionDocumentos)
+        reembolsos = A.Fake(Of IServicioReembolsoEnvios)
         A.CallTo(Function() impresion.ImprimirDocumentos(A(Of FacturarRutasResponseDTO).Ignored)).Returns(Task.FromResult(New ResultadoImpresion()))
     End Sub
 
     Private Function CrearVm(response As FacturarRutasResponseDTO) As FacturarRutasPopupViewModel
         A.CallTo(Function() facturacion.FacturarRutas(A(Of FacturarRutasRequestDTO).Ignored)).Returns(Task.FromResult(response))
-        Dim vm As New FacturarRutasPopupViewModel(A.Fake(Of IConfiguracion), dialogService, facturacion, impresion) With {
+        Dim vm As New FacturarRutasPopupViewModel(A.Fake(Of IConfiguracion), dialogService, facturacion, impresion, reembolsos) With {
             .PausaAntesDeCerrarMs = 0,
             .PausaTrasImprimirMs = 0
         }

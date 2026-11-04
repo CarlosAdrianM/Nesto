@@ -17,16 +17,20 @@ Public Class FacturarRutasPopupViewModel
     Private ReadOnly dialogService As IServicioDialogos
     Private ReadOnly servicioFacturacion As IServicioFacturacionRutas
     Private ReadOnly servicioImpresion As IServicioImpresionDocumentos
+    Private ReadOnly resolutorReembolsos As ResolutorReembolsosDesfasados
 
 #Region "Constructor"
 
-    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IServicioDialogos, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos,
+                   servicioReembolsos As IServicioReembolsoEnvios)
         System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel.New() EJECUTADO ===")
 
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         Me.servicioFacturacion = servicioFacturacion
         Me.servicioImpresion = servicioImpresion
+        ' Nesto#615: el mismo núcleo que FacturadorPedido (Agencias y detalle del pedido).
+        resolutorReembolsos = New ResolutorReembolsosDesfasados(servicioReembolsos, dialogService)
 
         ' Inicializar comandos
         VerResumenCommand = New RelayCommand(AddressOf VerResumen, AddressOf CanVerResumen)
@@ -289,6 +293,9 @@ Public Class FacturarRutasPopupViewModel
             If totalDocumentosParaImprimir > 0 Then
                 Await PreguntarEImprimirDocumentos(response, totalDocumentosParaImprimir)
             End If
+
+            ' Nesto#615 (NestoAPI#810): envíos del reparto propio con el reembolso desfasado de lo facturado.
+            Await resolutorReembolsos.ResolverAsync(response)
 
             ' Si hay errores, mostrar ventana de errores
             If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
