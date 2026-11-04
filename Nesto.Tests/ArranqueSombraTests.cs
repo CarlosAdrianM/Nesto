@@ -574,6 +574,8 @@ namespace Nesto.Tests
             "RibbonTab «Herramientas» [MenuBarViewModel]",
             "  RibbonGroup «Contenido» [MenuBarViewModel]",
             "    RibbonButton «Videos» [MenuBarViewModel]",
+            "  RibbonGroup «Recursos Humanos» [MenuBarViewModel]", // Nesto#616, después de la referencia de Prism
+            "    RibbonButton «Festivos» [MenuBarViewModel]", // Nesto#616, después de la referencia de Prism
             "  RibbonGroup «Canales Externos» [CanalesExternosMenuBarViewModel]",
             "    RibbonButton «Pedidos» [CanalesExternosMenuBarViewModel]",
             "    RibbonButton «Pagos» [CanalesExternosMenuBarViewModel]",

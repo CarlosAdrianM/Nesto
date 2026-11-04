@@ -267,6 +267,39 @@ Public Class MenuBarViewModelTests
         A.CallTo(Sub() _navegacion.RequestNavigate("MainRegion", "VideosView")).MustHaveHappenedOnceExactly()
     End Sub
 
+    ' Nesto#616 (NestoAPI#779): Festivos, solo Administración, Dirección e Informática
+    <TestMethod()>
+    Public Sub MenuBarViewModel_SinGrupos_FestivosNoSeVeNiSePuedeAbrir()
+        A.CallTo(Function() _configuracion.UsuarioEnGrupo(A(Of String).Ignored)).Returns(False)
+        Dim vm = CrearViewModel()
+        Assert.AreEqual(Visibility.Collapsed, vm.FestivosVisible)
+        Assert.IsFalse(vm.FestivosCommand.CanExecute(Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub MenuBarViewModel_AdministracionDireccionEInformatica_VenFestivos()
+        For Each grupo In {Constantes.GruposSeguridad.ADMINISTRACION, Constantes.GruposSeguridad.DIRECCION, Constantes.GruposSeguridad.INFORMATICA}
+            Dim configuracion = A.Fake(Of IConfiguracion)
+            A.CallTo(Function() configuracion.UsuarioEnGrupo(grupo)).Returns(True)
+            Dim vm = New MenuBarViewModel(_resolutor, _navegacion, configuracion, _servicioAutenticacion, _abridorNovedades, _servicioDialogos)
+            Assert.AreEqual(Visibility.Visible, vm.FestivosVisible, grupo)
+            Assert.IsTrue(vm.FestivosCommand.CanExecute(Nothing), grupo)
+        Next
+    End Sub
+
+    <TestMethod()>
+    Public Sub MenuBarViewModel_FestivosCommand_AbreLaPestanaDeFestivos()
+        A.CallTo(Function() _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(True)
+        Dim vista As New Object()
+        A.CallTo(Function() _resolutor.Resolver(GetType(String))).Returns(vista)
+        Dim vm = CrearViewModel()
+        vm.RegistrarTipoVista("Festivos", GetType(String))
+
+        vm.FestivosCommand.Execute(Nothing)
+
+        A.CallTo(Sub() _navegacion.AbrirVistaNueva("MainRegion", vista, vista.ToString())).MustHaveHappenedOnceExactly()
+    End Sub
+
     <TestMethod()>
     Public Sub MenuBarViewModel_NavegarAVistaRegistrada_ActivaVistaEnRegion()
         ' Nesto#490 (4C.4): la pestaña nueva se abre con IServicioNavegacion (nombre único y activarla)
