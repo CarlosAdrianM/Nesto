@@ -561,7 +561,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                 PreContabilidadDTO linea = new()
                 {
-                    Empresa = deuda.Empresa,
+                    // Nesto#561: sin relleno, para que vaya en la misma contrapartida que lo «a cuenta» de su empresa
+                    Empresa = deuda.Empresa?.Trim(),
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.CLIENTE,
                     Cuenta = deuda.Cliente,
@@ -609,7 +610,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 PreContabilidadDTO linea = new()
                 {
-                    Empresa = EmpresaTraspaso,
+                    // Nesto#561: EMPRESA_ESPEJO es "3  "; sin relleno va en la misma contrapartida que las deudas de la 3
+                    Empresa = EmpresaTraspaso?.Trim(),
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.CLIENTE,
                     Cuenta = ClienteCompletoSeleccionado.cliente,
@@ -644,7 +646,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             foreach (var empresa in empresas)
             {
                 decimal importeEmpresa = lineas.Where(l => l.Empresa == empresa).Sum(l => l.Haber - l.Debe);
-                var deudasEmpresa = DeudasSeleccionadas.Where(d => d.Empresa == empresa).ToList();
+                var deudasEmpresa = DeudasSeleccionadas.Where(d => d.Empresa?.Trim() == empresa).ToList();
                 var deudaConMayorImporte = deudasEmpresa.OrderByDescending(e => e.Importe).FirstOrDefault();
                 string tipoApunteContrapartida = NombreTipo(deudaConMayorImporte);
                 string pagoODevolucion = importeEmpresa > 0 ? "Pago" : "Devolución";
@@ -731,7 +733,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
-                    _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
+                    // Nesto#561: la API contabiliza cada empresa por separado (un asiento por empresa) y devuelve el de la 1
+                    _dialogService.ShowNotification(empresas.Count > 1
+                        ? $"Creados los asientos del cobro, uno por empresa ({string.Join(" y ", empresas)}); el de la empresa {Constantes.Empresas.EMPRESA_DEFECTO.Trim()} es el {asiento}"
+                        : $"Creado asiento {asiento} correctamente");
                     ConceptoAdicionalCobros = string.Empty;
                     await CargarDatosIniciales();
                     await CargarDeudasCliente();
