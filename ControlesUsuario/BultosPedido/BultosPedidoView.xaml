@@ -4,15 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:bultos="clr-namespace:ControlesUsuario.BultosPedido"
+             xmlns:conv="clr-namespace:ControlesUsuario.Converters"
              d:DataContext="{d:DesignInstance Type=bultos:BultosPedidoViewModel}"
              mc:Ignorable="d">
     <!-- Nesto#522: los bultos del packing de Ariadna con su foto. Sin bultos no se ve nada. Colores del sistema (modo oscuro). -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="VisibleSi" />
+        <conv:BytesAImagenConverter x:Key="AImagen" />
     </UserControl.Resources>
     <StackPanel Margin="3,4,3,4" Visibility="{Binding HayBultos, Converter={StaticResource VisibleSi}, FallbackValue=Collapsed}">
         <TextBlock Text="{Binding Resumen}" FontWeight="SemiBold"
-                   ToolTip="Las fotos que hizo el mozo en Ariadna antes de cerrar cada bulto" />
+                   ToolTip="Las fotos que hizo el mozo en Ariadna al empaquetar el pedido. Pinche en una para verla en grande." />
         <ItemsControl ItemsSource="{Binding Grupos}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -23,15 +25,45 @@
                         <ItemsControl ItemsSource="{Binding Bultos}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <WrapPanel Margin="8,1,0,1">
+                                    <Grid Margin="8,2,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Nesto#522: la miniatura; al pincharla se ve en grande. Llega después de la lista. -->
+                                        <Button Command="{Binding VerEnGrandeCommand}" Width="76" Height="76" Margin="0,0,8,0" Padding="2"
+                                                Cursor="Hand" ToolTip="Pinche para ver la foto en grande"
+                                                Visibility="{Binding TieneFoto, Converter={StaticResource VisibleSi}}">
+                                            <Grid>
+                                                <Image Source="{Binding Imagen, Converter={StaticResource AImagen}, ConverterParameter=144}"
+                                                       Stretch="Uniform" />
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"
+                                                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="Ver foto" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding CargandoMiniatura}" Value="True">
+                                                                    <Setter Property="Text" Value="Cargando…" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding HayImagen}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Button>
+                                    <WrapPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Texto}" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <TextBlock VerticalAlignment="Center" Margin="0,0,10,0"
                                                    Visibility="{Binding TieneFoto, Converter={StaticResource VisibleSi}}">
-                                            <Hyperlink Command="{Binding VerFotoCommand}" ToolTip="Abre la foto con el visor de imágenes">Ver foto</Hyperlink>
+                                            <Hyperlink Command="{Binding VerFotoCommand}" ToolTip="Abre la foto con el visor de imágenes de Windows">Abrir con el visor</Hyperlink>
                                         </TextBlock>
                                         <TextBlock VerticalAlignment="Center" Margin="0,0,10,0"
                                                    Visibility="{Binding TieneFoto, Converter={StaticResource VisibleSi}}">
-                                            <Hyperlink Command="{Binding DescargarCommand}" ToolTip="Guarda la foto como JPG donde elijas">Descargar</Hyperlink>
+                                            <Hyperlink Command="{Binding DescargarCommand}" ToolTip="Guarda la foto como JPG donde elija">Descargar</Hyperlink>
                                         </TextBlock>
                                         <TextBlock VerticalAlignment="Center"
                                                    Visibility="{Binding TieneEnlacePublico, Converter={StaticResource VisibleSi}}">
@@ -39,6 +71,7 @@
                                                        ToolTip="Copia un enlace para mandárselo al cliente o a la agencia. Cualquiera que tenga el enlace puede ver la foto.">Copiar enlace para el cliente</Hyperlink>
                                         </TextBlock>
                                     </WrapPanel>
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -49,5 +82,34 @@
         <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" FontStyle="Italic" Margin="0,2,0,0"
                    Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
                    Visibility="{Binding HayMensaje, Converter={StaticResource VisibleSi}}" />
+
+        <!-- Nesto#522: la foto en grande dentro de Nesto. Se cierra con «Cerrar» o pinchando fuera. -->
+        <Popup IsOpen="{Binding HayFotoGrande, Mode=TwoWay}" StaysOpen="False" Placement="Center"
+               PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Window}}">
+            <Border Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                    BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" BorderThickness="1" Padding="10">
+                <DockPanel MaxWidth="900" MaxHeight="760">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Content="Cerrar" Padding="10,2"
+                                Command="{Binding CerrarFotoGrandeCommand}" />
+                        <TextBlock Text="{Binding FotoGrande.Texto}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+                    </DockPanel>
+                    <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                        <TextBlock Margin="0,0,12,0">
+                            <Hyperlink Command="{Binding FotoGrande.DescargarCommand}" ToolTip="Guarda la foto como JPG donde elija">Descargar</Hyperlink>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,12,0">
+                            <Hyperlink Command="{Binding FotoGrande.VerFotoCommand}" ToolTip="Abre la foto con el visor de imágenes de Windows">Abrir con el visor</Hyperlink>
+                        </TextBlock>
+                        <TextBlock Visibility="{Binding FotoGrande.TieneEnlacePublico, Converter={StaticResource VisibleSi}, FallbackValue=Collapsed}">
+                            <Hyperlink Command="{Binding FotoGrande.CopiarEnlaceCommand}"
+                                       ToolTip="Copia un enlace para mandárselo al cliente o a la agencia. Cualquiera que tenga el enlace puede ver la foto.">Copiar enlace para el cliente</Hyperlink>
+                        </TextBlock>
+                    </WrapPanel>
+                    <Image Source="{Binding FotoGrande.Imagen, Converter={StaticResource AImagen}, ConverterParameter=1200}" Stretch="Uniform" />
+                </DockPanel>
+            </Border>
+        </Popup>
     </StackPanel>
 </UserControl>

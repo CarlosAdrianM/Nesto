@@ -127,6 +127,108 @@ namespace ControlesUsuario.BultosPedido
                     : (distintos.Count > 0 ? " · " : "Ariadna: ")
                       + (fotosDistintas.Count == 1 ? "1 foto del packing" : $"{fotosDistintas.Count} fotos del packing"));
             NotificarGrupos();
+            await CargarMiniaturas(version);
+        }
+
+        /// <summary>
+        /// Nesto#522: la miniatura de cada foto, todas a la vez y después de enseñar la lista (la ficha no espera). Una que
+        /// falla se queda sin miniatura, sin mensaje: al pinchar en ella se vuelve a intentar.
+        /// </summary>
+        private async Task CargarMiniaturas(int version)
+        {
+            List<BultoPedidoItem> conFoto = Grupos.SelectMany(g => g.Bultos).Where(b => b.TieneFoto).ToList();
+            await Task.WhenAll(conFoto.Select(async bulto =>
+            {
+                bulto.CargandoMiniatura = true;
+                byte[] imagen;
+                try
+                {
+                    imagen = await BajarImagen(bulto);
+                }
+                catch (Exception)
+                {
+                    imagen = null;
+                }
+                if (version != _version)
+                {
+                    return; // ya se enseña otro pedido
+                }
+                bulto.CargandoMiniatura = false;
+                bulto.Imagen = imagen != null && imagen.Length > 0 ? imagen : null;
+            }));
+        }
+
+        private BultoPedidoItem _fotoGrande;
+        /// <summary>Nesto#522: la foto que se está viendo en grande dentro de Nesto (null: ninguna).</summary>
+        public BultoPedidoItem FotoGrande
+        {
+            get => _fotoGrande;
+            private set
+            {
+                if (SetProperty(ref _fotoGrande, value))
+                {
+                    OnPropertyChanged(nameof(HayFotoGrande));
+                }
+            }
+        }
+
+        /// <summary>Se puede poner a false desde la vista (el Popup se cierra solo al pinchar fuera).</summary>
+        public bool HayFotoGrande
+        {
+            get => FotoGrande != null;
+            set
+            {
+                if (!value)
+                {
+                    FotoGrande = null;
+                }
+            }
+        }
+
+        private RelayCommand _cerrarFotoGrandeCommand;
+        public RelayCommand CerrarFotoGrandeCommand => _cerrarFotoGrandeCommand ??= new RelayCommand(() => FotoGrande = null);
+
+        /// <summary>
+        /// Nesto#522: al pinchar en la miniatura, la foto en grande dentro de Nesto. Si la miniatura no llegó a cargarse, se baja
+        /// ahora; si tampoco, se dice en la línea de mensajes.
+        /// </summary>
+        internal async Task VerEnGrande(BultoPedidoItem bulto)
+        {
+            if (bulto == null || !bulto.TieneFoto || _servicio == null)
+            {
+                return;
+            }
+            Mensaje = null;
+            if (bulto.Imagen == null)
+            {
+                try
+                {
+                    byte[] imagen = await BajarImagen(bulto);
+                    if (imagen == null || imagen.Length == 0)
+                    {
+                        Mensaje = $"{bulto.Nombre} ya no tiene foto.";
+                        return;
+                    }
+                    bulto.Imagen = imagen;
+                }
+                catch (Exception ex)
+                {
+                    Mensaje = $"No se ha podido abrir la foto {bulto.DeQue}: {ex.Message}";
+                    return;
+                }
+            }
+            FotoGrande = bulto;
+        }
+
+        /// <summary>La imagen ya bajada para la miniatura o, si no la hay, una recién bajada (con un enlace temporal nuevo).</summary>
+        private async Task<byte[]> Imagen(BultoPedidoItem bulto)
+        {
+            if (bulto.Imagen != null)
+            {
+                return bulto.Imagen;
+            }
+            byte[] imagen = await BajarImagen(bulto);
+            return imagen != null && imagen.Length > 0 ? imagen : null;
         }
 
         /// <summary>NestoAPI#771: el título del grupo de las fotos del packing (sin caja).</summary>
@@ -134,6 +236,7 @@ namespace ControlesUsuario.BultosPedido
 
         private void Limpiar()
         {
+            FotoGrande = null;
             Grupos.Clear();
             Resumen = string.Empty;
             Mensaje = null;
@@ -154,7 +257,7 @@ namespace ControlesUsuario.BultosPedido
         private Task<byte[]> BajarImagen(BultoPedidoItem bulto)
             => bulto.EsFotoDelPacking ? _servicio.DescargarFotoPacking(bulto.Id) : _servicio.DescargarFoto(bulto.Id);
 
-        /// <summary>La baja (con un enlace temporal recién pedido) a la carpeta temporal y la abre con el visor del sistema.</summary>
+        /// <summary>La guarda en la carpeta temporal (la de la miniatura o recién bajada) y la abre con el visor del sistema.</summary>
         internal async Task VerFoto(BultoPedidoItem bulto)
         {
             if (bulto == null || !bulto.TieneFoto || _servicio == null)
@@ -164,7 +267,7 @@ namespace ControlesUsuario.BultosPedido
             Mensaje = null;
             try
             {
-                byte[] foto = await BajarImagen(bulto);
+                byte[] foto = await Imagen(bulto);
                 if (foto == null)
                 {
                     Mensaje = $"{bulto.Nombre} ya no tiene foto.";
@@ -197,7 +300,7 @@ namespace ControlesUsuario.BultosPedido
                 {
                     return;
                 }
-                byte[] foto = await BajarImagen(bulto);
+                byte[] foto = await Imagen(bulto);
                 if (foto == null)
                 {
                     Mensaje = $"{bulto.Nombre} ya no tiene foto.";
@@ -252,7 +355,7 @@ namespace ControlesUsuario.BultosPedido
     }
 
     /// <summary>Nesto#522: un bulto del packing en el detalle del pedido.</summary>
-    public class BultoPedidoItem
+    public class BultoPedidoItem : ObservableObject
     {
         private static readonly CultureInfo Espanol = CultureInfo.GetCultureInfo("es-ES");
         private readonly BultoAriadna _bulto;
@@ -263,6 +366,7 @@ namespace ControlesUsuario.BultosPedido
             VerFotoCommand = new AsyncRelayCommand(() => padre.VerFoto(this), () => TieneFoto);
             DescargarCommand = new AsyncRelayCommand(() => padre.Descargar(this), () => TieneFoto);
             CopiarEnlaceCommand = new RelayCommand(() => padre.CopiarEnlace(this), () => TieneEnlacePublico);
+            VerEnGrandeCommand = new AsyncRelayCommand(() => padre.VerEnGrande(this), () => TieneFoto);
             TieneEnlacePublico = TieneFoto && padre.EnlacePublico(this) != null;
         }
 
@@ -334,6 +438,31 @@ namespace ControlesUsuario.BultosPedido
             }
         }
 
+        private byte[] _imagen;
+        /// <summary>Nesto#522: la foto (JPG) para la miniatura y la vista en grande; null mientras no ha llegado o si falló.</summary>
+        public byte[] Imagen
+        {
+            get => _imagen;
+            internal set
+            {
+                if (SetProperty(ref _imagen, value))
+                {
+                    OnPropertyChanged(nameof(HayImagen));
+                }
+            }
+        }
+
+        public bool HayImagen => Imagen != null;
+
+        private bool _cargandoMiniatura;
+        public bool CargandoMiniatura
+        {
+            get => _cargandoMiniatura;
+            internal set => SetProperty(ref _cargandoMiniatura, value);
+        }
+
+        /// <summary>Nesto#522: pinchar en la miniatura la enseña en grande dentro de Nesto.</summary>
+        public IAsyncRelayCommand VerEnGrandeCommand { get; }
         public IAsyncRelayCommand VerFotoCommand { get; }
         public IAsyncRelayCommand DescargarCommand { get; }
         public IRelayCommand CopiarEnlaceCommand { get; }

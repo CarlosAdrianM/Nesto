@@ -177,7 +177,7 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
-        public async Task VerFoto_DosVeces_PideElEnlaceCadaVez()
+        public async Task VerFoto_DosVeces_UsaLaFotoYaBajadaParaLaMiniatura()
         {
             ConBultos(Bulto(17, 2));
             A.CallTo(() => _servicio.DescargarFoto(17)).Returns(new byte[] { 1 });
@@ -186,8 +186,23 @@ namespace ControlesUsuario.Tests
             await Unico().VerFotoCommand.ExecuteAsync(null);
             await Unico().VerFotoCommand.ExecuteAsync(null);
 
-            // El enlace temporal caduca en minutos: se vuelve a pedir en cada clic
+            // La imagen ya está en memoria (la miniatura): no hay enlace temporal que pueda caducar
+            A.CallTo(() => _servicio.DescargarFoto(17)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(2, _acciones.Abiertos.Count);
+        }
+
+        [TestMethod]
+        public async Task VerFoto_SinMiniatura_LaBajaConUnEnlaceNuevo()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).ThrowsAsync(new HttpRequestException("Sin conexión")).Once()
+                .Then.Returns(Task.FromResult(new byte[] { 5 }));
+            await _vm.Cargar("1", 928123);
+
+            await Unico().VerFotoCommand.ExecuteAsync(null);
+
             A.CallTo(() => _servicio.DescargarFoto(17)).MustHaveHappenedTwiceExactly();
+            CollectionAssert.AreEqual(new byte[] { 5 }, _acciones.Guardados[_acciones.Abiertos.Single()]);
         }
 
         [TestMethod]
@@ -227,7 +242,7 @@ namespace ControlesUsuario.Tests
 
             await Unico().DescargarCommand.ExecuteAsync(null);
 
-            A.CallTo(() => _servicio.DescargarFoto(A<int>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.DescargarFoto(A<int>._)).MustHaveHappenedOnceExactly(); // solo la de la miniatura
             Assert.AreEqual(0, _acciones.Guardados.Count);
             Assert.IsFalse(_vm.HayMensaje);
         }
@@ -341,7 +356,7 @@ namespace ControlesUsuario.Tests
             await foto.VerFotoCommand.ExecuteAsync(null);
             await foto.DescargarCommand.ExecuteAsync(null);
 
-            A.CallTo(() => _servicio.DescargarFotoPacking(40)).MustHaveHappenedTwiceExactly();
+            A.CallTo(() => _servicio.DescargarFotoPacking(40)).MustHaveHappenedOnceExactly(); // la de la miniatura sirve para todo
             A.CallTo(() => _servicio.DescargarFoto(A<int>._)).MustNotHaveHappened();
             StringAssert.StartsWith(_acciones.Abiertos.Single(), @"C:\Temporal\Pedido_928123_packing_1_");
             Assert.AreEqual("Ariadna: 1 foto del packing", _vm.Resumen);
@@ -357,6 +372,143 @@ namespace ControlesUsuario.Tests
 
             Assert.AreEqual(17, Unico().Id);
             Assert.AreEqual("Ariadna: 1 bulto (1 con foto)", _vm.Resumen);
+        }
+
+        // ===================================================================== Nesto#522: miniaturas y la foto en grande
+
+        [TestMethod]
+        public async Task Miniaturas_ConFotos_SeBajanLasDeLosBultosYLasDelPacking()
+        {
+            ConBultos(Bulto(17, 1), Bulto(18, 2, foto: false));
+            ConFotosPacking(FotoPacking(40, 30));
+            A.CallTo(() => _servicio.DescargarFoto(17)).Returns(new byte[] { 1 });
+            A.CallTo(() => _servicio.DescargarFotoPacking(40)).Returns(new byte[] { 2 });
+
+            await _vm.Cargar("1", 928123);
+
+            List<BultoPedidoItem> items = _vm.Grupos.SelectMany(g => g.Bultos).ToList();
+            CollectionAssert.AreEqual(new byte[] { 1 }, items.Single(i => i.Id == 17 && !i.EsFotoDelPacking).Imagen);
+            CollectionAssert.AreEqual(new byte[] { 2 }, items.Single(i => i.EsFotoDelPacking).Imagen);
+            Assert.IsTrue(items.Where(i => i.TieneFoto).All(i => i.HayImagen && !i.CargandoMiniatura));
+            Assert.IsNull(items.Single(i => i.Id == 18).Imagen);
+            A.CallTo(() => _servicio.DescargarFoto(18)).MustNotHaveHappened();
+            Assert.IsFalse(_vm.HayFotoGrande);
+        }
+
+        [TestMethod]
+        public async Task Miniaturas_ErrorDeRed_LaFichaSeVeIgualYSinMensaje()
+        {
+            ConBultos(Bulto(17, 1));
+            A.CallTo(() => _servicio.DescargarFoto(17)).ThrowsAsync(new HttpRequestException("Sin conexión"));
+
+            await _vm.Cargar("1", 928123);
+
+            Assert.IsTrue(_vm.HayBultos);
+            Assert.IsNull(Unico().Imagen);
+            Assert.IsFalse(Unico().CargandoMiniatura);
+            Assert.IsFalse(_vm.HayMensaje);
+            Assert.IsTrue(Unico().VerEnGrandeCommand.CanExecute(null), "al pinchar se vuelve a intentar");
+        }
+
+        [TestMethod]
+        public async Task Miniaturas_DeUnPedidoAnterior_NoSePonenEnElNuevo()
+        {
+            ConBultos(Bulto(17, 1));
+            var lenta = new TaskCompletionSource<byte[]>();
+            A.CallTo(() => _servicio.DescargarFoto(17)).Returns(lenta.Task);
+            Task primera = _vm.Cargar("1", 928123);
+            BultoPedidoItem anterior = Unico();
+
+            await _vm.Cargar("1", 0);
+            lenta.SetResult(new byte[] { 1 });
+            await primera;
+
+            Assert.IsFalse(_vm.HayBultos);
+            Assert.IsNull(anterior.Imagen);
+        }
+
+        [TestMethod]
+        public async Task VerEnGrande_ConMiniatura_LaEnseñaSinBajarlaOtraVezYSeCierra()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).Returns(new byte[] { 1 });
+            await _vm.Cargar("1", 928123);
+
+            await Unico().VerEnGrandeCommand.ExecuteAsync(null);
+
+            Assert.IsTrue(_vm.HayFotoGrande);
+            Assert.AreSame(Unico(), _vm.FotoGrande);
+            A.CallTo(() => _servicio.DescargarFoto(17)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(0, _acciones.Abiertos.Count, "se ve dentro de Nesto, no con el visor");
+
+            _vm.CerrarFotoGrandeCommand.Execute(null);
+
+            Assert.IsFalse(_vm.HayFotoGrande);
+            Assert.IsNull(_vm.FotoGrande);
+        }
+
+        [TestMethod]
+        public async Task VerEnGrande_ElPopupSeCierraSoloAlPincharFuera()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).Returns(new byte[] { 1 });
+            await _vm.Cargar("1", 928123);
+            await Unico().VerEnGrandeCommand.ExecuteAsync(null);
+
+            _vm.HayFotoGrande = false; // lo que hace el Popup con StaysOpen=False
+
+            Assert.IsNull(_vm.FotoGrande);
+        }
+
+        [TestMethod]
+        public async Task VerEnGrande_SinMiniatura_LaBajaAhora()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).ThrowsAsync(new HttpRequestException("Sin conexión")).Once()
+                .Then.Returns(Task.FromResult(new byte[] { 3 }));
+            await _vm.Cargar("1", 928123);
+
+            await Unico().VerEnGrandeCommand.ExecuteAsync(null);
+
+            Assert.IsTrue(_vm.HayFotoGrande);
+            CollectionAssert.AreEqual(new byte[] { 3 }, _vm.FotoGrande.Imagen);
+            Assert.IsFalse(_vm.HayMensaje);
+        }
+
+        [TestMethod]
+        public async Task VerEnGrande_LaRedSigueFallando_LoDiceSinRomper()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).ThrowsAsync(new HttpRequestException("Sin conexión"));
+            await _vm.Cargar("1", 928123);
+
+            await Unico().VerEnGrandeCommand.ExecuteAsync(null);
+
+            Assert.IsFalse(_vm.HayFotoGrande);
+            StringAssert.Contains(_vm.Mensaje, "No se ha podido abrir la foto del bulto 2");
+        }
+
+        [TestMethod]
+        public async Task Cargar_OtroPedido_CierraLaFotoGrande()
+        {
+            ConBultos(Bulto(17, 2));
+            A.CallTo(() => _servicio.DescargarFoto(17)).Returns(new byte[] { 1 });
+            await _vm.Cargar("1", 928123);
+            await Unico().VerEnGrandeCommand.ExecuteAsync(null);
+
+            await _vm.Cargar("1", 928124);
+
+            Assert.IsFalse(_vm.HayFotoGrande);
+        }
+
+        [TestMethod]
+        public void BytesAImagen_NadaOAlgoQueNoEsUnaImagen_DevuelveNullSinLanzar()
+        {
+            var conversor = new ControlesUsuario.Converters.BytesAImagenConverter();
+
+            Assert.IsNull(conversor.Convert(null, typeof(object), "144", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.IsNull(conversor.Convert(new byte[0], typeof(object), "144", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.IsNull(conversor.Convert(new byte[] { 1, 2, 3 }, typeof(object), "144", System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 }
