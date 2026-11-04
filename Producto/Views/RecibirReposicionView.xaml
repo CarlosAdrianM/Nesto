@@ -168,21 +168,27 @@
                         </Style>
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
-                <!-- NestoAPI#762: solo escaneando, lo que llega sin etiqueta se apunta unidad a unidad, y «−1» quita lo leído por error -->
-                <DataGridTemplateColumn Header="">
+                <!-- NestoAPI#762: solo escaneando, lo que llega sin etiqueta se apunta unidad a unidad, y «−1» quita lo leído por error.
+                     Nesto#610 (sugerencia 979): cada botón en su columna, de ancho automático y con mínimo, para que «−1» siempre se vea -->
+                <DataGridTemplateColumn Header="" Width="Auto" MinWidth="96" CanUserResize="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal"
-                                        Visibility="{Binding DataContext.SoloEscaneando, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Button Content="Sin etiqueta" Padding="8,0" Margin="2,1" Focusable="False"
-                                        Command="{Binding DataContext.SinEtiquetaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip="Ha llegado una unidad sin etiqueta (o con una que no se lee): elija el motivo y cuenta una unidad. Se avisa al origen y a Compras" />
-                                <Button Content="−1" Padding="8,0" Margin="2,1" Focusable="False"
-                                        Command="{Binding DataContext.QuitarUnoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip="Quita una unidad leída por error" />
-                            </StackPanel>
+                            <Button Content="Sin etiqueta" Padding="8,0" Margin="2,1" Focusable="False"
+                                    Visibility="{Binding DataContext.SoloEscaneando, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Command="{Binding DataContext.SinEtiquetaCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip="Ha llegado una unidad sin etiqueta (o con una que no se lee): elija el motivo y cuenta una unidad. Se avisa al origen y a Compras" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="" Width="Auto" MinWidth="44" CanUserResize="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="−1" Padding="8,0" Margin="2,1" Focusable="False"
+                                    Visibility="{Binding DataContext.SoloEscaneando, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Command="{Binding DataContext.QuitarUnoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip="Quita una unidad leída por error (también la apuntada con «Sin etiqueta» sin querer)" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

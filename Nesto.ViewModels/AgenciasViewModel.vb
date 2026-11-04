@@ -3856,6 +3856,24 @@ Public Class AgenciasViewModel
         Return $"{aviso.Trim()} Puede que aún no estén todas las cajas: revise los bultos antes de hacer la etiqueta."
     End Function
 
+    ''' <summary>
+    ''' Nesto#609: el portapapeles detrás de una interfaz para poder probar lo que copian los comandos (Clipboard exige
+    ''' STA). Los tests ponen uno falso; en la aplicación, el de Windows (que reintenta si otro programa lo tiene abierto).
+    ''' </summary>
+    Public Property Portapapeles As ControlesUsuario.Services.IServicioPortapapeles = New ControlesUsuario.Services.ServicioPortapapeles()
+
+    ''' <summary>Nesto#609: copia el texto y lo dice (el portapapeles no da señal visible), o avisa si Windows no deja.</summary>
+    Private Sub CopiarAlPortapapeles(texto As String, notificacion As String)
+        If String.IsNullOrEmpty(texto) Then
+            Return
+        End If
+        If Portapapeles.Copiar(texto) Then
+            _dialogService.ShowNotification(notificacion)
+        Else
+            _dialogService.ShowError("No se ha podido copiar al portapapeles: otro programa lo está usando. Inténtelo de nuevo.")
+        End If
+    End Sub
+
     Public Property CopiarNumeroPedidoCommand As RelayCommand
 
     ''' <summary>
@@ -3877,16 +3895,7 @@ Public Class AgenciasViewModel
 
     Private Sub OnCopiarNumeroPedido()
         Dim texto As String = TextoNumeroPedidoParaCopiar
-        If texto = String.Empty Then
-            Return
-        End If
-        Try
-            Clipboard.SetText(texto)
-            ' El portapapeles no da señal visible: sin esto el usuario no sabe si ha copiado.
-            _dialogService.ShowNotification($"Copiado el nº de pedido {texto}")
-        Catch ex As Exception
-            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
-        End Try
+        CopiarAlPortapapeles(texto, $"Copiado el nº de pedido {texto}")
     End Sub
 
     ' Nesto#422 (ampliación de Nesto#418): copiar el nº de envío, el campo bajo el cursor o el
@@ -3907,15 +3916,7 @@ Public Class AgenciasViewModel
 
     Private Sub OnCopiarNumeroEnvio()
         Dim texto As String = TextoNumeroEnvioParaCopiar
-        If texto = String.Empty Then
-            Return
-        End If
-        Try
-            Clipboard.SetText(texto)
-            _dialogService.ShowNotification($"Copiado el nº de envío {texto}")
-        Catch ex As Exception
-            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
-        End Try
+        CopiarAlPortapapeles(texto, $"Copiado el nº de envío {texto}")
     End Sub
 
     ' Campo bajo el cursor: la vista lo fija en el clic derecho (necesita el hit-test de la
@@ -3944,15 +3945,7 @@ Public Class AgenciasViewModel
     End Function
 
     Private Sub OnCopiarCampo()
-        If String.IsNullOrEmpty(_valorCampoBajoCursor) Then
-            Return
-        End If
-        Try
-            Clipboard.SetText(_valorCampoBajoCursor)
-            _dialogService.ShowNotification($"Copiado {_nombreCampoBajoCursor}: {_valorCampoBajoCursor}")
-        Catch ex As Exception
-            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
-        End Try
+        CopiarAlPortapapeles(_valorCampoBajoCursor, $"Copiado {_nombreCampoBajoCursor}: {_valorCampoBajoCursor}")
     End Sub
 
     Public Property CopiarEnvioCompletoCommand As RelayCommand

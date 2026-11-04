@@ -1347,6 +1347,9 @@ namespace Nesto.Modules.Producto.ViewModels
         public bool PuedeApuntarSinEtiqueta => LineaSinEtiqueta != null && !EstaOcupado && !string.IsNullOrEmpty(MotivoSinEtiqueta)
             && (MotivoSinEtiqueta != PeticionSinEtiquetaRecepcion.MOTIVO_OTRO || !string.IsNullOrWhiteSpace(ComentarioSinEtiqueta));
 
+        /// <summary>Nesto#610: tras apuntar una unidad sin etiqueta, cómo quitarla si se ha pulsado sin querer.</summary>
+        internal const string TEXTO_SI_ES_UN_ERROR_QUITAR_UNO = "(si ha sido un error, pulse «−1»)";
+
         internal const string TEXTO_SIN_ETIQUETA_SIN_CONEXION = "No se ha podido apuntar la unidad sin etiqueta: no se puede conectar con el servidor. " +
             "No se ha contado. Vuelva a intentarlo.";
 
@@ -1462,6 +1465,8 @@ namespace Nesto.Modules.Producto.ViewModels
             string apuntada = string.IsNullOrWhiteSpace(resultado?.Mensaje)
                 ? $"Apuntada 1 unidad sin etiqueta de {linea.Producto}."
                 : resultado.Mensaje.Trim();
+            // Nesto#610 (sugerencia 979): pulsarlo sin querer avisa al origen y a Compras; que se sepa cómo deshacerlo
+            apuntada = $"{apuntada} {TEXTO_SI_ES_UN_ERROR_QUITAR_UNO}";
             Mensaje = string.IsNullOrWhiteSpace(Mensaje) ? apuntada : $"{apuntada} {Mensaje}";
         }
 
