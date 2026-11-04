@@ -965,6 +965,10 @@ Public Class PlantillaVentaViewModel
             If Not _aplicandoSugerenciaModoServicio Then
                 _modoServicioElegidoPorUsuario = True
                 AvisoModoServicio = Nothing ' Nesto#484: el aviso de cambio automático ya no aplica
+                ' Nesto#613: modificando o ampliando un pedido, solo se manda otro modo si el usuario lo cambia a propósito
+                If _modoDelPedidoBase.HasValue AndAlso Not _restaurandoModoGuardado Then
+                    _modoCambiadoAPropositoEnPedidoBase = value <> _modoDelPedidoBase.Value
+                End If
             End If
             Estado.ModoServicio = value
             Estado.ServirJunto = ModosServicio.EsTodoJunto(value)
@@ -1245,6 +1249,91 @@ Public Class PlantillaVentaViewModel
     Private _restaurandoModoGuardado As Boolean ' Nesto#489: volver al modo grabado no pasa por la validación de salir de «Todo junto»
     Private _ultimoModoSugeridoAplicado As Byte?
 
+#Region "Nesto#613: el modo del pedido que se modifica o amplía"
+    ' Reina, pedido 929678 (04/11/26): modificando/ampliando un pedido con picking, la plantilla mandaba su propio modo (el por
+    ' defecto o el sugerido), la API lo rechazaba (ModoConPickingException) y la ampliación, con el cheque, se perdía.
+
+    ''' <summary>El modo efectivo con el que está grabado el pedido que se modifica o amplía (Nothing con un pedido nuevo).</summary>
+    Private _modoDelPedidoBase As Byte?
+    ''' <summary>El usuario ha elegido en el selector un modo distinto del que tiene el pedido.</summary>
+    Private _modoCambiadoAPropositoEnPedidoBase As Boolean
+    Private _versionModoPedidoAmpliado As Integer
+
+    Friend ReadOnly Property ModoDelPedidoBase As Byte?
+        Get
+            Return _modoDelPedidoBase
+        End Get
+    End Property
+
+    Friend ReadOnly Property ModoCambiadoAPropositoEnPedidoBase As Boolean
+        Get
+            Return _modoCambiadoAPropositoEnPedidoBase
+        End Get
+    End Property
+
+    Friend Sub FijarModoDelPedidoBase(modo As Byte?)
+        _modoDelPedidoBase = modo
+        _modoCambiadoAPropositoEnPedidoBase = False
+    End Sub
+
+    ''' <summary>
+    ''' Antes de grabar sobre un pedido que existe: si el usuario no ha cambiado el modo a propósito (o es el reintento tras
+    ''' el rechazo por picking), el pedido viaja con el modo y el «servir junto» que tiene grabados, tal cual.
+    ''' </summary>
+    Friend Sub MandarModoDelPedidoExistente(pedido As PedidoVentaDTO, modoGuardado As Byte?, servirJuntoGuardado As Boolean,
+                                            Optional forzar As Boolean = False)
+        If pedido Is Nothing OrElse (_modoCambiadoAPropositoEnPedidoBase AndAlso Not forzar) Then
+            Return
+        End If
+        pedido.modoServicio = modoGuardado
+        pedido.servirJunto = servirJuntoGuardado
+    End Sub
+
+    Private Async Sub CargarModoDelPedidoAmpliado(numero As Integer)
+        Try
+            Await CargarModoDelPedidoAmpliadoAsync(numero)
+        Catch ex As Exception
+            ' Si no se puede leer, al grabar se vuelve a leer el pedido y se manda su modo igual
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Al elegir «Ampliar en el pedido»: el selector pasa al modo que tiene ese pedido (GET api/PedidosVenta), y desde ahí
+    ''' manda lo que elija el usuario a propósito. Con «Pedido nuevo» (0) se vuelve al comportamiento de siempre.
+    ''' </summary>
+    Friend Async Function CargarModoDelPedidoAmpliadoAsync(numero As Integer) As Task
+        _versionModoPedidoAmpliado += 1
+        Dim version As Integer = _versionModoPedidoAmpliado
+        If NumeroPedidoEnEdicion.HasValue Then
+            Return ' modificando un pedido manda el de ese pedido (se graba con PUT, no se amplía)
+        End If
+        If numero = 0 OrElse clienteSeleccionado Is Nothing Then
+            FijarModoDelPedidoBase(Nothing)
+            Return
+        End If
+        Dim pedido As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(clienteSeleccionado.empresa, numero)
+        If version <> _versionModoPedidoAmpliado OrElse pedido Is Nothing OrElse PedidoPendienteSeleccionado <> numero Then
+            Return
+        End If
+        Dim modo As Byte = ModosServicio.Efectivo(pedido.modoServicio, pedido.servirJunto)
+        FijarModoDelPedidoBase(modo)
+        If Not ModosServicio.EsValido(modo) OrElse ModoServicio = modo Then
+            Return ' retenido (5) no se enseña en el selector; al grabar viaja tal cual
+        End If
+        Dim anterior As Byte = ModoServicio
+        _aplicandoSugerenciaModoServicio = True
+        _restaurandoModoGuardado = True
+        Try
+            ModoServicio = modo
+        Finally
+            _restaurandoModoGuardado = False
+            _aplicandoSugerenciaModoServicio = False
+        End Try
+        ' Nesto#525: nada de cambiar en silencio
+        AvisoModoServicio = $"Se amplía el pedido {numero}: se queda en su modo de entrega, «{ModosServicio.Nombre(modo)}» (antes «{ModosServicio.Nombre(anterior)}»)."
+    End Function
+#End Region
+
     ''' <summary>Nesto#483: el texto que manda el servidor explicando el modo («2 líneas hay que traerlas
     ''' de las tiendas: se espera a la reposición»). Vacío mientras no ha contestado.
     ''' Novedad 731 (María José, 22/10/26): ese texto explica el modo RECOMENDADO, no el elegido. Con «Todo junto»
@@ -1499,6 +1588,12 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(HayMotivoModoServicio))
         OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
         AplicarModosPermitidos(sugerencia)
+
+        ' Nesto#613: modificando o ampliando un pedido, su modo grabado no lo cambia la sugerencia (solo el usuario, a
+        ' propósito). Con picking la API no lo dejaría cambiar y las líneas se perdían.
+        If _modoDelPedidoBase.HasValue AndAlso Not _modoCambiadoAPropositoEnPedidoBase Then
+            Return
+        End If
 
         ' Nesto#484: si el usuario ELIGIÓ un modo que ya no se puede elegir, se pasa al sugerido y se le avisa.
         ' (Si no eligió nada, es la preselección de siempre: se aplica el sugerido sin aviso.)
@@ -3384,6 +3479,10 @@ Public Class PlantillaVentaViewModel
                 ' que es «antes de guardar») se pide ya lo que calcula el servidor, sin esperar al reloj.
                 PedirSugerenciasConDebounce()
                 PedirModoFacturacionConDebounce() ' Nesto#493
+                ' Nesto#612: el cheque se pudo generar después de elegir el cliente: se vuelve a mirar al finalizar
+                If value?.Name = PAGINA_FINALIZAR Then
+                    RefrescarChequeRegaloAlFinalizar()
+                End If
             End If
         End Set
     End Property
@@ -3403,7 +3502,9 @@ Public Class PlantillaVentaViewModel
             Return _pedidoPendienteSeleccionado
         End Get
         Set(value As Integer)
-            Dim unused = SetProperty(_pedidoPendienteSeleccionado, value)
+            If SetProperty(_pedidoPendienteSeleccionado, value) Then
+                CargarModoDelPedidoAmpliado(value) ' Nesto#613
+            End If
             NoAmpliarPedidoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
@@ -4518,6 +4619,14 @@ Public Class PlantillaVentaViewModel
             (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva) OrElse EsPresupuesto)
     End Function
     Private Async Sub OnCrearPedido()
+        Await CrearPedidoAsync()
+    End Sub
+
+    ''' <summary>
+    ''' Crea, modifica (Nesto#397) o amplía el pedido. Nesto#613: <paramref name="reintentoConModoDelPedido"/> es la
+    ''' segunda vuelta tras un rechazo por picking: se graba con el modo que ya tiene el pedido para no perder las líneas.
+    ''' </summary>
+    Friend Async Function CrearPedidoAsync(Optional reintentoConModoDelPedido As Boolean = False) As Task
 
         If IsNothing(FormaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
             dialogService.ShowError("Compruebe que tiene seleccionados plazos y forma de pago, por favor.")
@@ -4528,6 +4637,13 @@ Public Class PlantillaVentaViewModel
         Dim errorCursos As String = ErrorCursosAlGuardar()
         If errorCursos IsNot Nothing Then
             dialogService.ShowError(errorCursos)
+            Return
+        End If
+
+        ' Nesto#612: antes de grabar se vuelve a mirar el cheque regalo. Si la casilla cambia sola (cheque recién
+        ' generado o que ya no vale), no se graba sin que el vendedor lo vea.
+        If Not reintentoConModoDelPedido AndAlso Await RefrescarChequeRegaloAsync() Then
+            dialogService.ShowNotification("Cheque regalo", TextoCambioChequeAlGrabar())
             Return
         End If
 
@@ -4609,6 +4725,8 @@ Public Class PlantillaVentaViewModel
                 Dim estadoFresco = Await servicio.CargarPedidoParaPlantilla(clienteSeleccionado.empresa, NumeroPedidoEnEdicion.Value)
                 If estadoFresco IsNot Nothing Then
                     modoGuardado = ModosServicio.Efectivo(estadoFresco.ModoServicio, estadoFresco.ServirJunto) ' Nesto#489
+                    ' Nesto#613: sin cambio a propósito (o en el reintento), el modo que tiene grabado, tal cual
+                    MandarModoDelPedidoExistente(pedido, estadoFresco.ModoServicio, estadoFresco.ServirJunto, forzar:=reintentoConModoDelPedido)
                 End If
                 Dim errorPicking As String = ComprobarLineasConPickingAntesDeGuardar(estadoFresco, pedido)
                 If errorPicking IsNot Nothing Then
@@ -4667,6 +4785,10 @@ Public Class PlantillaVentaViewModel
                 ' Issue #366: avisar si la ampliación lleva fechas de entrega que no coinciden con
                 ' las del pedido existente, para que el usuario no mezcle fechas sin darse cuenta.
                 Dim pedidoExistente As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(clienteSeleccionado.empresa, PedidoPendienteSeleccionado)
+                ' Nesto#613: la ampliación viaja con el modo del pedido que se amplía, salvo cambio a propósito del usuario
+                If pedidoExistente IsNot Nothing Then
+                    MandarModoDelPedidoExistente(pedido, pedidoExistente.modoServicio, pedidoExistente.servirJunto)
+                End If
                 Dim fechasExistente = pedidoExistente.Lineas.Where(Function(l) l.tipoLinea = 1).Select(Function(l) l.fechaEntrega)
                 Dim fechasAmpliacion = pedido.Lineas.Where(Function(l) l.tipoLinea = 1).Select(Function(l) l.fechaEntrega)
                 Dim conflicto = DetectarConflictoFechasUnion(PedidoPendienteSeleccionado, fechasExistente, fechasAmpliacion)
@@ -4791,8 +4913,23 @@ Public Class PlantillaVentaViewModel
         If rechazoConPicking IsNot Nothing Then
             Await ResolverModoConPickingAsync(rechazoConPicking, pedido.empresa, pedido.numero,
                 ModosServicio.Efectivo(pedido.modoServicio, pedido.servirJunto), modoGuardado)
+            ' Nesto#613: conteste lo que conteste a la pregunta de almacén, las líneas (y el cheque) no se pierden: se
+            ' vuelve a grabar con el modo que ya tiene el pedido. Una sola vez.
+            If modoGuardado.HasValue AndAlso Not reintentoConModoDelPedido AndAlso NumeroPedidoEnEdicion.HasValue Then
+                _modoCambiadoAPropositoEnPedidoBase = False
+                Await CrearPedidoAsync(reintentoConModoDelPedido:=True)
+            End If
         End If
-    End Sub
+    End Function
+
+    ''' <summary>Nesto#612: por qué no se ha grabado todavía cuando la casilla del cheque cambia sola al grabar.</summary>
+    Private Function TextoCambioChequeAlGrabar() As String
+        If UsarChequeRegalo Then
+            Return $"El cliente tiene disponible un cheque regalo de {Nesto.Infrastructure.Models.ReglasChequeRegalo.Euros(ChequeRegalo.Importe)} y se ha marcado «Usar el cheque regalo». " &
+                "Revise el total y vuelva a pulsar para grabar el pedido."
+        End If
+        Return "El cheque regalo del cliente ya no se puede usar y se ha quitado del pedido. Revise el total y vuelva a pulsar para grabar el pedido."
+    End Function
 
     ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
     Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
@@ -5543,6 +5680,7 @@ Public Class PlantillaVentaViewModel
         _versionChequeRegalo += 1
         Dim version As Integer = _versionChequeRegalo
         _usarChequeRegalo = False
+        _chequeRegaloDecididoPorUsuario = False ' Nesto#612: otro cliente u otro pedido, otra decisión
         ChequeRegalo.Limpiar()
         NotificarChequeRegalo()
 
@@ -5564,6 +5702,83 @@ Public Class PlantillaVentaViewModel
         ' PUT no lo suelte (la plantilla no carga las líneas ficticias del pedido).
         _usarChequeRegalo = ChequeEstaEnElPedidoEnEdicion
         NotificarChequeRegalo()
+    End Function
+
+    ''' <summary>
+    ''' Nesto#612: el usuario ha marcado o desmarcado a mano la casilla del cheque en esta plantilla. Desde entonces la
+    ''' plantilla no la vuelve a marcar sola (solo la quita si el cheque deja de poder usarse).
+    ''' </summary>
+    Private _chequeRegaloDecididoPorUsuario As Boolean
+
+    Private Async Sub RefrescarChequeRegaloAlFinalizar()
+        Try
+            Await RefrescarChequeRegaloAsync()
+        Catch ex As Exception
+            ' Es una ayuda: si algo falla, se queda lo que había
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#612 (clienta 9238, pedido 929678): el cheque se leía UNA vez al elegir el cliente y, si se generaba después
+    ''' (3 minutos antes de grabar), la casilla no salía. Al llegar a Finalizar y antes de grabar se vuelve a pedir
+    ''' (como CargarChequeRegaloAsync con forzar), pero sin perder lo que haya marcado el usuario. Si no lo ha tocado y
+    ''' el cheque está «Disponible» y la base computable supera el mínimo, la casilla sale MARCADA (decisión de Carlos,
+    ''' 04/11/26). Devuelve True si la casilla ha cambiado. Si la API falla, se queda lo que había.
+    ''' </summary>
+    Friend Async Function RefrescarChequeRegaloAsync() As Task(Of Boolean)
+        Dim cliente As ClienteJson = clienteSeleccionado
+        Dim servicioCheques = ServicioChequesRegalo
+        If cliente Is Nothing OrElse servicioCheques Is Nothing OrElse String.IsNullOrWhiteSpace(cliente.cliente) Then
+            Return False
+        End If
+        Dim clave As String = $"{cliente.empresa?.Trim()}|{cliente.cliente?.Trim()}"
+        If clave <> _clienteChequeRegalo Then
+            _chequeRegaloDecididoPorUsuario = False ' cliente nuevo para el cheque: no hay decisión que respetar
+        End If
+        _versionChequeRegalo += 1
+        Dim version As Integer = _versionChequeRegalo
+        Dim cheque As Nesto.Infrastructure.Models.ChequeRegaloClienteDTO
+        Try
+            cheque = Await servicioCheques.LeerDelCliente(cliente.empresa, cliente.cliente)
+        Catch ex As Exception
+            Return False
+        End Try
+        If version <> _versionChequeRegalo OrElse Not Object.Equals(cliente, clienteSeleccionado) Then
+            Return False
+        End If
+        _clienteChequeRegalo = clave
+        Dim antes As Boolean = _usarChequeRegalo
+        ChequeRegalo.Aplicar(cheque)
+        If Not PuedeUsarChequeRegalo Then
+            _usarChequeRegalo = False
+        ElseIf Not _chequeRegaloDecididoPorUsuario Then
+            _usarChequeRegalo = ChequeEstaEnElPedidoEnEdicion OrElse DebeMarcarseChequeRegaloPorDefecto()
+        End If
+        NotificarChequeRegalo()
+        Return antes <> _usarChequeRegalo
+    End Function
+
+    ''' <summary>
+    ''' Nesto#612: cheque «Disponible» y la base computable de la plantilla (la de <see cref="BaseComputableChequeRegalo"/>:
+    ''' sin «PACK 26», sin el grupo PEL, sin cursos ni el propio cheque) SUPERA el mínimo. Si con el cheque los regalos
+    ''' elegidos dejaran de caber en los Ganavisiones, no se marca solo (lo decide el vendedor, con el aviso de siempre).
+    ''' </summary>
+    Private Function DebeMarcarseChequeRegaloPorDefecto() As Boolean
+        Dim cheque = ChequeRegalo.Cheque
+        If cheque Is Nothing OrElse Not cheque.SePuedeUsar OrElse
+            Not String.Equals(cheque.Estado, Nesto.Infrastructure.Models.ChequeRegaloClienteDTO.ESTADO_DISPONIBLE, StringComparison.OrdinalIgnoreCase) OrElse
+            BaseComputableChequeRegalo <= cheque.MinimoCanje Then
+            Return False
+        End If
+        Dim anterior As Boolean = _usarChequeRegalo
+        _usarChequeRegalo = True
+        Dim excedidos As Boolean
+        Try
+            excedidos = GanavisionesExcedidos
+        Finally
+            _usarChequeRegalo = anterior
+        End Try
+        Return Not excedidos
     End Function
 
     ''' <summary>El cheque ya está en el pedido que se está modificando con la plantilla (Nesto#397).</summary>
@@ -5604,6 +5819,7 @@ Public Class PlantillaVentaViewModel
                 value = False
             End If
             If SetProperty(_usarChequeRegalo, value) Then
+                _chequeRegaloDecididoPorUsuario = True ' Nesto#612: no se vuelve a marcar sola en esta plantilla
                 NotificarTotalesChequeRegalo()
                 ' NestoAPI#593 (Ganavisiones): con el cheque la base bonificable baja; si ya había regalos elegidos, puede que no quepan
                 If value AndAlso GanavisionesExcedidos Then
@@ -6404,6 +6620,9 @@ Public Class PlantillaVentaViewModel
             ' Nesto#397: si el borrador procede de un pedido existente, la plantilla queda en modo
             ' edición (el guardado hará PUT sobre ese pedido). Un borrador normal lo deja a Nothing.
             NumeroPedidoEnEdicion = borrador.NumeroPedidoEnEdicion
+            ' Nesto#613: el modo grabado del pedido manda mientras el usuario no lo cambie a propósito
+            FijarModoDelPedidoBase(If(borrador.NumeroPedidoEnEdicion.HasValue,
+                CType(ModosServicio.Efectivo(borrador.ModoServicio, borrador.ServirJunto), Byte?), Nothing))
 
             ' Issue #286: Establecer flags para indicar que estamos cargando desde borrador
             ' Esto evita que otros procesos sobrescriban los datos del borrador
