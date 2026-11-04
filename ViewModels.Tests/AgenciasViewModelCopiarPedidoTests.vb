@@ -179,4 +179,46 @@ Public Class AgenciasViewModelCopiarPedidoTests
         Assert.IsFalse(vm.CopiarEnvioCompletoCommand.CanExecute(Nothing))
     End Sub
 
+    ' Nesto#609 (sugerencia 970): el botón «Copiar nº de envío» de Tramitados deja en el portapapeles solo el nº de envío
+
+    <TestMethod()>
+    Public Sub CopiarNumeroEnvioCommand_ConEnvio_CopiaElNumeroDeEnvioYLoNotifica()
+        Dim vm = CrearViewModel()
+        Dim portapapeles = A.Fake(Of ControlesUsuario.Services.IServicioPortapapeles)
+        A.CallTo(Function() portapapeles.Copiar(A(Of String).Ignored)).Returns(True)
+        vm.Portapapeles = portapapeles
+        vm.envioActual = New EnviosAgencia With {.Numero = 12345, .Pedido = 922175, .CodigoBarras = "61197140249481   "}
+
+        vm.CopiarNumeroEnvioCommand.Execute(Nothing)
+
+        A.CallTo(Function() portapapeles.Copiar("61197140249481")).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification("Copiado el nº de envío 61197140249481")).MustHaveHappenedOnceExactly()
+    End Sub
+
+    <TestMethod()>
+    Public Sub CopiarNumeroEnvioCommand_PortapapelesOcupado_AvisaYNoNotifica()
+        Dim vm = CrearViewModel()
+        Dim portapapeles = A.Fake(Of ControlesUsuario.Services.IServicioPortapapeles)
+        A.CallTo(Function() portapapeles.Copiar(A(Of String).Ignored)).Returns(False)
+        vm.Portapapeles = portapapeles
+        vm.envioActual = New EnviosAgencia With {.Numero = 12345, .CodigoBarras = "61197140249481"}
+
+        vm.CopiarNumeroEnvioCommand.Execute(Nothing)
+
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification(A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub CopiarNumeroEnvioCommand_SinNumeroDeEnvio_NoCopiaNada()
+        Dim vm = CrearViewModel()
+        Dim portapapeles = A.Fake(Of ControlesUsuario.Services.IServicioPortapapeles)
+        vm.Portapapeles = portapapeles
+        vm.envioActual = New EnviosAgencia With {.Numero = 12345, .CodigoBarras = Nothing}
+
+        vm.CopiarNumeroEnvioCommand.Execute(Nothing)
+
+        A.CallTo(Function() portapapeles.Copiar(A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
 End Class

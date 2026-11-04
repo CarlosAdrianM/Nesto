@@ -5,7 +5,8 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
+    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
+    xmlns:cub="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario">
 
     <UserControl.Resources>
         <HierarchicalDataTemplate x:Key="templateTracking">
@@ -141,7 +142,7 @@
                         
 
 
-                        <DataGrid Visibility="{Binding mostrarHistoria}" Grid.Column="5" Grid.ColumnSpan="2" Grid.Row="2" Grid.RowSpan="4" ItemsSource="{Binding listaHistoriaEnvio}" AutoGenerateColumns="False" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid cub:CopiarCeldaDataGrid.Activo="True" Visibility="{Binding mostrarHistoria}" Grid.Column="5" Grid.ColumnSpan="2" Grid.Row="2" Grid.RowSpan="4" ItemsSource="{Binding listaHistoriaEnvio}" AutoGenerateColumns="False" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Campo" Binding="{Binding Campo}" />
                                 <DataGridTextColumn Header="Valor Anterior" Binding="{Binding ValorAnterior}"/>
@@ -157,7 +158,7 @@
                         <TextBox Grid.Column="7" Grid.RowSpan="8" Text="{Binding Path=observacionesEnvio}" MaxLength="80" Style="{StaticResource campoComentarios}" />
                     </Grid>
                     <Grid Grid.Row="1">
-                        <DataGrid ItemsSource="{Binding listaEnviosPedido}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaEnviosPedido}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
                                 <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
@@ -194,7 +195,7 @@
                         </Grid.ColumnDefinitions>
                         <TreeView Grid.Column="0" Name="treeView" ItemsSource="{Binding estadoEnvioCargado.listaExpediciones, Mode=TwoWay}" ItemTemplate="{StaticResource templateExp}"/>
                         <DockPanel Grid.Column="1">
-                        <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding estadoEnvioCargado.listaDigitalizaciones}" SelectedItem="{Binding digitalizacionActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid cub:CopiarCeldaDataGrid.Activo="True" DockPanel.Dock="Top" ItemsSource="{Binding estadoEnvioCargado.listaDigitalizaciones}" SelectedItem="{Binding digitalizacionActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding tipo}" />
                             </DataGrid.Columns>
@@ -293,7 +294,7 @@
                         <TextBox Grid.Column="7" Grid.RowSpan="8" Text="{Binding EnvioPendienteSeleccionado.Observaciones}" MaxLength="80" Style="{StaticResource campoComentarios}" />
                     </Grid>
                     <Grid Grid.Row="1">
-                        <DataGrid ItemsSource="{Binding listaPendientes}" SelectedItem="{Binding EnvioPendienteSeleccionado}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaPendientes}" SelectedItem="{Binding EnvioPendienteSeleccionado}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}"  Width="Auto"/>
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="Auto"/>
@@ -409,7 +410,7 @@
                         <TextBox Grid.Column="7" Grid.RowSpan="8" Text="{Binding Path=envioActual.Observaciones}" MaxLength="80" Style="{StaticResource campoComentarios}" />
                     </Grid>
                     <DockPanel Grid.Row="1">
-                    <DataGrid ItemsSource="{Binding listaEnvios}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaEnvios}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Numero}"/>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
@@ -500,7 +501,7 @@
                         </Grid>
                     </DockPanel>
                     <DockPanel Grid.Row="1">
-                        <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid cub:CopiarCeldaDataGrid.Activo="True" DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
                                 <!-- #387: Estado coloreado: Tramitado (azul) / Entregado (verde) / Incidentado (naranja) / Devuelto (rojo).
@@ -610,6 +611,11 @@
                                 Content="Abrir seguimiento"
                                 Command="{Binding AbrirEnlaceSeguimientoCommand}"
                                 ToolTip="Abre el enlace de seguimiento del envío seleccionado."/>
+                        <!-- Nesto#609 (sugerencia 970): el nº de envío, para pegarlo en la web de la agencia o en un correo -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Copiar nº de envío"
+                                Command="{Binding CopiarNumeroEnvioCommand}"
+                                ToolTip="Copia al portapapeles el nº de envío del envío seleccionado (también puede pinchar en una celda y pulsar Ctrl+C)."/>
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Actualizar estado"
                                 Command="{Binding cmdActualizarSeguimiento}"
@@ -627,14 +633,16 @@
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
                         <Button Content="Abrir seguimiento" MinWidth="120" Margin="3" Command="{Binding AbrirEnlaceSeguimientoCommand}"
-                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haz doble clic en la fila)"/>
+                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haga doble clic en la fila)"/>
+                        <Button Content="Copiar nº de envío" MinWidth="120" Margin="3" Command="{Binding CopiarNumeroEnvioCommand}"
+                                ToolTip="Copia al portapapeles el nº de envío del envío seleccionado (también puede pinchar en una celda y pulsar Ctrl+C)"/>
                         <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático"/>
                         <!-- NestoAPI#676: para los incidentados que la agencia nunca cerró. Pide el motivo. -->
                         <Button Content="Dar por cerrado" MinWidth="120" Margin="3" Command="{Binding DarPorCerradoCommand}"
                                 ToolTip="Da por cerrado el envío seleccionado aunque la agencia no lo haya cerrado. Se le pedirá el motivo, que queda en la historia del envío."/>
                     </StackPanel>
-                    <DataGrid ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
                                 <i:InvokeCommandAction Command="{Binding AbrirEnlaceSeguimientoCommand}" />
@@ -705,11 +713,13 @@
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
                         <Button Content="Abrir seguimiento" MinWidth="120" Margin="3" Command="{Binding AbrirEnlaceSeguimientoCommand}"
-                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haz doble clic en la fila)"/>
+                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haga doble clic en la fila)"/>
+                        <Button Content="Copiar nº de envío" MinWidth="120" Margin="3" Command="{Binding CopiarNumeroEnvioCommand}"
+                                ToolTip="Copia al portapapeles el nº de envío del envío seleccionado (también puede pinchar en una celda y pulsar Ctrl+C)"/>
                         <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado; si ya está entregado, desaparece de la lista"/>
                     </StackPanel>
-                    <DataGrid ItemsSource="{Binding listaRetrasados}" SelectedItem="{Binding envioRetrasadoActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaRetrasados}" SelectedItem="{Binding envioRetrasadoActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
                                 <i:InvokeCommandAction Command="{Binding AbrirEnlaceSeguimientoCommand}" />
@@ -775,7 +785,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding listaReembolsos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaReembolsos" SelectedItem="{Binding lineaReembolsoSeleccionado}">
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" Grid.Row="0" ItemsSource="{Binding listaReembolsos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaReembolsos" SelectedItem="{Binding lineaReembolsoSeleccionado}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
                                 <i:InvokeCommandAction Command="{Binding cmdAgregarReembolsoContabilizar}" />
@@ -797,7 +807,7 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding listaReembolsosSeleccionados}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" SelectedItem="{Binding lineaReembolsoContabilizar}" >
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" Grid.Row="1" ItemsSource="{Binding listaReembolsosSeleccionados}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" SelectedItem="{Binding lineaReembolsoContabilizar}" >
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
                                 <i:InvokeCommandAction Command="{Binding cmdQuitarReembolsoContabilizar}" />
@@ -860,7 +870,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding listaRetornos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaRetornos" SelectedItem="{Binding lineaRetornoSeleccionado}">
+                    <DataGrid cub:CopiarCeldaDataGrid.Activo="True" Grid.Row="0" ItemsSource="{Binding listaRetornos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaRetornos" SelectedItem="{Binding lineaRetornoSeleccionado}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
                                 <i:InvokeCommandAction Command="{Binding cmdRecibirRetorno}" />
