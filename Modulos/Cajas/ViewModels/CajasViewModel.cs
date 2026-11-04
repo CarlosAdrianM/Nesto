@@ -26,7 +26,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
     public class CajasViewModel : ViewModelBase
     {
         public const string CUENTA_TESORERIA_PGC = "57";
-        private const int DIAS_ATRAS_PERMITIDOS = 4;
+        private const int DIAS_ATRAS_PERMITIDOS = 10; // Paloma (sugerencia 969, Carlos 04/11/26): antes 4
         private readonly IConfiguracion _configuracion;
         private readonly IServicioDialogos _dialogService;
         private readonly IClientesService _clientesService;
