@@ -166,6 +166,41 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<Mencionable>>(json ?? "[]") ?? new List<Mencionable>();
         }
 
+        // Nesto#623: no hay GET por id sin ámbito en la API: se piden las listas de cada otra aplicación (las novedades
+        // con todas=true, de todos los perfiles; las sugerencias con incluirCerradas=true, también las cerradas) y se
+        // busca el id aquí. Las privadas siguen filtradas por la API.
+        public async Task<NovedadUsuario> LeerDeOtraAplicacion(int novedadId)
+        {
+            foreach (string ambito in AmbitosNovedades.OTRAS_APLICACIONES)
+            {
+                string conAmbito = Uri.EscapeDataString(ambito);
+                NovedadUsuario encontrada = (await LeerNovedades($"Novedades?ambito={conAmbito}&todas=true").ConfigureAwait(false))
+                    .FirstOrDefault(n => n != null && n.Id == novedadId);
+                if (encontrada == null)
+                {
+                    try
+                    {
+                        string json = await Enviar(HttpMethod.Get, $"Novedades/Sugerencias?ambito={conAmbito}&incluirCerradas=true", null, "leer las sugerencias").ConfigureAwait(false);
+                        encontrada = (JsonConvert.DeserializeObject<List<NovedadUsuario>>(json ?? "[]") ?? new List<NovedadUsuario>())
+                            .FirstOrDefault(n => n != null && n.Id == novedadId);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[NovedadesService] Sugerencias de {ambito}: {ex.Message}");
+                    }
+                }
+                if (encontrada != null)
+                {
+                    if (!AmbitosNovedades.EsDeOtraAplicacion(encontrada.Ambito))
+                    {
+                        encontrada.Ambito = ambito;
+                    }
+                    return encontrada;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// Mismo cuerpo para comentar y para sugerir (NuevoComentarioNovedadDTO en la API). Nesto#578 (NestoAPI#754): todas
         /// las capturas van en ImagenesBase64 y la primera, además, en ImagenBase64: una API que aún no conoce la lista

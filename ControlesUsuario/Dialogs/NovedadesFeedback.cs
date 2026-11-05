@@ -423,6 +423,12 @@ namespace ControlesUsuario.Dialogs
         public string Titulo => _novedad.Titulo;
         public string Descripcion => _novedad.Descripcion;
         public string Ambito => _novedad.Ambito;
+        /// <summary>Nesto#623: es de Ariadna o de NestoApp (se llega a ella desde la campana): lleva la etiqueta.</summary>
+        public bool EsDeOtraAplicacion => AmbitosNovedades.EsDeOtraAplicacion(Ambito);
+        /// <summary>Nesto#623: «Sugerencia de Ariadna», «Novedad de NestoApp»…; null si es de Nesto.</summary>
+        public string EtiquetaAplicacion => EsDeOtraAplicacion
+            ? $"{(EsSugerencia ? (EsIncidencia ? "Incidencia" : "Sugerencia") : "Novedad")} de {Ambito.Trim()}"
+            : null;
 
         // ---- NestoAPI#526: sugerencias de los usuarios (novedades sin versión) ----
         public bool EsSugerencia => _novedad.EsSugerencia;

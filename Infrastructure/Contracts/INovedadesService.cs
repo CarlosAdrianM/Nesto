@@ -175,6 +175,31 @@ namespace Nesto.Infrastructure.Contracts
         public string Aplicacion { get; set; }
     }
 
+    /// <summary>
+    /// Nesto#623: los ámbitos de las otras aplicaciones. Las novedades y sugerencias de Nesto vienen sin ámbito (o
+    /// «Nesto»); las de Ariadna y NestoApp solo llegan pidiéndolas con su ámbito.
+    /// </summary>
+    public static class AmbitosNovedades
+    {
+        public const string ARIADNA = "Ariadna";
+        public const string NESTOAPP = "NestoApp";
+        public static readonly IReadOnlyList<string> OTRAS_APLICACIONES = new[] { ARIADNA, NESTOAPP };
+
+        /// <summary>El ámbito es el de otra aplicación (Ariadna o NestoApp), no el de Nesto.</summary>
+        public static bool EsDeOtraAplicacion(string ambito)
+        {
+            string texto = ambito?.Trim();
+            foreach (string otra in OTRAS_APLICACIONES)
+            {
+                if (string.Equals(texto, otra, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     public interface INovedadesService
     {
         /// <summary>
@@ -241,5 +266,12 @@ namespace Nesto.Infrastructure.Contracts
 
         /// <summary>Los usuarios de Nesto a los que se puede mencionar con @Nombre.</summary>
         Task<List<Mencionable>> LeerMencionables();
+
+        /// <summary>
+        /// Nesto#623: la novedad o sugerencia <paramref name="novedadId"/> de otra aplicación (Ariadna o NestoApp), con su
+        /// <see cref="NovedadUsuario.Ambito"/> relleno; null si no está en ninguna. Para la campana: el aviso solo trae el id
+        /// y lo que pide Nesto viene sin ámbito (solo el escritorio). Nunca lanza.
+        /// </summary>
+        Task<NovedadUsuario> LeerDeOtraAplicacion(int novedadId);
     }
 }
