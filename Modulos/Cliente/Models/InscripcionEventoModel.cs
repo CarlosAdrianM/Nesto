@@ -153,6 +153,55 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonIgnore]
         public bool SePuedenCambiarAsistentes => Estado != null && Estado != CADUCADA && Estado != ANULADA;
 
+        // Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): en un evento mixto, si viene presencial u online.
+
+        public const string FORMA_PRESENCIAL = EventoModel.FORMATO_PRESENCIAL;
+        public const string FORMA_ONLINE = EventoModel.FORMATO_ONLINE;
+
+        /// <summary>Lo que se puede elegir en el combo de la tarjeta: «(sin indicar)», Presencial u Online.</summary>
+        public static readonly IReadOnlyList<OpcionEvento> OPCIONES_FORMA_ASISTENCIA = new[]
+        {
+            new OpcionEvento(string.Empty, "(sin indicar)"),
+            new OpcionEvento(FORMA_PRESENCIAL, "Presencial"),
+            new OpcionEvento(FORMA_ONLINE, "Online")
+        };
+
+        /// <summary>«Presencial», «Online» o null (sin indicar; siempre en los eventos que no son mixtos o con la API de antes).</summary>
+        public string FormaAsistencia { get; set; }
+
+        /// <summary>Lo guardado, normalizado: «Presencial», «Online» o «» (sin indicar).</summary>
+        [JsonIgnore]
+        public string FormaAsistenciaGuardada =>
+            string.Equals(FormaAsistencia?.Trim(), FORMA_PRESENCIAL, StringComparison.OrdinalIgnoreCase) ? FORMA_PRESENCIAL
+            : string.Equals(FormaAsistencia?.Trim(), FORMA_ONLINE, StringComparison.OrdinalIgnoreCase) ? FORMA_ONLINE
+            : string.Empty;
+
+        private string _formaAsistenciaEdicion;
+        /// <summary>Lo elegido en el combo («» = sin indicar). Al cambiarlo, la pantalla lo guarda en la API.</summary>
+        [JsonIgnore]
+        public string FormaAsistenciaEdicion
+        {
+            get => _formaAsistenciaEdicion ?? FormaAsistenciaGuardada;
+            set
+            {
+                // Null no es una elección («(sin indicar)» es «»): es el combo soltando su valor al quitarse la vista (teardown).
+                if (value != null)
+                {
+                    _ = SetProperty(ref _formaAsistenciaEdicion, value);
+                }
+            }
+        }
+
+        /// <summary>Tras guardar (o si la API no lo acepta), el combo vuelve a enseñar lo guardado.</summary>
+        public void PonerFormaAsistencia(string guardada)
+        {
+            FormaAsistencia = string.IsNullOrWhiteSpace(guardada) ? null : guardada.Trim();
+            _formaAsistenciaEdicion = null;
+            OnPropertyChanged(nameof(FormaAsistencia));
+            OnPropertyChanged(nameof(FormaAsistenciaGuardada));
+            OnPropertyChanged(nameof(FormaAsistenciaEdicion));
+        }
+
         /// <summary>Opción «nadie indicado» del combo «Asiste».</summary>
         public static readonly PersonaContactoEventoModel SIN_PERSONA = new() { Numero = string.Empty, Nombre = "(sin indicar)" };
 
@@ -477,6 +526,12 @@ namespace Nesto.Modulos.Cliente.Models
     public class CambiarAsistentesInscripcionModel
     {
         public int? Asistentes { get; set; }
+    }
+
+    /// <summary>Nesto#626 (NestoAPI#829): el cuerpo del PUT de la forma de asistencia (null = sin indicar).</summary>
+    public class CambiarFormaAsistenciaInscripcionModel
+    {
+        public string FormaAsistencia { get; set; }
     }
 
     /// <summary>Nesto#566 (NestoAPI#731): una persona de contacto del cliente (PersonaContactoEventoDTO).</summary>

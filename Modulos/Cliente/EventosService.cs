@@ -336,6 +336,18 @@ namespace Nesto.Modulos.Cliente
             return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
         }
 
+        public async Task<InscripcionEventoModel> CambiarFormaAsistencia(int id, string formaAsistencia)
+        {
+            // Nesto#626: el mensaje de la API («no es un evento mixto», «falta lanzar el script…») ya dice qué pasa; tal cual.
+            string body = await Enviar(c => c.PutAsync($"Eventos/Inscripciones/{id}/FormaAsistencia",
+                    Json(new CambiarFormaAsistenciaInscripcionModel
+                    {
+                        FormaAsistencia = string.IsNullOrWhiteSpace(formaAsistencia) ? null : formaAsistencia.Trim()
+                    })),
+                "No se pudo apuntar si viene presencial u online", mensajeTalCual: true);
+            return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
+        }
+
         private static List<T> Lista<T>(string body) =>
             string.IsNullOrWhiteSpace(body) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 

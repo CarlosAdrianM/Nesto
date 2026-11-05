@@ -63,6 +63,8 @@ namespace Nesto.Modulos.Cliente.Models
         public decimal? ImporteSenalNoReembolsable { get; set; }
         public const string FORMATO_PRESENCIAL = "Presencial";
         public const string FORMATO_ONLINE = "Online";
+        /// <summary>Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): presencial y online a la vez.</summary>
+        public const string FORMATO_MIXTO = "Mixto";
 
         /// <summary>
         /// Presencial u Online (webinar). Null cuenta como Presencial. Aunque sea online, el evento es de una tienda (el
@@ -72,6 +74,10 @@ namespace Nesto.Modulos.Cliente.Models
 
         [JsonIgnore]
         public bool EsOnline => string.Equals(Formato?.Trim(), FORMATO_ONLINE, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Nesto#626: presencial y online a la vez; cada inscripción dice cómo viene.</summary>
+        [JsonIgnore]
+        public bool EsMixto => string.Equals(Formato?.Trim(), FORMATO_MIXTO, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>NestoAPI#690: solo lectura. Las dos señales a 0. No se manda.</summary>
         public bool Gratuito { get; set; }
