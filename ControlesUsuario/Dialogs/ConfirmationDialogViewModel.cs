@@ -48,6 +48,8 @@ namespace ControlesUsuario.Dialogs
                 result = ResultadoBoton.OK;
             else if (parameter?.ToLower() == "false")
                 result = ResultadoBoton.Cancel;
+            else if (parameter?.ToLower() == "tercero")
+                result = ResultadoBoton.No; // Nesto#624: el botón del medio, si lo hay
 
             RaiseRequestClose(result);
         }
@@ -65,6 +67,10 @@ namespace ControlesUsuario.Dialogs
             {
                 TextoNo = textoNo;
             }
+            if (parameters.TryGetValue(PARAMETRO_TEXTO_TERCERO, out string textoTercero) && !string.IsNullOrWhiteSpace(textoTercero))
+            {
+                TextoTercero = textoTercero;
+            }
         }
 
         /// <summary>Nesto#568: texto del botón «Sí» (p. ej. «Retener y consultar a Administración»).</summary>
@@ -77,6 +83,27 @@ namespace ControlesUsuario.Dialogs
 
         private string _textoNo = "No";
         public string TextoNo { get => _textoNo; set => SetProperty(ref _textoNo, value); }
+
+        /// <summary>
+        /// Nesto#624 (NestoAPI#738): texto de un tercer botón, entre «Sí» y «No» (p. ej. «No cambiar esos»). Cierra con
+        /// <see cref="ResultadoBoton.No"/>. Sin este parámetro el diálogo tiene los dos de siempre.
+        /// </summary>
+        public const string PARAMETRO_TEXTO_TERCERO = "textoTercero";
+
+        private string _textoTercero;
+        public string TextoTercero
+        {
+            get => _textoTercero;
+            set
+            {
+                if (SetProperty(ref _textoTercero, value))
+                {
+                    OnPropertyChanged(nameof(HayTercero));
+                }
+            }
+        }
+
+        public bool HayTercero => !string.IsNullOrWhiteSpace(TextoTercero);
     }
 
     /// <summary>
@@ -105,6 +132,32 @@ namespace ControlesUsuario.Dialogs
             }
             dialogos.ShowDialog(ServicioDialogosBase.ConfirmationDialog, parametros, r => confirmado = r?.Result == ResultadoBoton.OK);
             return confirmado;
+        }
+
+        /// <summary>
+        /// Nesto#624 (NestoAPI#738): una pregunta con tres botones. Devuelve <see cref="ResultadoBoton.OK"/> si se pulsa el
+        /// primero (<paramref name="textoSi"/>), <see cref="ResultadoBoton.No"/> si el del medio (<paramref name="textoTercero"/>)
+        /// y <see cref="ResultadoBoton.Cancel"/> con el último (<paramref name="textoNo"/>) o si se cierra la ventana.
+        /// </summary>
+        public static ResultadoBoton PreguntarTres(IServicioDialogos dialogos, string titulo, string mensaje, string textoSi,
+            string textoTercero, string textoNo)
+        {
+            if (dialogos == null)
+            {
+                return ResultadoBoton.Cancel;
+            }
+            ResultadoBoton resultado = ResultadoBoton.Cancel;
+            var parametros = new ParametrosDialogo
+            {
+                { "title", titulo },
+                { "message", mensaje },
+                { ConfirmationDialogViewModel.PARAMETRO_TEXTO_SI, textoSi },
+                { ConfirmationDialogViewModel.PARAMETRO_TEXTO_TERCERO, textoTercero },
+                { ConfirmationDialogViewModel.PARAMETRO_TEXTO_NO, textoNo }
+            };
+            dialogos.ShowDialog(ServicioDialogosBase.ConfirmationDialog, parametros, r =>
+                resultado = r?.Result == ResultadoBoton.OK || r?.Result == ResultadoBoton.No ? r.Result : ResultadoBoton.Cancel);
+            return resultado;
         }
     }
 }

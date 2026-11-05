@@ -66,6 +66,7 @@ namespace Nesto.Modules.Producto.ViewModels
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
             ServicioSustituciones = new ServicioSustitucionesProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#581
             ServicioEtiquetasProducto = new ServicioEtiquetasProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#534
+            ServicioEstadoProductos = new ServicioEstadoProductos(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#624
 
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
@@ -103,6 +104,8 @@ namespace Nesto.Modules.Producto.ViewModels
             EsDelGrupoCompras = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS);
             EsDelGrupoTiendas = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
             EsDelGrupoTiendaOnline = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+            // Nesto#624 (NestoAPI#738): el estado lo cambian Compras y Dirección (la API lo comprueba igual)
+            PuedeCambiarEstado = EsDelGrupoCompras || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
             // Nesto#534: los mismos grupos que deja la API (los que gestionan los códigos de barras)
             PuedeImprimirEtiquetaCodigoBarras = EsDelGrupoCompras || EsDelGrupoTiendas
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
@@ -144,6 +147,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     Titulo = "Producto";
                     return;
                 }
+                await SincronizarEstadoProductoAsync(); // Nesto#624: el desplegable del estado, con el de la ficha
 
 
                 if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
@@ -1682,6 +1686,183 @@ namespace Nesto.Modules.Producto.ViewModels
             catch (Exception ex)
             {
                 _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region Estado del producto (Nesto#624, NestoAPI#738, sugerencia 793 de Manuel)
+
+        // Antes el estado era una casilla de texto que se escribía pero no se guardaba. Ahora es un desplegable: al cambiarlo,
+        // el mismo flujo que la ventana masiva con una lista de un producto (vista previa → pregunta de los controles de stock
+        // o confirmación con los avisos → aplicar → se vuelve a cargar la ficha). Si se cancela o falla, vuelve al que tenía.
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioEstadoProductos ServicioEstadoProductos { get; set; }
+
+        private const string MENSAJE_SIN_PERMISO_ESTADO = global::Nesto.Modules.Producto.ServicioEstadoProductos.MENSAJE_SIN_PERMISO;
+
+        /// <summary>Compras y Dirección: los mismos que deja la API.</summary>
+        public bool PuedeCambiarEstado { get; }
+
+        /// <summary>Los estados de la tabla EstadosProducto (GET api/Productos/Estados).</summary>
+        public ObservableCollection<EstadoProductoDTO> EstadosProducto { get; } = new ObservableCollection<EstadoProductoDTO>();
+
+        private bool _estadosProductoLeidos;
+        private bool _sincronizandoEstado;
+
+        private EstadoProductoDTO _estadoProductoSeleccionado;
+        /// <summary>El elegido en el desplegable. Si lo cambia el usuario, empieza el cambio de estado.</summary>
+        public EstadoProductoDTO EstadoProductoSeleccionado
+        {
+            get => _estadoProductoSeleccionado;
+            set
+            {
+                if (!SetProperty(ref _estadoProductoSeleccionado, value) || _sincronizandoEstado || value == null)
+                {
+                    return;
+                }
+                if (ProductoActual == null || value.Estado == ProductoActual.Estado)
+                {
+                    return;
+                }
+                CambioEstadoEnCurso = CambiarEstadoAsync(value);
+            }
+        }
+
+        /// <summary>El último cambio de estado lanzado desde el desplegable (para esperarlo en los tests).</summary>
+        internal Task CambioEstadoEnCurso { get; private set; } = Task.CompletedTask;
+
+        private bool _estaCambiandoEstado;
+        public bool EstaCambiandoEstado
+        {
+            get => _estaCambiandoEstado;
+            private set
+            {
+                if (SetProperty(ref _estaCambiandoEstado, value))
+                {
+                    OnPropertyChanged(nameof(DesplegableEstadoHabilitado));
+                }
+            }
+        }
+
+        public bool DesplegableEstadoHabilitado => PuedeCambiarEstado && !EstaCambiandoEstado;
+
+        public string AyudaEstado => PuedeCambiarEstado
+            ? "Al cambiarlo se le enseña antes lo que va a pasar (pedidos pendientes, stock, controles de stock) y se le pide confirmación"
+            : MENSAJE_SIN_PERMISO_ESTADO;
+
+        /// <summary>Pone el desplegable en el estado de la ficha (lee los estados la primera vez) sin lanzar ningún cambio.</summary>
+        internal async Task SincronizarEstadoProductoAsync()
+        {
+            if (!_estadosProductoLeidos && ServicioEstadoProductos != null)
+            {
+                try
+                {
+                    List<EstadoProductoDTO> estados = await ServicioEstadoProductos.LeerEstados(Constantes.Empresas.EMPRESA_DEFECTO);
+                    EstadosProducto.Clear();
+                    foreach (EstadoProductoDTO estado in (estados ?? new List<EstadoProductoDTO>()).OrderBy(e => e.Estado))
+                    {
+                        EstadosProducto.Add(estado);
+                    }
+                    _estadosProductoLeidos = true;
+                }
+                catch (Exception)
+                {
+                    // Sin la lista se enseña al menos el estado que tiene (y se vuelve a intentar con el siguiente producto)
+                }
+            }
+            PonerEstadoDeLaFicha();
+        }
+
+        private void PonerEstadoDeLaFicha()
+        {
+            EstadoProductoDTO actual = null;
+            if (ProductoActual != null)
+            {
+                actual = EstadosProducto.FirstOrDefault(e => e.Estado == ProductoActual.Estado);
+                if (actual == null)
+                {
+                    actual = new EstadoProductoDTO { Estado = ProductoActual.Estado };
+                    EstadosProducto.Add(actual);
+                }
+            }
+            _sincronizandoEstado = true;
+            try
+            {
+                // Se avisa después de volver (o de no cambiar): el ComboBox no siempre se entera si se le cambia dentro de su setter
+                _estadoProductoSeleccionado = actual;
+                OnPropertyChanged(nameof(EstadoProductoSeleccionado));
+            }
+            finally
+            {
+                _sincronizandoEstado = false;
+            }
+        }
+
+        private string TextoEstadoProducto(short estado) =>
+            EstadosProducto.FirstOrDefault(e => e.Estado == estado)?.Texto ?? estado.ToString();
+
+        internal async Task CambiarEstadoAsync(EstadoProductoDTO nuevo)
+        {
+            string producto = ProductoActual?.Producto?.Trim();
+            if (string.IsNullOrEmpty(producto) || nuevo == null || ServicioEstadoProductos == null || !PuedeCambiarEstado)
+            {
+                PonerEstadoDeLaFicha();
+                return;
+            }
+            bool cambiado = false;
+            EstaCambiandoEstado = true;
+            try
+            {
+                VistaPreviaEstadoProductosDTO vista = await ServicioEstadoProductos.VistaPrevia(Constantes.Empresas.EMPRESA_DEFECTO,
+                    new FiltroEstadoProductos { Productos = new List<string> { producto } }, nuevo.Estado);
+                ProductoEstadoVistaPreviaDTO fila = vista?.Productos?.FirstOrDefault(p => string.Equals(p.Producto?.Trim(), producto, StringComparison.OrdinalIgnoreCase))
+                    ?? vista?.Productos?.FirstOrDefault();
+                if (vista == null)
+                {
+                    return;
+                }
+                if (!vista.PuedeCambiar)
+                {
+                    _dialogService.ShowError(MENSAJE_SIN_PERMISO_ESTADO);
+                    return;
+                }
+                if (!string.IsNullOrWhiteSpace(fila?.MotivoNoSeCambia))
+                {
+                    _dialogService.ShowNotification(FlujoCambioEstadoProductos.TITULO, fila.MotivoNoSeCambia.Trim());
+                    return;
+                }
+                string resumen = $"¿Cambia el estado de {producto} de «{TextoEstadoProducto(ProductoActual.Estado)}» a «{nuevo.Texto}»?";
+                IEnumerable<string> avisos = fila?.Avisos != null && fila.Avisos.Count > 0 ? fila.Avisos : vista.Avisos;
+                DecisionCambioEstado decision = FlujoCambioEstadoProductos.Preguntar(_dialogService, vista, avisos, resumen, confirmarSiempre: true);
+                if (decision == DecisionCambioEstado.Cancelar)
+                {
+                    return;
+                }
+                ResultadoCambioEstadoProductosDTO resultado = await ServicioEstadoProductos.Cambiar(Constantes.Empresas.EMPRESA_DEFECTO,
+                    new[] { producto }, nuevo.Estado, decision == DecisionCambioEstado.AplicarQuitandoControles);
+                _dialogService.ShowNotification(FlujoCambioEstadoProductos.TITULO, FlujoCambioEstadoProductos.TextoResultado(resultado));
+                cambiado = resultado != null && resultado.Cambiados > 0;
+            }
+            catch (Exception ex)
+            {
+                // Los 400/403/500 de la API traen su texto en castellano
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCambiandoEstado = false;
+                if (!cambiado)
+                {
+                    // Cancelado, no permitido, sin cambio o error: el desplegable vuelve al estado que tiene
+                    PonerEstadoDeLaFicha();
+                }
+            }
+            if (cambiado)
+            {
+                // Se vuelve a cargar: el estado nuevo y, si vuelve a Disponible, sus controles de stock
+                await CargarProducto(producto);
             }
         }
 

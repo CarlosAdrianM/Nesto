@@ -39,6 +39,9 @@
                                 Header="Compras"
                                 Visibility="{Binding PuedeVerPropuestasStock, Converter={StaticResource VisibilidadPropuestasStock}}">
                 <RibbonButton Label="Propuestas de stock" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirPropuestasStockCommand}" />
+                <!-- Nesto#624 (NestoAPI#738): cambio de estado de muchos productos a la vez -->
+                <RibbonButton Label="Cambiar estado" ToolTip="Cambiar el estado de muchos productos a la vez (por proveedor, familia, grupo, subgrupo o lista de referencias)"
+                              LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirCambiarEstadoProductosCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

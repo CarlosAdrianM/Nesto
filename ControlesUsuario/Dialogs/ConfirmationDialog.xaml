@@ -2,6 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              MinWidth="300" MinHeight="110" MaxWidth="600">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibilidadTercero" />
+    </UserControl.Resources>
     <Grid x:Name="LayoutRoot" Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -14,6 +17,9 @@
         </ScrollViewer>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Command="{Binding CloseDialogCommand}" CommandParameter="true" Content="{Binding TextoSi}" MinWidth="75" Padding="8,0" Height="25" HorizontalAlignment="Right" Margin="0,10,0,0" IsDefault="{Binding PorDefectoSi}" />
+            <!-- Nesto#624: tercer botón opcional (entre «Sí» y «No»), solo si viene su texto -->
+            <Button Command="{Binding CloseDialogCommand}" CommandParameter="tercero" Content="{Binding TextoTercero}" MinWidth="75" Padding="8,0" Height="25" HorizontalAlignment="Right" Margin="10,10,0,0"
+                    Visibility="{Binding HayTercero, Converter={StaticResource VisibilidadTercero}}" />
             <Button Command="{Binding CloseDialogCommand}" CommandParameter="false" Content="{Binding TextoNo}" MinWidth="75" Padding="8,0" Height="25" HorizontalAlignment="Right" Margin="10,10,0,0" IsDefault="{Binding PorDefectoNo}" />
         </StackPanel>
     </Grid>
