@@ -113,6 +113,11 @@ Public Class AgenciasViewModel
         AbrirEnlaceSeguimientoCommand = New RelayCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         DarPorCerradoCommand = New RelayCommand(AddressOf OnDarPorCerrado, AddressOf CanDarPorCerrado)
+        ' Nesto#625 (NestoAPI#726): gestión en tránsito (CTT)
+        PararEnVueloCommand = New RelayCommand(AddressOf OnPararEnVuelo, Function() PuedeGestionar(Function(g) g.PararEnVuelo))
+        CrearRetornoCommand = New RelayCommand(AddressOf OnCrearRetorno, Function() PuedeGestionar(Function(g) g.Retorno))
+        CambiarFechaEntregaCommand = New RelayCommand(AddressOf OnCambiarFechaEntrega, Function() PuedeGestionar(Function(g) g.CambiarFecha))
+        CambiarDireccionEntregaCommand = New RelayCommand(AddressOf OnCambiarDireccionEntrega, Function() PuedeGestionar(Function(g) g.CambiarDireccion))
         ' NestoAPI#699 (corte 2): pestaña Devueltos
         ReenviarDevueltoCommand = New RelayCommand(AddressOf OnReenviarDevuelto, AddressOf CanDecidirDevuelto)
         AbonarDevueltoCommand = New RelayCommand(AddressOf OnAbonarDevuelto, AddressOf CanDecidirDevuelto)
@@ -1254,6 +1259,8 @@ Public Class AgenciasViewModel
                 If String.IsNullOrEmpty(EnlaceSeguimientoEnvio) AndAlso EsRepartoPropio(envioActual) AndAlso envioActual.Numero > 0 Then
                     CargaEnlaceSeguimiento = CargarEnlaceSeguimientoDesdeApiAsync(envioActual.Numero)
                 End If
+                ' Nesto#625 (NestoAPI#726): qué se le puede pedir a la agencia sobre el envío (parar, retorno, fecha, dirección)
+                CargaGestiones = CargarGestionesAsync(envioActual)
 
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
                     reembolsoModificar = envioActual.Reembolso
@@ -4099,6 +4106,288 @@ Public Class AgenciasViewModel
         Finally
             EstaOcupado = False
         End Try
+    End Function
+
+    ' ===== Nesto#625 (NestoAPI#726): gestión en tránsito de los envíos (hoy solo CTT) =====
+    ' Parar en vuelo, crear el retorno (logística inversa), cambiar la fecha y cambiar la dirección de entrega de un envío que
+    ' ya tiene la agencia. Qué se puede en cada momento lo dice la API (GET …/Gestiones) y la API escribe la historia.
+
+    Private _gestionesEnvio As GestionesEnvioDto = GestionesEnvioDto.Ninguna
+    ''' <summary>Lo que se le puede pedir a la agencia sobre el envío seleccionado (todo a False mientras no conteste).</summary>
+    Public Property GestionesEnvio As GestionesEnvioDto
+        Get
+            Return _gestionesEnvio
+        End Get
+        Private Set(value As GestionesEnvioDto)
+            Dim unused = SetProperty(_gestionesEnvio, If(value, GestionesEnvioDto.Ninguna))
+            OnPropertyChanged(NameOf(MotivoSinGestiones))
+            NotificarComandosGestion()
+        End Set
+    End Property
+
+    ''' <summary>Por qué no se puede pedir nada a la agencia (solo si no se puede ninguna gestión y la API dice el motivo).</summary>
+    Public ReadOnly Property MotivoSinGestiones As String
+        Get
+            If GestionesEnvio Is Nothing OrElse GestionesEnvio.AlgunaPosible Then
+                Return String.Empty
+            End If
+            Return If(GestionesEnvio.Motivo, String.Empty).Trim()
+        End Get
+    End Property
+
+    Private _gestionEnCurso As Boolean
+    ''' <summary>Hay una gestión en marcha: los cuatro botones se desactivan hasta que termine.</summary>
+    Public Property GestionEnCurso As Boolean
+        Get
+            Return _gestionEnCurso
+        End Get
+        Private Set(value As Boolean)
+            If SetProperty(_gestionEnCurso, value) Then
+                NotificarComandosGestion()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>La última petición de las gestiones a la API (para esperarla en los tests).</summary>
+    Friend Property CargaGestiones As Task = Task.CompletedTask
+
+    Public Property PararEnVueloCommand As RelayCommand
+    Public Property CrearRetornoCommand As RelayCommand
+    Public Property CambiarFechaEntregaCommand As RelayCommand
+    Public Property CambiarDireccionEntregaCommand As RelayCommand
+
+    Private Function PuedeGestionar(permitida As Func(Of GestionesEnvioDto, Boolean)) As Boolean
+        Return Not GestionEnCurso AndAlso envioActual IsNot Nothing AndAlso GestionesEnvio IsNot Nothing AndAlso permitida(GestionesEnvio)
+    End Function
+
+    Private Sub NotificarComandosGestion()
+        PararEnVueloCommand?.NotifyCanExecuteChanged()
+        CrearRetornoCommand?.NotifyCanExecuteChanged()
+        CambiarFechaEntregaCommand?.NotifyCanExecuteChanged()
+        CambiarDireccionEntregaCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>
+    ''' Pide a la API las gestiones del envío y las pone si el usuario sigue en ese envío (una respuesta tardía no pisa las del
+    ''' siguiente). Sin envío, sin número o sin nº de envío de la agencia, o si la API falla: ninguna, sin avisar.
+    ''' </summary>
+    Friend Async Function CargarGestionesAsync(envio As EnviosAgencia) As Task
+        GestionesEnvio = GestionesEnvioDto.Ninguna
+        If _servicio Is Nothing OrElse envio Is Nothing OrElse envio.Numero <= 0 OrElse String.IsNullOrWhiteSpace(envio.CodigoBarras) Then
+            Return
+        End If
+        Dim gestiones As GestionesEnvioDto
+        Try
+            gestiones = Await _servicio.LeerGestionesEnvio(envio.Numero)
+        Catch
+            Return
+        End Try
+        If envioActual Is Nothing OrElse envioActual.Numero <> envio.Numero Then
+            Return
+        End If
+        GestionesEnvio = gestiones
+    End Function
+
+    Friend Shared Function DescripcionEnvioGestion(envio As EnviosAgencia) As String
+        Return If(envio.Pedido.HasValue, $"el envío {envio.Numero} (pedido {envio.Pedido})", $"el envío {envio.Numero}")
+    End Function
+
+    ''' <summary>El siguiente día de lunes a viernes después de <paramref name="hoy"/> (propuesta para la nueva fecha de entrega).</summary>
+    Friend Shared Function SiguienteDiaLaborable(hoy As Date) As Date
+        Dim dia As Date = hoy.Date.AddDays(1)
+        While dia.DayOfWeek = DayOfWeek.Saturday OrElse dia.DayOfWeek = DayOfWeek.Sunday
+            dia = dia.AddDays(1)
+        End While
+        Return dia
+    End Function
+
+    Friend Shared Function TextoConfirmacionPararEnVuelo(envio As EnviosAgencia) As String
+        Return $"¿Seguro que quiere parar en vuelo {DescripcionEnvioGestion(envio)}? La agencia dejará de intentar la entrega." & vbCr & vbCr &
+            "El envío vuelve a nuestro almacén y la agencia cobra la ida y la vuelta."
+    End Function
+
+    Friend Shared Function TextoConfirmacionRetorno(envio As EnviosAgencia) As String
+        Return $"¿Seguro que quiere crear el retorno de {DescripcionEnvioGestion(envio)}?" & vbCr & vbCr &
+            "La agencia creará un envío nuevo para recoger la mercancía en casa del cliente y traerla a nuestro almacén. " &
+            "No hace falta etiqueta: la lleva el conductor."
+    End Function
+
+    Private Async Sub OnPararEnVuelo()
+        Await PararEnVueloSeleccionado()
+    End Sub
+    Private Async Sub OnCrearRetorno()
+        Await CrearRetornoSeleccionado()
+    End Sub
+    Private Async Sub OnCambiarFechaEntrega()
+        Await CambiarFechaEntregaSeleccionado()
+    End Sub
+    Private Async Sub OnCambiarDireccionEntrega()
+        Await CambiarDireccionEntregaSeleccionado()
+    End Sub
+
+    Friend Async Function PararEnVueloSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse GestionEnCurso Then
+            Return
+        End If
+        If Not _dialogService.ShowConfirmationAnswer("Parar en vuelo", TextoConfirmacionPararEnVuelo(envio), True) Then
+            Return
+        End If
+        Await EjecutarGestion(envio, "Parar en vuelo", "parar en vuelo",
+            Async Function()
+                Dim respuesta As MensajeGestionEnvioDto = Await _servicio.PararEnVueloEnvio(envio.Numero)
+                Return If(respuesta?.Mensaje, $"Se ha pedido a la agencia que pare {DescripcionEnvioGestion(envio)}.")
+            End Function)
+    End Function
+
+    Friend Async Function CrearRetornoSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse GestionEnCurso Then
+            Return
+        End If
+        If Not _dialogService.ShowConfirmationAnswer("Crear retorno", TextoConfirmacionRetorno(envio), True) Then
+            Return
+        End If
+        Await EjecutarGestion(envio, "Crear retorno", "crear el retorno de",
+            Async Function()
+                Dim respuesta As RetornoEnvioDto = Await _servicio.CrearRetornoEnvio(envio.Numero)
+                Return MensajeRetornoCreado(respuesta)
+            End Function)
+    End Function
+
+    Friend Shared Function MensajeRetornoCreado(respuesta As RetornoEnvioDto) As String
+        Dim mensaje As String = If(String.IsNullOrWhiteSpace(respuesta?.CodigoRetorno),
+            "Retorno creado.",
+            $"Retorno creado con el nº de envío {respuesta.CodigoRetorno.Trim()}.")
+        If respuesta IsNot Nothing AndAlso respuesta.EnvioRetornoId.HasValue Then
+            mensaje &= $" En Nesto es el envío {respuesta.EnvioRetornoId.Value}."
+        End If
+        Return mensaje & vbCr & "El conductor pasará a recogerlo y lleva él la etiqueta: basta con avisar al cliente."
+    End Function
+
+    Friend Async Function CambiarFechaEntregaSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse GestionEnCurso Then
+            Return
+        End If
+        Dim fecha As Date? = _dialogService.GetDate("Cambiar fecha de entrega",
+            $"¿Qué día quiere que la agencia entregue {DescripcionEnvioGestion(envio)}?", SiguienteDiaLaborable(Date.Today))
+        If Not fecha.HasValue Then
+            Return ' cancelado
+        End If
+        If fecha.Value.Date < Date.Today Then
+            _dialogService.ShowError("La nueva fecha de entrega no puede ser anterior a hoy.")
+            Return
+        End If
+        Dim nuevaFecha As Date = fecha.Value.Date
+        Await EjecutarGestion(envio, "Cambiar fecha de entrega", "cambiar la fecha de entrega de",
+            Async Function()
+                Dim respuesta As MensajeGestionEnvioDto = Await _servicio.CambiarFechaEntregaEnvio(envio.Numero, nuevaFecha)
+                Return If(respuesta?.Mensaje, $"Fecha de entrega cambiada al {nuevaFecha:dd/MM/yyyy}.")
+            End Function)
+    End Function
+
+    Friend Shared Function ParametrosDireccionEntrega(envio As EnviosAgencia) As ParametrosDialogo
+        ' CTT avisa por SMS: mejor el móvil que el fijo
+        Dim telefono As String = If(String.IsNullOrWhiteSpace(envio.Movil), envio.Telefono, envio.Movil)
+        Return New ParametrosDialogo From {
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_ENVIO, envio.Numero},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_PEDIDO, If(envio.Pedido.HasValue, envio.Pedido.Value.ToString(), String.Empty)},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_NOMBRE, envio.Nombre},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_DIRECCION, envio.Direccion},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_COD_POSTAL, envio.CodPostal},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_POBLACION, envio.Poblacion},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_PAIS, DireccionEntregaEnvioDialogViewModel.PAIS_POR_DEFECTO},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_TELEFONO, telefono},
+            {DireccionEntregaEnvioDialogViewModel.PARAMETRO_CORREO, envio.Email}
+        }
+    End Function
+
+    Friend Shared Function PeticionDireccionEntrega(parametros As ParametrosDialogo) As DireccionEntregaEnvioPeticion
+        Return New DireccionEntregaEnvioPeticion With {
+            .Nombre = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_NOMBRE),
+            .Direccion = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_DIRECCION),
+            .CodigoPostal = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_COD_POSTAL),
+            .Poblacion = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_POBLACION),
+            .Pais = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_PAIS),
+            .Telefono = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_TELEFONO),
+            .Correo = parametros.GetValue(Of String)(DireccionEntregaEnvioDialogViewModel.PARAMETRO_CORREO)
+        }
+    End Function
+
+    Friend Async Function CambiarDireccionEntregaSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse GestionEnCurso Then
+            Return
+        End If
+        Dim resultado As ResultadoDialogo = Await _dialogService.ShowDialogAsync(DireccionEntregaEnvioDialogViewModel.NOMBRE, ParametrosDireccionEntrega(envio))
+        If resultado Is Nothing OrElse resultado.Result <> ResultadoBoton.OK Then
+            Return ' cancelado
+        End If
+        Dim peticion As DireccionEntregaEnvioPeticion = PeticionDireccionEntrega(resultado.Parameters)
+        ' El diálogo ya no deja aceptar sin ellos, pero la agencia los exige: no se manda nada sin teléfono y correo válidos.
+        If Not DireccionEntregaEnvioDialogViewModel.TelefonoValido(peticion.Telefono) Then
+            _dialogService.ShowError("Indique un teléfono de contacto: la agencia lo exige para cambiar la dirección.")
+            Return
+        End If
+        If Not DireccionEntregaEnvioDialogViewModel.CorreoValido(peticion.Correo) Then
+            _dialogService.ShowError("Indique un correo electrónico válido: la agencia lo exige para cambiar la dirección.")
+            Return
+        End If
+        Await EjecutarGestion(envio, "Cambiar dirección de entrega", "cambiar la dirección de entrega de",
+            Async Function()
+                Dim respuesta As MensajeGestionEnvioDto = Await _servicio.CambiarDireccionEntregaEnvio(envio.Numero, peticion)
+                Return If(respuesta?.Mensaje, "Dirección de entrega cambiada.")
+            End Function)
+    End Function
+
+    ''' <summary>
+    ''' Lo común a las cuatro: botones desactivados mientras dura, el mensaje de la API al terminar y el envío, su historia y
+    ''' sus gestiones refrescados (la API escribe una línea en la historia). Si la API rechaza, su mensaje tal cual.
+    ''' </summary>
+    Private Async Function EjecutarGestion(envio As EnviosAgencia, titulo As String, accion As String, llamada As Func(Of Task(Of String))) As Task
+        Dim mensaje As String
+        Try
+            GestionEnCurso = True
+            EstaOcupado = True
+            mensaje = Await llamada()
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, $"AgenciasViewModel.{titulo}")
+            _dialogService.ShowError($"No se ha podido {accion} {DescripcionEnvioGestion(envio)}:" & vbCr & ex.Message)
+            Return
+        Finally
+            EstaOcupado = False
+            GestionEnCurso = False
+        End Try
+        _dialogService.ShowNotification(titulo, mensaje)
+        Await RefrescarEnvioTrasGestion(envio)
+    End Function
+
+    ''' <summary>Recarga la lista de la pestaña, vuelve a seleccionar el envío y recarga su historia y sus gestiones.</summary>
+    Friend Async Function RefrescarEnvioTrasGestion(envio As EnviosAgencia) As Task
+        Dim recargado As EnviosAgencia = Nothing
+        Try
+            If PestannaNombre = Pestannas.INCIDENTADOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
+                recargado = listaIncidentados?.FirstOrDefault(Function(e) e.Numero = envio.Numero)
+            ElseIf PestannaNombre = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(agenciaSeleccionada) Then
+                listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+                recargado = listaEnviosTramitados?.FirstOrDefault(Function(e) e.Numero = envio.Numero)
+            ElseIf PestannaNombre = Pestannas.RETRASADOS Then
+                CargarRetrasados()
+            End If
+            If recargado IsNot Nothing Then
+                envioActual = recargado
+            End If
+            listaHistoriaEnvio = _servicio.CargarListaHistoriaEnvio(envio.Numero)
+        Catch ex As Exception
+            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.RefrescarEnvioTrasGestion")
+        End Try
+        ' Si se ha vuelto a seleccionar, el setter de envioActual ya las ha pedido; si no, se piden para el que sigue seleccionado.
+        If recargado Is Nothing AndAlso envioActual IsNot Nothing AndAlso envioActual.Numero = envio.Numero Then
+            CargaGestiones = CargarGestionesAsync(envioActual)
+        End If
+        Await CargaGestiones
     End Function
 
     ' ===== NestoAPI#699 (corte 2): pestaña Devueltos, «volver a enviar» y «abonar» =====

@@ -1167,6 +1167,85 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ' ===== Nesto#625 (NestoAPI#726): gestión en tránsito de los envíos (hoy solo CTT) =====
+
+    Friend Const GESTION_GESTIONES As String = "Gestiones"
+    Friend Const GESTION_PARAR_EN_VUELO As String = "PararEnVuelo"
+    Friend Const GESTION_RETORNO As String = "Retorno"
+    Friend Const GESTION_FECHA_ENTREGA As String = "FechaEntrega"
+    Friend Const GESTION_DIRECCION_ENTREGA As String = "DireccionEntrega"
+
+    Friend Shared Function RutaGestionEnvio(numeroEnvio As Integer, operacion As String) As String
+        Return $"EnviosAgencias/{numeroEnvio}/{operacion}"
+    End Function
+
+    ''' <summary>El cuerpo de FechaEntrega: { "Fecha": "yyyy-MM-dd" } (sin hora ni zona).</summary>
+    Friend Shared Function CuerpoFechaEntrega(fecha As Date) As String
+        Return JsonConvert.SerializeObject(New FechaEntregaEnvioPeticion With {
+            .Fecha = fecha.ToString("yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture)
+        })
+    End Function
+
+    ''' <summary>El error de una gestión: en un 400 el mensaje de la API tal cual; si no, con el código.</summary>
+    Friend Shared Function MensajeErrorGestion(codigoHttp As Integer, cuerpo As String) As String
+        Dim mensaje As String = MensajeErrorApi(cuerpo)
+        If codigoHttp = 400 AndAlso Not String.IsNullOrWhiteSpace(mensaje) Then
+            Return mensaje
+        End If
+        If codigoHttp = 404 Then
+            Return "El envío no existe."
+        End If
+        Return $"NestoAPI ha devuelto un error ({codigoHttp}): {mensaje}"
+    End Function
+
+    Public Async Function LeerGestionesEnvio(numeroEnvio As Integer) As Task(Of GestionesEnvioDto) Implements IAgenciaService.LeerGestionesEnvio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaGestionEnvio(numeroEnvio, GESTION_GESTIONES))
+            Dim cuerpo As String = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeErrorGestion(CInt(response.StatusCode), cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of GestionesEnvioDto)(cuerpo), GestionesEnvioDto.Ninguna)
+        End Using
+    End Function
+
+    Private Async Function PostGestion(Of T)(numeroEnvio As Integer, operacion As String, cuerpoJson As String) As Task(Of T)
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim content As HttpContent = New StringContent(If(cuerpoJson, String.Empty), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaGestionEnvio(numeroEnvio, operacion), content)
+            Dim cuerpo As String = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeErrorGestion(CInt(response.StatusCode), cuerpo))
+            End If
+            If String.IsNullOrWhiteSpace(cuerpo) Then
+                Return Nothing
+            End If
+            Return JsonConvert.DeserializeObject(Of T)(cuerpo)
+        End Using
+    End Function
+
+    Public Function PararEnVueloEnvio(numeroEnvio As Integer) As Task(Of MensajeGestionEnvioDto) Implements IAgenciaService.PararEnVueloEnvio
+        Return PostGestion(Of MensajeGestionEnvioDto)(numeroEnvio, GESTION_PARAR_EN_VUELO, String.Empty)
+    End Function
+
+    Public Function CrearRetornoEnvio(numeroEnvio As Integer) As Task(Of RetornoEnvioDto) Implements IAgenciaService.CrearRetornoEnvio
+        Return PostGestion(Of RetornoEnvioDto)(numeroEnvio, GESTION_RETORNO, String.Empty)
+    End Function
+
+    Public Function CambiarFechaEntregaEnvio(numeroEnvio As Integer, fecha As Date) As Task(Of MensajeGestionEnvioDto) Implements IAgenciaService.CambiarFechaEntregaEnvio
+        Return PostGestion(Of MensajeGestionEnvioDto)(numeroEnvio, GESTION_FECHA_ENTREGA, CuerpoFechaEntrega(fecha))
+    End Function
+
+    Public Function CambiarDireccionEntregaEnvio(numeroEnvio As Integer, direccion As DireccionEntregaEnvioPeticion) As Task(Of MensajeGestionEnvioDto) Implements IAgenciaService.CambiarDireccionEntregaEnvio
+        Return PostGestion(Of MensajeGestionEnvioDto)(numeroEnvio, GESTION_DIRECCION_ENTREGA, JsonConvert.SerializeObject(direccion))
+    End Function
+
     Public Async Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte()) Implements IAgenciaService.LeerFirmaPruebaEntregaReparto
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
