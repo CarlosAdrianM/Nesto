@@ -75,22 +75,22 @@ Public Class FacturarRutasResponseDTO
     End Property
 
     ''' <summary>
-    ''' Número de albaranes con datos de impresión (calculado)
+    ''' Número de albaranes con datos de impresión que tiene que imprimir Nesto (Nesto#620: sin los ya impresos en el servidor)
     ''' </summary>
     Public ReadOnly Property AlbaranesParaImprimir As Integer
         Get
             If Albaranes Is Nothing Then Return 0
-            Return Albaranes.Where(Function(a) a.DatosImpresion IsNot Nothing).Count()
+            Return Albaranes.Where(Function(a) a.HayQueImprimirEnLocal).Count()
         End Get
     End Property
 
     ''' <summary>
-    ''' Número de facturas con datos de impresión (calculado)
+    ''' Número de facturas con datos de impresión que tiene que imprimir Nesto (Nesto#620: sin las ya impresas en el servidor)
     ''' </summary>
     Public ReadOnly Property FacturasParaImprimir As Integer
         Get
             If Facturas Is Nothing Then Return 0
-            Return Facturas.Where(Function(f) f.DatosImpresion IsNot Nothing).Count()
+            Return Facturas.Where(Function(f) f.HayQueImprimirEnLocal).Count()
         End Get
     End Property
 
@@ -118,7 +118,7 @@ Public Class FacturarRutasResponseDTO
     Public ReadOnly Property NotasDeEntregaParaImprimir As Integer
         Get
             If NotasEntrega Is Nothing Then Return 0
-            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.DatosImpresion IsNot Nothing AndAlso Not n.EsRecogida).Count()
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.HayQueImprimirEnLocal AndAlso Not n.EsRecogida).Count()
         End Get
     End Property
 
@@ -128,7 +128,7 @@ Public Class FacturarRutasResponseDTO
     Public ReadOnly Property NotasDeRecogidaParaImprimir As Integer
         Get
             If NotasEntrega Is Nothing Then Return 0
-            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.DatosImpresion IsNot Nothing AndAlso n.EsRecogida).Count()
+            Return NotasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.HayQueImprimirEnLocal AndAlso n.EsRecogida).Count()
         End Get
     End Property
 
@@ -153,11 +153,47 @@ Public Class FacturarRutasResponseDTO
     End Property
 
     ''' <summary>
-    ''' Nesto#580: todo lo que hay que imprimir en papel (facturas, albaranes y notas de entrega / recogida).
+    ''' Nesto#580: todo lo que hay que imprimir en papel en Nesto (facturas, albaranes y notas de entrega / recogida).
+    ''' Nesto#620 (NestoAPI#806): sin los que la API ya ha impreso en el servidor (ImpresoEnServidor)
     ''' </summary>
     Public ReadOnly Property TotalDocumentosParaImprimir As Integer
         Get
             Return FacturasParaImprimir + AlbaranesParaImprimir + NotasEntregaParaImprimir
         End Get
     End Property
+
+    ''' <summary>
+    ''' Nesto#620 (NestoAPI#806): los documentos en papel que la API ya ha impreso en el servidor (Nesto no los imprime).
+    ''' </summary>
+    Public ReadOnly Property DocumentosImpresosEnServidor As List(Of DocumentoParaImprimir)
+        Get
+            Return DocumentosEnPapel().Where(Function(d) d.EstaImpresoEnServidor).ToList()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#620: cuántos documentos en papel vienen ya impresos en el servidor.
+    ''' </summary>
+    Public ReadOnly Property TotalDocumentosImpresosEnServidor As Integer
+        Get
+            Return DocumentosImpresosEnServidor.Count
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#620: «N documento(s) impresos en el servidor en «X»», o vacío si ninguno.
+    ''' </summary>
+    Public ReadOnly Property TextoImpresosEnServidor As String
+        Get
+            Return ImpresionEnServidor.TextoImpresos(DocumentosImpresosEnServidor)
+        End Get
+    End Property
+
+    Private Function DocumentosEnPapel() As IEnumerable(Of DocumentoParaImprimir)
+        Dim documentos As New List(Of DocumentoImprimibleDTO)
+        If Facturas IsNot Nothing Then documentos.AddRange(Facturas)
+        If Albaranes IsNot Nothing Then documentos.AddRange(Albaranes)
+        If NotasEntrega IsNot Nothing Then documentos.AddRange(NotasEntrega)
+        Return documentos.Where(Function(d) d IsNot Nothing AndAlso d.DatosImpresion IsNot Nothing).Select(Function(d) d.DatosImpresion)
+    End Function
 End Class

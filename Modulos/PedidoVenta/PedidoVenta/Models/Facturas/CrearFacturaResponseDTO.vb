@@ -26,4 +26,10 @@ Public Class CrearFacturaResponseDTO
     ''' hay que mostrarlos a quien factura.
     ''' </summary>
     Public Property Avisos As List(Of String) = New List(Of String)
+
+    ''' <summary>
+    ''' Nesto#620 (NestoAPI#806): la factura en papel («Factura física»… en los comentarios o en el de picking), con la misma regla que
+    ''' Facturar rutas. Nothing = no lleva papel. Si DatosImpresion.ImpresoEnServidor viene relleno, la API ya la ha impreso.
+    ''' </summary>
+    Public Property DatosImpresion As DocumentoParaImprimir
 End Class
