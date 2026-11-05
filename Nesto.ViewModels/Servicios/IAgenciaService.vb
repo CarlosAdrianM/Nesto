@@ -101,6 +101,17 @@ Public Interface IAgenciaService
     ' EnlaceSeguimiento). El del reparto propio va firmado con una clave que solo tiene la API. Nothing si no hay enlace
     ' (o el envío no existe); lanza si la API falla.
     Function LeerEnlaceSeguimiento(numeroEnvio As Integer) As Task(Of String)
+    ' Nesto#625 (NestoAPI#726): gestión en tránsito de un envío que ya tiene la agencia (hoy solo CTT).
+    ' Qué se puede pedir (GET api/EnviosAgencias/{id}/Gestiones). Lanza si la API falla.
+    Function LeerGestionesEnvio(numeroEnvio As Integer) As Task(Of GestionesEnvioDto)
+    ' Parar en vuelo (POST …/PararEnVuelo, sin cuerpo): la agencia deja de intentar la entrega y lo devuelve a origen.
+    Function PararEnVueloEnvio(numeroEnvio As Integer) As Task(Of MensajeGestionEnvioDto)
+    ' Retorno (logística inversa, POST …/Retorno, sin cuerpo): la agencia crea un envío nuevo de vuelta.
+    Function CrearRetornoEnvio(numeroEnvio As Integer) As Task(Of RetornoEnvioDto)
+    ' Cambiar la fecha de entrega (POST …/FechaEntrega { Fecha }).
+    Function CambiarFechaEntregaEnvio(numeroEnvio As Integer, fecha As Date) As Task(Of MensajeGestionEnvioDto)
+    ' Cambiar la dirección de entrega (POST …/DireccionEntrega). Todas lanzan con el mensaje de la API tal cual si rechaza.
+    Function CambiarDireccionEntregaEnvio(numeroEnvio As Integer, direccion As DireccionEntregaEnvioPeticion) As Task(Of MensajeGestionEnvioDto)
     ' Nesto#415 / Nesto#340 (Agencias, slice A4.3): la agencia paga los reembolsos que cobró. El
     ' servidor contabiliza (_PagoReemb + prdContabilizar) y marca FechaPagoReembolso en la misma
     ' transacción. Lanza con el motivo del servidor si lo rechaza (envío ya pagado, cliente...).

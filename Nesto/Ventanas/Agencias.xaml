@@ -625,6 +625,24 @@
                                 Content="Ver prueba de entrega"
                                 Command="{Binding VerPruebaEntregaCommand}"
                                 ToolTip="Muestra quién recogió el envío del reparto propio, su DNI, cuándo, cómo se cobró el reembolso y la firma."/>
+                        <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Parar en vuelo"
+                                Command="{Binding PararEnVueloCommand}"
+                                ToolTip="Pide a la agencia que deje de intentar la entrega y devuelva el envío a nuestro almacén (tiene coste de ida y vuelta)."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Crear retorno"
+                                Command="{Binding CrearRetornoCommand}"
+                                ToolTip="Pide a la agencia que recoja la mercancía en casa del cliente y la traiga a nuestro almacén (envío nuevo; la etiqueta la lleva el conductor)."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Cambiar fecha de entrega"
+                                Command="{Binding CambiarFechaEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío otro día."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Cambiar dirección de entrega"
+                                Command="{Binding CambiarDireccionEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío en otra dirección (conserva el número de envío y el reembolso)."/>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding MotivoSinGestiones}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap" MaxWidth="300"/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
                     </DockPanel>
                 </Grid>
@@ -641,6 +659,18 @@
                         <!-- NestoAPI#676: para los incidentados que la agencia nunca cerró. Pide el motivo. -->
                         <Button Content="Dar por cerrado" MinWidth="120" Margin="3" Command="{Binding DarPorCerradoCommand}"
                                 ToolTip="Da por cerrado el envío seleccionado aunque la agencia no lo haya cerrado. Se le pedirá el motivo, que queda en la historia del envío."/>
+                    </StackPanel>
+                    <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3,0,3,0">
+                        <TextBlock Text="{Binding MotivoSinGestiones}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap" MaxWidth="300"/>
+                        <Button Content="Parar en vuelo" MinWidth="120" Margin="3" Command="{Binding PararEnVueloCommand}"
+                                ToolTip="Pide a la agencia que deje de intentar la entrega y devuelva el envío a nuestro almacén (tiene coste de ida y vuelta)"/>
+                        <Button Content="Crear retorno" MinWidth="120" Margin="3" Command="{Binding CrearRetornoCommand}"
+                                ToolTip="Pide a la agencia que recoja la mercancía en casa del cliente y la traiga a nuestro almacén (envío nuevo; la etiqueta la lleva el conductor)"/>
+                        <Button Content="Cambiar fecha de entrega" MinWidth="120" Margin="3" Command="{Binding CambiarFechaEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío otro día"/>
+                        <Button Content="Cambiar dirección de entrega" MinWidth="120" Margin="3" Command="{Binding CambiarDireccionEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío en otra dirección (conserva el número de envío y el reembolso)"/>
                     </StackPanel>
                     <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                         <i:Interaction.Triggers>
@@ -777,6 +807,18 @@
                                 ToolTip="Copia al portapapeles el nº de envío del envío seleccionado (también puede pinchar en una celda y pulsar Ctrl+C)"/>
                         <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado; si ya está entregado, desaparece de la lista"/>
+                    </StackPanel>
+                    <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3,0,3,0">
+                        <TextBlock Text="{Binding MotivoSinGestiones}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap" MaxWidth="300"/>
+                        <Button Content="Parar en vuelo" MinWidth="120" Margin="3" Command="{Binding PararEnVueloCommand}"
+                                ToolTip="Pide a la agencia que deje de intentar la entrega y devuelva el envío a nuestro almacén (tiene coste de ida y vuelta)"/>
+                        <Button Content="Crear retorno" MinWidth="120" Margin="3" Command="{Binding CrearRetornoCommand}"
+                                ToolTip="Pide a la agencia que recoja la mercancía en casa del cliente y la traiga a nuestro almacén (envío nuevo; la etiqueta la lleva el conductor)"/>
+                        <Button Content="Cambiar fecha de entrega" MinWidth="120" Margin="3" Command="{Binding CambiarFechaEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío otro día"/>
+                        <Button Content="Cambiar dirección de entrega" MinWidth="120" Margin="3" Command="{Binding CambiarDireccionEntregaCommand}"
+                                ToolTip="Pide a la agencia que entregue el envío en otra dirección (conserva el número de envío y el reembolso)"/>
                     </StackPanel>
                     <DataGrid cub:CopiarCeldaDataGrid.Activo="True" ItemsSource="{Binding listaRetrasados}" SelectedItem="{Binding envioRetrasadoActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
                         <i:Interaction.Triggers>
