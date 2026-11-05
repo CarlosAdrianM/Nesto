@@ -720,6 +720,7 @@ namespace Nesto.Tests
             "InscribirEventoDialog | InscribirEventoDialog | InscribirEventoDialogViewModel",
             "AnunciarEventoDialog | AnunciarEventoDialog | AnunciarEventoDialogViewModel",
             "NotificacionTelefonoView | NotificacionTelefonoView | NotificacionTelefonoViewModel",
+            "NotaCobroDialog | NotaCobroDialog | NotaCobroDialogViewModel", // NestoAPI#786 (nota de cobro)
         };
 
         // La cinta, de arriba abajo: cada elemento con su tipo, su texto y el tipo de su DataContext (el ViewModel del
