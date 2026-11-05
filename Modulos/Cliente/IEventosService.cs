@@ -89,5 +89,11 @@ namespace Nesto.Modulos.Cliente
         /// comprado tantas unidades, la excepción lleva el mensaje de la API tal cual.
         /// </summary>
         Task<InscripcionEventoModel> CambiarAsistentes(int id, int asistentes);
+
+        /// <summary>
+        /// Nesto#626 (NestoAPI#829): PUT api/Eventos/Inscripciones/{id}/FormaAsistencia, en un evento mixto: «Presencial»,
+        /// «Online» o null/«» (sin indicar). Devuelve la inscripción; si no lo acepta, la excepción lleva el mensaje de la API.
+        /// </summary>
+        Task<InscripcionEventoModel> CambiarFormaAsistencia(int id, string formaAsistencia);
     }
 }

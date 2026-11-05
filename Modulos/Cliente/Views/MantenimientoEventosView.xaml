@@ -6,6 +6,7 @@
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
+             xmlns:modelos="clr-namespace:Nesto.Modulos.Cliente.Models"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
              mc:Ignorable="d"
@@ -260,6 +261,17 @@
                         <CheckBox Content="Solo mis clientes" IsChecked="{Binding SoloMisClientes}" VerticalAlignment="Center" Margin="0,2,12,2"
                                   ToolTip="Solo los inscritos de los que es usted el vendedor (o alguien de su equipo, si es jefe de equipo)"
                                   Visibility="{Binding HayFiltroMisClientes, Converter={StaticResource BoolAVisibilidad}}"/>
+                        <!-- Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): en los eventos mixtos, presencial u online -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,12,2"
+                                    Visibility="{Binding EventoEsMixto, Converter={StaticResource BoolAVisibilidad}}">
+                            <TextBlock Text="{Binding ResumenFormaAsistencia}" Foreground="DimGray" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="Ver:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <ComboBox ItemsSource="{Binding FiltrosFormaAsistencia}" SelectedItem="{Binding FiltroFormaAsistencia}" DisplayMemberPath="Texto"
+                                      Width="100" VerticalAlignment="Center" Margin="0,0,10,0"
+                                      ToolTip="Ver solo los que vienen presencial, online o sin indicar"/>
+                            <CheckBox Content="Ordenar por presencial/online" IsChecked="{Binding OrdenarPorFormaAsistencia}" VerticalAlignment="Center"
+                                      ToolTip="Primero los que vienen presencial, luego los online y al final los que no se ha dicho"/>
+                        </StackPanel>
                         <Button Content="Inscribir cliente…" Command="{Binding InscribirCommand}" Margin="0,2,6,2" Padding="10,1" FontWeight="Bold"/>
                         <Button Content="Recargar" Command="{Binding RecargarInscripcionesCommand}" Margin="0,2,6,2" Padding="10,1"/>
                         <Button Content="Anular" Command="{Binding AnularInscripcionCommand}" Margin="0,2,6,2" Padding="10,1"
@@ -341,6 +353,15 @@
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding EstadoTexto}" FontWeight="SemiBold"/>
                                         </Border>
+                                        <!-- Nesto#626: en un evento mixto, si viene presencial u online (se guarda al elegirlo). La lista de
+                                             opciones es estática: así el combo no suelta su valor al rehacerse la lista o quitarse la vista. -->
+                                        <ComboBox DockPanel.Dock="Right" Width="110" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                  ItemsSource="{x:Static modelos:InscripcionEventoModel.OPCIONES_FORMA_ASISTENCIA}"
+                                                  DisplayMemberPath="Texto" SelectedValuePath="Valor"
+                                                  SelectedValue="{Binding FormaAsistenciaEdicion, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding DataContext.TieneAcceso, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                  Visibility="{Binding DataContext.EventoEsMixto, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolAVisibilidad}}"
+                                                  ToolTip="Evento mixto: ¿viene presencial u online? (se guarda al elegirlo)"/>
                                         <Button DockPanel.Dock="Right" Content="Copiar enlace" Padding="6,0" Margin="8,0,0,0" VerticalAlignment="Center"
                                                 Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                 CommandParameter="{Binding}" ToolTip="{Binding UrlPago}"

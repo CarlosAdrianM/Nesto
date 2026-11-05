@@ -44,8 +44,18 @@ namespace Nesto.Modulos.Cliente
             Formatos = new List<OpcionEvento>
             {
                 new(EventoModel.FORMATO_PRESENCIAL, "Presencial"),
-                new(EventoModel.FORMATO_ONLINE, "Online (webinar)")
+                new(EventoModel.FORMATO_ONLINE, "Online (webinar)"),
+                // Nesto#626 (sugerencia 1064 de Reina): presencial y online a la vez; cada inscrito dice cómo viene.
+                new(EventoModel.FORMATO_MIXTO, "Mixto (presencial y online)")
             };
+            FiltrosFormaAsistencia = new List<OpcionEvento>
+            {
+                new(FILTRO_FORMA_TODOS, "Todos"),
+                new(InscripcionEventoModel.FORMA_PRESENCIAL, "Presencial"),
+                new(InscripcionEventoModel.FORMA_ONLINE, "Online"),
+                new(FILTRO_FORMA_SIN_INDICAR, "Sin indicar")
+            };
+            _filtroFormaAsistencia = FiltrosFormaAsistencia[0];
             _formatoEdicion = Formatos[0];
             FormasPago = MarcarPagoInscripcionModel.FORMAS_PAGO.ToList();
             CargarCommand = new AsyncRelayCommand(CargarAsync);
@@ -193,9 +203,153 @@ namespace Nesto.Modulos.Cliente
         public static IEnumerable<InscripcionEventoModel> FiltrarMisClientes(IEnumerable<InscripcionEventoModel> lista, bool soloMisClientes) =>
             (lista ?? Enumerable.Empty<InscripcionEventoModel>()).Where(i => !soloMisClientes || i.EsDeMisClientes != false);
 
+        // ---------------- Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): presencial u online en los eventos mixtos ----------------
+
+        public const string FILTRO_FORMA_TODOS = "";
+        public const string FILTRO_FORMA_SIN_INDICAR = "-";
+
+        /// <summary>El evento seleccionado es mixto: solo entonces se ven el combo de cada tarjeta, el filtro, el orden y el contador.</summary>
+        public bool EventoEsMixto => Seleccionado?.EsMixto == true;
+
+        /// <summary>Lo que se puede elegir en el combo de cada tarjeta.</summary>
+        public IReadOnlyList<OpcionEvento> OpcionesFormaAsistencia => InscripcionEventoModel.OPCIONES_FORMA_ASISTENCIA;
+
+        /// <summary>Todos / Presencial / Online / Sin indicar.</summary>
+        public List<OpcionEvento> FiltrosFormaAsistencia { get; }
+
+        private OpcionEvento _filtroFormaAsistencia;
+        public OpcionEvento FiltroFormaAsistencia
+        {
+            get => _filtroFormaAsistencia;
+            set
+            {
+                if (SetProperty(ref _filtroFormaAsistencia, value ?? FiltrosFormaAsistencia[0]))
+                {
+                    AplicarFiltroInscripciones();
+                }
+            }
+        }
+
+        private bool _ordenarPorFormaAsistencia;
+        /// <summary>Primero las presenciales, luego las online y al final las sin indicar (dentro de cada grupo, como venían).</summary>
+        public bool OrdenarPorFormaAsistencia
+        {
+            get => _ordenarPorFormaAsistencia;
+            set
+            {
+                if (SetProperty(ref _ordenarPorFormaAsistencia, value))
+                {
+                    AplicarFiltroInscripciones();
+                }
+            }
+        }
+
+        /// <summary>«5 presencial · 3 online · 1 sin indicar» (inscripciones vivas: las anuladas y caducadas no cuentan). Vacío si no es mixto.</summary>
+        public string ResumenFormaAsistencia
+        {
+            get
+            {
+                if (!EventoEsMixto)
+                {
+                    return string.Empty;
+                }
+                List<InscripcionEventoModel> vivas = (Inscripciones ?? Enumerable.Empty<InscripcionEventoModel>())
+                    .Where(i => i.Estado != InscripcionEventoModel.CADUCADA && i.Estado != InscripcionEventoModel.ANULADA).ToList();
+                int presencial = vivas.Count(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_PRESENCIAL);
+                int online = vivas.Count(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_ONLINE);
+                int sinIndicar = vivas.Count - presencial - online;
+                string texto = $"{presencial} presencial · {online} online";
+                return sinIndicar > 0 ? $"{texto} · {sinIndicar} sin indicar" : texto;
+            }
+        }
+
+        /// <summary>El filtro de la cabecera: <see cref="FILTRO_FORMA_TODOS"/>, Presencial, Online o <see cref="FILTRO_FORMA_SIN_INDICAR"/>.</summary>
+        public static IEnumerable<InscripcionEventoModel> FiltrarFormaAsistencia(IEnumerable<InscripcionEventoModel> lista, string filtro)
+        {
+            IEnumerable<InscripcionEventoModel> todas = lista ?? Enumerable.Empty<InscripcionEventoModel>();
+            if (string.IsNullOrEmpty(filtro))
+            {
+                return todas;
+            }
+            string buscado = filtro == FILTRO_FORMA_SIN_INDICAR ? string.Empty : filtro;
+            return todas.Where(i => i.FormaAsistenciaGuardada == buscado);
+        }
+
+        /// <summary>Presencial, Online, sin indicar; estable (dentro de cada grupo, el orden de la API).</summary>
+        public static IEnumerable<InscripcionEventoModel> OrdenarFormaAsistencia(IEnumerable<InscripcionEventoModel> lista) =>
+            (lista ?? Enumerable.Empty<InscripcionEventoModel>()).OrderBy(i =>
+                i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_PRESENCIAL ? 0
+                : i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_ONLINE ? 1
+                : 2);
+
+        private bool _poniendoFormaAsistencia;
+
+        /// <summary>
+        /// Guarda lo elegido en el combo de la tarjeta (PUT api/Eventos/Inscripciones/{id}/FormaAsistencia). Si la API no lo
+        /// acepta, enseña su mensaje y el combo vuelve a lo que había. Al guardarse, el filtro, el orden y el contador se rehacen.
+        /// </summary>
+        public async Task CambiarFormaAsistenciaAsync(InscripcionEventoModel inscripcion)
+        {
+            if (inscripcion == null)
+            {
+                return;
+            }
+            string nueva = inscripcion.FormaAsistenciaEdicion ?? string.Empty;
+            string actual = inscripcion.FormaAsistenciaGuardada;
+            if (nueva == actual)
+            {
+                return;
+            }
+            if (!TieneAcceso)
+            {
+                _dialogService.ShowError(SIN_PERMISO_INSCRIPCION);
+                VolverAFormaGuardada(inscripcion, actual);
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                InscripcionEventoModel guardada = await _servicio.CambiarFormaAsistencia(inscripcion.Id, nueva);
+                VolverAFormaGuardada(inscripcion, guardada != null ? guardada.FormaAsistencia : nueva);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                VolverAFormaGuardada(inscripcion, actual);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+            AplicarFiltroInscripciones();
+        }
+
+        private void VolverAFormaGuardada(InscripcionEventoModel inscripcion, string forma)
+        {
+            _poniendoFormaAsistencia = true;
+            try
+            {
+                inscripcion.PonerFormaAsistencia(forma);
+            }
+            finally
+            {
+                _poniendoFormaAsistencia = false;
+            }
+        }
+
         private void AplicarFiltroInscripciones()
         {
-            InscripcionesVisibles = new ObservableCollection<InscripcionEventoModel>(FiltrarMisClientes(Inscripciones, FiltroMisClientesActivo));
+            IEnumerable<InscripcionEventoModel> visibles = FiltrarMisClientes(Inscripciones, FiltroMisClientesActivo);
+            if (EventoEsMixto)
+            {
+                visibles = FiltrarFormaAsistencia(visibles, FiltroFormaAsistencia?.Valor);
+                if (OrdenarPorFormaAsistencia)
+                {
+                    visibles = OrdenarFormaAsistencia(visibles);
+                }
+            }
+            InscripcionesVisibles = new ObservableCollection<InscripcionEventoModel>(visibles);
+            OnPropertyChanged(nameof(ResumenFormaAsistencia));
             if (InscripcionSeleccionada != null && !InscripcionesVisibles.Contains(InscripcionSeleccionada))
             {
                 InscripcionSeleccionada = null;
@@ -257,6 +411,8 @@ namespace Nesto.Modulos.Cliente
                     RecargarInscripcionesCommand.NotifyCanExecuteChanged();
                     OnPropertyChanged(nameof(SePuedePasarLista));
                     OnPropertyChanged(nameof(AvisoListaAsistencia));
+                    OnPropertyChanged(nameof(EventoEsMixto));
+                    OnPropertyChanged(nameof(ResumenFormaAsistencia));
                     GuardarAsistenciaCommand.NotifyCanExecuteChanged();
                     if (value != null)
                     {
@@ -1349,6 +1505,15 @@ namespace Nesto.Modulos.Cliente
                 if (inscripcion.Desplegada && inscripcion != InscripcionSeleccionada && Inscripciones.Contains(inscripcion))
                 {
                     InscripcionSeleccionada = inscripcion;
+                }
+                return;
+            }
+            // Nesto#626: el combo presencial / online de la tarjeta se guarda al elegirlo
+            if (e.PropertyName == nameof(InscripcionEventoModel.FormaAsistenciaEdicion))
+            {
+                if (!_poniendoFormaAsistencia)
+                {
+                    _ = CambiarFormaAsistenciaAsync(inscripcion);
                 }
                 return;
             }
