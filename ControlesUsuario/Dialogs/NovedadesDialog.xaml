@@ -217,6 +217,12 @@
                                         </Border.Style>
                                         <TextBlock Text="{Binding Categoria}" Foreground="White" FontSize="11" />
                                     </Border>
+                                    <!-- Nesto#623: de otra aplicación (se llega desde la campana): «Sugerencia de Ariadna» -->
+                                    <Border DockPanel.Dock="Right" Background="#EEF2F7" CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
+                                            VerticalAlignment="Top" ToolTip="Es de otra aplicación: se puede leer, votar y comentar desde aquí"
+                                            Visibility="{Binding EsDeOtraAplicacion, Converter={StaticResource BoolAVisible}}">
+                                        <TextBlock Text="{Binding EtiquetaAplicacion}" FontSize="11" Foreground="#4A5A70" />
+                                    </Border>
                                     <!-- Nesto#549: la revisión exacta, solo cuando la página mezcla varias (1.10.47.0, .1 y .2) -->
                                     <TextBlock DockPanel.Dock="Right" Text="{Binding TextoVersion}" FontSize="11" Foreground="#999999"
                                                Margin="8,0,0,0" VerticalAlignment="Top" ToolTip="Versión en la que salió esta novedad"

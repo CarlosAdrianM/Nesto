@@ -110,6 +110,109 @@ namespace ControlesUsuario.Tests
             Assert.IsFalse(vm.NovedadDestacada.Comentarios.Any(c => c.Destacado));
         }
 
+        // ---- Nesto#623: avisos de novedades y sugerencias de Ariadna o NestoApp ----
+
+        [TestMethod]
+        public async Task IrANovedadComentario_SugerenciaDeAriadna_LaCargaLaEnseñaConSuEtiquetaYAbreElComentario()
+        {
+            NovedadUsuario deAriadna = N(1053, null);
+            deAriadna.Ambito = "Ariadna";
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(1053)).Returns(Task.FromResult(deAriadna));
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(1053, 101);
+
+            Assert.IsTrue(vm.EnSugerencias);
+            Assert.AreEqual(1053, vm.NovedadDestacada.Id);
+            Assert.IsTrue(vm.Novedades.Contains(vm.NovedadDestacada));
+            Assert.IsTrue(vm.NovedadDestacada.EsDeOtraAplicacion);
+            Assert.AreEqual("Sugerencia de Ariadna", vm.NovedadDestacada.EtiquetaAplicacion);
+            Assert.IsTrue(vm.NovedadDestacada.ComentariosAbiertos);
+            Assert.AreEqual(101, vm.NovedadDestacada.ComentarioDestacado.Id);
+            Assert.IsNull(vm.MensajeSugerencias);
+        }
+
+        [TestMethod]
+        public async Task IrANovedadComentario_IncidenciaDeAriadna_VaALaListaDeIncidencias()
+        {
+            NovedadUsuario deAriadna = N(1054, null);
+            deAriadna.Ambito = "Ariadna";
+            deAriadna.EsIncidencia = true;
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(1054)).Returns(Task.FromResult(deAriadna));
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(1054, null);
+
+            Assert.IsTrue(vm.ListaDeIncidencias);
+            Assert.IsTrue(vm.Novedades.Any(n => n.Id == 1054));
+            Assert.AreEqual("Incidencia de Ariadna", vm.NovedadDestacada.EtiquetaAplicacion);
+        }
+
+        [TestMethod]
+        public async Task IrANovedadComentario_NovedadDeNestoApp_LaCargaEnSuVersionConSuEtiqueta()
+        {
+            NovedadUsuario deNestoApp = N(700, "2.20.5");
+            deNestoApp.Ambito = "NestoApp";
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(700)).Returns(Task.FromResult(deNestoApp));
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(700, 101);
+
+            Assert.IsFalse(vm.EnSugerencias);
+            Assert.AreEqual(700, vm.NovedadDestacada.Id);
+            Assert.IsTrue(vm.Novedades.Contains(vm.NovedadDestacada));
+            Assert.AreEqual("Novedad de NestoApp", vm.NovedadDestacada.EtiquetaAplicacion);
+            Assert.AreEqual(101, vm.NovedadDestacada.ComentarioDestacado.Id);
+        }
+
+        [TestMethod]
+        public async Task IrANovedadComentario_SugerenciaDeNestoApp_LlevaSuEtiqueta()
+        {
+            NovedadUsuario deNestoApp = N(800, null);
+            deNestoApp.Ambito = "NestoApp";
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(800)).Returns(Task.FromResult(deNestoApp));
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(800, null);
+
+            Assert.IsTrue(vm.EnSugerencias);
+            Assert.AreEqual("Sugerencia de NestoApp", vm.NovedadDestacada.EtiquetaAplicacion);
+        }
+
+        [TestMethod]
+        public async Task IrANovedadComentario_DeNesto_NoBuscaEnOtrasAplicacionesNiLlevaEtiqueta()
+        {
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(1, 101);
+
+            Assert.IsFalse(vm.NovedadDestacada.EsDeOtraAplicacion);
+            Assert.IsNull(vm.NovedadDestacada.EtiquetaAplicacion);
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task IrANovedadComentario_NoEstaEnNingunaAplicacion_ElMensajeDeSiempre()
+        {
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(A<int>._)).Returns(Task.FromResult<NovedadUsuario>(null));
+            var vm = Vm(N(1, "1.10.31.0"));
+
+            await vm.IrANovedadComentario(999, 101);
+
+            Assert.AreEqual(NovedadesDialogViewModel.MENSAJE_NOVEDAD_NO_ENCONTRADA, vm.MensajeSugerencias);
+            A.CallTo(() => servicio.LeerDeOtraAplicacion(999)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.LeerComentarios(A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AmbitosNovedades_SoloAriadnaYNestoAppSonDeOtraAplicacion()
+        {
+            Assert.IsTrue(AmbitosNovedades.EsDeOtraAplicacion("Ariadna"));
+            Assert.IsTrue(AmbitosNovedades.EsDeOtraAplicacion(" nestoapp "));
+            Assert.IsFalse(AmbitosNovedades.EsDeOtraAplicacion("Nesto"));
+            Assert.IsFalse(AmbitosNovedades.EsDeOtraAplicacion(null));
+        }
+
         [TestMethod]
         public void OnDialogOpened_ConNovedadIdYComentarioId_SaltaSolo()
         {

@@ -901,7 +901,8 @@ namespace ControlesUsuario.Dialogs
         /// Salta a la novedad <paramref name="novedadId"/> (con versión: a su versión; sin ella es una
         /// sugerencia: a Sugerencias), la resalta, le abre los comentarios y resalta el comentario
         /// <paramref name="comentarioId"/>. De la notificación solo se tiene el id: se busca en las cargadas,
-        /// luego en todas las publicadas y, si no está, en las sugerencias. Reutiliza el salto del buscador (#487).
+        /// luego en todas las publicadas, en las sugerencias y, si no está, en las de Ariadna y NestoApp (Nesto#623).
+        /// Reutiliza el salto del buscador (#487).
         /// </summary>
         internal async Task IrANovedadComentario(int novedadId, int? comentarioId)
         {
@@ -936,12 +937,46 @@ namespace ControlesUsuario.Dialogs
             NovedadItem sugerencia = _sugerencias?.FirstOrDefault(s => s.Id == novedadId);
             if (sugerencia == null)
             {
-                MensajeSugerencias = MENSAJE_NOVEDAD_NO_ENCONTRADA;
-                return null;
+                // Nesto#623: puede ser de Ariadna o de NestoApp (p. ej. una sugerencia de la PDA que llega a la campana)
+                return await IrANovedadDeOtraAplicacion(novedadId);
             }
             ListaDeIncidencias = sugerencia.EsIncidencia;
             Destacar(sugerencia);
             return sugerencia;
+        }
+
+        /// <summary>
+        /// Nesto#623: lo que pide Nesto viene sin ámbito (solo el escritorio). Si la novedad del aviso no está, se busca en
+        /// Ariadna y NestoApp y se enseña con su etiqueta («Sugerencia de Ariadna») para leerla, votarla y contestarla como
+        /// las demás (votos y comentarios van por id). Si tampoco está, el mensaje de siempre.
+        /// </summary>
+        private async Task<NovedadItem> IrANovedadDeOtraAplicacion(int novedadId)
+        {
+            NovedadUsuario encontrada = _servicio == null ? null : await _servicio.LeerDeOtraAplicacion(novedadId);
+            if (encontrada == null || encontrada.Id != novedadId)
+            {
+                MensajeSugerencias = MENSAJE_NOVEDAD_NO_ENCONTRADA;
+                return null;
+            }
+
+            NovedadItem item = CrearItem(encontrada);
+            if (encontrada.EsSugerencia)
+            {
+                ListaDeIncidencias = encontrada.EsIncidencia;
+                if (_sugerencias == null)
+                {
+                    _sugerencias = new List<NovedadItem>();
+                }
+                _sugerencias.Insert(0, item);
+                MostrarListaSugerencias();
+                Destacar(item);
+                await item.CargarImagenNovedad();
+                return item;
+            }
+
+            _items.Add(item);
+            MostrarConVersion(item);
+            return item;
         }
 
         private void Destacar(NovedadItem item)
