@@ -39,6 +39,8 @@ namespace Nesto.Modulos.Cliente
             registro.Vista<HorariosPorRevisarView>("HorariosPorRevisarView");
             // Nesto#606 (NestoAPI#799): día de reparto propio del contacto (excepción al de su código postal)
             registro.Transitorio<IDiaRepartoClienteService, DiaRepartoClienteService>();
+            // Nesto#523 (NestoAPI#623): origen del cliente (campañas) en «Crear cliente» y en la ficha
+            registro.Transitorio<IOrigenesClienteService, OrigenesClienteService>();
             registro.Transitorio<HorariosPorRevisarViewModel>();
             // Nesto#618 (NestoAPI#786): «Nueva nota de cobro» (desde la ficha del cliente y desde el detalle del pedido)
             registro.Transitorio<INotaCobroService, NotaCobroService>();
