@@ -29,6 +29,7 @@ namespace Nesto.Modules.Producto
             AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
             AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
             AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
+            AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeVerPropuestasStock);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -39,6 +40,17 @@ namespace Nesto.Modules.Producto
 
         public const string ETIQUETA_DIFERENCIAS = "Diferencias";
         public const string VISTA_FACTURACION_TIENDA = "FacturacionTiendaView";
+        public const string VISTA_CAMBIAR_ESTADO_PRODUCTOS = "CambiarEstadoProductosView";
+
+        /// <summary>
+        /// Nesto#624 (NestoAPI#738, sugerencia 793 de Manuel): cambiar el estado de muchos productos a la vez. Solo Compras y
+        /// Dirección (como las propuestas de stock; la API lo comprueba igual al aplicar).
+        /// </summary>
+        public ICommand AbrirCambiarEstadoProductosCommand { get; private set; }
+        private void OnAbrirCambiarEstadoProductos()
+        {
+            Navegacion.RequestNavigate("MainRegion", VISTA_CAMBIAR_ESTADO_PRODUCTOS);
+        }
 
         /// <summary>
         /// Sugerencia 648 (Paloma, NestoAPI#658): el Excel con lo facturado en la tienda para el informe de cifras de la semana.

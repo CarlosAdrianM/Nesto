@@ -68,7 +68,11 @@
         <TextBox Grid.Column="1" Grid.Row="4" Text="{Binding ProductoActual.PrecioProfesional, StringFormat=c}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="5" Text="{Binding ProductoActual.Grupo}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding ProductoActual.Subgrupo}"></TextBox>
-        <TextBox Grid.Column="1" Grid.Row="7" Text="{Binding ProductoActual.Estado}"></TextBox>
+        <!-- Nesto#624 (NestoAPI#738): antes una casilla que se escribía y no se guardaba; ahora el desplegable de los estados.
+             Al cambiarlo, vista previa y confirmación con los avisos; lo cambia la API (solo Compras y Dirección) -->
+        <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding EstadosProducto}" SelectedItem="{Binding EstadoProductoSeleccionado}"
+                  DisplayMemberPath="Texto" IsEnabled="{Binding DesplegableEstadoHabilitado}" ToolTip="{Binding AyudaEstado}"
+                  ToolTipService.ShowOnDisabled="True" />
         <StackPanel Grid.Column="1" Grid.Row="8">
             <TextBlock TextAlignment="Center" Text="Producto en rotura de stock del proveedor" Background="Red" FontWeight="Black" Foreground="White" Visibility="{Binding ProductoActual.RoturaStockProveedor, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Hidden}"></TextBlock>
             <!-- NestoAPI#581: la sustitución temporal, a la vista de todos (la mantiene Compras en su pestaña) -->

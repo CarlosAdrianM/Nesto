@@ -42,6 +42,11 @@ namespace Nesto.Modulos.Producto
             registro.Vista<FacturacionTiendaView>(ProductoMenuBarViewModel.VISTA_FACTURACION_TIENDA);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.FacturacionTiendaViewModel>();
             registro.Singleton<IServicioFacturacionTienda, ServicioFacturacionTienda>();
+
+            // Nesto#624 (NestoAPI#738, sugerencia 793 de Manuel): cambiar el estado de muchos productos (la ficha usa el mismo servicio)
+            registro.Vista<CambiarEstadoProductosView>(ProductoMenuBarViewModel.VISTA_CAMBIAR_ESTADO_PRODUCTOS);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.CambiarEstadoProductosViewModel>();
+            registro.Singleton<IServicioEstadoProductos, ServicioEstadoProductos>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)
