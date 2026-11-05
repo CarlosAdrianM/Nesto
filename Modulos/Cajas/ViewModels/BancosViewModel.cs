@@ -201,8 +201,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _apuntesContabilidad, value);
-                RaisePropertyChanged(nameof(SaldoFinalContabilidad));
-                RaisePropertyChanged(nameof(DescuadreSaldoFinal));
+                OnPropertyChanged(nameof(SaldoFinalContabilidad));
+                OnPropertyChanged(nameof(DescuadreSaldoFinal));
             }
         }
         private ICollectionView _apuntesContabilidadCollectionView;
@@ -248,7 +248,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta, SerializarDiccionarioFechas(_fechasHastaPorBanco));
                     }
                     FechaHasta = DateTime.ParseExact(fechaHastaStr, "dd/MM/yy", null);
-                    RaisePropertyChanged(nameof(FechaDesde));
+                    OnPropertyChanged(nameof(FechaDesde));
                     _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco, value.Banco.Codigo);
                 }
             }
@@ -433,7 +433,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _saldoFinalBanco, value);
-                RaisePropertyChanged(nameof(DescuadreSaldoFinal));
+                OnPropertyChanged(nameof(DescuadreSaldoFinal));
             }
         }
         private decimal _saldoInicialBanco;
@@ -443,7 +443,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _saldoInicialBanco, value);
-                RaisePropertyChanged(nameof(DescuadreSaldoInicial));
+                OnPropertyChanged(nameof(DescuadreSaldoInicial));
             }
         }
         public decimal SaldoFinalContabilidad => (decimal)(SaldoInicialContabilidad + ApuntesContabilidad?.Sum(c => c.Importe));
@@ -454,7 +454,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _saldoInicialContabilidad, value);
-                RaisePropertyChanged(nameof(DescuadreSaldoInicial));
+                OnPropertyChanged(nameof(DescuadreSaldoInicial));
             }
         }
         private decimal _saldoPunteoApuntesBanco;
@@ -464,7 +464,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _saldoPunteoApuntesBanco, value);
-                RaisePropertyChanged(nameof(DescuadrePunteo));
+                OnPropertyChanged(nameof(DescuadrePunteo));
                 ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
                 // «Regularizar diferencia» depende de DescuadrePunteo: hay que avisarle AQUÍ, no solo al cambiar
                 // la selección (que se asigna antes de recalcular el saldo y lo evaluaba con el descuadre viejo).
@@ -478,7 +478,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _saldoPunteoApuntesContabilidad, value);
-                RaisePropertyChanged(nameof(DescuadrePunteo));
+                OnPropertyChanged(nameof(DescuadrePunteo));
                 ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
                 ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
             }
@@ -1554,8 +1554,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
             }
 
-            RaisePropertyChanged(nameof(ContadorApuntesBanco));
-            RaisePropertyChanged(nameof(ContadorApuntesContabilidad));
+            OnPropertyChanged(nameof(ContadorApuntesBanco));
+            OnPropertyChanged(nameof(ContadorApuntesContabilidad));
         }
 
         private void GuardarPosicionesSeleccionadas()

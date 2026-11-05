@@ -80,9 +80,9 @@ Public Class ListaRapportsViewModel
         Set(value As String)
             If SetProperty(_agruparPor, value) Then
                 OnCargarResumenVentas()
-                RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
-                RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
-                RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                OnPropertyChanged(NameOf(IsAgruparPorGrupo))
+                OnPropertyChanged(NameOf(IsAgruparPorFamilia))
+                OnPropertyChanged(NameOf(IsAgruparPorSubgrupo))
             End If
         End Set
     End Property
@@ -98,7 +98,7 @@ Public Class ListaRapportsViewModel
             End If
             cmdCargarListaRapports.NotifyCanExecuteChanged()
             CopiarSeguimientosCommand.NotifyCanExecuteChanged()
-            RaisePropertyChanged(NameOf(HayClienteSeleccionado))
+            OnPropertyChanged(NameOf(HayClienteSeleccionado))
             ActualizarCintaSugerencias() ' Nesto#557
             ' Nesto#551 (sugerencia 760): al borrar el cliente del selector vuelve la lista del día (en VB, Nothing = "" es True)
             If String.IsNullOrEmpty(_clienteSeleccionado) AndAlso Not _volviendoAHoy Then
@@ -247,10 +247,10 @@ Public Class ListaRapportsViewModel
             If value Then
                 If AgruparPor <> "familia" Then
                     AgruparPor = "familia"
-                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
-                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
-                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
-                    RaisePropertyChanged(NameOf(AgruparPor))
+                    OnPropertyChanged(NameOf(IsAgruparPorFamilia))
+                    OnPropertyChanged(NameOf(IsAgruparPorGrupo))
+                    OnPropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    OnPropertyChanged(NameOf(AgruparPor))
                 End If
             End If
         End Set
@@ -264,10 +264,10 @@ Public Class ListaRapportsViewModel
             If value Then
                 If AgruparPor <> "grupo" Then
                     AgruparPor = "grupo"
-                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
-                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
-                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
-                    RaisePropertyChanged(NameOf(AgruparPor))
+                    OnPropertyChanged(NameOf(IsAgruparPorFamilia))
+                    OnPropertyChanged(NameOf(IsAgruparPorGrupo))
+                    OnPropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    OnPropertyChanged(NameOf(AgruparPor))
                 End If
             End If
         End Set
@@ -281,10 +281,10 @@ Public Class ListaRapportsViewModel
             If value Then
                 If AgruparPor <> "subgrupo" Then
                     AgruparPor = "subgrupo"
-                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
-                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
-                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
-                    RaisePropertyChanged(NameOf(AgruparPor))
+                    OnPropertyChanged(NameOf(IsAgruparPorFamilia))
+                    OnPropertyChanged(NameOf(IsAgruparPorGrupo))
+                    OnPropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    OnPropertyChanged(NameOf(AgruparPor))
                 End If
             End If
         End Set
@@ -297,16 +297,16 @@ Public Class ListaRapportsViewModel
             If value Then
                 If ModoComparativa <> "anual" Then
                     ModoComparativa = "anual"
-                    RaisePropertyChanged(NameOf(IsComparativaAnual))
+                    OnPropertyChanged(NameOf(IsComparativaAnual))
                     ' También deberías notificar el cambio de ModoComparativa si lo usas en UI
-                    RaisePropertyChanged(NameOf(ModoComparativa))
+                    OnPropertyChanged(NameOf(ModoComparativa))
                 End If
             Else
                 If ModoComparativa = "anual" Then
                     ' Cambia a otro valor si el toggle se desmarca, por ejemplo "ultimos12meses"
                     ModoComparativa = "ultimos12meses"
-                    RaisePropertyChanged(NameOf(IsComparativaAnual))
-                    RaisePropertyChanged(NameOf(ModoComparativa))
+                    OnPropertyChanged(NameOf(IsComparativaAnual))
+                    OnPropertyChanged(NameOf(ModoComparativa))
                 End If
             End If
         End Set
@@ -319,9 +319,9 @@ Public Class ListaRapportsViewModel
             If value Then
                 If ModoComparativa <> "ultimos12meses" Then
                     ModoComparativa = "ultimos12meses"
-                    RaisePropertyChanged(NameOf(IsComparativaUltimos12Meses))
-                    RaisePropertyChanged(NameOf(IsComparativaAnual))
-                    RaisePropertyChanged(NameOf(ModoComparativa))
+                    OnPropertyChanged(NameOf(IsComparativaUltimos12Meses))
+                    OnPropertyChanged(NameOf(IsComparativaAnual))
+                    OnPropertyChanged(NameOf(ModoComparativa))
                 End If
             End If
         End Set
@@ -355,7 +355,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As RitmoContactoDTO)
             If SetProperty(_ritmoContacto, value) Then
-                RaisePropertyChanged(NameOf(HayRitmoContacto))
+                OnPropertyChanged(NameOf(HayRitmoContacto))
             End If
         End Set
     End Property
@@ -374,7 +374,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As ObservableCollection(Of VendedorSugerencias))
             If SetProperty(_listaVendedoresSugerencias, value) Then
-                RaisePropertyChanged(NameOf(HayVariosVendedoresSugerencias))
+                OnPropertyChanged(NameOf(HayVariosVendedoresSugerencias))
             End If
         End Set
     End Property
@@ -424,7 +424,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As ResumenChequesRegalo)
             If SetProperty(_resumenChequesRegalo, value) Then
-                RaisePropertyChanged(NameOf(HayCampanaChequesRegalo))
+                OnPropertyChanged(NameOf(HayCampanaChequesRegalo))
             End If
         End Set
     End Property
@@ -456,7 +456,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As ObservableCollection(Of ChequeRegaloPendiente))
             If SetProperty(_listaChequesPendientes, value) Then
-                RaisePropertyChanged(NameOf(TextoChequesPendientes))
+                OnPropertyChanged(NameOf(TextoChequesPendientes))
             End If
         End Set
     End Property
@@ -638,8 +638,8 @@ Public Class ListaRapportsViewModel
         Set(value As String)
             If SetProperty(_modoComparativa, value) Then
                 OnCargarResumenVentas()
-                RaisePropertyChanged(NameOf(IsComparativaAnual))
-                RaisePropertyChanged(NameOf(IsComparativaUltimos12Meses))
+                OnPropertyChanged(NameOf(IsComparativaAnual))
+                OnPropertyChanged(NameOf(IsComparativaUltimos12Meses))
             End If
         End Set
     End Property
@@ -713,7 +713,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As Boolean)
             Dim unused = SetProperty(_mostrandoDetalleVentas, value)
-            RaisePropertyChanged(NameOf(MostrandoResumenVentas))
+            OnPropertyChanged(NameOf(MostrandoResumenVentas))
         End Set
     End Property
 
@@ -1312,8 +1312,8 @@ Public Class ListaRapportsViewModel
             AgregarLineaTotal(resumen.Datos)
             ResumenVentasCliente = resumen
 
-            RaisePropertyChanged(NameOf(TituloResumenVentas))
-            RaisePropertyChanged(NameOf(SubtituloResumenVentas))
+            OnPropertyChanged(NameOf(TituloResumenVentas))
+            OnPropertyChanged(NameOf(SubtituloResumenVentas))
         Catch ex As Exception
             _dialogService.ShowError("No se ha podido cargar el resumen de ventas: " & ex.Message)
         Finally

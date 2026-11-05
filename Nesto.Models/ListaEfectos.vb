@@ -50,7 +50,7 @@ Public Class ListaEfectos
             CuadrarImporteTotal(efecto)
         End If
         If e.PropertyName = NameOf(efecto.FechaVencimiento) Then
-            RaisePropertyChanged(NameOf(DiasFinanciacion))
+            OnPropertyChanged(NameOf(DiasFinanciacion))
         End If
     End Function
 
@@ -72,7 +72,7 @@ Public Class ListaEfectos
         For Each efecto In Me
             AddHandler DirectCast(efecto, Efecto).PropertyChanged, evento
         Next
-        RaisePropertyChanged(NameOf(DiasFinanciacion))
+        OnPropertyChanged(NameOf(DiasFinanciacion))
     End Sub
 
     Public Sub CuadrarEfectos()
@@ -93,7 +93,7 @@ Public Class ListaEfectos
         Set(value As String)
             If _cccCliente <> value Then
                 _cccCliente = value
-                RaisePropertyChanged(NameOf(CccCliente))
+                OnPropertyChanged(NameOf(CccCliente))
             End If
         End Set
     End Property
@@ -119,7 +119,7 @@ Public Class ListaEfectos
         Set(value As String)
             If _formaPagoCliente <> value Then
                 _formaPagoCliente = value
-                RaisePropertyChanged(NameOf(FormaPagoCliente))
+                OnPropertyChanged(NameOf(FormaPagoCliente))
             End If
         End Set
     End Property
@@ -132,14 +132,14 @@ Public Class ListaEfectos
         Set(value As Decimal)
             If _importeTotal <> value Then
                 _importeTotal = value
-                RaisePropertyChanged()
+                OnPropertyChanged()
                 If Not Me.Any Then
                     AnnadirEfectoCommand.Execute(Nothing)
                 End If
                 If Me.Any AndAlso Me.Sum(Function(c) c.Importe) <> ImporteTotal Then
                     Me.Last().Importe += ImporteTotal - Me.Sum(Function(c) c.Importe)
                 End If
-                RaisePropertyChanged(NameOf(DiasFinanciacion))
+                OnPropertyChanged(NameOf(DiasFinanciacion))
             End If
         End Set
     End Property
@@ -152,7 +152,7 @@ Public Class ListaEfectos
         Private Set(value As RelayCommand)
             If Not value.Equals(_annadirEfectoCommand) Then
                 _annadirEfectoCommand = value
-                RaisePropertyChanged(NameOf(AnnadirEfectoCommand))
+                OnPropertyChanged(NameOf(AnnadirEfectoCommand))
             End If
         End Set
     End Property
@@ -196,7 +196,7 @@ Public Class ListaEfectos
                 efecto.Importe = Math.Round(Me.ImporteTotal / Me.Count, 2)
             End If
             AddHandler DirectCast(efecto, Efecto).PropertyChanged, evento
-            RaisePropertyChanged(NameOf(DiasFinanciacion))
+            OnPropertyChanged(NameOf(DiasFinanciacion))
         Next
     End Sub
 
@@ -209,7 +209,7 @@ Public Class ListaEfectos
         Private Set(value As RelayCommand(Of Efecto))
             If Not value.Equals(_borrarEfectoCommand) Then
                 _borrarEfectoCommand = value
-                RaisePropertyChanged(NameOf(BorrarEfectoCommand))
+                OnPropertyChanged(NameOf(BorrarEfectoCommand))
             End If
         End Set
     End Property
@@ -227,7 +227,9 @@ Public Class ListaEfectos
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-    Private Sub RaisePropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+    ' Nesto#621: antes RaisePropertyChanged. Levanta el evento PropertyChanged propio de la clase, no el de
+    ' ObservableCollection (de ahí Overloads: convive con su OnPropertyChanged(PropertyChangedEventArgs)).
+    Private Overloads Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
         RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
     End Sub
 

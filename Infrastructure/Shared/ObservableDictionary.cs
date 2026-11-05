@@ -96,7 +96,7 @@ namespace Nesto.Infrastructure.Shared
         /// <summary>
         /// Allows derived classes to raise custom property changed events.
         /// </summary>
-        protected void RaisePropertyChanged(PropertyChangedEventArgs args)
+        protected void OnPropertyChanged(PropertyChangedEventArgs args)
         {
             PropertyChanged(this, args);
         }
