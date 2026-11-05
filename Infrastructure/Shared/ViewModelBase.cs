@@ -11,7 +11,8 @@ namespace Nesto.Infrastructure.Shared
     /// las 175 llamadas de los ViewModels que heredan de aquí siguen valiendo sin tocar nada. Lo
     /// único que cambia de nombre es <c>RaisePropertyChanged</c> (Prism), que en CommunityToolkit se
     /// llama <c>OnPropertyChanged</c>; para no tener que editar sus 79 usos —y, sobre todo, para no
-    /// meter un cambio de 14 pantallas en un solo push— se deja como envoltorio (en <see cref="ViewModelBasico"/>).
+    /// meter un cambio de 14 pantallas en un solo push— se dejó como envoltorio; Nesto#621 lo quitó y ya se llama a
+    /// <c>OnPropertyChanged</c> directamente.
     ///
     /// Nesto#490 (4C.4, 6.º tramo): ya no implementa <c>Prism.Regions.INavigationAware</c> (con
     /// <c>IsNavigationTarget = false</c> y <c>OnNavigatedFrom</c> vacío) sino <see cref="IReceptorNavegacionPestanaNueva"/>:

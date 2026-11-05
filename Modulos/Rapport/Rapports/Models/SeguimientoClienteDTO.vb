@@ -12,7 +12,7 @@ Public Class SeguimientoClienteDTO
         Set(value As Integer)
             If _Id <> value Then
                 _Id = value
-                RaisePropertyChanged("Id")
+                OnPropertyChanged("Id")
             End If
         End Set
     End Property
@@ -25,7 +25,7 @@ Public Class SeguimientoClienteDTO
         Set(value As String)
             If _Empresa <> value Then
                 _Empresa = value
-                RaisePropertyChanged("Empresa")
+                OnPropertyChanged("Empresa")
             End If
         End Set
     End Property
@@ -38,7 +38,7 @@ Public Class SeguimientoClienteDTO
         Set(value As String)
             If _Cliente <> value Then
                 _Cliente = value
-                RaisePropertyChanged("Cliente")
+                OnPropertyChanged("Cliente")
             End If
         End Set
     End Property
@@ -52,7 +52,7 @@ Public Class SeguimientoClienteDTO
         Set(value As DateTime)
             If _Fecha <> value Then
                 _Fecha = value
-                RaisePropertyChanged("Fecha")
+                OnPropertyChanged("Fecha")
             End If
         End Set
     End Property
@@ -65,7 +65,7 @@ Public Class SeguimientoClienteDTO
         Set(value As String)
             If _Tipo <> value Then
                 _Tipo = value
-                RaisePropertyChanged("Tipo")
+                OnPropertyChanged("Tipo")
             End If
         End Set
     End Property
@@ -78,7 +78,7 @@ Public Class SeguimientoClienteDTO
         Set(value As String)
             If _Vendedor <> value Then
                 _Vendedor = value
-                RaisePropertyChanged("Vendedor")
+                OnPropertyChanged("Vendedor")
             End If
         End Set
     End Property
@@ -91,7 +91,7 @@ Public Class SeguimientoClienteDTO
         Set(value As Boolean)
             If _Pedido <> value Then
                 _Pedido = value
-                RaisePropertyChanged("Pedido")
+                OnPropertyChanged("Pedido")
             End If
         End Set
     End Property
@@ -109,7 +109,7 @@ Public Class SeguimientoClienteDTO
         Set(value As String)
             If _Comentarios <> value Then
                 _Comentarios = value
-                RaisePropertyChanged("Comentarios")
+                OnPropertyChanged("Comentarios")
             End If
         End Set
     End Property
@@ -122,7 +122,7 @@ Public Class SeguimientoClienteDTO
         Set(value As Short)
             If _Estado <> value Then
                 _Estado = value
-                RaisePropertyChanged("Estado")
+                OnPropertyChanged("Estado")
             End If
         End Set
     End Property
@@ -151,7 +151,7 @@ Public Class SeguimientoClienteDTO
             Dim limpio As String = If(String.IsNullOrWhiteSpace(value), Nothing, value.Trim())
             If _Resultado <> limpio Then
                 _Resultado = limpio
-                RaisePropertyChanged("Resultado")
+                OnPropertyChanged("Resultado")
             End If
         End Set
     End Property
@@ -166,7 +166,7 @@ Public Class SeguimientoClienteDTO
             Dim soloFecha As DateTime? = If(value.HasValue, value.Value.Date, CType(Nothing, DateTime?))
             If Not Nullable.Equals(_ProximoContacto, soloFecha) Then
                 _ProximoContacto = soloFecha
-                RaisePropertyChanged("ProximoContacto")
+                OnPropertyChanged("ProximoContacto")
             End If
         End Set
     End Property
@@ -196,7 +196,7 @@ Public Class SeguimientoClienteDTO
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-    Private Sub RaisePropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+    Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
         RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
     End Sub
 End Class

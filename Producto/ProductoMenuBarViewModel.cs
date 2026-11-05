@@ -78,8 +78,8 @@ namespace Nesto.Modules.Producto
             {
                 if (SetProperty(ref _diferenciasPendientes, value))
                 {
-                    RaisePropertyChanged(nameof(EtiquetaDiferencias));
-                    RaisePropertyChanged(nameof(AyudaDiferencias));
+                    OnPropertyChanged(nameof(EtiquetaDiferencias));
+                    OnPropertyChanged(nameof(AyudaDiferencias));
                 }
             }
         }

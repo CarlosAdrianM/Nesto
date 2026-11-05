@@ -167,7 +167,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         FormaPagoEfectivoSeleccionada = true;
                     }
-                    RaisePropertyChanged(nameof(EmpresaTraspasoMarca));
+                    OnPropertyChanged(nameof(EmpresaTraspasoMarca));
                 }
             }
         }
@@ -221,7 +221,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     }
                 }
                 _ = SetProperty(ref _fechaDesde, value);
-                RaisePropertyChanged(nameof(FechaDesdeMinima));
+                OnPropertyChanged(nameof(FechaDesdeMinima));
                 _ = CargarDatosIniciales();
             }
         }
@@ -325,7 +325,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _importe, value))
                 {
                     ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
-                    RaisePropertyChanged(nameof(ImporteDescuadre));
+                    OnPropertyChanged(nameof(ImporteDescuadre));
                 }
             }
         }
@@ -340,8 +340,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _importeDeudasSeleccionadas, value);
-                RaisePropertyChanged(nameof(ImporteACuenta));
-                RaisePropertyChanged(nameof(EstaVisibleImporteACuenta));
+                OnPropertyChanged(nameof(ImporteACuenta));
+                OnPropertyChanged(nameof(EstaVisibleImporteACuenta));
             }
         }
         private ObservableCollection<CuentaContableDTO> _listaCuentasCaja;
@@ -390,7 +390,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _movimientosEfectivoDia, value))
                 {
-                    RaisePropertyChanged(nameof(ImporteDescuadre));
+                    OnPropertyChanged(nameof(ImporteDescuadre));
                 }
             }
         }
@@ -426,8 +426,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _totalCobrado, value);
-                RaisePropertyChanged(nameof(ImporteACuenta));
-                RaisePropertyChanged(nameof(EstaVisibleImporteACuenta));
+                OnPropertyChanged(nameof(ImporteACuenta));
+                OnPropertyChanged(nameof(EstaVisibleImporteACuenta));
                 (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
@@ -1061,7 +1061,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             var selectedItems = cajas.OfType<ContabilidadDTO>();
             MovimientosCajaPendientesRecibirSeleccionados = selectedItems;
-            RaisePropertyChanged(nameof(ImporteDescuadre));
+            OnPropertyChanged(nameof(ImporteDescuadre));
             ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
             var conceptoComun = selectedItems.FirstOrDefault()?.Concepto;
             if (conceptoComun is null)
@@ -1082,7 +1082,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private void ArqueoFondo_Changed(object? sender, PropertyChangedEventArgs e)
         {
             Importe = ArqueoFondo.TotalArqueo - FondoCaja;
-            RaisePropertyChanged(nameof(ImporteDescuadre));
+            OnPropertyChanged(nameof(ImporteDescuadre));
             ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
         }
         private async Task CargarDatosIniciales()
@@ -1116,7 +1116,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     PuedeContabilizarDescuadrado = false;
                     _ = decimal.TryParse(await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FondoCaja), out _fondoCaja);
-                    RaisePropertyChanged(nameof(FondoCaja));
+                    OnPropertyChanged(nameof(FondoCaja));
                     FormaPagoEfectivoSeleccionada = true;
                     _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DiarioCaja);
                     CuentaOrigen = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
@@ -1161,7 +1161,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 MovimientosCajaPendientesRecibir = [];
             }
 
-            RaisePropertyChanged(nameof(ImporteDescuadre));
+            OnPropertyChanged(nameof(ImporteDescuadre));
             ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
         }
 

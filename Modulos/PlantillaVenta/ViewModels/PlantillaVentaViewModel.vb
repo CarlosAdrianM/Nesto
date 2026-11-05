@@ -6235,7 +6235,7 @@ Public Class PlantillaVentaViewModel
     Public Async Sub AlLlegar(parametrosNavegacion As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
         ' Issue #94: Cargar cache de productos bonificables (Ganavisiones)
         If _productosBonificablesIds Is Nothing Then
-            ' Usar ConfigureAwait(True) para que RaisePropertyChanged se ejecute en el hilo de la UI
+            ' Usar ConfigureAwait(True) para que OnPropertyChanged se ejecute en el hilo de la UI
             _productosBonificablesIds = Await servicio.CargarProductosBonificablesIds().ConfigureAwait(True)
             ' NestoAPI#466: la lista de grupos que generan Ganavisiones la manda el servidor.
             ActualizarGruposBonificables(Await servicio.CargarGruposBonificables().ConfigureAwait(True))

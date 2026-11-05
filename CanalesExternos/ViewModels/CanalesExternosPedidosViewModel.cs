@@ -102,17 +102,17 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     EstaOcupadoLineas = false;
                 }
             }
-            RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoPoblacion));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoUltimoSeguimiento));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoTotalLineas));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));            
+            OnPropertyChanged(nameof(PedidoSeleccionadoDireccion));
+            OnPropertyChanged(nameof(PedidoSeleccionadoNombre));
+            OnPropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
+            OnPropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
+            OnPropertyChanged(nameof(PedidoSeleccionadoPoblacion));
+            OnPropertyChanged(nameof(PedidoSeleccionadoObservaciones));
+            OnPropertyChanged(nameof(PedidoSeleccionadoUltimoSeguimiento));
+            OnPropertyChanged(nameof(PedidoSeleccionadoLineas));
+            OnPropertyChanged(nameof(PedidoSeleccionadoTotalLineas));
+            OnPropertyChanged(nameof(PedidoSeleccionadoCliente));
+            OnPropertyChanged(nameof(PedidoSeleccionadoContacto));            
             CrearPedidoCommand.NotifyCanExecuteChanged();
             CrearEtiquetaCommand.NotifyCanExecuteChanged();
             ConfirmarEnvioCommand.NotifyCanExecuteChanged();

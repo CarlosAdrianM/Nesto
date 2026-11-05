@@ -12,7 +12,7 @@ Public Class Efecto
         Set(value As Date)
             If _fechaVencimiento <> value Then
                 _fechaVencimiento = value
-                RaisePropertyChanged(NameOf(FechaVencimiento))
+                OnPropertyChanged(NameOf(FechaVencimiento))
             End If
         End Set
     End Property
@@ -24,7 +24,7 @@ Public Class Efecto
         Set(value As Decimal)
             If _importe <> value Then
                 _importe = value
-                RaisePropertyChanged(NameOf(Importe))
+                OnPropertyChanged(NameOf(Importe))
             End If
         End Set
     End Property
@@ -36,7 +36,7 @@ Public Class Efecto
         Set(value As String)
             If _formaPago <> value Then
                 _formaPago = If(String.IsNullOrEmpty(value), Nothing, value.ToUpper.Trim())
-                RaisePropertyChanged(NameOf(FormaPago))
+                OnPropertyChanged(NameOf(FormaPago))
             End If
         End Set
     End Property
@@ -48,14 +48,14 @@ Public Class Efecto
         Set(value As String)
             If _ccc <> value Then
                 _ccc = If(String.IsNullOrEmpty(value), Nothing, value.ToUpper.Trim())
-                RaisePropertyChanged(NameOf(CCC))
+                OnPropertyChanged(NameOf(CCC))
             End If
         End Set
     End Property
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-    Private Sub RaisePropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+    Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
         RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
     End Sub
 
