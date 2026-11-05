@@ -28,32 +28,45 @@ Public Class DocumentosImpresionPedidoDTO
     Public Property NotasEntrega As List(Of NotaEntregaCreadaDTO)
 
     ''' <summary>
-    ''' Indica si hay algún documento para imprimir
+    ''' Indica si hay algún documento para imprimir en Nesto (Nesto#620: sin los ya impresos en el servidor)
     ''' </summary>
     Public ReadOnly Property HayDocumentosParaImprimir As Boolean
         Get
-            Return (Facturas IsNot Nothing AndAlso Facturas.Any(Function(f) f.DatosImpresion IsNot Nothing)) OrElse
-                   (Albaranes IsNot Nothing AndAlso Albaranes.Any(Function(a) a.DatosImpresion IsNot Nothing)) OrElse
-                   (NotasEntrega IsNot Nothing AndAlso NotasEntrega.Any(Function(n) n.DatosImpresion IsNot Nothing))
+            Return (Facturas IsNot Nothing AndAlso Facturas.Any(Function(f) f.HayQueImprimirEnLocal)) OrElse
+                   (Albaranes IsNot Nothing AndAlso Albaranes.Any(Function(a) a.HayQueImprimirEnLocal)) OrElse
+                   (NotasEntrega IsNot Nothing AndAlso NotasEntrega.Any(Function(n) n.HayQueImprimirEnLocal))
         End Get
     End Property
 
     ''' <summary>
-    ''' Total de documentos que se imprimirán (considerando copias)
+    ''' Total de documentos que se imprimirán en Nesto (considerando copias; Nesto#620: sin los ya impresos en el servidor)
     ''' </summary>
     Public ReadOnly Property TotalDocumentosParaImprimir As Integer
         Get
             Dim total As Integer = 0
             If Facturas IsNot Nothing Then
-                total += Facturas.Where(Function(f) f.DatosImpresion IsNot Nothing).Sum(Function(f) f.DatosImpresion.NumeroCopias)
+                total += Facturas.Where(Function(f) f.HayQueImprimirEnLocal).Sum(Function(f) f.DatosImpresion.NumeroCopias)
             End If
             If Albaranes IsNot Nothing Then
-                total += Albaranes.Where(Function(a) a.DatosImpresion IsNot Nothing).Sum(Function(a) a.DatosImpresion.NumeroCopias)
+                total += Albaranes.Where(Function(a) a.HayQueImprimirEnLocal).Sum(Function(a) a.DatosImpresion.NumeroCopias)
             End If
             If NotasEntrega IsNot Nothing Then
-                total += NotasEntrega.Where(Function(n) n.DatosImpresion IsNot Nothing).Sum(Function(n) n.DatosImpresion.NumeroCopias)
+                total += NotasEntrega.Where(Function(n) n.HayQueImprimirEnLocal).Sum(Function(n) n.DatosImpresion.NumeroCopias)
             End If
             Return total
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#620 (NestoAPI#806): «N documento(s) impresos en el servidor en «X»», o vacío si ninguno.
+    ''' </summary>
+    Public ReadOnly Property TextoImpresosEnServidor As String
+        Get
+            Dim documentos As New List(Of DocumentoImprimibleDTO)
+            If Facturas IsNot Nothing Then documentos.AddRange(Facturas)
+            If Albaranes IsNot Nothing Then documentos.AddRange(Albaranes)
+            If NotasEntrega IsNot Nothing Then documentos.AddRange(NotasEntrega)
+            Return ImpresionEnServidor.TextoImpresos(documentos.Where(Function(d) d IsNot Nothing).Select(Function(d) d.DatosImpresion))
         End Get
     End Property
 

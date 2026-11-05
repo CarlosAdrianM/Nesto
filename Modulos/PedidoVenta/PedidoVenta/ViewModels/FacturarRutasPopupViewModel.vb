@@ -301,8 +301,9 @@ Public Class FacturarRutasPopupViewModel
             If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
                 MostrarVentanaErrores(response.PedidosConErrores)
             Else
-                ' Si todo fue exitoso y no hay documentos que imprimir, esperar 2 segundos y cerrar
-                If totalDocumentosParaImprimir = 0 Then
+                ' Si todo fue exitoso y no hay documentos que imprimir, esperar 2 segundos y cerrar.
+                ' Nesto#620: si la API ha impreso algo en el servidor no se cierra, para que se lea en el resumen dónde ha salido.
+                If totalDocumentosParaImprimir = 0 AndAlso response.TotalDocumentosImpresosEnServidor = 0 Then
                     Await Task.Delay(PausaAntesDeCerrarMs)
                     Cancelar()
                 End If
@@ -338,6 +339,10 @@ Public Class FacturarRutasPopupViewModel
         End If
         If response.NotasEntregaParaImprimir > 0 Then
             Dim unusedN = sb.AppendLine($"🖨 Notas para imprimir: {response.NotasEntregaParaImprimir}")
+        End If
+        ' Nesto#620 (NestoAPI#806): lo que la API ya ha impreso en el servidor no se vuelve a imprimir aquí.
+        If response.TotalDocumentosImpresosEnServidor > 0 Then
+            Dim unusedS = sb.AppendLine($"🖨 {response.TextoImpresosEnServidor}")
         End If
 
         If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
@@ -467,6 +472,7 @@ Public Class FacturarRutasPopupViewModel
 
     ''' <summary>
     ''' El texto de la pregunta «¿Imprimir?»: facturas, albaranes y (Nesto#580) notas de entrega y de recogida.
+    ''' Nesto#620: solo cuenta lo que tiene que imprimir Nesto (lo impreso en el servidor va aparte).
     ''' </summary>
     Friend Shared Function MensajeDocumentosParaImprimir(response As FacturarRutasResponseDTO) As String
         Dim mensaje As String = $"Se han generado {response.TotalDocumentosParaImprimir} documentos para imprimir:{Environment.NewLine}"
@@ -485,6 +491,11 @@ Public Class FacturarRutasPopupViewModel
 
         If response.NotasDeRecogidaParaImprimir > 0 Then
             mensaje &= $"- {response.NotasDeRecogidaParaImprimir} nota(s) de recogida{Environment.NewLine}"
+        End If
+
+        ' Nesto#620 (NestoAPI#806): con mezcla, se pregunta solo por los que faltan y se dice que los otros ya han salido.
+        If response.TotalDocumentosImpresosEnServidor > 0 Then
+            mensaje &= $"{Environment.NewLine}Además, {response.TextoImpresosEnServidor}: esos no se vuelven a imprimir.{Environment.NewLine}"
         End If
 
         mensaje &= $"{Environment.NewLine}¿Desea imprimirlos ahora?"

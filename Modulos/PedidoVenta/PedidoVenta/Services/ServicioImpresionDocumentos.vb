@@ -19,8 +19,8 @@ Public Class ServicioImpresionDocumentos
             Return resultado
         End If
 
-        ' Filtrar solo las que tienen datos de impresión
-        Dim facturasParaImprimir = facturas.Where(Function(f) f.DatosImpresion IsNot Nothing).ToList()
+        ' Solo las que llevan papel y no ha impreso ya la API en el servidor (Nesto#620, NestoAPI#806: si no, saldrían dos veces)
+        Dim facturasParaImprimir = facturas.Where(Function(f) f IsNot Nothing AndAlso f.HayQueImprimirEnLocal).ToList()
 
         For Each factura In facturasParaImprimir
             Try
@@ -49,8 +49,8 @@ Public Class ServicioImpresionDocumentos
             Return resultado
         End If
 
-        ' Filtrar solo los que tienen datos de impresión
-        Dim albaranesParaImprimir = albaranes.Where(Function(a) a.DatosImpresion IsNot Nothing).ToList()
+        ' Solo los que llevan papel y no ha impreso ya la API en el servidor (Nesto#620, NestoAPI#806: si no, saldrían dos veces)
+        Dim albaranesParaImprimir = albaranes.Where(Function(a) a IsNot Nothing AndAlso a.HayQueImprimirEnLocal).ToList()
 
         For Each albaran In albaranesParaImprimir
             Try
@@ -79,8 +79,8 @@ Public Class ServicioImpresionDocumentos
             Return resultado
         End If
 
-        ' Filtrar solo las que tienen datos de impresión
-        Dim notasParaImprimir = notasEntrega.Where(Function(n) n.DatosImpresion IsNot Nothing).ToList()
+        ' Solo las que llevan papel y no ha impreso ya la API en el servidor (Nesto#620, NestoAPI#806: si no, saldrían dos veces)
+        Dim notasParaImprimir = notasEntrega.Where(Function(n) n IsNot Nothing AndAlso n.HayQueImprimirEnLocal).ToList()
 
         For Each nota In notasParaImprimir
             Try

@@ -96,10 +96,12 @@ Namespace Services
                 Any(Function(e) String.Equals(e?.Codigo, CodigosErrorFacturacion.NOTA_SIN_PACKING, StringComparison.OrdinalIgnoreCase))
         End Function
 
-        Private Shared Function HayAlgoParaImprimir(response As FacturarRutasResponseDTO) As Boolean
-            Return If(response.Facturas, New List(Of FacturaCreadaDTO)).Any(Function(f) f.DatosImpresion IsNot Nothing) OrElse
-                If(response.Albaranes, New List(Of AlbaranCreadoDTO)).Any(Function(a) a.DatosImpresion IsNot Nothing) OrElse
-                If(response.NotasEntrega, New List(Of NotaEntregaCreadaDTO)).Any(Function(n) n.DatosImpresion IsNot Nothing)
+        ''' <summary>
+        ''' ¿Queda algo que imprima Nesto? Nesto#620 (NestoAPI#806): lo que la API ya ha impreso en el servidor no cuenta (misma regla
+        ''' que Facturar rutas: FacturarRutasResponseDTO.TotalDocumentosParaImprimir).
+        ''' </summary>
+        Friend Shared Function HayAlgoParaImprimir(response As FacturarRutasResponseDTO) As Boolean
+            Return response IsNot Nothing AndAlso response.TotalDocumentosParaImprimir > 0
         End Function
 
         Friend Shared Function TextoResumen(response As FacturarRutasResponseDTO, pedido As Integer) As String
@@ -114,6 +116,11 @@ Namespace Services
             End If
             If If(response.NotasEntrega, New List(Of NotaEntregaCreadaDTO)).Any() Then
                 lineas.Add($"Nota de entrega del pedido {pedido} procesada")
+            End If
+            ' Nesto#620 (NestoAPI#806): lo impreso en el servidor no lo imprime Nesto; se dice dónde ha salido para que lo recojan.
+            Dim impresosEnServidor = response.TextoImpresosEnServidor
+            If Not String.IsNullOrEmpty(impresosEnServidor) Then
+                lineas.Add(impresosEnServidor)
             End If
             Return String.Join(Environment.NewLine, lineas)
         End Function

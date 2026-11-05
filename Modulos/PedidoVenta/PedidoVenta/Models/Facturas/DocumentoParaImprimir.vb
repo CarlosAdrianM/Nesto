@@ -50,4 +50,21 @@ Public Class DocumentoParaImprimir
     ''' Usa valores estándar compatibles con todas las impresoras.
     ''' </summary>
     Public Property TipoBandeja As TipoBandejaImpresion
+
+    ''' <summary>
+    ''' Nesto#620 (NestoAPI#806): la impresora del servidor en la que la API ya lo ha impreso al facturar (mismo nombre y nivel
+    ''' que en la API: uno por documento, dentro de DatosImpresion). Nothing = no se ha impreso en el servidor y lo imprime Nesto.
+    ''' Si Nesto no lo mirara, el documento saldría dos veces (por eso la API aún no imprime para los usuarios con dominio).
+    ''' </summary>
+    Public Property ImpresoEnServidor As String
+
+    ''' <summary>
+    ''' Nesto#620: LA regla de «ya está impreso, no lo imprima Nesto». La usan los contadores de Facturar rutas, FacturadorPedido
+    ''' (Agencias y detalle), ServicioImpresionDocumentos y la factura en papel del detalle del pedido.
+    ''' </summary>
+    Public ReadOnly Property EstaImpresoEnServidor As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(ImpresoEnServidor)
+        End Get
+    End Property
 End Class

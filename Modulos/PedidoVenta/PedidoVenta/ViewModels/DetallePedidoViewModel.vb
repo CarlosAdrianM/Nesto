@@ -1884,6 +1884,7 @@ Public Class DetallePedidoViewModel
 
             dialogService.ShowNotification($"Factura {resultado.NumeroFactura} creada correctamente")
             MostrarAvisosFacturacion(resultado)
+            Await ImprimirFacturaEnPapelAsync(resultado) ' Nesto#620
             Await ImprimirFactura(resultado.NumeroFactura)
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear la factura:\n {ex.Message}")
@@ -2137,6 +2138,7 @@ Public Class DetallePedidoViewModel
 
                 dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
                 MostrarAvisosFacturacion(resultado)
+                Await ImprimirFacturaEnPapelAsync(resultado) ' Nesto#620
                 Await ImprimirFactura(resultado.NumeroFactura)
             Catch exFactura As Exception
                 ' Nesto#421 (caso 922687): el albarán SÍ se creó pero la factura falló. Antes la
@@ -2167,6 +2169,41 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError(aviso)
         Next
     End Sub
+
+    ''' <summary>
+    ''' Nesto#620 (NestoAPI#806): «Crear factura» del detalle trae la factura en papel («Factura física»… en los comentarios o en el
+    ''' de picking) con la misma regla que Facturar rutas. Si la API ya la ha impreso en el servidor (ImpresoEnServidor), Nesto no la
+    ''' imprime ni lo pregunta: solo dice dónde ha salido. Si no (servidor apagado para este usuario, sin impresora o con fallo, que
+    ''' entonces viene en Avisos), se pregunta e imprime aquí, como en Facturar rutas, para que la factura física no se quede sin salir.
+    ''' </summary>
+    Friend Async Function ImprimirFacturaEnPapelAsync(resultado As CrearFacturaResponseDTO) As Task
+        Dim datos = resultado?.DatosImpresion
+        If datos Is Nothing Then
+            Return
+        End If
+        If datos.EstaImpresoEnServidor Then
+            dialogService.ShowNotification("Factura en papel",
+                $"La factura {resultado.NumeroFactura} va en papel y ya se ha impreso en el servidor {ImpresionEnServidor.DondeSeHaImpreso({datos.ImpresoEnServidor})}.")
+            Return
+        End If
+        If Not dialogService.ShowConfirmationAnswer("Factura en papel",
+                $"La factura {resultado.NumeroFactura} va en papel ({datos.NumeroCopias} copia(s)).{vbCrLf}¿Desea imprimirla ahora?") Then
+            Return
+        End If
+        Try
+            Dim impresion = Await ServicioImpresion.ImprimirFacturas({New FacturaCreadaDTO With {
+                .NumeroFactura = resultado.NumeroFactura,
+                .Empresa = resultado.Empresa,
+                .NumeroPedido = resultado.NumeroPedido,
+                .DatosImpresion = datos
+            }})
+            If impresion IsNot Nothing AndAlso impresion.TieneErrores Then
+                dialogService.ShowError($"Error al imprimir la factura {resultado.NumeroFactura}: {impresion.Errores.First().MensajeError}")
+            End If
+        Catch ex As Exception
+            dialogService.ShowError($"Error al imprimir la factura {resultado.NumeroFactura}: {ex.Message}")
+        End Try
+    End Function
 
     ''' <summary>
     ''' Nesto#420: procesa los avisos operativos que devuelve el PUT del pedido. Para
