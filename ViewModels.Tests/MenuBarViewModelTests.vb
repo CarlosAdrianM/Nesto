@@ -460,4 +460,26 @@ Public Class MenuBarViewModelTests
 
 #End Region
 
+#Region "Nesto#622: informes PDF en fichero temporal único"
+
+    <TestMethod()>
+    Public Sub RutaPdfTemporal_LlevaMarcaDeTiempo_ParaNoChocarConElPdfAbierto()
+        ' Reina (05/11/26): el informe de ubicaciones se escribía siempre en el mismo fichero y, con el visor abierto,
+        ' el segundo clic reventaba con «being used by another process».
+        Dim ruta = MenuBarViewModel.RutaPdfTemporal("InformeUbicacionesInventario", New Date(2026, 11, 5, 11, 22, 12))
+
+        Assert.IsTrue(ruta.EndsWith("InformeUbicacionesInventario_20261105_112212.pdf"), ruta)
+        Assert.IsTrue(ruta.StartsWith(IO.Path.GetTempPath), ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaPdfTemporal_DosInformesEnSegundosDistintos_NoCoinciden()
+        Dim primera = MenuBarViewModel.RutaPdfTemporal("InformePicking", New Date(2026, 11, 5, 11, 22, 12))
+        Dim segunda = MenuBarViewModel.RutaPdfTemporal("InformePicking", New Date(2026, 11, 5, 11, 22, 13))
+
+        Assert.AreNotEqual(primera, segunda)
+    End Sub
+
+#End Region
+
 End Class
