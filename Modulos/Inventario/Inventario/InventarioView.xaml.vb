@@ -83,7 +83,9 @@
 
     Private Sub tclMovimientos_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles tclMovimientos.SelectionChanged
         If tabCompleto.IsSelected Then
-            DataContext.cmdActualizarMovimientos.Execute
+            ' Nesto#622 (Reina, 05/11/26): con RelayCommand del CommunityToolkit, Execute exige el parámetro; la llamada
+            ' late-bound sin argumento tiraba la ventana («Overload resolution failed… 'Execute'»).
+            DataContext.cmdActualizarMovimientos.Execute(Nothing)
         End If
     End Sub
 

@@ -281,19 +281,33 @@ Public Class MenuBarViewModel
         ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/ControlPedidos/Pdf); ya no se
         ' renderiza el RDLC en local (roadmap: mover el render de informes al backend).
         Dim pdf As Byte() = Await _servicioInformes.DescargarControlPedidosPdf()
-        Dim fileName As String = Path.GetTempPath + "InformeControlPedidos.pdf"
-        File.WriteAllBytes(fileName, pdf)
-        Process.Start(New ProcessStartInfo(fileName) With {
-            .UseShellExecute = True
-        })
+        AbrirPdfTemporal("InformeControlPedidos", pdf)
     End Sub
 
     Private Async Sub OnInventario()
         ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/UbicacionesInventario/Pdf); ya no se
         ' renderiza el RDLC en local (roadmap: mover el render de informes al backend).
         Dim pdf As Byte() = Await _servicioInformes.DescargarUbicacionesInventarioPdf()
-        Dim fileName As String = Path.GetTempPath + "InformeUbicacionesInventario.pdf"
-        File.WriteAllBytes(fileName, pdf)
+        AbrirPdfTemporal("InformeUbicacionesInventario", pdf)
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#622 (Reina, 05/11/26): el informe se escribía siempre en el mismo fichero temporal y, con el visor de PDF
+    ''' abierto, el segundo clic reventaba («being used by another process»). Cada informe va a un fichero con marca de
+    ''' tiempo y, si aun así no se puede escribir, se avisa en vez de tirar Nesto.
+    ''' </summary>
+    Friend Shared Function RutaPdfTemporal(nombreBase As String, ahora As DateTime) As String
+        Return Path.Combine(Path.GetTempPath, $"{nombreBase}_{ahora:yyyyMMdd_HHmmss}.pdf")
+    End Function
+
+    Private Sub AbrirPdfTemporal(nombreBase As String, pdf As Byte())
+        Dim fileName As String = RutaPdfTemporal(nombreBase, DateTime.Now)
+        Try
+            File.WriteAllBytes(fileName, pdf)
+        Catch ex As IOException
+            _servicioDialogos.ShowError($"No se ha podido guardar el informe en {fileName}: {ex.Message}")
+            Return
+        End Try
         Process.Start(New ProcessStartInfo(fileName) With {
             .UseShellExecute = True
         })
@@ -314,20 +328,12 @@ Public Class MenuBarViewModel
 
     Private Async Sub OnPicking()
         Dim pdf As Byte() = Await ObtenerPdfPickingAsync()
-        Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
-        File.WriteAllBytes(fileName, pdf)
-        Process.Start(New ProcessStartInfo(fileName) With {
-            .UseShellExecute = True
-        })
+        AbrirPdfTemporal("InformePicking", pdf)
     End Sub
 
     Private Async Sub OnPacking()
         Dim pdf As Byte() = Await ObtenerPdfPackingAsync()
-        Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
-        File.WriteAllBytes(fileName, pdf)
-        Process.Start(New ProcessStartInfo(fileName) With {
-            .UseShellExecute = True
-        })
+        AbrirPdfTemporal("InformePacking", pdf)
     End Sub
 
     Private Sub OnClientesAlquileres()
