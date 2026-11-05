@@ -55,6 +55,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -117,7 +118,12 @@
                     <cliente:DiaRepartoClienteView Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="4" Margin="2,2" VerticalAlignment="Center"
                                                    Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
                                                    Contacto="{Binding clienteActivo.contacto}"/>
-                    <DataGrid Name="dgrPersonasContacto" Grid.Row="4" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
+                    <!-- Nesto#523 (NestoAPI#623): origen del cliente (campaña, p. ej. lead de Meta de Harmonia). Se guarda con su
+                         botón (no con el botón Guardar). Dirección, Administración, Vendedores y Tiendas; el resto lo ve en texto.
+                         Con la API sin el origen no se ve. -->
+                    <cliente:OrigenClienteView Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="5" Margin="2,2" VerticalAlignment="Center"
+                                               Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"/>
+                    <DataGrid Name="dgrPersonasContacto" Grid.Row="5" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
@@ -131,7 +137,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Column="5" Grid.RowSpan="5" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Column="5" Grid.RowSpan="6" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
                 </Grid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                     <!-- Seguimientos -->

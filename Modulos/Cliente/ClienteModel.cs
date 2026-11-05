@@ -45,6 +45,11 @@ namespace Nesto.Modulos.Cliente
         /// </summary>
         public bool ConfirmarDiasEnServirConPicking { get; set; }
 
+        /// <summary>
+        /// Nesto#523 (NestoAPI#623): código del origen del cliente (campaña), p. ej. «META-HARMONIA-0926». Opcional; null = sin origen.
+        /// </summary>
+        public string Origen { get; set; }
+
         public string Usuario { get; set; }
 
         /// <summary>

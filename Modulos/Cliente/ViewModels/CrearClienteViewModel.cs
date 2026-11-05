@@ -12,6 +12,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.Cliente.Models;
+using System.Collections.Generic;
 
 namespace Nesto.Modulos.Cliente
 {
@@ -29,9 +31,11 @@ namespace Nesto.Modulos.Cliente
         private IMessenger Messenger { get; }
         private IServicioDialogos DialogService { get; }
 
-        public CrearClienteViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService)
+        public CrearClienteViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService,
+            IOrigenesClienteService servicioOrigenes = null)
         {
             Navegacion = navegacion;
+            ServicioOrigenes = servicioOrigenes; // Nesto#523
             Configuracion = configuracion;
             Servicio = servicio;
             Messenger = messenger;
@@ -57,7 +61,130 @@ namespace Nesto.Modulos.Cliente
                 new PersonaContactoDTO()
             };
 
+            // Nesto#523: el catálogo de orígenes se pide al abrir, sin bloquear la pantalla.
+            CargaOrigenesEnCurso = CargarOrigenesAsync();
         }
+
+        #region "Origen del cliente (Nesto#523, NestoAPI#623)"
+        private IOrigenesClienteService ServicioOrigenes { get; }
+
+        /// <summary>«(ninguno)» y los orígenes activos de la API. Vacío (solo «(ninguno)») con la API vieja.</summary>
+        public ObservableCollection<OrigenClienteModel> Origenes { get; } = new ObservableCollection<OrigenClienteModel> { new OrigenClienteModel() };
+
+        /// <summary>La carga del catálogo lanzada en el constructor (para esperarla en las pruebas).</summary>
+        internal Task CargaOrigenesEnCurso { get; }
+
+        /// <summary>Hay catálogo: sin él (API sin el endpoint) el desplegable no se ve.</summary>
+        public bool HayOrigenes => Origenes.Count > 1;
+
+        /// <summary>Al modificar se entra directamente en «Datos generales»: allí se ve también el origen.</summary>
+        public bool MostrarOrigenEnDatosGenerales => HayOrigenes && EsUnaModificacion;
+
+        private string clienteOrigen;
+        /// <summary>Código del origen que se manda en el POST/PUT (null = sin origen).</summary>
+        public string ClienteOrigen
+        {
+            get => clienteOrigen;
+            set
+            {
+                string nuevo = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+                if (SetProperty(ref clienteOrigen, nuevo))
+                {
+                    AsegurarOrigenEnLista(nuevo, null);
+                    OnPropertyChanged(nameof(OrigenSeleccionado));
+                }
+            }
+        }
+
+        public OrigenClienteModel OrigenSeleccionado
+        {
+            get => Origenes.FirstOrDefault(o => string.Equals(o.Codigo?.Trim(), ClienteOrigen, StringComparison.OrdinalIgnoreCase)) ?? Origenes[0];
+            set
+            {
+                // null llega de la vista cuando se cambia el elemento elegido de la lista (al llegar el catálogo): no es «quitarlo».
+                // «(ninguno)» es un elemento con Codigo null.
+                if (value != null)
+                {
+                    ClienteOrigen = value.Codigo;
+                }
+            }
+        }
+
+        private async Task CargarOrigenesAsync()
+        {
+            if (ServicioOrigenes == null)
+            {
+                return;
+            }
+            try
+            {
+                List<OrigenClienteModel> leidos = await ServicioOrigenes.LeerOrigenes();
+                if (leidos == null)
+                {
+                    return;
+                }
+                foreach (OrigenClienteModel origen in leidos.Where(o => o != null && !string.IsNullOrWhiteSpace(o.Codigo)))
+                {
+                    // Si ya estaba (el del cliente, puesto al precargar antes de llegar el catálogo), se cambia por el del catálogo.
+                    OrigenClienteModel yaEstaba = Origenes.FirstOrDefault(o => string.Equals(o.Codigo?.Trim(), origen.Codigo.Trim(), StringComparison.OrdinalIgnoreCase));
+                    if (yaEstaba == null)
+                    {
+                        Origenes.Add(origen);
+                    }
+                    else
+                    {
+                        Origenes[Origenes.IndexOf(yaEstaba)] = origen;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Con la API vieja o caída el alta sigue igual, sin origen y sin error.
+            }
+            NotificarOrigenes();
+        }
+
+        /// <summary>Un origen que ya tiene el cliente y no está en el catálogo (inactivo) se añade para no perderlo al guardar.</summary>
+        private void AsegurarOrigenEnLista(string codigo, string descripcion)
+        {
+            if (string.IsNullOrWhiteSpace(codigo) || Origenes.Any(o => string.Equals(o.Codigo?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+            Origenes.Add(new OrigenClienteModel { Codigo = codigo, Descripcion = string.IsNullOrWhiteSpace(descripcion) ? codigo : descripcion });
+            NotificarOrigenes();
+        }
+
+        private void NotificarOrigenes()
+        {
+            OnPropertyChanged(nameof(HayOrigenes));
+            OnPropertyChanged(nameof(MostrarOrigenEnDatosGenerales));
+            OnPropertyChanged(nameof(OrigenSeleccionado));
+        }
+
+        /// <summary>Al modificar: el origen que trae la API en el DTO o, si no viene, el de <c>GET Clientes/{empresa}/{cliente}/Origen</c>.</summary>
+        private async Task PrecargarOrigenAsync(string empresa, string cliente, string origenDelDto)
+        {
+            if (!string.IsNullOrWhiteSpace(origenDelDto) || ServicioOrigenes == null)
+            {
+                ClienteOrigen = origenDelDto;
+                return;
+            }
+            try
+            {
+                OrigenDeClienteModel origen = await ServicioOrigenes.LeerOrigen(empresa, cliente);
+                if (!string.IsNullOrWhiteSpace(origen?.Origen))
+                {
+                    AsegurarOrigenEnLista(origen.Origen.Trim(), origen.Descripcion);
+                    ClienteOrigen = origen.Origen;
+                }
+            }
+            catch (Exception)
+            {
+                // Sin origen: no impide modificar el cliente.
+            }
+        }
+        #endregion
 
         #region "Propiedades"
         private string clienteCodigoPostal;
@@ -641,6 +768,7 @@ namespace Nesto.Modulos.Cliente
             set { 
                 SetProperty(ref esUnaModificacion, value);
                 OnPropertyChanged(nameof(EsCreandoContacto));
+                OnPropertyChanged(nameof(MostrarOrigenEnDatosGenerales)); // Nesto#523
                 NotificarSePuedeCrearCliente(); // Nesto#480
             }
         }
@@ -959,7 +1087,8 @@ namespace Nesto.Modulos.Cliente
                 Telefono = ClienteTelefono,
                 VendedorEstetica = vendedorEstetica,
                 VendedorPeluqueria = vendedorPeluqueria,
-                Usuario = Configuracion.usuario
+                Usuario = Configuracion.usuario,
+                Origen = ClienteOrigen // Nesto#523
             };
 
             try
@@ -1095,6 +1224,7 @@ namespace Nesto.Modulos.Cliente
                 FormaPagoTarjeta = clienteFormaPago == Constantes.FormasPago.TARJETA;
                 FormaPagoRecibo = clienteFormaPago == Constantes.FormasPago.RECIBO;
                 ClienteIban = clienteCrear.Iban;
+                await PrecargarOrigenAsync(empresa, cliente, clienteCrear.Origen); // Nesto#523
                 PersonasContacto = new ObservableCollection<PersonaContactoDTO>();
                 foreach (var persona in clienteCrear.PersonasContacto)
                 {
