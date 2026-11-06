@@ -188,6 +188,10 @@ Public Class PedidoVentaService
                 Throw ' NestoAPI#712: el ViewModel pregunta si la fecha es correcta y reintenta
             Catch ex As InscripcionesEventoAnularException
                 Throw ' Nesto#567 (NestoAPI#732): el ViewModel pregunta si anula las inscripciones y reintenta
+            Catch ex As FechaEntregaAgenciaRechazadaException
+                Throw ' Nesto#629: el mensaje de la API ya dice que no se ha guardado el pedido
+            Catch ex As PedidoYaEnAgenciaException
+                Throw ' Nesto#629: el ViewModel ofrece mandar el correo a logística
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -438,6 +442,12 @@ Public Class PedidoVentaService
         ElseIf errorCode = InscripcionesEventoAnularException.CODIGO_ERROR Then
             ' Nesto#567 (NestoAPI#732): el pedido justifica inscripciones gratuitas por compra; se pregunta y se repite confirmando.
             Return InscripcionesEventoAnularException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = FechaEntregaAgenciaRechazadaException.CODIGO_RECHAZA OrElse errorCode = FechaEntregaAgenciaRechazadaException.CODIGO_NO_RESPONDE Then
+            ' Nesto#629 (NestoAPI#722): la agencia rechaza la fecha nueva o no contesta; el pedido no se ha guardado.
+            Return FechaEntregaAgenciaRechazadaException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = PedidoYaEnAgenciaException.CODIGO_ERROR Then
+            ' Nesto#629 (NestoAPI#722): la agencia ya tiene el envío y no admite el cambio; se puede avisar a logística.
+            Return PedidoYaEnAgenciaException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
@@ -1165,6 +1175,41 @@ Public Class PedidoVentaService
                 Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido pedir el cambio a almacén ({CInt(response.StatusCode)}).", mensaje))
             End If
             Return LeerTextoRespuesta(body)
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Nesto#629 (NestoAPI#722): POST api/PedidosVenta/{empresa}/{numero}/AvisarLogisticaAplazamiento. Manda el correo a
+    ''' logística para que intenten aplazar con la agencia un envío que ya tiene. Devuelve el Mensaje de la API; si falla, lanza
+    ''' una excepción con el mensaje de la API.
+    ''' </summary>
+    Public Async Function AvisarLogisticaAplazamiento(empresa As String, numero As Integer, fecha As Date, envio As Integer?, comentario As String) As Task(Of String) Implements IPedidoVentaService.AvisarLogisticaAplazamiento
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim solicitud = New With {
+                .Fecha = fecha.ToString("yyyy-MM-dd", Globalization.CultureInfo.InvariantCulture),
+                .Envio = envio,
+                .Usuario = configuracion?.usuario,
+                .Comentario = If(String.IsNullOrWhiteSpace(comentario), Nothing, comentario.Trim())
+            }
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(solicitud), Encoding.UTF8, "application/json")
+            Dim url As String = $"PedidosVenta/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{numero}/AvisarLogisticaAplazamiento"
+            Dim response = Await client.PostAsync(url, contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido mandar el correo a logística ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Dim texto As String = Nothing
+            Try
+                texto = JsonConvert.DeserializeObject(Of JObject)(body)?("Mensaje")?.ToString()
+            Catch
+                ' cuerpo inesperado: el correo ha salido igual
+            End Try
+            Return If(String.IsNullOrWhiteSpace(texto), "Se ha mandado el correo a logística.", texto)
         End Using
     End Function
 

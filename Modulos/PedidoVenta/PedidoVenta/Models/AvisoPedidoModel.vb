@@ -20,6 +20,8 @@ Public Class AvisoPedidoModel
     Public Const TIPO_INSCRIPCIONES_EVENTO_ANULADAS As String = "INSCRIPCIONES_EVENTO_ANULADAS"
     ''' <summary>Nesto#581 (NestoAPI#760): en el abono de una recogida, productos que no están en su factura original.</summary>
     Public Const TIPO_ABONO_PRODUCTO_FUERA_DE_FACTURA As String = "ABONO_PRODUCTO_FUERA_DE_FACTURA"
+    ''' <summary>Nesto#629 (NestoAPI#722): al aplazar, la fecha se ha cambiado también en la agencia (Datos.Envio, Agencia, FechaNueva).</summary>
+    Public Const TIPO_FECHA_CAMBIADA_EN_AGENCIA As String = "FechaCambiadaEnAgencia"
 
     Public Property Tipo As String
     Public Property Mensaje As String

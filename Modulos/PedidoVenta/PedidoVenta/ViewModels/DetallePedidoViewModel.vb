@@ -2213,6 +2213,8 @@ Public Class DetallePedidoViewModel
     ''' TRAMITADO no se puede ajustar (la agencia ya tiene el importe): solo se informa.
     ''' Tipos de aviso desconocidos se ignoran (forward-compatible).
     ''' </summary>
+    Friend Const TITULO_FECHA_CAMBIADA_EN_AGENCIA As String = "Fecha cambiada en la agencia"
+
     Friend Async Function ProcesarAvisosModificacion(avisos As List(Of AvisoPedidoModel)) As Task
         If avisos Is Nothing Then
             Return
@@ -2220,6 +2222,10 @@ Public Class DetallePedidoViewModel
         ' NestoAPI#722: se ha aplazado la fecha de una línea con picking; el almacén ya tiene la campana
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "AplazadoConPicking")
             dialogService.ShowNotification("Pedido aplazado con picking en curso", aviso.Mensaje)
+        Next
+        ' Nesto#629 (NestoAPI#722): el envío ya lo tenía la agencia y se le ha cambiado también la fecha (hoy, CTT)
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_FECHA_CAMBIADA_EN_AGENCIA)
+            dialogService.ShowNotification(TITULO_FECHA_CAMBIADA_EN_AGENCIA, aviso.Mensaje)
         Next
         ' Nesto#581 (NestoAPI#760): en el abono de una recogida, un producto que no está en la factura original (no bloquea)
         For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_ABONO_PRODUCTO_FUERA_DE_FACTURA)
@@ -2333,6 +2339,7 @@ Public Class DetallePedidoViewModel
 
         ' Intentar guardar el pedido
         Dim rechazoConPicking As ModoConPickingException = Nothing
+        Dim rechazoYaEnAgencia As PedidoYaEnAgenciaException = Nothing ' Nesto#629
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
@@ -2361,6 +2368,8 @@ Public Class DetallePedidoViewModel
             Return False ' NestoAPI#712: el usuario va a corregir la fecha; no se sigue con albarán/factura
         Catch ex As ModoConPickingException
             rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
+        Catch ex As PedidoYaEnAgenciaException
+            rechazoYaEnAgencia = ex ' Nesto#629: el diálogo con el botón de logística va fuera del Catch
         Catch ex As Exception
             dialogService.ShowError($"Error al guardar el pedido: {ex.Message}" & vbCrLf & vbCrLf &
                                    "No se puede crear el albarán/factura sin guardar primero.")
@@ -2374,7 +2383,11 @@ Public Class DetallePedidoViewModel
             estaBloqueado = False
         End Try
 
-        ' Solo se llega aquí con MODO_CON_PICKING: no se ha guardado, así que no se sigue con albarán/factura.
+        ' Solo se llega aquí con MODO_CON_PICKING o PEDIDO_YA_EN_AGENCIA: no se ha guardado, así que no se sigue con albarán/factura.
+        If rechazoYaEnAgencia IsNot Nothing Then
+            Await AvisoLogisticaAplazamiento.OfrecerAsync(dialogService, servicio, pedido.empresa, pedido.numero, rechazoYaEnAgencia) ' Nesto#629
+            Return False
+        End If
         Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
         Return False
     End Function
@@ -2742,6 +2755,7 @@ Public Class DetallePedidoViewModel
         Next
 
         Dim rechazoConPicking As ModoConPickingException = Nothing
+        Dim rechazoYaEnAgencia As PedidoYaEnAgenciaException = Nothing ' Nesto#629
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         Dim guardado As Boolean = False ' NestoAPI#606
@@ -2845,6 +2859,12 @@ Public Class DetallePedidoViewModel
             ' NestoAPI#712: ha dicho que la fecha de entrega no es correcta; se vuelve a editar sin más mensajes
         Catch ex As ModoConPickingException
             rechazoConPicking = ex ' Nesto#489: en VB no se puede esperar un diálogo dentro del Catch
+        Catch ex As FechaEntregaAgenciaRechazadaException
+            ' Nesto#629 (NestoAPI#722): la agencia no acepta la fecha nueva (o no contesta). No se ha guardado nada: el pedido
+            ' se queda en pantalla con sus cambios para que corrija la fecha.
+            dialogService.ShowError(ex.Message)
+        Catch ex As PedidoYaEnAgenciaException
+            rechazoYaEnAgencia = ex ' Nesto#629: el diálogo con el botón de logística va fuera del Catch
         Catch ex As ModoServicioNoPermitidoException
             ' Nesto#484 / NestoAPI#518: el modo ya no tiene sentido; se enseña el mensaje y se preselecciona el que sí.
             dialogService.ShowError(ex.Message)
@@ -2868,6 +2888,10 @@ Public Class DetallePedidoViewModel
 
         If rechazoConPicking IsNot Nothing Then
             Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
+        End If
+
+        If rechazoYaEnAgencia IsNot Nothing AndAlso pedido IsNot Nothing Then
+            Await AvisoLogisticaAplazamiento.OfrecerAsync(dialogService, servicio, pedido.empresa, pedido.numero, rechazoYaEnAgencia)
         End If
 
         ' NestoAPI#606: guardar puede cambiar el día (líneas, modo...). Ya sin bloquear la pantalla.
