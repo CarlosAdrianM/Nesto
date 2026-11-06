@@ -26,9 +26,9 @@ Public Class ClientesViewModelTests
         _servicio = A.Fake(Of IClienteComercialService)()
         _servicioRapports = A.Fake(Of IRapportService)()
         _servicioAutenticacion = A.Fake(Of IServicioAutenticacion)()
-        _registradorOriginal = RelayCommandLegado.RegistrarErrorCanExecute
+        _registradorOriginal = ComandosReevaluables.RegistrarErrorCanExecute
         ErroresDeCanExecute = New List(Of Exception)
-        RelayCommandLegado.RegistrarErrorCanExecute = Sub(ex, contexto) ErroresDeCanExecute.Add(ex)
+        ComandosReevaluables.RegistrarErrorCanExecute = Sub(ex, contexto) ErroresDeCanExecute.Add(ex)
     End Sub
 
     Private _registradorOriginal As Action(Of Exception, String)
@@ -36,7 +36,7 @@ Public Class ClientesViewModelTests
 
     <TestCleanup()>
     Public Sub Cleanup()
-        RelayCommandLegado.RegistrarErrorCanExecute = _registradorOriginal
+        ComandosReevaluables.RegistrarErrorCanExecute = _registradorOriginal
     End Sub
 
     Private Function CrearViewModel() As ClientesViewModel
@@ -269,7 +269,7 @@ Public Class ClientesViewModelTests
     ' Incidente 13/10/26 (Laura Magán): con la cuenta del cliente anterior todavía activa y el
     ' contacto a Nothing, rutaMandato hacía contactoActual.Trim y CanVerMandato lanzaba NRE en cada
     ' RequerySuggested (174 errores en ELMAH en 7 minutos, Nesto imposible de cerrar).
-    ' Se comprueba también que RelayCommandLegado no ha tenido que tragarse ninguna excepción: el
+    ' Se comprueba también que ComandosReevaluables no ha tenido que tragarse ninguna excepción: el
     ' predicado no debe lanzar (la guarda del comando es solo la red de seguridad).
     <TestMethod()>
     Public Sub CanVerMandato_ConCuentaActivaYContactoNothing_DevuelveFalseSinLanzar()

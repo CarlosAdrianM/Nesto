@@ -1229,7 +1229,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdGuardar() As ICommand
         Get
             If _cmdGuardar Is Nothing Then
-                _cmdGuardar = New RelayCommandLegado(AddressOf Guardar, AddressOf CanGuardar)
+                _cmdGuardar = ComandosReevaluables.Crear(AddressOf Guardar, AddressOf CanGuardar)
             End If
             Return _cmdGuardar
         End Get
@@ -1315,7 +1315,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdVerMandato() As ICommand
         Get
             If _cmdVerMandato Is Nothing Then
-                _cmdVerMandato = New RelayCommandLegado(AddressOf VerMandato, AddressOf CanVerMandato)
+                _cmdVerMandato = ComandosReevaluables.Crear(AddressOf VerMandato, AddressOf CanVerMandato)
             End If
             Return _cmdVerMandato
         End Get
@@ -1356,7 +1356,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdNuevoMandato() As ICommand
         Get
             If _cmdNuevoMandato Is Nothing Then
-                _cmdNuevoMandato = New RelayCommandLegado(AddressOf NuevoMandato, AddressOf CanNuevoMandato)
+                _cmdNuevoMandato = ComandosReevaluables.Crear(AddressOf NuevoMandato, AddressOf CanNuevoMandato)
             End If
             Return _cmdNuevoMandato
         End Get
@@ -1402,7 +1402,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdAsignarMandato() As ICommand
         Get
             If _cmdAsignarMandato Is Nothing Then
-                _cmdAsignarMandato = New RelayCommandLegado(AddressOf AsignarMandato, AddressOf CanAsignarMandato)
+                _cmdAsignarMandato = ComandosReevaluables.Crear(AddressOf AsignarMandato, AddressOf CanAsignarMandato)
             End If
             Return _cmdAsignarMandato
         End Get
@@ -1448,7 +1448,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdGuardarVendedores() As ICommand
         Get
             If _cmdGuardarVendedores Is Nothing Then
-                _cmdGuardarVendedores = New RelayCommandLegado(AddressOf GuardarVendedores, AddressOf CanGuardarVendedores)
+                _cmdGuardarVendedores = ComandosReevaluables.Crear(AddressOf GuardarVendedores, AddressOf CanGuardarVendedores)
             End If
             Return _cmdGuardarVendedores
         End Get
@@ -1575,7 +1575,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property DescargarFacturasCommand() As ICommand
         Get
             If _descargarFacturasCommand Is Nothing Then
-                _descargarFacturasCommand = New RelayCommandLegado(AddressOf DescargarFacturas, AddressOf CanDescargarFacturas)
+                _descargarFacturasCommand = ComandosReevaluables.Crear(AddressOf DescargarFacturas, AddressOf CanDescargarFacturas)
             End If
             Return _descargarFacturasCommand
         End Get
@@ -1647,7 +1647,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property EnviarFacturasPorCorreoCommand() As ICommand
         Get
             If _enviarFacturasPorCorreoCommand Is Nothing Then
-                _enviarFacturasPorCorreoCommand = New RelayCommandLegado(AddressOf OnEnviarFacturasPorCorreo, AddressOf CanDescargarFacturas)
+                _enviarFacturasPorCorreoCommand = ComandosReevaluables.Crear(AddressOf OnEnviarFacturasPorCorreo, AddressOf CanDescargarFacturas)
             End If
             Return _enviarFacturasPorCorreoCommand
         End Get
@@ -1697,7 +1697,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property CargarPedidoCommand() As ICommand
         Get
             If _cargarPedidoCommand Is Nothing Then
-                _cargarPedidoCommand = New RelayCommandLegado(AddressOf CargarPedido, AddressOf CanCargarPedido)
+                _cargarPedidoCommand = ComandosReevaluables.Crear(AddressOf CargarPedido, AddressOf CanCargarPedido)
             End If
             Return _cargarPedidoCommand
         End Get
@@ -1726,7 +1726,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property ImprimirMandatoCommand() As ICommand
         Get
             If _imprimirMandatoCommand Is Nothing Then
-                _imprimirMandatoCommand = New RelayCommandLegado(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
+                _imprimirMandatoCommand = ComandosReevaluables.Crear(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
             End If
             Return _imprimirMandatoCommand
         End Get
@@ -1793,7 +1793,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property EnviarMandatoPorCorreoCommand() As ICommand
         Get
             If _enviarMandatoPorCorreoCommand Is Nothing Then
-                _enviarMandatoPorCorreoCommand = New RelayCommandLegado(AddressOf OnEnviarMandatoPorCorreo, AddressOf CanImprimirMandato)
+                _enviarMandatoPorCorreoCommand = ComandosReevaluables.Crear(AddressOf OnEnviarMandatoPorCorreo, AddressOf CanImprimirMandato)
             End If
             Return _enviarMandatoPorCorreoCommand
         End Get

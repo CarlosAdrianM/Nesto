@@ -235,7 +235,7 @@ Public Class AgenciasViewModel
         End Get
         Private Set(value As Boolean)
             If SetProperty(_estaOcupado, value) Then
-                ' Refresca el CanExecute de los comandos (RelayCommandLegado usa CommandManager.RequerySuggested).
+                ' Refresca el CanExecute de los comandos (ComandosReevaluables los reevalúa con CommandManager.RequerySuggested).
                 CommandManager.InvalidateRequerySuggested()
             End If
         End Set
@@ -2193,7 +2193,7 @@ Public Class AgenciasViewModel
     Public ReadOnly Property cmdTramitar() As ICommand
         Get
             If _cmdTramitar Is Nothing Then
-                _cmdTramitar = New RelayCommandLegado(AddressOf Tramitar, AddressOf CanTramitar)
+                _cmdTramitar = ComandosReevaluables.Crear(AddressOf Tramitar, AddressOf CanTramitar)
             End If
             Return _cmdTramitar
         End Get
@@ -2327,7 +2327,7 @@ Public Class AgenciasViewModel
     Public ReadOnly Property cmdTramitarTodos() As ICommand
         Get
             If _cmdTramitarTodos Is Nothing Then
-                _cmdTramitarTodos = New RelayCommandLegado(AddressOf TramitarTodos, AddressOf CanTramitarTodos)
+                _cmdTramitarTodos = ComandosReevaluables.Crear(AddressOf TramitarTodos, AddressOf CanTramitarTodos)
             End If
             Return _cmdTramitarTodos
         End Get
@@ -2519,7 +2519,7 @@ Public Class AgenciasViewModel
     Public ReadOnly Property cmdImprimirEtiquetaPedido() As ICommand
         Get
             If _cmdImprimirEtiquetaPedido Is Nothing Then
-                _cmdImprimirEtiquetaPedido = New RelayCommandLegado(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
+                _cmdImprimirEtiquetaPedido = ComandosReevaluables.Crear(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
             End If
             Return _cmdImprimirEtiquetaPedido
         End Get
@@ -2616,7 +2616,7 @@ Public Class AgenciasViewModel
     Public ReadOnly Property cmdBorrar() As ICommand
         Get
             If _cmdBorrar Is Nothing Then
-                _cmdBorrar = New RelayCommandLegado(AddressOf Borrar, AddressOf canBorrar)
+                _cmdBorrar = ComandosReevaluables.Crear(AddressOf Borrar, AddressOf canBorrar)
             End If
             Return _cmdBorrar
         End Get
@@ -3086,7 +3086,7 @@ Public Class AgenciasViewModel
     Public ReadOnly Property cmdImprimirEInsertar() As ICommand
         Get
             If _cmdImprimirEInsertar Is Nothing Then
-                _cmdImprimirEInsertar = New RelayCommandLegado(AddressOf ImprimirEInsertar, AddressOf CanImprimirEInsertar)
+                _cmdImprimirEInsertar = ComandosReevaluables.Crear(AddressOf ImprimirEInsertar, AddressOf CanImprimirEInsertar)
             End If
             Return _cmdImprimirEInsertar
         End Get

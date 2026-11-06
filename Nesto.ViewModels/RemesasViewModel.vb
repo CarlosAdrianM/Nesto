@@ -799,7 +799,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdCrearFicheroRemesa() As ICommand
         Get
             If _cmdCrearFicheroRemesa Is Nothing Then
-                _cmdCrearFicheroRemesa = New RelayCommandLegado(AddressOf CrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
+                _cmdCrearFicheroRemesa = ComandosReevaluables.Crear(AddressOf CrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
             End If
             Return _cmdCrearFicheroRemesa
         End Get
@@ -843,7 +843,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdLeerFicheroImpagado() As ICommand
         Get
             If _cmdLeerFicheroImpagado Is Nothing Then
-                _cmdLeerFicheroImpagado = New RelayCommandLegado(AddressOf LeerFicheroImpagado, AddressOf CanLeerFicheroImpagado)
+                _cmdLeerFicheroImpagado = ComandosReevaluables.Crear(AddressOf LeerFicheroImpagado, AddressOf CanLeerFicheroImpagado)
             End If
             Return _cmdLeerFicheroImpagado
         End Get
@@ -888,7 +888,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdVerTodasLasRemesas() As ICommand
         Get
             If _cmdVerTodasLasRemesas Is Nothing Then
-                _cmdVerTodasLasRemesas = New RelayCommandLegado(AddressOf VerTodasLasRemesas, AddressOf CanVerTodasLasRemesas)
+                _cmdVerTodasLasRemesas = ComandosReevaluables.Crear(AddressOf VerTodasLasRemesas, AddressOf CanVerTodasLasRemesas)
             End If
             Return _cmdVerTodasLasRemesas
         End Get

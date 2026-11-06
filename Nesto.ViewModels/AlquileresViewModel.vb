@@ -318,7 +318,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdGuardar() As ICommand
         Get
             If _cmdGuardar Is Nothing Then
-                _cmdGuardar = New RelayCommandLegado(AddressOf Guardar, AddressOf CanGuardar)
+                _cmdGuardar = ComandosReevaluables.Crear(AddressOf Guardar, AddressOf CanGuardar)
             End If
             Return _cmdGuardar
         End Get
@@ -355,7 +355,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdAñadir() As ICommand
         Get
             If _cmdAñadir Is Nothing Then
-                _cmdAñadir = New RelayCommandLegado(AddressOf Añadir, AddressOf CanAñadir)
+                _cmdAñadir = ComandosReevaluables.Crear(AddressOf Añadir, AddressOf CanAñadir)
             End If
             Return _cmdAñadir
         End Get
@@ -383,7 +383,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdBorrar() As ICommand
         Get
             If _cmdBorrar Is Nothing Then
-                _cmdBorrar = New RelayCommandLegado(AddressOf Borrar, AddressOf canBorrar)
+                _cmdBorrar = ComandosReevaluables.Crear(AddressOf Borrar, AddressOf canBorrar)
             End If
             Return _cmdBorrar
         End Get
@@ -403,7 +403,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdUpdNumeroSerie() As ICommand
         Get
             If _cmdUpdNumeroSerie Is Nothing Then
-                _cmdUpdNumeroSerie = New RelayCommandLegado(AddressOf UpdNumeroSerie, AddressOf canUpdNumeroSerie)
+                _cmdUpdNumeroSerie = ComandosReevaluables.Crear(AddressOf UpdNumeroSerie, AddressOf canUpdNumeroSerie)
             End If
             Return _cmdUpdNumeroSerie
         End Get
@@ -419,7 +419,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdImprimirEtiquetaMaquina() As ICommand
         Get
             If _cmdImprimirEtiquetaMaquina Is Nothing Then
-                _cmdImprimirEtiquetaMaquina = New RelayCommandLegado(AddressOf ImprimirEtiquetaMaquina, AddressOf canImprimirEtiquetaMaquina)
+                _cmdImprimirEtiquetaMaquina = ComandosReevaluables.Crear(AddressOf ImprimirEtiquetaMaquina, AddressOf canImprimirEtiquetaMaquina)
             End If
             Return _cmdImprimirEtiquetaMaquina
         End Get
@@ -465,7 +465,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdImprimirEtiquetaPedido() As ICommand
         Get
             If _cmdImprimirEtiquetaPedido Is Nothing Then
-                _cmdImprimirEtiquetaPedido = New RelayCommandLegado(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
+                _cmdImprimirEtiquetaPedido = ComandosReevaluables.Crear(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
             End If
             Return _cmdImprimirEtiquetaPedido
         End Get
