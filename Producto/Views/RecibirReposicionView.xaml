@@ -6,6 +6,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              d:DataContext="{d:DesignInstance Type=viewmodels:RecibirReposicionViewModel}"
              mc:Ignorable="d"
@@ -218,8 +219,13 @@
                         <RadioButton Content="_Otro:" GroupName="MotivoSinEtiqueta" IsChecked="{Binding MotivoOtro}" Margin="0,0,6,0" VerticalAlignment="Center" />
                         <TextBox Width="320" Text="{Binding ComentarioSinEtiqueta, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
                                  IsEnabled="{Binding MotivoOtro}" ToolTip="Con «Otro», explique qué pasa (obligatorio)" />
-                        <Button Content="_Apuntar 1 unidad" Command="{Binding ApuntarSinEtiquetaCommand}" Padding="12,2" Margin="16,0,0,0"
-                                ToolTip="Cuenta una unidad de este producto y avisa al origen y a Compras" />
+                        <!-- NestoAPI#839: varias de una vez, hasta las que faltan de la línea -->
+                        <Label Content="_Unidades:" Target="{Binding ElementName=UnidadesSinEtiqueta}" Margin="16,0,0,0" VerticalAlignment="Center" Padding="0,0,4,0" />
+                        <xctk:IntegerUpDown x:Name="UnidadesSinEtiqueta" Width="60" Minimum="1" Maximum="{Binding MaximoUnidadesSinEtiqueta}"
+                                            Value="{Binding UnidadesSinEtiqueta, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"
+                                            ToolTip="Cuántas unidades de este producto han llegado sin etiqueta (como mucho, las que faltan)" />
+                        <Button Content="{Binding TextoApuntarSinEtiqueta}" Command="{Binding ApuntarSinEtiquetaCommand}" Padding="12,2" Margin="16,0,0,0"
+                                ToolTip="Cuenta esas unidades de este producto y avisa al origen y a Compras" />
                         <Button Content="_Cancelar" Command="{Binding CancelarSinEtiquetaCommand}" Padding="12,2" Margin="8,0,0,0" />
                     </WrapPanel>
                 </StackPanel>

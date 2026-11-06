@@ -810,13 +810,14 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         /// <param name="producto">La referencia del producto (siempre una que existe: la API no admite otra cosa al terminar).</param>
         /// <param name="codigoLeido">Nesto#538: el código de barras leído, si no era la referencia; la línea nueva lo guarda.</param>
-        private void SumarUnaUnidad(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido = null)
+        /// <param name="unidades">NestoAPI#839: las unidades sin etiqueta apuntadas de una vez (un solo apunte de N).</param>
+        private void SumarUnaUnidad(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido = null, int unidades = 1)
         {
             // Ariadna#51: lo leído se manda al servidor después de decir cómo ha ido (si no llega, se dice después)
             _juntando = true;
             try
             {
-                SumarUnaUnidadAqui(linea, producto, nombre, codigoLeido);
+                SumarUnaUnidadAqui(linea, producto, nombre, codigoLeido, unidades);
             }
             finally
             {
@@ -825,7 +826,7 @@ namespace Nesto.Modules.Producto.ViewModels
             IniciarEnvio();
         }
 
-        private void SumarUnaUnidadAqui(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido)
+        private void SumarUnaUnidadAqui(LineaRecibirReposicion linea, string producto, string nombre, string codigoLeido, int unidades = 1)
         {
             linea ??= Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto, producto, StringComparison.OrdinalIgnoreCase));
             if (linea == null)
@@ -842,7 +843,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Lineas.Add(linea);
             }
             bool yaEstabaCompleta = !linea.NoVenia && linea.Leido >= linea.Enviado;
-            linea.Leido++;
+            linea.Leido += Math.Max(1, unidades);
             if (linea.NoVenia)
             {
                 LecturaFallida(string.IsNullOrWhiteSpace(codigoLeido) || string.Equals(codigoLeido, linea.Producto, StringComparison.OrdinalIgnoreCase)
@@ -1279,6 +1280,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     OnPropertyChanged(nameof(PreguntandoSinEtiqueta));
                     OnPropertyChanged(nameof(TextoPreguntaSinEtiqueta));
+                    OnPropertyChanged(nameof(MaximoUnidadesSinEtiqueta));
+                    UnidadesSinEtiqueta = 1;
                     RefrescarPreguntaSinEtiqueta();
                 }
             }
@@ -1289,6 +1292,33 @@ namespace Nesto.Modules.Producto.ViewModels
         public string TextoPreguntaSinEtiqueta => LineaSinEtiqueta == null
             ? null
             : $"Una unidad sin etiqueta de {LineaSinEtiqueta.Producto} {LineaSinEtiqueta.Descripcion}".TrimEnd() + ". ¿Por qué?";
+
+        private int _unidadesSinEtiqueta = 1;
+        /// <summary>
+        /// NestoAPI#839 (sugerencia 1113 de Reina): cuántas unidades sin etiqueta se apuntan de una vez, de 1 a las que faltan de
+        /// la línea (<see cref="MaximoUnidadesSinEtiqueta"/>). Todas con el mismo motivo.
+        /// </summary>
+        public int UnidadesSinEtiqueta
+        {
+            get => _unidadesSinEtiqueta;
+            set
+            {
+                if (SetProperty(ref _unidadesSinEtiqueta, Math.Max(1, Math.Min(MaximoUnidadesSinEtiqueta, value))))
+                {
+                    OnPropertyChanged(nameof(TextoApuntarSinEtiqueta));
+                }
+            }
+        }
+
+        /// <summary>Las que faltan de la línea (Enviado − Leído); 1 si no falta ninguna (se puede apuntar una de más, como antes).</summary>
+        public int MaximoUnidadesSinEtiqueta => LineaSinEtiqueta == null
+            ? 1
+            : Math.Max(1, LineaSinEtiqueta.Enviado - LineaSinEtiqueta.Leido);
+
+        /// <summary>«Apuntar 1 unidad» o «Apuntar N unidades» (con la tecla de acceso de la A).</summary>
+        public string TextoApuntarSinEtiqueta => UnidadesSinEtiqueta == 1
+            ? "_Apuntar 1 unidad"
+            : $"_Apuntar {UnidadesSinEtiqueta} unidades";
 
         private string _motivoSinEtiqueta;
         /// <summary>
@@ -1405,6 +1435,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private void CerrarSinEtiqueta()
         {
             LineaSinEtiqueta = null;
+            UnidadesSinEtiqueta = 1;
             MotivoSinEtiqueta = null;
             ComentarioSinEtiqueta = null;
         }
@@ -1422,12 +1453,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             bool otro = MotivoSinEtiqueta == PeticionSinEtiquetaRecepcion.MOTIVO_OTRO;
+            // Por si mientras se preguntaba se ha leído alguna: nunca más de las que faltan ahora
+            int unidades = Math.Max(1, Math.Min(UnidadesSinEtiqueta, MaximoUnidadesSinEtiqueta));
             var peticion = new PeticionSinEtiquetaRecepcion
             {
                 Producto = linea.Producto?.Trim(),
                 Motivo = MotivoSinEtiqueta,
                 Comentario = otro ? ComentarioSinEtiqueta?.Trim() : null,
-                Unidades = 1,
+                Unidades = unidades,
                 Dispositivo = Environment.MachineName
             };
             ResultadoSinEtiquetaRecepcion resultado = null;
@@ -1461,9 +1494,11 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             CerrarSinEtiqueta();
-            SumarUnaUnidad(linea, linea.Producto, null);
+            SumarUnaUnidad(linea, linea.Producto, null, null, unidades);
             string apuntada = string.IsNullOrWhiteSpace(resultado?.Mensaje)
-                ? $"Apuntada 1 unidad sin etiqueta de {linea.Producto}."
+                ? (unidades == 1
+                    ? $"Apuntada 1 unidad sin etiqueta de {linea.Producto}."
+                    : $"Apuntadas {unidades} unidades sin etiqueta de {linea.Producto}.")
                 : resultado.Mensaje.Trim();
             // Nesto#610 (sugerencia 979): pulsarlo sin querer avisa al origen y a Compras; que se sepa cómo deshacerlo
             apuntada = $"{apuntada} {TEXTO_SI_ES_UN_ERROR_QUITAR_UNO}";

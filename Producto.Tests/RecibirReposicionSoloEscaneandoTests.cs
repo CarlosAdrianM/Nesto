@@ -23,6 +23,7 @@ namespace Producto.Tests
         private RecibirReposicionViewModel _vm = null!;
         private List<LecturaEnCursoRecepcion> _apuntes = null!;
         private List<PeticionSinEtiquetaRecepcion> _sinEtiqueta = null!;
+        private int _enviadas17404;
         private bool _soloEscaneando;
         private bool _lecturasEnServidor;
         /// <summary>Nesto#605: la reposición lleva además una muestra (MMP) sin código, admitida sin etiqueta.</summary>
@@ -48,7 +49,7 @@ namespace Producto.Tests
             SoloEscaneando = _soloEscaneando,
             Lineas = new List<LineaRecepcionReposicion>
             {
-                new() { Producto = "17404", Descripcion = "Rollo papel camilla", CodigosBarras = new List<string> { "2900000174047" }, SinCodigo = true, Cantidad = 3 },
+                new() { Producto = "17404", Descripcion = "Rollo papel camilla", CodigosBarras = new List<string> { "2900000174047" }, SinCodigo = true, Cantidad = _enviadas17404 },
                 new() { Producto = "40057", Descripcion = "Banda", CodigoBarras = "8422", Cantidad = 1 }
             }
         };
@@ -67,6 +68,7 @@ namespace Producto.Tests
         {
             _apuntes = new List<LecturaEnCursoRecepcion>();
             _sinEtiqueta = new List<PeticionSinEtiquetaRecepcion>();
+            _enviadas17404 = 3;
             _soloEscaneando = true;
             _lecturasEnServidor = true;
             _servicio = A.Fake<IServicioRecepcionReposiciones>();
@@ -219,6 +221,68 @@ namespace Producto.Tests
             Assert.AreEqual("Apuntada 1 unidad sin etiqueta de 17404: se ha avisado a Algete y a Compras. (si ha sido un error, pulse «−1»)", _vm.Mensaje,
                 "Nesto#610: pulsarlo sin querer avisa a Algete y a Compras; el aviso dice cómo quitarla");
             Assert.IsFalse(_vm.PreguntandoSinEtiqueta);
+        }
+
+        [TestMethod]
+        public async Task SinEtiqueta_ConSeisQueFaltanYSeisUnidades_UnaSolaLlamadaConSeisYLeidoSubeSeis()
+        {
+            // NestoAPI#839 (sugerencia 1113 de Reina): seis sin etiqueta, de una vez
+            _enviadas17404 = 6;
+            await _vm.CargarAsync();
+
+            _vm.SinEtiquetaCommand.Execute(Linea("17404"));
+            Assert.AreEqual(6, _vm.MaximoUnidadesSinEtiqueta);
+            Assert.AreEqual(1, _vm.UnidadesSinEtiqueta, "Empieza en 1");
+            Assert.AreEqual("_Apuntar 1 unidad", _vm.TextoApuntarSinEtiqueta);
+            _vm.MotivoSinEtiqueta = PeticionSinEtiquetaRecepcion.MOTIVO_NO_LLEVA;
+            _vm.UnidadesSinEtiqueta = 6;
+            Assert.AreEqual("_Apuntar 6 unidades", _vm.TextoApuntarSinEtiqueta);
+            await _vm.ApuntarSinEtiquetaCommand.ExecuteAsync(null);
+            await _vm.EnvioEnCurso;
+
+            Assert.AreEqual(6, _sinEtiqueta.Single().Unidades, "Una sola llamada con las seis");
+            Assert.AreEqual(6, Linea("17404").Leido);
+            Assert.AreEqual(6, _apuntes.Where(a => a.Producto == "17404").Sum(a => a.Cantidad));
+            Assert.IsFalse(_vm.PreguntandoSinEtiqueta);
+            Assert.AreEqual(1, _vm.UnidadesSinEtiqueta, "Al cerrar vuelve a 1");
+        }
+
+        [TestMethod]
+        public async Task SinEtiqueta_UnidadesPorEncimaDeLasQueFaltan_SeRecortan()
+        {
+            _enviadas17404 = 6;
+            await _vm.CargarAsync();
+            await LeerAsync("2900000174047");
+            await LeerAsync("2900000174047");
+
+            _vm.SinEtiquetaCommand.Execute(Linea("17404"));
+            _vm.MotivoSinEtiqueta = PeticionSinEtiquetaRecepcion.MOTIVO_NO_SE_LEE;
+            _vm.UnidadesSinEtiqueta = 10;
+
+            Assert.AreEqual(4, _vm.MaximoUnidadesSinEtiqueta);
+            Assert.AreEqual(4, _vm.UnidadesSinEtiqueta, "Como mucho, las que faltan");
+            _vm.UnidadesSinEtiqueta = 0;
+            Assert.AreEqual(1, _vm.UnidadesSinEtiqueta, "Como poco, una");
+            _vm.UnidadesSinEtiqueta = 4;
+            await _vm.ApuntarSinEtiquetaCommand.ExecuteAsync(null);
+            await _vm.EnvioEnCurso;
+
+            Assert.AreEqual(4, _sinEtiqueta.Single().Unidades);
+            Assert.AreEqual(6, Linea("17404").Leido);
+        }
+
+        [TestMethod]
+        public async Task SinEtiqueta_LineaYaCompleta_SoloDejaUna()
+        {
+            await _vm.CargarAsync();
+            await LeerAsync("8422");
+
+            _vm.SinEtiquetaCommand.Execute(Linea("40057"));
+            _vm.UnidadesSinEtiqueta = 3;
+
+            Assert.AreEqual(1, _vm.MaximoUnidadesSinEtiqueta);
+            Assert.AreEqual(1, _vm.UnidadesSinEtiqueta);
+            Assert.AreEqual("_Apuntar 1 unidad", _vm.TextoApuntarSinEtiqueta);
         }
 
         [TestMethod]
