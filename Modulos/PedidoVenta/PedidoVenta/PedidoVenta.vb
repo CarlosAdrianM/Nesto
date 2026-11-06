@@ -45,6 +45,8 @@ Public Class PedidoVenta
         registro.Transitorio(Of DetallePedidoViewModel)()
         ' Nesto#552: «Pendientes de entregar» (Clientes > Ventas en la cinta)
         registro.Transitorio(Of PendientesEntregarView)()
+        ' Nesto#628: también por nombre, para que la ficha de producto la abra filtrada (NavegacionPendientesEntregar)
+        registro.Vista(Of PendientesEntregarView)(NavegacionPendientesEntregar.NOMBRE_VISTA)
         registro.Transitorio(Of PendientesEntregarViewModel)()
     End Sub
 

@@ -108,7 +108,14 @@
                             <TextBlock Text="Stock" Grid.Column="0" Grid.Row="1" FontWeight="Bold"></TextBlock>
                             <TextBlock Text="{Binding Stock}" Grid.Column="1" Grid.Row="1" FontWeight="Bold"></TextBlock>
                             <TextBlock Text="Pendientes de Entregar" Grid.Column="0" Grid.Row="2"></TextBlock>
-                            <TextBlock Text="{Binding PendienteEntregar}" Grid.Column="1" Grid.Row="2"></TextBlock>
+                            <!-- Nesto#628: el número abre «Pendientes de entregar» filtrado por este producto y este almacén (con 0, deshabilitado) -->
+                            <TextBlock Grid.Column="1" Grid.Row="2">
+                                <Hyperlink CommandParameter="{Binding}"
+                                           Command="{Binding DataContext.AbrirPendientesEntregarCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                           ToolTip="Ver los pedidos con este producto pendiente de entregar en este almacén">
+                                    <Run Text="{Binding PendienteEntregar, Mode=OneWay}"/>
+                                </Hyperlink>
+                            </TextBlock>
                             <TextBlock Text="Pendientes de Recibir" Grid.Column="0" Grid.Row="3" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <TextBlock Text="{Binding PendienteRecibir}" Grid.Column="1" Grid.Row="3" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <TextBlock Text="Fecha Estimada de Recepción" Grid.Column="0" Grid.Row="4" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>

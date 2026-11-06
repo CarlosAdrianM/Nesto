@@ -647,6 +647,7 @@ namespace Nesto.Tests
             "CarteraPagosView | CarteraPagosView | CarteraPagosViewModel",
             "PedidoVentaView | PedidoVentaView | PedidoVentaViewModel",
             "DetallePedidoView | DetallePedidoView | DetallePedidoViewModel",
+            "PendientesEntregarView | PendientesEntregarView | PendientesEntregarViewModel", // Nesto#628, después de la referencia de Prism
             "ListaRapportsView | ListaRapportsView | ListaRapportsViewModel",
             "RapportView | RapportView | RapportViewModel",
             "CanalesExternosPedidosView | CanalesExternosPedidosView | CanalesExternosPedidosViewModel",

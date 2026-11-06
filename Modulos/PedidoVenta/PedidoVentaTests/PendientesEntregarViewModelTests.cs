@@ -154,6 +154,85 @@ namespace PedidoVentaTests
             System.IO.File.Delete(abierto);
         }
 
+        // Nesto#628: desde la ficha de producto se llega con el producto y el almacén puestos
+
+        [TestMethod]
+        public void AlLlegar_ConProductoYAlmacen_PoneLosFiltrosYCarga()
+        {
+            Devuelve(Linea(929042, "40442", 10M));
+
+            vm.AlLlegar(new ParametrosNavegacion
+            {
+                { NavegacionPendientesEntregar.PARAMETRO_PRODUCTO, "40442 " },
+                { NavegacionPendientesEntregar.PARAMETRO_ALMACEN, "alg" }
+            });
+
+            Assert.AreEqual("40442", vm.Producto);
+            Assert.AreEqual("ALG", vm.Almacen);
+            A.CallTo(() => servicio.LeerPendientesEntregar("1", "ALG", "40442", null)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, vm.NumeroLineas);
+        }
+
+        [TestMethod]
+        public void AlLlegar_QuitaElVendedorYElFiltroDeTextoDeAntes()
+        {
+            Devuelve(Linea(929042, "40442", 10M));
+            vm.Vendedor = "ASH";
+            vm.ListaLineas.Filtro = "NO EXISTE";
+
+            vm.AlLlegar(new ParametrosNavegacion
+            {
+                { NavegacionPendientesEntregar.PARAMETRO_PRODUCTO, "40442" },
+                { NavegacionPendientesEntregar.PARAMETRO_ALMACEN, "REI" }
+            });
+
+            A.CallTo(() => servicio.LeerPendientesEntregar("1", "REI", "40442", null)).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(1, vm.NumeroLineas);
+        }
+
+        [TestMethod]
+        public async Task AlLlegar_LosFiltrosSePuedenCambiarDespues()
+        {
+            Devuelve();
+            vm.AlLlegar(new ParametrosNavegacion
+            {
+                { NavegacionPendientesEntregar.PARAMETRO_PRODUCTO, "40442" },
+                { NavegacionPendientesEntregar.PARAMETRO_ALMACEN, "ALG" }
+            });
+
+            vm.Almacen = PendientesEntregarViewModel.TODOS_LOS_ALMACENES;
+            await vm.CargarAsync();
+
+            A.CallTo(() => servicio.LeerPendientesEntregar("1", null, "40442", null)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void AlLlegar_SinParametros_NoTocaNadaNiCarga()
+        {
+            vm.Producto = "17404";
+
+            vm.AlLlegar(new ParametrosNavegacion());
+            vm.AlLlegar(null);
+
+            Assert.AreEqual("17404", vm.Producto);
+            A.CallTo(() => servicio.LeerPendientesEntregar(A<string>._, A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AbrirPedido_DobleClicEnLaFila_AbreEsePedido()
+        {
+            // Nesto#628 (añadido de Carlos): doble clic en la fila del 929042 abre el pedido 929042, no otro de la rejilla
+            var otra = Linea(929000, "40442", 1M);
+            var elegida = Linea(929042, "40442", 1M);
+            vm.ListaLineas.ListaOriginal = new System.Collections.ObjectModel.ObservableCollection<IFiltrableItem>(new IFiltrableItem[] { otra, elegida });
+            vm.ListaLineas.ElementoSeleccionado = otra;
+
+            vm.AbrirPedidoCommand.Execute(elegida);
+
+            A.CallTo(() => abridor.Abrir("1", 929042)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => abridor.Abrir(A<string>._, 929000)).MustNotHaveHappened();
+        }
+
         [TestMethod]
         public void Url_SoloLlevaLosFiltrosQueHay()
         {

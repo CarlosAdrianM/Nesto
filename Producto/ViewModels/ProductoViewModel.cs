@@ -71,6 +71,7 @@ namespace Nesto.Modules.Producto.ViewModels
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
             AbrirProductoCommand = new RelayCommand<string>(OnAbrirProducto);
+            AbrirPendientesEntregarCommand = new RelayCommand<ProductoModel.StockProducto>(OnAbrirPendientesEntregar, CanAbrirPendientesEntregar);
             AbrirProductoWebCommand = new RelayCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
             BuscarProductoCommand = new RelayCommand(OnBuscarProducto, CanBuscarProducto);
             BuscarContextualCommand = new RelayCommand<string>(OnBuscarContextual, CanBuscarContextual);
@@ -321,6 +322,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     }
                     AbrirProductoWebCommand.NotifyCanExecuteChanged();
                     ImprimirEtiquetaCodigoBarrasCommand?.NotifyCanExecuteChanged();
+                    AbrirPendientesEntregarCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -557,6 +559,29 @@ namespace Nesto.Modules.Producto.ViewModels
                 };
                 _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
             }
+        }
+
+        /// <summary>
+        /// Nesto#628 (sugerencia 1106, Alfredo): el número «Pendientes de Entregar» de un almacén abre la pantalla «Pendientes de
+        /// entregar» (módulo PedidoVenta) filtrada por este producto y ese almacén. Con 0 pendientes, deshabilitado.
+        /// </summary>
+        public RelayCommand<ProductoModel.StockProducto> AbrirPendientesEntregarCommand { get; private set; }
+        private bool CanAbrirPendientesEntregar(ProductoModel.StockProducto stock)
+        {
+            return stock != null && stock.PendienteEntregar > 0 && !string.IsNullOrWhiteSpace(ProductoActual?.Producto);
+        }
+        private void OnAbrirPendientesEntregar(ProductoModel.StockProducto stock)
+        {
+            if (!CanAbrirPendientesEntregar(stock))
+            {
+                return;
+            }
+            var parameters = new ParametrosNavegacion
+            {
+                { NavegacionPendientesEntregar.PARAMETRO_PRODUCTO, ProductoActual.Producto.Trim() },
+                { NavegacionPendientesEntregar.PARAMETRO_ALMACEN, stock.Almacen?.Trim() }
+            };
+            _navegacion.RequestNavigate("MainRegion", NavegacionPendientesEntregar.NOMBRE_VISTA, parameters);
         }
 
         public RelayCommand AbrirProductoWebCommand { get; private set; }

@@ -90,6 +90,56 @@ namespace Producto.Tests
             });
         }
 
+        // Nesto#628 (sugerencia 1106): el número «Pendientes de Entregar» de un almacén abre Pendientes de entregar filtrado
+
+        private static ProductoModel ProductoConPendientes(int pendientesAlg) => new ProductoModel
+        {
+            Producto = "40442 ",
+            Stocks = new List<ProductoModel.StockProducto>
+            {
+                new ProductoModel.StockProducto { Almacen = "ALG", PendienteEntregar = pendientesAlg },
+                new ProductoModel.StockProducto { Almacen = "REI", PendienteEntregar = 0 }
+            }
+        };
+
+        [TestMethod]
+        public void AbrirPendientesEntregar_NavegaConElProductoYElAlmacen()
+        {
+            ParametrosNavegacion? recibidos = null;
+            A.CallTo(() => _navegacion.RequestNavigate("MainRegion", NavegacionPendientesEntregar.NOMBRE_VISTA, A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => recibidos = p);
+            var vm = Nuevo();
+            vm.ProductoActual = ProductoConPendientes(1);
+
+            vm.AbrirPendientesEntregarCommand.Execute(vm.ProductoActual.Stocks.First());
+
+            Assert.IsNotNull(recibidos);
+            Assert.AreEqual("40442", recibidos!.GetValue<string>(NavegacionPendientesEntregar.PARAMETRO_PRODUCTO));
+            Assert.AreEqual("ALG", recibidos.GetValue<string>(NavegacionPendientesEntregar.PARAMETRO_ALMACEN));
+        }
+
+        [TestMethod]
+        public void AbrirPendientesEntregar_ConCeroPendientes_NoEstaHabilitadoNiNavega()
+        {
+            var vm = Nuevo();
+            vm.ProductoActual = ProductoConPendientes(0);
+            var alg = vm.ProductoActual.Stocks.First();
+
+            Assert.IsFalse(vm.AbrirPendientesEntregarCommand.CanExecute(alg));
+            Assert.IsFalse(vm.AbrirPendientesEntregarCommand.CanExecute(null));
+            vm.AbrirPendientesEntregarCommand.Execute(alg);
+            A.CallTo(() => _navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void AbrirPendientesEntregar_ConPendientes_EstaHabilitado()
+        {
+            var vm = Nuevo();
+            vm.ProductoActual = ProductoConPendientes(3);
+
+            Assert.IsTrue(vm.AbrirPendientesEntregarCommand.CanExecute(vm.ProductoActual.Stocks.First()));
+        }
+
         private static void EnHiloSta(Action accion)
         {
             Exception? error = null;

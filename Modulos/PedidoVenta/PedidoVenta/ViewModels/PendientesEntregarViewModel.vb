@@ -12,9 +12,11 @@ Imports Nesto.Infrastructure.Shared
 ''' Nesto#552 (sugerencia 717, Manuel): «Pendientes de entregar», todas las líneas de pedido pendientes de entregar de
 ''' todos los almacenes. Solo lectura: filtros de almacén, producto y vendedor (los aplica la API), la barra de filtro
 ''' de siempre sobre lo cargado, exportar a Excel y doble clic para abrir el pedido.
+''' Nesto#628: también se llega desde la ficha de producto (NavegacionPendientesEntregar) con el producto y el almacén puestos.
 ''' </summary>
 Public Class PendientesEntregarViewModel
     Inherits ObservableObject
+    Implements IReceptorNavegacion
 
     Public Const TODOS_LOS_ALMACENES As String = "(Todos)"
 
@@ -184,6 +186,27 @@ Public Class PendientesEntregarViewModel
         abridorPedidos.Abrir(Empresa, linea.Pedido)
     End Sub
 #End Region
+
+    ''' <summary>
+    ''' Nesto#628: la ficha de producto abre la pantalla con el producto y el almacén puestos (los filtros se pueden cambiar
+    ''' después). Sin parámetros (el menú) no toca nada: carga el Loaded de la vista. Se carga por CargarCommand para que
+    ''' el Loaded de una vista recién abierta no vuelva a pedirlo mientras tanto (el comando no admite dos a la vez).
+    ''' </summary>
+    Public Async Sub AlLlegar(parametros As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
+        If parametros Is Nothing OrElse
+            Not (parametros.ContainsKey(NavegacionPendientesEntregar.PARAMETRO_PRODUCTO) OrElse parametros.ContainsKey(NavegacionPendientesEntregar.PARAMETRO_ALMACEN)) Then
+            Return
+        End If
+        Producto = Limpio(parametros.GetValue(Of String)(NavegacionPendientesEntregar.PARAMETRO_PRODUCTO))
+        Dim almacenRecibido = Limpio(parametros.GetValue(Of String)(NavegacionPendientesEntregar.PARAMETRO_ALMACEN))
+        Almacen = If(almacenRecibido Is Nothing, TODOS_LOS_ALMACENES,
+                     If(Almacenes.FirstOrDefault(Function(a) String.Equals(a, almacenRecibido, StringComparison.OrdinalIgnoreCase)), almacenRecibido))
+        ' Lo que hubiera de otra búsqueda (filtro de texto y vendedor) no debe esconder lo que se viene a ver
+        Vendedor = Nothing
+        ListaLineas.Reiniciar()
+        ListaLineas.Filtro = Nothing
+        Await CargarCommand.ExecuteAsync(Nothing)
+    End Sub
 
     Private Sub ListaLineas_PropertyChanged(sender As Object, e As PropertyChangedEventArgs) Handles _listaLineas.PropertyChanged
         If e.PropertyName = NameOf(ColeccionFiltrable.Lista) Then
