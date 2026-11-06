@@ -40,12 +40,18 @@ namespace ClienteTests
         {
             var evento = new EventoModel { Id = 7, Empresa = "1", Titulo = "Masterclass", Fecha = DateTime.Today.AddDays(5), Almacen = "REI", Activo = true, Formato = formato };
             A.CallTo(() => eventos.LeerEventos(false)).Returns(new List<EventoModel> { evento });
-            A.CallTo(() => eventos.LeerInscripciones(7)).ReturnsLazily(() => inscritos.Select(i => Inscripcion(i.Id, i.FormaAsistencia, i.Estado)).ToList());
+            A.CallTo(() => eventos.LeerInscripciones(7)).ReturnsLazily(() => inscritos.Select(i => Con(Inscripcion(i.Id, i.FormaAsistencia, i.Estado), i.Asistentes)).ToList());
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await vm.CargarAsync();
             vm.Seleccionado = vm.Eventos.Single();
             await vm.CargarInscripcionesAsync();
             return vm;
+        }
+
+        private static InscripcionEventoModel Con(InscripcionEventoModel inscripcion, int? asistentes)
+        {
+            inscripcion.Asistentes = asistentes;
+            return inscripcion;
         }
 
         private static List<int> Ids(MantenimientoEventosViewModel vm) => vm.InscripcionesVisibles.Select(i => i.Id).ToList();
@@ -120,6 +126,26 @@ namespace ClienteTests
                 Inscripcion(5, "Online", InscripcionEventoModel.ANULADA));
 
             Assert.AreEqual("2 presencial · 1 online · 1 sin indicar", vm.ResumenFormaAsistencia);
+        }
+
+        [TestMethod]
+        public async Task Contador_CuentaAsistentesNoInscripciones()
+        {
+            // NestoAPI#832: una inscripción de 2 asistentes presencial cuenta 2 personas
+            var vm = await Mantenimiento(EventoModel.FORMATO_MIXTO,
+                Con(Inscripcion(1, "Presencial"), 2), Con(Inscripcion(2, "Online"), 1), Con(Inscripcion(3), 1),
+                Con(Inscripcion(4, "Online", InscripcionEventoModel.ANULADA), 3));
+
+            Assert.AreEqual("2 presencial · 1 online · 1 sin indicar", vm.ResumenFormaAsistencia);
+        }
+
+        [TestMethod]
+        public async Task Contador_AsistentesVacioOCero_CuentaUno()
+        {
+            var vm = await Mantenimiento(EventoModel.FORMATO_MIXTO,
+                Con(Inscripcion(1, "Presencial"), null), Con(Inscripcion(2, "Online"), 0), Con(Inscripcion(3), null));
+
+            Assert.AreEqual("1 presencial · 1 online · 1 sin indicar", vm.ResumenFormaAsistencia);
         }
 
         [TestMethod]

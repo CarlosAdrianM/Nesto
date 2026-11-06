@@ -264,7 +264,10 @@
                         <!-- Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): en los eventos mixtos, presencial u online -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,12,2"
                                     Visibility="{Binding EventoEsMixto, Converter={StaticResource BoolAVisibilidad}}">
-                            <TextBlock Text="{Binding ResumenFormaAsistencia}" Foreground="DimGray" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <!-- NestoAPI#832: cuenta personas (los asistentes de cada inscripción), no inscripciones -->
+                            <TextBlock Text="Asistentes:" Foreground="DimGray" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="{Binding ResumenFormaAsistencia}" Foreground="DimGray" VerticalAlignment="Center" Margin="0,0,10,0"
+                                       ToolTip="Personas, no inscripciones: una inscripción de 2 asistentes cuenta 2 (para preparar la sala y las conexiones)"/>
                             <TextBlock Text="Ver:" VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <ComboBox ItemsSource="{Binding FiltrosFormaAsistencia}" SelectedItem="{Binding FiltroFormaAsistencia}" DisplayMemberPath="Texto"
                                       Width="100" VerticalAlignment="Center" Margin="0,0,10,0"

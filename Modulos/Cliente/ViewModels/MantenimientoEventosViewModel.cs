@@ -244,7 +244,11 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        /// <summary>«5 presencial · 3 online · 1 sin indicar» (inscripciones vivas: las anuladas y caducadas no cuentan). Vacío si no es mixto.</summary>
+        /// <summary>
+        /// «5 presencial · 3 online · 1 sin indicar» en PERSONAS (NestoAPI#832, para preparar la sala y las conexiones): cada
+        /// inscripción viva suma sus asistentes (NestoAPI#811; vacío o 0 = 1) en su forma de asistencia. Las anuladas y caducadas
+        /// no cuentan. Vacío si no es mixto.
+        /// </summary>
         public string ResumenFormaAsistencia
         {
             get
@@ -255,9 +259,9 @@ namespace Nesto.Modulos.Cliente
                 }
                 List<InscripcionEventoModel> vivas = (Inscripciones ?? Enumerable.Empty<InscripcionEventoModel>())
                     .Where(i => i.Estado != InscripcionEventoModel.CADUCADA && i.Estado != InscripcionEventoModel.ANULADA).ToList();
-                int presencial = vivas.Count(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_PRESENCIAL);
-                int online = vivas.Count(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_ONLINE);
-                int sinIndicar = vivas.Count - presencial - online;
+                int presencial = vivas.Where(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_PRESENCIAL).Sum(i => i.NumeroAsistentes);
+                int online = vivas.Where(i => i.FormaAsistenciaGuardada == InscripcionEventoModel.FORMA_ONLINE).Sum(i => i.NumeroAsistentes);
+                int sinIndicar = vivas.Sum(i => i.NumeroAsistentes) - presencial - online;
                 string texto = $"{presencial} presencial · {online} online";
                 return sinIndicar > 0 ? $"{texto} · {sinIndicar} sin indicar" : texto;
             }
