@@ -1,4 +1,4 @@
-using Microsoft.AspNet.SignalR.Client;
+﻿using Microsoft.AspNet.SignalR.Client;
 using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.Concurrent;
@@ -615,9 +615,16 @@ namespace Nesto.Infrastructure.Shared
         public event EventHandler Reconectada;
         public event EventHandler Cerrada;
 
+        /// <summary>Nesto#630 (NestoAPI#834): la clave de la versión en la cadena de conexión (la lee GET api/Notificaciones/ConectadosNesto).</summary>
+        internal const string PARAMETRO_VERSION = "version";
+
         public ConexionAvisosSignalR(string urlHub, string token)
+            : this(urlHub, token, Globos.ClienteGlobos.VersionNesto)
+        { }
+
+        internal ConexionAvisosSignalR(string urlHub, string token, Func<string> versionNesto)
         {
-            _conexion = new HubConnection(urlHub, new Dictionary<string, string> { { "access_token", token } }, useDefaultUrl: false);
+            _conexion = new HubConnection(urlHub, ParametrosConexion(token, versionNesto), useDefaultUrl: false);
             IHubProxy proxy = _conexion.CreateHubProxy(HUB);
             _avisos = proxy;
             _ = proxy.On(METODO_AVISO, () => HayNotificacionesNuevas?.Invoke(this, EventArgs.Empty));
@@ -630,6 +637,21 @@ namespace Nesto.Infrastructure.Shared
             _conexion.Reconnecting += () => Reconectando?.Invoke(this, EventArgs.Empty);
             _conexion.Reconnected += () => Reconectada?.Invoke(this, EventArgs.Empty);
             _conexion.Closed += () => Cerrada?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// La cadena de conexión: el JWT y, Nesto#630, la versión de Nesto (la del título de la ventana: ClickOnce o, fuera de
+        /// ClickOnce, la del ensamblado). Sin versión conocida no se manda la clave.
+        /// </summary>
+        internal static Dictionary<string, string> ParametrosConexion(string token, Func<string> versionNesto)
+        {
+            var parametros = new Dictionary<string, string> { { "access_token", token } };
+            string version = versionNesto?.Invoke();
+            if (!string.IsNullOrWhiteSpace(version))
+            {
+                parametros[PARAMETRO_VERSION] = version.Trim();
+            }
+            return parametros;
         }
 
         public Task Iniciar() => _conexion.Start();

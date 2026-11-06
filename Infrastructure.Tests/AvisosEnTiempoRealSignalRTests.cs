@@ -602,5 +602,31 @@ namespace Infrastructure.Tests
             CollectionAssert.AreEqual(new[] { EstadoConexionTiempoReal.Conectando, EstadoConexionTiempoReal.Conectado }, estados.ToArray());
             avisos.Detener();
         }
+
+        // ---- Nesto#630 (NestoAPI#834): la versión de Nesto en la cadena de conexión ----
+
+        [TestMethod]
+        public void ParametrosConexion_ConVersion_LlevaLaVersionDelProveedorYElToken()
+        {
+            Dictionary<string, string> parametros = ConexionAvisosSignalR.ParametrosConexion("jwt-1", () => "1.10.56.0");
+
+            Assert.AreEqual("jwt-1", parametros["access_token"]);
+            Assert.AreEqual("1.10.56.0", parametros[ConexionAvisosSignalR.PARAMETRO_VERSION]);
+            Assert.AreEqual("version", ConexionAvisosSignalR.PARAMETRO_VERSION);
+            Assert.AreEqual(2, parametros.Count);
+        }
+
+        [TestMethod]
+        public void ParametrosConexion_SinVersionConocida_NoMandaLaClave()
+        {
+            foreach (Func<string> proveedor in new Func<string>[] { () => null, () => "", () => "   ", null })
+            {
+                Dictionary<string, string> parametros = ConexionAvisosSignalR.ParametrosConexion("jwt-1", proveedor);
+
+                Assert.IsFalse(parametros.ContainsKey(ConexionAvisosSignalR.PARAMETRO_VERSION));
+                Assert.AreEqual("jwt-1", parametros["access_token"]);
+                Assert.AreEqual(1, parametros.Count);
+            }
+        }
     }
 }
