@@ -15,6 +15,10 @@
             <RibbonGroup x:Name="grpMantenimiento"
                                 Header="Mantenimiento">
                 <RibbonButton Label="Crear Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModuloCommand}" />
+                <!-- NestoAPI#623 corte 4: el fichero de leads que exporta Meta Ads (Dirección, Administración, Vendedores, Informática) -->
+                <RibbonButton Label="Importar leads de Meta" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirImportarLeadsMetaCommand}"
+                              Visibility="{Binding PuedeImportarLeadsMeta, Converter={StaticResource BoolAVisibilidad}}"
+                              ToolTipDescription="Da de alta como clientes los leads del formulario de Meta, con su origen, para que los llame el vendedor de la zona." />
                 <!-- Nesto#417: corrección rápida de NIF incorrectos (Verifactu) -->
                 <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/NifIncorrectos.png" Command="{Binding AbrirNifIncorrectosCommand}" />
                 <!-- Nesto#442: mantenimiento de códigos postales (solo Dirección y Tienda online) -->

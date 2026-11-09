@@ -41,6 +41,10 @@ namespace Nesto.Modulos.Cliente
             registro.Transitorio<IDiaRepartoClienteService, DiaRepartoClienteService>();
             // Nesto#523 (NestoAPI#623): origen del cliente (campañas) en «Crear cliente» y en la ficha
             registro.Transitorio<IOrigenesClienteService, OrigenesClienteService>();
+            // NestoAPI#623 corte 4: importar el fichero de leads de Meta
+            registro.Vista<ImportarLeadsMetaView>("ImportarLeadsMetaView");
+            registro.Transitorio<IImportarLeadsMetaService, ImportarLeadsMetaService>();
+            registro.Transitorio<ImportarLeadsMetaViewModel>();
             registro.Transitorio<HorariosPorRevisarViewModel>();
             // Nesto#618 (NestoAPI#786): «Nueva nota de cobro» (desde la ficha del cliente y desde el detalle del pedido)
             registro.Transitorio<INotaCobroService, NotaCobroService>();

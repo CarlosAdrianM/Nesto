@@ -46,6 +46,7 @@ namespace Nesto.Modulos.Cliente
             AbrirExtractoClienteCommand = new RelayCommand(OnAbrirExtractoCliente);
             AbrirNifIncorrectosCommand = new RelayCommand(OnAbrirNifIncorrectos);
             AbrirCodigosPostalesCommand = new RelayCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
+            AbrirImportarLeadsMetaCommand = new RelayCommand(() => Navegacion.RequestNavigate("MainRegion", "ImportarLeadsMetaView"), () => PuedeImportarLeadsMeta); // NestoAPI#623 corte 4
             AbrirHorariosPorRevisarCommand = new RelayCommand(() => Navegacion.RequestNavigate("MainRegion", "HorariosPorRevisarView"), CanAbrirHorariosPorRevisar); // Nesto#584
             AbrirEventosCommand = new RelayCommand(OnAbrirEventos, () => PuedeVerEventos); // NestoAPI#591; Nesto#619: para todos
             AbrirSenalesEventosCommand = new RelayCommand(OnAbrirSenalesEventos, () => PuedeVerSenalesEventos); // NestoAPI#591
@@ -981,6 +982,10 @@ namespace Nesto.Modulos.Cliente
                 || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
                 || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
         }
+
+        // NestoAPI#623 corte 4: importar el fichero de leads de Meta (los mismos grupos que el endpoint)
+        public ICommand AbrirImportarLeadsMetaCommand { get; private set; }
+        public bool PuedeImportarLeadsMeta => ImportarLeadsMetaViewModel.PuedeVer(Configuracion);
 
         // NestoAPI#591 y Nesto#517: mantenimiento de eventos (cada tienda, Tienda online, Administración, Dirección, Informática).
         // Nesto#619 (sugerencia 1021 de Sancho, Carlos 04/11/26): la pantalla la ven todos; los que no la mantienen, de consulta

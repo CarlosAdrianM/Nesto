@@ -1,0 +1,58 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.ImportarLeadsMetaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="1000"
+             Background="White">
+    <!-- NestoAPI#623 corte 4: importar el fichero de leads de Meta (ensayo y luego de verdad). -->
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="{Binding Titulo}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="Origen:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <ComboBox ItemsSource="{Binding Origenes}" SelectedItem="{Binding OrigenSeleccionado}" DisplayMemberPath="Nombre" MinWidth="260" Margin="0,0,8,0"/>
+            <Button Content="Elegir fichero…" Command="{Binding ElegirFicheroCommand}" Padding="10,1" Margin="0,0,6,0"
+                    ToolTip="El fichero que exporta Meta Ads con los leads del formulario (Excel XML o CSV). Al elegirlo se hace el ensayo."/>
+            <TextBlock Text="{Binding NombreFichero}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <Button Content="Ensayar otra vez" Command="{Binding EnsayarCommand}" Padding="10,1" Margin="0,0,6,0"/>
+            <Button Content="Importar" Command="{Binding ImportarCommand}" Padding="14,1" FontWeight="SemiBold"
+                    ToolTip="Da de alta los leads nuevos y pone el origen a los que ya eran clientes. Se puede repetir: no crea nada dos veces."/>
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="6,3" Margin="0,0,0,4">
+            <TextBlock Text="{Binding Resumen}" TextWrapping="Wrap"/>
+        </Border>
+
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Leads}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Fila" Binding="{Binding Fila}" Width="Auto"/>
+                <DataGridTextColumn Header="Lead" Binding="{Binding Lead}" Width="Auto"/>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding FechaLead, StringFormat=dd/MM HH:mm}" Width="Auto"/>
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="2*"/>
+                <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                <DataGridTextColumn Header="C. P." Binding="{Binding CodigoPostal}" Width="Auto"/>
+                <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" Width="Auto"/>
+                <DataGridTextColumn Header="Acepta correos" Binding="{Binding Comunicaciones}" Width="Auto"/>
+                <DataGridTextColumn Header="Acción" Binding="{Binding Accion}" Width="Auto" FontWeight="SemiBold"/>
+                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="3*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
