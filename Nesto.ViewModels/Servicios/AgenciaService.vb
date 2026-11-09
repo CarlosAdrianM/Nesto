@@ -198,6 +198,11 @@ Public Class AgenciaService
                     Dim response As HttpResponseMessage = Await client.PostAsync("EnviosAgencias", content)
                     Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
                     If Not response.IsSuccessStatusCode Then
+                        ' NestoAPI#847: el pedido ya tiene su envío del reparto propio (se reimprime ese, no se crea otro)
+                        Dim repetido = EnvioRepartoPropioRepetidoException.DesdeRespuesta(CInt(response.StatusCode), cuerpo)
+                        If repetido IsNot Nothing Then
+                            Throw repetido
+                        End If
                         Throw New Exception($"No se pudo insertar el envío ({CInt(response.StatusCode)}): {cuerpo}")
                     End If
                     Return JsonConvert.DeserializeObject(Of EnviosAgencia)(cuerpo)
@@ -1380,6 +1385,11 @@ Public Class AgenciaService
                     .Creado = JsonConvert.DeserializeObject(Of EnvioDesdePedidoDto)(cuerpo)
                 }
             Case 409
+                ' NestoAPI#847: el pedido ya tiene su envío del reparto propio: se reimprime ese
+                Dim repetido = EnvioRepartoPropioRepetidoException.DesdeRespuesta(codigoHttp, cuerpo)
+                If repetido IsNot Nothing Then
+                    Throw repetido
+                End If
                 Dim conflicto = JsonConvert.DeserializeObject(Of ConflictoEnvioDesdePedidoDto)(cuerpo)
                 Return New ResultadoEnvioDesdePedidoModel With {
                     .Estado = EstadoEnvioDesdePedido.ConPendientes,

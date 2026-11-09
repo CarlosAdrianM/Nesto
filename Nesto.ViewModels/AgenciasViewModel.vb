@@ -3094,6 +3094,51 @@ Public Class AgenciasViewModel
         Return nombre = "ASM" OrElse nombre = "Innovatrans" OrElse nombre = "CTT"
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#847 (sugerencia 1103, Alfredo): «Insertar e Imprimir» otra vez porque la etiqueta no salió ya no crea otro envío
+    ''' del reparto propio (la API contesta 409 con el que tiene el pedido). Se ofrece reimprimir la etiqueta de ese envío, sin
+    ''' volver a facturar ni avisar al cliente.
+    ''' </summary>
+    Friend Async Function ReimprimirEnvioRepetidoAsync(repetido As EnvioRepartoPropioRepetidoException) As Task
+        Dim continuar As Boolean
+        _dialogService.ShowConfirmation("Envío ya creado",
+            repetido.Message + vbCrLf + vbCrLf + $"¿Quiere volver a imprimir la etiqueta del envío {repetido.NumeroEnvio}?",
+            Sub(r)
+                continuar = r.Result = ResultadoBoton.OK
+            End Sub)
+        If Not continuar Then
+            Return
+        End If
+        Try
+            Dim envio As EnviosAgencia = _servicio.CargarListaEnviosPedido(pedidoSeleccionado?.Empresa, If(pedidoSeleccionado?.Número, 0)) _
+                ?.FirstOrDefault(Function(e) e.Numero = repetido.NumeroEnvio)
+            If envio Is Nothing Then
+                _dialogService.ShowError($"No se encuentra el envío {repetido.NumeroEnvio} para reimprimir su etiqueta. Búsquelo en la pestaña de envíos.")
+                Return
+            End If
+            Dim respuesta As RespuestaAgencia = Await ReimprimirEtiquetaEnvio(envio)
+            If respuesta Is Nothing OrElse Not respuesta.Exito Then
+                _dialogService.ShowError($"No se ha podido reimprimir la etiqueta del envío {envio.Numero}: {respuesta?.TextoRespuestaError}")
+                Return
+            End If
+            envioActual = envio
+            _dialogService.ShowNotification("Envío", $"Se ha vuelto a imprimir la etiqueta del envío {envio.Numero} (no se ha creado otro)")
+            RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
+        Catch ex As Exception
+            _dialogService.ShowError($"No se ha podido reimprimir la etiqueta del envío {repetido.NumeroEnvio}: {ex.Message}")
+        End Try
+    End Function
+
+    ''' <summary>NestoAPI#847: la reimpresión de la etiqueta de un envío ya registrado (Tramitar es idempotente). Sustituible en los tests.</summary>
+    Friend Property ReimprimirEtiquetaEnvio As Func(Of EnviosAgencia, Task(Of RespuestaAgencia)) =
+        Function(envio)
+            Dim agencia = TryCast(AgenciaEfectivaDelEnvio(envio).Agencia, IAgenciaConGestionRemota)
+            If agencia Is Nothing Then
+                Throw New Exception("la agencia del envío no está disponible en Nesto para reimprimir")
+            End If
+            Return agencia.Reimprimir(envio, _servicio, 1, envio.Bultos)
+        End Function
+
     Private _cmdImprimirEInsertar As ICommand
     Public ReadOnly Property cmdImprimirEInsertar() As ICommand
         Get
@@ -3107,6 +3152,7 @@ Public Class AgenciasViewModel
         Return Not EstaOcupado AndAlso CanInsertar(Nothing)
     End Function
     Private Async Sub ImprimirEInsertar(ByVal param As Object)
+        Dim repetido As EnvioRepartoPropioRepetidoException = Nothing
         Try
             ' Esperar a que la inserción TERMINE (es la que genera el código de barras) antes de imprimir.
             ' Antes era cmdInsertar.Execute (fire-and-forget); al volverse async la inserción (NestoAPI#238
@@ -3122,10 +3168,16 @@ Public Class AgenciasViewModel
         Catch ex As EnvioNoTramitadoException
             imprimirEtiqueta = False ' Nesto#568: ya se ha dicho por qué no se tramita
             Return
+        Catch ex As EnvioRepartoPropioRepetidoException
+            repetido = ex ' NestoAPI#847: VB no deja Await en un Catch
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
             Return
         End Try
+        If repetido IsNot Nothing Then
+            Await ReimprimirEnvioRepetidoAsync(repetido)
+            Return
+        End If
         ' Solo llegamos aquí si NO se imprime etiqueta (envío ampliado)
         _dialogService.ShowNotification("Envío", "Envío ampliado correctamente")
         RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
@@ -5034,6 +5086,12 @@ Public Class AgenciasViewModel
                 imprimirEtiqueta = False
                 _dialogService.ShowError(ex.Message)
                 Throw New EnvioNoTramitadoException(ex.Message)
+            Catch ex As EnvioRepartoPropioRepetidoException
+                ' NestoAPI#847: la API no ha creado nada (el pedido ya tiene su envío del reparto propio). Quien imprime ofrece
+                ' reimprimir ese (ImprimirEInsertar); «Insertar» enseña el mensaje.
+                CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
+                imprimirEtiqueta = False
+                Throw
             Catch ex As Exception
                 CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
                 _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + If(ex.InnerException?.Message, ex.Message))
