@@ -489,6 +489,9 @@ namespace PedidoVentaTests
             Assert.IsFalse(vm.cmdQuitarPicking.CanExecute(null));
 
             A.CallTo(() => _configuracion.UsuarioEnGrupo("Administración")).Returns(true);
+            Assert.IsFalse(vm.cmdQuitarPicking.CanExecute(null), "Administración no quita picking (Carlos 09/11/26)");
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo("Almacén")).Returns(true);
             Assert.IsTrue(vm.cmdQuitarPicking.CanExecute(null));
             vm.numeroPedidoPicking = 0;
             Assert.IsFalse(vm.cmdQuitarPicking.CanExecute(null));

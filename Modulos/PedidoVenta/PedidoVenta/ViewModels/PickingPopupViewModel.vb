@@ -598,11 +598,10 @@ Public Class PickingPopupViewModel
         End Set
     End Property
 
-    ''' <summary>Lo pueden quitar Almacén, Administración y Dirección (lo mismo que comprueba la API). Primero lo local (Nesto#450).</summary>
+    ''' <summary>Lo pueden quitar Almacén y Dirección (lo mismo que comprueba la API; Administración no, Carlos 09/11/26). Primero lo local (Nesto#450).</summary>
     Private Function CanQuitarPicking() As Boolean
         Return Not estaSacandoPicking AndAlso numeroPedidoPicking > 0 AndAlso
             (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
              configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
     End Function
 
