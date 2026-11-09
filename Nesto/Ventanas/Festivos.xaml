@@ -34,10 +34,17 @@
                 <TextBlock Text="{Binding Resumen}" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="#555"/>
             </StackPanel>
 
-            <Border Grid.Row="2" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8" Margin="0,0,0,8"
-                    Visibility="{Binding VienenDelCodigo, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding AvisoOrigen}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#8A4B00"/>
-            </Border>
+            <StackPanel Grid.Row="2">
+                <Border Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8" Margin="0,0,0,8"
+                        Visibility="{Binding VienenDelCodigo, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding AvisoOrigen}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#8A4B00"/>
+                </Border>
+                <!-- NestoAPI#841: Almacén y Logística, solo los días sin reparto propio -->
+                <Border Background="#E8F1FB" BorderBrush="#7AA7D6" BorderThickness="1" Padding="8" Margin="0,0,0,8"
+                        Visibility="{Binding SoloRepartoPropio, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding AvisoPermisos}" TextWrapping="Wrap" Foreground="#1F4E79"/>
+                </Border>
+            </StackPanel>
 
             <DataGrid Grid.Row="3" ItemsSource="{Binding Festivos}" SelectedItem="{Binding FestivoSeleccionado, Mode=TwoWay}"
                       AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"

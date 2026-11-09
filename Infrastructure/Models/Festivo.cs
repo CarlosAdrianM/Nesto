@@ -1,3 +1,5 @@
+using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -91,6 +93,29 @@ namespace Nesto.Infrastructure.Models
         /// <summary>NestoAPI#841: cómo se enseña cada tipo. Todos se enseñan tal cual salvo RepartoPropio.</summary>
         public static string Etiqueta(string tipo)
             => string.Equals(tipo?.Trim(), REPARTO_PROPIO, StringComparison.OrdinalIgnoreCase) ? ETIQUETA_REPARTO_PROPIO : tipo;
+    }
+
+    /// <summary>
+    /// NestoAPI#841 (Carlos 09/11/26): quién mantiene los festivos. Administración, Dirección e Informática, todos los tipos;
+    /// Almacén y Logística, solo los días sin reparto propio (alta y baja de ese tipo). La API aplica la misma regla (403).
+    /// </summary>
+    public static class PermisosFestivos
+    {
+        public static bool PuedeMantenerTodos(IConfiguracion configuracion)
+            => configuracion != null &&
+               (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) ||
+                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        /// <summary>Almacén o Logística sin ser de los de arriba: solo el tipo RepartoPropio.</summary>
+        public static bool PuedeMantenerSoloRepartoPropio(IConfiguracion configuracion)
+            => configuracion != null && !PuedeMantenerTodos(configuracion) &&
+               (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) ||
+                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.LOGISTICA));
+
+        /// <summary>Ve la pantalla de Festivos (con todos los tipos o solo el del reparto propio).</summary>
+        public static bool PuedeEntrar(IConfiguracion configuracion)
+            => PuedeMantenerTodos(configuracion) || PuedeMantenerSoloRepartoPropio(configuracion);
     }
 
     /// <summary>NestoAPI#841: una opción del desplegable de tipos: lo que va a la API y lo que se enseña.</summary>

@@ -233,11 +233,12 @@ Public Class MenuBarViewModel
         End If
     End Sub
 
-    ''' <summary>Nesto#616: los mismos grupos que dejan escribir en api/Festivos (la API lo vuelve a comprobar: 403).</summary>
+    ''' <summary>
+    ''' Nesto#616: los mismos grupos que dejan escribir en api/Festivos (la API lo vuelve a comprobar: 403). NestoAPI#841:
+    ''' también Almacén y Logística, que solo pueden dar de alta y de baja los días sin reparto propio.
+    ''' </summary>
     Private Function PuedeMantenerFestivos() As Boolean
-        Return _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
-            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-            _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
+        Return Global.Nesto.Infrastructure.Models.PermisosFestivos.PuedeEntrar(_configuracion)
     End Function
 
     Private Async Function ComprobarSiEsJefeDeVentas() As Task

@@ -21,12 +21,20 @@ Public Class FestivosViewModel
     Private ReadOnly _servicio As IServicioFestivos
     Private ReadOnly _dialogService As IServicioDialogos
 
-    Public Sub New(servicio As IServicioFestivos, dialogService As IServicioDialogos)
+    Public Const AVISO_SOLO_REPARTO_PROPIO As String = "Usted solo puede dar de alta y de baja los días sin reparto propio (furgoneta); el resto de festivos los lleva Administración."
+    Public Const ERROR_SOLO_REPARTO_PROPIO As String = "Usted solo puede dar de alta y de baja los días sin reparto propio (furgoneta)."
+
+    Public Sub New(servicio As IServicioFestivos, dialogService As IServicioDialogos, configuracion As IConfiguracion)
         _servicio = servicio
         _dialogService = dialogService
+        ' NestoAPI#841: Almacén y Logística (sin ser Administración, Dirección o Informática) solo el tipo RepartoPropio
+        _soloRepartoPropio = PermisosFestivos.PuedeMantenerSoloRepartoPropio(configuracion)
+        _opcionesTipo = If(_soloRepartoPropio,
+            TiposFestivo.Opciones.Where(Function(o) o.Valor = TiposFestivo.REPARTO_PROPIO).ToList(),
+            TiposFestivo.Opciones)
         Titulo = "Festivos"
         _anio = Date.Today.Year
-        _nuevoTipo = TiposFestivo.NACIONAL
+        _nuevoTipo = If(_soloRepartoPropio, TiposFestivo.REPARTO_PROPIO, TiposFestivo.NACIONAL)
         _festivos = New ObservableCollection(Of Festivo)
 
         CargarCommand = New AsyncRelayCommand(AddressOf CargarAsync)
@@ -111,19 +119,38 @@ Public Class FestivosViewModel
         End Set
     End Property
 
-    ''' <summary>Los tipos que admite la API (NestoAPI#841: también RepartoPropio, el día sin furgoneta).</summary>
-    Public ReadOnly Property Tipos As IReadOnlyList(Of String)
+    Private ReadOnly _soloRepartoPropio As Boolean
+    ''' <summary>NestoAPI#841: Almacén o Logística: solo puede dar de alta y de baja los días sin reparto propio (ve todos).</summary>
+    Public ReadOnly Property SoloRepartoPropio As Boolean
         Get
-            Return TiposFestivo.Todos
+            Return _soloRepartoPropio
         End Get
     End Property
 
+    Public ReadOnly Property AvisoPermisos As String
+        Get
+            Return If(_soloRepartoPropio, AVISO_SOLO_REPARTO_PROPIO, Nothing)
+        End Get
+    End Property
+
+    ''' <summary>Los tipos que puede dar de alta (NestoAPI#841: Almacén y Logística, solo RepartoPropio).</summary>
+    Public ReadOnly Property Tipos As IReadOnlyList(Of String)
+        Get
+            Return OpcionesTipo.Select(Function(o) o.Valor).ToList()
+        End Get
+    End Property
+
+    Private ReadOnly _opcionesTipo As IReadOnlyList(Of OpcionTipoFestivo)
     ''' <summary>NestoAPI#841: los tipos para el desplegable, con su etiqueta («Sin reparto propio (furgoneta)»); el valor va a <see cref="NuevoTipo"/>.</summary>
     Public ReadOnly Property OpcionesTipo As IReadOnlyList(Of OpcionTipoFestivo)
         Get
-            Return TiposFestivo.Opciones
+            Return _opcionesTipo
         End Get
     End Property
+
+    Private Function PuedeTocarTipo(tipo As String) As Boolean
+        Return Not _soloRepartoPropio OrElse String.Equals(tipo?.Trim(), TiposFestivo.REPARTO_PROPIO, StringComparison.OrdinalIgnoreCase)
+    End Function
 
     Private _nuevaFecha As Date?
     Public Property NuevaFecha As Date?
@@ -207,7 +234,8 @@ Public Class FestivosViewModel
     End Function
 
     Private Function PuedeAnadir() As Boolean
-        Return NuevaFecha.HasValue AndAlso Not String.IsNullOrWhiteSpace(NuevoTipo) AndAlso Not String.IsNullOrWhiteSpace(NuevaDescripcion)
+        Return NuevaFecha.HasValue AndAlso Not String.IsNullOrWhiteSpace(NuevoTipo) AndAlso Not String.IsNullOrWhiteSpace(NuevaDescripcion) AndAlso
+            PuedeTocarTipo(NuevoTipo)
     End Function
 
     ''' <summary>
@@ -215,6 +243,10 @@ Public Class FestivosViewModel
     ''' ese año para que se vea lo dado de alta.
     ''' </summary>
     Public Async Function AnadirAsync() As Task
+        If Not PuedeTocarTipo(NuevoTipo) Then
+            _dialogService.ShowError(ERROR_SOLO_REPARTO_PROPIO)
+            Return
+        End If
         If Not PuedeAnadir() Then
             _dialogService.ShowError("Indique la fecha, el tipo y la descripción del festivo.")
             Return
@@ -248,7 +280,8 @@ Public Class FestivosViewModel
 
     Private Function PuedeBorrar() As Boolean
         ' Los que vienen del programa no están en la tabla: no hay nada que dar de baja
-        Return FestivoSeleccionado IsNot Nothing AndAlso Not FestivoSeleccionado.VieneDelCodigo
+        ' NestoAPI#841: Almacén y Logística, solo los días sin reparto propio
+        Return FestivoSeleccionado IsNot Nothing AndAlso Not FestivoSeleccionado.VieneDelCodigo AndAlso PuedeTocarTipo(FestivoSeleccionado.Tipo)
     End Function
 
     ''' <summary>Baja del festivo seleccionado, con confirmación, y recarga.</summary>
@@ -257,7 +290,11 @@ Public Class FestivosViewModel
         If festivo Is Nothing OrElse festivo.VieneDelCodigo Then
             Return
         End If
-        Dim pregunta = $"¿Quiere dar de baja el festivo del {festivo.DiaSemana.ToLower()} {festivo.Fecha:dd/MM/yyyy} ({festivo.Tipo}): {festivo.Descripcion}?"
+        If Not PuedeTocarTipo(festivo.Tipo) Then
+            _dialogService.ShowError(ERROR_SOLO_REPARTO_PROPIO)
+            Return
+        End If
+        Dim pregunta = $"¿Quiere dar de baja el festivo del {festivo.DiaSemana.ToLower()} {festivo.Fecha:dd/MM/yyyy} ({festivo.TipoEtiqueta}): {festivo.Descripcion}?"
         If Not _dialogService.ShowConfirmationAnswer("Festivos", pregunta) Then
             Return
         End If
