@@ -186,7 +186,9 @@ namespace ClienteTests
             vm.ModoProductosEdicion = vm.ModosProductosRequeridos.Single(m => m.Valor == EventoModel.MODO_PRODUCTOS_TODOS);
             await vm.GuardarAsync();
 
-            Assert.AreEqual("No se pudo guardar el evento: Falta lanzar el script de los productos requeridos.", errores.Single());
+            // Novedades 1132: detrás del mensaje de la API, que no se ha guardado nada
+            StringAssert.StartsWith(errores.Single(), "No se pudo guardar el evento: Falta lanzar el script de los productos requeridos.");
+            StringAssert.Contains(errores.Single(), MantenimientoEventosViewModel.AVISO_NO_GUARDADO);
         }
 
         [TestMethod]

@@ -860,6 +860,12 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("Las plazas tienen que ser más de cero (o ninguna, si no hay límite).");
                 return;
             }
+            string cambioModalidad = AvisoCambioDeModalidadConInscritos();
+            if (cambioModalidad != null)
+            {
+                _dialogService.ShowError(cambioModalidad);
+                return;
+            }
             EventoModel guardadoParaAnunciar = null;
             try
             {
@@ -899,7 +905,9 @@ namespace Nesto.Modulos.Cliente
             }
             catch (Exception ex)
             {
-                _dialogService.ShowError(ex.Message);
+                // Novedades 1132 (Paloma, 09/11/26): tras un rechazo la ficha se queda con lo escrito (para corregirlo) y la
+                // lista con lo guardado; sin decirlo, parecía que la ficha no cargaba los importes del evento.
+                _dialogService.ShowError(_idEdicion > 0 ? $"{ex.Message}{Environment.NewLine}{Environment.NewLine}{AVISO_NO_GUARDADO}" : ex.Message);
             }
             finally
             {
@@ -909,6 +917,45 @@ namespace Nesto.Modulos.Cliente
         }
 
         private static string Limpiar(string texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+
+        public const string AVISO_NO_GUARDADO =
+            "No se ha guardado ningún cambio: la ficha sigue con lo que usted ha escrito y la lista de eventos, con lo guardado. " +
+            "Pulse «Recargar» para volver a ver en la ficha lo guardado.";
+
+        /// <summary>
+        /// Novedades 1132 (Paloma, 09/11/26, evento 6): con plazas ocupadas, la API no deja que un evento de pago pase a ser
+        /// gratuito (las dos señales a 0) ni al revés (NestoAPI#690). Se avisa antes de llamarla, diciendo qué hacer. Null si
+        /// el cambio se puede guardar (o es un evento nuevo).
+        /// </summary>
+        internal string AvisoCambioDeModalidadConInscritos()
+        {
+            if (_idEdicion <= 0)
+            {
+                return null;
+            }
+            EventoModel guardado = Seleccionado?.Id == _idEdicion ? Seleccionado : Eventos?.FirstOrDefault(e => e.Id == _idEdicion);
+            if (guardado == null || guardado.PlazasOcupadas <= 0)
+            {
+                return null;
+            }
+            bool eraGratuito = guardado.ImporteSenal <= 0 && (guardado.ImporteSenalNoReembolsable ?? 0) <= 0;
+            // Sin no reembolsable (API de antes de #690) no se manda y se queda la guardada
+            decimal noReembolsable = ImporteSenalNoReembolsableEdicion ?? guardado.ImporteSenalNoReembolsable ?? 0;
+            bool seraGratuito = ImporteSenalEdicion <= 0 && noReembolsable <= 0;
+            if (eraGratuito == seraGratuito)
+            {
+                return null;
+            }
+            string plazas = guardado.PlazasOcupadas == 1 ? "1 plaza ocupada" : $"{guardado.PlazasOcupadas} plazas ocupadas";
+            string explicacion = eraGratuito
+                ? $"No se puede guardar: el evento ya tiene {plazas} por inscripciones gratuitas y, con señal, pasaría a ser de pago. " +
+                  "Si tiene que ser de pago, anule antes esas inscripciones o cree otro evento con su señal."
+                : $"No se puede guardar: el evento ya tiene {plazas} por inscripciones de pago y, con las dos señales a 0, pasaría a ser gratuito. " +
+                  "Si es un curso por compra (gratuito, con los productos que hay que comprar), anule antes esas inscripciones (si alguna " +
+                  "ya está facturada, Administración tiene que abonar la factura) o cree otro evento gratuito. Si solo quiere cambiar la " +
+                  "señal, deje importe en una de las dos (por ejemplo, en la no reembolsable en lugar de en la reembolsable).";
+            return $"{explicacion}{Environment.NewLine}{Environment.NewLine}{AVISO_NO_GUARDADO}";
+        }
 
         // ---------------- Nesto#567 (NestoAPI#732): gratuitos por compra ----------------
 
