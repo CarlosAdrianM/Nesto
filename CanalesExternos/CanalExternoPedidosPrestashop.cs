@@ -655,7 +655,9 @@ namespace Nesto.Modulos.CanalesExternos
             string cliente = pedidoSalida.cliente?.Trim();
             if (chequesRegalo != null && !string.IsNullOrWhiteSpace(cliente) && cliente != ChequeRegaloPrestashop.CLIENTE_TIENDA_ONLINE)
             {
-                chequeCliente = await chequesRegalo.LeerDelCliente(pedidoSalida.empresa, cliente);
+                // Sugerencia 1130 (Laura, 09/11/26): con la fecha del pedido de PrestaShop (date_add, en pedidoSalida.fecha): un
+                // pedido hecho con la campaña abierta que se importa cuando ya ha cerrado (fin de semana) mantiene su cheque.
+                chequeCliente = await chequesRegalo.LeerDelCliente(pedidoSalida.empresa, cliente, pedidoSalida.fecha);
             }
             return ChequeRegaloPrestashop.Decidir(pedidoEntrada.ReglasCarrito, cliente, chequeCliente,
                 (importeConIva, texto) => CrearLineaCupon(importeConIva, texto, formaVenta, pedidoSalida.iva, configuracion.usuario),

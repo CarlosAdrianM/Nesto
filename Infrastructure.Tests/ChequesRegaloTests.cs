@@ -91,6 +91,20 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task LeerDelCliente_ConFecha_LaMandaEnIso8601()
+        {
+            // Sugerencia 1130: el pedido de la tienda online se mira con su fecha (la API la ignora si es posterior a ahora)
+            var handler = new HandlerFalso { Respuesta = DISPONIBLE };
+            var servicio = new ServicioChequesRegalo(new FactoriaFalsa(handler));
+
+            _ = await servicio.LeerDelCliente("1", "15191", new DateTime(2026, 11, 6, 21, 30, 5));
+            _ = await servicio.LeerDelCliente("1", "15191", null);
+
+            Assert.AreEqual("GET /api/ChequesRegalo/Cliente?empresa=1&cliente=15191&fecha=2026-11-06T21%3A30%3A05", handler.Urls[0]);
+            Assert.AreEqual("GET /api/ChequesRegalo/Cliente?empresa=1&cliente=15191", handler.Urls[1], "sin fecha, como siempre");
+        }
+
+        [TestMethod]
         public async Task LeerDelCliente_404ErrorOSinConexion_EsNull_SinLanzar()
         {
             var sinCheque = new ServicioChequesRegalo(new FactoriaFalsa(new HandlerFalso { Codigo = HttpStatusCode.NotFound, Respuesta = "" }));

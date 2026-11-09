@@ -7,6 +7,7 @@ using Nesto.Models;
 using Nesto.Modulos.CanalesExternos;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
 using Nesto.Modulos.CanalesExternos.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -37,7 +38,7 @@ namespace CanalesExternosTests
             clientesLookup = A.Fake<IClientesPorTelefonoService>();
             A.CallTo(() => clientesLookup.LeerIvaProductoAsync(A<string>._, A<string>._)).Returns(Task.FromResult("G21"));
             chequesRegalo = A.Fake<IServicioChequesRegalo>();
-            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._)).Returns(Task.FromResult(Cheque()));
+            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._, A<DateTime?>._)).Returns(Task.FromResult(Cheque()));
             culturaAnterior = CultureInfo.CurrentCulture;
             CultureInfo.CurrentCulture = new CultureInfo("es-ES");
         }
@@ -152,7 +153,20 @@ namespace CanalesExternosTests
             Assert.IsFalse(cheque.AplicarDescuento);
             Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
             Assert.IsFalse(pedido.comentarios.Contains("CHEQUE REGALO"));
-            A.CallTo(() => chequesRegalo.LeerDelCliente("1", CLIENTE)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => chequesRegalo.LeerDelCliente("1", CLIENTE, A<DateTime?>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Cheque_SePreguntaConLaFechaDelPedidoDeLaTienda()
+        {
+            // Sugerencia 1130 (Laura, 09/11/26): pedido hecho con la campaña abierta e importado después de cerrar (fin de
+            // semana). La API mira el plazo con la fecha del pedido de PrestaShop (date_add), no con la de la importación.
+            PedidoPrestashop entrada = Pedido(50M, 60.5M);
+            entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCheque() };
+
+            _ = await Importar(entrada);
+
+            A.CallTo(() => chequesRegalo.LeerDelCliente("1", CLIENTE, new DateTime(2026, 10, 20, 10, 0, 0))).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -177,7 +191,7 @@ namespace CanalesExternosTests
         [TestMethod]
         public async Task AplicarDescuentoCupon_ChequeRechazado_CuponConAvisoYSinLineaDelCheque()
         {
-            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._))
+            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._, A<DateTime?>._))
                 .Returns(Task.FromResult(Cheque(sePuedeUsar: false, mensaje: "El cheque regalo ya está aplicado en el pedido 929999.")));
             PedidoPrestashop entrada = Pedido(50M, 60.5M);
             entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCheque() };
@@ -197,7 +211,7 @@ namespace CanalesExternosTests
         public async Task ChequeRechazado_NoSeConvierteEnRegaloDeUnaLineaQueValga50()
         {
             // Con el reparto de siempre, un cupón de 50 € igual a una línea de 50 € la ponía al 100 % (Issue #350)
-            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._)).Returns(Task.FromResult<ChequeRegaloClienteDTO>(null));
+            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._, A<DateTime?>._)).Returns(Task.FromResult<ChequeRegaloClienteDTO>(null));
             PedidoPrestashop entrada = Pedido(50M, 60.5M, precioSegundaLinea: 50M);
             entrada.ReglasCarrito = new List<ReglaCarritoPrestashop> { ReglaCheque() };
 
@@ -218,7 +232,7 @@ namespace CanalesExternosTests
             Assert.IsFalse(lineas.Any(l => l.Producto == "CHEQUE50_OCT26"));
             Assert.AreEqual(1, lineas.Count(l => l.Producto == "TiCKET"));
             StringAssert.Contains(pedido.comentarios, "cliente genérico");
-            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._, A<DateTime?>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
@@ -267,7 +281,7 @@ namespace CanalesExternosTests
 
             Assert.AreEqual(1, lineas.Count(l => l.Producto == "TiCKET"));
             Assert.IsFalse(pedido.comentarios.Contains("CHEQUE REGALO"));
-            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => chequesRegalo.LeerDelCliente(A<string>._, A<string>._, A<DateTime?>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
