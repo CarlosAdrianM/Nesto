@@ -224,9 +224,16 @@
                                     </StackPanel>
                                     <ComboBox ItemsSource="{Binding ModosProductosRequeridos}" SelectedItem="{Binding ModoProductosEdicion}" Width="320"
                                               HorizontalAlignment="Left" Margin="0,4,0,0"/>
+                                    <!-- NestoAPI#843: importe mínimo de compra de los productos requeridos (vacío = sin mínimo) -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" IsEnabled="{Binding HayProductosRequeridos}" ToolTipService.ShowOnDisabled="True"
+                                                ToolTip="Lo que el cliente tiene que haber comprado o pedido de estos productos (base imponible, por cada asistente) para apuntarse. Vacío: basta con haberlos comprado. Primero añada los productos">
+                                        <TextBlock Text="Importe mínimo de compra (€):" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <xctk:DecimalUpDown Value="{Binding ImporteMinimoProductosRequeridosEdicion}" FormatString="C2" Minimum="0" Increment="50" Width="110"/>
+                                        <TextBlock Text="(vacío = sin mínimo)" Foreground="DimGray" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
-                            <TextBlock Text="Vacía: no exige compra. Con productos, solo se puede apuntar quien los haya comprado o pedido; si se borra el pedido o se le quita la línea, se pregunta y se anula la inscripción. Se guarda con «Guardar»."
+                            <TextBlock Text="Vacía: no exige compra. Con productos, solo se puede apuntar quien los haya comprado o pedido; si se borra el pedido o se le quita la línea, se pregunta y se anula la inscripción. Con importe mínimo, además, lo comprado de estos productos tiene que llegar a ese importe por cada asistente. Se guarda con «Guardar»."
                                        Foreground="DimGray" TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Margin="110,2,0,0"/>
                             <CheckBox Content="Activo (admite inscripciones y sale al marcar señales)" IsChecked="{Binding ActivoEdicion}" Margin="110,8,0,0"/>
                             <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="110,12,0,0" Padding="20,3"

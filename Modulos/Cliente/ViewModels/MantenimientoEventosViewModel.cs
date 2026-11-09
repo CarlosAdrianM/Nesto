@@ -63,6 +63,8 @@ namespace Nesto.Modulos.Cliente
             // (TieneAcceso); la API lo vuelve a comprobar (403 → su mensaje). Inscribir y copiar el enlace, todos.
             NuevoCommand = new RelayCommand(OnNuevo, () => TieneAcceso);
             GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => SePuedeEditar);
+            // NestoAPI#843: el importe mínimo solo se edita con productos que comprar
+            ProductosRequeridosEdicion.CollectionChanged += (s, e) => OnPropertyChanged(nameof(HayProductosRequeridos));
             ComprobarProductoCommand = new AsyncRelayCommand(ComprobarProductoAsync, () => !string.IsNullOrWhiteSpace(ProductoCursoEdicion));
             CrearProductoCursoCommand = new AsyncRelayCommand(CrearProductoCursoAsync, () => SePuedeEditar && _idEdicion > 0 && !TieneReferenciaForzada);
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => Seleccionado?.Id > 0);
@@ -838,6 +840,11 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("El pedido mínimo para usar el cupón no puede ser negativo (0 = con cualquier importe).");
                 return;
             }
+            if (ImporteMinimoProductosRequeridosEdicion < 0)
+            {
+                _dialogService.ShowError("El importe mínimo de compra de los productos requeridos no puede ser negativo (vacío = sin mínimo).");
+                return;
+            }
             if (!LeerHora(HoraInicioEdicion, out TimeSpan? horaInicio) || !LeerHora(HoraFinEdicion, out TimeSpan? horaFin))
             {
                 _dialogService.ShowError("Escriba las horas como 10:00.");
@@ -877,7 +884,8 @@ namespace Nesto.Modulos.Cliente
                     ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
                     PedidoMinimoCupon = PedidoMinimoCuponEdicion,
                     ProductosRequeridos = ProductosRequeridosParaGuardar(),
-                    ProductosRequeridosModo = ModoProductosParaGuardar()
+                    ProductosRequeridosModo = ModoProductosParaGuardar(),
+                    ImporteMinimoProductosRequeridos = ImporteMinimoProductosRequeridosParaGuardar()
                 });
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
@@ -1040,6 +1048,8 @@ namespace Nesto.Modulos.Cliente
             _productosRequeridosLeidos = ProductosRequeridosEdicion.Select(p => p.Producto.ToUpperInvariant()).ToList();
             _modoProductosLeido = evento?.HacenFaltaTodos == true ? EventoModel.MODO_PRODUCTOS_TODOS : EventoModel.MODO_PRODUCTOS_ALGUNO;
             ModoProductosEdicion = ModosProductosRequeridos.First(m => m.Valor == _modoProductosLeido);
+            _importeMinimoProductosRequeridosLeido = evento?.ImporteMinimoProductosRequeridos > 0 ? evento.ImporteMinimoProductosRequeridos : null;
+            ImporteMinimoProductosRequeridosEdicion = _importeMinimoProductosRequeridosLeido;
             ProductoRequeridoNuevo = null;
             ProductoRequeridoSeleccionado = null;
         }
@@ -1054,6 +1064,33 @@ namespace Nesto.Modulos.Cliente
             return cambiada || ModoProductosParaGuardar() != null
                 ? ProductosRequeridosEdicion.Select(p => new ProductoRequeridoEventoModel { Producto = p.Producto.Trim() }).ToList()
                 : null;
+        }
+
+        // ---------------- NestoAPI#843 (Carlos 09/11/26): importe mínimo de compra de los productos requeridos ----------------
+
+        /// <summary>¿Hay productos que comprar? Sin ellos el importe mínimo no se edita (y, si lo había, se quita al guardar).</summary>
+        public bool HayProductosRequeridos => ProductosRequeridosEdicion.Count > 0;
+
+        private decimal? _importeMinimoProductosRequeridosEdicion;
+        /// <summary>
+        /// Lo que el cliente tiene que haber comprado o pedido de los productos requeridos (base imponible, por asistente) para
+        /// inscribirse. Vacío = sin mínimo: basta con haber comprado uno (o todos, según el modo).
+        /// </summary>
+        public decimal? ImporteMinimoProductosRequeridosEdicion
+        {
+            get => _importeMinimoProductosRequeridosEdicion;
+            set => SetProperty(ref _importeMinimoProductosRequeridosEdicion, value);
+        }
+
+        private decimal? _importeMinimoProductosRequeridosLeido;
+
+        /// <summary>El importe mínimo para el PUT/POST: null si no ha cambiado (no se toca); 0 para quitarlo (vacío o sin productos).</summary>
+        public decimal? ImporteMinimoProductosRequeridosParaGuardar()
+        {
+            decimal? ahora = HayProductosRequeridos && ImporteMinimoProductosRequeridosEdicion > 0
+                ? Math.Round(ImporteMinimoProductosRequeridosEdicion.Value, 2, MidpointRounding.AwayFromZero)
+                : null;
+            return ahora == _importeMinimoProductosRequeridosLeido ? null : ahora ?? 0;
         }
 
         /// <summary>El modo para el PUT/POST: null si no ha cambiado (con la API de antes, que no lo conoce, no se manda).</summary>
