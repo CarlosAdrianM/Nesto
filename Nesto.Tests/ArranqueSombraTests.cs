@@ -548,6 +548,7 @@ namespace Nesto.Tests
             "    RibbonButton «Mant. agencias» [MenuBarViewModel]",
             "    RibbonButton «Mant. familias» [MenuBarViewModel]",
             "    RibbonButton «Crear Cliente» [CrearClienteViewModel]",
+            "    RibbonButton «Importar leads de Meta» [CrearClienteViewModel]", // NestoAPI#623 corte 4, después de la referencia de Prism
             "    RibbonButton «NIF incorrectos» [CrearClienteViewModel]",
             "    RibbonButton «Códigos Postales» [CrearClienteViewModel]",
             "    RibbonButton «Horarios por revisar» [CrearClienteViewModel]", // Nesto#584, después de la referencia de Prism
@@ -676,6 +677,7 @@ namespace Nesto.Tests
             "SenalesEventosView | SenalesEventosView | SenalesEventosViewModel",
             "PedidosPromesaRiesgoView | PedidosPromesaRiesgoView | PedidosPromesaRiesgoViewModel", // Nesto#546, después de la referencia de Prism
             "HorariosPorRevisarView | HorariosPorRevisarView | HorariosPorRevisarViewModel", // Nesto#584, después de la referencia de Prism
+            "ImportarLeadsMetaView | ImportarLeadsMetaView | ImportarLeadsMetaViewModel", // NestoAPI#623 corte 4, después de la referencia de Prism
             "PedidoCompraView | PedidoCompraView | PedidoCompraViewModel",
             "DetallePedidoCompraView | DetallePedidoCompraView | DetallePedidoCompraViewModel",
             "ListaPedidosCompraView | ListaPedidosCompraView | ListaPedidosCompraViewModel",

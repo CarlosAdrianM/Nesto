@@ -19,7 +19,7 @@ namespace Nesto.Infrastructure.Tests
         public void LaTabla_SeCargaSinClavesRepetidas()
         {
             // Crear() lanza con una clave repetida: si se carga, no las hay
-            Assert.AreEqual(60, MapaMenuPorRol.Destinos.Count, "Los 58 botones de la cinta (Nesto#584: «Horarios por revisar»; Nesto#616: «Festivos»; Nesto#624: «Cambiar estado») y sus 2 contenidos (Fechas e Incluir Global)");
+            Assert.AreEqual(61, MapaMenuPorRol.Destinos.Count, "Los 59 botones de la cinta (Nesto#584: «Horarios por revisar»; Nesto#616: «Festivos»; Nesto#624: «Cambiar estado»; NestoAPI#623: «Importar leads de Meta») y sus 2 contenidos (Fechas e Incluir Global)");
         }
 
         [TestMethod]

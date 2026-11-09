@@ -100,6 +100,7 @@ namespace Nesto.Infrastructure.Menu
             // ── Clientes: datos maestros del cliente (fichas, altas, NIF, códigos postales, alquileres) y eventos
             (Clave("Clientes", "Mantenimiento", "Ficha"), new DestinoMenu(CLIENTES, "Fichas", 10, "Ficha de cliente")),
             (Clave("Clientes", "Mantenimiento", "Crear Cliente"), new DestinoMenu(CLIENTES, "Fichas", 20)),
+            (Clave("Clientes", "Mantenimiento", "Importar leads de Meta"), new DestinoMenu(CLIENTES, "Fichas", 25)), // NestoAPI#623 corte 4
             (Clave("Clientes", "Mantenimiento", "NIF incorrectos"), new DestinoMenu(CLIENTES, "Fichas", 30)),
             (Clave("Clientes", "Mantenimiento", "Códigos Postales"), new DestinoMenu(CLIENTES, "Fichas", 40)),
             (Clave("Clientes", "Mantenimiento", "Horarios por revisar"), new DestinoMenu(CLIENTES, "Fichas", 45)), // Nesto#584
