@@ -438,6 +438,15 @@ namespace ControlesUsuario.Dialogs
         /// <summary>En una sugerencia, la descripción es la ampliada que redactamos nosotros: solo se pinta si existe.</summary>
         public bool TieneDescripcion => !string.IsNullOrWhiteSpace(Descripcion);
         public string Estado => _novedad.Estado;
+
+        /// <summary>
+        /// Carlos 09/11/26: «Cerrada» = contestada y sin nada más que hacer. Su autor la sigue viendo 14 días (lo filtra la
+        /// API) y, si comenta, la API la reabre: se le dice. Los demás estados, tal cual.
+        /// </summary>
+        internal const string TEXTO_CERRADA = "Cerrada: si necesita algo más, escriba y se reabre";
+        public string TextoEstado => string.Equals(Estado?.Trim(), "Cerrada", StringComparison.OrdinalIgnoreCase)
+            ? TEXTO_CERRADA
+            : Estado?.Trim();
         /// <summary>NestoAPI#558: aviso de «Algo no funciona» (sale con la etiqueta Incidencia).</summary>
         public bool EsIncidencia => _novedad.EsIncidencia;
         /// <summary>NestoAPI#558: versión, pantalla y errores de ELMAH. Solo llega a Dirección / Informática.</summary>
@@ -454,7 +463,7 @@ namespace ControlesUsuario.Dialogs
                 string verbo = EsIncidencia ? "Avisado" : "Sugerida";
                 string quien = string.IsNullOrWhiteSpace(_novedad.SugeridaNombre) ? verbo : $"{verbo} por {_novedad.SugeridaNombre.Trim()}";
                 DateTime? cuando = _novedad.SugeridaFecha;
-                string estado = string.IsNullOrWhiteSpace(Estado) ? string.Empty : $" · {Estado.Trim()}";
+                string estado = string.IsNullOrWhiteSpace(Estado) ? string.Empty : $" · {TextoEstado}";
                 return cuando.HasValue ? $"{quien} el {cuando.Value:dd/MM/yyyy}{estado}" : quien + estado;
             }
         }

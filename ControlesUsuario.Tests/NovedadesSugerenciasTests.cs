@@ -342,6 +342,24 @@ namespace ControlesUsuario.Tests
             Assert.IsTrue(vm.Novedades.Contains(vm.NovedadDestacada));
         }
 
+        // ---- Carlos 09/11/26: «Cerrada» = contestada, sin nada más que hacer; su autor la ve 14 días (lo filtra la API) ----
+
+        [TestMethod]
+        public async Task EnSugerencias_UnaCerrada_DiceQueSiNecesitaAlgoMasEscribaYSeReabre()
+        {
+            NovedadUsuario cerrada = S(50, "Un botón para duplicar");
+            cerrada.Estado = "Cerrada";
+            A.CallTo(() => servicio.LeerSugerencias()).Returns(Task.FromResult(new List<NovedadUsuario> { cerrada, S(51, "Otra idea") }));
+            var vm = AbrirVm(N(1, "1.10.30.0"));
+
+            await vm.IrASugerencias();
+
+            NovedadItem item = vm.Novedades.Single(n => n.Id == 50);
+            Assert.AreEqual("Cerrada: si necesita algo más, escriba y se reabre", item.TextoEstado);
+            StringAssert.EndsWith(item.SugeridaPor, " · Cerrada: si necesita algo más, escriba y se reabre");
+            Assert.AreEqual("Pendiente", vm.Novedades.Single(n => n.Id == 51).TextoEstado);
+        }
+
         [TestMethod]
         public async Task ElegirResultado_SugerenciaCerrada_SeEnseñaIgualParaPoderComentarla()
         {
