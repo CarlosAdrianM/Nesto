@@ -469,9 +469,7 @@ namespace Nesto.Modulos.Cliente
                     return;
                 }
                 aplicandoSugerenciaDireccion = true;
-                ClienteDireccionCalleNumero = string.IsNullOrWhiteSpace(detalle.Numero)
-                    ? detalle.Calle
-                    : $"{detalle.Calle}, {detalle.Numero}";
+                ClienteDireccionCalleNumero = detalle.CalleNumero; // Nesto#627: en el formato del país
                 if (!string.IsNullOrWhiteSpace(detalle.CodigoPostal))
                 {
                     ClienteCodigoPostal = detalle.CodigoPostal;

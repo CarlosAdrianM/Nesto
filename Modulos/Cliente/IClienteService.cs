@@ -46,5 +46,20 @@ namespace Nesto.Modulos.Cliente
         public string Pais { get; set; }
         /// <summary>Nesto#436: ISO-2 del país ("IT"), para no asumir España en la ficha.</summary>
         public string PaisIso { get; set; }
+        /// <summary>
+        /// Nesto#627 (gemela de NestoAPI#826, sugerencia 1058): calle y número ya juntos en el formato
+        /// del país, tal y como los monta la API («12 Rue de la Paix» en Francia, «Calle Mayor, 12» en España).
+        /// </summary>
+        public string DireccionCalleNumero { get; set; }
+
+        /// <summary>
+        /// Nesto#627: lo que va en «Dirección» de la ficha al elegir la dirección de Google. Regla única
+        /// para todo Nesto: la de la API (DireccionCalleNumero) si viene; si no (API anterior a
+        /// NestoAPI#826), respaldo a la española «{Calle}, {Numero}» (o solo la calle sin número).
+        /// </summary>
+        public string CalleNumero =>
+            !string.IsNullOrWhiteSpace(DireccionCalleNumero) ? DireccionCalleNumero.Trim()
+            : string.IsNullOrWhiteSpace(Numero) ? Calle
+            : $"{Calle}, {Numero}";
     }
 }

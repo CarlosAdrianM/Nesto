@@ -80,6 +80,69 @@ namespace ClienteTests
             Assert.AreEqual("MILANO", vm.PoblacionGoogle);
         }
 
+        // Nesto#627 (gemela de NestoAPI#826, sugerencia 1058): la calle y el número en el formato del país
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_Francia_UsaDireccionCalleNumeroDeLaApi()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ627FR", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Rue de la Paix",
+                    Numero = "12",
+                    DireccionCalleNumero = "12 Rue de la Paix",
+                    CodigoPostal = "75002",
+                    Poblacion = "Paris",
+                    PaisIso = "FR"
+                });
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ627FR" });
+
+            Assert.AreEqual("12 Rue de la Paix", vm.ClienteDireccionCalleNumero);
+            Assert.AreEqual("FR", vm.ClientePaisDireccion);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_Espana_UsaDireccionCalleNumeroDeLaApi()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ627ES", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Calle Mayor",
+                    Numero = "12",
+                    DireccionCalleNumero = "Calle Mayor, 12",
+                    CodigoPostal = "28013",
+                    PaisIso = "ES"
+                });
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ627ES" });
+
+            Assert.AreEqual("Calle Mayor, 12", vm.ClienteDireccionCalleNumero);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_SinDireccionCalleNumero_MontaCalleComaNumero()
+        {
+            // Una API anterior a NestoAPI#826 no manda el campo: se sigue montando a la española
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ627OLD", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Rue de la Paix", Numero = "12", CodigoPostal = "75002", PaisIso = "FR" });
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ627OLD" });
+
+            Assert.AreEqual("Rue de la Paix, 12", vm.ClienteDireccionCalleNumero);
+        }
+
+        [TestMethod]
+        public void DireccionDetalle_CalleNumero_PrefiereElDeLaApiYSiNoMontaElRespaldo()
+        {
+            Assert.AreEqual("12 Rue de la Paix", new DireccionDetalleModel { Calle = "Rue de la Paix", Numero = "12", DireccionCalleNumero = " 12 Rue de la Paix " }.CalleNumero);
+            Assert.AreEqual("Rue de la Paix, 12", new DireccionDetalleModel { Calle = "Rue de la Paix", Numero = "12", DireccionCalleNumero = "  " }.CalleNumero);
+            Assert.AreEqual("Avenida de Castilla", new DireccionDetalleModel { Calle = "Avenida de Castilla" }.CalleNumero);
+        }
+
         // Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
 
         [TestMethod]
