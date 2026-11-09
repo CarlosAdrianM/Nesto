@@ -2,6 +2,7 @@ Imports System.Collections
 Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
+Imports System.Windows.Threading
 Imports Nesto.Infrastructure.Shared
 
 ''' <summary>
@@ -165,6 +166,43 @@ Partial Public Class SelectorLineasPlantillaVenta
                 End If
             End If
         End If
+    End Sub
+
+    ' Nesto#633: Intro en la cantidad → confirmar y volver al buscador con el texto seleccionado.
+    Private ReadOnly _navegacionCantidad As New NavegacionCantidadPlantilla()
+
+    Private Sub Cantidad_PreviewKeyDown(sender As Object, e As KeyEventArgs)
+        ' El ShortUpDown ya ha confirmado lo escrito en su OnPreviewKeyDown (y marca Handled si no ha podido).
+        If Not MostrarBarraFiltro Then
+            Return
+        End If
+        If _navegacionCantidad.AlPulsar(e.Key, Keyboard.Modifiers, e.Handled) Then
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub Cantidad_PreviewKeyUp(sender As Object, e As KeyEventArgs)
+        If Not _navegacionCantidad.AlSoltar(e.Key) Then
+            Return
+        End If
+        e.Handled = True
+        VolverAlBuscador()
+        ' Por si al actualizar el producto algo se lleva el foco: repetir cuando WPF termine, sin pisar lo ya escrito.
+        Dim unused = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, New Action(
+            Sub()
+                If Not BarraFiltroInternal.IsKeyboardFocusWithin Then
+                    VolverAlBuscador()
+                End If
+            End Sub))
+    End Sub
+
+    Private Sub Cantidad_LostKeyboardFocus(sender As Object, e As KeyboardFocusChangedEventArgs)
+        _navegacionCantidad.Cancelar()
+    End Sub
+
+    Private Sub VolverAlBuscador()
+        EnfocarBarraFiltro()
+        BarraFiltroInternal.SelectAll()
     End Sub
 
     Private Sub BarraFiltro_GotFocus(sender As Object, e As RoutedEventArgs)
