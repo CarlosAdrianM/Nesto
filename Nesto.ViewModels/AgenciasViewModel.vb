@@ -1008,6 +1008,10 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Decimal)
             If SetProperty(_peso, value) Then
+                ' ELMAH 09/11/26 (envío 250600 y otros cinco, sugerencia 906): si el pedido tiene un envío pendiente, la agencia
+                ' es la de ese envío (como al abrir el pedido). Teclear el peso no vuelve a proponer otra: si no, la pantalla
+                ' saltaba a la más barata, el retorno pasaba al defecto de esa agencia y se perdía el del pendiente.
+                If TieneEnvioPendienteElPedidoActual() Then Return
                 Dim agenciaConfigurar = ConfigurarAgenciaPedido()
                 If Not IsNothing(agenciaConfigurar) Then
                     agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
@@ -1015,6 +1019,12 @@ Public Class AgenciasViewModel
             End If
         End Set
     End Property
+
+    ''' <summary>El pedido de la pantalla tiene un envío pendiente (etiqueta creada por la tienda online, NestoApp o al grabar el pedido).</summary>
+    Friend Function TieneEnvioPendienteElPedidoActual() As Boolean
+        Return _envioPendienteDelPedido IsNot Nothing AndAlso pedidoSeleccionado IsNot Nothing AndAlso
+            _envioPendienteDelPedido.Pedido.HasValue AndAlso _envioPendienteDelPedido.Pedido.Value = pedidoSeleccionado.Número
+    End Function
 
     Private _costeEnvio As Decimal
     Public Property CosteEnvio As Decimal

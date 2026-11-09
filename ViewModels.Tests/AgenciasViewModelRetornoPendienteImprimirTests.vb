@@ -259,4 +259,39 @@ Public Class AgenciasViewModelRetornoPendienteImprimirTests
     Public Sub RutaModificarQuitandoRetorno_LlevaElParametroQueEsperaLaApi()
         Assert.AreEqual("EnviosAgencias/250390?quitarRetorno=true", AgenciaService.RutaModificarQuitandoRetorno(250390))
     End Sub
+    ' ---- ELMAH 09/11/26 (envío 250600, pedido 930034, Andre; también 250481, 250426, 250598, 250582 y 250661) ----
+    ' Al teclear el peso, el setter volvía a elegir la agencia más barata (ASM) sin mirar que el pedido tiene un envío
+    ' pendiente de CTT: la pantalla saltaba a ASM, el retorno pasaba al defecto de ASM (0) y al volver a CTT se quedaba
+    ' en 0. La red de la sugerencia 906 conservaba el 1 al grabar, pero la pantalla enseñaba otra cosa.
+
+    <TestMethod()>
+    Public Sub Peso_ConEnvioPendiente_NoCambiaLaAgenciaNiElRetornoDeLaPantalla()
+        AbrirVentana()
+        AbrirPedido(PEDIDO_CON_PENDIENTE)
+        Assert.AreEqual(CTT, viewModel.agenciaSeleccionada.Numero, "al abrir, la del pendiente")
+        Assert.AreEqual(CByte(1), CByte(viewModel.retornoActual.id), "al abrir, el retorno del pendiente")
+        viewModel.Peso = 9D
+        Assert.AreEqual(CTT, viewModel.agenciaSeleccionada.Numero, "teclear el peso no cambia la agencia del pendiente")
+        Assert.AreEqual(CByte(1), CByte(viewModel.retornoActual.id), "teclear el peso no pisa el retorno del pendiente")
+    End Sub
+
+    <TestMethod()>
+    Public Sub Peso_ConEnvioPendiente_NoPreguntaAlComparador()
+        AbrirVentana()
+        AbrirPedido(PEDIDO_CON_PENDIENTE)
+        Fake.ClearRecordedCalls(comparador)
+        viewModel.Peso = 9D
+        A.CallTo(Function() comparador.MasEconomica(A(Of String).Ignored, A(Of String).Ignored, A(Of Decimal).Ignored, A(Of Decimal).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+        Assert.AreEqual(CByte(1), Imprimir())
+    End Sub
+
+    <TestMethod()>
+    Public Sub Peso_SinEnvioPendiente_SigueProponiendoLaAgencia()
+        AbrirVentana()
+        AbrirPedido(PEDIDO_SIN_PENDIENTE)
+        Fake.ClearRecordedCalls(comparador)
+        viewModel.Peso = 9D
+        A.CallTo(Function() comparador.MasEconomica(A(Of String).Ignored, A(Of String).Ignored, A(Of Decimal).Ignored, A(Of Decimal).Ignored, A(Of String).Ignored)).MustHaveHappened()
+    End Sub
+
 End Class
