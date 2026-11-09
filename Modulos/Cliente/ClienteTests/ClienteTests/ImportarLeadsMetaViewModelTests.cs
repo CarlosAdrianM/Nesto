@@ -62,6 +62,23 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async Task AlAbrir_SoloOfreceOrigenesDeCampana()
+        {
+            // NestoAPI#848: los orígenes de canal (web, Amazon, tiendas, cursos) no son leads: la API los rechaza al importar.
+            A.CallTo(() => origenes.LeerOrigenes()).Returns(new List<OrigenClienteModel>
+            {
+                new OrigenClienteModel { Codigo = "TIENDA-REINA", Descripcion = "Tienda de Reina", Activo = true, EsLead = false, PropuestoParaElUsuario = true },
+                new OrigenClienteModel { Codigo = META, Descripcion = "Lead de Meta", Campana = "Harmonia", Activo = true, EsLead = true },
+                new OrigenClienteModel { Codigo = "ANTIGUO", Descripcion = "API sin EsLead", Activo = true }
+            });
+
+            ImportarLeadsMetaViewModel vm = await Abierto();
+
+            CollectionAssert.AreEqual(new[] { META, "ANTIGUO" }, vm.Origenes.ConvertAll(o => o.Codigo));
+            Assert.AreEqual(META, vm.OrigenSeleccionado.Codigo);
+        }
+
+        [TestMethod]
         public async Task AlAbrir_EligeElOrigenDeHarmoniaPorDefecto()
         {
             ImportarLeadsMetaViewModel vm = await Abierto();

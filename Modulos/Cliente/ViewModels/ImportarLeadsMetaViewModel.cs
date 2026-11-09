@@ -165,7 +165,9 @@ namespace Nesto.Modulos.Cliente
             }
             try
             {
-                List<OrigenClienteModel> origenes = await _origenes.LeerOrigenes() ?? new List<OrigenClienteModel>();
+                // NestoAPI#848: solo los de campaña; los de canal (web, Amazon, tiendas, cursos) no son leads (la API los rechaza).
+                List<OrigenClienteModel> origenes = (await _origenes.LeerOrigenes() ?? new List<OrigenClienteModel>())
+                    .Where(o => o != null && o.EsLead != false).ToList();
                 Origenes = origenes;
                 OrigenSeleccionado = origenes.FirstOrDefault(o => string.Equals(o.Codigo?.Trim(), ORIGEN_POR_DEFECTO, StringComparison.OrdinalIgnoreCase))
                     ?? origenes.FirstOrDefault();

@@ -190,6 +190,82 @@ namespace ClienteTests
             Assert.AreEqual("Feria 2025", vm.OrigenSeleccionado.Nombre, "El origen inactivo se añade a la lista para no perderlo");
         }
 
+        // ---------- NestoAPI#848: origen propuesto según quién crea el cliente ----------
+
+        private const string TIENDA_ALCOBENDAS = "TIENDA-ALCOBENDAS";
+
+        private static List<OrigenClienteModel> CatalogoConPropuesto() => new()
+        {
+            new OrigenClienteModel { Codigo = META, Descripcion = "Lead de Meta", Campana = "Harmonia", Activo = true, HorasParaLlamar = 24, EsLead = true },
+            new OrigenClienteModel { Codigo = TIENDA_ALCOBENDAS, Descripcion = "Tienda de Alcobendas", Activo = true, HorasParaLlamar = 24, EsLead = false, PropuestoParaElUsuario = true },
+            new OrigenClienteModel { Codigo = "WEB", Descripcion = "Página web", Activo = true, HorasParaLlamar = 24, EsLead = false }
+        };
+
+        [TestMethod]
+        public async Task CrearCliente_ConOrigenPropuesto_LoPreselecciona()
+        {
+            A.CallTo(() => origenes.LeerOrigenes()).Returns(CatalogoConPropuesto());
+            CrearClienteViewModel vm = Alta(origenes);
+            await vm.CargaOrigenesEnCurso;
+
+            Assert.AreEqual(TIENDA_ALCOBENDAS, vm.ClienteOrigen);
+            Assert.AreEqual("Tienda de Alcobendas", vm.OrigenSeleccionado.Nombre);
+        }
+
+        [TestMethod]
+        public async Task CrearCliente_OrigenPropuesto_SePuedeCambiarYQuitar()
+        {
+            A.CallTo(() => origenes.LeerOrigenes()).Returns(CatalogoConPropuesto());
+            A.CallTo(() => servicio.LeerDetalleDireccion("ChIJ848", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
+            CrearClienteViewModel vm = Alta(origenes);
+            await vm.CargaOrigenesEnCurso;
+
+            vm.OrigenSeleccionado = vm.Origenes.Single(o => o.Codigo == "WEB");
+            Assert.AreEqual("WEB", vm.ClienteOrigen);
+
+            vm.OrigenSeleccionado = vm.Origenes[0]; // «(ninguno)»
+            Assert.IsNull(vm.ClienteOrigen);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ848" });
+            vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.CrearCliente(A<ClienteCrear>.That.Matches(c => c.Origen == null))).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task CrearCliente_SinOrigenPropuesto_NadaElegido()
+        {
+            List<OrigenClienteModel> catalogo = CatalogoConPropuesto();
+            catalogo.ForEach(o => o.PropuestoParaElUsuario = false);
+            A.CallTo(() => origenes.LeerOrigenes()).Returns(catalogo);
+            CrearClienteViewModel vm = Alta(origenes);
+            await vm.CargaOrigenesEnCurso;
+
+            Assert.IsNull(vm.ClienteOrigen);
+            Assert.AreSame(vm.Origenes[0], vm.OrigenSeleccionado);
+        }
+
+        [TestMethod]
+        public async Task ModificarCliente_SinOrigen_NoLePoneElPropuesto()
+        {
+            // El catálogo (con la propuesta) llega antes que el cliente: al modificar manda lo que tiene el cliente (nada).
+            A.CallTo(() => origenes.LeerOrigenes()).Returns(CatalogoConPropuesto());
+            A.CallTo(() => servicio.LeerClienteCrear("1", "15191", "0")).Returns(new ClienteCrear
+            {
+                Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 1", PersonasContacto = new List<PersonaContactoDTO>()
+            });
+            CrearClienteViewModel vm = Alta(origenes);
+            await vm.CargaOrigenesEnCurso;
+
+            vm.AlLlegar(new ParametrosNavegacion { { "empresaParameter", "1" }, { "clienteParameter", "15191" }, { "contactoParameter", "0" } });
+            await Task.Delay(300);
+
+            Assert.IsNull(vm.ClienteOrigen);
+        }
+
         // ---------- Ficha del cliente ----------
 
         [TestMethod]

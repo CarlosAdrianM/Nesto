@@ -142,7 +142,26 @@ namespace Nesto.Modulos.Cliente
             {
                 // Con la API vieja o caída el alta sigue igual, sin origen y sin error.
             }
+            ProponerOrigen();
             NotificarOrigenes();
+        }
+
+        /// <summary>
+        /// NestoAPI#848: en un alta, el origen que la API propone para este usuario (Paloma → Tienda de Alcobendas…) sale ya elegido.
+        /// Se puede cambiar o dejar en «(ninguno)». Nunca al modificar ni si ya hay uno elegido. Se propone una sola vez, al llegar el
+        /// catálogo (hasta entonces el desplegable no se ve, así que el usuario no ha podido elegir antes).
+        /// </summary>
+        private void ProponerOrigen()
+        {
+            if (EsUnaModificacion || ClienteOrigen != null)
+            {
+                return;
+            }
+            OrigenClienteModel propuesto = Origenes.FirstOrDefault(o => o.PropuestoParaElUsuario && !string.IsNullOrWhiteSpace(o.Codigo));
+            if (propuesto != null)
+            {
+                ClienteOrigen = propuesto.Codigo;
+            }
         }
 
         /// <summary>Un origen que ya tiene el cliente y no está en el catálogo (inactivo) se añade para no perderlo al guardar.</summary>
@@ -171,6 +190,8 @@ namespace Nesto.Modulos.Cliente
                 ClienteOrigen = origenDelDto;
                 return;
             }
+            // NestoAPI#848: si el catálogo llegó antes con un origen propuesto, al modificar no vale: manda el del cliente.
+            ClienteOrigen = null;
             try
             {
                 OrigenDeClienteModel origen = await ServicioOrigenes.LeerOrigen(empresa, cliente);

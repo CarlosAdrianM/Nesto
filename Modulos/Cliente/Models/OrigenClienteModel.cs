@@ -12,6 +12,10 @@ namespace Nesto.Modulos.Cliente.Models
         public string Campana { get; set; }
         public bool Activo { get; set; }
         public int? HorasParaLlamar { get; set; }
+        /// <summary>NestoAPI#848: true = campaña (lead que hay que llamar); false = canal (web, Amazon, tiendas, cursos); null = API vieja (lead).</summary>
+        public bool? EsLead { get; set; }
+        /// <summary>NestoAPI#848: el que «Crear cliente» preselecciona para este usuario (ParametrosUsuario «OrigenClientePorDefecto»).</summary>
+        public bool PropuestoParaElUsuario { get; set; }
 
         /// <summary>Lo que se ve en el desplegable: «Lead de Meta · campaña Harmonia» o «(ninguno)».</summary>
         public string Nombre => string.IsNullOrWhiteSpace(Codigo)
