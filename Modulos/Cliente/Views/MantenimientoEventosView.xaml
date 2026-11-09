@@ -268,6 +268,9 @@
                         <CheckBox Content="Solo mis clientes" IsChecked="{Binding SoloMisClientes}" VerticalAlignment="Center" Margin="0,2,12,2"
                                   ToolTip="Solo los inscritos de los que es usted el vendedor (o alguien de su equipo, si es jefe de equipo)"
                                   Visibility="{Binding HayFiltroMisClientes, Converter={StaticResource BoolAVisibilidad}}"/>
+                        <!-- Sugerencia 1141 (Paloma): las anuladas, solo si se piden (se recuerda por usuario) -->
+                        <CheckBox Content="Ver anuladas" IsChecked="{Binding VerAnuladas}" VerticalAlignment="Center" Margin="0,2,12,2"
+                                  ToolTip="Enseña también las inscripciones anuladas (no cuentan en el total de inscritos)"/>
                         <!-- Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): en los eventos mixtos, presencial u online -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2,12,2"
                                     Visibility="{Binding EventoEsMixto, Converter={StaticResource BoolAVisibilidad}}">

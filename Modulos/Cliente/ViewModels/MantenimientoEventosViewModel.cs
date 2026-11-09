@@ -205,6 +205,70 @@ namespace Nesto.Modulos.Cliente
         public static IEnumerable<InscripcionEventoModel> FiltrarMisClientes(IEnumerable<InscripcionEventoModel> lista, bool soloMisClientes) =>
             (lista ?? Enumerable.Empty<InscripcionEventoModel>()).Where(i => !soloMisClientes || i.EsDeMisClientes != false);
 
+        // ---------------- Sugerencia 1141 (Paloma): «Ver anuladas» en los inscritos ----------------
+
+        private bool _verAnuladas;
+        private bool _verAnuladasDecidido;
+        /// <summary>
+        /// Con él desmarcado (por defecto) las inscripciones anuladas no salen en la lista; las caducadas sí, porque todavía se
+        /// pueden pagar tarde, marcar pagadas o reenviar el enlace. No cambia los contadores de la cabecera (ya no cuentan las
+        /// anuladas). Se recuerda por usuario (parámetro <see cref="Parametros.Claves.EventosVerAnuladas"/>).
+        /// </summary>
+        public bool VerAnuladas
+        {
+            get => _verAnuladas;
+            set
+            {
+                _verAnuladasDecidido = true;
+                if (SetProperty(ref _verAnuladas, value))
+                {
+                    AplicarFiltroInscripciones();
+                    _ = GuardarVerAnuladasAsync(value);
+                }
+            }
+        }
+
+        public static IEnumerable<InscripcionEventoModel> FiltrarAnuladas(IEnumerable<InscripcionEventoModel> lista, bool verAnuladas) =>
+            (lista ?? Enumerable.Empty<InscripcionEventoModel>()).Where(i => verAnuladas || i.Estado != InscripcionEventoModel.ANULADA);
+
+        private async Task LeerVerAnuladasAsync()
+        {
+            if (_verAnuladasDecidido || Configuracion == null)
+            {
+                return;
+            }
+            _verAnuladasDecidido = true;
+            bool valor;
+            try
+            {
+                valor = (await Configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.EventosVerAnuladas))?.Trim() == "1";
+            }
+            catch
+            {
+                valor = false; // es una comodidad: sin parámetro, no se ven
+            }
+            if (SetProperty(ref _verAnuladas, valor, nameof(VerAnuladas)))
+            {
+                AplicarFiltroInscripciones();
+            }
+        }
+
+        private async Task GuardarVerAnuladasAsync(bool valor)
+        {
+            if (Configuracion == null)
+            {
+                return;
+            }
+            try
+            {
+                await Configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.EventosVerAnuladas, valor ? "1" : "0");
+            }
+            catch
+            {
+                // Es una comodidad: si no se puede guardar, la próxima vez sale como estaba
+            }
+        }
+
         // ---------------- Nesto#626 (NestoAPI#829, sugerencia 1064 de Reina): presencial u online en los eventos mixtos ----------------
 
         public const string FILTRO_FORMA_TODOS = "";
@@ -345,7 +409,7 @@ namespace Nesto.Modulos.Cliente
 
         private void AplicarFiltroInscripciones()
         {
-            IEnumerable<InscripcionEventoModel> visibles = FiltrarMisClientes(Inscripciones, FiltroMisClientesActivo);
+            IEnumerable<InscripcionEventoModel> visibles = FiltrarAnuladas(FiltrarMisClientes(Inscripciones, FiltroMisClientesActivo), VerAnuladas);
             if (EventoEsMixto)
             {
                 visibles = FiltrarFormaAsistencia(visibles, FiltroFormaAsistencia?.Valor);
@@ -719,6 +783,7 @@ namespace Nesto.Modulos.Cliente
                         AplicarFiltroInscripciones();
                     }
                 }
+                await LeerVerAnuladasAsync();
                 int? idSeleccionado = Seleccionado?.Id;
                 List<EventoModel> lista = await _servicio.LeerEventos(false);
                 Eventos = new ObservableCollection<EventoModel>(lista);
