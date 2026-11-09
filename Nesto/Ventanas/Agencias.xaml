@@ -32,6 +32,7 @@
                 </StackPanel>
             </Border>
         </HierarchicalDataTemplate>
+        <BooleanToVisibilityConverter x:Key="BoolToVisAvisos"/>
     </UserControl.Resources>
 
 
@@ -39,8 +40,14 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="15*"/>
         </Grid.RowDefinitions>
+        <!-- NestoAPI#841: hoy no sale la furgoneta (festivo «Sin reparto propio» en Festivos) y está elegido el reparto propio -->
+        <Border Grid.Row="1" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8" Margin="3"
+                Visibility="{Binding HayAvisoRepartoPropio, Converter={StaticResource BoolToVisAvisos}}">
+            <TextBlock Text="{Binding AvisoRepartoPropio}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#8A4B00"/>
+        </Border>
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

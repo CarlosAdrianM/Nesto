@@ -22,7 +22,7 @@
             <StackPanel Grid.Row="0" Margin="0,0,0,10">
                 <TextBlock Text="Festivos" FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
                 <TextBlock TextWrapping="Wrap" Foreground="#555"
-                           Text="Los días que no se trabaja: cuentan para las remesas, las fechas de entrega, el picking de nuestras rutas y los avisos. Dé de alta los del año que viene antes de enero (el calendario laboral de la Comunidad de Madrid sale en el BOCM)."/>
+                           Text="Los días que no se trabaja: cuentan para las remesas, las fechas de entrega, el picking de nuestras rutas y los avisos. Dé de alta los del año que viene antes de enero (el calendario laboral de la Comunidad de Madrid sale en el BOCM). Los días en que no sale la furgoneta, con el tipo «Sin reparto propio (furgoneta)» y con antelación."/>
             </StackPanel>
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
@@ -45,7 +45,7 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}" Width="100"/>
                     <DataGridTextColumn Header="Día" Binding="{Binding DiaSemana}" Width="100"/>
-                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="110"/>
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding TipoEtiqueta}" Width="190"/>
                     <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>
                     <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="80"/>
                     <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="140"/>
@@ -62,11 +62,13 @@
                 </Grid.ColumnDefinitions>
                 <DatePicker Grid.Column="0" SelectedDate="{Binding NuevaFecha, Mode=TwoWay}" Width="130" VerticalAlignment="Center"
                             ToolTip="Fecha del festivo"/>
-                <ComboBox Grid.Column="1" ItemsSource="{Binding Tipos}" SelectedItem="{Binding NuevoTipo, Mode=TwoWay}"
-                          Width="120" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Tipo de festivo"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding OpcionesTipo}" DisplayMemberPath="Etiqueta" SelectedValuePath="Valor"
+                          SelectedValue="{Binding NuevoTipo, Mode=TwoWay}"
+                          Width="200" Margin="8,0,0,0" VerticalAlignment="Center"
+                          ToolTip="Tipo de festivo. «Sin reparto propio (furgoneta)»: ese día no sale la furgoneta y las entregas de nuestra ruta pasan al siguiente día de reparto"/>
                 <TextBox Grid.Column="2" Text="{Binding NuevaDescripcion, UpdateSourceTrigger=PropertyChanged}"
                          MaxLength="{Binding LongitudDescripcion}" Margin="8,0,0,0" VerticalAlignment="Center"
-                         ToolTip="Descripción (por ejemplo, San José)"/>
+                         ToolTip="Descripción (por ejemplo, San José). Para cambiar la de uno que ya está, dé de alta la misma fecha con el mismo tipo y la descripción nueva"/>
                 <Button Grid.Column="3" Content="Dar de alta" Command="{Binding AnadirCommand}" Width="110" Height="28" Margin="8,0,0,0"/>
                 <Button Grid.Column="4" Content="Dar de baja" Command="{Binding BorrarCommand}" Width="110" Height="28" Margin="8,0,0,0"
                         ToolTip="Da de baja el festivo seleccionado (solo los de la tabla)"/>

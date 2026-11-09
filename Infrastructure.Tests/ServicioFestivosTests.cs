@@ -5,6 +5,7 @@ using Nesto.Infrastructure.Services;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -116,6 +117,48 @@ namespace Infrastructure.Tests
 
             Assert.AreEqual(409, ex.Codigo);
             Assert.AreEqual("Todavía no existe la tabla Festivos: hay que lanzar Scripts/Issue779_Festivos.sql.", ex.Message);
+        }
+    
+
+        // ===== NestoAPI#841: día sin reparto propio =====
+
+        [TestMethod]
+        public async Task EsDiaSinRepartoPropio_ConUnoEseDia_PideElAnioYDevuelveTrue()
+        {
+            var handler = new HandlerFalso
+            {
+                Respuesta = "[{\"Fecha\":\"2026-11-09T00:00:00\",\"Tipo\":\"Madrid\",\"Descripcion\":\"Almudena\",\"Origen\":\"Tabla\"}," +
+                            "{\"Fecha\":\"2026-11-09T00:00:00\",\"Tipo\":\"RepartoPropio\",\"Descripcion\":\"Andre y Miguel libres\",\"Origen\":\"Tabla\"}]"
+            };
+
+            bool sinReparto = await new ServicioFestivos(new FactoriaFalsa(handler)).EsDiaSinRepartoPropio(new DateTime(2026, 11, 9, 8, 30, 0));
+
+            Assert.IsTrue(sinReparto);
+            Assert.AreEqual("GET /api/Festivos?anio=2026", handler.Urls[0]);
+        }
+
+        [TestMethod]
+        public void EsDiaSinRepartoPropio_OtroTipoUOtroDia_False()
+        {
+            var festivos = new List<Festivo>
+            {
+                new Festivo { Fecha = new DateTime(2026, 11, 9), Tipo = TiposFestivo.MADRID },
+                new Festivo { Fecha = new DateTime(2026, 11, 10), Tipo = TiposFestivo.REPARTO_PROPIO }
+            };
+
+            Assert.IsFalse(ServicioFestivos.EsDiaSinRepartoPropio(festivos, new DateTime(2026, 11, 9)));
+            Assert.IsTrue(ServicioFestivos.EsDiaSinRepartoPropio(festivos, new DateTime(2026, 11, 10, 17, 0, 0)));
+            Assert.IsFalse(ServicioFestivos.EsDiaSinRepartoPropio(null, new DateTime(2026, 11, 10)));
+        }
+
+        [TestMethod]
+        public void TiposFestivo_RepartoPropio_ConSuEtiquetaEnElDesplegable()
+        {
+            CollectionAssert.Contains(TiposFestivo.Todos.ToList(), TiposFestivo.REPARTO_PROPIO);
+            OpcionTipoFestivo opcion = TiposFestivo.Opciones.Single(o => o.Valor == "RepartoPropio");
+            Assert.AreEqual("Sin reparto propio (furgoneta)", opcion.Etiqueta);
+            Assert.AreEqual("Madrid", TiposFestivo.Etiqueta(TiposFestivo.MADRID));
+            Assert.AreEqual("Sin reparto propio (furgoneta)", new Festivo { Tipo = "RepartoPropio" }.TipoEtiqueta);
         }
     }
 }

@@ -2,6 +2,7 @@ Imports ControlesUsuario.Dialogs
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
@@ -291,4 +292,57 @@ Public Class AgenciaRepartoPropioTests
         Assert.IsNull(AgenciaService.EnlaceSeguimientoDeRespuesta("{""Numero"":251500,""Url"":null}"))
         Assert.IsNull(AgenciaService.EnlaceSeguimientoDeRespuesta(String.Empty))
     End Sub
+
+    ' ---- NestoAPI#841: día sin reparto propio ----
+
+    Private Async Function HoySinFurgoneta(sinReparto As Boolean) As Task
+        Dim festivos = A.Fake(Of IServicioFestivos)
+        A.CallTo(Function() festivos.EsDiaSinRepartoPropio(A(Of Date).Ignored)).Returns(Task.FromResult(sinReparto))
+        viewModel.ServicioFestivos = festivos
+        Await viewModel.ComprobarRepartoPropioAsync()
+    End Function
+
+    Private Shared Function Agencia(numero As Integer, nombre As String) As AgenciasTransporte
+        Return New AgenciasTransporte With {.Empresa = "1  ", .Numero = numero, .Nombre = nombre}
+    End Function
+
+    <TestMethod()>
+    Public Async Function DiaSinRepartoPropio_ConElRepartoPropioElegido_Avisa() As Task
+        Await HoySinFurgoneta(True)
+
+        viewModel.agenciaSeleccionada = Agencia(14, "Reparto propio")
+
+        Assert.IsTrue(viewModel.HayAvisoRepartoPropio)
+        Assert.AreEqual("Hoy no hay reparto propio: las entregas de nuestra ruta se mueven al siguiente día de reparto.", viewModel.AvisoRepartoPropio)
+    End Function
+
+    <TestMethod()>
+    Public Async Function DiaSinRepartoPropio_ConOtraAgencia_NoAvisa() As Task
+        Await HoySinFurgoneta(True)
+
+        viewModel.agenciaSeleccionada = Agencia(13, "CTT")
+
+        Assert.IsFalse(viewModel.HayAvisoRepartoPropio)
+    End Function
+
+    <TestMethod()>
+    Public Async Function DiaNormal_ConElRepartoPropio_NoAvisa() As Task
+        Await HoySinFurgoneta(False)
+
+        viewModel.agenciaSeleccionada = Agencia(14, "Reparto propio")
+
+        Assert.IsFalse(viewModel.HayAvisoRepartoPropio)
+    End Function
+
+    <TestMethod()>
+    Public Async Function DiaSinRepartoPropio_SiLaApiFalla_NoAvisa() As Task
+        Dim festivos = A.Fake(Of IServicioFestivos)
+        A.CallTo(Function() festivos.EsDiaSinRepartoPropio(A(Of Date).Ignored)).Throws(New Exception("caída"))
+        viewModel.ServicioFestivos = festivos
+        viewModel.agenciaSeleccionada = Agencia(14, "Reparto propio")
+
+        Await viewModel.ComprobarRepartoPropioAsync()
+
+        Assert.IsFalse(viewModel.HayAvisoRepartoPropio)
+    End Function
 End Class

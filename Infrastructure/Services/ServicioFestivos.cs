@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,6 +26,12 @@ namespace Nesto.Infrastructure.Services
         /// <summary>DELETE api/Festivos/{fecha}/{tipo}.</summary>
         /// <exception cref="FestivosException">403 sin permiso, 404 si no existe, 409 sin tabla…</exception>
         Task Borrar(DateTime fecha, string tipo);
+        /// <summary>
+        /// NestoAPI#841: ese día no sale la furgoneta (hay un festivo RepartoPropio en esa fecha). Lee los del año de la
+        /// fecha en cada llamada (se llama al abrir la pantalla, sin temporizadores).
+        /// </summary>
+        /// <exception cref="FestivosException">La API no los ha devuelto.</exception>
+        Task<bool> EsDiaSinRepartoPropio(DateTime fecha);
     }
 
     public class ServicioFestivos : IServicioFestivos
@@ -75,6 +82,16 @@ namespace Nesto.Infrastructure.Services
                 _ = await LeerRespuesta(response).ConfigureAwait(false);
             }
         }
+
+        public async Task<bool> EsDiaSinRepartoPropio(DateTime fecha)
+        {
+            List<Festivo> festivos = await Leer(fecha.Year).ConfigureAwait(false);
+            return EsDiaSinRepartoPropio(festivos, fecha);
+        }
+
+        /// <summary>NestoAPI#841: la regla, sin la API: hay un festivo RepartoPropio en esa fecha (sin mirar la hora).</summary>
+        public static bool EsDiaSinRepartoPropio(IEnumerable<Festivo> festivos, DateTime fecha)
+            => festivos != null && festivos.Any(f => f != null && f.EsSinRepartoPropio && f.Fecha.Date == fecha.Date);
 
         /// <summary>«Festivos/2027-03-19/Auton%C3%B3mica»: la fecha sin hora y el tipo escapado (lleva tilde).</summary>
         internal static string UrlBorrar(DateTime fecha, string tipo)

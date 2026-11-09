@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace Nesto.Infrastructure.Models
 {
@@ -15,8 +16,16 @@ namespace Nesto.Infrastructure.Models
         private static readonly CultureInfo Espanol = new CultureInfo("es-ES");
 
         public DateTime Fecha { get; set; }
-        /// <summary>Nacional, Autonómica, Empresa, Algete, Alcobendas o Madrid.</summary>
+        /// <summary>Nacional, Autonómica, Empresa, Algete, Alcobendas, Madrid o RepartoPropio (NestoAPI#841).</summary>
         public string Tipo { get; set; }
+
+        /// <summary>NestoAPI#841: el tipo como se enseña («Sin reparto propio (furgoneta)» para RepartoPropio).</summary>
+        [JsonIgnore]
+        public string TipoEtiqueta => TiposFestivo.Etiqueta(Tipo);
+
+        /// <summary>NestoAPI#841: ese día no sale la furgoneta (las entregas de nuestra ruta van al siguiente día de reparto).</summary>
+        [JsonIgnore]
+        public bool EsSinRepartoPropio => string.Equals(Tipo?.Trim(), TiposFestivo.REPARTO_PROPIO, StringComparison.OrdinalIgnoreCase);
         public string Descripcion { get; set; }
         /// <summary>Solo lectura: quién lo dio de alta o lo cambió.</summary>
         public string Usuario { get; set; }
@@ -58,6 +67,15 @@ namespace Nesto.Infrastructure.Models
         public const string ALGETE = "Algete";
         public const string ALCOBENDAS = "Alcobendas";
         public const string MADRID = "Madrid";
+        /// <summary>
+        /// NestoAPI#841: «día sin reparto propio»: la furgoneta no sale (no es fiesta de nadie, es operativo, como «Empresa»).
+        /// Las entregas de nuestra ruta (AT, 16) y las reposiciones de las tiendas se van al siguiente día de reparto.
+        /// </summary>
+        public const string REPARTO_PROPIO = "RepartoPropio";
+        public const string ETIQUETA_REPARTO_PROPIO = "Sin reparto propio (furgoneta)";
+
+        /// <summary>NestoAPI#841: el aviso de Picking y de Agencias (reparto propio) cuando hoy no sale la furgoneta.</summary>
+        public const string AVISO_HOY_SIN_REPARTO_PROPIO = "Hoy no hay reparto propio: las entregas de nuestra ruta se mueven al siguiente día de reparto.";
 
         public const string ORIGEN_TABLA = "Tabla";
         public const string ORIGEN_CODIGO = "Código";
@@ -65,7 +83,29 @@ namespace Nesto.Infrastructure.Models
         /// <summary>La API admite como mucho 100 caracteres (corta lo que sobre).</summary>
         public const int LONGITUD_DESCRIPCION = 100;
 
-        public static IReadOnlyList<string> Todos { get; } = new[] { NACIONAL, AUTONOMICA, EMPRESA, ALGETE, ALCOBENDAS, MADRID };
+        public static IReadOnlyList<string> Todos { get; } = new[] { NACIONAL, AUTONOMICA, EMPRESA, ALGETE, ALCOBENDAS, MADRID, REPARTO_PROPIO };
+
+        /// <summary>NestoAPI#841: los tipos con su etiqueta, para el desplegable (Valor = lo que va a la API).</summary>
+        public static IReadOnlyList<OpcionTipoFestivo> Opciones { get; } = Todos.Select(t => new OpcionTipoFestivo(t, Etiqueta(t))).ToList();
+
+        /// <summary>NestoAPI#841: cómo se enseña cada tipo. Todos se enseñan tal cual salvo RepartoPropio.</summary>
+        public static string Etiqueta(string tipo)
+            => string.Equals(tipo?.Trim(), REPARTO_PROPIO, StringComparison.OrdinalIgnoreCase) ? ETIQUETA_REPARTO_PROPIO : tipo;
+    }
+
+    /// <summary>NestoAPI#841: una opción del desplegable de tipos: lo que va a la API y lo que se enseña.</summary>
+    public class OpcionTipoFestivo
+    {
+        public OpcionTipoFestivo(string valor, string etiqueta)
+        {
+            Valor = valor;
+            Etiqueta = etiqueta;
+        }
+
+        public string Valor { get; }
+        public string Etiqueta { get; }
+
+        public override string ToString() => Etiqueta;
     }
 
     /// <summary>La API no ha leído o guardado los festivos: el mensaje es el suyo (403 sin permiso, 409 sin tabla…).</summary>

@@ -111,10 +111,17 @@ Public Class FestivosViewModel
         End Set
     End Property
 
-    ''' <summary>Los seis tipos que admite la API.</summary>
+    ''' <summary>Los tipos que admite la API (NestoAPI#841: también RepartoPropio, el día sin furgoneta).</summary>
     Public ReadOnly Property Tipos As IReadOnlyList(Of String)
         Get
             Return TiposFestivo.Todos
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#841: los tipos para el desplegable, con su etiqueta («Sin reparto propio (furgoneta)»); el valor va a <see cref="NuevoTipo"/>.</summary>
+    Public ReadOnly Property OpcionesTipo As IReadOnlyList(Of OpcionTipoFestivo)
+        Get
+            Return TiposFestivo.Opciones
         End Get
     End Property
 

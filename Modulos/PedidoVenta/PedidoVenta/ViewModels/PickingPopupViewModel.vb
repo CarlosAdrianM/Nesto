@@ -25,6 +25,7 @@ Public Class PickingPopupViewModel
 
     Public Sub New(servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.New(servicio, messenger, dialogService, configuracion, New InformesService(configuracion, servicioAutenticacion))
+        ServicioFestivos = New Global.Nesto.Infrastructure.Services.ServicioFestivos(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
     End Sub
 
     ' Constructor para tests: permite inyectar un IInformesService mockeado.
@@ -50,7 +51,47 @@ Public Class PickingPopupViewModel
         Else
             numeroPedidoPicking = 0
         End If
+        Dim unused = ComprobarRepartoPropioAsync()
     End Sub
+
+    ' ===== NestoAPI#841: día sin reparto propio (la furgoneta no sale) =====
+
+    ''' <summary>Para los tests (con el constructor de los tests queda en Nothing y no se avisa).</summary>
+    Friend Property ServicioFestivos As IServicioFestivos
+
+    Private _avisoRepartoPropio As String
+    ''' <summary>
+    ''' NestoAPI#841: si hoy es un día «Sin reparto propio (furgoneta)» de Festivos, el aviso amarillo de la ventana. Se lee
+    ''' una vez al abrirla (sin temporizadores); si no se puede leer, no se avisa (no debe impedir sacar el picking).
+    ''' </summary>
+    Public Property AvisoRepartoPropio As String
+        Get
+            Return _avisoRepartoPropio
+        End Get
+        Private Set(value As String)
+            If SetProperty(_avisoRepartoPropio, value) Then
+                OnPropertyChanged(NameOf(HayAvisoRepartoPropio))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoRepartoPropio As Boolean
+        Get
+            Return Not String.IsNullOrEmpty(AvisoRepartoPropio)
+        End Get
+    End Property
+
+    Friend Async Function ComprobarRepartoPropioAsync() As Task
+        If ServicioFestivos Is Nothing Then
+            Return
+        End If
+        Try
+            Dim sinReparto As Boolean = Await ServicioFestivos.EsDiaSinRepartoPropio(Date.Today)
+            AvisoRepartoPropio = If(sinReparto, Global.Nesto.Infrastructure.Models.TiposFestivo.AVISO_HOY_SIN_REPARTO_PROPIO, Nothing)
+        Catch ex As Exception
+            AvisoRepartoPropio = Nothing
+        End Try
+    End Function
 
 
 

@@ -54,6 +54,14 @@ Public Class AgenciasViewModel
             _servicioBultosAriadna = value
         End Set
     End Property
+    Private _servicioFestivos As IServicioFestivos
+
+    ''' <summary>Solo para tests: el constructor crea el servicio contra el servidor (NestoAPI#841).</summary>
+    Friend WriteOnly Property ServicioFestivos As IServicioFestivos
+        Set(value As IServicioFestivos)
+            _servicioFestivos = value
+        End Set
+    End Property
     Public ReadOnly _dialogService As IServicioDialogos
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _facturadorEtiqueta As FacturadorPedido
@@ -86,6 +94,9 @@ Public Class AgenciasViewModel
         _comparadorAgencias = New ComparadorAgenciasService(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
         ' Nesto#507: los bultos (y sus fotos) del packing de Ariadna
         _servicioBultosAriadna = New ServicioBultosAriadna(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
+        ' NestoAPI#841: si hoy no sale la furgoneta, aviso con el reparto propio elegido (se lee una vez al abrir)
+        _servicioFestivos = New Global.Nesto.Infrastructure.Services.ServicioFestivos(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
+        Dim unusedFestivos = ComprobarRepartoPropioAsync()
 
         Titulo = "Agencias"
 
@@ -304,6 +315,7 @@ Public Class AgenciasViewModel
                     AnotarTrazaRetorno($"agencia {If(numeroAgenciaAnterior?.ToString(), "-")}->{If(value?.Numero.ToString(), "-")}")
                 End If
                 Dim unused = SetProperty(_agenciaSeleccionada, value)
+                NotificarAvisoRepartoPropio() ' NestoAPI#841
                 If Not IsNothing(value) Then
                     ' Nesto#467: TryGetValue, no el indexador. Aunque el desplegable ya solo
                     ' ofrezca agencias integradas, aqui llegan tambien las de envios ANTIGUOS al
@@ -4534,6 +4546,48 @@ Public Class AgenciasViewModel
             EstaOcupado = False
         End Try
     End Function
+
+    ' ===== NestoAPI#841: día sin reparto propio (la furgoneta no sale) =====
+
+    Private _hoySinRepartoPropio As Boolean
+
+    ''' <summary>
+    ''' NestoAPI#841: lee una vez (al abrir la ventana, sin temporizadores) si hoy es un día «Sin reparto propio (furgoneta)»
+    ''' de Festivos. Si no se puede leer, no se avisa (no debe estorbar a la agencia).
+    ''' </summary>
+    Friend Async Function ComprobarRepartoPropioAsync() As Task
+        If _servicioFestivos Is Nothing Then
+            Return
+        End If
+        Try
+            _hoySinRepartoPropio = Await _servicioFestivos.EsDiaSinRepartoPropio(Date.Today)
+        Catch ex As Exception
+            _hoySinRepartoPropio = False
+        End Try
+        NotificarAvisoRepartoPropio()
+    End Function
+
+    Private Sub NotificarAvisoRepartoPropio()
+        OnPropertyChanged(NameOf(AvisoRepartoPropio))
+        OnPropertyChanged(NameOf(HayAvisoRepartoPropio))
+    End Sub
+
+    ''' <summary>NestoAPI#841: el aviso amarillo, solo con la agencia «Reparto propio» elegida y si hoy no sale la furgoneta.</summary>
+    Public ReadOnly Property AvisoRepartoPropio As String
+        Get
+            If _hoySinRepartoPropio AndAlso agenciaSeleccionada IsNot Nothing AndAlso
+                agenciaSeleccionada.Numero = Constantes.Agencias.AGENCIA_REPARTO_PROPIO Then
+                Return TiposFestivo.AVISO_HOY_SIN_REPARTO_PROPIO
+            End If
+            Return Nothing
+        End Get
+    End Property
+
+    Public ReadOnly Property HayAvisoRepartoPropio As Boolean
+        Get
+            Return Not String.IsNullOrEmpty(AvisoRepartoPropio)
+        End Get
+    End Property
 
     ' ===== Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio =====
 

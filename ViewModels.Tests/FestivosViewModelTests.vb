@@ -233,4 +233,32 @@ Public Class FestivosViewModelTests
 
 #End Region
 
+#Region "NestoAPI#841: día sin reparto propio"
+
+    <TestMethod()>
+    Public Sub Tipos_IncluyeSinRepartoPropioConSuEtiqueta()
+        Dim vm = CrearViewModel()
+
+        Dim opcion = vm.OpcionesTipo.Single(Function(o) o.Valor = TiposFestivo.REPARTO_PROPIO)
+        Assert.AreEqual("Sin reparto propio (furgoneta)", opcion.Etiqueta)
+        CollectionAssert.Contains(vm.Tipos.ToList(), "RepartoPropio")
+    End Sub
+
+    <TestMethod()>
+    Public Async Function Alta_SinRepartoPropio_MandaElTipoDeLaApiYLaDescripcion() As Task
+        Dim anio = Date.Today.Year
+        Dim vm = CrearViewModel()
+        vm.NuevaFecha = New Date(anio, 11, 9)
+        vm.NuevoTipo = vm.OpcionesTipo.Single(Function(o) o.Etiqueta = "Sin reparto propio (furgoneta)").Valor
+        vm.NuevaDescripcion = "Andre y Miguel libres"
+
+        Await vm.AnadirAsync()
+
+        A.CallTo(Function() _servicio.Guardar(A(Of PeticionFestivo).That.Matches(
+            Function(p) p.Tipo = "RepartoPropio" AndAlso p.Descripcion = "Andre y Miguel libres"))).
+            MustHaveHappenedOnceExactly()
+    End Function
+
+#End Region
+
 End Class

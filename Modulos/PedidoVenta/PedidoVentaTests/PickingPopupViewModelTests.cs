@@ -361,5 +361,49 @@ namespace PedidoVentaTests
             Assert.IsFalse(vm.esPickingCliente);
             Assert.IsFalse(vm.esPickingRutas);
         }
+
+        // ===== NestoAPI#841: día sin reparto propio =====
+
+        [TestMethod]
+        public async Task RepartoPropio_HoySinFurgoneta_AvisaEnLaVentana()
+        {
+            var festivos = A.Fake<IServicioFestivos>();
+            A.CallTo(() => festivos.EsDiaSinRepartoPropio(A<System.DateTime>.Ignored)).Returns(Task.FromResult(true));
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.ServicioFestivos = festivos;
+
+            await vm.ComprobarRepartoPropioAsync();
+
+            Assert.IsTrue(vm.HayAvisoRepartoPropio);
+            Assert.AreEqual("Hoy no hay reparto propio: las entregas de nuestra ruta se mueven al siguiente día de reparto.", vm.AvisoRepartoPropio);
+            A.CallTo(() => festivos.EsDiaSinRepartoPropio(System.DateTime.Today)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task RepartoPropio_DiaNormal_NoAvisa()
+        {
+            var festivos = A.Fake<IServicioFestivos>();
+            A.CallTo(() => festivos.EsDiaSinRepartoPropio(A<System.DateTime>.Ignored)).Returns(Task.FromResult(false));
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.ServicioFestivos = festivos;
+
+            await vm.ComprobarRepartoPropioAsync();
+
+            Assert.IsFalse(vm.HayAvisoRepartoPropio);
+        }
+
+        [TestMethod]
+        public async Task RepartoPropio_SiLaApiFalla_NoAvisaNiMolesta()
+        {
+            var festivos = A.Fake<IServicioFestivos>();
+            A.CallTo(() => festivos.EsDiaSinRepartoPropio(A<System.DateTime>.Ignored)).Throws(new Nesto.Infrastructure.Models.FestivosException("caída", 500));
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.ServicioFestivos = festivos;
+
+            await vm.ComprobarRepartoPropioAsync();
+
+            Assert.IsFalse(vm.HayAvisoRepartoPropio);
+            A.CallTo(() => _dialogService.ShowError(A<string>.Ignored)).MustNotHaveHappened();
+        }
     }
 }
