@@ -276,32 +276,56 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Function OnCrearLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
+        ' NestoAPI#784: si mientras tanto ya tiene fila (409 YaTieneFila), lo contado se suma a esa (una sola vez, sin bucles).
+        Dim yaTieneFila As ConflictoInventarioException = Nothing
         Try
-            Dim grabada As InventarioDTO = Await _servicio.CrearLinea(linea)
-            If grabada IsNot Nothing Then
-                linea.Producto = grabada.Producto
-                linea.Descripcion = grabada.Descripcion
-                linea.Familia = grabada.Familia
-                linea.PorCodigoBarras = grabada.PorCodigoBarras
-            End If
-            Dim nuevoMovimiento As New Movimiento With {
-                .Cantidad = cantidad,
-                .Descripcion = linea.Descripcion,
-                .Familia = linea.Familia,
-                .Grupo = linea.Grupo,
-                .Subgrupo = linea.Subgrupo,
-                .Producto = linea.Producto,
-                .Lectura = TextoLectura(linea.PorCodigoBarras)
-            }
-            movimientosDia.Add(nuevoMovimiento)
-            OnPropertyChanged(NameOf(movimientosDia))
-            numeroProducto = String.Empty
-            cantidad = 1
-            Return nuevoMovimiento
+            Return Await GrabarLineaNueva(linea)
+        Catch ex As ConflictoInventarioException When ex.EsCodigo(CodigosConflictoInventario.YA_TIENE_FILA)
+            yaTieneFila = ex
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing
         End Try
+
+        Dim leido = If(linea.Producto, String.Empty).Trim()
+        Dim existente As InventarioDTO
+        Try
+            existente = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, linea.Almacen, linea.Fecha, leido)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return Nothing
+        End Try
+        If existente Is Nothing Then
+            dialogService.ShowError(yaTieneFila.Message)
+            Return Nothing
+        End If
+        existente.StockReal += cantidad
+        Return Await ActualizarLinea(existente, EsLecturaPorCodigo(leido, existente.Producto))
+    End Function
+
+    ''' <summary>POST de la fila nueva; los errores los trata quien llama.</summary>
+    Private Async Function GrabarLineaNueva(linea As InventarioDTO) As Task(Of Movimiento)
+        Dim grabada As InventarioDTO = Await _servicio.CrearLinea(linea)
+        If grabada IsNot Nothing Then
+            linea.Producto = grabada.Producto
+            linea.Descripcion = grabada.Descripcion
+            linea.Familia = grabada.Familia
+            linea.PorCodigoBarras = grabada.PorCodigoBarras
+        End If
+        Dim nuevoMovimiento As New Movimiento With {
+            .Cantidad = cantidad,
+            .Descripcion = linea.Descripcion,
+            .Familia = linea.Familia,
+            .Grupo = linea.Grupo,
+            .Subgrupo = linea.Subgrupo,
+            .Producto = linea.Producto,
+            .Lectura = TextoLectura(linea.PorCodigoBarras)
+        }
+        movimientosDia.Add(nuevoMovimiento)
+        OnPropertyChanged(NameOf(movimientosDia))
+        numeroProducto = String.Empty
+        cantidad = 1
+        Return nuevoMovimiento
     End Function
 
 
@@ -405,10 +429,14 @@ Public Class InventarioViewModel
             Return
         End If
 
+        ' NestoAPI#784: RecontadaSinContar bloquea, pero el usuario puede confirmar que de verdad hay 0 (ConfirmarContadoCero).
+        Dim confirmarContadoCero As Boolean = False
         If HayComprobaciones(comprobaciones) Then
-            If Not Await MostrarComprobaciones(comprobaciones) Then
+            Dim decision = Await MostrarComprobaciones(comprobaciones)
+            If decision = DecisionComprobaciones.NoSeguir Then
                 Return
             End If
+            confirmarContadoCero = decision = DecisionComprobaciones.SeguirConfirmandoContadoCero
         End If
 
         Dim recuento = If(comprobaciones.Recuento, New List(Of RecuentoUsuarioInventarioDTO))
@@ -417,28 +445,34 @@ Public Class InventarioViewModel
             dialogService.ShowNotification("Contabilizar inventario", $"No hay filas pendientes de contabilizar en {almacenInventario} el {textoDia}.")
             Return
         End If
-        Dim mensaje = $"Se va a contabilizar el inventario de {almacenInventario} del {textoDia}: {TextoFilas(filas)} de {TextoUsuarios(recuento.Count)}. ¿Continuar?"
+        Dim mensaje = $"Se va a contabilizar el inventario de {almacenInventario} del {textoDia}: {TextoFilas(filas)} de {TextoUsuarios(recuento.Count)}."
+        If confirmarContadoCero Then
+            mensaje += " Ha confirmado que hay 0 en los productos vueltos a contar: su stock se quedará a cero."
+        End If
+        mensaje += " ¿Continuar?"
         If Not dialogService.ShowConfirmationAnswer("Contabilizar inventario", mensaje, True) Then
             Return
         End If
 
-        Dim resultado As ResultadoContabilizarInventario
-        estaOcupado = True
-        Try
-            resultado = Await _servicio.Contabilizar(EMPRESA_DEFECTO, almacenInventario, fecha)
-        Catch ex As Exception
-            dialogService.ShowError(ex.Message)
-            Return
-        Finally
-            estaOcupado = False
-        End Try
+        Dim resultado = Await LlamarContabilizar(almacenInventario, fecha, confirmarContadoCero)
         If resultado Is Nothing Then
             Return
         End If
         If resultado.Bloqueado IsNot Nothing Then
-            ' Algo ha cambiado desde las comprobaciones: no se ha tocado nada.
-            Await MostrarComprobaciones(resultado.Bloqueado)
-            Return
+            ' Algo ha cambiado desde las comprobaciones: no se ha tocado nada. Si solo quedan bloqueantes que se confirman y
+            ' ahora se confirman (antes no), se intenta una vez más; si no, se enseñan y se para.
+            Dim decision = Await MostrarComprobaciones(resultado.Bloqueado)
+            If confirmarContadoCero OrElse decision <> DecisionComprobaciones.SeguirConfirmandoContadoCero Then
+                Return
+            End If
+            resultado = Await LlamarContabilizar(almacenInventario, fecha, True)
+            If resultado Is Nothing Then
+                Return
+            End If
+            If resultado.Bloqueado IsNot Nothing Then
+                Await MostrarComprobaciones(resultado.Bloqueado)
+                Return
+            End If
         End If
 
         Dim contabilizacion = If(resultado.Contabilizacion, New ContabilizacionInventarioDTO)
@@ -455,14 +489,48 @@ Public Class InventarioViewModel
             (comprobaciones.Avisos IsNot Nothing AndAlso comprobaciones.Avisos.Any())
     End Function
 
-    ''' <summary>True si se puede seguir: no hay bloqueantes y el usuario ha pulsado «Continuar».</summary>
-    Private Async Function MostrarComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Task(Of Boolean)
+    ''' <summary>Nothing si ha fallado (ya se ha enseñado el error).</summary>
+    Private Async Function LlamarContabilizar(almacenInventario As String, fecha As Date, confirmarContadoCero As Boolean) As Task(Of ResultadoContabilizarInventario)
+        estaOcupado = True
+        Try
+            Return Await _servicio.Contabilizar(EMPRESA_DEFECTO, almacenInventario, fecha, confirmarContadoCero)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return Nothing
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
+    Private Enum DecisionComprobaciones
+        NoSeguir
+        Seguir
+        ''' <summary>NestoAPI#784: solo había bloqueantes que se confirman y el usuario ha marcado «He contado y de verdad hay 0».</summary>
+        SeguirConfirmandoContadoCero
+    End Enum
+
+    ''' <summary>
+    ''' Se sigue si el usuario ha pulsado «Continuar» y no hay bloqueantes o, NestoAPI#784, si todos los bloqueantes se
+    ''' confirman (SeConfirma) y ha marcado «He contado y de verdad hay 0». Un bloqueante que no se confirma no se salta nunca.
+    ''' </summary>
+    Private Async Function MostrarComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Task(Of DecisionComprobaciones)
         Dim parametros As New ParametrosDialogo From {
             {ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES, comprobaciones}
         }
         Dim respuesta = Await dialogService.ShowDialogAsync(ComprobacionesInventarioDialogViewModel.NOMBRE, parametros)
-        Dim hayBloqueantes = comprobaciones.Bloqueantes IsNot Nothing AndAlso comprobaciones.Bloqueantes.Any()
-        Return Not hayBloqueantes AndAlso respuesta IsNot Nothing AndAlso respuesta.Result = ResultadoBoton.OK
+        If respuesta Is Nothing OrElse respuesta.Result <> ResultadoBoton.OK Then
+            Return DecisionComprobaciones.NoSeguir
+        End If
+        Dim bloqueantes = If(comprobaciones.Bloqueantes, New List(Of ComprobacionInventarioDTO))
+        If Not bloqueantes.Any() Then
+            Return DecisionComprobaciones.Seguir
+        End If
+        If bloqueantes.Any(Function(b) Not b.SeConfirma) Then
+            Return DecisionComprobaciones.NoSeguir
+        End If
+        Dim confirmado = respuesta.Parameters IsNot Nothing AndAlso
+            respuesta.Parameters.GetValue(Of Boolean)(ComprobacionesInventarioDialogViewModel.PARAMETRO_CONFIRMAR_CONTADO_CERO)
+        Return If(confirmado, DecisionComprobaciones.SeguirConfirmandoContadoCero, DecisionComprobaciones.NoSeguir)
     End Function
 
     ''' <summary>«Contabilizado: • Paloma: 64 filas, traspaso 77263 …» y, si los hay, los usuarios que han fallado.</summary>
@@ -556,14 +624,13 @@ Public Class InventarioViewModel
             Return False
         End If
 
+        ' NestoAPI#784: si ese día ya se contabilizó (409 YaContabilizado), solo se rellena otra vez si el usuario lo pide.
+        Dim yaContabilizado As InventarioYaContabilizadoException = Nothing
         estaOcupado = True
         Try
-            Dim respuesta = Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date)
-            _rellenados.Add(clave)
-            Dim filas = If(respuesta Is Nothing, 0, respuesta.Filas)
-            Dim unidades = If(respuesta Is Nothing, 0, respuesta.Unidades)
-            dialogService.ShowNotification("Inventario rellenado", $"Inventario rellenado: {filas} productos, {unidades} unidades.")
-            Return True
+            Return RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, False))
+        Catch ex As InventarioYaContabilizadoException
+            yaContabilizado = ex
         Catch ex As InventarioYaRellenadoException
             ' Lo ha rellenado otro mientras tanto: se puede contar igual.
             _rellenados.Add(clave)
@@ -575,6 +642,46 @@ Public Class InventarioViewModel
         Finally
             estaOcupado = False
         End Try
+
+        If Not PreguntarContarOtraVez(yaContabilizado) Then
+            Return False
+        End If
+        estaOcupado = True
+        Try
+            Return RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, True))
+        Catch ex As InventarioYaRellenadoException
+            _rellenados.Add(clave)
+            dialogService.ShowNotification("Inventario", ex.Message)
+            Return True
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return False
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
+    Public Const TITULO_CONTAR_OTRA_VEZ As String = "Contar otra vez"
+
+    ''' <summary>
+    ''' NestoAPI#784: el mensaje de la API (quién lo contabilizó y en qué traspaso) y «¿Contar otra vez?», con «No» por defecto:
+    ''' lo que se rellena de nuevo y nadie cuenta se queda a cero al contabilizar.
+    ''' </summary>
+    Private Function PreguntarContarOtraVez(ex As InventarioYaContabilizadoException) As Boolean
+        Dim mensaje = If(ex?.Message, String.Empty).Trim()
+        If mensaje.Length > 0 Then
+            mensaje += Environment.NewLine + Environment.NewLine
+        End If
+        mensaje += "¿Contar otra vez?"
+        Return dialogService.ShowConfirmationAnswer(TITULO_CONTAR_OTRA_VEZ, mensaje, True)
+    End Function
+
+    Private Function RellenadoAhora(clave As String, respuesta As RellenarInventarioRespuestaDTO) As Boolean
+        _rellenados.Add(clave)
+        Dim filas = If(respuesta Is Nothing, 0, respuesta.Filas)
+        Dim unidades = If(respuesta Is Nothing, 0, respuesta.Unidades)
+        dialogService.ShowNotification("Inventario rellenado", $"Inventario rellenado: {filas} productos, {unidades} unidades.")
+        Return True
     End Function
 
     Public Async Function InsertarProducto(producto As String) As Task(Of Movimiento)

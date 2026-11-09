@@ -17,6 +17,11 @@ Partial Public Class InventarioModel
     Public Class ComprobacionInventarioDTO
         Public Property Codigo As String
         Public Property Titulo As String
+        ''' <summary>
+        ''' NestoAPI#784: un bloqueante que el usuario puede confirmar (hoy solo RecontadaSinContar): se contabiliza con
+        ''' ConfirmarContadoCero = true. Los demás bloqueantes no se saltan nunca.
+        ''' </summary>
+        Public Property SeConfirma As Boolean
         Public Property Filas As New List(Of FilaComprobacionInventarioDTO)
         ''' <summary>«Título (N filas)» para la cabecera de cada comprobación.</summary>
         <JsonIgnore>
@@ -26,6 +31,16 @@ Partial Public Class InventarioModel
                 Return $"{Titulo} ({TextoFilas(n)})"
             End Get
         End Property
+    End Class
+
+    ''' <summary>NestoAPI#784: los códigos de comprobación que Nesto trata aparte (el resto se enseña tal cual).</summary>
+    Public NotInheritable Class CodigosComprobacionInventario
+        ''' <summary>El producto tiene varias filas pendientes ese día: bloquea y no se confirma nunca.</summary>
+        Public Const FILAS_DUPLICADAS As String = "FilasDuplicadas"
+        ''' <summary>Ya contabilizado ese día, vuelto a abrir y con contado 0 y teórico distinto de 0: bloquea, pero se confirma.</summary>
+        Public Const RECONTADA_SIN_CONTAR As String = "RecontadaSinContar"
+        ''' <summary>Contado 0 con stock: solo aviso.</summary>
+        Public Const CONTADO_CERO_CON_STOCK As String = "ContadoCeroConStock"
     End Class
 
     Public Class FilaComprobacionInventarioDTO

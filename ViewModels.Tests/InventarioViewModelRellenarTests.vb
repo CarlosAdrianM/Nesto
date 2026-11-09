@@ -28,7 +28,7 @@ Public Class InventarioViewModelRellenarTests
         Almacen("REI")
         A.CallTo(Function() _servicio.LeerPendientes(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
             .ReturnsLazily(Function() Task.FromResult(_pendientes))
-        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New RellenarInventarioRespuestaDTO With {.Almacen = "REI", .Fecha = _dia, .Filas = 120, .Unidades = 345}))
         A.CallTo(Function() _servicio.BuscarLinea(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of String).Ignored)) _
             .Returns(Task.FromResult(Of InventarioDTO)(Nothing))
@@ -61,7 +61,7 @@ Public Class InventarioViewModelRellenarTests
 
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer(A(Of String).Ignored,
             "Antes de contar hay que rellenar el inventario con el stock actual de REI. ¿Rellenar ahora?")).MustHaveHappenedOnceExactly()
-        A.CallTo(Function() _servicio.Rellenar("1", "REI", _dia)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Rellenar("1", "REI", _dia, False)).MustHaveHappenedOnceExactly()
         A.CallTo(Sub() _dialogos.ShowNotification(A(Of String).Ignored, "Inventario rellenado: 120 productos, 345 unidades.")).MustHaveHappenedOnceExactly()
     End Function
 
@@ -73,7 +73,7 @@ Public Class InventarioViewModelRellenarTests
         Await vm.ComprobarRellenoAlAbrir()
 
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
-        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)).MustNotHaveHappened()
     End Function
 
     <TestMethod()>
@@ -106,7 +106,7 @@ Public Class InventarioViewModelRellenarTests
         Dim movimiento = Await vm.InsertarProducto("17404")
 
         Assert.IsNull(movimiento)
-        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)).MustNotHaveHappened()
         A.CallTo(Function() _servicio.BuscarLinea(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
         A.CallTo(Function() _servicio.CrearLinea(A(Of InventarioDTO).Ignored)).MustNotHaveHappened()
         Assert.AreEqual(0, vm.movimientosDia.Count)
@@ -125,7 +125,7 @@ Public Class InventarioViewModelRellenarTests
 
         Dim movimiento = Await vm.InsertarProducto("2900000174047")
 
-        A.CallTo(Function() _servicio.Rellenar("1", "REI", _dia)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Rellenar("1", "REI", _dia, False)).MustHaveHappenedOnceExactly()
         Assert.AreEqual("2900000174047", enviado, "Se manda lo leído tal cual: la API decide si es código o referencia.")
         Assert.IsNotNull(movimiento)
         Assert.AreEqual("17404", movimiento.Producto)
@@ -148,7 +148,7 @@ Public Class InventarioViewModelRellenarTests
     <TestMethod()>
     Public Async Function Insertar_OtroLoRellenoMientrasTanto_CuentaIgual() As Task
         Responde(True)
-        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.Rellenar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)) _
             .ThrowsAsync(New InventarioYaRellenadoException("El inventario de REI del 21/11/2026 ya está rellenado"))
         Dim vm = CrearViewModel()
 

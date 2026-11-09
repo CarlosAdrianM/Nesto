@@ -39,7 +39,7 @@ Public Class InventarioViewModelContabilizarTests
         }
         A.CallTo(Function() _servicio.Comprobaciones(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
             .ReturnsLazily(Function() Task.FromResult(_comprobaciones))
-        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New ResultadoContabilizarInventario With {
                 .Contabilizacion = New ContabilizacionInventarioDTO With {
                     .Almacen = "REI", .Fecha = _dia,
@@ -78,7 +78,7 @@ Public Class InventarioViewModelContabilizarTests
     End Function
 
     Private Sub ContabilizarNoHaPasado()
-        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)).MustNotHaveHappened()
     End Sub
 
     <TestMethod()>
@@ -105,7 +105,7 @@ Public Class InventarioViewModelContabilizarTests
         A.CallTo(Function() _dialogos.ShowDialogAsync(ComprobacionesInventarioDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored)).MustHaveHappenedOnceExactly()
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer("Contabilizar inventario",
             "Se va a contabilizar el inventario de REI del 21/11/2026: 100 filas de 2 usuarios. ¿Continuar?", True)).MustHaveHappenedOnceExactly()
-        A.CallTo(Function() _servicio.Contabilizar("1", "REI", _dia)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Contabilizar("1", "REI", _dia, False)).MustHaveHappenedOnceExactly()
     End Function
 
     <TestMethod()>
@@ -126,7 +126,7 @@ Public Class InventarioViewModelContabilizarTests
         Await vm.ContabilizarInventario()
 
         A.CallTo(Function() _dialogos.ShowDialogAsync(A(Of String).Ignored, A(Of ParametrosDialogo).Ignored)).MustNotHaveHappened()
-        A.CallTo(Function() _servicio.Contabilizar("1", "REI", _dia)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Contabilizar("1", "REI", _dia, False)).MustHaveHappenedOnceExactly()
     End Function
 
     <TestMethod()>
@@ -155,7 +155,7 @@ Public Class InventarioViewModelContabilizarTests
     Public Async Function Conflicto409_VuelveAEnsenarLasComprobacionesYNoAbreDiferencias() As Task
         Dim bloqueado As New ComprobacionesInventarioDTO With {.Almacen = "REI", .Fecha = _dia}
         bloqueado.Bloqueantes.Add(Comprobacion("OtraFecha", "Filas pendientes de otra fecha"))
-        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New ResultadoContabilizarInventario With {.Bloqueado = bloqueado}))
         Dim vm = CrearViewModel()
 

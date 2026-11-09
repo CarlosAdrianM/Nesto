@@ -70,6 +70,53 @@ Public Class InventarioModel
         Public Property Usuario As String
     End Class
 
+    ''' <summary>NestoAPI#784: el campo Codigo del 409 de Rellenar, RellenarParcial, RellenarUbicacion y GET/POST api/Inventarios.</summary>
+    Public NotInheritable Class CodigosConflictoInventario
+        ''' <summary>Ya hay filas pendientes ese día: no se rellena otra vez (ni con OtraVez); se puede contar igual.</summary>
+        Public Const YA_RELLENADO As String = "YaRellenado"
+        ''' <summary>Ya se contó y contabilizó ese día: se puede repetir con OtraVez = true («Contar otra vez»).</summary>
+        Public Const YA_CONTABILIZADO As String = "YaContabilizado"
+        ''' <summary>GET: el producto tiene más de una fila pendiente ese día; hay que dejar una.</summary>
+        Public Const FILAS_DUPLICADAS As String = "FilasDuplicadas"
+        ''' <summary>GET sin ubicación: filas pendientes en varias ubicaciones (Algete).</summary>
+        Public Const VARIAS_UBICACIONES As String = "VariasUbicaciones"
+        ''' <summary>POST: el producto ya tiene fila pendiente ese día; se suma a esa (PUT).</summary>
+        Public Const YA_TIENE_FILA As String = "YaTieneFila"
+    End Class
+
+    ''' <summary>NestoAPI#784: el cuerpo de los 409 de api/Inventarios (el de Rellenar trae además Pendientes y Contabilizadas).</summary>
+    Public Class ConflictoInventarioDTO
+        Public Property Message As String
+        Public Property Codigo As String
+        Public Property PuedeContarOtraVez As Boolean
+        Public Property Lineas As New List(Of LineaInventarioContadaDTO)
+        Public Property Contabilizadas As New List(Of ContabilizadasInventarioUsuarioDTO)
+    End Class
+
+    ''' <summary>NestoAPI#784: una fila del inventario en el cuerpo de un 409 (Traspaso solo en las ya contabilizadas).</summary>
+    Public Class LineaInventarioContadaDTO
+        Public Property NumeroOrden As Integer
+        Public Property Producto As String
+        Public Property Descripcion As String
+        Public Property Familia As String
+        Public Property Pasillo As String
+        Public Property Fila As String
+        Public Property Columna As String
+        Public Property StockCalculado As Integer
+        Public Property StockReal As Integer
+        Public Property Usuario As String
+        Public Property Fecha As Date
+        Public Property PorCodigoBarras As Boolean?
+        Public Property Traspaso As Integer?
+    End Class
+
+    ''' <summary>NestoAPI#784: lo ya contabilizado ese día en el almacén, por usuario y traspaso (409 YaContabilizado de Rellenar).</summary>
+    Public Class ContabilizadasInventarioUsuarioDTO
+        Public Property Usuario As String
+        Public Property Filas As Integer
+        Public Property Traspaso As Integer?
+    End Class
+
     Public Const LECTURA_CODIGO As String = "código"
     Public Const LECTURA_TECLEADO As String = "tecleado"
 

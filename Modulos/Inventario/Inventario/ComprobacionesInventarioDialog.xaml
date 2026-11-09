@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="White" Width="900" Height="620">
     <!-- Nesto#597 (NestoAPI#790): las comprobaciones de antes de contabilizar el inventario. Bloqueantes en rojo (no dejan
-         seguir); avisos en ámbar («Continuar de todos modos»); recuento por usuario. -->
+         seguir, salvo los que se confirman con la casilla, NestoAPI#784); avisos en ámbar («Continuar de todos modos»); recuento por usuario. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <DataTemplate x:Key="FilasComprobacion">
@@ -44,12 +44,18 @@
                                 <Border BorderBrush="Firebrick" Background="#FFFDECEC" BorderThickness="1" CornerRadius="3" Padding="6" Margin="0,0,0,8">
                                     <StackPanel>
                                         <TextBlock Text="{Binding Cabecera}" FontWeight="SemiBold" Foreground="DarkRed" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Se puede confirmar abajo si de verdad hay 0." FontStyle="Italic" Foreground="DarkRed" Margin="0,2,0,0"
+                                                   Visibility="{Binding SeConfirma, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource FilasComprobacion}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <!-- NestoAPI#784: RecontadaSinContar se puede confirmar (ConfirmarContadoCero); FilasDuplicadas y el resto, no. -->
+                    <CheckBox IsChecked="{Binding ConfirmadoContadoCero, Mode=TwoWay}" Margin="0,0,0,10" FontWeight="SemiBold"
+                              Content="He contado y de verdad hay 0"
+                              Visibility="{Binding SePuedeConfirmarContadoCero, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>
 
                 <StackPanel Visibility="{Binding HayAvisos, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -81,7 +87,7 @@
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="{Binding TextoContinuar}" Command="{Binding ContinuarCommand}" Padding="12,3" Margin="0,0,8,0"
-                    Visibility="{Binding PuedeContinuar, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    Visibility="{Binding MostrarContinuar, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <Button Content="Cerrar" Command="{Binding CancelarCommand}" Padding="12,3" IsCancel="True"/>
         </StackPanel>
     </Grid>
