@@ -17,6 +17,9 @@ Public Interface IPedidoVentaService
     Function sacarPickingPedido() As Task
     ''' <summary>Sugerencia 854: picking de primera hora «Solo nuestra ruta» (AT y 16, entrega hasta hoy). GET api/Picking/RutasPropias.</summary>
     Function sacarPickingRutasPropias() As Task
+    ''' <summary>NestoAPI#590: quita el picking de un pedido (POST api/Picking/{empresa}/{pedido}/QuitarPicking). Si el mozo ya ha
+    ''' leído productos del pedido y no viene confirmado, devuelve las lecturas con NecesitaConfirmar (no se toca nada).</summary>
+    Function QuitarPicking(empresa As String, pedido As Integer, confirmado As Boolean) As Task(Of ResultadoQuitarPicking)
     ''' <summary>Sugerencia 575: pedidos que van por OnTime y seguramente saldrán por nuestra ruta (AT/16), con el alcance del
     ''' picking (un pedido, un cliente o, sin nada, el de rutas). Solo para almacén, antes de sacar el picking.</summary>
     Function LeerSugerenciasRutaPicking(empresa As String, numeroPedido As Integer, cliente As String) As Task(Of List(Of SugerenciaRutaPicking))

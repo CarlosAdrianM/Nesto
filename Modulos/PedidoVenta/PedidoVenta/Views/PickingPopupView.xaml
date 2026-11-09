@@ -45,7 +45,9 @@
 
             <Button Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Command="{Binding cmdSacarPicking}" CommandParameter="{Binding pedidoPicking}">Aceptar</Button>
 
-            <TextBlock Grid.Column="0" Grid.Row="5"></TextBlock>
+            <!-- NestoAPI#590: quitar el picking del pedido (antes solo en Nesto viejo) -->
+            <Button Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="5" Margin="0,4,0,0" Command="{Binding cmdQuitarPicking}"
+                    ToolTip="Quita el picking de todas las líneas pendientes del pedido. Si un mozo ya ha leído productos del pedido, se le avisa en la PDA para que los aparte.">Quitar picking del pedido</Button>
             <TextBlock Grid.Column="0" Grid.Row="6">Sacar informe de nº picking:</TextBlock>
             <xctk:DoubleUpDown Grid.Column="1" Grid.Row="6" Name="txtNumeroPicking" Value="{Binding numeroPicking}" Watermark="En blanco coge último picking"/>
             <Button Grid.Column="0" Grid.Row="7" Name="btnInformePicking" Command="{Binding cmdInformePicking}" CommandParameter="{Binding numeroPicking}">Picking</Button>

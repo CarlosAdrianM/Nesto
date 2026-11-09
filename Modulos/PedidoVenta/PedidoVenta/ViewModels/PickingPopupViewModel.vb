@@ -40,6 +40,7 @@ Public Class PickingPopupViewModel
         cmdInformePicking = New RelayCommand(AddressOf OnInformePicking)
         cmdInformePacking = New RelayCommand(AddressOf OnInformePacking)
         cmdSacarPicking = New RelayCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        cmdQuitarPicking = New AsyncRelayCommand(AddressOf QuitarPickingAsync, AddressOf CanQuitarPicking)
         Title = "Picking"
     End Sub
 
@@ -153,6 +154,7 @@ Public Class PickingPopupViewModel
         End Get
         Set(ByVal value As Boolean)
             SetProperty(_estaSacandoPicking, value)
+            _cmdQuitarPicking?.NotifyCanExecuteChanged()
             ' NestoAPI#405: el BusyIndicator solo TAPA la ventana; el comando seguía habilitado y
             ' se podía volver a pulsar. Hay que reevaluar el CanExecute para que el botón quede
             ' deshabilitado de verdad mientras el picking está en marcha.
@@ -177,6 +179,7 @@ Public Class PickingPopupViewModel
         End Get
         Set(value As Integer)
             SetProperty(_numeroPedidoPicking, value)
+            _cmdQuitarPicking?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -581,6 +584,67 @@ Public Class PickingPopupViewModel
         Finally
             estaSacandoPicking = False
         End Try
+    End Function
+
+    ' ===== NestoAPI#590: «Quitar picking» (antes solo en Nesto viejo, sin rastro y sin avisar a la PDA) =====
+
+    Private _cmdQuitarPicking As AsyncRelayCommand
+    Public Property cmdQuitarPicking As AsyncRelayCommand
+        Get
+            Return _cmdQuitarPicking
+        End Get
+        Private Set(value As AsyncRelayCommand)
+            SetProperty(_cmdQuitarPicking, value)
+        End Set
+    End Property
+
+    ''' <summary>Lo pueden quitar Almacén, Administración y Dirección (lo mismo que comprueba la API). Primero lo local (Nesto#450).</summary>
+    Private Function CanQuitarPicking() As Boolean
+        Return Not estaSacandoPicking AndAlso numeroPedidoPicking > 0 AndAlso
+            (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse
+             configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#590 (picking 100033, 09/11/26): quita el picking del pedido. Se pide confirmación; si el mozo ya ha leído productos
+    ''' de este pedido en la PDA, la API lo dice (sin tocar nada) y se enseña la lista para volver a confirmar: entonces se anulan
+    ''' esas lecturas y a la PDA le llega el aviso de apartarlos. Al terminar, se recarga el pedido.
+    ''' </summary>
+    Friend Async Function QuitarPickingAsync() As Task
+        Dim pedido As Integer = numeroPedidoPicking
+        If pedido <= 0 Then
+            Return
+        End If
+        Dim empresa As String = If(pedidoPicking IsNot Nothing AndAlso pedidoPicking.numero = pedido, pedidoPicking.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
+        If Not dialogService.ShowConfirmationAnswer("Quitar picking", $"¿Quitar el picking del pedido {pedido}?" + vbCrLf + vbCrLf +
+                "Se quita de todas sus líneas pendientes y vuelve a quedar sin picking.") Then
+            Return
+        End If
+        Try
+            estaSacandoPicking = True
+            Dim resultado As ResultadoQuitarPicking = Await servicio.QuitarPicking(empresa, pedido, False)
+            If resultado IsNot Nothing AndAlso resultado.NecesitaConfirmar Then
+                If Not dialogService.ShowConfirmationAnswer("Quitar picking: hay lecturas en la PDA", TextoLecturas(resultado) + vbCrLf + vbCrLf + "¿Quitar el picking igualmente?") Then
+                    Return
+                End If
+                resultado = Await servicio.QuitarPicking(empresa, pedido, True)
+            End If
+            dialogService.ShowNotification("Quitar picking", If(resultado?.Message, $"Quitado el picking del pedido {pedido}."))
+            messenger.Send(New SacarPickingMensaje(1))
+        Catch ex As Exception
+            dialogService.ShowNotification("Error al quitar el picking del pedido " + pedido.ToString(), ex.Message)
+        Finally
+            estaSacandoPicking = False
+        End Try
+    End Function
+
+    Friend Shared Function TextoLecturas(resultado As ResultadoQuitarPicking) As String
+        Dim lineas As IEnumerable(Of String) = If(resultado.Lecturas, New List(Of LecturaQuitarPicking)).Select(Function(l)
+            Dim nombre As String = If(String.IsNullOrWhiteSpace(l.Nombre), l.Producto, l.Nombre.Trim())
+            Return $"  • {l.Cantidad} {nombre} ({l.Producto}) - leído por {l.Usuario}{If(String.IsNullOrWhiteSpace(l.Dispositivo), String.Empty, " en " + l.Dispositivo)}, picking {l.Picking}"
+        End Function)
+        Return If(resultado.Message, String.Empty) + vbCrLf + vbCrLf + String.Join(vbCrLf, lineas)
     End Function
 
 End Class

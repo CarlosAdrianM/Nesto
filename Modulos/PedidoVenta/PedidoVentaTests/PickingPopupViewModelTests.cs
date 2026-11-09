@@ -1,6 +1,7 @@
 ﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Messaging;
@@ -404,6 +405,109 @@ namespace PedidoVentaTests
 
             Assert.IsFalse(vm.HayAvisoRepartoPropio);
             A.CallTo(() => _dialogService.ShowError(A<string>.Ignored)).MustNotHaveHappened();
+        }
+            // ===== NestoAPI#590: «Quitar picking» (picking 100033, pedido 930110, 09/11/26) =====
+
+        private static ResultadoQuitarPicking ConLecturas()
+        {
+            var resultado = new ResultadoQuitarPicking
+            {
+                Message = "Pedro está recogiendo el picking 100033 y ya ha leído 20 Agujas Miliun (12485) de este pedido.",
+                Pedido = 930110,
+                NecesitaConfirmar = true
+            };
+            resultado.Lecturas.Add(new LecturaQuitarPicking { Picking = 100033, Usuario = "Pedro", Dispositivo = "PDA-3", Producto = "12485", Nombre = "Agujas Miliun", Cantidad = 20 });
+            return resultado;
+        }
+
+        [TestMethod]
+        public async Task QuitarPicking_SinLecturas_ConfirmaQuitaYRecargaElPedido()
+        {
+            var vm = PickingDeUnPedido(930110);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, false))
+                .Returns(Task.FromResult(new ResultadoQuitarPicking { Message = "Quitado el picking 100033 del pedido 930110 (3 líneas).", Pedido = 930110 }));
+            bool recargado = false;
+            _messenger.Register<SacarPickingMensaje>(this, (r, m) => recargado = true);
+
+            await vm.QuitarPickingAsync();
+
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, true)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification("Quitar picking", A<string>.That.Contains("100033"))).MustHaveHappenedOnceExactly();
+            Assert.IsTrue(recargado, "Al quitar el picking hay que recargar el pedido");
+        }
+
+        [TestMethod]
+        public async Task QuitarPicking_ConLecturasEnLaPda_EnsenaLaListaYSiConfirmaLoQuitaConfirmado()
+        {
+            var vm = PickingDeUnPedido(930110);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, false)).Returns(Task.FromResult(ConLecturas()));
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, true))
+                .Returns(Task.FromResult(new ResultadoQuitarPicking { Message = "Quitado; se ha avisado a Pedro", Pedido = 930110 }));
+
+            await vm.QuitarPickingAsync();
+
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored,
+                A<string>.That.Matches(t => t.Contains("20 Agujas Miliun (12485)") && t.Contains("Pedro")))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, true)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task QuitarPicking_ConLecturasYCancela_NoLoQuita()
+        {
+            var vm = PickingDeUnPedido(930110);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer("Quitar picking", A<string>.Ignored)).Returns(true);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer("Quitar picking: hay lecturas en la PDA", A<string>.Ignored)).Returns(false);
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, false)).Returns(Task.FromResult(ConLecturas()));
+
+            await vm.QuitarPickingAsync();
+
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, true)).MustNotHaveHappened();
+            A.CallTo(() => _dialogService.ShowNotification(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task QuitarPicking_LaApiNoDeja_EnsenaElMotivo()
+        {
+            var vm = PickingDeUnPedido(930110);
+            A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            A.CallTo(() => _servicioPedido.QuitarPicking("1", 930110, false))
+                .ThrowsAsync(new System.Exception("El pedido 930110 ya se está empaquetando"));
+
+            await vm.QuitarPickingAsync();
+
+            A.CallTo(() => _dialogService.ShowNotification(A<string>.That.Contains("930110"), A<string>.That.Contains("empaquetando"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void QuitarPicking_SinPermisoOSinPedido_NoSePuede()
+        {
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(false);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.numeroPedidoPicking = 930110;
+            Assert.IsFalse(vm.cmdQuitarPicking.CanExecute(null));
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo("Administración")).Returns(true);
+            Assert.IsTrue(vm.cmdQuitarPicking.CanExecute(null));
+            vm.numeroPedidoPicking = 0;
+            Assert.IsFalse(vm.cmdQuitarPicking.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void InterpretarQuitarPicking_409ConLecturasEsPreguntar_409SinEllasEsError()
+        {
+            ResultadoQuitarPicking preguntar = PedidoVentaService.InterpretarQuitarPicking(409,
+                "{\"Message\":\"Pedro está recogiendo\",\"Pedido\":930110,\"Lecturas\":[{\"Picking\":100033,\"Usuario\":\"Pedro\",\"Producto\":\"12485\",\"Cantidad\":20}]}");
+            Assert.IsTrue(preguntar.NecesitaConfirmar);
+            Assert.AreEqual(20, preguntar.Lecturas.Single().Cantidad);
+
+            ResultadoQuitarPicking hecho = PedidoVentaService.InterpretarQuitarPicking(200, "{\"Message\":\"Quitado\",\"Pedido\":930110,\"Lecturas\":[]}");
+            Assert.IsFalse(hecho.NecesitaConfirmar);
+
+            var error = Assert.ThrowsException<System.Exception>(() =>
+                PedidoVentaService.InterpretarQuitarPicking(409, "{\"Message\":\"Parte del pedido ya está en albarán\",\"Lecturas\":[]}"));
+            StringAssert.Contains(error.Message, "albarán");
         }
     }
 }

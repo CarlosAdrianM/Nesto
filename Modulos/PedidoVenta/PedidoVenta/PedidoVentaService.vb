@@ -651,6 +651,41 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#590: POST api/Picking/{empresa}/{pedido}/QuitarPicking. El 409 con lecturas no es un error: vuelve con
+    ''' NecesitaConfirmar para que el usuario decida. Cualquier otro error, excepción con el motivo de la API.
+    ''' </summary>
+    Public Async Function QuitarPicking(empresa As String, pedido As Integer, confirmado As Boolean) As Task(Of ResultadoQuitarPicking) Implements IPedidoVentaService.QuitarPicking
+        Dim url As String = $"Picking/{Uri.EscapeDataString(If(empresa?.Trim(), Constantes.Empresas.EMPRESA_DEFECTO))}/{pedido}/QuitarPicking"
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(New With {.Confirmado = confirmado}), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(url, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            Return InterpretarQuitarPicking(CInt(response.StatusCode), cuerpo)
+        End Using
+    End Function
+
+    ''' <summary>NestoAPI#590: separado para los tests (sin HTTP).</summary>
+    Friend Shared Function InterpretarQuitarPicking(codigo As Integer, cuerpo As String) As ResultadoQuitarPicking
+        Dim resultado As ResultadoQuitarPicking = Nothing
+        Try
+            resultado = JsonConvert.DeserializeObject(Of ResultadoQuitarPicking)(If(cuerpo, String.Empty))
+        Catch ex As Exception
+            resultado = Nothing
+        End Try
+        If codigo >= 200 AndAlso codigo < 300 Then
+            Return If(resultado, New ResultadoQuitarPicking())
+        End If
+        If codigo = 409 AndAlso resultado IsNot Nothing AndAlso resultado.Lecturas IsNot Nothing AndAlso resultado.Lecturas.Any() Then
+            resultado.NecesitaConfirmar = True
+            Return resultado
+        End If
+        If resultado IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(resultado.Message) Then
+            Throw New Exception(resultado.Message)
+        End If
+        Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+    End Function
+
     Public Async Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO)) Implements IPedidoVentaService.CargarEnlacesSeguimiento
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
