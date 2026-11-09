@@ -33,16 +33,18 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                    <RowDefinition/>
+                    <!-- Novedad 823: el extracto se queda con todo el alto que sobra y nunca baja de 5 filas
+                         (cabecera ~26 + 5 x ~22 por fila con la letra por defecto + barra horizontal ~18 + bordes) -->
+                    <RowDefinition Height="*" MinHeight="160"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <cu:SelectorCliente Grid.Row="0" Grid.RowSpan="99"
@@ -95,28 +97,28 @@
                         <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="Total a cobrar..." HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Margin="10"></TextBlock>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ImporteDeudasSeleccionadas, StringFormat=c}" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center"></TextBlock>
-                <Label Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtTotalCobrado}">
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Total a cobrar..." HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10"></TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ImporteDeudasSeleccionadas, StringFormat=c}" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center"></TextBlock>
+                <Label Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtTotalCobrado}">
                     <AccessText Text="_Total cobrado..." />
                 </Label>
 
                 <xctk:DecimalUpDown x:Name="txtTotalCobrado" Grid.Row="2" Grid.Column="2" 
                                         Text="{Binding TotalCobrado, UpdateSourceTrigger=PropertyChanged, StringFormat=c}" CultureInfo="es-ES"
                                         TextAlignment="Right" 
-                                        HorizontalAlignment="Stretch" FontSize="32" VerticalAlignment="Center"
+                                        HorizontalAlignment="Stretch" FontSize="24" VerticalAlignment="Center"
                                         PreviewTextInput="DecimalUpDown_PreviewTextInput" KeyUp="DecimalUpDown_KeyUp">
                 </xctk:DecimalUpDown>
                 <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding EmpresaTraspasoMarca}" VerticalAlignment="Center"></TextBlock>
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="Importe a cuenta..." HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" 
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="Importe a cuenta..." HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" 
                            Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="10">
                     
                 </TextBlock>
-                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding ImporteACuenta, StringFormat=c}" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
-                <Label Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtConceptoAdicionalCobros}">
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding ImporteACuenta, StringFormat=c}" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+                <Label Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtConceptoAdicionalCobros}">
                     <AccessText Text="_Concepto adicional..." />
                 </Label>
-                <TextBox x:Name="txtConceptoAdicionalCobros" Grid.Row="4" Grid.Column="2" Text="{Binding ConceptoAdicionalCobros}" HorizontalAlignment="Stretch" FontSize="32" VerticalAlignment="Center"></TextBox>
+                <TextBox x:Name="txtConceptoAdicionalCobros" Grid.Row="4" Grid.Column="2" Text="{Binding ConceptoAdicionalCobros}" HorizontalAlignment="Stretch" FontSize="24" VerticalAlignment="Center"></TextBox>
                 <UniformGrid Grid.Row="5" Grid.Column="2" Columns="3">
                     <ToggleButton IsChecked="{Binding FormaPagoEfectivoSeleccionada}">Efectivo</ToggleButton>
                     <ToggleButton IsChecked="{Binding FormaPagoTarjetaSeleccionada}">Tarjeta</ToggleButton>
