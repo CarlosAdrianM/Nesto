@@ -34,12 +34,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
             FechaDesde = DateTime.Today.AddDays(-DIAS_POR_DEFECTO);
             BuscarCommand = new AsyncRelayCommand(BuscarAsync);
             LimpiarFiltrosCommand = new RelayCommand(LimpiarFiltros);
+            AnularEnlaceCommand = new AsyncRelayCommand(AnularEnlaceAsync, PuedeAnularSeleccionado);
         }
 
         public string Titulo { get; }
 
         /// <summary>Estados que puede tener un enlace ("" = todos).</summary>
-        public List<string> Estados { get; } = new List<string> { string.Empty, "Pendiente", "Enviado", "Autorizado", "Denegado" };
+        public List<string> Estados { get; } = new List<string> { string.Empty, "Pendiente", "Enviado", "Autorizado", "Denegado", "Cancelado" };
 
         private string? _numeroOrden;
         /// <summary>Identificador del enlace. Si se rellena, las fechas no cuentan.</summary>
@@ -107,6 +108,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     OnPropertyChanged(nameof(HayEnlaceSeleccionado));
                     OnPropertyChanged(nameof(DetalleSeleccionado));
+                    AnularEnlaceCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -219,6 +221,75 @@ namespace Nesto.Modulos.Cajas.ViewModels
             finally
             {
                 EstaOcupado = false;
+            }
+        }
+
+        /// <summary>
+        /// 09/11/26: anular el enlace seleccionado (POST api/Pagos/{id}/Anular). Solo los enlaces de pago (TPV virtual)
+        /// pendientes: los «Enviado» son de Redsys (pago en dos fases) y no se pueden anular desde aquí.
+        /// </summary>
+        public IAsyncRelayCommand AnularEnlaceCommand { get; }
+
+        internal const string TITULO_ANULAR = "Anular enlace de pago";
+
+        private bool PuedeAnularSeleccionado() => SePuedeAnular(EnlaceSeleccionado) && !EstaOcupado;
+
+        internal static bool SePuedeAnular(EnlacePagoAuditoriaModel? enlace)
+            => enlace != null
+            && string.Equals(enlace.Estado?.Trim(), "Pendiente", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(enlace.Tipo?.Trim(), "TPVVirtual", StringComparison.OrdinalIgnoreCase);
+
+        public async Task AnularEnlaceAsync()
+        {
+            EnlacePagoAuditoriaModel? enlace = EnlaceSeleccionado;
+            if (!SePuedeAnular(enlace))
+            {
+                return;
+            }
+            string? motivo = _dialogService.GetText(TITULO_ANULAR,
+                $"¿Por qué anula el enlace {enlace!.NumeroOrden} ({enlace.Descripcion?.Trim()})? Por ejemplo: «Pedido ya cobrado por reembolso».");
+            if (motivo == null)
+            {
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                _dialogService.ShowError("Indique el motivo por el que anula el enlace.");
+                return;
+            }
+            string cliente = string.IsNullOrWhiteSpace(enlace.NombreCliente)
+                ? $"cliente {enlace.Cliente?.Trim()}"
+                : $"cliente {enlace.Cliente?.Trim()} ({enlace.NombreCliente!.Trim()})";
+            if (!_dialogService.ShowConfirmationAnswer(TITULO_ANULAR,
+                $"¿Seguro que quiere anular el enlace {enlace.NumeroOrden} de {enlace.Importe:N2} € del {cliente}? El cliente ya no podrá pagarlo.",
+                true))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                RespuestaAnularEnlacePagoModel respuesta = await _servicio.Anular(enlace.Id, motivo.Trim());
+                enlace.Estado = respuesta.Estado ?? "Cancelado";
+                enlace.FechaActualizacion = respuesta.FechaActualizacion;
+                // El modelo no avisa de sus cambios: se vuelve a poner la fila para que la rejilla la repinte.
+                int indice = Enlaces.IndexOf(enlace);
+                if (indice >= 0)
+                {
+                    Enlaces[indice] = enlace;
+                }
+                _enlaceSeleccionado = null;
+                EnlaceSeleccionado = enlace;
+                _dialogService.ShowNotification(TITULO_ANULAR, respuesta.Mensaje ?? "Enlace anulado.");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+                AnularEnlaceCommand.NotifyCanExecuteChanged();
             }
         }
 

@@ -43,4 +43,15 @@ namespace Nesto.Modulos.Cajas.Models
         public string? Estado { get; set; }
         public string? NumeroOrden { get; set; }
     }
+
+    /// <summary>Respuesta de POST api/Pagos/{id}/Anular (09/11/26).</summary>
+    public class RespuestaAnularEnlacePagoModel
+    {
+        public int Id { get; set; }
+        /// <summary>Siempre «Cancelado».</summary>
+        public string? Estado { get; set; }
+        public DateTime FechaActualizacion { get; set; }
+        /// <summary>Para enseñárselo al usuario tal cual.</summary>
+        public string? Mensaje { get; set; }
+    }
 }

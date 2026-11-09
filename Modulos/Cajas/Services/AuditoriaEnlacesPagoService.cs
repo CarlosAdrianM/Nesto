@@ -39,6 +39,28 @@ namespace Nesto.Modulos.Cajas.Services
             }
         }
 
+        public async Task<RespuestaAnularEnlacePagoModel> Anular(int id, string motivo)
+        {
+            using (HttpClient client = await CrearCliente())
+            {
+                string json = JsonConvert.SerializeObject(new { Motivo = motivo });
+                using (var contenido = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+                {
+                    HttpResponseMessage response = await client.PostAsync($"Pagos/{id}/Anular", contenido);
+                    string body = await response.Content.ReadAsStringAsync();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        string mensaje = response.StatusCode == HttpStatusCode.Forbidden
+                            ? "Solo Administración, Dirección e Informática pueden anular enlaces de pago."
+                            : ExtraerMensaje(response, body);
+                        throw new Exception(mensaje);
+                    }
+                    return JsonConvert.DeserializeObject<RespuestaAnularEnlacePagoModel>(body)
+                        ?? throw new Exception("La API no ha devuelto el resultado de la anulación.");
+                }
+            }
+        }
+
         /// <summary>La URL relativa con los filtros que vengan informados.</summary>
         internal static string ConstruirUrl(FiltroAuditoriaEnlacesPago? filtro)
         {

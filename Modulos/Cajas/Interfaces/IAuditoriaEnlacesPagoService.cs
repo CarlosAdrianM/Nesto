@@ -11,5 +11,11 @@ namespace Nesto.Modulos.Cajas.Interfaces
     public interface IAuditoriaEnlacesPagoService
     {
         Task<List<EnlacePagoAuditoriaModel>> Buscar(FiltroAuditoriaEnlacesPago filtro);
+
+        /// <summary>
+        /// 09/11/26: POST api/Pagos/{id}/Anular con el motivo (Administración, Dirección e Informática). Solo enlaces de pago
+        /// (TPV virtual) pendientes; si la API dice que no (ya pagado, ya anulado…), lanza con su mensaje.
+        /// </summary>
+        Task<RespuestaAnularEnlacePagoModel> Anular(int id, string motivo);
     }
 }
