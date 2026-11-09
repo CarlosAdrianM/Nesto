@@ -145,7 +145,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Contabilidad", "Verifactu", "Facturas Verifactu"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 80)),
             (Clave("Clientes", "Documentos", "Modelo 347"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 90)),
             // Nesto#616 (NestoAPI#779): el calendario de festivos (Administración, Dirección e Informática; NestoAPI#841: también
-            // Almacén y Logística, solo los días sin reparto propio)
+            // Almacén, solo los días sin reparto propio)
             (Clave("Herramientas", "Recursos Humanos", "Festivos"), new DestinoMenu(ADMINISTRACION, "Recursos Humanos", 100)),
 
             // ── Tienda online y marketplaces: canales externos (Amazon, PrestaShop…) y los vídeos de la tienda

@@ -97,7 +97,7 @@ namespace Nesto.Infrastructure.Models
 
     /// <summary>
     /// NestoAPI#841 (Carlos 09/11/26): quién mantiene los festivos. Administración, Dirección e Informática, todos los tipos;
-    /// Almacén y Logística, solo los días sin reparto propio (alta y baja de ese tipo). La API aplica la misma regla (403).
+    /// Almacén, solo los días sin reparto propio (alta y baja de ese tipo; no hay grupo de Logística en el dominio). La API aplica la misma regla (403).
     /// </summary>
     public static class PermisosFestivos
     {
@@ -107,11 +107,10 @@ namespace Nesto.Infrastructure.Models
                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) ||
                 configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
 
-        /// <summary>Almacén o Logística sin ser de los de arriba: solo el tipo RepartoPropio.</summary>
+        /// <summary>Almacén sin ser de los de arriba: solo el tipo RepartoPropio.</summary>
         public static bool PuedeMantenerSoloRepartoPropio(IConfiguracion configuracion)
             => configuracion != null && !PuedeMantenerTodos(configuracion) &&
-               (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) ||
-                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.LOGISTICA));
+               configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN);
 
         /// <summary>Ve la pantalla de Festivos (con todos los tipos o solo el del reparto propio).</summary>
         public static bool PuedeEntrar(IConfiguracion configuracion)

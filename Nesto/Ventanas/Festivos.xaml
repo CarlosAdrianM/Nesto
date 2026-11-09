@@ -39,7 +39,7 @@
                         Visibility="{Binding VienenDelCodigo, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="{Binding AvisoOrigen}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="#8A4B00"/>
                 </Border>
-                <!-- NestoAPI#841: Almacén y Logística, solo los días sin reparto propio -->
+                <!-- NestoAPI#841: Almacén, solo los días sin reparto propio -->
                 <Border Background="#E8F1FB" BorderBrush="#7AA7D6" BorderThickness="1" Padding="8" Margin="0,0,0,8"
                         Visibility="{Binding SoloRepartoPropio, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="{Binding AvisoPermisos}" TextWrapping="Wrap" Foreground="#1F4E79"/>

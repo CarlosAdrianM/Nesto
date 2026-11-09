@@ -287,16 +287,14 @@ Public Class MenuBarViewModelTests
         Next
     End Sub
 
-    ' NestoAPI#841: Almacén y Logística también (solo los días sin reparto propio)
+    ' NestoAPI#841: Almacén también (solo los días sin reparto propio)
     <TestMethod()>
-    Public Sub MenuBarViewModel_AlmacenYLogistica_VenFestivos()
-        For Each grupo In {Constantes.GruposSeguridad.ALMACEN, Constantes.GruposSeguridad.LOGISTICA}
-            Dim configuracion = A.Fake(Of IConfiguracion)
-            A.CallTo(Function() configuracion.UsuarioEnGrupo(grupo)).Returns(True)
-            Dim vm = New MenuBarViewModel(_resolutor, _navegacion, configuracion, _servicioAutenticacion, _abridorNovedades, _servicioDialogos)
-            Assert.AreEqual(Visibility.Visible, vm.FestivosVisible, grupo)
-            Assert.IsTrue(vm.FestivosCommand.CanExecute(Nothing), grupo)
-        Next
+    Public Sub MenuBarViewModel_Almacen_VeFestivos()
+        Dim configuracion = A.Fake(Of IConfiguracion)
+        A.CallTo(Function() configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)).Returns(True)
+        Dim vm = New MenuBarViewModel(_resolutor, _navegacion, configuracion, _servicioAutenticacion, _abridorNovedades, _servicioDialogos)
+        Assert.AreEqual(Visibility.Visible, vm.FestivosVisible)
+        Assert.IsTrue(vm.FestivosCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod()>

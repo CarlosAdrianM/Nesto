@@ -27,7 +27,7 @@ Public Class FestivosViewModel
     Public Sub New(servicio As IServicioFestivos, dialogService As IServicioDialogos, configuracion As IConfiguracion)
         _servicio = servicio
         _dialogService = dialogService
-        ' NestoAPI#841: Almacén y Logística (sin ser Administración, Dirección o Informática) solo el tipo RepartoPropio
+        ' NestoAPI#841: Almacén (sin ser Administración, Dirección o Informática) solo el tipo RepartoPropio
         _soloRepartoPropio = PermisosFestivos.PuedeMantenerSoloRepartoPropio(configuracion)
         _opcionesTipo = If(_soloRepartoPropio,
             TiposFestivo.Opciones.Where(Function(o) o.Valor = TiposFestivo.REPARTO_PROPIO).ToList(),
@@ -120,7 +120,7 @@ Public Class FestivosViewModel
     End Property
 
     Private ReadOnly _soloRepartoPropio As Boolean
-    ''' <summary>NestoAPI#841: Almacén o Logística: solo puede dar de alta y de baja los días sin reparto propio (ve todos).</summary>
+    ''' <summary>NestoAPI#841: Almacén: solo puede dar de alta y de baja los días sin reparto propio (ve todos).</summary>
     Public ReadOnly Property SoloRepartoPropio As Boolean
         Get
             Return _soloRepartoPropio
@@ -133,7 +133,7 @@ Public Class FestivosViewModel
         End Get
     End Property
 
-    ''' <summary>Los tipos que puede dar de alta (NestoAPI#841: Almacén y Logística, solo RepartoPropio).</summary>
+    ''' <summary>Los tipos que puede dar de alta (NestoAPI#841: Almacén, solo RepartoPropio).</summary>
     Public ReadOnly Property Tipos As IReadOnlyList(Of String)
         Get
             Return OpcionesTipo.Select(Function(o) o.Valor).ToList()
@@ -280,7 +280,7 @@ Public Class FestivosViewModel
 
     Private Function PuedeBorrar() As Boolean
         ' Los que vienen del programa no están en la tabla: no hay nada que dar de baja
-        ' NestoAPI#841: Almacén y Logística, solo los días sin reparto propio
+        ' NestoAPI#841: Almacén, solo los días sin reparto propio
         Return FestivoSeleccionado IsNot Nothing AndAlso Not FestivoSeleccionado.VieneDelCodigo AndAlso PuedeTocarTipo(FestivoSeleccionado.Tipo)
     End Function
 

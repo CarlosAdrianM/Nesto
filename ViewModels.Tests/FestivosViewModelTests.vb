@@ -41,7 +41,7 @@ Public Class FestivosViewModelTests
         Return New FestivosViewModel(_servicio, _dialogService, _configuracion)
     End Function
 
-    ''' <summary>NestoAPI#841: un usuario de Almacén o de Logística (sin ser Administración, Dirección ni Informática).</summary>
+    ''' <summary>NestoAPI#841: un usuario de Almacén (sin ser Administración, Dirección ni Informática).</summary>
     Private Function CrearViewModelDe(grupo As String) As FestivosViewModel
         Dim configuracion = A.Fake(Of IConfiguracion)()
         A.CallTo(Function() configuracion.UsuarioEnGrupo(grupo)).Returns(True)
@@ -260,16 +260,14 @@ Public Class FestivosViewModelTests
     End Sub
 
     <TestMethod()>
-    Public Sub AlmacenYLogistica_SoloElTipoSinRepartoPropio()
-        For Each grupo In {Constantes.GruposSeguridad.ALMACEN, Constantes.GruposSeguridad.LOGISTICA}
-            Dim vm = CrearViewModelDe(grupo)
+    Public Sub Almacen_SoloElTipoSinRepartoPropio()
+        Dim vm = CrearViewModelDe(Constantes.GruposSeguridad.ALMACEN)
 
-            Assert.IsTrue(vm.SoloRepartoPropio, grupo)
-            Assert.AreEqual(1, vm.OpcionesTipo.Count, grupo)
-            Assert.AreEqual("Sin reparto propio (furgoneta)", vm.OpcionesTipo(0).Etiqueta, grupo)
-            Assert.AreEqual(TiposFestivo.REPARTO_PROPIO, vm.NuevoTipo, grupo)
-            Assert.AreEqual(FestivosViewModel.AVISO_SOLO_REPARTO_PROPIO, vm.AvisoPermisos, grupo)
-        Next
+        Assert.IsTrue(vm.SoloRepartoPropio)
+        Assert.AreEqual(1, vm.OpcionesTipo.Count)
+        Assert.AreEqual("Sin reparto propio (furgoneta)", vm.OpcionesTipo(0).Etiqueta)
+        Assert.AreEqual(TiposFestivo.REPARTO_PROPIO, vm.NuevoTipo)
+        Assert.AreEqual(FestivosViewModel.AVISO_SOLO_REPARTO_PROPIO, vm.AvisoPermisos)
     End Sub
 
     <TestMethod()>
@@ -313,13 +311,13 @@ Public Class FestivosViewModelTests
     End Function
 
     <TestMethod()>
-    Public Async Function Logistica_SoloBorraLosDiasSinRepartoPropio() As Task
+    Public Async Function Almacen_SoloBorraLosDiasSinRepartoPropio() As Task
         Dim anio = Date.Today.Year
         Dim sanJose = UnFestivo(New Date(anio, 3, 19), TiposFestivo.AUTONOMICA, "San José")
         Dim sinFurgoneta = UnFestivo(New Date(anio, 11, 9), TiposFestivo.REPARTO_PROPIO, "Andre y Miguel libres")
         DevolverAlLeer(anio, sanJose, sinFurgoneta)
         A.CallTo(Function() _dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
-        Dim vm = CrearViewModelDe(Constantes.GruposSeguridad.LOGISTICA)
+        Dim vm = CrearViewModelDe(Constantes.GruposSeguridad.ALMACEN)
         Await vm.CargarAsync()
 
         Assert.AreEqual(2, vm.Festivos.Count, "La lista enseña todos")
