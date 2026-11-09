@@ -74,6 +74,11 @@
     <!-- Nesto#581: «Leer etiqueta de recogida…» con teclado (el lector termina en Intro y acepta el cuadro) -->
     <UserControl.InputBindings>
         <KeyBinding Key="R" Modifiers="Ctrl+Shift" Command="{Binding LeerEtiquetaRecogidaCommand}"/>
+        <!-- Nesto#631: atajos de las acciones a la vista de la botonera (el CanExecute de cada comando manda, como en el botón) -->
+        <KeyBinding Key="P" Modifiers="Ctrl+Shift" Command="{Binding cmdAbrirPicking}"/>
+        <KeyBinding Key="D" Modifiers="Ctrl+Shift" Command="{Binding DescargarPresupuestoCommand}"/>
+        <KeyBinding Key="E" Modifiers="Ctrl+Shift" Command="{Binding EnviarPedidoPorCorreoCommand}"/>
+        <KeyBinding Key="F" Modifiers="Ctrl+Shift" Command="{Binding AbrirFacturarRutasCommand}"/>
     </UserControl.InputBindings>
 
     <xctk:BusyIndicator IsBusy="{Binding estaBloqueado}" BusyContent="{Binding textoBusyIndicator}">
@@ -350,56 +355,9 @@
                             </Grid>
 
                             <!-- Botones de acción. Nesto#485: los de crear albarán/factura e imprimir están en la
-                                 barra de facturación, debajo de las pestañas (visibles desde cualquiera) -->
-                            <Grid Margin="0,10,0,0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition/>
-                                    <RowDefinition/>
-                                    <RowDefinition/>
-                                    <RowDefinition/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <!-- Fila 0: retener/liberar (NestoAPI#698), rutas y rectificativas -->
-                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CmdRetenerPedido}" Content="Retener…"
-                                        ToolTip="Que el pedido no salga hasta nuevo aviso (o hasta una fecha), sin tocar la fecha de entrega"/>
-                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CmdLiberarPedido}" Content="Liberar"
-                                        Visibility="{Binding EstaRetenido, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Quitar la retención: el pedido vuelve a su modo de servicio anterior y entra en el picking"/>
-                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
-                                <Button Grid.Row="0" Grid.Column="3" Command="{Binding CopiarFacturaCommand}" Visibility="{Binding MostrarCopiarFactura, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Copiar líneas de una factura existente para crear rectificativa o duplicar">Copiar Factura</Button>
-                                <!-- Fila 1: Picking, PDF y presupuestos -->
-                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
-                                <Button Grid.Row="1" Grid.Column="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
-                                <Button Grid.Row="1" Grid.Column="3" Command="{Binding PasarAPresupuestoCommand}">Pasar a Presupuesto</Button>
-                                <!-- Nesto#563 (NestoAPI#724): el mismo PDF que «Descargar PDF», por correo, sin pasar por el escritorio -->
-                                <Button Grid.Row="2" Grid.Column="1" Command="{Binding EnviarPedidoPorCorreoCommand}"
-                                        ToolTip="Mandar el PDF del pedido por correo al cliente (se proponen sus personas de contacto)">Enviar por correo…</Button>
-                                <!-- Nesto#570 (NestoAPI#737): WhatsApp Web con el mensaje y un enlace de descarga del PDF (30 días) -->
-                                <Button Grid.Row="2" Grid.Column="0" Command="{Binding EnviarPedidoPorWhatsAppCommand}"
-                                        ToolTip="Abrir WhatsApp Web con el mensaje para el cliente y el enlace de descarga del PDF del pedido; solo tiene que pulsar «Enviar»">Enviar por WhatsApp…</Button>
-                                <!-- Fila 2: NestoAPI#727, facturar el fin de mes por la API (Administración, Facturación, Dirección e Informática) -->
-                                <Button Grid.Row="2" Grid.Column="2" Command="{Binding AbrirFacturarFinDeMesCommand}"
-                                        Visibility="{Binding PuedeFacturarFinDeMes, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Reunir y facturar los albaranes de fin de mes (los pedidos con P.O. no entran)">Facturar Fin de Mes</Button>
-                                <!-- Nesto#579: nota de recogida nueva para el cliente del pedido en pantalla -->
-                                <Button Grid.Row="2" Grid.Column="3" Command="{Binding NuevaNotaRecogidaCommand}"
-                                        Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Crear una nota de recogida para este cliente (1 bulto) con una línea de texto para escribir qué hay que recoger">Nueva nota de recogida</Button>
-                                <!-- Nesto#618 (NestoAPI#786): nota de solo cobro (parada del reparto propio sin bultos) para el cliente del pedido -->
-                                <Button Grid.Row="3" Grid.Column="2" Command="{Binding NuevaNotaCobroCommand}"
-                                        Visibility="{Binding EsGrupoQuePuedeCrearNotas, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Crear una nota de solo cobro para este cliente: el repartidor pasa a cobrar los efectos que marque (o un importe) sin llevar nada">Nueva nota de cobro…</Button>
-                                <!-- Nesto#581 (NestoAPI#760): leer la etiqueta NR del bulto que trae el repartidor crea el abono y lo abre en modo abono -->
-                                <Button Grid.Row="3" Grid.Column="3" Command="{Binding LeerEtiquetaRecogidaCommand}"
-                                        Visibility="{Binding PuedeLeerEtiquetaRecogida, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Ctrl+Mayús+R. Leer la etiqueta de recogida (NR…) del bulto que trae el repartidor: se crea el pedido de abono del cliente y se abre con cantidad −1 para ir leyendo los productos">Leer etiqueta de recogida…</Button>
-                            </Grid>
+                                 barra de facturación, debajo de las pestañas (visibles desde cualquiera).
+                                 Nesto#631 (prueba): botonera con WPF-UI; las de cada día a la vista y el resto en «Más» -->
+                            <local:BotoneraDetallePedido Margin="0,10,0,0"/>
                             <TextBlock></TextBlock>
                         </StackPanel>
                         

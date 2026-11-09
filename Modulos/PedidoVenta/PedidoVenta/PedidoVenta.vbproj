@@ -98,5 +98,8 @@
     <PackageReference Include="System.Drawing.Common" Version="9.0.9" />
     <PackageReference Include="PdfiumViewer.Native.x86_64.v8-xfa" Version="2018.4.8.256" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- Nesto#631 (prueba): botonera de DetallePedidoView con WPF-UI (lepoco, MIT), la MISMA versión que el panel lateral
+         del exe (Nesto#560). Sus diccionarios se fusionan solo en la botonera (RecursosWpfUi), nunca en Application.Resources -->
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 </Project>
