@@ -211,6 +211,8 @@ Public Class AgenciasViewModel
             Throw New Exception("Agencia no contemplada")
         End If
 
+        ' Novedades 1162: desde fuera (CanalesExternos) el reembolso lo trae el canal; el aviso es para quien la edita a mano.
+        agenciasVM._sinAvisoReembolsoCero = True
         agenciasVM.GuardarEnvioPendienteCommand.Execute(Nothing)
         Return agenciasVM.EnvioPendienteSeleccionado IsNot Nothing AndAlso agenciasVM.EnvioPendienteSeleccionado.Numero > 0
     End Function
@@ -3862,11 +3864,13 @@ Public Class AgenciasViewModel
     End Sub
 
     Public Property GuardarEnvioPendienteCommand As RelayCommand
+    Private _sinAvisoReembolsoCero As Boolean
     Private Function CanGuardarEnvioPendiente() As Boolean
         Return HayCambiosSinGuardarEnPendientes()
     End Function
     Private Sub OnGuardarEnvioPendiente()
         Try
+            Dim avisoReembolso As String = If(_sinAvisoReembolsoCero, Nothing, AvisoReembolsoCeroConCobrar(EnvioPendienteSeleccionado))
             Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
             If EnvioPendienteSeleccionado.Numero = 0 Then
                 Dim unused1 = _servicio.Insertar(envio)
@@ -3883,10 +3887,26 @@ Public Class AgenciasViewModel
             AddHandler envioGuardado.PropertyChanged, New PropertyChangedEventHandler(AddressOf EnvioPendienteSeleccionadoPropertyChangedEventHandler)
             listaPendientes.Add(envioGuardado)
             EnvioPendienteSeleccionado = envioGuardado
+            If avisoReembolso IsNot Nothing Then
+                _dialogService.ShowNotification("Reembolso de la etiqueta", avisoReembolso)
+            End If
         Catch ex As Exception
             _dialogService.ShowError("Error al modificar envío:" + vbCr + If(ex.InnerException?.Message, ex.Message))
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Novedades 1162 (Alfredo): un pendiente con reembolso 0 y «Cobrar» marcado NO es «no cobrar»: para la API es «se
+    ''' recalculará al imprimir si el pedido es contra reembolso» (NestoAPI#785); desmarcado se guarda −1 = no cobrar. Lo creyó
+    ''' a 0 y al imprimir se le puso a 53 €. Aviso que no bloquea, solo si la etiqueta es de un pedido.
+    ''' </summary>
+    Friend Shared Function AvisoReembolsoCeroConCobrar(envio As EnvioAgenciaWrapper) As String
+        If envio Is Nothing OrElse envio.Pedido <= 0 OrElse Not envio.CobrarReembolso OrElse envio.Reembolso <> 0 Then
+            Return Nothing
+        End If
+        Return "Esta etiqueta pendiente queda con reembolso 0,00 € y «Cobrar» marcado: al imprimirla se calculará el reembolso " +
+            "del pedido. Si no quiere cobrar nada, desmarque «Cobrar»."
+    End Function
 
     Public Property AbrirEnlaceSeguimientoCommand As RelayCommand
     Private Function CanAbrirEnlaceSeguimientoCommand() As Boolean

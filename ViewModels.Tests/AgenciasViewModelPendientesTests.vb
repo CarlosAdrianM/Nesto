@@ -290,4 +290,52 @@ Public Class AgenciasViewModelPendientesTests
         Assert.IsTrue(String.IsNullOrEmpty(viewModel.mensajeError), viewModel.mensajeError)
     End Sub
 
+    ' Novedades 1162 (Alfredo): pendiente a 0 € con «Cobrar» marcado creyendo que no se cobraría; al imprimir se puso a 53 €.
+
+    Private Const AVISO_COBRAR As String = "Esta etiqueta pendiente queda con reembolso 0,00 € y «Cobrar» marcado: al imprimirla se calculará el reembolso del pedido. Si no quiere cobrar nada, desmarque «Cobrar»."
+
+    Private Sub GuardarPendienteConReembolso(pedido As Integer, reembolso As Decimal, cobrar As Boolean)
+        AbrirPendientesConCTTSeleccionada()
+        viewModel.EnvioPendienteSeleccionado = viewModel.listaPendientes.Single(Function(p) p.Numero = 249165)
+        ContestaElComparador(CTT)
+        viewModel.EnvioPendienteSeleccionado.Pedido = pedido
+        viewModel.EnvioPendienteSeleccionado.Reembolso = reembolso
+        viewModel.EnvioPendienteSeleccionado.CobrarReembolso = cobrar
+        Fake.ClearRecordedCalls(dialogService)
+
+        viewModel.GuardarEnvioPendienteCommand.Execute(Nothing)
+    End Sub
+
+    <TestMethod()>
+    Public Sub Pendientes_GuardarConReembolsoCeroYCobrarMarcado_AvisaDeQueSeCalcularaAlImprimir()
+        GuardarPendienteConReembolso(12345, 0D, True)
+
+        A.CallTo(Sub() servicio.Modificar(A(Of EnviosAgencia).Ignored)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification("Reembolso de la etiqueta", AVISO_COBRAR)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub Pendientes_GuardarConCobrarDesmarcado_NoAvisa()
+        GuardarPendienteConReembolso(12345, 0D, False)
+
+        A.CallTo(Sub() dialogService.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub Pendientes_GuardarConReembolso_NoAvisa()
+        GuardarPendienteConReembolso(12345, 53D, True)
+
+        A.CallTo(Sub() dialogService.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod()>
+    Public Sub AvisoReembolsoCeroConCobrar_SinPedido_NoAvisa()
+        Dim envio = New EnvioAgenciaWrapper With {.Pedido = 0, .Reembolso = 0, .CobrarReembolso = True}
+
+        Assert.IsNull(AgenciasViewModel.AvisoReembolsoCeroConCobrar(envio))
+        Assert.IsNull(AgenciasViewModel.AvisoReembolsoCeroConCobrar(Nothing))
+        Assert.AreEqual(AVISO_COBRAR, AgenciasViewModel.AvisoReembolsoCeroConCobrar(New EnvioAgenciaWrapper With {.Pedido = 1, .Reembolso = 0, .CobrarReembolso = True}))
+    End Sub
+
 End Class
