@@ -73,14 +73,32 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public async Task TodasMarcadas_EsElPedidoEnteroComoAntes()
+        public async Task TodasLasLineasQuitablesYMarcadas_EsElPedidoEnteroComoAntes()
         {
+            List<LineaConPicking> todasQuitables = Lineas().Where(l => l.SePuedeQuitar).ToList();
             ElUsuarioElige(new List<int> { 1, 4 }, todas: true);
+            A.CallTo(() => _servicio.LeerLineasConPicking("1", PEDIDO)).Returns(Task.FromResult(todasQuitables));
 
             await Vm().QuitarPickingAsync();
 
             A.CallTo(() => _servicio.QuitarPicking("1", PEDIDO, false)).MustHaveHappenedOnceExactly();
             A.CallTo(() => _servicio.QuitarPickingLineas(A<string>._, A<int>._, A<bool>._, A<List<int>>._)).MustNotHaveHappened();
+        }
+
+        // Revisión 10/11/26: todas las QUITABLES marcadas pero con otra línea que no se puede quitar (otro picking terminado, en
+        // albarán…) en la lista: el pedido entero daría 409; se mandan las marcadas.
+        [TestMethod]
+        public async Task TodasLasQuitablesMarcadasPeroHayOtraNoQuitable_MandaLasLineasNoElPedidoEntero()
+        {
+            ElUsuarioElige(new List<int> { 1, 4 }, todas: true);
+            A.CallTo(() => _servicio.QuitarPickingLineas("1", PEDIDO, false, A<List<int>>._))
+                .Returns(Task.FromResult(new ResultadoQuitarPicking { Message = "Quitado" }));
+
+            await Vm().QuitarPickingAsync();
+
+            A.CallTo(() => _servicio.QuitarPicking(A<string>._, A<int>._, A<bool>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.QuitarPickingLineas("1", PEDIDO, false, A<List<int>>.That.Matches(l => l.Count == 2 && l.Contains(1) && l.Contains(4))))
+                .MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

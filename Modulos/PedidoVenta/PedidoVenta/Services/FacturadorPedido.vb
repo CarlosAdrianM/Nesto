@@ -43,9 +43,10 @@ Namespace Services
 
         ''' <summary>
         ''' NestoAPI#828: «Facturar al imprimir etiqueta» de Agencias con el mismo núcleo que F8 en Ariadna
-        ''' (POST api/FacturacionRutas/FacturarEtiqueta): la ruta propia no se factura aquí (sus dos copias salen en Facturar rutas
-        ''' propia), el papel del pedido se imprime aquí, para meterlo en la caja, y se confirma a la API (Facturar rutas lo cuenta
-        ''' como «ya impreso en el packing»). Si no sale, queda pendiente: repetir la etiqueta lo vuelve a imprimir sin facturar.
+        ''' (POST api/FacturacionRutas/FacturarEtiqueta): el papel del pedido se imprime aquí, para meterlo en la caja, y se
+        ''' confirma a la API (Facturar rutas lo cuenta como «ya impreso en el packing», salvo en la ruta propia). Desde NestoAPI
+        ''' 6698e846 (10/11/26) la ruta propia también se factura e imprime aquí (no el reparto propio de otro día o aplazado, ni
+        ''' las notas, ni los retenidos). Si no sale, queda pendiente: repetir la etiqueta lo vuelve a imprimir sin facturar.
         ''' </summary>
         Public Async Function FacturarEtiquetaAsync(empresa As String, pedido As Integer, envio As Integer?, imprimirDocumentos As Boolean) As Task
             Await FacturarConAsync(Async Function(saltarPacking) As Task(Of FacturarRutasResponseDTO)

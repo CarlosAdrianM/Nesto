@@ -36,7 +36,7 @@ End Class
 
 ''' <summary>
 ''' NestoAPI#828: la respuesta de POST api/FacturacionRutas/FacturarEtiqueta: la de FacturarPedido más los documentos en papel del
-''' packing (que Nesto imprime en local y confirma) y los avisos del núcleo (la ruta propia no se factura aquí, lo ya impreso…).
+''' packing (que Nesto imprime en local y confirma) y los avisos del núcleo (el reparto propio de otro día, lo ya impreso…).
 ''' </summary>
 Public Class FacturarEtiquetaResponseDTO
     Inherits FacturarRutasResponseDTO

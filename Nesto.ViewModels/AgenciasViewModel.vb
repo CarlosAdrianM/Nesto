@@ -2634,7 +2634,8 @@ Public Class AgenciasViewModel
             ' NestoAPI#592: el mismo camino que la facturación de rutas (albarán, factura, nota de entrega,
             ' traspaso, avisos e impresión). Antes se llamaba aquí a CrearAlbaran + CrearFactura por separado.
             ' NestoAPI#828: con el núcleo del papel del packing (el de F8 en Ariadna): la factura física sale aquí, para meterla en
-            ' la caja, y queda apuntada; la ruta propia no se factura aquí (sus copias salen en Facturar rutas propia).
+            ' la caja, y queda apuntada. Desde NestoAPI 6698e846 (10/11/26) la ruta propia también se factura e imprime aquí
+            ' (salvo el reparto propio de otro día o aplazado, las notas y los retenidos, que siguen yendo por Facturar rutas).
             Await _facturadorEtiqueta.FacturarEtiquetaAsync(envioActual.Empresa, envioActual.Pedido, envioActual.Numero, _imprimirDocumentoAlFacturar)
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)

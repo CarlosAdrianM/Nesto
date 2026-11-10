@@ -167,9 +167,25 @@ namespace ControlesUsuario.Dialogs
             }
             else if (!string.IsNullOrWhiteSpace(_urlDocumento))
             {
-                AbrirConElSistema(_urlDocumento.Trim());
+                // El enlace viene de la agencia: con UseShellExecute abriría cualquier cosa (un fichero, un programa…). Solo http/https.
+                if (EsEnlaceWeb(_urlDocumento))
+                {
+                    AbrirConElSistema(_urlDocumento.Trim());
+                }
+                else
+                {
+                    TextoSinFirma = MENSAJE_ENLACE_NO_VALIDO;
+                }
             }
         }
+
+        public const string MENSAJE_ENLACE_NO_VALIDO = "No se puede abrir el enlace del justificante.";
+
+        /// <summary>Una URI absoluta http o https (lo único que se abre en el navegador).</summary>
+        public static bool EsEnlaceWeb(string url)
+            => !string.IsNullOrWhiteSpace(url)
+               && Uri.TryCreate(url.Trim(), UriKind.Absolute, out Uri uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
         /// <summary>La extensión del fichero por su tipo MIME (PDF si no se sabe: es lo que da CTT).</summary>
         public static string Extension(string tipo)

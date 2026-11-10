@@ -635,12 +635,11 @@ Public Class PickingPopupViewModel
             If eleccion Is Nothing OrElse eleccion.Result <> ResultadoBoton.OK Then
                 Return
             End If
-            Dim todas As Boolean = eleccion.Parameters IsNot Nothing AndAlso eleccion.Parameters.ContainsKey("todas") AndAlso eleccion.Parameters.GetValue(Of Boolean)("todas")
             Dim marcadas As List(Of Integer) = If(eleccion.Parameters?.GetValue(Of List(Of Integer))("lineas"), New List(Of Integer))
             If marcadas.Count = 0 Then
                 Return
             End If
-            If Not todas Then
+            If Not EsElPedidoEntero(lineas, marcadas) Then
                 lineasElegidas = marcadas
             End If
         ElseIf Not dialogService.ShowConfirmationAnswer("Quitar picking", $"¿Quitar el picking del pedido {pedido}?" + vbCrLf + vbCrLf +
@@ -663,6 +662,20 @@ Public Class PickingPopupViewModel
         Finally
             estaSacandoPicking = False
         End Try
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1146 (revisión 10/11/26): el POST del pedido entero solo si TODAS las líneas de la lista se pueden quitar y están
+    ''' marcadas. Si hay alguna que no se puede (p. ej. de otro picking ya terminado o en albarán), el pedido entero daría 409:
+    ''' entonces se mandan las marcadas.
+    ''' </summary>
+    Friend Shared Function EsElPedidoEntero(lineas As List(Of LineaConPicking), marcadas As List(Of Integer)) As Boolean
+        If lineas Is Nothing OrElse marcadas Is Nothing Then
+            Return False
+        End If
+        Dim todasLasLineas As List(Of LineaConPicking) = lineas.Where(Function(l) l IsNot Nothing).ToList()
+        Return todasLasLineas.Count > 0 AndAlso
+            todasLasLineas.All(Function(l) l.SePuedeQuitar AndAlso marcadas.Contains(l.Linea))
     End Function
 
     ''' <summary>Novedad 1146: sin líneas, el POST de siempre (el pedido entero); con ellas, solo esas.</summary>

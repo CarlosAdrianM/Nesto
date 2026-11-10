@@ -132,6 +132,27 @@ namespace ControlesUsuario.Tests.Dialogs
             Assert.AreEqual("https://agencia.invalid/pod", abierto);
         }
 
+        // Revisión 10/11/26: el enlace viene de la agencia; con UseShellExecute no se abre nada que no sea http/https.
+        [TestMethod]
+        public void EnlaceQueNoEsWeb_NoSeAbreYLoDice()
+        {
+            foreach (string url in new[] { @"C:\Windows\System32\calc.exe", "file:///C:/Windows/win.ini", @"\\servidor\recurso\x.pdf", "ms-settings:", "relativa/pod" })
+            {
+                var vm = AbrirAgencia(null, null, url, out string abierto);
+
+                Assert.IsNull(abierto, url);
+                Assert.AreEqual(PruebaEntregaDialogViewModel.MENSAJE_ENLACE_NO_VALIDO, vm.TextoSinFirma, url);
+            }
+            Assert.AreEqual("No se puede abrir el enlace del justificante.", PruebaEntregaDialogViewModel.MENSAJE_ENLACE_NO_VALIDO);
+        }
+
+        [TestMethod]
+        public void EnlaceHttp_SeAbre()
+        {
+            AbrirAgencia(null, null, "http://agencia.invalid/pod", out string abierto);
+            Assert.AreEqual("http://agencia.invalid/pod", abierto);
+        }
+
         [TestMethod]
         public void SinDocumento_ElBotonNoSeOfrece()
         {
