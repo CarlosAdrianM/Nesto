@@ -526,6 +526,8 @@ Public Class PedidoVentaService
 
             Catch ex As PickingClienteCerradoException
                 Throw
+            Catch ex As PickingNadaQueSacarException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se han podido sacar los picking del cliente " + cliente, ex)
             Finally
@@ -537,21 +539,27 @@ Public Class PedidoVentaService
     ''' <summary>
     ''' El error de un picking: si el servidor dice que el cliente cierra el día de la entrega
     ''' (PICKING_CLIENTE_CERRADO), una excepción propia con SOLO el mensaje, para que la pantalla pueda preguntar
-    ''' si se le asigna igualmente; si no, la de siempre.
+    ''' si se le asigna igualmente; si en un picking de varios pedidos no sale ninguno (PICKING_NADA_QUE_SACAR),
+    ''' otra para enseñarlo como aviso y no como error; si no, la de siempre.
     ''' </summary>
     Friend Shared Sub LanzarErrorPicking(respuesta As String)
-        Dim mensajeCierre As String = Nothing
+        Dim codigo As String = Nothing
+        Dim mensaje As String = Nothing
         Try
             Dim detalles As JObject = JsonConvert.DeserializeObject(Of JObject)(respuesta)
             Dim errorObj As JObject = TryCast(detalles?("error"), JObject)
-            If errorObj IsNot Nothing AndAlso errorObj("code")?.ToString() = PickingClienteCerradoException.CODIGO_ERROR Then
-                mensajeCierre = errorObj("message")?.ToString()
+            If errorObj IsNot Nothing Then
+                codigo = errorObj("code")?.ToString()
+                mensaje = errorObj("message")?.ToString()
             End If
         Catch
             ' No es JSON: se trata como siempre
         End Try
-        If mensajeCierre IsNot Nothing Then
-            Throw New PickingClienteCerradoException(mensajeCierre)
+        If mensaje IsNot Nothing AndAlso codigo = PickingClienteCerradoException.CODIGO_ERROR Then
+            Throw New PickingClienteCerradoException(mensaje)
+        End If
+        If mensaje IsNot Nothing AndAlso codigo = PickingNadaQueSacarException.CODIGO_ERROR Then
+            Throw New PickingNadaQueSacarException(mensaje)
         End If
         Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
     End Sub
@@ -573,9 +581,11 @@ Public Class PedidoVentaService
 
                 respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+                    LanzarErrorPicking(respuesta)
                 End If
 
+            Catch ex As PickingNadaQueSacarException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se ha podido sacar el picking de las rutas" + vbCr + vbCr + ex.Message)
             Finally
@@ -599,8 +609,10 @@ Public Class PedidoVentaService
                 Dim response As HttpResponseMessage = Await client.GetAsync("Picking/RutasPropias")
                 Dim respuesta As String = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+                    LanzarErrorPicking(respuesta)
                 End If
+            Catch ex As PickingNadaQueSacarException
+                Throw
             Catch ex As Exception
                 Throw New Exception("No se ha podido sacar el picking de nuestra ruta (AT y 16)" + vbCr + vbCr + ex.Message)
             End Try

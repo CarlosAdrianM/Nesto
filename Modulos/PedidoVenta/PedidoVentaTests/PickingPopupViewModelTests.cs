@@ -6,6 +6,7 @@ using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
 using CommunityToolkit.Mvvm.Messaging;
 using Nesto.Informes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -229,6 +230,62 @@ namespace PedidoVentaTests
 
             A.CallTo(() => _dialogService.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
             A.CallTo(() => _dialogService.ShowNotification(A<string>.Ignored, A<string>.That.Contains("cierra el lunes"))).MustHaveHappenedOnceExactly();
+        }
+
+        // Novedades 1164: en un picking de varios pedidos sin ninguno que pueda salir, la API manda PICKING_NADA_QUE_SACAR con el
+        // resumen por motivo. Es un aviso: título «Picking» y el mensaje tal cual, sin «Error Picking…» ni «No se ha podido…».
+
+        private const string NADA_QUE_SACAR = "No hay ningún pedido que pueda salir ahora.\r\n\r\nEsperan la reposición de las tiendas: 930100, 930101.";
+
+        private PickingPopupViewModel PickingDeVarios(string tipo)
+        {
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.esPickingPedido = false;
+            vm.esPickingCliente = tipo == "cliente";
+            vm.esPickingRutasPropias = tipo == "nuestraRuta";
+            vm.esPickingRutas = tipo == "rutas";
+            vm.numeroClientePicking = "15191";
+            return vm;
+        }
+
+        [DataTestMethod]
+        [DataRow("rutas")]
+        [DataRow("nuestraRuta")]
+        [DataRow("cliente")]
+        public async Task SacarPicking_DeVariosSinNadaQueSacar_EsUnAvisoConElMensajeTalCual(string tipo)
+        {
+            var vm = PickingDeVarios(tipo);
+            var nada = new PickingNadaQueSacarException(NADA_QUE_SACAR);
+            A.CallTo(() => _servicioPedido.sacarPickingPedido()).Throws(nada);
+            A.CallTo(() => _servicioPedido.sacarPickingRutasPropias()).Throws(nada);
+            A.CallTo(() => _servicioPedido.sacarPickingPedido("15191")).Throws(nada);
+
+            await vm.SacarPickingAsync(null);
+
+            A.CallTo(() => _dialogService.ShowNotification("Picking", NADA_QUE_SACAR)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogService.ShowNotification(A<string>.That.StartsWith("Error"), A<string>.Ignored)).MustNotHaveHappened();
+            Assert.IsFalse(vm.estaSacandoPicking);
+        }
+
+        [TestMethod]
+        public void LanzarErrorPicking_ConElCodigoNadaQueSacar_LanzaElAvisoConSoloElMensaje()
+        {
+            string respuesta = "{\"error\":{\"code\":\"PICKING_NADA_QUE_SACAR\",\"message\":\"No hay ningún pedido que pueda salir ahora.\"}}";
+
+            var ex = Assert.ThrowsException<PickingNadaQueSacarException>(() => PedidoVentaService.LanzarErrorPicking(respuesta));
+
+            Assert.AreEqual("No hay ningún pedido que pueda salir ahora.", ex.Message);
+        }
+
+        [TestMethod]
+        public void LanzarErrorPicking_OtroCodigo_EsUnErrorNormal()
+        {
+            string respuesta = "{\"error\":{\"code\":\"OTRO\",\"message\":\"Algo ha fallado.\"}}";
+
+            var ex = Assert.ThrowsException<Exception>(() => PedidoVentaService.LanzarErrorPicking(respuesta));
+
+            Assert.IsNotInstanceOfType(ex, typeof(PickingNadaQueSacarException));
         }
 
         // ===== NestoAPI#606 (kits, 13/10/26): la fecha de entrega a la agencia cuenta lo que sale desmontando un kit, y eso

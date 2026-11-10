@@ -561,6 +561,9 @@ Public Class PickingPopupViewModel
             dialogService.ShowNotification("Picking", textoMensaje)
             numeroPicking = Await _servicioInformes.LeerUltimoPicking()
             messenger.Send(New SacarPickingMensaje(1))
+        Catch ex As PickingNadaQueSacarException
+            ' Novedades 1164: que no salga ningún pedido no es un error; el resumen por motivo, tal cual.
+            dialogService.ShowNotification("Picking", ex.Message)
         Catch ex As Exception
             Dim tituloError As String
             If esPickingPedido Then
