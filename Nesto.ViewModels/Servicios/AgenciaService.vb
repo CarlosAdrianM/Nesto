@@ -1116,36 +1116,11 @@ Public Class AgenciaService
         End Using
     End Function
 
-    ' ===== Nesto#571 (NestoAPI#739): prueba de entrega del reparto propio =====
+    ' ===== Nesto#571 (NestoAPI#739): prueba de entrega; desde el 10/11/26 de cualquier agencia por el endpoint único =====
 
-    Friend Shared Function RutaPruebaEntregaReparto(numeroEnvio As Integer) As String
-        Return $"RepartoPropio/Envios/{numeroEnvio}/PruebaEntrega"
-    End Function
-
-    Friend Shared Function RutaFirmaPruebaEntregaReparto(numeroEnvio As Integer) As String
-        Return RutaPruebaEntregaReparto(numeroEnvio) & "/Firma"
-    End Function
-
-    ''' <summary>Nothing con 204 (o cuerpo vacío): el envío no tiene prueba de entrega.</summary>
-    Friend Shared Function PruebaEntregaDeRespuesta(estado As Net.HttpStatusCode, cuerpo As String) As PruebaEntregaRepartoDto
-        If estado = Net.HttpStatusCode.NoContent OrElse String.IsNullOrWhiteSpace(cuerpo) Then
-            Return Nothing
-        End If
-        Return JsonConvert.DeserializeObject(Of PruebaEntregaRepartoDto)(cuerpo)
-    End Function
-
-    Public Async Function LeerPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of PruebaEntregaRepartoDto) Implements IAgenciaService.LeerPruebaEntregaReparto
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-            End If
-            Dim response As HttpResponseMessage = Await client.GetAsync(RutaPruebaEntregaReparto(numeroEnvio))
-            Dim cuerpo As String = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
-            If Not response.IsSuccessStatusCode Then
-                Throw New Exception($"NestoAPI no ha devuelto la prueba de entrega ({CInt(response.StatusCode)}): {cuerpo}")
-            End If
-            Return PruebaEntregaDeRespuesta(response.StatusCode, cuerpo)
-        End Using
+    Public Function LeerPruebaEntrega(numeroEnvio As Integer) As Task(Of ControlesUsuario.Services.PruebaEntregaEnvio) Implements IAgenciaService.LeerPruebaEntrega
+        ' El mismo servicio que usa el detalle del pedido: una sola forma de pedirla.
+        Return New ControlesUsuario.Services.ServicioPruebaEntregaEnvios(_clienteApiFactory).Leer(numeroEnvio)
     End Function
 
     ''' <summary>Nesto#573 (NestoAPI#748): ruta del enlace de seguimiento de un envío.</summary>
@@ -1256,24 +1231,6 @@ Public Class AgenciaService
 
     Public Function CambiarDireccionEntregaEnvio(numeroEnvio As Integer, direccion As DireccionEntregaEnvioPeticion) As Task(Of MensajeGestionEnvioDto) Implements IAgenciaService.CambiarDireccionEntregaEnvio
         Return PostGestion(Of MensajeGestionEnvioDto)(numeroEnvio, GESTION_DIRECCION_ENTREGA, JsonConvert.SerializeObject(direccion))
-    End Function
-
-    Public Async Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte()) Implements IAgenciaService.LeerFirmaPruebaEntregaReparto
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-            End If
-            Dim response As HttpResponseMessage = Await client.GetAsync(RutaFirmaPruebaEntregaReparto(numeroEnvio))
-            If response.StatusCode = Net.HttpStatusCode.NoContent OrElse response.StatusCode = Net.HttpStatusCode.NotFound Then
-                Return Nothing
-            End If
-            If Not response.IsSuccessStatusCode Then
-                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                Throw New Exception($"NestoAPI no ha devuelto la firma ({CInt(response.StatusCode)}): {cuerpo}")
-            End If
-            Dim bytes As Byte() = Await response.Content.ReadAsByteArrayAsync()
-            Return If(bytes Is Nothing OrElse bytes.Length = 0, Nothing, bytes)
-        End Using
     End Function
 
     ' ===== NestoAPI#552 (fase 4): GLS por la API (Tramitar todos y etiqueta) =====

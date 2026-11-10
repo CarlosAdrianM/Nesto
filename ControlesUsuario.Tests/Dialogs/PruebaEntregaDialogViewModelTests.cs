@@ -71,6 +71,106 @@ namespace ControlesUsuario.Tests.Dialogs
             StringAssert.Contains(vm.TextoSinFirma, "Inténtelo de nuevo");
         }
 
+        // ---- Desde el 10/11/26, de cualquier agencia ----
+
+        private static PruebaEntregaDialogViewModel AbrirAgencia(byte[] documento, string tipo, string url, out string abierto)
+        {
+            string ruta = null;
+            var vm = new PruebaEntregaDialogViewModel
+            {
+                AbrirConElSistema = r => ruta = r,
+                GuardarTemporal = (nombre, bytes) => @"C:\temporal\" + nombre
+            };
+            bool esImagen = documento != null && tipo != null && tipo.StartsWith("image/");
+            vm.OnDialogOpened(new ParametrosDialogo
+            {
+                { PruebaEntregaDialogViewModel.PARAMETRO_ENVIO, 251501 },
+                { PruebaEntregaDialogViewModel.PARAMETRO_AGENCIA, "CTT" },
+                { PruebaEntregaDialogViewModel.PARAMETRO_RECEPTOR, "Receptor" },
+                { PruebaEntregaDialogViewModel.PARAMETRO_FIRMA, esImagen ? documento : null },
+                { PruebaEntregaDialogViewModel.PARAMETRO_DOCUMENTO, documento },
+                { PruebaEntregaDialogViewModel.PARAMETRO_TIPO_DOCUMENTO, tipo },
+                { PruebaEntregaDialogViewModel.PARAMETRO_URL_DOCUMENTO, url }
+            });
+            if (vm.AbrirDocumentoCommand.CanExecute(null))
+            {
+                vm.AbrirDocumentoCommand.Execute(null);
+            }
+            abierto = ruta;
+            return vm;
+        }
+
+        [TestMethod]
+        public void Pdf_NoSePintaYSeAbreFuera()
+        {
+            var vm = AbrirAgencia(new byte[] { 0x25, 0x50 }, "application/pdf", null, out string abierto);
+
+            Assert.IsFalse(vm.HayFirma);
+            Assert.IsTrue(vm.HayDocumentoParaAbrir);
+            Assert.AreEqual("Abrir el justificante (PDF)", vm.TextoAbrirDocumento);
+            Assert.AreEqual(@"C:\temporal\PruebaEntrega_251501.pdf", abierto);
+            Assert.IsFalse(vm.HayDatosReparto, "Sin reembolso ni usuario: no es del reparto propio");
+            Assert.AreEqual("CTT", vm.Agencia);
+        }
+
+        [TestMethod]
+        public void ImagenDeGls_SePintaYSePuedeAbrir()
+        {
+            var vm = AbrirAgencia(new byte[] { 0xFF, 0xD8 }, "image/jpeg", null, out string abierto);
+
+            Assert.IsTrue(vm.HayFirma);
+            Assert.AreEqual(@"C:\temporal\PruebaEntrega_251501.jpg", abierto);
+        }
+
+        [TestMethod]
+        public void SoloEnlace_SeAbreEnElNavegador()
+        {
+            var vm = AbrirAgencia(null, null, "https://agencia.invalid/pod", out string abierto);
+
+            Assert.IsFalse(vm.HayFirma);
+            Assert.AreEqual("Abrir en el navegador", vm.TextoAbrirDocumento);
+            Assert.AreEqual("https://agencia.invalid/pod", abierto);
+        }
+
+        [TestMethod]
+        public void SinDocumento_ElBotonNoSeOfrece()
+        {
+            var vm = AbrirAgencia(null, null, null, out string abierto);
+
+            Assert.IsFalse(vm.HayDocumentoParaAbrir);
+            Assert.IsNull(abierto);
+        }
+
+        [TestMethod]
+        public void ElAvisoDeLaApi_VaEnElHuecoDeLaImagen()
+        {
+            var vm = new PruebaEntregaDialogViewModel();
+            vm.OnDialogOpened(new ParametrosDialogo
+            {
+                { PruebaEntregaDialogViewModel.PARAMETRO_ENVIO, 251501 },
+                { PruebaEntregaDialogViewModel.PARAMETRO_AVISO, "GLS no da el albarán firmado de este envío." }
+            });
+
+            Assert.AreEqual("GLS no da el albarán firmado de este envío.", vm.TextoSinFirma);
+        }
+
+        [TestMethod]
+        public void RepartoPropio_EnsenaReembolsoYUsuario()
+        {
+            var vm = Abrir("Efectivo", 10M, tieneFirma: false, firma: null);
+
+            Assert.IsTrue(vm.HayDatosReparto);
+        }
+
+        [TestMethod]
+        public void Extension_PorTipo()
+        {
+            Assert.AreEqual(".pdf", PruebaEntregaDialogViewModel.Extension("application/pdf"));
+            Assert.AreEqual(".png", PruebaEntregaDialogViewModel.Extension("image/png"));
+            Assert.AreEqual(".jpg", PruebaEntregaDialogViewModel.Extension("IMAGE/JPEG"));
+            Assert.AreEqual(".pdf", PruebaEntregaDialogViewModel.Extension(null));
+        }
+
         [TestMethod]
         public void Cerrar_CierraConOk()
         {

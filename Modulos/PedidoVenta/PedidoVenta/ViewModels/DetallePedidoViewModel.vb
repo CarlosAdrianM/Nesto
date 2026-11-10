@@ -134,6 +134,10 @@ Public Class DetallePedidoViewModel
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New RelayCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
+        ' Prueba de entrega por agencia (10/11/26): la de cada envío entregado del pedido, como en Agencias › Tramitados
+        MostradorPruebaEntrega = New ControlesUsuario.Services.MostradorPruebaEntrega(New ControlesUsuario.Services.ServicioPruebaEntregaEnvios(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
+        VerPruebaEntregaCommand = New AsyncRelayCommand(Of EnvioAgenciaDTO)(AddressOf VerPruebaEntregaAsync)
         EnviarCobroTarjetaCommand = New RelayCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
         CopiarDatosTransferenciaCommand = New AsyncRelayCommand(AddressOf CopiarDatosTransferenciaAsync, AddressOf CanCopiarDatosTransferencia) ' Sugerencia 396
         CopiarAlPortapapelesCommand = New RelayCommand(AddressOf OnCopiarAlPortapapeles, AddressOf CanCopiarAlPortapapeles)
@@ -3439,6 +3443,21 @@ Public Class DetallePedidoViewModel
             .UseShellExecute = True
         })
     End Sub
+
+    ''' <summary>Prueba de entrega por agencia (10/11/26): el mismo paso que Agencias › Tramitados (sustituible en los tests).</summary>
+    Friend Property MostradorPruebaEntrega As ControlesUsuario.Services.IMostradorPruebaEntrega
+
+    ''' <summary>
+    ''' La prueba de entrega de UN envío del pedido (cada fila de la lista de envíos lleva su botón, visible si está entregado).
+    ''' Cualquier agencia: si la agencia no la da, la API lo dice. Sin CanExecute: el botón de cada fila se ve o no por su estado.
+    ''' </summary>
+    Public Property VerPruebaEntregaCommand As AsyncRelayCommand(Of EnvioAgenciaDTO)
+    Friend Async Function VerPruebaEntregaAsync(envio As EnvioAgenciaDTO) As Task
+        If envio Is Nothing OrElse MostradorPruebaEntrega Is Nothing OrElse envio.Estado <> Constantes.Agencias.ESTADO_ENTREGADO_ENVIO Then
+            Return
+        End If
+        Await MostradorPruebaEntrega.Mostrar(envio.Numero, If(pedido Is Nothing, String.Empty, pedido.numero.ToString()))
+    End Function
 
     ' Issue NestoAPI#161: Validar si se puede desmarcar "Servir junto".
     ' El checkbox del XAML dispara este comando en su evento Unchecked.

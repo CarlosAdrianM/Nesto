@@ -4760,69 +4760,35 @@ Public Class AgenciasViewModel
             $"El envío {envio.Numero} ha vuelto a Pendientes: corríjalo allí y vuelva a imprimir la etiqueta.")
     End Function
 
-    Friend Const TITULO_PRUEBA_ENTREGA As String = "Prueba de entrega"
-    Friend Const SIN_PRUEBA_ENTREGA As String = "Este envío no tiene prueba de entrega."
-
     Public Property VerPruebaEntregaCommand As RelayCommand
+    ''' <summary>
+    ''' Desde el 10/11/26, cualquier envío entregado: la API sabe qué agencias dan prueba de entrega y, si no la da, lo dice
+    ''' (Nesto no sabe de agencias).
+    ''' </summary>
     Private Function CanVerPruebaEntrega() As Boolean
-        Return EsRepartoPropio(envioActual) AndAlso envioActual.Estado = Constantes.Agencias.ESTADO_ENTREGADO_ENVIO
+        Return envioActual IsNot Nothing AndAlso envioActual.Estado = Constantes.Agencias.ESTADO_ENTREGADO_ENVIO
     End Function
     Private Async Sub OnVerPruebaEntrega()
         Await VerPruebaEntregaSeleccionada()
     End Sub
 
     ''' <summary>
-    ''' Nesto#571: quién recogió, DNI, cuándo, cómo se cobró el reembolso, quién lo registró y la firma. Si la firma no se
-    ''' puede leer, se enseña lo demás (la firma es un extra; los datos son lo importante). Friend para probarlo sin UI.
+    ''' Nesto#571: quién recibió, DNI, cuándo y el documento (firma, albarán firmado o justificante en PDF) de cualquier agencia
+    ''' que la dé; en el reparto propio, además, cómo se cobró el reembolso y quién lo registró. El mismo paso que el detalle del
+    ''' pedido (<see cref="ControlesUsuario.Services.MostradorPruebaEntrega"/>). Friend para probarlo sin UI.
     ''' </summary>
     Friend Async Function VerPruebaEntregaSeleccionada() As Task
         Dim envio As EnviosAgencia = envioActual
-        If Not EsRepartoPropio(envio) Then
+        If envio Is Nothing Then
             Return
         End If
-        Dim prueba As PruebaEntregaRepartoDto = Nothing
-        Dim firma As Byte() = Nothing
-        Dim mensajeError As String = Nothing
-        Try
-            EstaOcupado = True
-            prueba = Await _servicio.LeerPruebaEntregaReparto(envio.Numero)
-            If prueba IsNot Nothing AndAlso prueba.TieneFirma Then
-                Try
-                    firma = Await _servicio.LeerFirmaPruebaEntregaReparto(envio.Numero)
-                Catch exFirma As Exception
-                    Dim unused = RegistrarErrorAgenciaEnElmah(exFirma, "AgenciasViewModel.VerPruebaEntrega (firma)")
-                End Try
-            End If
-        Catch ex As Exception
-            Dim unused2 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.VerPruebaEntrega")
-            mensajeError = ex.Message
-        Finally
-            EstaOcupado = False
-        End Try
-
-        If mensajeError IsNot Nothing Then
-            _dialogService.ShowError($"No se ha podido leer la prueba de entrega del envío {envio.Numero}:" & vbCr & mensajeError)
-        ElseIf prueba Is Nothing Then
-            _dialogService.ShowNotification(TITULO_PRUEBA_ENTREGA, SIN_PRUEBA_ENTREGA)
-        Else
-            _dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, ParametrosPruebaEntrega(envio, prueba, firma), Sub(r)
-                                                                                                                         End Sub)
-        End If
-    End Function
-
-    Friend Shared Function ParametrosPruebaEntrega(envio As EnviosAgencia, prueba As PruebaEntregaRepartoDto, firma As Byte()) As ParametrosDialogo
-        Return New ParametrosDialogo From {
-            {PruebaEntregaDialogViewModel.PARAMETRO_ENVIO, envio.Numero},
-            {PruebaEntregaDialogViewModel.PARAMETRO_PEDIDO, If(envio.Pedido.HasValue, envio.Pedido.Value.ToString(), String.Empty)},
-            {PruebaEntregaDialogViewModel.PARAMETRO_FECHA_HORA, prueba.FechaHora},
-            {PruebaEntregaDialogViewModel.PARAMETRO_RECEPTOR, prueba.Receptor},
-            {PruebaEntregaDialogViewModel.PARAMETRO_DNI, prueba.DniReceptor},
-            {PruebaEntregaDialogViewModel.PARAMETRO_COBRO_REEMBOLSO, prueba.CobroReembolso},
-            {PruebaEntregaDialogViewModel.PARAMETRO_IMPORTE_COBRADO, prueba.ImporteCobrado},
-            {PruebaEntregaDialogViewModel.PARAMETRO_USUARIO, prueba.Usuario},
-            {PruebaEntregaDialogViewModel.PARAMETRO_TIENE_FIRMA, prueba.TieneFirma},
-            {PruebaEntregaDialogViewModel.PARAMETRO_FIRMA, firma}
-        }
+        Dim mostrador As New ControlesUsuario.Services.MostradorPruebaEntrega(
+            Function(numero) _servicio.LeerPruebaEntrega(numero), _dialogService,
+            Sub(ex)
+                Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.VerPruebaEntrega")
+            End Sub,
+            Sub(ocupado) EstaOcupado = ocupado)
+        Await mostrador.Mostrar(envio.Numero, If(envio.Pedido.HasValue, envio.Pedido.Value.ToString(), String.Empty))
     End Function
 #End Region
 

@@ -1,4 +1,5 @@
 Imports ControlesUsuario.Dialogs
+Imports ControlesUsuario.Services
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts
@@ -11,7 +12,7 @@ Imports System.Threading.Tasks
 
 ''' <summary>
 ''' Nesto#571 (NestoAPI#739): «Reparto propio» (agencia 14) como una agencia más, por la API como CTT/Innovatrans, y la
-''' prueba de entrega del envío entregado (GET api/RepartoPropio/Envios/{id}/PruebaEntrega y …/Firma). La API va con fakes.
+''' prueba de entrega del envío entregado (desde el 10/11/26, GET api/EnviosAgencias/{id}/PruebaEntrega). La API va con fakes.
 ''' </summary>
 <TestClass()>
 Public Class AgenciaRepartoPropioTests
@@ -63,39 +64,7 @@ Public Class AgenciaRepartoPropioTests
         Assert.AreEqual(String.Empty, agencia.NumeroCliente)
     End Sub
 
-    ' ---- Contrato con la API ----
-
-    <TestMethod()>
-    Public Sub PruebaEntrega_RutasDelContrato()
-        Assert.AreEqual("RepartoPropio/Envios/251500/PruebaEntrega", AgenciaService.RutaPruebaEntregaReparto(251500))
-        Assert.AreEqual("RepartoPropio/Envios/251500/PruebaEntrega/Firma", AgenciaService.RutaFirmaPruebaEntregaReparto(251500))
-    End Sub
-
-    <TestMethod()>
-    Public Sub PruebaEntrega_MismosNombresQueElServidor()
-        CollectionAssert.AreEqual({"CobroReembolso", "DniReceptor", "EnvioId", "FechaHora", "ImporteCobrado", "Latitud", "Longitud",
-                                   "Receptor", "TieneFirma", "Usuario"},
-                                  GetType(PruebaEntregaRepartoDto).GetProperties().Select(Function(p) p.Name).OrderBy(Function(n) n, StringComparer.Ordinal).ToArray())
-    End Sub
-
-    <TestMethod()>
-    Public Sub PruebaEntrega_SeLeeElJson_Y204EsNothing()
-        Dim cuerpo As String = "{""EnvioId"":251500,""FechaHora"":""2026-10-29T12:34:00"",""Receptor"":""Ana López"",""DniReceptor"":""12345678Z""," &
-            """CobroReembolso"":""Efectivo"",""ImporteCobrado"":123.45,""Usuario"":""NUEVAVISION\\Pedro"",""TieneFirma"":true,""Latitud"":40.6,""Longitud"":-3.5}"
-        Dim prueba = AgenciaService.PruebaEntregaDeRespuesta(Net.HttpStatusCode.OK, cuerpo)
-        Assert.AreEqual(251500, prueba.EnvioId)
-        Assert.AreEqual(New Date(2026, 10, 29, 12, 34, 0), prueba.FechaHora)
-        Assert.AreEqual("Ana López", prueba.Receptor)
-        Assert.AreEqual("12345678Z", prueba.DniReceptor)
-        Assert.AreEqual("Efectivo", prueba.CobroReembolso)
-        Assert.AreEqual(123.45D, prueba.ImporteCobrado)
-        Assert.AreEqual("NUEVAVISION\Pedro", prueba.Usuario)
-        Assert.IsTrue(prueba.TieneFirma)
-
-        Assert.IsNull(AgenciaService.PruebaEntregaDeRespuesta(Net.HttpStatusCode.NoContent, String.Empty))
-    End Sub
-
-    ' ---- Ver prueba de entrega en Agencias ----
+    ' ---- Ver prueba de entrega en Agencias (desde el 10/11/26, de cualquier agencia por GET api/EnviosAgencias/{id}/PruebaEntrega) ----
 
     Private servicio As IAgenciaService
     Private dialogService As IServicioDialogos
@@ -112,13 +81,15 @@ Public Class AgenciaRepartoPropioTests
         Return New EnviosAgencia With {.Numero = 251500, .Pedido = 930001, .Agencia = agencia, .Estado = estado, .CodigoBarras = "RP251500"}
     End Function
 
-    Private Shared Function Prueba(tieneFirma As Boolean) As PruebaEntregaRepartoDto
-        Return New PruebaEntregaRepartoDto With {.EnvioId = 251500, .FechaHora = New Date(2026, 10, 29, 12, 34, 0), .Receptor = "Ana López",
-            .DniReceptor = "12345678Z", .CobroReembolso = "Tarjeta", .ImporteCobrado = 80D, .Usuario = "Pedro", .TieneFirma = tieneFirma}
+    Private Shared Function Prueba(firma As Byte()) As PruebaEntregaEnvio
+        Return New PruebaEntregaEnvio With {.Numero = 251500, .Agencia = 14, .NombreAgencia = "Reparto propio", .Pedido = 930001, .Disponible = True,
+            .FechaHora = New Date(2026, 10, 29, 12, 34, 0), .Receptor = "Ana López", .DniReceptor = "12345678Z", .CobroReembolso = "Tarjeta",
+            .ImporteCobrado = 80D, .Usuario = "Pedro", .Documento = firma, .TipoDocumento = If(firma Is Nothing, Nothing, "image/png"),
+            .Mensaje = If(firma Is Nothing, "Sin firma (se entregó con DNI).", Nothing)}
     End Function
 
     <TestMethod()>
-    Public Sub VerPruebaEntrega_SoloEnEntregadosDelRepartoPropio()
+    Public Sub VerPruebaEntrega_EnLosEntregadosDeCualquierAgencia()
         viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
         Assert.IsTrue(viewModel.VerPruebaEntregaCommand.CanExecute(Nothing))
 
@@ -126,7 +97,7 @@ Public Class AgenciaRepartoPropioTests
         Assert.IsFalse(viewModel.VerPruebaEntregaCommand.CanExecute(Nothing), "Aún no está entregado")
 
         viewModel.envioActual = Envio(13, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
-        Assert.IsFalse(viewModel.VerPruebaEntregaCommand.CanExecute(Nothing), "CTT no tiene prueba de entrega nuestra")
+        Assert.IsTrue(viewModel.VerPruebaEntregaCommand.CanExecute(Nothing), "CTT también: la API la pide a la agencia")
 
         viewModel.envioActual = Nothing
         Assert.IsFalse(viewModel.VerPruebaEntregaCommand.CanExecute(Nothing))
@@ -144,23 +115,22 @@ Public Class AgenciaRepartoPropioTests
     End Sub
 
     <TestMethod()>
-    Public Async Function VerPruebaEntrega_Sin_AvisaDeUsted() As Task
-        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
-        A.CallTo(Function() servicio.LeerPruebaEntregaReparto(251500)).Returns(Task.FromResult(Of PruebaEntregaRepartoDto)(Nothing))
+    Public Async Function VerPruebaEntrega_NoDisponible_EnsenaElMotivoDeLaApi() As Task
+        viewModel.envioActual = Envio(1, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
+        A.CallTo(Function() servicio.LeerPruebaEntrega(251500)).Returns(Task.FromResult(
+            New PruebaEntregaEnvio With {.Numero = 251500, .Disponible = False, .Mensaje = "Esta agencia no da prueba de entrega."}))
 
         Await viewModel.VerPruebaEntregaSeleccionada()
 
-        A.CallTo(Sub() dialogService.ShowNotification("Prueba de entrega", "Este envío no tiene prueba de entrega.")).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowNotification("Prueba de entrega", "Esta agencia no da prueba de entrega.")).MustHaveHappenedOnceExactly()
         A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
-        A.CallTo(Function() servicio.LeerFirmaPruebaEntregaReparto(A(Of Integer).Ignored)).MustNotHaveHappened()
     End Function
 
     <TestMethod()>
     Public Async Function VerPruebaEntrega_ConFirma_AbreElDialogoConTodo() As Task
         viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
         Dim png As Byte() = {137, 80, 78, 71}
-        A.CallTo(Function() servicio.LeerPruebaEntregaReparto(251500)).Returns(Task.FromResult(Prueba(tieneFirma:=True)))
-        A.CallTo(Function() servicio.LeerFirmaPruebaEntregaReparto(251500)).Returns(Task.FromResult(png))
+        A.CallTo(Function() servicio.LeerPruebaEntrega(251500)).Returns(Task.FromResult(Prueba(png)))
         Dim parametros As ParametrosDialogo = Nothing
         A.CallTo(Sub() dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
             .Invokes(Sub(nombre As String, p As ParametrosDialogo, cb As Action(Of ResultadoDialogo)) parametros = p)
@@ -177,40 +147,33 @@ Public Class AgenciaRepartoPropioTests
         Assert.AreEqual("Pedro", parametros.GetValue(Of String)(PruebaEntregaDialogViewModel.PARAMETRO_USUARIO))
         Assert.AreSame(png, parametros.GetValue(Of Byte())(PruebaEntregaDialogViewModel.PARAMETRO_FIRMA))
         A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        Assert.IsFalse(viewModel.EstaOcupado, "No se queda ocupado")
     End Function
 
     <TestMethod()>
-    Public Async Function VerPruebaEntrega_SinFirma_NoLaPide() As Task
+    Public Async Function VerPruebaEntrega_SinFirma_AbreElDialogoConElAviso() As Task
         viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
-        A.CallTo(Function() servicio.LeerPruebaEntregaReparto(251500)).Returns(Task.FromResult(Prueba(tieneFirma:=False)))
+        A.CallTo(Function() servicio.LeerPruebaEntrega(251500)).Returns(Task.FromResult(Prueba(Nothing)))
+        Dim parametros As ParametrosDialogo = Nothing
+        A.CallTo(Sub() dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+            .Invokes(Sub(nombre As String, p As ParametrosDialogo, cb As Action(Of ResultadoDialogo)) parametros = p)
 
         Await viewModel.VerPruebaEntregaSeleccionada()
 
-        A.CallTo(Function() servicio.LeerFirmaPruebaEntregaReparto(A(Of Integer).Ignored)).MustNotHaveHappened()
-        A.CallTo(Sub() dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
-    End Function
-
-    <TestMethod()>
-    Public Async Function VerPruebaEntrega_FallaLaFirma_SeEnsenaLoDemas() As Task
-        viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
-        A.CallTo(Function() servicio.LeerPruebaEntregaReparto(251500)).Returns(Task.FromResult(Prueba(tieneFirma:=True)))
-        A.CallTo(Function() servicio.LeerFirmaPruebaEntregaReparto(251500)).Throws(New Exception("500"))
-
-        Await viewModel.VerPruebaEntregaSeleccionada()
-
-        A.CallTo(Sub() dialogService.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
-        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        Assert.IsNull(parametros.GetValue(Of Byte())(PruebaEntregaDialogViewModel.PARAMETRO_FIRMA))
+        Assert.AreEqual("Sin firma (se entregó con DNI).", parametros.GetValue(Of String)(PruebaEntregaDialogViewModel.PARAMETRO_AVISO))
     End Function
 
     <TestMethod()>
     Public Async Function VerPruebaEntrega_FallaLaApi_SeEnsenaElMotivo() As Task
         viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_ENTREGADO_ENVIO))
-        A.CallTo(Function() servicio.LeerPruebaEntregaReparto(251500)).Throws(New Exception("NestoAPI no ha devuelto la prueba de entrega (403): sin permiso"))
+        A.CallTo(Function() servicio.LeerPruebaEntrega(251500)).Throws(New Exception("Su usuario no tiene permiso para ver la prueba de entrega"))
 
         Await viewModel.VerPruebaEntregaSeleccionada()
 
-        A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("sin permiso"))).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).That.Contains("no tiene permiso"))).MustHaveHappenedOnceExactly()
         A.CallTo(Sub() dialogService.ShowDialog(A(Of String).Ignored, A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
+        Assert.IsFalse(viewModel.EstaOcupado)
     End Function
 
     ' ---- Nesto#573 (NestoAPI#748): «Abrir seguimiento» con el enlace que firma la API ----

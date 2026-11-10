@@ -92,11 +92,10 @@ Public Interface IAgenciaService
     Function ReenviarEnvioDevuelto(numeroEnvio As Integer, peticion As ReenvioEnvioPeticion) As Task(Of DecisionReenvioModel)
     ' NestoAPI#699: el cliente no lo quiere: solo se apunta; el abono, con Copiar factura (POST api/EnviosAgencias/{id}/Abonar).
     Function AbonarEnvioDevuelto(numeroEnvio As Integer) As Task(Of DecisionReenvioModel)
-    ' Nesto#571 (NestoAPI#739): la prueba de entrega de un envío del reparto propio (GET api/RepartoPropio/Envios/{id}/
-    ' PruebaEntrega). Nothing si el envío no la tiene (204). Lanza con el motivo del servidor si falla.
-    Function LeerPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of PruebaEntregaRepartoDto)
-    ' Nesto#571: la firma de esa prueba de entrega (…/PruebaEntrega/Firma, image/png). Nothing si no hay firma.
-    Function LeerFirmaPruebaEntregaReparto(numeroEnvio As Integer) As Task(Of Byte())
+    ' Nesto#571 (NestoAPI#739), desde el 10/11/26 de cualquier agencia: la prueba de entrega del envío (GET api/EnviosAgencias/
+    ' {id}/PruebaEntrega), con el documento (firma, albarán firmado o PDF) dentro. Disponible = False con el motivo si no la hay.
+    ' Lanza con el motivo del servidor si falla (403 sin permiso, 404 si no existe).
+    Function LeerPruebaEntrega(numeroEnvio As Integer) As Task(Of ControlesUsuario.Services.PruebaEntregaEnvio)
     ' Nesto#573 (NestoAPI#748): el enlace de seguimiento del envío que calcula la API (GET api/EnviosAgencias/{id}/
     ' EnlaceSeguimiento). El del reparto propio va firmado con una clave que solo tiene la API. Nothing si no hay enlace
     ' (o el envío no existe); lanza si la API falla.

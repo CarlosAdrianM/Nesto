@@ -572,6 +572,29 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+                                    <!-- Prueba de entrega por agencia (10/11/26): la de cada envío entregado, de cualquier agencia (la API dice
+                                         si la agencia no la da). El mismo diálogo que Agencias › Tramitados. -->
+                                    <DataGridTemplateColumn Header="Prueba" Width="Auto">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Ver prueba" Padding="6,0" Margin="1"
+                                                        ToolTip="Quién recibió el envío, su DNI, cuándo y la firma o el justificante de la agencia"
+                                                        Command="{Binding DataContext.VerPruebaEntregaCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="2">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                             <controles:BultosPedidoView DataContext="{Binding BultosPedido}"/> <!-- Nesto#522: fotos del packing de cada bulto -->

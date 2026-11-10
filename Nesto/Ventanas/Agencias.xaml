@@ -627,11 +627,12 @@
                                 Content="Actualizar estado"
                                 Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático."/>
-                        <!-- Nesto#571: solo para los envíos entregados del reparto propio (el CanExecute lo filtra). -->
+                        <!-- Nesto#571: para los envíos entregados (el CanExecute lo filtra). Desde el 10/11/26 de cualquier agencia: la API
+                             dice si la agencia no la da. -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Ver prueba de entrega"
                                 Command="{Binding VerPruebaEntregaCommand}"
-                                ToolTip="Muestra quién recogió el envío del reparto propio, su DNI, cuándo, cómo se cobró el reembolso y la firma."/>
+                                ToolTip="Muestra quién recibió el envío, su DNI, cuándo y la firma o el justificante de la agencia (en el reparto propio, también cómo se cobró el reembolso)."/>
                         <!-- Novedades 1162: solo para los envíos tramitados del reparto propio (el CanExecute lo filtra). -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Anular (vuelve a Pendientes)"
