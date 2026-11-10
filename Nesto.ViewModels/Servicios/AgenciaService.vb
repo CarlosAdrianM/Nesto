@@ -112,6 +112,7 @@ Public Class AgenciaService
     ''' anterior) no toca nada y devuelve una lista vacía.</item>
     ''' <item>409 CAMBIO_SIN_AGENCIA: <see cref="CambioSinAgenciaException"/> (NestoAPI#725).</item>
     ''' <item>409 ReembolsoCeroContraReembolso: <see cref="ReembolsoCeroContraReembolsoException"/> (NestoAPI#785).</item>
+    ''' <item>409 ENVIO_REPARTO_PROPIO_REPETIDO: <see cref="EnvioRepartoPropioRepetidoException"/> (NestoAPI#847).</item>
     ''' <item>Cualquier otro error: Exception con el estado y el cuerpo.</item>
     ''' </list>
     ''' </summary>
@@ -125,6 +126,12 @@ Public Class AgenciaService
             Dim reembolsoCero = ReembolsoCeroContraReembolsoException.DesdeRespuesta(envio.Numero, codigoEstado, cuerpo)
             If reembolsoCero IsNot Nothing Then
                 Throw reembolsoCero
+            End If
+            ' NestoAPI#847 / Novedades 1162: registrar un pendiente del reparto propio cuando el pedido ya tiene otro envío suyo
+            ' (como el POST: InsertarRegistro ofrece reimprimir ese; los demás enseñan el mensaje)
+            Dim repetido = EnvioRepartoPropioRepetidoException.DesdeRespuesta(codigoEstado, cuerpo)
+            If repetido IsNot Nothing Then
+                Throw repetido
             End If
             Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({codigoEstado}): {cuerpo}")
         End If
@@ -1516,7 +1523,33 @@ Public Class AgenciaService
     ''' registrado. Si la agencia no responde, el mensaje de la API; si no, como siempre.
     ''' </summary>
     Friend Shared Function MensajeErrorAnulacion(codigoHttp As Integer, cuerpo As String) As String
+        ' Novedades 1162: el 409 del reparto propio ya es un texto para el usuario («ya está cargado en la furgoneta…»): tal cual
+        If codigoHttp = 409 Then
+            Dim motivo As String = TextoDeLaApi(cuerpo)
+            If Not String.IsNullOrWhiteSpace(motivo) Then
+                Return motivo
+            End If
+        End If
         Return MensajeErrorOperacionAgencia(codigoHttp, cuerpo, "la anulación")
+    End Function
+
+    ''' <summary>El texto de una respuesta que es una cadena JSON («"…"») o un error con «Message»; el cuerpo tal cual si no es JSON.</summary>
+    Private Shared Function TextoDeLaApi(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim token = Newtonsoft.Json.Linq.JToken.Parse(cuerpo)
+            If token.Type = Newtonsoft.Json.Linq.JTokenType.String Then
+                Return CStr(token)
+            End If
+            If token.Type = Newtonsoft.Json.Linq.JTokenType.Object Then
+                Return CStr(token("Message"))
+            End If
+            Return Nothing
+        Catch ex As Newtonsoft.Json.JsonException
+            Return cuerpo
+        End Try
     End Function
 
     ''' <summary>

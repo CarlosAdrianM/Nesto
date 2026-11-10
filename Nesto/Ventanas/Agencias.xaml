@@ -632,6 +632,11 @@
                                 Content="Ver prueba de entrega"
                                 Command="{Binding VerPruebaEntregaCommand}"
                                 ToolTip="Muestra quién recogió el envío del reparto propio, su DNI, cuándo, cómo se cobró el reembolso y la firma."/>
+                        <!-- Novedades 1162: solo para los envíos tramitados del reparto propio (el CanExecute lo filtra). -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Anular (vuelve a Pendientes)"
+                                Command="{Binding AnularEnvioRepartoPropioCommand}"
+                                ToolTip="Devuelve el envío del reparto propio a etiqueta pendiente para corregirlo en Pendientes y volver a imprimir la etiqueta. No se puede si ya está cargado en la furgoneta."/>
                         <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Parar en vuelo"

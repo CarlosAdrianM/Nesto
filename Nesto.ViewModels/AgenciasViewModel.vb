@@ -138,6 +138,7 @@ Public Class AgenciasViewModel
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
         VerFotosBultosAriadnaCommand = New RelayCommand(AddressOf OnVerFotosBultosAriadna, AddressOf CanVerFotosBultosAriadna)
         VerPruebaEntregaCommand = New RelayCommand(AddressOf OnVerPruebaEntrega, AddressOf CanVerPruebaEntrega) ' Nesto#571
+        AnularEnvioRepartoPropioCommand = New RelayCommand(AddressOf OnAnularEnvioRepartoPropio, AddressOf CanAnularEnvioRepartoPropio) ' Novedades 1162
         ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
         CopiarNumeroEnvioCommand = New RelayCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
         CopiarCampoCommand = New RelayCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
@@ -1262,6 +1263,7 @@ Public Class AgenciasViewModel
                 End If
                 DarPorCerradoCommand?.NotifyCanExecuteChanged()
                 VerPruebaEntregaCommand?.NotifyCanExecuteChanged() ' Nesto#571
+                AnularEnvioRepartoPropioCommand?.NotifyCanExecuteChanged() ' Novedades 1162
 
                 ' Nesto#418/#422: el menú contextual de copiar depende del envío seleccionado.
                 If Not IsNothing(CopiarNumeroPedidoCommand) Then
@@ -1641,6 +1643,25 @@ Public Class AgenciasViewModel
     End Function
 
 
+    Private Sub RecargarPendientes()
+        Dim listaNueva As IEnumerable(Of EnvioAgenciaWrapper) = _servicio.CargarListaPendientes()
+        If Not IsNothing(listaPendientes) Then
+            listaPendientes.Clear()
+        Else
+            listaPendientes = New ObservableCollection(Of EnvioAgenciaWrapper)
+        End If
+
+        For Each envio In If(listaNueva, Enumerable.Empty(Of EnvioAgenciaWrapper)())
+            AddHandler envio.PropertyChanged, New PropertyChangedEventHandler(AddressOf EnvioPendienteSeleccionadoPropertyChangedEventHandler)
+            listaPendientes.Add(envio)
+        Next
+        If listaPendientes.Count > 0 And IsNothing(EnvioPendienteSeleccionado) Then
+            EnvioPendienteSeleccionado = listaPendientes.FirstOrDefault
+        Else
+            ActualizarEstadoComandos()
+        End If
+    End Sub
+
     Private _pestannaNombre As String
     Public Property PestannaNombre As String
         Get
@@ -1655,22 +1676,7 @@ Public Class AgenciasViewModel
                 numeroPedido = numeroPedido 'para que ejecute el código
             End If
             If PestannaNombre = Pestannas.PENDIENTES Then
-                Dim listaNueva As IEnumerable(Of EnvioAgenciaWrapper) = _servicio.CargarListaPendientes()
-                If Not IsNothing(listaPendientes) Then
-                    listaPendientes.Clear()
-                Else
-                    listaPendientes = New ObservableCollection(Of EnvioAgenciaWrapper)
-                End If
-
-                For Each envio In listaNueva
-                    AddHandler envio.PropertyChanged, New PropertyChangedEventHandler(AddressOf EnvioPendienteSeleccionadoPropertyChangedEventHandler)
-                    listaPendientes.Add(envio)
-                Next
-                If listaPendientes.Count > 0 And IsNothing(EnvioPendienteSeleccionado) Then
-                    EnvioPendienteSeleccionado = listaPendientes.FirstOrDefault
-                Else
-                    ActualizarEstadoComandos()
-                End If
+                RecargarPendientes()
             End If
             If PestannaNombre = Pestannas.EN_CURSO AndAlso Not IsNothing(agenciaSeleccionada) Then
                 ActualizarListas()
@@ -3661,7 +3667,7 @@ Public Class AgenciasViewModel
                                               estado As Integer, rehusar As Boolean, fechaEntrega As Date?) As Task
         ' Carlos 14/12/16: no se pueden modificar los envíos que estén cobrados
         If Not IsNothing(envio.FechaPagoReembolso) Then
-            _dialogService.ShowError("No se puede modificar este envío, porque ya está cobrado")
+            _dialogService.ShowError(MensajeNoSePuedeModificar(envio))
             Return
         End If
         If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
@@ -3704,6 +3710,18 @@ Public Class AgenciasViewModel
             Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ModificarEnvioPorApi")
             _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
         End Try
+    End Function
+
+    Friend Const MENSAJE_MODIFICAR_COBRADO As String = "No se puede modificar este envío, porque ya está cobrado"
+    Friend Const MENSAJE_MODIFICAR_REPARTO_PROPIO_TRAMITADO As String =
+        "Para cambiar un envío del reparto propio ya tramitado, anúlelo (vuelve a Pendientes), corríjalo y vuelva a imprimir la etiqueta."
+
+    ''' <summary>
+    ''' Novedades 1162: en el reparto propio la FechaPagoReembolso nace puesta con el reembolso (NestoAPI#778), así que «ya está
+    ''' cobrado» no era verdad: se dice qué hacer.
+    ''' </summary>
+    Friend Shared Function MensajeNoSePuedeModificar(envio As EnviosAgencia) As String
+        Return If(EsRepartoPropio(envio), MENSAJE_MODIFICAR_REPARTO_PROPIO_TRAMITADO, MENSAJE_MODIFICAR_COBRADO)
     End Function
 
     ''' <summary>
@@ -4655,6 +4673,67 @@ Public Class AgenciasViewModel
 
     Friend Shared Function EsRepartoPropio(envio As EnviosAgencia) As Boolean
         Return envio IsNot Nothing AndAlso envio.Agencia = Constantes.Agencias.AGENCIA_REPARTO_PROPIO
+    End Function
+
+    ' ===== Novedades 1162 (Alfredo, 10/11/26, pedido 930294): anular un envío del reparto propio ya tramitado =====
+    ' En el reparto propio imprimir la etiqueta ya la tramita: si sale mal (p. ej. con un reembolso que no tocaba) no había forma
+    ' de corregirla. La API (POST …/Anular) lo devuelve a etiqueta pendiente si aún no ha empezado a repartirse; si no, dice por qué.
+
+    Friend Const TITULO_ANULAR_REPARTO_PROPIO As String = "Anular envío"
+
+    ''' <summary>Solo un envío del reparto propio Tramitado y con su etiqueta (RP{envío}). Lo demás lo decide la API.</summary>
+    Friend Shared Function PuedeAnularEnvioRepartoPropio(envio As EnviosAgencia) As Boolean
+        Return EsRepartoPropio(envio) AndAlso envio.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO AndAlso
+            Not String.IsNullOrWhiteSpace(envio.CodigoBarras)
+    End Function
+
+    Public Property AnularEnvioRepartoPropioCommand As RelayCommand
+    Private Function CanAnularEnvioRepartoPropio() As Boolean
+        Return Not EstaOcupado AndAlso PuedeAnularEnvioRepartoPropio(envioActual)
+    End Function
+    Private Async Sub OnAnularEnvioRepartoPropio()
+        Await AnularEnvioRepartoPropioSeleccionado()
+    End Sub
+
+    ''' <summary>Novedades 1162: Friend para probar el flujo (confirmación, llamada, quitar de Tramitados) sin UI.</summary>
+    Friend Async Function AnularEnvioRepartoPropioSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If Not PuedeAnularEnvioRepartoPropio(envio) Then
+            Return
+        End If
+        Dim mensaje As String = $"¿Anular el envío {envio.Numero}" & If(envio.Pedido.HasValue, $" del pedido {envio.Pedido}", String.Empty) & "?" &
+            vbCrLf & vbCrLf & "El envío volverá a etiqueta pendiente; corríjalo en Pendientes y vuelva a imprimirlo."
+        If Not _dialogService.ShowConfirmationAnswer(TITULO_ANULAR_REPARTO_PROPIO, mensaje) Then
+            Return
+        End If
+
+        Try
+            EstaOcupado = True
+            Await _servicio.AnularEnvioRemoto(envio.Numero)
+        Catch ex As Exception
+            ' El motivo de la API tal cual (409: ya cargado en la furgoneta, entregado…)
+            _dialogService.ShowError(ex.Message)
+            Return
+        Finally
+            EstaOcupado = False
+        End Try
+
+        Dim unused = listaEnviosTramitados?.Remove(envio)
+        Dim unused2 = listaEnviosPedido?.Remove(envio)
+        If envioActual Is envio Then
+            envioActual = listaEnviosTramitados?.FirstOrDefault()
+        End If
+        OnPropertyChanged(NameOf(sePuedeModificarReembolso))
+        ' Si ya se han cargado los pendientes, que aparezca allí sin cambiar de pestaña
+        If listaPendientes IsNot Nothing Then
+            Try
+                RecargarPendientes()
+            Catch ex As Exception
+                ' Ya está anulado: la lista se recarga al volver a la pestaña
+            End Try
+        End If
+        _dialogService.ShowNotification(TITULO_ANULAR_REPARTO_PROPIO,
+            $"El envío {envio.Numero} ha vuelto a Pendientes: corríjalo allí y vuelva a imprimir la etiqueta.")
     End Function
 
     Friend Const TITULO_PRUEBA_ENTREGA As String = "Prueba de entrega"
