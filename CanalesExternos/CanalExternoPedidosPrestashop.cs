@@ -597,7 +597,8 @@ namespace Nesto.Modulos.CanalesExternos
                 // y con su −50 descuadraría la detección del porcentaje
                 if (Math.Round(totalDescuentosConIva, 2, MidpointRounding.AwayFromZero) != 0)
                 {
-                    AplicarDescuentoCupon(pedidoSalida.Lineas, totalDescuentosSinIva, totalProductosSinIva, totalDescuentosConIva, formaVenta, pedidoSalida.iva, configuracion.usuario);
+                    string avisoRegalo = AplicarDescuentoCupon(pedidoSalida.Lineas, totalDescuentosSinIva, totalProductosSinIva, totalDescuentosConIva, formaVenta, pedidoSalida.iva, configuracion.usuario);
+                    AnadirAviso(pedidoSalida, avisoRegalo);
                 }
                 if (cheque.Linea != null)
                 {
@@ -823,6 +824,9 @@ namespace Nesto.Modulos.CanalesExternos
 
         private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30, 100 };
 
+        /// <summary>Los porcentajes que son vouchers de la tienda (NestoAPI#203) o el pedido entero gratis: nunca se leen como N+M.</summary>
+        private static readonly decimal[] PORCENTAJES_VOUCHER_TIENDA = { 5, 15, 100 };
+
         internal static decimal DetectarPorcentajeConocido(decimal totalDescuentosSinIva, decimal totalProductosSinIva)
         {
             if (totalProductosSinIva == 0)
@@ -842,7 +846,11 @@ namespace Nesto.Modulos.CanalesExternos
             return 0;
         }
 
-        internal static void AplicarDescuentoCupon(
+        /// <summary>
+        /// Reparte el descuento de la tienda que queda tras el cheque regalo y el cupón de Nesto. Devuelve un aviso
+        /// para el pedido (o null) cuando el descuento podría ser el regalo de un N+M pero no se sabe de qué línea.
+        /// </summary>
+        internal static string AplicarDescuentoCupon(
             ICollection<LineaPedidoVentaDTO> lineas,
             decimal totalDescuentosSinIva,
             decimal totalProductosSinIva,
@@ -866,6 +874,15 @@ namespace Nesto.Modulos.CanalesExternos
                 porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalProductosSinIva);
             }
 
+            // Feria online 11/26: un 8+2 (20 %) o un 3+1 (25 %) de una sola referencia también «parece» un porcentaje
+            // conocido. Si no es uno de los vouchers de la tienda (5 %, 15 %, todo gratis) y el descuento cuadra con
+            // unidades enteras de regalo, se toma como N+M; si no cuadra, como porcentaje (lo de siempre).
+            if (porcentajeDetectado > 0 && !PORCENTAJES_VOUCHER_TIENDA.Contains(porcentajeDetectado)
+                && AplicarRegaloUnidades(lineas, totalDescuentosSinIva, totalDescuentosConIva) == ResultadoRegaloUnidades.Aplicado)
+            {
+                return null;
+            }
+
             if (porcentajeDetectado > 0)
             {
                 foreach (var lineaProducto in lineas.Where(l => l.tipoLinea == 1))
@@ -880,8 +897,163 @@ namespace Nesto.Modulos.CanalesExternos
             }
             else
             {
+                // Feria online 11/26: el N+M de la tienda descuenta el valor de las unidades de regalo. Si el
+                // descuento es exactamente k unidades de una línea (k < cantidad), entran como regalo.
+                ResultadoRegaloUnidades regalo = AplicarRegaloUnidades(lineas, totalDescuentosSinIva, totalDescuentosConIva);
+                if (regalo == ResultadoRegaloUnidades.Aplicado)
+                {
+                    return null;
+                }
                 // Descuento fijo: mantener como línea TICKET
                 lineas.Add(CrearLineaCupon(totalDescuentosConIva, "CUPÓN DE DESCUENTO", formaVenta, iva, usuario));
+                if (regalo == ResultadoRegaloUnidades.Ambiguo)
+                {
+                    return $"REVISAR REGALO: el descuento de la tienda ({Math.Round(totalDescuentosConIva, 2, MidpointRounding.AwayFromZero):0.00} € IVA incl.) " +
+                        "podría ser el regalo de una oferta N+M, pero no se sabe de qué línea. Se ha dejado como cupón (TiCKET): revise el regalo.";
+                }
+            }
+            return null;
+        }
+
+        internal enum ResultadoRegaloUnidades
+        {
+            NoCuadra,
+            Aplicado,
+            Ambiguo
+        }
+
+        /// <summary>Tolerancia por unidad de regalo al comparar el descuento de PrestaShop (PHP) con las unidades.</summary>
+        internal const decimal TOLERANCIA_REGALO_POR_UNIDAD = 0.01M;
+        private const int MAXIMO_COMBINACIONES_REGALO = 100000;
+
+        /// <summary>
+        /// Feria online 11/26 (decisión de Carlos, 10/11/26): el módulo de N+M de la tienda (6+1, 10+1, 8+2, aceites 3+1…)
+        /// descuenta del carrito el valor de las unidades de regalo. Si el descuento coincide con k unidades (1 ≤ k &lt; cantidad)
+        /// de una línea de producto, esas k unidades se pasan a regalo con la MISMA forma que la plantilla de Nesto
+        /// (PlantillaVentaState: línea de pago y línea de oferta del mismo producto a precio 0, sin descuentos, AplicarDescuento
+        /// = false, las dos con el mismo número de <c>oferta</c>), que es la que acepta ValidadorOfertasPermitidas de la API.
+        ///
+        /// <para>Varios N+M en el mismo pedido: se busca por precio unitario cuántas unidades de regalo de cada precio suman el
+        /// descuento; gana la solución con menos unidades si es la única con ese mínimo. Si no hay ninguna → NoCuadra; si hay
+        /// varias igual de buenas → Ambiguo (en los dos casos no se toca nada y queda el TiCKET de siempre). Las líneas de una
+        /// sola unidad no entran: un regalo de línea entera es Nesto#350.</para>
+        ///
+        /// <para>Se compara contra el descuento sin IVA (unidades al precio de la línea) y contra el descuento con IVA
+        /// (unidades con el IVA de la línea), con <see cref="TOLERANCIA_REGALO_POR_UNIDAD"/> por unidad (redondeos de PHP).</para>
+        /// </summary>
+        internal static ResultadoRegaloUnidades AplicarRegaloUnidades(ICollection<LineaPedidoVentaDTO> lineas, decimal totalDescuentosSinIva, decimal totalDescuentosConIva)
+        {
+            if (lineas == null || totalDescuentosSinIva <= 0)
+            {
+                return ResultadoRegaloUnidades.NoCuadra;
+            }
+
+            List<LineaPedidoVentaDTO> candidatas = lineas
+                .Where(l => l.tipoLinea == 1 && l.Cantidad >= 2 && l.PrecioUnitario > 0 && l.DescuentoLinea == 0
+                    && l.oferta == null && !string.Equals(l.Producto?.Trim(), "TiCKET", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (!candidatas.Any())
+            {
+                return ResultadoRegaloUnidades.NoCuadra;
+            }
+
+            // Un grupo por precio unitario (con su IVA): da igual de qué línea del grupo salga el regalo para el importe.
+            var grupos = candidatas
+                .GroupBy(l => (Precio: Math.Round(l.PrecioUnitario, 4), Iva: l.PorcentajeIva))
+                .Select(g => new { g.Key.Precio, g.Key.Iva, Maximo = g.Max(l => l.Cantidad) - 1, Lineas = g.ToList() })
+                .ToList();
+
+            long combinaciones = 1;
+            foreach (var grupo in grupos)
+            {
+                combinaciones *= grupo.Maximo + 1;
+                if (combinaciones > MAXIMO_COMBINACIONES_REGALO)
+                {
+                    return ResultadoRegaloUnidades.NoCuadra;
+                }
+            }
+
+            int[] actual = new int[grupos.Count];
+            List<int[]> mejores = new();
+            int mejorTotal = int.MaxValue;
+            for (long n = 0; n < combinaciones; n++)
+            {
+                long resto = n;
+                int total = 0;
+                decimal importeSinIva = 0;
+                decimal importeConIva = 0;
+                for (int i = 0; i < grupos.Count; i++)
+                {
+                    int tamano = grupos[i].Maximo + 1;
+                    actual[i] = (int)(resto % tamano);
+                    resto /= tamano;
+                    total += actual[i];
+                    importeSinIva += actual[i] * grupos[i].Precio;
+                    importeConIva += actual[i] * Math.Round(grupos[i].Precio * (1 + grupos[i].Iva), 2, MidpointRounding.AwayFromZero);
+                }
+                if (total == 0 || total > mejorTotal)
+                {
+                    continue;
+                }
+                decimal tolerancia = TOLERANCIA_REGALO_POR_UNIDAD * total;
+                bool cuadra = Math.Abs(importeSinIva - totalDescuentosSinIva) <= tolerancia
+                    || Math.Abs(importeConIva - totalDescuentosConIva) <= tolerancia;
+                if (!cuadra)
+                {
+                    continue;
+                }
+                if (total < mejorTotal)
+                {
+                    mejorTotal = total;
+                    mejores.Clear();
+                }
+                mejores.Add((int[])actual.Clone());
+            }
+
+            if (mejores.Count == 0)
+            {
+                return ResultadoRegaloUnidades.NoCuadra;
+            }
+            if (mejores.Count > 1)
+            {
+                return ResultadoRegaloUnidades.Ambiguo;
+            }
+
+            int siguienteOferta = (lineas.Where(l => l.oferta.HasValue).Select(l => l.oferta.Value).DefaultIfEmpty(0).Max()) + 1;
+            for (int i = 0; i < grupos.Count; i++)
+            {
+                int unidades = mejores[0][i];
+                if (unidades == 0)
+                {
+                    continue;
+                }
+                // Determinista: la primera línea del grupo (en el orden del pedido) que admite esas unidades dejando alguna de pago.
+                LineaPedidoVentaDTO linea = grupos[i].Lineas.First(l => l.Cantidad > unidades);
+                PasarUnidadesARegalo(lineas, linea, unidades, siguienteOferta++);
+            }
+            return ResultadoRegaloUnidades.Aplicado;
+        }
+
+        /// <summary>La forma de la plantilla (PlantillaVentaState): la línea de pago con N y la de oferta con k a precio 0.</summary>
+        private static void PasarUnidadesARegalo(ICollection<LineaPedidoVentaDTO> lineas, LineaPedidoVentaDTO linea, int unidades, int oferta)
+        {
+            LineaPedidoVentaDTO lineaRegalo = linea.ShallowCopy();
+            linea.Cantidad -= unidades;
+            linea.oferta = oferta;
+            lineaRegalo.id = 0;
+            lineaRegalo.Cantidad = unidades;
+            lineaRegalo.PrecioUnitario = 0;
+            lineaRegalo.DescuentoLinea = 0;
+            lineaRegalo.DescuentoProducto = 0;
+            lineaRegalo.AplicarDescuento = false;
+            lineaRegalo.oferta = oferta;
+            if (lineas is IList<LineaPedidoVentaDTO> lista)
+            {
+                lista.Insert(lista.IndexOf(linea) + 1, lineaRegalo);
+            }
+            else
+            {
+                lineas.Add(lineaRegalo);
             }
         }
 

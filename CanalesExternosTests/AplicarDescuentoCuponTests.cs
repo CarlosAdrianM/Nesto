@@ -451,6 +451,221 @@ namespace CanalesExternosTests
         }
 
         #endregion
+
+        #region Feria online 11/26: N+M de la tienda como regalo (forma de la plantilla)
+
+        private static List<LineaPedidoVentaDTO> Lineas(params (string producto, decimal precio, int cantidad)[] productos)
+        {
+            var lineas = new List<LineaPedidoVentaDTO>();
+            foreach (var (producto, precio, cantidad) in productos)
+            {
+                lineas.Add(new LineaPedidoVentaDTO
+                {
+                    tipoLinea = 1,
+                    Producto = producto,
+                    texto = "PRODUCTO " + producto,
+                    PrecioUnitario = precio,
+                    Cantidad = cantidad,
+                    PorcentajeIva = .21M,
+                    almacen = "ALG",
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    Usuario = "test"
+                });
+            }
+            return lineas;
+        }
+
+        private static string AplicarCon(List<LineaPedidoVentaDTO> lineas, decimal descuentoSinIva, decimal? descuentoConIva = null, string iva = "G21")
+        {
+            decimal totalProductos = lineas.Where(l => l.tipoLinea == 1).Sum(l => l.PrecioUnitario * l.Cantidad);
+            return CanalExternoPedidosPrestashopNuevaVision.AplicarDescuentoCupon(
+                lineas, descuentoSinIva, totalProductos, descuentoConIva ?? Math.Round(descuentoSinIva * 1.21M, 2, MidpointRounding.AwayFromZero),
+                formaVenta: "WEB", iva: iva, usuario: "test");
+        }
+
+        private static void AssertRegalo(List<LineaPedidoVentaDTO> lineas, string producto, int pagadas, int regalo, decimal precio)
+        {
+            var delProducto = lineas.Where(l => l.Producto == producto).ToList();
+            Assert.AreEqual(2, delProducto.Count, $"{producto}: línea de pago y línea de regalo");
+            var pago = delProducto.Single(l => l.PrecioUnitario != 0);
+            var gratis = delProducto.Single(l => l.PrecioUnitario == 0);
+            Assert.AreEqual(pagadas, pago.Cantidad);
+            Assert.AreEqual(precio, pago.PrecioUnitario);
+            Assert.AreEqual(0M, pago.DescuentoLinea);
+            Assert.AreEqual(regalo, gratis.Cantidad);
+            Assert.AreEqual(0M, gratis.DescuentoLinea);
+            Assert.AreEqual(0M, gratis.DescuentoProducto);
+            Assert.IsFalse(gratis.AplicarDescuento);
+            Assert.AreEqual("WEB", gratis.formaVenta);
+            Assert.AreEqual(pago.texto, gratis.texto);
+            Assert.IsNotNull(pago.oferta);
+            Assert.AreEqual(pago.oferta, gratis.oferta, "Las dos líneas del N+M comparten número de oferta, como en la plantilla");
+            Assert.AreEqual(lineas.IndexOf(pago) + 1, lineas.IndexOf(gratis), "La de regalo va justo detrás de la de pago");
+        }
+
+        [TestMethod]
+        public void RegaloNM_SeisMasUnoEnLineaDeSiete_EntraComoRegalo()
+        {
+            var lineas = Lineas(("P1", 10M, 7));
+
+            string aviso = AplicarCon(lineas, 10M);
+
+            Assert.IsNull(aviso);
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+            AssertRegalo(lineas, "P1", 6, 1, 10M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_OchoMasDosEnLineaDeDiez_EntraComoRegaloYNoComoVeintePorCiento()
+        {
+            var lineas = Lineas(("P1", 10M, 10));
+
+            AplicarCon(lineas, 20M); // 20 % del pedido: parece porcentaje conocido, pero es un 8+2
+
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+            AssertRegalo(lineas, "P1", 8, 2, 10M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_Multiplo_CatorceUnidadesDosDeRegalo()
+        {
+            var lineas = Lineas(("P1", 10M, 14));
+
+            AplicarCon(lineas, 20M);
+
+            AssertRegalo(lineas, "P1", 12, 2, 10M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_AceitesMezclados_RegaloDeLaUnicaLineaQueCuadra()
+        {
+            var lineas = Lineas(("ACEITE_A", 12M, 2), ("ACEITE_B", 9M, 2));
+
+            AplicarCon(lineas, 9M);
+
+            Assert.AreEqual(2, lineas.Count(l => l.Producto == "ACEITE_A" || l.Producto == "ACEITE_B") - 1);
+            Assert.AreEqual(1, lineas.Count(l => l.Producto == "ACEITE_A"), "El A no se toca");
+            Assert.IsNull(lineas.Single(l => l.Producto == "ACEITE_A").oferta);
+            AssertRegalo(lineas, "ACEITE_B", 1, 1, 9M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_VariasLineasDelMismoPrecio_EligeLaPrimera()
+        {
+            var lineas = Lineas(("ACEITE_A", 10M, 2), ("ACEITE_B", 10M, 3));
+
+            AplicarCon(lineas, 10M);
+
+            AssertRegalo(lineas, "ACEITE_A", 1, 1, 10M);
+            Assert.AreEqual(1, lineas.Count(l => l.Producto == "ACEITE_B"));
+            Assert.AreEqual(3, lineas.Single(l => l.Producto == "ACEITE_B").Cantidad);
+        }
+
+        [TestMethod]
+        public void RegaloNM_DosOfertasDistintas_CadaUnaConSuNumeroDeOferta()
+        {
+            var lineas = Lineas(("P1", 10M, 7), ("P2", 15M, 7));
+
+            AplicarCon(lineas, 25M);
+
+            AssertRegalo(lineas, "P1", 6, 1, 10M);
+            AssertRegalo(lineas, "P2", 6, 1, 15M);
+            Assert.AreNotEqual(lineas.First(l => l.Producto == "P1").oferta, lineas.First(l => l.Producto == "P2").oferta);
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+        }
+
+        [TestMethod]
+        public void RegaloNM_Ambiguo_DejaTicketYAvisa()
+        {
+            // 30 € = 1 de 10 + 1 de 20, o 2 de 15: dos soluciones igual de buenas
+            var lineas = Lineas(("P1", 10M, 4), ("P2", 20M, 3), ("P3", 15M, 3));
+
+            string aviso = AplicarCon(lineas, 30M, 36.30M);
+
+            Assert.IsTrue(lineas.Any(l => l.Producto == "TiCKET"), "Respaldo: TiCKET como hoy");
+            Assert.IsFalse(lineas.Any(l => l.oferta != null));
+            Assert.AreEqual(3, lineas.Count(l => l.Producto != "TiCKET"));
+            Assert.IsNotNull(aviso);
+            StringAssert.Contains(aviso, "revise el regalo");
+        }
+
+        [TestMethod]
+        public void RegaloNM_NoCuadra_DejaTicketSinAviso()
+        {
+            var lineas = Lineas(("P1", 10M, 7));
+
+            string aviso = AplicarCon(lineas, 7.33M, 8.87M);
+
+            Assert.IsTrue(lineas.Any(l => l.Producto == "TiCKET"));
+            Assert.AreEqual(7, lineas.Single(l => l.Producto == "P1").Cantidad);
+            Assert.IsNull(aviso);
+        }
+
+        [TestMethod]
+        public void RegaloNM_ConCentimosDeRedondeoDePhp_EntraComoRegalo()
+        {
+            // 9,95 € IVA incl. → 8,2231 sin IVA; la tienda descuenta 8,22
+            var lineas = Lineas(("P1", 8.2231M, 7));
+
+            AplicarCon(lineas, 8.22M, 9.95M);
+
+            AssertRegalo(lineas, "P1", 6, 1, 8.2231M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_PreciosConIva_CuadraConElDescuentoConIva()
+        {
+            // Sin IVA en el pedido (pedidoSalida.iva == null): las líneas van con IVA y no llevan PorcentajeIva
+            var lineas = Lineas(("P1", 12.10M, 7));
+            lineas[0].PorcentajeIva = 0;
+
+            AplicarCon(lineas, 10M, 12.10M, iva: null);
+
+            AssertRegalo(lineas, "P1", 6, 1, 12.10M);
+        }
+
+        [TestMethod]
+        public void RegaloNM_VoucherQuincePorCiento_SigueSiendoPorcentaje()
+        {
+            // 15 % de 20 × 10 € = 30 € = 3 unidades, pero el 15 % es un voucher de la tienda
+            var lineas = Lineas(("P1", 10M, 20));
+
+            AplicarCon(lineas, 30M);
+
+            Assert.AreEqual(1, lineas.Count);
+            Assert.AreEqual(.15M, lineas[0].DescuentoLinea);
+            Assert.IsNull(lineas[0].oferta);
+        }
+
+        [TestMethod]
+        public void RegaloNM_LineaEnteraSigueSiendoNesto350()
+        {
+            var lineas = Lineas(("P1", 20M, 3), ("P2", 10M, 1));
+
+            AplicarCon(lineas, 10M);
+
+            Assert.AreEqual(2, lineas.Count, "Nesto#350: la línea entera de 10 € va al 100 %, sin partir nada");
+            Assert.AreEqual(1M, lineas[1].DescuentoLinea);
+            Assert.AreEqual(0M, lineas[0].DescuentoLinea);
+        }
+
+        [TestMethod]
+        public void RegaloNM_PortesNoEntranEnElRegalo()
+        {
+            var lineas = Lineas(("P1", 10M, 7));
+            AñadirLineaPortes(lineas, 10M);
+
+            AplicarCon(lineas, 10M);
+
+            AssertRegalo(lineas, "P1", 6, 1, 10M);
+            Assert.AreEqual(1, lineas.Count(l => l.tipoLinea == 2));
+        }
+
+        #endregion
     }
 }
 
