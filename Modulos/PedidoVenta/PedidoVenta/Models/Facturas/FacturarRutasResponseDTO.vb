@@ -13,7 +13,21 @@ Public Class FacturarRutasResponseDTO
         Facturas = New List(Of FacturaCreadaDTO)()
         NotasEntrega = New List(Of NotaEntregaCreadaDTO)()
         ReembolsosDesfasados = New List(Of ReembolsoDesfasadoDTO)()
+        ImpresosEnPacking = New List(Of DocumentoEnPapelDTO)()
+        PendientesEnPacking = New List(Of DocumentoEnPapelDTO)()
     End Sub
+
+    ''' <summary>NestoAPI#828: en Facturar rutas de agencias, lo de hoy que ya salió en papel en el packing (no entra en la tanda).</summary>
+    Public Property ImpresosEnPacking As List(Of DocumentoEnPapelDTO)
+
+    ''' <summary>NestoAPI#828: lo de hoy que no salió en el packing (la impresora falló), con su pedido y su envío.</summary>
+    Public Property PendientesEnPacking As List(Of DocumentoEnPapelDTO)
+
+    ''' <summary>
+    ''' NestoAPI#828: el resumen de la API: «N facturas en papel ya impresas en el packing.», lo pendiente y lo que sale en esta
+    ''' facturación con su envío para localizar la caja. Nothing si no hay nada que decir (o una API anterior).
+    ''' </summary>
+    Public Property ResumenPapelPacking As String
 
     ''' <summary>
     ''' Número de pedidos procesados correctamente

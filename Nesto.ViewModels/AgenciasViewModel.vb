@@ -103,6 +103,8 @@ Public Class AgenciasViewModel
         AgenciasEnCuarentena = New List(Of String)
 
         InicializarAsync()
+        ' NestoAPI#828: «Facturar al imprimir etiqueta» sale marcada según el parámetro, como F8 en Ariadna
+        Dim unusedFacturar = LeerFacturarAlImprimirEtiquetaAsync()
 
         ' Prism
         cmdCargarDatos = New RelayCommand(AddressOf OnCargarDatos)
@@ -2631,7 +2633,9 @@ Public Class AgenciasViewModel
 
             ' NestoAPI#592: el mismo camino que la facturación de rutas (albarán, factura, nota de entrega,
             ' traspaso, avisos e impresión). Antes se llamaba aquí a CrearAlbaran + CrearFactura por separado.
-            Await _facturadorEtiqueta.FacturarAsync(envioActual.Empresa, envioActual.Pedido, _imprimirDocumentoAlFacturar)
+            ' NestoAPI#828: con el núcleo del papel del packing (el de F8 en Ariadna): la factura física sale aquí, para meterla en
+            ' la caja, y queda apuntada; la ruta propia no se factura aquí (sus copias salen en Facturar rutas propia).
+            Await _facturadorEtiqueta.FacturarEtiquetaAsync(envioActual.Empresa, envioActual.Pedido, envioActual.Numero, _imprimirDocumentoAlFacturar)
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception
@@ -4832,6 +4836,26 @@ Public Class AgenciasViewModel
             Console.WriteLine($"Error al cargar agencias en cuarentena: {ex.Message}")
         End Try
     End Sub
+
+    ''' <summary>
+    ''' NestoAPI#828: la casilla «Facturar al imprimir etiqueta» se marca sola según ParametrosUsuario FacturarAlImprimirEtiqueta
+    ''' (del usuario o de «(defecto)»), con la misma regla que F8 en Ariadna. Se puede desmarcar. Si no se puede leer, se queda como está.
+    ''' </summary>
+    Private Async Function LeerFacturarAlImprimirEtiquetaAsync() As Task
+        Try
+            Dim valor As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FacturarAlImprimirEtiqueta)
+            FacturarAlImprimirEtiqueta = EsFacturarAlImprimirEtiqueta(valor)
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"NestoAPI#828: no se ha podido leer {Parametros.Claves.FacturarAlImprimirEtiqueta}: {ex.Message}")
+        End Try
+    End Function
+
+    ''' <summary>NestoAPI#828: «1», «true», «sí» o «si» (como ServicioEtiquetaPacking.FacturarAlImprimir de la API). Sin valor, no.</summary>
+    Friend Shared Function EsFacturarAlImprimirEtiqueta(valor As String) As Boolean
+        Dim limpio As String = If(valor, String.Empty).Trim()
+        Return limpio = "1" OrElse String.Equals(limpio, "true", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(limpio, "sí", StringComparison.OrdinalIgnoreCase) OrElse String.Equals(limpio, "si", StringComparison.OrdinalIgnoreCase)
+    End Function
 
     Private Async Function CargarAgenciasEnCuarentenaAsync() As Task
         Dim valorParametro As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AgenciasEnCuarentena)

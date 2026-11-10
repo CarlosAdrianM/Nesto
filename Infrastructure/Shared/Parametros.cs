@@ -28,6 +28,9 @@
             // sin fila o si no se puede leer = no se ven. Lo guarda la pantalla al marcar o desmarcar «Ver anuladas».
             // Fila «(defecto)»: Scripts/Sugerencia1141_EventosVerAnuladas.sql (NestoAPI).
             public const string EventosVerAnuladas = "EventosVerAnuladas";
+            // NestoAPI#828: "1", "true" o "sí" = la casilla «Facturar al imprimir etiqueta» de Agencias sale marcada (la misma regla
+            // que F8 en Ariadna; se puede desmarcar). Fila «(defecto)» o del usuario.
+            public const string FacturarAlImprimirEtiqueta = "FacturarAlImprimirEtiqueta";
             public const string FondoCaja = "FondoCaja";
             public const string FormaVentaDefecto = "FormaVentaDefecto";
             public const string ImpresoraAgencia = "ImpresoraAgencia";

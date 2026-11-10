@@ -27,4 +27,7 @@ Public MustInherit Class DocumentoCreadoDTO
     ''' Nombre del cliente (para mostrar en UI)
     ''' </summary>
     Public Property NombreCliente As String
+
+    ''' <summary>NestoAPI#828: en Facturar rutas, el envío del pedido de los documentos en papel (para localizar la caja).</summary>
+    Public Property Envio As Integer?
 End Class

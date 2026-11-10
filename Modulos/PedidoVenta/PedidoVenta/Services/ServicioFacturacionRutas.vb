@@ -44,8 +44,22 @@ Namespace Services
             Return PostarFacturacion("FacturacionRutas/FacturarPedido", New With {.Empresa = empresa, .Pedido = pedido, .SaltarPacking = saltarPacking}, $"Error al facturar el pedido {pedido}")
         End Function
 
+        Public Function FacturarEtiqueta(empresa As String, pedido As Integer, envio As Integer?, saltarPacking As Boolean) As Task(Of FacturarEtiquetaResponseDTO) Implements IServicioFacturacionRutas.FacturarEtiqueta
+            Return PostarFacturacion(Of FacturarEtiquetaResponseDTO)("FacturacionRutas/FacturarEtiqueta",
+                New With {.Empresa = empresa, .Pedido = pedido, .Envio = envio, .SaltarPacking = saltarPacking}, $"Error al facturar el pedido {pedido}")
+        End Function
+
+        Public Async Function ConfirmarImpresionPapel(impresion As ImpresionDocumentoEnPapelDTO) As Task Implements IServicioFacturacionRutas.ConfirmarImpresionPapel
+            Dim unused = Await PostarFacturacion(Of Object)("FacturacionRutas/DocumentosEnPapel/Impresion", impresion,
+                $"Error al apuntar la impresión de {impresion?.Documento}")
+        End Function
+
         ' Llamada común de Facturar y FacturarPedido: misma autorización, mismo timeout, misma respuesta.
-        Private Async Function PostarFacturacion(ruta As String, request As Object, textoError As String) As Task(Of FacturarRutasResponseDTO)
+        Private Function PostarFacturacion(ruta As String, request As Object, textoError As String) As Task(Of FacturarRutasResponseDTO)
+            Return PostarFacturacion(Of FacturarRutasResponseDTO)(ruta, request, textoError)
+        End Function
+
+        Private Async Function PostarFacturacion(Of T)(ruta As String, request As Object, textoError As String) As Task(Of T)
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Try
                     ' Carlos 20/11/24: Aumentar timeout para facturación masiva de rutas (500 segundos)
@@ -73,7 +87,7 @@ Namespace Services
                     response.EnsureSuccessStatusCode()
 
                     Dim responseBody As String = Await response.Content.ReadAsStringAsync()
-                    Return JsonConvert.DeserializeObject(Of FacturarRutasResponseDTO)(responseBody)
+                    Return If(String.IsNullOrWhiteSpace(responseBody), Nothing, JsonConvert.DeserializeObject(Of T)(responseBody))
 
                 Catch uex As UnauthorizedAccessException
                     Throw ' Re-lanzar excepciones de autorización

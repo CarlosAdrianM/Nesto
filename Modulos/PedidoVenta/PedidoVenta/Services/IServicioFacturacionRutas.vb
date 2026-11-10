@@ -26,6 +26,16 @@ Namespace Services
         Function FacturarPedido(empresa As String, pedido As Integer, saltarPacking As Boolean) As Task(Of FacturarRutasResponseDTO)
 
         ''' <summary>
+        ''' NestoAPI#828: «Facturar al imprimir etiqueta» con el mismo núcleo que F8 en Ariadna (POST api/FacturacionRutas/FacturarEtiqueta):
+        ''' factura el pedido del envío (la ruta propia no) y devuelve su papel para imprimirlo aquí; si ya estaba facturado y el
+        ''' papel pendiente, lo devuelve otra vez sin volver a facturar.
+        ''' </summary>
+        Function FacturarEtiqueta(empresa As String, pedido As Integer, envio As Integer?, saltarPacking As Boolean) As Task(Of FacturarEtiquetaResponseDTO)
+
+        ''' <summary>NestoAPI#828: dice a la API si el papel del packing ha salido por la impresora de Nesto (POST DocumentosEnPapel/Impresion).</summary>
+        Function ConfirmarImpresionPapel(impresion As ImpresionDocumentoEnPapelDTO) As Task
+
+        ''' <summary>
         ''' Genera un preview (simulación) de facturación SIN crear nada en la BD.
         ''' Muestra qué albaranes, facturas y notas de entrega se crearían con sus importes.
         ''' </summary>

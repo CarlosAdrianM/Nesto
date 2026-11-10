@@ -303,7 +303,9 @@ Public Class FacturarRutasPopupViewModel
             Else
                 ' Si todo fue exitoso y no hay documentos que imprimir, esperar 2 segundos y cerrar.
                 ' Nesto#620: si la API ha impreso algo en el servidor no se cierra, para que se lea en el resumen dónde ha salido.
-                If totalDocumentosParaImprimir = 0 AndAlso response.TotalDocumentosImpresosEnServidor = 0 Then
+                ' NestoAPI#828: tampoco si hay algo del papel del packing que leer.
+                If totalDocumentosParaImprimir = 0 AndAlso response.TotalDocumentosImpresosEnServidor = 0 AndAlso
+                   String.IsNullOrWhiteSpace(response.ResumenPapelPacking) Then
                     Await Task.Delay(PausaAntesDeCerrarMs)
                     Cancelar()
                 End If
@@ -343,6 +345,10 @@ Public Class FacturarRutasPopupViewModel
         ' Nesto#620 (NestoAPI#806): lo que la API ya ha impreso en el servidor no se vuelve a imprimir aquí.
         If response.TotalDocumentosImpresosEnServidor > 0 Then
             Dim unusedS = sb.AppendLine($"🖨 {response.TextoImpresosEnServidor}")
+        End If
+        ' NestoAPI#828: lo ya impreso en el packing (no entra aquí), lo que quedó pendiente y lo que sale ahora con su envío.
+        If Not String.IsNullOrWhiteSpace(response.ResumenPapelPacking) Then
+            Dim unusedP = sb.AppendLine($"📦 {response.ResumenPapelPacking.Trim()}")
         End If
 
         If response.PedidosConErrores IsNot Nothing AndAlso response.PedidosConErrores.Count > 0 Then
