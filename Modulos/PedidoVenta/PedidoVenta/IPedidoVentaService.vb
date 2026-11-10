@@ -20,6 +20,10 @@ Public Interface IPedidoVentaService
     ''' <summary>NestoAPI#590: quita el picking de un pedido (POST api/Picking/{empresa}/{pedido}/QuitarPicking). Si el mozo ya ha
     ''' leído productos del pedido y no viene confirmado, devuelve las lecturas con NecesitaConfirmar (no se toca nada).</summary>
     Function QuitarPicking(empresa As String, pedido As Integer, confirmado As Boolean) As Task(Of ResultadoQuitarPicking)
+    ''' <summary>Novedad 1146: lo mismo, pero solo de esas líneas (Nº Orden de LinPedidoVta).</summary>
+    Function QuitarPickingLineas(empresa As String, pedido As Integer, confirmado As Boolean, lineas As List(Of Integer)) As Task(Of ResultadoQuitarPicking)
+    ''' <summary>Novedad 1146: GET api/Picking/{empresa}/{pedido}/LineasConPicking (las líneas con picking y si se puede quitar).</summary>
+    Function LeerLineasConPicking(empresa As String, pedido As Integer) As Task(Of List(Of LineaConPicking))
     ''' <summary>Sugerencia 575: pedidos que van por OnTime y seguramente saldrán por nuestra ruta (AT/16), con el alcance del
     ''' picking (un pedido, un cliente o, sin nada, el de rutas). Solo para almacén, antes de sacar el picking.</summary>
     Function LeerSugerenciasRutaPicking(empresa As String, numeroPedido As Integer, cliente As String) As Task(Of List(Of SugerenciaRutaPicking))

@@ -619,18 +619,42 @@ Public Class PickingPopupViewModel
             Return
         End If
         Dim empresa As String = If(pedidoPicking IsNot Nothing AndAlso pedidoPicking.numero = pedido, pedidoPicking.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
-        If Not dialogService.ShowConfirmationAnswer("Quitar picking", $"¿Quitar el picking del pedido {pedido}?" + vbCrLf + vbCrLf +
+
+        ' Novedad 1146: si hay varias líneas que se pueden quitar, se elige cuáles (todas marcadas = el pedido entero, como antes).
+        ' Con una sola, o si no se pueden leer las líneas, la pregunta de siempre para el pedido entero.
+        Dim lineasElegidas As List(Of Integer) = Nothing
+        Dim lineas As List(Of LineaConPicking) = Nothing
+        Try
+            lineas = Await servicio.LeerLineasConPicking(empresa, pedido)
+        Catch ex As Exception
+            lineas = Nothing
+        End Try
+        If lineas IsNot Nothing AndAlso lineas.Where(Function(l) l IsNot Nothing AndAlso l.SePuedeQuitar).Count() > 1 Then
+            Dim eleccion As ResultadoDialogo = Await dialogService.ShowDialogAsync(QuitarPickingLineasPopupViewModel.NOMBRE,
+                New ParametrosDialogo From {{"lineas", lineas}, {"pedido", pedido}})
+            If eleccion Is Nothing OrElse eleccion.Result <> ResultadoBoton.OK Then
+                Return
+            End If
+            Dim todas As Boolean = eleccion.Parameters IsNot Nothing AndAlso eleccion.Parameters.ContainsKey("todas") AndAlso eleccion.Parameters.GetValue(Of Boolean)("todas")
+            Dim marcadas As List(Of Integer) = If(eleccion.Parameters?.GetValue(Of List(Of Integer))("lineas"), New List(Of Integer))
+            If marcadas.Count = 0 Then
+                Return
+            End If
+            If Not todas Then
+                lineasElegidas = marcadas
+            End If
+        ElseIf Not dialogService.ShowConfirmationAnswer("Quitar picking", $"¿Quitar el picking del pedido {pedido}?" + vbCrLf + vbCrLf +
                 "Se quita de todas sus líneas pendientes y vuelve a quedar sin picking.") Then
             Return
         End If
         Try
             estaSacandoPicking = True
-            Dim resultado As ResultadoQuitarPicking = Await servicio.QuitarPicking(empresa, pedido, False)
+            Dim resultado As ResultadoQuitarPicking = Await QuitarPickingDe(empresa, pedido, False, lineasElegidas)
             If resultado IsNot Nothing AndAlso resultado.NecesitaConfirmar Then
                 If Not dialogService.ShowConfirmationAnswer("Quitar picking: hay lecturas en la PDA", TextoLecturas(resultado) + vbCrLf + vbCrLf + "¿Quitar el picking igualmente?") Then
                     Return
                 End If
-                resultado = Await servicio.QuitarPicking(empresa, pedido, True)
+                resultado = Await QuitarPickingDe(empresa, pedido, True, lineasElegidas)
             End If
             dialogService.ShowNotification("Quitar picking", If(resultado?.Message, $"Quitado el picking del pedido {pedido}."))
             messenger.Send(New SacarPickingMensaje(1))
@@ -639,6 +663,14 @@ Public Class PickingPopupViewModel
         Finally
             estaSacandoPicking = False
         End Try
+    End Function
+
+    ''' <summary>Novedad 1146: sin líneas, el POST de siempre (el pedido entero); con ellas, solo esas.</summary>
+    Private Function QuitarPickingDe(empresa As String, pedido As Integer, confirmado As Boolean, lineas As List(Of Integer)) As Task(Of ResultadoQuitarPicking)
+        If lineas Is Nothing OrElse lineas.Count = 0 Then
+            Return servicio.QuitarPicking(empresa, pedido, confirmado)
+        End If
+        Return servicio.QuitarPickingLineas(empresa, pedido, confirmado, lineas)
     End Function
 
     Friend Shared Function TextoLecturas(resultado As ResultadoQuitarPicking) As String

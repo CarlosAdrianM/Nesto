@@ -714,6 +714,7 @@ namespace Nesto.Tests
             "ComprobacionesInventarioDialog | ComprobacionesInventarioDialog | ComprobacionesInventarioDialogViewModel", // Nesto#597
             "PickingPopupView | PickingPopupView | PickingPopupViewModel",
             "SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopup | SugerenciasRutaPickingPopupViewModel",
+            "QuitarPickingLineasPopup | QuitarPickingLineasPopup | QuitarPickingLineasPopupViewModel", // novedad 1146
             "FacturarRutasPopup | FacturarRutasPopup | FacturarRutasPopupViewModel",
             "ErroresFacturacionRutasPopup | ErroresFacturacionRutasPopup | ErroresFacturacionRutasPopupViewModel",
             "FacturarFinDeMesDialog | FacturarFinDeMesDialog | FacturarFinDeMesDialogViewModel", // NestoAPI#727

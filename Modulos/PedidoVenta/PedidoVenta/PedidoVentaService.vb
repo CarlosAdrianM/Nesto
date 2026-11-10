@@ -677,6 +677,30 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>Novedad 1146: el mismo POST con Lineas (solo esas). El 400 (línea que no vale) es un error con el motivo de la API.</summary>
+    Public Async Function QuitarPickingLineas(empresa As String, pedido As Integer, confirmado As Boolean, lineas As List(Of Integer)) As Task(Of ResultadoQuitarPicking) Implements IPedidoVentaService.QuitarPickingLineas
+        Dim url As String = $"Picking/{Uri.EscapeDataString(If(empresa?.Trim(), Constantes.Empresas.EMPRESA_DEFECTO))}/{pedido}/QuitarPicking"
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(New With {.Confirmado = confirmado, .Lineas = If(lineas, New List(Of Integer))}), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(url, content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            Return InterpretarQuitarPicking(CInt(response.StatusCode), cuerpo)
+        End Using
+    End Function
+
+    ''' <summary>Novedad 1146: GET api/Picking/{empresa}/{pedido}/LineasConPicking.</summary>
+    Public Async Function LeerLineasConPicking(empresa As String, pedido As Integer) As Task(Of List(Of LineaConPicking)) Implements IPedidoVentaService.LeerLineasConPicking
+        Dim url As String = $"Picking/{Uri.EscapeDataString(If(empresa?.Trim(), Constantes.Empresas.EMPRESA_DEFECTO))}/{pedido}/LineasConPicking"
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync(url)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of LineaConPicking))(cuerpo), New List(Of LineaConPicking))
+        End Using
+    End Function
+
     ''' <summary>NestoAPI#590: separado para los tests (sin HTTP).</summary>
     Friend Shared Function InterpretarQuitarPicking(codigo As Integer, cuerpo As String) As ResultadoQuitarPicking
         Dim resultado As ResultadoQuitarPicking = Nothing

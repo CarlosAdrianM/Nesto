@@ -11,6 +11,8 @@ Public Class PedidoVenta
         registro.RegistrarDialogo(Of PickingPopupView, PickingPopupViewModel)
         ' Sugerencia 575: pedidos que podrían ir por nuestra ruta, antes de sacar el picking
         registro.RegistrarDialogo(Of SugerenciasRutaPickingPopup, SugerenciasRutaPickingPopupViewModel)(SugerenciasRutaPickingPopupViewModel.NOMBRE)
+        ' Novedad 1146: elegir a qué líneas del pedido se quita el picking
+        registro.RegistrarDialogo(Of QuitarPickingLineasPopup, QuitarPickingLineasPopupViewModel)(QuitarPickingLineasPopupViewModel.NOMBRE)
         registro.RegistrarDialogo(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
         registro.RegistrarDialogo(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
         ' NestoAPI#727: facturar el fin de mes por la API (sustituye al Nesto viejo)
