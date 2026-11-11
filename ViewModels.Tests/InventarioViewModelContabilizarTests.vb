@@ -236,7 +236,7 @@ Public Class InventarioViewModelContabilizarTests
     <TestMethod()>
     Public Sub Dialogo_ConBloqueantes_NoDejaContinuar()
         _comprobaciones.Bloqueantes.Add(Comprobacion("Ficticio", "Productos ficticios con stock"))
-        Dim dialogo As New ComprobacionesInventarioDialogViewModel()
+        Dim dialogo As New ComprobacionesInventarioDialogViewModel(_servicio, _dialogos)
 
         dialogo.Cargar(_comprobaciones)
 
@@ -249,7 +249,7 @@ Public Class InventarioViewModelContabilizarTests
     <TestMethod()>
     Public Sub Dialogo_SoloAvisos_ContinuarDeTodosModosDevuelveOK()
         _comprobaciones.Avisos.Add(Comprobacion("CalculadoNegativo", "Stock calculado negativo"))
-        Dim dialogo As New ComprobacionesInventarioDialogViewModel()
+        Dim dialogo As New ComprobacionesInventarioDialogViewModel(_servicio, _dialogos)
         Dim resultado As ResultadoDialogo = Nothing
         AddHandler dialogo.RequestClose, Sub(r) resultado = r
 

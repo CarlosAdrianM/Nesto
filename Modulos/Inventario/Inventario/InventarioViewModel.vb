@@ -438,11 +438,13 @@ Public Class InventarioViewModel
         ' NestoAPI#784: RecontadaSinContar bloquea, pero el usuario puede confirmar que de verdad hay 0 (ConfirmarContadoCero).
         Dim confirmarContadoCero As Boolean = False
         If HayComprobaciones(comprobaciones) Then
-            Dim decision = Await MostrarComprobaciones(comprobaciones)
-            If decision = DecisionComprobaciones.NoSeguir Then
+            Dim vistas = Await MostrarComprobaciones(comprobaciones)
+            If vistas.Decision = DecisionComprobaciones.NoSeguir Then
                 Return
             End If
-            confirmarContadoCero = decision = DecisionComprobaciones.SeguirConfirmandoContadoCero
+            confirmarContadoCero = vistas.Decision = DecisionComprobaciones.SeguirConfirmandoContadoCero
+            ' Incidencia 1186: si se han borrado filas en la ventana, el recuento es el de las comprobaciones vueltas a pedir.
+            comprobaciones = vistas.Comprobaciones
         End If
 
         Dim recuento = If(comprobaciones.Recuento, New List(Of RecuentoUsuarioInventarioDTO))
@@ -467,7 +469,7 @@ Public Class InventarioViewModel
         If resultado.Bloqueado IsNot Nothing Then
             ' Algo ha cambiado desde las comprobaciones: no se ha tocado nada. Si solo quedan bloqueantes que se confirman y
             ' ahora se confirman (antes no), se intenta una vez más; si no, se enseñan y se para.
-            Dim decision = Await MostrarComprobaciones(resultado.Bloqueado)
+            Dim decision = (Await MostrarComprobaciones(resultado.Bloqueado)).Decision
             If confirmarContadoCero OrElse decision <> DecisionComprobaciones.SeguirConfirmandoContadoCero Then
                 Return
             End If
@@ -519,24 +521,30 @@ Public Class InventarioViewModel
     ''' Se sigue si el usuario ha pulsado «Continuar» y no hay bloqueantes o, NestoAPI#784, si todos los bloqueantes se
     ''' confirman (SeConfirma) y ha marcado «He contado y de verdad hay 0». Un bloqueante que no se confirma no se salta nunca.
     ''' </summary>
-    Private Async Function MostrarComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Task(Of DecisionComprobaciones)
+    ''' <remarks>
+    ''' Incidencia 1186: en la ventana se pueden borrar filas y se vuelven a pedir las comprobaciones; el OK trae las que se ven y
+    ''' la decisión se toma con esas (si ya no queda ningún bloqueante, se contabiliza sin cerrar y volver a abrir).
+    ''' </remarks>
+    Private Async Function MostrarComprobaciones(comprobaciones As ComprobacionesInventarioDTO) As Task(Of (Decision As DecisionComprobaciones, Comprobaciones As ComprobacionesInventarioDTO))
         Dim parametros As New ParametrosDialogo From {
-            {ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES, comprobaciones}
+            {ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES, comprobaciones},
+            {ComprobacionesInventarioDialogViewModel.PARAMETRO_EMPRESA, EMPRESA_DEFECTO}
         }
         Dim respuesta = Await dialogService.ShowDialogAsync(ComprobacionesInventarioDialogViewModel.NOMBRE, parametros)
         If respuesta Is Nothing OrElse respuesta.Result <> ResultadoBoton.OK Then
-            Return DecisionComprobaciones.NoSeguir
+            Return (DecisionComprobaciones.NoSeguir, comprobaciones)
         End If
-        Dim bloqueantes = If(comprobaciones.Bloqueantes, New List(Of ComprobacionInventarioDTO))
+        Dim vistas = If(respuesta.Parameters?.GetValue(Of ComprobacionesInventarioDTO)(ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES), comprobaciones)
+        Dim bloqueantes = If(vistas.Bloqueantes, New List(Of ComprobacionInventarioDTO))
         If Not bloqueantes.Any() Then
-            Return DecisionComprobaciones.Seguir
+            Return (DecisionComprobaciones.Seguir, vistas)
         End If
         If bloqueantes.Any(Function(b) Not b.SeConfirma) Then
-            Return DecisionComprobaciones.NoSeguir
+            Return (DecisionComprobaciones.NoSeguir, vistas)
         End If
         Dim confirmado = respuesta.Parameters IsNot Nothing AndAlso
             respuesta.Parameters.GetValue(Of Boolean)(ComprobacionesInventarioDialogViewModel.PARAMETRO_CONFIRMAR_CONTADO_CERO)
-        Return If(confirmado, DecisionComprobaciones.SeguirConfirmandoContadoCero, DecisionComprobaciones.NoSeguir)
+        Return (If(confirmado, DecisionComprobaciones.SeguirConfirmandoContadoCero, DecisionComprobaciones.NoSeguir), vistas)
     End Function
 
     ''' <summary>«Contabilizado: • Paloma: 64 filas, traspaso 77263 …» y, si los hay, los usuarios que han fallado.</summary>

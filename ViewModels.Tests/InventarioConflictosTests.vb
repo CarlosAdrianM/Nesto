@@ -391,7 +391,7 @@ Public Class InventarioConflictosTests
 
     <TestMethod()>
     Public Sub Dialogo_RecontadaSinContar_ContinuarSoloMarcandoLaCasillaYDevuelveLaConfirmacion()
-        Dim dialogo As New ComprobacionesInventarioDialogViewModel()
+        Dim dialogo As New ComprobacionesInventarioDialogViewModel(_servicio, _dialogos)
         Dim resultado As ResultadoDialogo = Nothing
         AddHandler dialogo.RequestClose, Sub(r) resultado = r
 
@@ -412,7 +412,7 @@ Public Class InventarioConflictosTests
 
     <TestMethod()>
     Public Sub Dialogo_FilasDuplicadas_NiCasillaNiContinuar()
-        Dim dialogo As New ComprobacionesInventarioDialogViewModel()
+        Dim dialogo As New ComprobacionesInventarioDialogViewModel(_servicio, _dialogos)
 
         dialogo.Cargar(Comprobaciones(Comprobacion(CodigosComprobacionInventario.RECONTADA_SIN_CONTAR, True),
                                       Comprobacion(CodigosComprobacionInventario.FILAS_DUPLICADAS, False)))
@@ -425,7 +425,7 @@ Public Class InventarioConflictosTests
 
     <TestMethod()>
     Public Sub Dialogo_SoloAvisos_ContinuarSinConfirmacion()
-        Dim dialogo As New ComprobacionesInventarioDialogViewModel()
+        Dim dialogo As New ComprobacionesInventarioDialogViewModel(_servicio, _dialogos)
         Dim resultado As ResultadoDialogo = Nothing
         AddHandler dialogo.RequestClose, Sub(r) resultado = r
         Dim c = Comprobaciones()

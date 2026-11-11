@@ -10,6 +10,19 @@
             <DataGrid ItemsSource="{Binding Filas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                       HeadersVisibility="Column" MaxHeight="220" Margin="0,4,0,0">
                 <DataGrid.Columns>
+                    <!-- Incidencia 1186: borrar una fila pendiente que sobra (solo filas de inventario con Nº orden). -->
+                    <DataGridTemplateColumn Header="">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Borrar esta fila" Padding="6,1" Margin="1"
+                                        Foreground="DarkRed" FontWeight="SemiBold"
+                                        ToolTip="Borra esta fila del recuento. El stock no cambia."
+                                        Command="{Binding DataContext.BorrarFilaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Visibility="{Binding SePuedeBorrar, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Nº orden" Binding="{Binding NumOrden}"/>
                     <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
                     <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>

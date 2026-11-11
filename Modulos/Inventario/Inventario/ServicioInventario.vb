@@ -53,7 +53,23 @@ Public Interface IServicioInventario
     ''' <see cref="ConflictoInventarioException"/>; los demás errores, Exception con el mensaje de la API.
     ''' </summary>
     Function DejarACero(empresa As String, almacen As String, producto As String, otraVez As Boolean, quitarFilasSinUbicacion As Boolean, simular As Boolean) As Task(Of DejarACeroInventarioRespuestaDTO)
+    ''' <summary>
+    ''' Incidencia 1186: DELETE api/Inventarios/Filas/{numeroOrden} (borra una fila PENDIENTE; el stock no cambia). 204 si la
+    ''' borra. 404 de la fila: <see cref="FilaInventarioNoEncontradaException"/>. 409 (no está pendiente):
+    ''' <see cref="ConflictoInventarioException"/> con el Message de la API. 403 y demás: Exception con el Message de la API. Con
+    ''' un servidor de antes (404 de ruta o 405): Exception con <see cref="ServicioInventario.MENSAJE_SERVIDOR_ANTIGUO"/>.
+    ''' </summary>
+    Function BorrarFila(numeroOrden As Integer) As Task
 End Interface
+
+''' <summary>Incidencia 1186: la fila que se quería borrar ya no existe (la habrá borrado otro).</summary>
+Public Class FilaInventarioNoEncontradaException
+    Inherits Exception
+
+    Public Sub New(mensaje As String)
+        MyBase.New(mensaje)
+    End Sub
+End Class
 
 ''' <summary>NestoAPI#784: un 409 de api/Inventarios, con su Codigo (<see cref="CodigosConflictoInventario"/>) y sus filas.</summary>
 Public Class ConflictoInventarioException
@@ -274,6 +290,50 @@ Public Class ServicioInventario
             End If
             Return JsonConvert.DeserializeObject(Of DejarACeroInventarioRespuestaDTO)(cuerpo)
         End Using
+    End Function
+
+    Public Const MENSAJE_SERVIDOR_ANTIGUO As String = "Esta opción necesita la versión nueva del servidor."
+    Public Const MENSAJE_FILA_NO_ENCONTRADA As String = "Esa fila ya no existe: puede que la haya borrado otra persona."
+
+    Public Async Function BorrarFila(numeroOrden As Integer) As Task Implements IServicioInventario.BorrarFila
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response = Await client.DeleteAsync("Inventarios/Filas/" + numeroOrden.ToString(CultureInfo.InvariantCulture))
+            If response.IsSuccessStatusCode Then
+                Return
+            End If
+            Dim cuerpo = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            Select Case response.StatusCode
+                Case HttpStatusCode.MethodNotAllowed
+                    Throw New Exception(MENSAJE_SERVIDOR_ANTIGUO)
+                Case HttpStatusCode.NotFound
+                    If EsNotFoundDeRuta(cuerpo) Then
+                        Throw New Exception(MENSAJE_SERVIDOR_ANTIGUO)
+                    End If
+                    Dim mensaje = LeerConflicto(cuerpo)?.Message
+                    Throw New FilaInventarioNoEncontradaException(If(String.IsNullOrWhiteSpace(mensaje), MENSAJE_FILA_NO_ENCONTRADA, mensaje))
+                Case HttpStatusCode.Conflict
+                    Dim conflicto = LeerConflicto(cuerpo)
+                    Throw New ConflictoInventarioException(MensajeConflicto(conflicto, cuerpo), conflicto)
+                Case Else
+                    Throw New Exception(MensajeConflicto(LeerConflicto(cuerpo), cuerpo))
+            End Select
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Incidencia 1186: el 404 de un servidor que aún no tiene la ruta. Web API lo da con «No HTTP resource was found…» y
+    ''' MessageDetail; IIS, en HTML. El 404 de la fila (la ruta existe) viene vacío o con un Message sin MessageDetail.
+    ''' </summary>
+    Public Shared Function EsNotFoundDeRuta(cuerpo As String) As Boolean
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return False
+        End If
+        Dim texto = cuerpo.TrimStart()
+        If Not texto.StartsWith("{") Then
+            Return True
+        End If
+        Return texto.IndexOf("No HTTP resource", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            texto.IndexOf("""MessageDetail""", StringComparison.OrdinalIgnoreCase) >= 0
     End Function
 
     ''' <summary>NestoAPI#784: el cuerpo de un 409; Nothing si no es JSON.</summary>
