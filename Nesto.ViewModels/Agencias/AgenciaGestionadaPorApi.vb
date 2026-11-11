@@ -174,7 +174,9 @@ Public MustInherit Class AgenciaGestionadaPorApi
 
         Dim mainViewModel As New MainViewModel
         Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, ClaveImpresora).ConfigureAwait(False)
-        Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, zpl)
+        ' NestoAPI#847: con un reintento y, si no sale, aviso al usuario (diálogos del contenedor, en el hilo de UI) y a
+        ' ELMAH. No lanza: el envío ya está tramitado y lo que falta es reimprimir la etiqueta.
+        Dim unused = Await EnviadorEtiquetasImpresora.Predeterminado().EnviarAsync(puerto, zpl, $"{NombreAgencia}.ImprimirEtiquetaZpl").ConfigureAwait(False)
     End Function
 
     Private Function RespuestaCorrecta(envio As EnviosAgencia, detalle As String) As RespuestaAgencia

@@ -509,7 +509,8 @@ Public Class AgenciaASM
                 Dim unused1 = builder.AppendLine("^XZ")
             Next
 
-            Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
+            ' NestoAPI#847: con un reintento y, si no sale, aviso al usuario y a ELMAH.
+            Dim unused = Await EnviadorEtiquetasImpresora.Predeterminado().EnviarAsync(puerto, builder.ToString, "AgenciaASM.imprimirEtiqueta")
         Catch ex As Exception
             ' NestoAPI#258 slice (b.2): mismo patrón que Sending — se relanza y lo muestra el
             ' manejador de errores (que además lo deja en ELMAH).

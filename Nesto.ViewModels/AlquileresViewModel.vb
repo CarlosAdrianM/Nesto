@@ -551,7 +551,8 @@ Public Class AlquileresViewModel
             builder.AppendLine("A190,400,0,3,1,1,N,""Observaciones: """)
             builder.AppendLine("P1")
             builder.AppendLine("")
-            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
+            ' NestoAPI#847: con un reintento y, si no sale, aviso al usuario y a ELMAH.
+            Dim unused = Await EnviadorEtiquetasImpresora.Predeterminado(dialogService).EnviarAsync(puerto, builder.ToString, "AlquileresViewModel.ImprimirEtiqueta")
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
             dialogService.ShowError(mensajeError)
@@ -600,7 +601,8 @@ Public Class AlquileresViewModel
                 builder.AppendLine("P1")
                 builder.AppendLine("")
             Next
-            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
+            ' NestoAPI#847: con un reintento y, si no sale, aviso al usuario y a ELMAH.
+            Dim unused = Await EnviadorEtiquetasImpresora.Predeterminado(dialogService).EnviarAsync(puerto, builder.ToString, "AlquileresViewModel.ImprimirEtiqueta")
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
             'Finally

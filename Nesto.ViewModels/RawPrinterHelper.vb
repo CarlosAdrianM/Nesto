@@ -52,37 +52,67 @@ Public Class RawPrinterHelper
     ' bytes, the function sends those bytes to the print queue. 
     ' Returns True on success or False on failure. 
     Public Shared Function SendBytesToPrinter(ByVal szPrinterName As String, ByVal pBytes As IntPtr, ByVal dwCount As Int32) As Boolean
-        Dim hPrinter As IntPtr         ' The printer handle. 
-        Dim dwError As Int32            ' Last error - in case there was trouble. 
-        Dim di As DOCINFOW               ' Describes your document (name, port, data type). 
-        Dim dwWritten As Int32         ' The number of bytes written by WritePrinter(). 
-        Dim bSuccess As Boolean       ' Your success code. 
-
-        ' Set up the DOCINFO structure. 
-        With di
-            .pDocName = "My Visual Basic .NET RAW Document"
-            .pDataType = "RAW"
-        End With
-        ' Assume failure unless you specifically succeed. 
-        bSuccess = False
-        If OpenPrinter(szPrinterName, hPrinter, 0) Then
-            If StartDocPrinter(hPrinter, 1, di) Then
-                If StartPagePrinter(hPrinter) Then
-                    ' Write your printer-specific bytes to the printer. 
-                    bSuccess = WritePrinter(hPrinter, pBytes, dwCount, dwWritten)
-                    EndPagePrinter(hPrinter)
-                End If
-                EndDocPrinter(hPrinter)
-            End If
-            ClosePrinter(hPrinter)
-        End If
-        ' If you did not succeed, GetLastError may give more information 
-        ' about why not. 
-        If bSuccess = False Then
-            dwError = Marshal.GetLastWin32Error()
-        End If
-        Return bSuccess
+        Return EnviarBytes(szPrinterName, pBytes, dwCount).Exito
     End Function ' SendBytesToPrinter() 
+
+    ''' <summary>
+    ''' NestoAPI#847: como SendBytesToPrinter, pero dice en qué paso falló y con qué código de Windows. El código se lee
+    ''' JUSTO tras el paso que falla (antes se leía después de ClosePrinter, que lo pisaba, y además no se devolvía).
+    ''' Cuenta también que WritePrinter escriba menos bytes de los mandados.
+    ''' </summary>
+    Public Shared Function EnviarBytes(ByVal szPrinterName As String, ByVal pBytes As IntPtr, ByVal dwCount As Int32) As ResultadoEnvioImpresora
+        Dim hPrinter As IntPtr
+        Dim di As New DOCINFOW With {.pDocName = "Nesto - etiqueta", .pDataType = "RAW"}
+        Dim dwWritten As Int32
+        Dim codigo As Integer = 0
+        Dim paso As String = Nothing
+
+        If Not OpenPrinter(szPrinterName, hPrinter, 0) Then
+            codigo = Marshal.GetLastWin32Error()
+            Return Fallo("no se ha podido abrir la impresora", codigo)
+        End If
+        Try
+            If Not StartDocPrinter(hPrinter, 1, di) Then
+                codigo = Marshal.GetLastWin32Error()
+                paso = "no se ha podido empezar el documento"
+            Else
+                Try
+                    If Not StartPagePrinter(hPrinter) Then
+                        codigo = Marshal.GetLastWin32Error()
+                        paso = "no se ha podido empezar la página"
+                    Else
+                        If Not WritePrinter(hPrinter, pBytes, dwCount, dwWritten) Then
+                            codigo = Marshal.GetLastWin32Error()
+                            paso = "no se ha podido escribir en la impresora"
+                        ElseIf dwWritten <> dwCount Then
+                            paso = $"la impresora solo ha recibido {dwWritten} de {dwCount} bytes"
+                        End If
+                        EndPagePrinter(hPrinter)
+                    End If
+                Finally
+                    If Not EndDocPrinter(hPrinter) AndAlso paso Is Nothing Then
+                        codigo = Marshal.GetLastWin32Error()
+                        paso = "no se ha podido cerrar el documento"
+                    End If
+                End Try
+            End If
+        Finally
+            ClosePrinter(hPrinter)
+        End Try
+
+        If paso Is Nothing Then
+            Return ResultadoEnvioImpresora.Correcto()
+        End If
+        Return Fallo(paso, codigo)
+    End Function
+
+    Private Shared Function Fallo(paso As String, codigo As Integer) As ResultadoEnvioImpresora
+        Dim detalle = paso
+        If codigo <> 0 Then
+            detalle &= ": " & New System.ComponentModel.Win32Exception(codigo).Message
+        End If
+        Return New ResultadoEnvioImpresora With {.Exito = False, .CodigoError = codigo, .Detalle = detalle}
+    End Function
 
     ' SendFileToPrinter() 
     ' When the function is given a file name and a printer name, 
@@ -117,16 +147,21 @@ Public Class RawPrinterHelper
 
     ' When the function is given a string and a printer name, 
     ' the function sends the string to the printer as raw bytes. 
-    Public Shared Function SendStringToPrinter(ByVal szPrinterName As String, ByVal szString As String)
-        Dim pBytes As IntPtr
-        Dim dwCount As Int32
-        ' How many characters are in the string? 
-        dwCount = szString.Length()
-        ' Assume that the printer is expecting ANSI text, and then convert 
-        ' the string to ANSI text. 
-        pBytes = Marshal.StringToCoTaskMemAnsi(szString)
-        ' Send the converted ANSI string to the printer. 
-        SendBytesToPrinter(szPrinterName, pBytes, dwCount)
-        Marshal.FreeCoTaskMem(pBytes)
+    ' NestoAPI#847: antes no devolvía nada (quien llamaba no podía saber si había salido). Ahora True/False.
+    Public Shared Function SendStringToPrinter(ByVal szPrinterName As String, ByVal szString As String) As Boolean
+        Return EnviarTexto(szPrinterName, szString).Exito
+    End Function
+
+    ''' <summary>NestoAPI#847: manda el texto en ANSI y dice qué pasó (paso y código de Windows si falla).</summary>
+    Public Shared Function EnviarTexto(ByVal szPrinterName As String, ByVal szString As String) As ResultadoEnvioImpresora
+        ' Assume that the printer is expecting ANSI text, and then convert the string to ANSI text. 
+        Dim texto As String = If(szString, String.Empty)
+        Dim dwCount As Int32 = texto.Length()
+        Dim pBytes As IntPtr = Marshal.StringToCoTaskMemAnsi(texto)
+        Try
+            Return EnviarBytes(szPrinterName, pBytes, dwCount)
+        Finally
+            Marshal.FreeCoTaskMem(pBytes)
+        End Try
     End Function
 End Class

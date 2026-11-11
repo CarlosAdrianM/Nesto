@@ -2544,7 +2544,8 @@ Public Class AgenciasViewModel
     Friend Property MandarZplAImpresoraGls As Func(Of EnviosAgencia, String, Task) =
         Async Function(envio, zpl)
             Dim puerto As String = Await _configuracion.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraAgenciaGLS)
-            Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, zpl)
+            ' NestoAPI#847: con un reintento y, si no sale, aviso al usuario y a ELMAH (el envío ya está tramitado).
+            Dim unused = Await EnviadorEtiquetasImpresora.Predeterminado(_dialogService).EnviarAsync(puerto, zpl, "AgenciasViewModel.MandarZplAImpresoraGls")
         End Function
 
     Private _cmdImprimirEtiquetaPedido As ICommand
