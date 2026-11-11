@@ -37,7 +37,7 @@ Public Class ComprobacionesInventarioDialogViewModel
         ContinuarCommand = New RelayCommand(AddressOf OnContinuar, Function() PuedeContinuar AndAlso Not EstaOcupado)
         CancelarCommand = New RelayCommand(Sub() RaiseRequestClose(ResultadoBoton.Cancel))
         BorrarFilaCommand = New AsyncRelayCommand(Of FilaComprobacionInventarioDTO)(AddressOf BorrarFila,
-            Function(f) f IsNot Nothing AndAlso f.SePuedeBorrar AndAlso Not EstaOcupado)
+            Function(f) EsBorrable(f) AndAlso Not EstaOcupado)
     End Sub
 
     Public Property ContinuarCommand As RelayCommand
@@ -144,18 +144,35 @@ Public Class ComprobacionesInventarioDialogViewModel
     Public ReadOnly Property Explicacion As String
         Get
             If HayBloqueantesSinConfirmacion Then
-                Return "Hay problemas que impiden contabilizar el inventario. Corríjalos y vuelva a intentarlo. Si una fila sobra, " +
-                    "bórrela con «" + TITULO_BORRAR_FILA + "» (el stock no cambia)."
+                Return "Hay problemas que impiden contabilizar el inventario. Corríjalos y vuelva a intentarlo." + AvisoBorrar
             End If
             If HayBloqueantes Then
                 Return "Hay productos que ya se contabilizaron ese día, se han vuelto a abrir y siguen con contado 0: si los " +
                     "contabiliza, su stock se quedará a cero. Cuéntelos o, si de verdad no hay ninguno, marque «" +
-                    TEXTO_CONFIRMAR_CONTADO_CERO + "»."
+                    TEXTO_CONFIRMAR_CONTADO_CERO + "»." + AvisoBorrar
             End If
             If HayAvisos Then
-                Return "Revise los avisos: no impiden contabilizar, pero conviene comprobarlos antes."
+                Return "Revise los avisos: no impiden contabilizar, pero conviene comprobarlos antes." + AvisoBorrar
             End If
             Return "No se ha encontrado ningún problema."
+        End Get
+    End Property
+
+    ''' <summary>Incidencia 1186 (Carlos): borrar NO es «no hay»; se dice arriba siempre que alguna línea tenga el botón.</summary>
+    Public Const TEXTO_SOLO_FILAS_QUE_SOBRAN As String =
+        "Solo se pueden borrar las filas que sobran (duplicadas o contadas sin ubicación): borrar NO pone el producto a 0, lo deja " +
+        "SIN CONTAR. Para decir que no hay ninguna unidad, cuéntela a 0."
+
+    ''' <summary>Incidencia 1186: alguna línea trae SePuedeBorrar de la API.</summary>
+    Public ReadOnly Property HayFilasQueSePuedenBorrar As Boolean
+        Get
+            Return Bloqueantes.Concat(Avisos).Any(Function(c) c.Filas IsNot Nothing AndAlso c.Filas.Any(Function(f) EsBorrable(f)))
+        End Get
+    End Property
+
+    Private ReadOnly Property AvisoBorrar As String
+        Get
+            Return If(HayFilasQueSePuedenBorrar, " " + TEXTO_SOLO_FILAS_QUE_SOBRAN, String.Empty)
         End Get
     End Property
 
@@ -170,17 +187,11 @@ Public Class ComprobacionesInventarioDialogViewModel
     End Sub
 
     ''' <summary>
-    ''' Incidencia 1186: «Borrar esta fila» solo en filas de Inventarios (con Nº orden) y nunca en «Ubicaciones con stock que no
-    ''' se han inventariado» (son huecos de Ubicaciones, no filas).
+    ''' Incidencia 1186 (Carlos 11/11/26): las reglas las pone la API. El botón sale SOLO si la línea trae SePuedeBorrar = true
+    ''' (ausente o false, sin botón: con la API de antes no sale ninguno) y tiene Nº orden.
     ''' </summary>
-    Public Shared Function SePuedeBorrar(comprobacion As ComprobacionInventarioDTO, fila As FilaComprobacionInventarioDTO) As Boolean
-        If comprobacion Is Nothing OrElse fila Is Nothing Then
-            Return False
-        End If
-        If String.Equals(comprobacion.Codigo, CodigosComprobacionInventario.UBICACION_SIN_RELLENAR, StringComparison.OrdinalIgnoreCase) Then
-            Return False
-        End If
-        Return fila.NumOrden.HasValue AndAlso fila.NumOrden.Value > 0
+    Public Shared Function EsBorrable(fila As FilaComprobacionInventarioDTO) As Boolean
+        Return fila IsNot Nothing AndAlso fila.SePuedeBorrar AndAlso fila.NumOrden.HasValue AndAlso fila.NumOrden.Value > 0
     End Function
 
     Public Sub Cargar(comprobaciones As ComprobacionesInventarioDTO)
@@ -191,11 +202,9 @@ Public Class ComprobacionesInventarioDialogViewModel
         _confirmadoContadoCero = False
         If comprobaciones IsNot Nothing Then
             For Each c In If(comprobaciones.Bloqueantes, New List(Of ComprobacionInventarioDTO))
-                MarcarFilasBorrables(c)
                 Bloqueantes.Add(c)
             Next
             For Each c In If(comprobaciones.Avisos, New List(Of ComprobacionInventarioDTO))
-                MarcarFilasBorrables(c)
                 Avisos.Add(c)
             Next
             For Each r In If(comprobaciones.Recuento, New List(Of RecuentoUsuarioInventarioDTO))
@@ -213,17 +222,10 @@ Public Class ComprobacionesInventarioDialogViewModel
         OnPropertyChanged(NameOf(MostrarContinuar))
         OnPropertyChanged(NameOf(PuedeContinuar))
         OnPropertyChanged(NameOf(TextoContinuar))
+        OnPropertyChanged(NameOf(HayFilasQueSePuedenBorrar))
         OnPropertyChanged(NameOf(Explicacion))
         ContinuarCommand.NotifyCanExecuteChanged()
         BorrarFilaCommand.NotifyCanExecuteChanged()
-    End Sub
-
-    Private Shared Sub MarcarFilasBorrables(comprobacion As ComprobacionInventarioDTO)
-        For Each f In If(comprobacion.Filas, New List(Of FilaComprobacionInventarioDTO))
-            If f IsNot Nothing Then
-                f.SePuedeBorrar = SePuedeBorrar(comprobacion, f)
-            End If
-        Next
     End Sub
 
     ''' <summary>
@@ -232,7 +234,7 @@ Public Class ComprobacionesInventarioDialogViewModel
     ''' sigue abierta.
     ''' </summary>
     Public Async Function BorrarFila(fila As FilaComprobacionInventarioDTO) As Task
-        If fila Is Nothing OrElse Not fila.SePuedeBorrar OrElse Not fila.NumOrden.HasValue OrElse EstaOcupado Then
+        If Not EsBorrable(fila) OrElse EstaOcupado Then
             Return
         End If
         If Not _dialogos.ShowConfirmationAnswer(TITULO_BORRAR_FILA, TextoConfirmarBorrado(fila), True) Then
@@ -269,19 +271,20 @@ Public Class ComprobacionesInventarioDialogViewModel
         End Try
     End Function
 
+    ''' <summary>Incidencia 1186 (Carlos): que quede claro que borrar NO es «no hay» (lo deja sin contar).</summary>
     Public Shared Function TextoConfirmarBorrado(fila As FilaComprobacionInventarioDTO) As String
-        Dim producto = fila.Producto?.Trim()
-        Dim descripcion = fila.Descripcion?.Trim()
+        Dim producto = String.Join(" ", {fila.Producto?.Trim(), fila.Descripcion?.Trim()}.Where(Function(t) Not String.IsNullOrWhiteSpace(t)))
         Dim ubicacion = If(String.IsNullOrWhiteSpace(fila.Ubicacion), "sin ubicación", fila.Ubicacion)
+        Dim calculado = If(fila.StockCalculado.HasValue, fila.StockCalculado.Value.ToString(), "-")
+        Dim contado = If(fila.StockReal.HasValue, fila.StockReal.Value.ToString(), "-")
         Dim lineas As New List(Of String) From {
-            "Se va a borrar esta fila del recuento de hoy. El stock no cambia.",
+            "Va a BORRAR esta fila del recuento de hoy:",
+            $"{producto} · {ubicacion} · calculado {calculado}, contado {contado}",
             String.Empty,
-            "Producto: " + producto + If(String.IsNullOrWhiteSpace(descripcion), String.Empty, " - " + descripcion),
-            "Ubicación: " + ubicacion,
-            "Calculado: " + If(fila.StockCalculado.HasValue, fila.StockCalculado.Value.ToString(), "-"),
-            "Contado: " + If(fila.StockReal.HasValue, fila.StockReal.Value.ToString(), "-"),
+            "Borrar NO pone el producto a 0: lo deja SIN CONTAR, y al contabilizar se quedará con lo que diga el sistema. " +
+                "Si lo que quiere decir es que no hay ninguna unidad, no la borre: cuéntela a 0.",
             String.Empty,
-            "¿Borrarla?"
+            "Borre solo una fila que sobra (duplicada o contada sin ubicación). ¿Borrarla?"
         }
         Return String.Join(Environment.NewLine, lineas)
     End Function

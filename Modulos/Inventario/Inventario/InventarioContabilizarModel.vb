@@ -41,8 +41,6 @@ Partial Public Class InventarioModel
         Public Const RECONTADA_SIN_CONTAR As String = "RecontadaSinContar"
         ''' <summary>Contado 0 con stock: solo aviso.</summary>
         Public Const CONTADO_CERO_CON_STOCK As String = "ContadoCeroConStock"
-        ''' <summary>Ubicaciones con stock sin inventariar: sus líneas son de Ubicaciones, no filas de inventario (no se borran).</summary>
-        Public Const UBICACION_SIN_RELLENAR As String = "UbicacionSinRellenar"
     End Class
 
     Public Class FilaComprobacionInventarioDTO
@@ -65,10 +63,9 @@ Partial Public Class InventarioModel
             End Get
         End Property
         ''' <summary>
-        ''' Incidencia 1186: se enseña «Borrar esta fila» (lo decide la ventana de comprobaciones: fila de Inventarios con Nº orden
-        ''' y comprobación que no sea UbicacionSinRellenar).
+        ''' Incidencia 1186: lo decide la API (GET api/Inventarios/Comprobaciones); solo con True sale «Borrar esta fila». Ausente
+        ''' (API de antes) o False, sin botón. Borrar NO pone a 0: deja el producto sin contar.
         ''' </summary>
-        <JsonIgnore>
         Public Property SePuedeBorrar As Boolean
     End Class
 

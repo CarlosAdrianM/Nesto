@@ -33,9 +33,9 @@ Public Class InventarioComprobacionesBorrarFilaTests
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored, A(Of Boolean).Ignored)).Returns(si)
     End Sub
 
-    Private Shared Function Fila(numOrden As Integer?) As FilaComprobacionInventarioDTO
+    Private Shared Function Fila(numOrden As Integer?, Optional sePuedeBorrar As Boolean = True) As FilaComprobacionInventarioDTO
         Return New FilaComprobacionInventarioDTO With {
-            .NumOrden = numOrden, .Producto = "17404     ", .Descripcion = "Champú", .StockCalculado = 3, .StockReal = 5,
+            .NumOrden = numOrden, .SePuedeBorrar = sePuedeBorrar, .Producto = "17404     ", .Descripcion = "Champú", .StockCalculado = 3, .StockReal = 5,
             .Usuario = "NUEVAVISION\Andre"}
     End Function
 
@@ -85,16 +85,22 @@ Public Class InventarioComprobacionesBorrarFilaTests
     End Function
 
     <TestMethod()>
-    Public Async Function Borrar_ConfirmaDeUstedConProductoUbicacionCalculadoYContado_PorDefectoNo() As Task
+    Public Async Function Borrar_ConfirmaQueBorrarNoEsCeroConLosNumerosDeLaFila_PorDefectoNo() As Task
         Dim dialogo = CrearDialogo(ConBloqueante("SinUbicacion", Fila(12)))
 
-        Await dialogo.BorrarFila(dialogo.Bloqueantes.Single().Filas.Single())
+        Dim linea = dialogo.Bloqueantes.Single().Filas.Single()
+        Await dialogo.BorrarFila(linea)
 
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer("Borrar esta fila",
-            A(Of String).That.Matches(Function(t) t.StartsWith("Se va a borrar esta fila del recuento de hoy. El stock no cambia.") AndAlso
-                                                  t.Contains("Producto: 17404 - Champú") AndAlso t.Contains("Ubicación: sin ubicación") AndAlso
-                                                  t.Contains("Calculado: 3") AndAlso t.Contains("Contado: 5") AndAlso t.EndsWith("¿Borrarla?")),
-            True)).MustHaveHappenedOnceExactly()
+            ComprobacionesInventarioDialogViewModel.TextoConfirmarBorrado(linea), True)).MustHaveHappenedOnceExactly()
+        Dim texto = ComprobacionesInventarioDialogViewModel.TextoConfirmarBorrado(Fila(12))
+        Assert.AreEqual(String.Join(Environment.NewLine, {
+            "Va a BORRAR esta fila del recuento de hoy:",
+            "17404 Champú · sin ubicación · calculado 3, contado 5",
+            "",
+            "Borrar NO pone el producto a 0: lo deja SIN CONTAR, y al contabilizar se quedará con lo que diga el sistema. Si lo que quiere decir es que no hay ninguna unidad, no la borre: cuéntela a 0.",
+            "",
+            "Borre solo una fila que sobra (duplicada o contada sin ubicación). ¿Borrarla?"}), texto)
     End Function
 
     <TestMethod()>
@@ -137,11 +143,11 @@ Public Class InventarioComprobacionesBorrarFilaTests
     End Function
 
     <TestMethod()>
-    Public Async Function LineaSinNumeroDeOrden_NoSePuedeBorrar() As Task
+    Public Async Function LineaSinNumeroDeOrden_NoSePuedeBorrarAunqueLaApiDigaQueSi() As Task
         Dim dialogo = CrearDialogo(ConBloqueante("SinUbicacion", Fila(Nothing), Fila(0)))
 
         For Each f In dialogo.Bloqueantes.Single().Filas
-            Assert.IsFalse(f.SePuedeBorrar)
+            Assert.IsFalse(ComprobacionesInventarioDialogViewModel.EsBorrable(f))
             Assert.IsFalse(dialogo.BorrarFilaCommand.CanExecute(f))
             Await dialogo.BorrarFila(f)
         Next
@@ -150,18 +156,55 @@ Public Class InventarioComprobacionesBorrarFilaTests
         A.CallTo(Function() _servicio.BorrarFila(A(Of Integer).Ignored)).MustNotHaveHappened()
     End Function
 
+    ' --- Carlos 11/11/26: el botón lo decide la API (SePuedeBorrar por línea) ---
+
+    Private Const JSON_COMPROBACIONES As String =
+        "{""Almacen"":""ALG"",""Fecha"":""2026-11-21T00:00:00"",""Bloqueantes"":[{""Codigo"":""FilasDuplicadas"",""Titulo"":""Duplicadas"",""Filas"":[" +
+        "{""NºOrden"":1,""Producto"":""17404""}," +
+        "{""NºOrden"":2,""Producto"":""17404"",""SePuedeBorrar"":false}," +
+        "{""NºOrden"":3,""Producto"":""17404"",""SePuedeBorrar"":true}]}]," +
+        """Avisos"":[{""Codigo"":""FilasBorradas"",""Titulo"":""Filas borradas hoy del recuento"",""Filas"":[" +
+        "{""Producto"":""17404"",""Descripcion"":""Champú"",""StockCalculado"":3,""StockReal"":0,""Usuario"":""Andre""}]}]}"
+
     <TestMethod()>
-    Public Sub UbicacionesSinInventariar_NoSeOfreceBorrar_YLosAvisosConNumeroDeOrdenSi()
-        Dim c = SinNada()
-        c.Avisos.Add(New ComprobacionInventarioDTO With {.Codigo = CodigosComprobacionInventario.UBICACION_SIN_RELLENAR,
-            .Filas = New List(Of FilaComprobacionInventarioDTO) From {Fila(55)}})
-        c.Avisos.Add(New ComprobacionInventarioDTO With {.Codigo = "SinPrecioMedio",
-            .Filas = New List(Of FilaComprobacionInventarioDTO) From {Fila(56)}})
+    Public Async Function Boton_SinCampoOFalse_NoSale_ConTrue_Sale() As Task
+        Dim c = Newtonsoft.Json.JsonConvert.DeserializeObject(Of ComprobacionesInventarioDTO)(JSON_COMPROBACIONES)
+        Dim dialogo = CrearDialogo(c)
+        Dim filas = dialogo.Bloqueantes.Single().Filas
+
+        Assert.IsFalse(filas(0).SePuedeBorrar, "Sin el campo (API de antes): sin botón")
+        Assert.IsFalse(dialogo.BorrarFilaCommand.CanExecute(filas(0)))
+        Assert.IsFalse(filas(1).SePuedeBorrar)
+        Assert.IsFalse(dialogo.BorrarFilaCommand.CanExecute(filas(1)))
+        Assert.IsTrue(filas(2).SePuedeBorrar)
+        Assert.IsTrue(dialogo.BorrarFilaCommand.CanExecute(filas(2)))
+
+        Await dialogo.BorrarFila(filas(0))
+        Await dialogo.BorrarFila(filas(1))
+        A.CallTo(Function() _servicio.BorrarFila(A(Of Integer).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Sub AvisoFilasBorradasHoy_SePintaComoUnAvisoSinBoton()
+        Dim c = Newtonsoft.Json.JsonConvert.DeserializeObject(Of ComprobacionesInventarioDTO)(JSON_COMPROBACIONES)
 
         Dim dialogo = CrearDialogo(c)
 
-        Assert.IsFalse(dialogo.Avisos(0).Filas.Single().SePuedeBorrar)
-        Assert.IsTrue(dialogo.Avisos(1).Filas.Single().SePuedeBorrar)
+        Assert.IsTrue(dialogo.HayAvisos)
+        Dim aviso = dialogo.Avisos.Single()
+        Assert.AreEqual("Filas borradas hoy del recuento (1 fila)", aviso.Cabecera)
+        Assert.IsNull(aviso.Filas.Single().NumOrden)
+        Assert.IsFalse(ComprobacionesInventarioDialogViewModel.EsBorrable(aviso.Filas.Single()))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Explicacion_ConFilasBorrables_DiceQueBorrarNoEsCero_YSinEllasNo()
+        Dim conBoton = CrearDialogo(ConBloqueante("SinUbicacion", Fila(12)))
+        Dim sinBoton = CrearDialogo(ConBloqueante("SinUbicacion", Fila(12, False)))
+
+        StringAssert.Contains(conBoton.Explicacion, "Solo se pueden borrar las filas que sobran")
+        StringAssert.Contains(conBoton.Explicacion, "cuéntela a 0")
+        Assert.IsFalse(sinBoton.Explicacion.Contains("borrar"))
     End Sub
 
     ' --- Pantalla: tras borrar en la ventana, se contabiliza con las comprobaciones vueltas a pedir ---
