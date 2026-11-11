@@ -82,6 +82,42 @@ Public Class InventarioModel
         Public Const VARIAS_UBICACIONES As String = "VariasUbicaciones"
         ''' <summary>POST: el producto ya tiene fila pendiente ese día; se suma a esa (PUT).</summary>
         Public Const YA_TIENE_FILA As String = "YaTieneFila"
+        ''' <summary>Sugerencia 1185: «a cero» en Algete con filas del producto sin ubicación; se borran con QuitarFilasSinUbicacion.</summary>
+        Public Const FILAS_SIN_UBICACION As String = "FilasSinUbicacion"
+    End Class
+
+    ''' <summary>Sugerencia 1185: una línea de POST api/Inventarios/DejarACero (una ubicación, o la fila sin ubicación de una tienda).</summary>
+    Public Class LineaDejarACeroDTO
+        Public Const CREAR As String = "Crear"
+        Public Const PONER_A_CERO As String = "PonerACero"
+        Public Const YA_ESTABA_A_CERO As String = "YaEstabaACero"
+
+        Public Property Pasillo As String
+        Public Property Fila As String
+        Public Property Columna As String
+        Public Property StockCalculado As Integer
+        Public Property ContadoAntes As Integer
+        Public Property NumeroOrden As Integer?
+        Public Property Accion As String
+    End Class
+
+    ''' <summary>Sugerencia 1185: respuesta de POST api/Inventarios/DejarACero.</summary>
+    Public Class DejarACeroInventarioRespuestaDTO
+        Public Property Almacen As String
+        Public Property Fecha As Date
+        Public Property Producto As String
+        Public Property Descripcion As String
+        Public Property PorUbicaciones As Boolean
+        Public Property Simulado As Boolean
+        Public Property StockAlmacen As Integer
+        Public Property UnidadesSinUbicar As Integer
+        Public Property Lineas As New List(Of LineaDejarACeroDTO)
+        Public Property FilasQuitadas As New List(Of LineaInventarioContadaDTO)
+        Public Property FilasCreadas As Integer
+        Public Property FilasPuestasACero As Integer
+        Public Property Unidades As Integer
+        Public Property Usuario As String
+        Public Property Aviso As String
     End Class
 
     ''' <summary>NestoAPI#784: el cuerpo de los 409 de api/Inventarios (el de Rellenar trae además Pendientes y Contabilizadas).</summary>

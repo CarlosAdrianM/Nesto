@@ -35,6 +35,8 @@ Public Class InventarioViewModel
         ' Nesto#597: contabilizar y ver las diferencias (NestoAPI#790).
         cmdContabilizarInventario = New AsyncRelayCommand(AddressOf ContabilizarInventario)
         cmdVerDiferencias = New RelayCommand(AddressOf OnVerDiferencias)
+        ' Sugerencia 1185: dejar el producto a cero en todas sus ubicaciones (POST api/Inventarios/DejarACero).
+        cmdDejarACero = New AsyncRelayCommand(AddressOf DejarACeroEnUbicaciones)
 
         Titulo = "Inventario Tienda"
 
@@ -332,11 +334,15 @@ Public Class InventarioViewModel
 #End Region
 
 #Region "Contabilizar (Nesto#597)"
-    ''' <summary>Nesto#597: Tiendas (la suya), Administración, Dirección e Informática; la API lo vuelve a comprobar.</summary>
+    ''' <summary>
+    ''' Nesto#597: Tiendas (la suya), Administración, Dirección e Informática; la API lo vuelve a comprobar. Sugerencia 1185: y
+    ''' Almacén, que según la API (NestoAPI#784, Carlos 04/11/26) contabiliza el de Algete (en otro almacén la API contesta 403).
+    ''' </summary>
     Public ReadOnly Property PuedeContabilizar As Boolean
         Get
             Return EnAlgunGrupo(Constantes.GruposSeguridad.TIENDAS, Constantes.GruposSeguridad.ADMINISTRACION,
-                                Constantes.GruposSeguridad.DIRECCION, Constantes.GruposSeguridad.INFORMATICA)
+                                Constantes.GruposSeguridad.DIRECCION, Constantes.GruposSeguridad.INFORMATICA,
+                                Constantes.GruposSeguridad.ALMACEN)
         End Get
     End Property
 
@@ -558,6 +564,188 @@ Public Class InventarioViewModel
     End Function
 #End Region
 
+#Region "Dejar a cero en todas sus ubicaciones (Sugerencia 1185)"
+    Public Const TITULO_DEJAR_A_CERO As String = "Dejar a cero en todas sus ubicaciones"
+
+    ''' <summary>Los que cuentan el inventario (la API lo vuelve a comprobar): Almacén, Tiendas (la suya), Administración, Dirección e Informática.</summary>
+    Public ReadOnly Property PuedeDejarACero As Boolean
+        Get
+            Return EnAlgunGrupo(Constantes.GruposSeguridad.ALMACEN, Constantes.GruposSeguridad.TIENDAS, Constantes.GruposSeguridad.ADMINISTRACION,
+                                Constantes.GruposSeguridad.DIRECCION, Constantes.GruposSeguridad.INFORMATICA)
+        End Get
+    End Property
+
+    Private _cmdDejarACero As AsyncRelayCommand
+    Public Property cmdDejarACero As AsyncRelayCommand
+        Get
+            Return _cmdDejarACero
+        End Get
+        Private Set(value As AsyncRelayCommand)
+            SetProperty(_cmdDejarACero, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Sugerencia 1185 (Alfredo): el producto de la casilla «Producto» a cero en todas sus ubicaciones del almacén, hoy. Primero
+    ''' pregunta a la API lo que haría (Simular) y lo enseña para confirmar; los 409 que se pueden resolver se preguntan antes
+    ''' (ya contabilizado hoy → «Contar otra vez»; filas sin ubicación → borrarlas). No contabiliza: eso es «Contabilizar inventario».
+    ''' </summary>
+    Public Async Function DejarACeroEnUbicaciones() As Task
+        If Not PuedeDejarACero Then
+            Return
+        End If
+        If _cargaAlmacen IsNot Nothing Then
+            Try
+                Await _cargaAlmacen
+            Catch
+                ' Se avisa abajo si no hay almacén.
+            End Try
+        End If
+        If String.IsNullOrWhiteSpace(almacen) Then
+            dialogService.ShowError("Indique el almacén del inventario.")
+            Return
+        End If
+        If String.IsNullOrWhiteSpace(numeroProducto) Then
+            dialogService.ShowError("Indique en «Producto» la referencia (o lea su código de barras) que quiere dejar a cero.")
+            Return
+        End If
+        Dim almacenInventario = almacen.Trim()
+        Dim producto = numeroProducto.Trim()
+        Dim otraVez As Boolean = False
+        Dim quitarSinUbicacion As Boolean = False
+
+        Dim plan As DejarACeroInventarioRespuestaDTO = Nothing
+        ' Como mucho, un «Contar otra vez» y un «borrar las filas sin ubicación»: tres vueltas bastan.
+        For vuelta = 1 To 3
+            Dim conflicto As ConflictoInventarioException = Nothing
+            plan = Nothing
+            estaOcupado = True
+            Try
+                plan = Await _servicio.DejarACero(EMPRESA_DEFECTO, almacenInventario, producto, otraVez, quitarSinUbicacion, True)
+            Catch ex As ConflictoInventarioException When (ex.EsCodigo(CodigosConflictoInventario.YA_CONTABILIZADO) AndAlso Not otraVez) OrElse
+                                                          (ex.EsCodigo(CodigosConflictoInventario.FILAS_SIN_UBICACION) AndAlso Not quitarSinUbicacion)
+                conflicto = ex
+            Catch ex As Exception
+                dialogService.ShowError(ex.Message)
+                Return
+            Finally
+                estaOcupado = False
+            End Try
+            If conflicto Is Nothing Then
+                Exit For
+            End If
+            If conflicto.EsCodigo(CodigosConflictoInventario.YA_CONTABILIZADO) Then
+                If Not PreguntarContarOtraVez(conflicto) Then
+                    Return
+                End If
+                otraVez = True
+            Else
+                If Not dialogService.ShowConfirmationAnswer(TITULO_DEJAR_A_CERO, TextoQuitarSinUbicacion(conflicto), True) Then
+                    Return
+                End If
+                quitarSinUbicacion = True
+            End If
+        Next
+        If plan Is Nothing Then
+            Return
+        End If
+        If Not HayQueHacer(plan) Then
+            dialogService.ShowNotification(TITULO_DEJAR_A_CERO, If(String.IsNullOrWhiteSpace(plan.Aviso), "No hay nada que dejar a cero.", plan.Aviso))
+            Return
+        End If
+        If Not dialogService.ShowConfirmationAnswer(TITULO_DEJAR_A_CERO, TextoConfirmacionDejarACero(plan), True) Then
+            Return
+        End If
+
+        Dim hecho As DejarACeroInventarioRespuestaDTO
+        estaOcupado = True
+        Try
+            hecho = Await _servicio.DejarACero(EMPRESA_DEFECTO, almacenInventario, producto, otraVez, quitarSinUbicacion, False)
+        Catch ex As Exception
+            ' También un 409 nuevo (algo ha cambiado desde la confirmación): no se ha tocado nada.
+            dialogService.ShowError(ex.Message)
+            Return
+        Finally
+            estaOcupado = False
+        End Try
+        numeroProducto = String.Empty
+        dialogService.ShowNotification(TITULO_DEJAR_A_CERO, TextoResultadoDejarACero(hecho))
+    End Function
+
+    ''' <summary>Hay algo que cambiar (una fila que crear o poner a 0, o una sin ubicación que borrar).</summary>
+    Public Shared Function HayQueHacer(plan As DejarACeroInventarioRespuestaDTO) As Boolean
+        Return plan IsNot Nothing AndAlso (
+            (plan.Lineas IsNot Nothing AndAlso plan.Lineas.Any(Function(l) l.Accion <> LineaDejarACeroDTO.YA_ESTABA_A_CERO)) OrElse
+            (plan.FilasQuitadas IsNot Nothing AndAlso plan.FilasQuitadas.Any()))
+    End Function
+
+    ''' <summary>«001-002-005» o «sin ubicación».</summary>
+    Public Shared Function TextoUbicacion(pasillo As String, fila As String, columna As String) As String
+        If String.IsNullOrWhiteSpace(pasillo) Then
+            Return "sin ubicación"
+        End If
+        Return $"{pasillo.Trim()}-{If(fila, String.Empty).Trim()}-{If(columna, String.Empty).Trim()}"
+    End Function
+
+    ''' <summary>Lo que se va a hacer, ubicación a ubicación, para confirmar.</summary>
+    Public Shared Function TextoConfirmacionDejarACero(plan As DejarACeroInventarioRespuestaDTO) As String
+        Dim lineas As New List(Of String)
+        Dim nombre = If(String.IsNullOrWhiteSpace(plan.Descripcion), String.Empty, $" ({plan.Descripcion.Trim()})")
+        lineas.Add($"Se va a dejar a cero el {plan.Producto?.Trim()}{nombre} en {plan.Almacen?.Trim()} (inventario de hoy):")
+        For Each linea In If(plan.Lineas, New List(Of LineaDejarACeroDTO))
+            Dim donde = TextoUbicacion(linea.Pasillo, linea.Fila, linea.Columna)
+            Select Case linea.Accion
+                Case LineaDejarACeroDTO.YA_ESTABA_A_CERO
+                    lineas.Add($"  • {donde}: ya está contado a 0 (teórico {linea.StockCalculado}).")
+                Case LineaDejarACeroDTO.PONER_A_CERO
+                    lineas.Add($"  • {donde}: teórico {linea.StockCalculado}, contado {linea.ContadoAntes} → 0.")
+                Case Else
+                    lineas.Add($"  • {donde}: {linea.StockCalculado} → 0.")
+            End Select
+        Next
+        For Each quitada In If(plan.FilasQuitadas, New List(Of LineaInventarioContadaDTO))
+            lineas.Add($"  • Se borra la fila sin ubicación nº {quitada.NumeroOrden} (contado {quitada.StockReal}).")
+        Next
+        If Not String.IsNullOrWhiteSpace(plan.Aviso) Then
+            lineas.Add(String.Empty)
+            lineas.Add(plan.Aviso.Trim())
+        End If
+        lineas.Add(String.Empty)
+        lineas.Add("¿Ha comprobado que de verdad no queda ninguno en esas ubicaciones?")
+        Return String.Join(Environment.NewLine, lineas)
+    End Function
+
+    Public Shared Function TextoQuitarSinUbicacion(conflicto As ConflictoInventarioException) As String
+        Dim mensaje = If(conflicto?.Message, String.Empty).Trim()
+        If mensaje.Length > 0 Then
+            mensaje += Environment.NewLine + Environment.NewLine
+        End If
+        Return mensaje + "¿Borrar esa fila y seguir?"
+    End Function
+
+    Public Shared Function TextoResultadoDejarACero(hecho As DejarACeroInventarioRespuestaDTO) As String
+        If hecho Is Nothing Then
+            Return "Hecho."
+        End If
+        Dim partes As New List(Of String)
+        If hecho.FilasCreadas > 0 Then
+            partes.Add(If(hecho.FilasCreadas = 1, "1 fila creada", $"{hecho.FilasCreadas} filas creadas") + " a 0")
+        End If
+        If hecho.FilasPuestasACero > 0 Then
+            partes.Add(If(hecho.FilasPuestasACero = 1, "1 fila puesta", $"{hecho.FilasPuestasACero} filas puestas") + " a 0")
+        End If
+        Dim quitadas = If(hecho.FilasQuitadas, New List(Of LineaInventarioContadaDTO)).Count
+        If quitadas > 0 Then
+            partes.Add(If(quitadas = 1, "1 fila sin ubicación borrada", $"{quitadas} filas sin ubicación borradas"))
+        End If
+        Dim texto = $"{hecho.Producto?.Trim()} en {hecho.Almacen?.Trim()}: " + If(partes.Any(), String.Join(", ", partes), "nada que cambiar") + "."
+        If Not String.IsNullOrWhiteSpace(hecho.Aviso) Then
+            texto += Environment.NewLine + Environment.NewLine + hecho.Aviso.Trim()
+        End If
+        Return texto
+    End Function
+#End Region
+
 #Region "Funciones Auxiliares"
     ''' <summary>Nesto#596: las tiendas (todo lo que no es Algete, que se inventaría por ubicaciones desde Ariadna).</summary>
     Public Shared Function EsAlmacenDeTienda(almacenInventario As String) As Boolean
@@ -667,7 +855,7 @@ Public Class InventarioViewModel
     ''' NestoAPI#784: el mensaje de la API (quién lo contabilizó y en qué traspaso) y «¿Contar otra vez?», con «No» por defecto:
     ''' lo que se rellena de nuevo y nadie cuenta se queda a cero al contabilizar.
     ''' </summary>
-    Private Function PreguntarContarOtraVez(ex As InventarioYaContabilizadoException) As Boolean
+    Private Function PreguntarContarOtraVez(ex As ConflictoInventarioException) As Boolean
         Dim mensaje = If(ex?.Message, String.Empty).Trim()
         If mensaje.Length > 0 Then
             mensaje += Environment.NewLine + Environment.NewLine

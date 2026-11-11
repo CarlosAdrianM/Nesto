@@ -47,6 +47,12 @@ Public Interface IServicioInventario
     ''' las filas pendientes de <paramref name="fecha"/>. La valoración (PVP o coste) la decide la API.
     ''' </summary>
     Function Diferencias(empresa As String, almacen As String, fecha As Date?, traspasos As IEnumerable(Of Integer)) As Task(Of DiferenciasInventarioDTO)
+    ''' <summary>
+    ''' Sugerencia 1185: POST api/Inventarios/DejarACero (filas de hoy del producto a 0 en todas sus ubicaciones; con
+    ''' <paramref name="simular"/>, solo lo que haría). Un 409 (YaContabilizado, FilasDuplicadas, FilasSinUbicacion) lanza
+    ''' <see cref="ConflictoInventarioException"/>; los demás errores, Exception con el mensaje de la API.
+    ''' </summary>
+    Function DejarACero(empresa As String, almacen As String, producto As String, otraVez As Boolean, quitarFilasSinUbicacion As Boolean, simular As Boolean) As Task(Of DejarACeroInventarioRespuestaDTO)
 End Interface
 
 ''' <summary>NestoAPI#784: un 409 de api/Inventarios, con su Codigo (<see cref="CodigosConflictoInventario"/>) y sus filas.</summary>
@@ -249,6 +255,24 @@ Public Class ServicioInventario
                 Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
             End If
             Return If(JsonConvert.DeserializeObject(Of DiferenciasInventarioDTO)(cuerpo), New DiferenciasInventarioDTO With {.Almacen = almacen, .Fecha = fecha})
+        End Using
+    End Function
+
+    Public Async Function DejarACero(empresa As String, almacen As String, producto As String, otraVez As Boolean, quitarFilasSinUbicacion As Boolean, simular As Boolean) As Task(Of DejarACeroInventarioRespuestaDTO) Implements IServicioInventario.DejarACero
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim peticion = New With {.Empresa = empresa, .Almacen = almacen, .Producto = producto, .OtraVez = otraVez,
+                .QuitarFilasSinUbicacion = quitarFilasSinUbicacion, .Simular = simular}
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Inventarios/DejarACero", content)
+            Dim cuerpo = Await response.Content.ReadAsStringAsync()
+            If response.StatusCode = HttpStatusCode.Conflict Then
+                Dim conflicto = LeerConflicto(cuerpo)
+                Throw New ConflictoInventarioException(MensajeConflicto(conflicto, cuerpo), conflicto)
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return JsonConvert.DeserializeObject(Of DejarACeroInventarioRespuestaDTO)(cuerpo)
         End Using
     End Function
 

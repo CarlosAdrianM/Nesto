@@ -62,9 +62,13 @@
                 <Button Content="Contabilizar inventario" Command="{Binding cmdContabilizarInventario}" FontSize="16" Padding="14,6" Margin="0,0,12,0"
                         Visibility="{Binding PuedeContabilizar, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTip="Comprueba el inventario del almacén y la fecha y, si no hay nada que lo impida, lo contabiliza"/>
-                <Button Content="Ver diferencias" Command="{Binding cmdVerDiferencias}" FontSize="16" Padding="14,6"
+                <Button Content="Ver diferencias" Command="{Binding cmdVerDiferencias}" FontSize="16" Padding="14,6" Margin="0,0,12,0"
                         Visibility="{Binding PuedeVerDiferencias, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTip="Las diferencias valoradas del inventario de esta fecha (lo pendiente) o de los traspasos que indique"/>
+                <!-- Sugerencia 1185: el producto de «Producto» a cero en todas sus ubicaciones (filas de hoy; luego se contabiliza). -->
+                <Button Content="Dejar a cero en todas sus ubicaciones" Command="{Binding cmdDejarACero}" FontSize="16" Padding="14,6"
+                        Visibility="{Binding PuedeDejarACero, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Pone a 0 el producto escrito en «Producto» en todas sus ubicaciones de este almacén (inventario de hoy). Después hay que contabilizar el inventario."/>
             </StackPanel>
         </Grid>
         <TabControl Name="tclMovimientos" Grid.Column="1" TabStripPlacement="Bottom">
