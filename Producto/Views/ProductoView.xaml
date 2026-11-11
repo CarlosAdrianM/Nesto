@@ -685,6 +685,19 @@
                                     <TextBlock Text="Categoría principal (la de la ficha): " FontWeight="Bold"/>
                                     <TextBlock Text="{Binding CategoriaPrincipalTexto}"/>
                                 </StackPanel>
+                                <!-- Sugerencia 780: Pack Regalo (COS/PRG) solo como principal y sin otras -->
+                                <TextBlock Text="{Binding AvisoPackRegalo}" TextWrapping="Wrap" Foreground="DarkRed"
+                                           FontWeight="Bold" Margin="0,0,0,8">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AvisoPackRegalo}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>

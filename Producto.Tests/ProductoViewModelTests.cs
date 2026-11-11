@@ -431,6 +431,119 @@ namespace Producto.Tests
             Assert.AreEqual(0, enviadas!.Count);
         }
 
+        // Sugerencia 780 (Laura): Pack Regalo (COS/PRG) solo como principal y, si lo es, sin ninguna otra categoría.
+
+        private static ProductoViewModel CrearViewModelPackRegalo(out IProductoService servicio, string grupo = "COS", string subgrupo = "PRG")
+        {
+            var sut = CrearViewModelConCategorias(out IProductoService fake);
+            A.CallTo(() => fake.LeerSubgruposProducto()).Returns(new List<SubgrupoProductoModel>
+            {
+                new SubgrupoProductoModel { Grupo = "COS", Subgrupo = "CRE", Nombre = "Cremas" },
+                new SubgrupoProductoModel { Grupo = "COS", Subgrupo = "PRG", Nombre = "Pack Regalo" },
+                new SubgrupoProductoModel { Grupo = "COS", Subgrupo = "OUT", Nombre = "Outlet Estética" }
+            });
+            A.CallTo(() => fake.LeerProducto("41269")).Returns(new ProductoModel
+            {
+                Producto = "41269",
+                Grupo = grupo,
+                SubgrupoCodigo = subgrupo,
+                Subgrupo = "Lo que sea"
+            });
+            servicio = fake;
+            return sut;
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegalo_NoSeLePuedeAnnadirOtraCategoria()
+        {
+            var sut = CrearViewModelPackRegalo(out _);
+            sut.ReferenciaBuscar = "41269";
+
+            sut.GrupoWebSeleccionado = "COS";
+            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "OUT");
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
+
+            Assert.AreEqual(0, sut.CategoriasSecundarias.Count);
+            Assert.IsNull(sut.AvisoPackRegalo);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegalo_NoSePuedeAnnadirComoSecundaria()
+        {
+            var sut = CrearViewModelPackRegalo(out _, "COS", "CRE");
+            sut.ReferenciaBuscar = "41269";
+
+            sut.GrupoWebSeleccionado = "COS";
+            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "PRG");
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
+
+            Assert.AreEqual(0, sut.CategoriasSecundarias.Count);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegaloConOtrasCategorias_AvisaYAlQuitarlasDejaDeAvisar()
+        {
+            // Lo que ya incumple la regla se ve y se puede arreglar quitando y guardando
+            var sut = CrearViewModelPackRegalo(out var servicio);
+            A.CallTo(() => servicio.LeerCategoriasSecundarias("41269")).Returns(new List<CategoriaSecundariaModel>
+            {
+                new CategoriaSecundariaModel { Grupo = "COS", Subgrupo = "OUT", DescripcionSubgrupo = "Outlet Estética" }
+            });
+            List<CategoriaSecundariaModel>? enviadas = null;
+            A.CallTo(() => servicio.GuardarCategoriasSecundarias("41269", A<List<CategoriaSecundariaModel>>._))
+                .Invokes((string _, List<CategoriaSecundariaModel> lista) => enviadas = lista);
+            sut.ReferenciaBuscar = "41269";
+
+            Assert.AreEqual(ReglaPackRegalo.AVISO_PRINCIPAL_CON_SECUNDARIAS, sut.AvisoPackRegalo);
+
+            sut.CategoriaSecundariaSeleccionada = sut.CategoriasSecundarias[0];
+            sut.QuitarCategoriaSecundariaCommand.Execute(null);
+            sut.GuardarCategoriasSecundariasCommand.Execute(null);
+
+            Assert.IsNull(sut.AvisoPackRegalo);
+            Assert.IsNotNull(enviadas);
+            Assert.AreEqual(0, enviadas!.Count);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegaloComoSecundaria_Avisa()
+        {
+            var sut = CrearViewModelPackRegalo(out var servicio, "PEL", "TRA");
+            A.CallTo(() => servicio.LeerCategoriasSecundarias("41269")).Returns(new List<CategoriaSecundariaModel>
+            {
+                new CategoriaSecundariaModel { Grupo = "COS", Subgrupo = "PRG", DescripcionSubgrupo = "Pack Regalo" }
+            });
+
+            sut.ReferenciaBuscar = "41269";
+
+            Assert.AreEqual(ReglaPackRegalo.AVISO_PACK_REGALO_COMO_SECUNDARIA, sut.AvisoPackRegalo);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_ProductoNormal_SigueAdmitiendoSecundariasYNoAvisa()
+        {
+            var sut = CrearViewModelPackRegalo(out _, "COS", "CRE");
+            sut.ReferenciaBuscar = "41269";
+
+            sut.GrupoWebSeleccionado = "COS";
+            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "OUT");
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
+
+            Assert.AreEqual(1, sut.CategoriasSecundarias.Count);
+            Assert.IsNull(sut.AvisoPackRegalo);
+        }
+
+        [TestMethod]
+        public void ReglaPackRegalo_ReconoceElCodigoConEspaciosYMinusculas()
+        {
+            // En la BD los códigos vienen rellenos de espacios
+            Assert.IsTrue(ReglaPackRegalo.EsPackRegalo("COS ", "prg  "));
+            Assert.IsFalse(ReglaPackRegalo.EsPackRegalo("PEL", "PRG"));
+            Assert.IsNull(ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "CRE", "COS", "OUT"));
+            Assert.AreEqual(ReglaPackRegalo.MOTIVO_PRINCIPAL_PACK_REGALO, ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "COS", "OUT"));
+            Assert.AreEqual(ReglaPackRegalo.MOTIVO_PACK_REGALO_COMO_SECUNDARIA, ReglaPackRegalo.MotivoNoSePuedeAnnadir("PEL", "TRA", "COS", "PRG"));
+        }
+
         [TestMethod]
         public void ProductoViewModel_SiFallaLaCargaDeCategorias_LaFichaSeAbreIgual()
         {

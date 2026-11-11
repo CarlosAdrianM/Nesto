@@ -871,6 +871,19 @@ namespace Nesto.Modules.Producto.ViewModels
         public ObservableCollection<string> GruposWeb { get; } = new();
         public ObservableCollection<SubgrupoProductoModel> SubgruposDelGrupoWeb { get; } = new();
 
+        private string _avisoPackRegalo;
+        /// <summary>Sugerencia 780: si lo que tiene ya incumple la regla del Pack Regalo, el aviso; null si la cumple.</summary>
+        public string AvisoPackRegalo
+        {
+            get => _avisoPackRegalo;
+            set => SetProperty(ref _avisoPackRegalo, value);
+        }
+
+        private void RefrescarAvisoPackRegalo()
+        {
+            AvisoPackRegalo = ReglaPackRegalo.Aviso(_grupoPrincipal, _subgrupoPrincipal, CategoriasSecundarias);
+        }
+
         private string _categoriaPrincipalTexto;
         public string CategoriaPrincipalTexto
         {
@@ -954,6 +967,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 GrupoWebSeleccionado = null;
                 RellenarSubgruposDelGrupo();
                 RefrescarComandosDeCategorias();
+                RefrescarAvisoPackRegalo();
                 GuardarCategoriasSecundariasCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
@@ -1001,6 +1015,13 @@ namespace Nesto.Modules.Producto.ViewModels
                 _dialogService.ShowNotification($"El producto ya está en {elegido.Descripcion}");
                 return;
             }
+            // Sugerencia 780: Pack Regalo solo como principal y, si lo es, sin ninguna otra
+            string motivo = ReglaPackRegalo.MotivoNoSePuedeAnnadir(_grupoPrincipal, _subgrupoPrincipal, elegido.Grupo, elegido.Subgrupo);
+            if (motivo != null)
+            {
+                _dialogService.ShowError(motivo);
+                return;
+            }
             CategoriasSecundarias.Add(new CategoriaSecundariaModel
             {
                 Grupo = elegido.Grupo?.Trim(),
@@ -1008,6 +1029,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 DescripcionSubgrupo = elegido.Nombre?.Trim()
             });
             RefrescarComandosDeCategorias();
+            RefrescarAvisoPackRegalo();
         }
 
         public RelayCommand QuitarCategoriaSecundariaCommand { get; private set; }
@@ -1019,6 +1041,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             _ = CategoriasSecundarias.Remove(CategoriaSecundariaSeleccionada);
             CategoriaSecundariaSeleccionada = null;
+            RefrescarAvisoPackRegalo();
         }
 
         public RelayCommand SubirCategoriaSecundariaCommand { get; private set; }
