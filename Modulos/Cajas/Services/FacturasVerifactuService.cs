@@ -82,6 +82,55 @@ namespace Nesto.Modulos.Cajas.Services
             }
         }
 
+        public async Task<ResultadoReintentoVerifactuModel> NoDeclarar(string empresa, string numero, string motivo)
+        {
+            using (HttpClient client = await CrearCliente())
+            {
+                HttpContent contenido = new StringContent(
+                    JsonConvert.SerializeObject(new { Empresa = empresa?.Trim(), Numero = numero?.Trim(), Motivo = motivo?.Trim() }),
+                    Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("Verifactu/NoDeclarar", contenido);
+                string body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception(MensajeErrorNoDeclarar(numero, response, body));
+                }
+                return JsonConvert.DeserializeObject<ResultadoReintentoVerifactuModel>(body)
+                    ?? new ResultadoReintentoVerifactuModel { Exitoso = false, Mensaje = "La API no ha devuelto respuesta" };
+            }
+        }
+
+        internal const string MENSAJE_SERVIDOR_ANTIGUO = "para no declarar facturas necesita la versión nueva del servidor. Avise a Informática.";
+
+        internal static string MensajeErrorNoDeclarar(string? numero, HttpResponseMessage response, string body)
+        {
+            string mensaje = EsAccionInexistente(response, body)
+                ? MENSAJE_SERVIDOR_ANTIGUO
+                : response.StatusCode == HttpStatusCode.Forbidden
+                    ? "solo pueden hacerlo Administración y Dirección"
+                    : ExtraerMensaje(response, body);
+            return $"No se pudo dejar sin declarar la factura {numero?.Trim()}: {mensaje}";
+        }
+
+        /// <summary>
+        /// La API todavía no tiene la acción: Web API contesta 404 (o 405) con «No HTTP resource was found…» / «No action was
+        /// found…». Un 404 con otro mensaje (p. ej. «no existe la factura») es de la acción nueva y se enseña tal cual.
+        /// </summary>
+        internal static bool EsAccionInexistente(HttpResponseMessage response, string body)
+        {
+            if (response.StatusCode == HttpStatusCode.MethodNotAllowed)
+            {
+                return true;
+            }
+            if (response.StatusCode != HttpStatusCode.NotFound)
+            {
+                return false;
+            }
+            return string.IsNullOrWhiteSpace(body)
+                || body.IndexOf("No HTTP resource was found", StringComparison.OrdinalIgnoreCase) >= 0
+                || body.IndexOf("No action was found", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
         private async Task<HttpClient> CrearCliente()
         {
             var client = new HttpClient { BaseAddress = new Uri(_configuracion.servidorAPI) };

@@ -13,5 +13,10 @@ namespace Nesto.Modulos.Cajas.Interfaces
         Task<ResultadoReintentoVerifactuModel> ReintentarFactura(string empresa, string numero);
         /// <summary>NestoAPI#392: POST api/Verifactu/DeclararSimplificada (solo Administración y Dirección, motivo obligatorio).</summary>
         Task<ResultadoReintentoVerifactuModel> DeclararSimplificada(string empresa, string numero, string motivo);
+        /// <summary>
+        /// «No declarar»: POST api/Verifactu/NoDeclarar (motivo obligatorio): la factura deja de enviarse a Hacienda y de salir en
+        /// la lista. Con una API que aún no lo tiene, lanza «necesita la versión nueva del servidor».
+        /// </summary>
+        Task<ResultadoReintentoVerifactuModel> NoDeclarar(string empresa, string numero, string motivo);
     }
 }

@@ -82,6 +82,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Motivo:" FontWeight="Bold" Margin="0,0,8,4"/>
                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FacturaSeleccionada.Motivo, Mode=OneWay}" IsReadOnly="True"
@@ -98,6 +99,12 @@
                                 Visibility="{Binding PuedeDeclararSimplificadaSeleccionada, Converter={StaticResource VisibleSiVerdadero}}">
                         <Button Content="Declarar como simplificada" Command="{Binding DeclararSimplificadaCommand}" Padding="10,2" MinWidth="140"/>
                         <TextBlock Text="Solo si el NIF real no se puede conseguir y la factura no pasa de 400 €: se declara sin NIF ni nombre del cliente (y su rectificativa como R5). Pide el motivo."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                    </StackPanel>
+                    <!-- No declarar: facturas anteriores a Verifactu (01/01/2027) sin dato correcto del cliente; se habilita si la API trae PuedeNoDeclararse -->
+                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="No declarar…" Command="{Binding NoDeclararCommand}" Padding="10,2" MinWidth="140"/>
+                        <TextBlock Text="Solo para facturas anteriores al 01/01/2027 cuando no se puede conseguir el dato correcto del cliente: deja de enviarse a Hacienda y sale de esta lista. Pide el motivo."
                                    Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
                     </StackPanel>
                 </Grid>

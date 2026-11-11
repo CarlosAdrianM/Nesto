@@ -25,6 +25,11 @@ namespace Nesto.Modulos.Cajas.Models
         public bool DeclararSimplificada { get; set; }
         /// <summary>NestoAPI#392: el problema es el NIF y se puede ofrecer «Declarar como simplificada».</summary>
         public bool PuedeDeclararSimplificada { get; set; }
+        /// <summary>
+        /// «No declarar»: la API permite sacarla de Verifactu (anterior al 01/01/2027). Con una API antigua no viene y queda
+        /// a false (el botón deshabilitado).
+        /// </summary>
+        public bool PuedeNoDeclararse { get; set; }
     }
 
     /// <summary>NestoAPI#522: respuesta de POST api/Verifactu/ReintentarFactura.</summary>

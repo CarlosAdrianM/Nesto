@@ -209,5 +209,125 @@ namespace CajasTests
         }
 
         #endregion
+
+        #region No declarar
+
+        private static FacturaPendienteVerifactuModel FacturaQueSePuedeNoDeclarar(string numero = "CV2600692")
+        {
+            FacturaPendienteVerifactuModel factura = Factura(numero, "Sin datos fiscales", puedeReintentar: false);
+            factura.PuedeNoDeclararse = true;
+            return factura;
+        }
+
+        [TestMethod]
+        public async Task NoDeclarar_SoloSeHabilitaSiLaApiDiceQueSePuede()
+        {
+            await CargarCon(Factura("NV2615001"), FacturaQueSePuedeNoDeclarar());
+
+            Assert.IsFalse(vm.NoDeclararCommand.CanExecute(null), "Sin factura seleccionada");
+            vm.FacturaSeleccionada = vm.Facturas[0];
+            Assert.IsFalse(vm.NoDeclararCommand.CanExecute(null), "PuedeNoDeclararse ausente o false (API antigua)");
+            vm.FacturaSeleccionada = vm.Facturas[1];
+            Assert.IsTrue(vm.NoDeclararCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void NoDeclarar_ConUnaApiAntiguaSinElCampo_QuedaAFalse()
+        {
+            var factura = Newtonsoft.Json.JsonConvert.DeserializeObject<FacturaPendienteVerifactuModel>("{\"Empresa\":\"1\",\"Numero\":\"CV2600692\"}")!;
+            Assert.IsFalse(factura.PuedeNoDeclararse);
+            factura = Newtonsoft.Json.JsonConvert.DeserializeObject<FacturaPendienteVerifactuModel>("{\"Numero\":\"CV2600692\",\"PuedeNoDeclararse\":true}")!;
+            Assert.IsTrue(factura.PuedeNoDeclararse);
+        }
+
+        [TestMethod]
+        public async Task NoDeclarar_PideElMotivo_Confirma_LlamaALaApi_YLaFacturaSaleDeLaLista()
+        {
+            await CargarCon(FacturaQueSePuedeNoDeclarar(), Factura("NV2615001"));
+            vm.FacturaSeleccionada = vm.Facturas[0];
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("  Cliente desaparecido, sin NIF ");
+            string? textoConfirmacion = null;
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, true))
+                .Invokes((string _, string m, bool _) => textoConfirmacion = m).Returns(true);
+            A.CallTo(() => servicio.NoDeclarar("1", "CV2600692", "Cliente desaparecido, sin NIF"))
+                .Returns(new ResultadoReintentoVerifactuModel { Exitoso = true, Mensaje = "La factura CV2600692 ya no se declarará." });
+
+            await vm.NoDeclararAsync();
+
+            A.CallTo(() => servicio.NoDeclarar("1", "CV2600692", "Cliente desaparecido, sin NIF")).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(textoConfirmacion, "Esta factura dejará de enviarse a Hacienda y de salir en esta lista. Solo se puede hacer con facturas anteriores a la entrada en vigor de Verifactu (01/01/2027). Úselo solo si no se puede conseguir el dato correcto del cliente.");
+            Assert.AreEqual("NV2615001", vm.Facturas.Single().Numero);
+            Assert.IsNull(vm.FacturaSeleccionada);
+            A.CallTo(() => dialogos.ShowNotification("Verifactu", "La factura CV2600692 ya no se declarará.")).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public async Task NoDeclarar_SinMotivo_Cancelado_ONoConfirmado_NoLlamaALaApi()
+        {
+            await CargarCon(FacturaQueSePuedeNoDeclarar());
+            vm.FacturaSeleccionada = vm.Facturas[0];
+
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns(null!);
+            await vm.NoDeclararAsync();
+            A.CallTo(() => dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("  ");
+            await vm.NoDeclararAsync();
+            A.CallTo(() => dialogos.ShowError(A<string>.That.Contains("motivo"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).MustNotHaveHappened();
+
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("No hay forma de conseguir el NIF");
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(false);
+            await vm.NoDeclararAsync();
+
+            A.CallTo(() => servicio.NoDeclarar(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual(1, vm.Facturas.Count);
+        }
+
+        [TestMethod]
+        public async Task NoDeclarar_LaApiLoRechaza_MuestraSuMensajeYLaFacturaSigue()
+        {
+            await CargarCon(FacturaQueSePuedeNoDeclarar());
+            FacturaPendienteVerifactuModel original = vm.Facturas[0];
+            vm.FacturaSeleccionada = original;
+            A.CallTo(() => dialogos.GetText(A<string>._, A<string>._)).Returns("Sin NIF");
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(true);
+            A.CallTo(() => servicio.NoDeclarar(A<string>._, A<string>._, A<string>._))
+                .Throws(new Exception("No se pudo dejar sin declarar la factura CV2600692: para no declarar facturas necesita la versión nueva del servidor. Avise a Informática."));
+
+            await vm.NoDeclararAsync();
+
+            A.CallTo(() => dialogos.ShowError(A<string>.That.Contains("versión nueva del servidor"))).MustHaveHappenedOnceExactly();
+            Assert.AreSame(original, vm.Facturas.Single());
+            Assert.IsFalse(vm.EstaOcupado);
+        }
+
+        [TestMethod]
+        public void NoDeclarar_ServicioConApiAntigua_DiceQueHaceFaltaLaVersionNueva()
+        {
+            var noEncontrado = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+            string cuerpoWebApi = "{\"Message\":\"No HTTP resource was found that matches the request URI 'https://api/api/Verifactu/NoDeclarar'.\",\"MessageDetail\":\"No action was found on the controller 'Verifactu' that matches the request.\"}";
+
+            string mensaje = Nesto.Modulos.Cajas.Services.FacturasVerifactuService.MensajeErrorNoDeclarar("CV2600692", noEncontrado, cuerpoWebApi);
+
+            StringAssert.Contains(mensaje, "necesita la versión nueva del servidor");
+            StringAssert.Contains(mensaje, "CV2600692");
+            Assert.IsTrue(Nesto.Modulos.Cajas.Services.FacturasVerifactuService.EsAccionInexistente(
+                new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.MethodNotAllowed), ""));
+        }
+
+        [TestMethod]
+        public void NoDeclarar_Servicio404DeLaAccionNueva_EnseñaSuMensaje()
+        {
+            var noEncontrado = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+
+            string mensaje = Nesto.Modulos.Cajas.Services.FacturasVerifactuService.MensajeErrorNoDeclarar("CV2600692", noEncontrado, "{\"Message\":\"No existe la factura CV2600692\"}");
+
+            StringAssert.Contains(mensaje, "No existe la factura CV2600692");
+            Assert.IsFalse(mensaje.Contains("versión nueva"));
+        }
+
+        #endregion
     }
 }

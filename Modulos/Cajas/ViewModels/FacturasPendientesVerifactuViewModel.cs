@@ -31,6 +31,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             ReintentarCommand = new AsyncRelayCommand(ReintentarAsync, CanReintentar);
             DeclararSimplificadaCommand = new AsyncRelayCommand(DeclararSimplificadaAsync, CanDeclararSimplificada);
+            NoDeclararCommand = new AsyncRelayCommand(NoDeclararAsync, CanNoDeclarar);
         }
 
         public string Titulo { get; }
@@ -60,6 +61,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     OnPropertyChanged(nameof(PuedeDeclararSimplificadaSeleccionada));
                     ReintentarCommand.NotifyCanExecuteChanged();
                     DeclararSimplificadaCommand.NotifyCanExecuteChanged();
+                    NoDeclararCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -77,6 +79,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     ReintentarCommand.NotifyCanExecuteChanged();
                     DeclararSimplificadaCommand.NotifyCanExecuteChanged();
+                    NoDeclararCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -229,6 +232,65 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 else
                 {
                     _dialogService.ShowError(resultado.Mensaje ?? $"No se ha podido declarar como simplificada la factura {factura.Numero}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        internal const string TEXTO_CONFIRMACION_NO_DECLARAR =
+            "Esta factura dejará de enviarse a Hacienda y de salir en esta lista. Solo se puede hacer con facturas anteriores a la " +
+            "entrada en vigor de Verifactu (01/01/2027). Úselo solo si no se puede conseguir el dato correcto del cliente.";
+
+        public IAsyncRelayCommand NoDeclararCommand { get; }
+        /// <summary>«No declarar»: solo si la API dice que se puede (PuedeNoDeclararse; con una API antigua no viene = no).</summary>
+        private bool CanNoDeclarar() => FacturaSeleccionada?.PuedeNoDeclararse == true && !EstaOcupado;
+
+        /// <summary>
+        /// «No declarar»: la factura deja de enviarse a Verifactu y de salir aquí. Pide el motivo (obligatorio, queda registrado),
+        /// confirma (por defecto «No»), llama a la API y deja la lista como la devuelve.
+        /// </summary>
+        public async Task NoDeclararAsync()
+        {
+            if (!CanNoDeclarar())
+            {
+                return;
+            }
+            FacturaPendienteVerifactuModel factura = FacturaSeleccionada!;
+            string? motivo = _dialogService.GetText("No declarar",
+                $"Factura {factura.Numero}. {TEXTO_CONFIRMACION_NO_DECLARAR}\n\nMotivo (obligatorio, queda registrado):");
+            if (motivo == null)
+            {
+                return; // cancelado
+            }
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                _dialogService.ShowError("Hay que indicar el motivo por el que no se declara la factura.");
+                return;
+            }
+            if (!_dialogService.ShowConfirmationAnswer("No declarar", $"¿Seguro que no quiere declarar la factura {factura.Numero}?\n\n{TEXTO_CONFIRMACION_NO_DECLARAR}", true))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                ResultadoReintentoVerifactuModel resultado = await _servicio.NoDeclarar(
+                    factura.Empresa ?? string.Empty, factura.Numero ?? string.Empty, motivo.Trim());
+                ActualizarFila(factura, resultado);
+                if (resultado.Exitoso)
+                {
+                    _dialogService.ShowNotification("Verifactu", resultado.Mensaje ?? $"La factura {factura.Numero} ya no se declarará.");
+                }
+                else
+                {
+                    _dialogService.ShowError(resultado.Mensaje ?? $"No se ha podido dejar sin declarar la factura {factura.Numero}.");
                 }
             }
             catch (Exception ex)
