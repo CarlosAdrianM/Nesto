@@ -12,6 +12,10 @@
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
+        <!-- Sugerencia 1183: el acento de las menciones (campana, halo, etiqueta del panel y ventanita) -->
+        <SolidColorBrush x:Key="AcentoMencion" Color="#E8710A" />
+        <SolidColorBrush x:Key="FondoMencion" Color="#FEF3E2" />
+        <SolidColorBrush x:Key="TextoMencion" Color="#B45309" />
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -39,8 +43,60 @@
                 </Style>
             </ToggleButton.Style>
             <Grid>
-                <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,2,6,0"
-                           VerticalAlignment="Center" Foreground="#444444" />
+                <!-- Sugerencia 1183: con una mención sin leer, un halo naranja detrás de la campana que late suave (hasta leerla) -->
+                <Ellipse Width="24" Height="24" Margin="-4,-2,0,-2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                         Fill="{StaticResource AcentoMencion}" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Ellipse.RenderTransform>
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Opacity" Value="0.15" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HayMencionSinLeer}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard x:Name="LatidoMencion">
+                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.12" To="0.38" Duration="0:0:1.1">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <SineEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" From="0.85" To="1.1" Duration="0:0:1.1">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <SineEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.85" To="1.1" Duration="0:0:1.1">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <SineEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <RemoveStoryboard BeginStoryboardName="LatidoMencion" />
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,2,6,0" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#444444" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HayMencionSinLeer}" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource AcentoMencion}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <Border Background="#D93025" CornerRadius="7" MinWidth="14" Height="14" Padding="3,0"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-4,0"
                         Visibility="{Binding HayNoLeidas, Converter={StaticResource BoolAVisible}}">
@@ -62,6 +118,19 @@
                                 Padding="6,1" FontSize="11" />
                         <TextBlock Text="Notificaciones" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
                     </DockPanel>
+                    <!-- Sugerencia 1183: el interruptor de la ventanita, a la vista y que el propio usuario enciende y apaga -->
+                    <Border DockPanel.Dock="Top" Background="{StaticResource FondoMencion}" BorderBrush="#F6D7AE" BorderThickness="0,1"
+                            Padding="10,6">
+                        <CheckBox IsChecked="{Binding AvisoEmergenteMenciones, Mode=TwoWay}" IsEnabled="{Binding PuedeCambiarAvisoEmergente}"
+                                  VerticalContentAlignment="Center" Cursor="Hand"
+                                  ToolTip="Si lo marca, cuando alguien le mencione con @ en Novedades saldrá una ventanita en la esquina de la pantalla, sin sonido, que se cierra sola. Al pulsarla se abre la novedad.">
+                            <TextBlock TextWrapping="Wrap">
+                                <Run Text="Avisarme con una ventana cuando me mencionen" FontWeight="SemiBold" Foreground="{StaticResource TextoMencion}" />
+                                <LineBreak />
+                                <Run Text="Sin sonido; se cierra sola a los pocos segundos." FontSize="11" Foreground="#777777" />
+                            </TextBlock>
+                        </CheckBox>
+                    </Border>
                     <TextBlock DockPanel.Dock="Top" Text="Cargando…" Foreground="#777777" Margin="10,4"
                                Visibility="{Binding Cargando, Converter={StaticResource BoolAVisible}}" />
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" Foreground="#777777" TextWrapping="Wrap" Margin="10,4"
@@ -78,10 +147,21 @@
                                                     <DataTrigger Binding="{Binding Leida}" Value="False">
                                                         <Setter Property="Background" Value="#EEF5FD" />
                                                     </DataTrigger>
+                                                    <!-- Sugerencia 1183: la mención sin leer, con el fondo de su acento -->
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding Leida}" Value="False" />
+                                                            <Condition Binding="{Binding EsMencion}" Value="True" />
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Background" Value="#FFF8EE" />
+                                                    </MultiDataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
                                         <DockPanel>
+                                            <!-- Sugerencia 1183: el borde de acento de las menciones -->
+                                            <Border DockPanel.Dock="Left" Width="3" Background="{StaticResource AcentoMencion}"
+                                                    Visibility="{Binding EsMencion, Converter={StaticResource BoolAVisible}}" />
                                             <Button DockPanel.Dock="Right" Style="{StaticResource BotonPlano}" Content="&#xE74D;"
                                                     FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#888888" Padding="8,6"
                                                     VerticalAlignment="Top" ToolTip="Borrar la notificación"
@@ -125,6 +205,12 @@
                                                         </Ellipse.Style>
                                                     </Ellipse>
                                                     <StackPanel>
+                                                        <!-- Sugerencia 1183: la etiqueta de las menciones -->
+                                                        <Border HorizontalAlignment="Left" Background="{StaticResource FondoMencion}" CornerRadius="3"
+                                                                Padding="5,0,5,1" Margin="0,0,0,2"
+                                                                Visibility="{Binding EsMencion, Converter={StaticResource BoolAVisible}}">
+                                                            <TextBlock Text="@ Le mencionan" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextoMencion}" />
+                                                        </Border>
                                                         <DockPanel>
                                                             <TextBlock DockPanel.Dock="Right" Text="{Binding FechaRelativa}" FontSize="11" Foreground="#888888"
                                                                        Margin="6,0,0,0" ToolTip="{Binding FechaCreacion}" />

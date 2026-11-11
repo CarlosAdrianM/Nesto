@@ -89,6 +89,15 @@ namespace Nesto.Infrastructure.Contracts
 
         public string Tipo => Dato("tipo");
 
+        /// <summary>
+        /// Sugerencia 1183: la API pone Datos["mencion"] = "1" en el aviso al @mencionado en Novedades. Las de antes, sin el
+        /// dato, no son menciones (se ven como siempre).
+        /// </summary>
+        public const string DATO_MENCION = "mencion";
+
+        /// <summary>Sugerencia 1183: si es el aviso de que alguien le ha mencionado (@Usuario) en Novedades.</summary>
+        public bool EsMencion => string.Equals(Dato(DATO_MENCION)?.Trim(), "1", StringComparison.Ordinal);
+
         /// <summary>El valor de <see cref="Datos"/> con esa clave (sin distinguir mayúsculas) o null.</summary>
         public string Dato(string clave)
         {

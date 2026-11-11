@@ -188,6 +188,9 @@ Public NotInheritable Class ComposicionNesto
                 r.Resolver(Of IBuzonNotificacionesService)(), r.Resolver(Of IAvisosEnTiempoReal)(),
                 New ControlesUsuario.Notificaciones.Urgentes.PresentadorAvisosUrgentesWpf(),
                 r.Resolver(Of IServicioDialogos)())) ' NestoAPI#734: «Contestar» de la consulta de reembolso urgente
+        ' Sugerencia 1183: la ventanita discreta de «le han mencionado» (la campana la pide si el usuario la tiene encendida)
+        registro.Singleton(Of ControlesUsuario.Notificaciones.Menciones.IPresentadorAvisoMencion)(
+            Function(r) New ControlesUsuario.Notificaciones.Menciones.PresentadorAvisoMencionWpf())
 
         ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
         registro.Singleton(Of IServicioAgenciasMantenimiento)(Function(r) New AgenciasMantenimientoService(r.Resolver(Of IClienteApiFactory)()))

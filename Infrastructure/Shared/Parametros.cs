@@ -13,6 +13,10 @@
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";
             public const string AlmacenRuta = "AlmacénRuta";
+            // Sugerencia 1183: "1" = cuando le mencionan en Novedades, una ventanita discreta en la esquina (sin sonido, se
+            // cierra sola). Cualquier otro valor, sin fila o si no se puede leer = no. Lo cambia el usuario con el interruptor
+            // del panel de la campana. Fila «(defecto)» = '0': Scripts/Sugerencia1183_AvisoEmergenteMenciones.sql (NestoAPI).
+            public const string AvisoEmergenteMenciones = "AvisoEmergenteMenciones";
             // NestoAPI#536: "NO" = la campana no se conecta por SignalR para recibir los avisos al momento
             // (se queda con su sondeo de seguridad). Cualquier otro valor, o sin fila, = conectada.
             public const string AvisosTiempoReal = "AvisosTiempoReal";
