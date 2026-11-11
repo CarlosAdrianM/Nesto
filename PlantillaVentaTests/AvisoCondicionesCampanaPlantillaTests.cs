@@ -178,6 +178,18 @@ namespace PlantillaVentaTests
             StringAssert.Contains(json, "\"Productos\":[\"45383\",\"45670\"]");
             StringAssert.Contains(json, "\"PlazosPago\":\"1/30\"");
             StringAssert.Contains(json, "\"TienePrepago\":true");
+            StringAssert.Contains(json, "\"DescuentoPP\":0.0");
+        }
+
+        [TestMethod]
+        public void Peticion_LlevaElDescuentoPPDelPedido()
+        {
+            // Carlos 11/11/26: con pronto pago no se avisa; la API decide con este campo (y con los plazos con PP de su tabla).
+            var pedido = new PedidoVentaDTO { empresa = "1", formaPago = "RCB", plazosPago = "1/30", DescuentoPP = 0.03M };
+
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(AvisoCondicionesCampana.Peticion(pedido));
+
+            StringAssert.Contains(json, "\"DescuentoPP\":0.03");
         }
     }
 }

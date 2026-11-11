@@ -25,7 +25,10 @@ Public NotInheritable Class AvisoCondicionesCampana
     Private Sub New()
     End Sub
 
-    ''' <summary>El cuerpo de la petición: empresa, productos de las líneas de producto, forma y plazos de pago, y si lleva prepago.</summary>
+    ''' <summary>
+    ''' El cuerpo de la petición: empresa, productos de las líneas de producto, forma y plazos de pago, si lleva prepago y su
+    ''' descuento por pronto pago (Carlos 11/11/26: el pronto pago también cuenta como contado; los plazos con PP los mira la API).
+    ''' </summary>
     Public Shared Function Peticion(pedido As PedidoVentaDTO) As Object
         Dim productos As List(Of String) = If(pedido?.Lineas, Enumerable.Empty(Of LineaPedidoVentaDTO)()) _
             .Where(Function(l) l IsNot Nothing AndAlso l.tipoLinea.GetValueOrDefault(1) = 1 AndAlso Not String.IsNullOrWhiteSpace(l.Producto)) _
@@ -37,7 +40,8 @@ Public NotInheritable Class AvisoCondicionesCampana
             .Productos = productos,
             .FormaPago = pedido?.formaPago?.Trim(),
             .PlazosPago = pedido?.plazosPago?.Trim(),
-            .TienePrepago = pedido?.Prepagos IsNot Nothing AndAlso pedido.Prepagos.Any()
+            .TienePrepago = pedido?.Prepagos IsNot Nothing AndAlso pedido.Prepagos.Any(),
+            .DescuentoPP = If(pedido Is Nothing, 0D, pedido.DescuentoPP)
         }
     End Function
 
