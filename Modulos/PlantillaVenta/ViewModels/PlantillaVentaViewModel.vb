@@ -2083,7 +2083,7 @@ Public Class PlantillaVentaViewModel
 
     Friend Async Function CargarIvaPublicoFinal() As Task
         Dim cliente = _clienteSeleccionado
-        If cliente Is Nothing OrElse Not PrecioConIvaPublicoFinal.EsPublicoFinal(cliente.estado, cliente.iva) Then
+        If cliente Is Nothing OrElse Not PrecioConIvaPublicoFinal.EsPublicoFinal(cliente.estado, cliente.iva, cliente.cliente) Then
             _parametrosIvaPublicoFinal = Nothing
         Else
             Try

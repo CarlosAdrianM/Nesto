@@ -12,9 +12,16 @@ Public Module PrecioConIvaPublicoFinal
 
     Private ReadOnly CulturaEspanola As New CultureInfo("es-ES")
 
-    ''' <summary>¿Hay que enseñar el precio con IVA? Cliente de público final y que lleve IVA.</summary>
-    Public Function EsPublicoFinal(estadoCliente As Integer, ivaCliente As String) As Boolean
-        Return estadoCliente = ESTADO_PUBLICO_FINAL AndAlso Not String.IsNullOrWhiteSpace(ivaCliente)
+    ''' <summary>
+    ''' ¿Hay que enseñar el precio con IVA? El cliente lleva IVA y es de público final: estado 8 o el cliente especial
+    ''' «venta tienda» (Constantes.Clientes.Especiales.PUBLICO_FINAL), que está en estado 3.
+    ''' </summary>
+    Public Function EsPublicoFinal(estadoCliente As Integer, ivaCliente As String, cliente As String) As Boolean
+        If String.IsNullOrWhiteSpace(ivaCliente) Then
+            Return False
+        End If
+        Return estadoCliente = ESTADO_PUBLICO_FINAL OrElse
+            String.Equals(cliente?.Trim(), Nesto.Infrastructure.Shared.Constantes.Clientes.Especiales.PUBLICO_FINAL, StringComparison.Ordinal)
     End Function
 
     ''' <summary>El porcentaje (0,21 = 21 %) del IVA del producto según los parámetros de IVA del cliente; Nothing si no se sabe.</summary>

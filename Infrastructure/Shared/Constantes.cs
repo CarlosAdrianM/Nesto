@@ -48,6 +48,9 @@ namespace Nesto.Infrastructure.Shared
                 public const string TIENDA_ONLINE = "31517";
                 public const string AMAZON = "32624";
                 public const string EL_EDEN = "15191";
+                /// <summary>Sugerencia 1192: «venta tienda», el cliente de público final de las tiendas (espejo de
+                /// NestoAPI Constantes.ClientesEspeciales.PUBLICO_FINAL). Está en estado 3, no en 8.</summary>
+                public const string PUBLICO_FINAL = "10458";
             }
         }
 

@@ -37,11 +37,21 @@ namespace PlantillaVentaTests
         [TestMethod]
         public void SoloSeEnsennaConClienteDePublicoFinalConIva()
         {
-            Assert.IsTrue(PrecioConIvaPublicoFinal.EsPublicoFinal(8, "G21"));
-            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(0, "G21"));
-            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(9, "G21"));
-            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(8, null));
-            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(8, "  "));
+            Assert.IsTrue(PrecioConIvaPublicoFinal.EsPublicoFinal(8, "G21", "12345"));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(0, "G21", "12345"));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(9, "G21", "12345"));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(8, null, "12345"));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(8, "  ", "12345"));
+        }
+
+        [TestMethod]
+        public void VentaTienda10458EnEstado3_SiEsPublicoFinal()
+        {
+            // El caso real de la sugerencia: el cliente «venta tienda» está en estado 3, no en 8
+            Assert.IsTrue(PrecioConIvaPublicoFinal.EsPublicoFinal(3, "G21", "10458"));
+            Assert.IsTrue(PrecioConIvaPublicoFinal.EsPublicoFinal(3, "G21", "10458     "));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(3, null, "10458"));
+            Assert.IsFalse(PrecioConIvaPublicoFinal.EsPublicoFinal(3, "G21", "10459"));
         }
 
         [TestMethod]
