@@ -177,4 +177,87 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.GuardarCabecerasAlquiler("1", "26780", A(Of List(Of AlquilerModel)).Ignored)).MustHaveHappened()
     End Function
 
+    ' Novedad 1181: alquileres de un cliente, de cualquier producto (solo consulta).
+
+    Private Function AlquileresDelCliente() As List(Of AlquilerModel)
+        Return New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780", .NumeroSerie = "ABC123", .Cliente = "15191"},
+            New AlquilerModel With {.Empresa = "1", .Número = 205, .Producto = "31002", .NumeroSerie = "XYZ900", .Cliente = "15191"}
+        }
+    End Function
+
+    <TestMethod()>
+    Public Async Function BuscarAlquileresCliente_PoblaLaRejillaConTodosSusProductosYRecortaElCliente() As Task
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "15191")).Returns(Task.FromResult(AlquileresDelCliente()))
+
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "  15191 "
+        Await vm.BuscarAlquileresClienteAsync()
+
+        Assert.AreEqual(2, vm.AlquileresCollection.Count)
+        Assert.IsTrue(vm.ModoPorCliente)
+        Assert.IsNull(vm.ProductoSeleccionado)
+        StringAssert.Contains(vm.AvisoBusquedaCliente, "Solo consulta")
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "15191")).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function BuscarAlquileresCliente_EnModoClienteNoSePuedeGuardarAnadirBorrarNiIntercambiar() As Task
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "15191")).Returns(Task.FromResult(AlquileresDelCliente()))
+
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "15191"
+        Await vm.BuscarAlquileresClienteAsync()
+        vm.LineaSeleccionada = vm.AlquileresCollection.First()
+        vm.LineaSeleccionada.Comentarios = "editado"
+        vm.numeroSerieIntercambiar = "XYZ900"
+
+        Assert.IsFalse(vm.cmdGuardar.CanExecute(Nothing), "Guardar reconciliaría el producto entero y borraría los de otros clientes")
+        Assert.IsFalse(vm.cmdAñadir.CanExecute(Nothing))
+        Assert.IsFalse(vm.cmdBorrar.CanExecute(Nothing))
+        Assert.IsFalse(vm.cmdIntercambiarNumeroSerie.CanExecute(Nothing))
+    End Function
+
+    <TestMethod()>
+    Public Async Function BuscarAlquileresCliente_SinAlquileres_AvisaDeUsted() As Task
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "99999")).Returns(Task.FromResult(New List(Of AlquilerModel)))
+
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "99999"
+        Await vm.BuscarAlquileresClienteAsync()
+
+        Assert.AreEqual(0, vm.AlquileresCollection.Count)
+        Assert.AreEqual("El cliente 99999 no tiene ningún alquiler.", vm.AvisoBusquedaCliente)
+    End Function
+
+    <TestMethod()>
+    Public Async Function BuscarAlquileresCliente_SinCliente_NoLlamaAlServicio() As Task
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "   "
+
+        Assert.IsFalse(vm.cmdBuscarAlquileresCliente.CanExecute(Nothing))
+        Await vm.BuscarAlquileresClienteAsync()
+
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+        Assert.IsFalse(vm.ModoPorCliente)
+    End Function
+
+    <TestMethod()>
+    Public Async Function ElegirEquipo_TrasBuscarCliente_VuelveAlModoNormal() As Task
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "15191")).Returns(Task.FromResult(AlquileresDelCliente()))
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")) _
+            .Returns(Task.FromResult(New List(Of AlquilerModel) From {New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780"}}))
+
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "15191"
+        Await vm.BuscarAlquileresClienteAsync()
+
+        vm.ProductoSeleccionado = New ProductoAlquilerModel With {.Empresa = "1", .Numero = "26780", .Nombre = "Aparato X"}
+
+        Assert.IsFalse(vm.ModoPorCliente)
+        Assert.AreEqual("", vm.AvisoBusquedaCliente)
+        Assert.IsTrue(vm.cmdAñadir.CanExecute(Nothing))
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).MustHaveHappened()
+    End Function
+
 End Class

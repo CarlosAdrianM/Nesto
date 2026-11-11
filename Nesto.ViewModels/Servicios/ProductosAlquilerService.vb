@@ -104,6 +104,24 @@ Public Class ProductosAlquilerService
         End Using
     End Function
 
+    ' Novedad 1181: todos los alquileres de un cliente, de cualquier producto (solo consulta).
+    Public Async Function LeerCabecerasAlquilerPorCliente(empresa As String, cliente As String) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.LeerCabecerasAlquilerPorCliente
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Alquileres/Cabeceras/PorCliente?empresa={Uri.EscapeDataString(empresa)}&cliente={Uri.EscapeDataString(cliente)}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los alquileres del cliente: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of AlquilerModel))(body)
+        End Using
+    End Function
+
     ' Nesto#340 Fase 1C.3: guardado del grid (la API reconcilia altas/ediciones/bajas).
     Public Async Function GuardarCabecerasAlquiler(empresa As String, producto As String, cabeceras As List(Of AlquilerModel)) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.GuardarCabecerasAlquiler
         Using client As HttpClient = _clienteApiFactory.Crear()

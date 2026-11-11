@@ -7,5 +7,7 @@ Public Interface IProductosAlquilerService
     Function LeerInmovilizadosAlquiler(empresa As String, numero As String) As Task(Of List(Of ExtractoInmovilizadoModel))
     ' Nesto#340 Fase 1C.3: grid principal (cabeceras editables del producto).
     Function LeerCabecerasAlquiler(empresa As String, producto As String) As Task(Of List(Of AlquilerModel))
+    ' Novedad 1181: todos los alquileres de un cliente, de cualquier producto (solo consulta).
+    Function LeerCabecerasAlquilerPorCliente(empresa As String, cliente As String) As Task(Of List(Of AlquilerModel))
     Function GuardarCabecerasAlquiler(empresa As String, producto As String, cabeceras As List(Of AlquilerModel)) As Task(Of List(Of AlquilerModel))
 End Interface

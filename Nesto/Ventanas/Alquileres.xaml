@@ -66,7 +66,18 @@
         <TextBox Grid.Column="4" Grid.Row="3" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Importe, Mode=TwoWay, ElementName=dgrRelacion, StringFormat=c}"/>
         <TextBox Grid.Column="4" Grid.Row="4" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.CabPedidoVta, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="4" Grid.Row="5" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.RutaContrato, Mode=TwoWay, ElementName=dgrRelacion}"/>
-        
+
+        <!-- Novedad 1181: todos los alquileres de un cliente, de cualquier producto (solo consulta). -->
+        <Label Grid.Row="6" Grid.Column="3" Content="Buscar alquileres del cliente:"/>
+        <TextBox Grid.Column="4" Grid.Row="6" Style="{StaticResource campoTexto}" Text="{Binding ClienteBuscado, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Escriba el número de cliente y pulse Intro para ver todos sus alquileres">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Enter" Command="{Binding cmdBuscarAlquileresCliente}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+        <Button Grid.Column="5" Grid.Row="6" HorizontalAlignment="Left" MinWidth="60" Margin="3" Content="Buscar" Command="{Binding cmdBuscarAlquileresCliente}"/>
+        <TextBlock Grid.Column="3" Grid.ColumnSpan="3" Grid.Row="7" Text="{Binding AvisoBusquedaCliente}" Foreground="DarkBlue" TextWrapping="Wrap" Margin="3"/>
+
 
         <Button Grid.Column="4" Grid.Row="8" HorizontalAlignment="Right" 
                             MinWidth="80" Margin="3" Content="Guardar Cambios" Command = "{Binding cmdGuardar}"/>

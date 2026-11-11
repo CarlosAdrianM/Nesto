@@ -120,6 +120,52 @@ Public Class AlquileresViewModel
         End Try
     End Function
 
+    ' Novedad 1181: todos los alquileres del cliente, de cualquier producto. Es solo consulta:
+    ' el guardado de la API reconcilia el producto entero (borra lo que no viene en la lista), así
+    ' que con una lista de un cliente no se puede guardar, añadir, borrar ni intercambiar.
+    Public Async Function BuscarAlquileresClienteAsync() As Task
+        Dim cliente As String = ClienteBuscado?.Trim()
+        If String.IsNullOrEmpty(cliente) Then
+            Return
+        End If
+
+        ' Quitamos el equipo elegido (su setter vacía las pestañas) y entramos en modo consulta.
+        ProductoSeleccionado = Nothing
+        LineaSeleccionada = Nothing
+        ModoPorCliente = True
+        AlquileresCollection = New ObservableCollection(Of AlquilerModel)
+        _hayCambios = False
+        mensajeError = ""
+        AvisoBusquedaCliente = $"Buscando los alquileres del cliente {cliente}…"
+
+        Try
+            Dim cabeceras = Await _productosAlquilerService.LeerCabecerasAlquilerPorCliente(EMPRESA_POR_DEFECTO, cliente)
+            ' Si mientras tanto ha elegido un equipo, esta respuesta ya no vale.
+            If Not ModoPorCliente Then
+                Return
+            End If
+            AlquileresCollection = New ObservableCollection(Of AlquilerModel)(If(cabeceras, New List(Of AlquilerModel)))
+            _hayCambios = False
+            If AlquileresCollection.Count = 0 Then
+                AvisoBusquedaCliente = $"El cliente {cliente} no tiene ningún alquiler."
+            Else
+                AvisoBusquedaCliente = $"Alquileres del cliente {cliente} ({AlquileresCollection.Count}). Solo consulta: para modificarlos, elija el equipo en la tabla de la derecha."
+            End If
+        Catch ex As Exception
+            AvisoBusquedaCliente = ""
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
+
+    Private Const EMPRESA_POR_DEFECTO As String = "1"
+
+    Private Sub NotificarComandosEdicion()
+        cmdIntercambiarNumeroSerie?.NotifyCanExecuteChanged()
+        TryCast(_cmdGuardar, RelayCommand(Of Object))?.NotifyCanExecuteChanged()
+        TryCast(_cmdAñadir, RelayCommand(Of Object))?.NotifyCanExecuteChanged()
+        TryCast(_cmdBorrar, RelayCommand(Of Object))?.NotifyCanExecuteChanged()
+    End Sub
+
     ' Nesto#340 Fase 1C.3: vigila ediciones (PropertyChanged) y altas/bajas (CollectionChanged) para
     ' marcar cambios pendientes, sustituyendo el seguimiento que hacía el ChangeTracker de EF.
     Private Sub SuscribirCambios(coleccion As ObservableCollection(Of AlquilerModel))
@@ -259,6 +305,9 @@ Public Class AlquileresViewModel
         Set(value As ProductoAlquilerModel)
             SetProperty(_ProductoSeleccionado, value)
             If Not IsNothing(ProductoSeleccionado) Then
+                ' Novedad 1181: elegir un equipo vuelve al modo normal (editable).
+                ModoPorCliente = False
+                AvisoBusquedaCliente = ""
                 ' Nesto#340 Fase 1C.3: el grid se carga del API (carga asíncrona) en vez de EF.
                 CargarCabecerasAsync(ProductoSeleccionado.Empresa, ProductoSeleccionado.Numero)
             End If
@@ -299,6 +348,41 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
+    ' Novedad 1181: número de cliente del buscador «Buscar alquileres del cliente».
+    Private _clienteBuscado As String
+    Public Property ClienteBuscado As String
+        Get
+            Return _clienteBuscado
+        End Get
+        Set(value As String)
+            SetProperty(_clienteBuscado, value)
+            TryCast(_cmdBuscarAlquileresCliente, RelayCommand(Of Object))?.NotifyCanExecuteChanged()
+        End Set
+    End Property
+
+    ' Novedad 1181: la rejilla muestra los alquileres de un cliente (de varios productos): solo consulta.
+    Private _modoPorCliente As Boolean
+    Public Property ModoPorCliente As Boolean
+        Get
+            Return _modoPorCliente
+        End Get
+        Private Set(value As Boolean)
+            If SetProperty(_modoPorCliente, value) Then
+                NotificarComandosEdicion()
+            End If
+        End Set
+    End Property
+
+    Private _avisoBusquedaCliente As String
+    Public Property AvisoBusquedaCliente As String
+        Get
+            Return _avisoBusquedaCliente
+        End Get
+        Private Set(value As String)
+            SetProperty(_avisoBusquedaCliente, value)
+        End Set
+    End Property
+
     Private _numeroSerieIntercambiar As String
     Public Property numeroSerieIntercambiar() As String
         Get
@@ -324,7 +408,7 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return _hayCambios
+        Return _hayCambios AndAlso Not ModoPorCliente
     End Function
     Private Async Sub Guardar(ByVal param As Object)
         Try
@@ -361,7 +445,7 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function CanAñadir(ByVal param As Object) As Boolean
-        Return True
+        Return Not ModoPorCliente
     End Function
     Private Sub Añadir(ByVal param As Object)
         Dim alqui As New AlquilerModel
@@ -379,6 +463,23 @@ Public Class AlquileresViewModel
         AlquileresCollection.Add(alqui)
     End Sub
 
+    Private _cmdBuscarAlquileresCliente As ICommand
+    Public ReadOnly Property cmdBuscarAlquileresCliente() As ICommand
+        Get
+            If _cmdBuscarAlquileresCliente Is Nothing Then
+                _cmdBuscarAlquileresCliente = ComandosReevaluables.Crear(AddressOf BuscarAlquileresCliente, AddressOf CanBuscarAlquileresCliente)
+            End If
+            Return _cmdBuscarAlquileresCliente
+        End Get
+    End Property
+    Private Function CanBuscarAlquileresCliente(ByVal param As Object) As Boolean
+        Return Not String.IsNullOrWhiteSpace(ClienteBuscado)
+    End Function
+    Private Async Sub BuscarAlquileresCliente(ByVal param As Object)
+        ' La excepción se captura dentro de BuscarAlquileresClienteAsync.
+        Await BuscarAlquileresClienteAsync()
+    End Sub
+
     Private _cmdBorrar As ICommand
     Public ReadOnly Property cmdBorrar() As ICommand
         Get
@@ -389,7 +490,7 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
-        Return LineaSeleccionada IsNot Nothing
+        Return LineaSeleccionada IsNot Nothing AndAlso Not ModoPorCliente
     End Function
     Private Sub Borrar(ByVal param As Object)
         If LineaSeleccionada Is Nothing OrElse AlquileresCollection Is Nothing Then
@@ -442,7 +543,7 @@ Public Class AlquileresViewModel
             builder.AppendLine("N")
             builder.AppendLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
             builder.AppendLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-            builder.AppendLine("A190,10,0,5,1,1,N,""" + ProductoSeleccionado.Nombre + """")
+            builder.AppendLine("A190,10,0,5,1,1,N,""" + If(ProductoSeleccionado?.Nombre, If(LineaSeleccionada.NombreProducto, "")).Trim + """")
             builder.AppendLine("A190,190,0,3,1,1,N,""N/S: " + LineaSeleccionada.NumeroSerie + """")
             builder.AppendLine("B190,90,0,3,2,7,70,N,""" + LineaSeleccionada.NumeroSerie + """")
             builder.AppendLine("A190,250,0,3,1,1,N,""Fecha Etiquetado: " + Now.ToShortDateString + """")
@@ -519,7 +620,7 @@ Public Class AlquileresViewModel
         End Set
     End Property
     Private Function CanIntercambiarNumeroSerie(arg As Object) As Boolean
-        Return Not IsNothing(LineaSeleccionada) AndAlso Not IsNothing(numeroSerieIntercambiar) AndAlso numeroSerieIntercambiar.Trim.Length > 0
+        Return Not ModoPorCliente AndAlso Not IsNothing(LineaSeleccionada) AndAlso Not IsNothing(numeroSerieIntercambiar) AndAlso numeroSerieIntercambiar.Trim.Length > 0
     End Function
     Private Async Sub OnIntercambiarNumeroSerie(arg As Object)
         Dim alquiler As AlquilerModel = (From a In AlquileresCollection Where a.NumeroSerie = numeroSerieIntercambiar).SingleOrDefault
