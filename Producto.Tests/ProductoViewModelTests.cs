@@ -431,7 +431,7 @@ namespace Producto.Tests
             Assert.AreEqual(0, enviadas!.Count);
         }
 
-        // Sugerencia 780 (Laura): Pack Regalo (COS/PRG) solo como principal y, si lo es, sin ninguna otra categoría.
+        // Sugerencia 780 (Laura): Pack Regalo (COS/PRG) solo como principal y, si lo es, sin ninguna otra categoría salvo las de Outlet.
 
         private static ProductoViewModel CrearViewModelPackRegalo(out IProductoService servicio, string grupo = "COS", string subgrupo = "PRG")
         {
@@ -460,10 +460,39 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.GrupoWebSeleccionado = "COS";
-            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "OUT");
+            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "CRE");
             sut.AnnadirCategoriaSecundariaCommand.Execute(null);
 
             Assert.AreEqual(0, sut.CategoriasSecundarias.Count);
+            Assert.IsNull(sut.AvisoPackRegalo);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegalo_SiSeLePuedeAnnadirElOutlet()
+        {
+            // El Outlet manda (Carlos 11/11/26): el cuadre nocturno se lo pone a los packs en estado 4
+            var sut = CrearViewModelPackRegalo(out _);
+            sut.ReferenciaBuscar = "41269";
+
+            sut.GrupoWebSeleccionado = "COS";
+            sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single(s => s.Subgrupo == "OUT");
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
+
+            Assert.AreEqual(1, sut.CategoriasSecundarias.Count);
+            Assert.IsNull(sut.AvisoPackRegalo);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_PackRegaloSoloConOutlet_NoAvisa()
+        {
+            var sut = CrearViewModelPackRegalo(out var servicio);
+            A.CallTo(() => servicio.LeerCategoriasSecundarias("41269")).Returns(new List<CategoriaSecundariaModel>
+            {
+                new CategoriaSecundariaModel { Grupo = "COS", Subgrupo = "OUT", DescripcionSubgrupo = "Outlet Estética" }
+            });
+
+            sut.ReferenciaBuscar = "41269";
+
             Assert.IsNull(sut.AvisoPackRegalo);
         }
 
@@ -487,6 +516,7 @@ namespace Producto.Tests
             var sut = CrearViewModelPackRegalo(out var servicio);
             A.CallTo(() => servicio.LeerCategoriasSecundarias("41269")).Returns(new List<CategoriaSecundariaModel>
             {
+                new CategoriaSecundariaModel { Grupo = "COS", Subgrupo = "CRE", DescripcionSubgrupo = "Cremas" },
                 new CategoriaSecundariaModel { Grupo = "COS", Subgrupo = "OUT", DescripcionSubgrupo = "Outlet Estética" }
             });
             List<CategoriaSecundariaModel>? enviadas = null;
@@ -502,7 +532,8 @@ namespace Producto.Tests
 
             Assert.IsNull(sut.AvisoPackRegalo);
             Assert.IsNotNull(enviadas);
-            Assert.AreEqual(0, enviadas!.Count);
+            Assert.AreEqual(1, enviadas!.Count);
+            Assert.AreEqual("OUT", enviadas[0].Subgrupo);
         }
 
         [TestMethod]
@@ -540,7 +571,12 @@ namespace Producto.Tests
             Assert.IsTrue(ReglaPackRegalo.EsPackRegalo("COS ", "prg  "));
             Assert.IsFalse(ReglaPackRegalo.EsPackRegalo("PEL", "PRG"));
             Assert.IsNull(ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "CRE", "COS", "OUT"));
-            Assert.AreEqual(ReglaPackRegalo.MOTIVO_PRINCIPAL_PACK_REGALO, ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "COS", "OUT"));
+            Assert.AreEqual(ReglaPackRegalo.MOTIVO_PRINCIPAL_PACK_REGALO, ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "COS", "CRE"));
+            // Las tres de Outlet sí se le pueden poner a un Pack Regalo
+            Assert.IsNull(ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "COS", "OUT"));
+            Assert.IsNull(ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS ", "PRG", "cos", "oum "));
+            Assert.IsNull(ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "PEL", "OUT"));
+            Assert.AreEqual(ReglaPackRegalo.MOTIVO_PACK_REGALO_COMO_SECUNDARIA, ReglaPackRegalo.MotivoNoSePuedeAnnadir("COS", "PRG", "COS", "PRG"));
             Assert.AreEqual(ReglaPackRegalo.MOTIVO_PACK_REGALO_COMO_SECUNDARIA, ReglaPackRegalo.MotivoNoSePuedeAnnadir("PEL", "TRA", "COS", "PRG"));
         }
 

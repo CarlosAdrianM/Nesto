@@ -1015,7 +1015,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 _dialogService.ShowNotification($"El producto ya está en {elegido.Descripcion}");
                 return;
             }
-            // Sugerencia 780: Pack Regalo solo como principal y, si lo es, sin ninguna otra
+            // Sugerencia 780: Pack Regalo solo como principal y, si lo es, sin ninguna otra salvo las de Outlet
             string motivo = ReglaPackRegalo.MotivoNoSePuedeAnnadir(_grupoPrincipal, _subgrupoPrincipal, elegido.Grupo, elegido.Subgrupo);
             if (motivo != null)
             {
