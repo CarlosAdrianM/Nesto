@@ -21,6 +21,8 @@ Public Interface IPlantillaVentaService
     ''' aparte (los cursos van en otro pedido, serie CV); lista vacía si no hay ninguno o la API es anterior.
     ''' </summary>
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of RespuestaCrearPedidoPlantilla)
+    ''' <summary>Feria online 11/26: ¿hay que proponer pago al contado? (POST api/PedidosVenta/AvisoCondicionesCampana). Nothing si falla.</summary>
+    Function ConsultarAvisoCondicionesCampana(pedido As PedidoVentaDTO) As Task(Of AvisoCondicionesCampanaRespuesta)
     ''' <summary>
     ''' Nesto#543 / NestoAPI#691: los eventos futuros de un curso, con sus modalidades
     ''' (GET api/Eventos/PorProducto). Lista vacía si no tiene ninguno; Nothing si no se ha podido consultar.

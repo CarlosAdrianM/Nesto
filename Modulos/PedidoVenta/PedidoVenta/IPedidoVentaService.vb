@@ -49,6 +49,8 @@ Public Interface IPedidoVentaService
     Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
     Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String)
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
+    ''' <summary>Feria online 11/26: ¿hay que proponer pago al contado? (POST api/PedidosVenta/AvisoCondicionesCampana). Nothing si falla.</summary>
+    Function ConsultarAvisoCondicionesCampana(pedido As PedidoVentaDTO) As Task(Of AvisoCondicionesCampanaRespuesta)
     ''' <summary>Nesto#484 / NestoAPI#518: modo sugerido y modos permitidos para el pedido tal cual está en pantalla.
     ''' Nothing si la API falla (el combo se queda con todas las opciones, como antes).</summary>
     Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)

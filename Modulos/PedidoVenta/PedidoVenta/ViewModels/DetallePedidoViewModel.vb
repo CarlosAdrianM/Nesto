@@ -2352,6 +2352,7 @@ Public Class DetallePedidoViewModel
             estaBloqueado = True
 
             If EstaCreandoPedido Then
+                Await ProponerContadoPorCampanaAsync() ' Feria online 11/26
                 Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 pedido.numero = numeroPedidoCreado
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
@@ -2769,6 +2770,7 @@ Public Class DetallePedidoViewModel
             Dim crearModificarEx As Exception = Nothing
 
             If esPedidoNuevo Then
+                Await ProponerContadoPorCampanaAsync() ' Feria online 11/26
                 Try
                     Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                     pedido.numero = numeroPedidoCreado
@@ -2903,6 +2905,22 @@ Public Class DetallePedidoViewModel
             Await CargarFechaEntregaAgenciaAsync()
             Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
             Await CargarCuponAsync() ' Nesto#518: el cupón puede haber pasado a este pedido o haberse soltado
+        End If
+    End Function
+
+    ''' <summary>
+    ''' Feria online 12-16/11/26: antes de CREAR el pedido (o presupuesto), si lleva productos de una campaña que exige pago al
+    ''' contado y no va ya al contado, la API lo dice y se pregunta. Sí → plazos de pago al contado (la forma de pago no se
+    ''' toca); No → sigue igual. Si la consulta falla, no se pregunta nada. Solo se llama justo antes del primer POST.
+    ''' </summary>
+    Friend Async Function ProponerContadoPorCampanaAsync() As Task
+        If pedido?.Model Is Nothing Then
+            Return
+        End If
+        If Await AvisoCondicionesCampana.PreguntarYAplicar(pedido.Model,
+                Function() servicio.ConsultarAvisoCondicionesCampana(pedido.Model),
+                Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje)) Then
+            pedido.plazosPago = pedido.Model.plazosPago ' para que la pantalla lo enseñe
         End If
     End Function
 

@@ -291,6 +291,19 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function ConsultarAvisoCondicionesCampana(pedido As PedidoVentaDTO) As Task(Of AvisoCondicionesCampanaRespuesta) Implements IPlantillaVentaService.ConsultarAvisoCondicionesCampana
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Return Nothing
+                End If
+                Return Await AvisoCondicionesCampana.Consultar(client, pedido)
+            End Using
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of RespuestaCrearPedidoPlantilla) Implements IPlantillaVentaService.CrearPedido
         ' TO-DO: llamar al método CrearPedido del servicio de pedidos y eliminar este código duplicado
         Using client As HttpClient = _clienteApiFactory.Crear()

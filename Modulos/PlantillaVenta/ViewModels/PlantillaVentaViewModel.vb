@@ -4752,6 +4752,13 @@ Public Class PlantillaVentaViewModel
                 ' Refrescar ListaPedidosVenta (está suscrita, igual que tras modificar en DetallePedido)
                 messenger.Send(New PedidoModificadoMensaje(pedido))
             ElseIf PedidoPendienteSeleccionado = 0 Then
+                ' Feria online 11/26: con productos de una campaña al contado y sin ir al contado, se propone cambiar los plazos.
+                ' Solo al crear (no al modificar ni al ampliar) y una vez por creación (el reintento de abajo no vuelve a preguntar).
+                If Not reintentoConModoDelPedido Then
+                    Await AvisoCondicionesCampana.PreguntarYAplicar(pedido,
+                        Function() servicio.ConsultarAvisoCondicionesCampana(pedido),
+                        Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje))
+                End If
                 Dim crearEx As Exception = Nothing
                 Try
                     respuestaCrear = Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.CrearPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
