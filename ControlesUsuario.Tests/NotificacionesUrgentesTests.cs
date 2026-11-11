@@ -238,6 +238,72 @@ namespace ControlesUsuario.Tests
             Assert.AreNotSame(aviso, gestor.Abiertos.Single());
         }
 
+        // ================================================================ NestoAPI#734: consulta de reembolso urgente
+
+        private static NotificacionUrgente ConsultaReembolso(bool escalada = false) => new NotificacionUrgente
+        {
+            IdBuzon = 700,
+            Tipo = NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO,
+            Referencia = "1/929559",
+            Titulo = "Pedido 929559: ¿sale con o sin reembolso?",
+            Cuerpo = "Alfredo ha retenido el pedido 929559…",
+            Escalada = escalada,
+            Datos = new Dictionary<string, string>
+            {
+                ["tipo"] = NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO, ["accion"] = "consulta", ["referencia"] = "1/929559", ["empresa"] = "1",
+                ["pedido"] = "929559", ["consulta"] = "3"
+            }
+        };
+
+        [TestMethod]
+        public async Task ConsultaReembolso_ContestarAbreElDialogoConEmpresaYPedido_YSeCierraAlResolverse()
+        {
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(NotificacionBuzon.DIALOGO_CONSULTA_REEMBOLSO, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string n, ParametrosDialogo p, Action<ResultadoDialogo> c) => parametros = p);
+            gestor = new GestorNotificacionesUrgentes(buzon, avisos, presentador, () => ahora, dialogos);
+            pendientes.Add(ConsultaReembolso());
+
+            gestor.Iniciar();
+            await Task.Yield();
+
+            AvisoUrgenteViewModel aviso = presentador.Abiertas.Single();
+            Assert.IsTrue(aviso.EsConsultaReembolso);
+            Assert.IsFalse(aviso.PuedeContestar, "no son los botones de Autorizar/Denegar");
+            Assert.IsTrue(aviso.PuedeContestarConsulta);
+            StringAssert.Contains(aviso.Cabecera, "¿sale con o sin reembolso?");
+            Assert.AreEqual(1, presentador.Pitidos);
+
+            aviso.ContestarConsultaCommand.Execute(null);
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual("1", parametros.GetValue<string>("empresa"));
+            Assert.AreEqual(929559, parametros.GetValue<int>("pedido"));
+            Assert.IsFalse(aviso.Resuelta, "sigue abierta hasta que la API diga que está contestada");
+
+            avisos.LlegaResuelta(new NotificacionResuelta { Tipo = NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO, Referencia = "1/929559", Respondio = "Paloma", Resultado = "SinReembolso" });
+
+            Assert.IsTrue(aviso.Resuelta);
+            Assert.IsFalse(aviso.PuedeContestarConsulta);
+            Assert.AreEqual("Lo ha contestado Paloma: sale sin reembolso.", aviso.Mensaje);
+            Assert.AreEqual(GestorNotificacionesUrgentes.RETRASO_CIERRE, presentador.Cierres.Single().Retraso);
+        }
+
+        [TestMethod]
+        public async Task ConsultaReembolso_SinServicioDeDialogos_NoOfreceContestar()
+        {
+            pendientes.Add(ConsultaReembolso(escalada: true));
+
+            gestor.Iniciar();
+            await Task.Yield();
+
+            AvisoUrgenteViewModel aviso = presentador.Abiertas.Single();
+            Assert.IsFalse(aviso.PuedeContestarConsulta);
+            Assert.AreEqual("URGENTE (sin respuesta): ¿sale con o sin reembolso?", aviso.Cabecera);
+            Assert.AreEqual("Lo ha contestado Laura: sale con reembolso.",
+                AvisoUrgenteViewModel.TextoResuelta(new NotificacionResuelta { Respondio = "Laura", Resultado = "ConReembolso" }));
+        }
+
         [TestMethod]
         public async Task SiFallaLaApi_NoPasaNada()
         {

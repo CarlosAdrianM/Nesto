@@ -186,7 +186,8 @@ Public NotInheritable Class ComposicionNesto
         registro.Singleton(Of ControlesUsuario.Notificaciones.Urgentes.GestorNotificacionesUrgentes)(
             Function(r) New ControlesUsuario.Notificaciones.Urgentes.GestorNotificacionesUrgentes(
                 r.Resolver(Of IBuzonNotificacionesService)(), r.Resolver(Of IAvisosEnTiempoReal)(),
-                New ControlesUsuario.Notificaciones.Urgentes.PresentadorAvisosUrgentesWpf()))
+                New ControlesUsuario.Notificaciones.Urgentes.PresentadorAvisosUrgentesWpf(),
+                r.Resolver(Of IServicioDialogos)())) ' NestoAPI#734: «Contestar» de la consulta de reembolso urgente
 
         ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
         registro.Singleton(Of IServicioAgenciasMantenimiento)(Function(r) New AgenciasMantenimientoService(r.Resolver(Of IClienteApiFactory)()))

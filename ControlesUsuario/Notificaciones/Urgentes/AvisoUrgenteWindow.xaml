@@ -71,6 +71,10 @@
                 <Button Content="Denegar" Command="{Binding DenegarCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
                         Foreground="White" Background="#C62828" FontWeight="SemiBold"
                         Visibility="{Binding PuedeContestar, Converter={StaticResource BoolAVisible}}"/>
+                <!-- NestoAPI#734: la consulta de reembolso se contesta en su diálogo (el mismo que abre la campana) -->
+                <Button Content="Contestar…" Command="{Binding ContestarConsultaCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
+                        Foreground="White" Background="#2E7D32" FontWeight="SemiBold"
+                        Visibility="{Binding PuedeContestarConsulta, Converter={StaticResource BoolAVisible}}"/>
                 <Button Content="Más tarde" Command="{Binding OcultarCommand}" MinWidth="85" Padding="8,4"
                         ToolTip="La cierra aquí; si nadie contesta, vuelve a salir"/>
             </StackPanel>

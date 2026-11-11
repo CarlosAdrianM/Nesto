@@ -11,6 +11,9 @@ namespace ControlesUsuario.Notificaciones.Urgentes
     /// Nesto#593 (NestoAPI#775): una notificación urgente en su ventana roja. Para la autorización del repartidor (entregar un reembolso
     /// sin cobrar) pinta repartidor, cliente, importe y motivo, con Autorizar y Denegar dentro. Si otro la contesta antes, se queda con el
     /// aviso «Lo ha autorizado/denegado X» y se cierra sola (lo hace el <see cref="GestorNotificacionesUrgentes"/>).
+    /// NestoAPI#734 (11/11/26): la consulta de reembolso del almacén a Administración también es urgente: «Contestar» abre el mismo
+    /// <see cref="NotificacionBuzon.DIALOGO_CONSULTA_REEMBOLSO"/> que la campana (con empresa y pedido) y la ventana se cierra cuando llega
+    /// «notificacionResuelta» (la ha contestado alguien, aquí o en otro Nesto).
     /// </summary>
     public class AvisoUrgenteViewModel : ObservableObject
     {
@@ -19,10 +22,12 @@ namespace ControlesUsuario.Notificaciones.Urgentes
         private readonly IBuzonNotificacionesService _buzon;
         private readonly Action<AvisoUrgenteViewModel> _alTerminar;
         private readonly Action<AvisoUrgenteViewModel> _alOcultar;
+        private readonly IServicioDialogos _dialogos;
 
         internal AvisoUrgenteViewModel(NotificacionUrgente notificacion, IBuzonNotificacionesService buzon, DateTime desde,
-            Action<AvisoUrgenteViewModel> alTerminar, Action<AvisoUrgenteViewModel> alOcultar)
+            Action<AvisoUrgenteViewModel> alTerminar, Action<AvisoUrgenteViewModel> alOcultar, IServicioDialogos dialogos = null)
         {
+            _dialogos = dialogos;
             Notificacion = notificacion ?? throw new ArgumentNullException(nameof(notificacion));
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _alTerminar = alTerminar;
@@ -31,6 +36,7 @@ namespace ControlesUsuario.Notificaciones.Urgentes
             AutorizarCommand = new AsyncRelayCommand(() => Responder(true), PuedeResponder);
             DenegarCommand = new AsyncRelayCommand(() => Responder(false), PuedeResponder);
             OcultarCommand = new RelayCommand(() => _alOcultar?.Invoke(this));
+            ContestarConsultaCommand = new RelayCommand(ContestarConsulta, () => PuedeContestarConsulta);
         }
 
         public NotificacionUrgente Notificacion { get; private set; }
@@ -45,9 +51,14 @@ namespace ControlesUsuario.Notificaciones.Urgentes
 
         public bool EsAutorizacionReembolso => Notificacion.Tipo == NotificacionBuzon.TIPO_AUTORIZACION_REEMBOLSO_REPARTO;
 
+        /// <summary>NestoAPI#734: la pregunta del almacén a Administración (solo la acción «consulta» es urgente).</summary>
+        public bool EsConsultaReembolso => Notificacion.Tipo == NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO;
+
         public string Cabecera => EsAutorizacionReembolso
             ? (Escalada ? "URGENTE (sin respuesta): entregar sin cobrar" : "URGENTE: entregar sin cobrar")
-            : "URGENTE";
+            : EsConsultaReembolso
+                ? (Escalada ? "URGENTE (sin respuesta): ¿sale con o sin reembolso?" : "URGENTE: ¿sale con o sin reembolso?")
+                : "URGENTE";
 
         public string Titulo => Notificacion.Titulo;
         public string Cuerpo => Notificacion.Cuerpo;
@@ -93,8 +104,10 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                 if (SetProperty(ref _resuelta, value))
                 {
                     OnPropertyChanged(nameof(PuedeContestar));
+                    OnPropertyChanged(nameof(PuedeContestarConsulta));
                     AutorizarCommand.NotifyCanExecuteChanged();
                     DenegarCommand.NotifyCanExecuteChanged();
+                    ContestarConsultaCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -115,6 +128,11 @@ namespace ControlesUsuario.Notificaciones.Urgentes
 
         public bool PuedeContestar => EsAutorizacionReembolso && !Resuelta;
 
+        /// <summary>NestoAPI#734: «Contestar» abre el diálogo de la consulta (hace falta el pedido y el servicio de diálogos).</summary>
+        public bool PuedeContestarConsulta => EsConsultaReembolso && !Resuelta && _dialogos != null && PedidoConsulta.HasValue;
+
+        private int? PedidoConsulta => int.TryParse(Notificacion.Dato("pedido"), out int pedido) && pedido > 0 ? pedido : (int?)null;
+
         private string _mensaje;
         public string Mensaje
         {
@@ -133,6 +151,22 @@ namespace ControlesUsuario.Notificaciones.Urgentes
         public IAsyncRelayCommand DenegarCommand { get; }
         /// <summary>«Más tarde»: se cierra aquí, pero sigue pendiente (vuelve a salir al abrir Nesto, al reconectar o si se escala).</summary>
         public IRelayCommand OcultarCommand { get; }
+        /// <summary>NestoAPI#734: abre ConsultaReembolsoDialog con la empresa y el pedido. La ventana sigue abierta hasta que llega «notificacionResuelta».</summary>
+        public IRelayCommand ContestarConsultaCommand { get; }
+
+        private void ContestarConsulta()
+        {
+            if (!PuedeContestarConsulta)
+            {
+                return;
+            }
+            string empresa = Notificacion.Dato("empresa");
+            _dialogos.ShowDialog(NotificacionBuzon.DIALOGO_CONSULTA_REEMBOLSO, new ParametrosDialogo
+            {
+                { "empresa", string.IsNullOrWhiteSpace(empresa) ? "1" : empresa.Trim() },
+                { "pedido", PedidoConsulta.Value }
+            }, _ => { });
+        }
 
         private bool PuedeResponder() => PuedeContestar && !Enviando;
 
@@ -206,6 +240,10 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                     return $"Lo ha denegado {quien}.";
                 case "Telefonica":
                     return $"Autorizado por teléfono («{quien}»).";
+                case "ConReembolso":
+                    return $"Lo ha contestado {quien}: sale con reembolso.";
+                case "SinReembolso":
+                    return $"Lo ha contestado {quien}: sale sin reembolso.";
                 default:
                     return $"Ya lo ha contestado {quien}.";
             }

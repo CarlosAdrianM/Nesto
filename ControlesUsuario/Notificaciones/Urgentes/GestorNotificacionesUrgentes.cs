@@ -50,6 +50,7 @@ namespace ControlesUsuario.Notificaciones.Urgentes
         private readonly IAvisosUrgentesTiempoReal _avisos;
         private readonly IPresentadorAvisosUrgentes _presentador;
         private readonly Func<DateTime> _ahora;
+        private readonly IServicioDialogos _dialogos;
         private readonly Dispatcher _dispatcher;
         private readonly Dictionary<string, AvisoUrgenteViewModel> _abiertos = new Dictionary<string, AvisoUrgenteViewModel>(StringComparer.Ordinal);
         private DispatcherTimer _timer;
@@ -63,9 +64,17 @@ namespace ControlesUsuario.Notificaciones.Urgentes
         {
         }
 
-        internal GestorNotificacionesUrgentes(IBuzonNotificacionesService buzon, IAvisosUrgentesTiempoReal avisos, IPresentadorAvisosUrgentes presentador,
-            Func<DateTime> ahora)
+        /// <param name="dialogos">NestoAPI#734: para abrir ConsultaReembolsoDialog desde la ventana urgente de una consulta de reembolso.</param>
+        public GestorNotificacionesUrgentes(IBuzonNotificacionesService buzon, IAvisosEnTiempoReal avisos, IPresentadorAvisosUrgentes presentador,
+            IServicioDialogos dialogos)
+            : this(buzon, avisos as IAvisosUrgentesTiempoReal, presentador, () => DateTime.Now, dialogos)
         {
+        }
+
+        internal GestorNotificacionesUrgentes(IBuzonNotificacionesService buzon, IAvisosUrgentesTiempoReal avisos, IPresentadorAvisosUrgentes presentador,
+            Func<DateTime> ahora, IServicioDialogos dialogos = null)
+        {
+            _dialogos = dialogos;
             _buzon = buzon ?? throw new ArgumentNullException(nameof(buzon));
             _avisos = avisos;
             _presentador = presentador ?? throw new ArgumentNullException(nameof(presentador));
@@ -140,7 +149,7 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                     nuevas |= escalaAhora;
                     continue;
                 }
-                var aviso = new AvisoUrgenteViewModel(n, _buzon, ahora, AlTerminar, Quitar);
+                var aviso = new AvisoUrgenteViewModel(n, _buzon, ahora, AlTerminar, Quitar, _dialogos);
                 _abiertos[clave] = aviso;
                 _presentador.Abrir(aviso, Quitar);
                 nuevas = true;
