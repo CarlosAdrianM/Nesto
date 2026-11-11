@@ -158,6 +158,16 @@ Public Class PedidoVentaModel
                 Dim unused = SetProperty(_tienePresupuesto, value)
             End Set
         End Property
+        ' Sugerencia 1184: retención viva (NestoAPI#698). Lo manda la API en la lista; al cargar o guardar el pedido se recalcula.
+        Private _estaRetenido As Boolean
+        Public Property estaRetenido As Boolean
+            Get
+                Return _estaRetenido
+            End Get
+            Set(value As Boolean)
+                Dim unused = SetProperty(_estaRetenido, value)
+            End Set
+        End Property
         Public ReadOnly Property tieneSeguimiento As Boolean
             Get
                 Return Not String.IsNullOrEmpty(ultimoSeguimiento)

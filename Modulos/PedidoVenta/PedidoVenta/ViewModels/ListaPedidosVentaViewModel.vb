@@ -140,6 +140,7 @@ Public Class ListaPedidosVentaViewModel
                 ListaPedidos.ListaOriginal = Nothing
                 mostrarSoloPendientes = False
                 mostrarSoloPicking = False
+                mostrarSoloRetenidos = False
                 cmdCargarListaPedidos.Execute(Nothing)
             End If
         End Set
@@ -171,6 +172,23 @@ Public Class ListaPedidosVentaViewModel
                 Dim unused = SetProperty(_mostrarSoloPicking, value)
                 ListaPedidos.Lista = If(value,
                     New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePicking)),
+                    ListaPedidos.ListaOriginal)
+
+            End If
+        End Set
+    End Property
+
+    ' Sugerencia 1184 (Paloma): solo los pedidos con una retención viva (NestoAPI#698), igual que las otras casillas.
+    Private _mostrarSoloRetenidos As Boolean = False
+    Public Property mostrarSoloRetenidos As Boolean
+        Get
+            Return _mostrarSoloRetenidos
+        End Get
+        Set(value As Boolean)
+            If value <> _mostrarSoloRetenidos Then
+                Dim unused = SetProperty(_mostrarSoloRetenidos, value)
+                ListaPedidos.Lista = If(value,
+                    New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).estaRetenido)),
                     ListaPedidos.ListaOriginal)
 
             End If
@@ -479,6 +497,7 @@ Public Class ListaPedidosVentaViewModel
         resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
         resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
         resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
+        resumen.estaRetenido = RetencionPedido.EstaRetenido(pedido) ' Sugerencia 1184
         ' Nesto#588: «fechas futuras» lo manda la API en el pedido (GET, crear y modificar) con la regla de la lista
         If pedido.tieneFechasFuturas.HasValue Then
             resumen.tieneFechasFuturas = pedido.tieneFechasFuturas.Value

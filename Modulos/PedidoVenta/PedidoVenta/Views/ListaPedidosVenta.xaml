@@ -31,6 +31,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
             <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
@@ -70,6 +71,7 @@
                                         <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
                                         <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
                                         <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
+                                        <TextBlock Background="DarkOrange" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=estaRetenido, Converter={StaticResource BooleanToVisibilityConverter} }">Retenido</TextBlock>
                                     </StackPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -143,12 +145,14 @@
             <CheckBox Grid.Row="4" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
             <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
             <CheckBox Grid.Row="6" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
+            <!-- Sugerencia 1184: solo los pedidos retenidos (NestoAPI#698) -->
+            <CheckBox Grid.Row="7" IsChecked="{Binding mostrarSoloRetenidos}">Mostrar Sólo Retenidos</CheckBox>
 
-            <Button Grid.Row="7" Content="Iniciar Pedido Nuevo"
+            <Button Grid.Row="8" Content="Iniciar Pedido Nuevo"
                     Command="{Binding CrearPedidoCommand}"
                     Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <Button Grid.Row="7" Content="Cancelar pedido sin crear"
+            <Button Grid.Row="8" Content="Cancelar pedido sin crear"
                     Command="{Binding CancelarCreacionCommand}"
                     Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/> 
         </Grid>
