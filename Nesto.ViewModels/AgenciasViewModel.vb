@@ -2729,7 +2729,8 @@ Public Class AgenciasViewModel
         Try
             _servicio.Borrar(envioActual.Numero)
         Catch ex As Exception
-            _dialogService.ShowError(ex.Message)
+            ' Incidencia 1191: la causa de verdad (p. ej. que nació de «Volver a enviar» un devuelto), no el genérico de EF.
+            _dialogService.ShowError(ErroresBorradoEnvio.MensajeParaUsuario(ex))
             Return
         End Try
         Dim copiaEnvio = envioActual
