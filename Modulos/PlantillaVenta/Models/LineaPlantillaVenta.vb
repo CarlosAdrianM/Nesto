@@ -143,7 +143,31 @@ Public Class LineaPlantillaVenta
             If CambioBloqueadoPorPicking(_precio <> value, NameOf(precio)) Then Return
             SetProperty(_precio, value)
             OnPropertyChanged(NameOf(baseImponible))
+            OnPropertyChanged(NameOf(TextoPrecioConIva))
         End Set
+    End Property
+
+    ' Sugerencia 1192: con un cliente de público final, el porcentaje de IVA del producto (0,21 = 21 %) para enseñar
+    ' el precio con IVA; Nothing = no se enseña. Lo pone la plantilla; no viaja a la API ni cambia lo que se graba.
+    Private _porcentajeIvaPublicoFinal As Decimal?
+    <Newtonsoft.Json.JsonIgnore>
+    Public Property PorcentajeIvaPublicoFinal As Decimal?
+        Get
+            Return _porcentajeIvaPublicoFinal
+        End Get
+        Set(value As Decimal?)
+            If SetProperty(_porcentajeIvaPublicoFinal, value) Then
+                OnPropertyChanged(NameOf(TextoPrecioConIva))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Sugerencia 1192: «con IVA: 83,49 €» si el cliente es de público final; Nothing si no.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property TextoPrecioConIva As String
+        Get
+            Return PrecioConIvaPublicoFinal.Texto(precio, PorcentajeIvaPublicoFinal)
+        End Get
     End Property
     Private _aplicarDescuento As Boolean
     Public Property aplicarDescuento As Boolean

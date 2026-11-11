@@ -130,6 +130,19 @@
                                     <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding precio, StringFormat=c}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch" Visibility="{Binding MostrarPrecioVisibility, ElementName=SelectorControl}"/>
+                                    <!-- Sugerencia 1192: con un cliente de público final, el precio con IVA (solo informativo) -->
+                                    <TextBlock Text="{Binding TextoPrecioConIva}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch" FontStyle="Italic">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="{Binding MostrarPrecioVisibility, ElementName=SelectorControl}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding TextoPrecioConIva}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                     <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                 </StackPanel>

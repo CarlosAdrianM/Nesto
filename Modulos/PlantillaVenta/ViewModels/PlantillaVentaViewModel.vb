@@ -156,6 +156,7 @@ Public Class PlantillaVentaViewModel
                                                                   cmdBuscarEnTodosLosProductos.Execute(ListaFiltrableProductos.Filtro)
                                                               End Sub
         AddHandler ListaFiltrableProductos.ListaChanged, Sub()
+                                                             AplicarIvaPublicoFinal()
                                                              ActualizarTotales()
                                                              SoloConStockCommand.NotifyCanExecuteChanged()
                                                          End Sub
@@ -2072,8 +2073,45 @@ Public Class PlantillaVentaViewModel
                 fechaEntrega = Date.Today
             End If
             OnPropertyChanged(NameOf(SePuedeFinalizar))
+            Dim unusedIva = CargarIvaPublicoFinal()
         End Set
     End Property
+
+    ' Sugerencia 1192: con un cliente de público final, los parámetros de IVA de su IVA para enseñar el precio con
+    ' IVA en la lista de productos; Nothing si no es de público final (o no se han podido cargar: no se enseña).
+    Private _parametrosIvaPublicoFinal As List(Of ParametrosIvaBase)
+
+    Friend Async Function CargarIvaPublicoFinal() As Task
+        Dim cliente = _clienteSeleccionado
+        If cliente Is Nothing OrElse Not PrecioConIvaPublicoFinal.EsPublicoFinal(cliente.estado, cliente.iva) Then
+            _parametrosIvaPublicoFinal = Nothing
+        Else
+            Try
+                _parametrosIvaPublicoFinal = Await servicioPedidosVenta.CargarParametrosIva(
+                    If(cliente.empresa?.Trim(), Constantes.Empresas.EMPRESA_DEFECTO), cliente.iva.Trim())
+            Catch
+                _parametrosIvaPublicoFinal = Nothing
+            End Try
+        End If
+        AplicarIvaPublicoFinal()
+    End Function
+
+    ''' <summary>Sugerencia 1192: pone (o quita) a cada línea el porcentaje de IVA para el texto «con IVA: …».</summary>
+    Friend Sub AplicarIvaPublicoFinal()
+        If ListaFiltrableProductos Is Nothing Then Return
+        Dim parametros = _parametrosIvaPublicoFinal
+        Dim listas = {ListaFiltrableProductos.ListaOriginal, ListaFiltrableProductos.Lista, ListaFiltrableProductos.ListaFijada}
+        For Each lista In listas
+            If lista Is Nothing Then Continue For
+            For Each linea In lista.OfType(Of LineaPlantillaVenta)().ToList()
+                If parametros Is Nothing Then
+                    linea.PorcentajeIvaPublicoFinal = Nothing
+                Else
+                    linea.PorcentajeIvaPublicoFinal = PrecioConIvaPublicoFinal.PorcentajeDe(linea.iva, parametros)
+                End If
+            Next
+        Next
+    End Sub
 
     ''' <summary>
     ''' Email para enviar cobro por tarjeta. Delegado a Estado.
@@ -4081,6 +4119,7 @@ Public Class PlantillaVentaViewModel
     Private Sub OnCambiarIva()
         clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
         Estado.IvaCliente = clienteSeleccionado.iva
+        Dim unusedIva = CargarIvaPublicoFinal()
         OnPropertyChanged(NameOf(clienteSeleccionado))
         OnPropertyChanged(NameOf(totalPedido))
         OnPropertyChanged(NameOf(totalPedidoConPortes))
