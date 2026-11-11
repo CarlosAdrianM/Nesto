@@ -614,6 +614,18 @@ namespace ControlesUsuario.Notificaciones
                 }, _ => { });
                 return;
             }
+            // Nesto#634 (NestoAPI#623): los avisos de leads (nuevo o sin llamar) abren la ficha de ese cliente/contacto
+            if ((item.Notificacion.Tipo == NotificacionBuzon.TIPO_LEAD_NUEVO || item.Notificacion.Tipo == NotificacionBuzon.TIPO_LEAD_SIN_LLAMAR)
+                && _navegacion != null)
+            {
+                ParametrosNavegacion parametrosCliente = ParametrosFichaCliente(item.Notificacion);
+                if (parametrosCliente != null)
+                {
+                    PanelAbierto = false;
+                    _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_FICHA_CLIENTE, parametrosCliente);
+                    return;
+                }
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");
@@ -628,6 +640,28 @@ namespace ControlesUsuario.Notificaciones
         }
 
         internal const string EMPRESA_POR_DEFECTO = "1";
+        internal const string CONTACTO_POR_DEFECTO = "0";
+
+        /// <summary>
+        /// Nesto#634: los parámetros de la ficha del cliente (los mismos que «Editar» del selector de clientes). Sin cliente, null
+        /// (el aviso solo se despliega); sin empresa, la 1; sin contacto, el 0.
+        /// </summary>
+        internal static ParametrosNavegacion ParametrosFichaCliente(NotificacionBuzon notificacion)
+        {
+            string cliente = notificacion?.Dato("cliente")?.Trim();
+            if (string.IsNullOrEmpty(cliente))
+            {
+                return null;
+            }
+            string empresa = notificacion.Dato("empresa")?.Trim();
+            string contacto = notificacion.Dato("contacto")?.Trim();
+            return new ParametrosNavegacion
+            {
+                { "empresaParameter", string.IsNullOrEmpty(empresa) ? EMPRESA_POR_DEFECTO : empresa },
+                { "clienteParameter", cliente },
+                { "contactoParameter", string.IsNullOrEmpty(contacto) ? CONTACTO_POR_DEFECTO : contacto }
+            };
+        }
 
         /// <summary>Nesto#546: el pedido y la empresa del aviso, para que la pantalla lo deje elegido. Sin pedido, vacío.</summary>
         internal static ParametrosNavegacion ParametrosPromesaRiesgo(NotificacionBuzon notificacion)

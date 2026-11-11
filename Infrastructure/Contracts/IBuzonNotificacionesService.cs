@@ -80,6 +80,16 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Nesto#591: lo autorizó alguien por teléfono (solo aviso, para revisarlo).</summary>
         public const string TIPO_AUTORIZACION_REEMBOLSO_TELEFONICA = "AutorizacionReembolsoTelefonica";
 
+        /// <summary>
+        /// Nesto#634 (NestoAPI#623): ha entrado un lead de campaña. Trae Datos["empresa"], Datos["cliente"], Datos["contacto"] y
+        /// Datos["origen"]; al pulsarlo se abre la ficha del cliente (<see cref="VISTA_FICHA_CLIENTE"/>).
+        /// </summary>
+        public const string TIPO_LEAD_NUEVO = "LeadNuevo";
+        /// <summary>Nesto#634: el lead sigue sin llamar pasado el plazo. Mismos Datos que <see cref="TIPO_LEAD_NUEVO"/>.</summary>
+        public const string TIPO_LEAD_SIN_LLAMAR = "LeadSinLlamar";
+        /// <summary>Nesto#634: la ficha del cliente (la misma que abre «Editar» en el selector de clientes).</summary>
+        public const string VISTA_FICHA_CLIENTE = "CrearClienteView";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }

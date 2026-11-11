@@ -428,6 +428,68 @@ namespace ControlesUsuario.Tests
             A.CallTo(() => dialogos.ShowDialog("ConsultaReembolsoDialog", A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
         }
 
+        [DataTestMethod]
+        [DataRow("LeadNuevo")]
+        [DataRow("LeadSinLlamar")]
+        public async Task PulsarUnAvisoDeLead_AbreLaFichaDeEseClienteYContacto(string tipo)
+        {
+            // Nesto#634 (NestoAPI#623): los avisos de leads abren la ficha del cliente con su empresa, cliente y contacto
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 31,
+                Titulo = "Nuevo lead de Harmonia 09/26",
+                Cuerpo = "Nuevo lead de Harmonia 09/26: CENTRO PRUEBA (MADRID), cliente 54321. Llámele hoy.",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = tipo, ["empresa"] = "1", ["cliente"] = "54321", ["contacto"] = "2", ["origen"] = "META-HARMONIA-0926" }
+            });
+            vm.PanelAbierto = true;
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "CrearClienteView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => buzon.MarcarLeida(31)).MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la ficha");
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual("1", parametros.GetValue<string>("empresaParameter"));
+            Assert.AreEqual("54321", parametros.GetValue<string>("clienteParameter"));
+            Assert.AreEqual("2", parametros.GetValue<string>("contactoParameter"));
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+            Assert.IsFalse(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public async Task PulsarUnAvisoDeLeadSinCliente_SoloSeDespliega()
+        {
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 32,
+                Titulo = "Nuevo lead",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "LeadNuevo", ["cliente"] = " " }
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+            Assert.IsTrue(vm.Notificaciones[0].Desplegada);
+        }
+
+        [TestMethod]
+        public void ParametrosFichaCliente_SinEmpresaNiContacto_PoneLa1YEl0()
+        {
+            ParametrosNavegacion p = CampanaNotificacionesViewModel.ParametrosFichaCliente(new NotificacionBuzon
+            {
+                Datos = new Dictionary<string, string> { ["tipo"] = "LeadSinLlamar", ["cliente"] = " 54321 " }
+            });
+
+            Assert.AreEqual("1", p.GetValue<string>("empresaParameter"));
+            Assert.AreEqual("54321", p.GetValue<string>("clienteParameter"));
+            Assert.AreEqual("0", p.GetValue<string>("contactoParameter"));
+            Assert.IsNull(CampanaNotificacionesViewModel.ParametrosFichaCliente(null));
+        }
+
         [TestMethod]
         public void ParametrosPromesaRiesgo_SinPedido_VanVacios_YSinEmpresaLaPonePorDefecto()
         {
