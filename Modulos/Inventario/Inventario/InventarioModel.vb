@@ -35,6 +35,13 @@ Public Class InventarioModel
                 Return TextoLectura(PorCodigoBarras)
             End Get
         End Property
+        ''' <summary>Almacén con ubicaciones: «001-002-005» o «sin ubicación» para la rejilla (en las tiendas no se ve).</summary>
+        <JsonIgnore>
+        Public ReadOnly Property Hueco As String
+            Get
+                Return TextoHueco(Pasillo, Fila, Columna)
+            End Get
+        End Property
     End Class
 
     Public Class Movimiento
@@ -47,6 +54,8 @@ Public Class InventarioModel
         Public Property Color As Brush
         ''' <summary>Nesto#596: «código» o «tecleado», cómo se leyó esta vez.</summary>
         Public Property Lectura As String
+        ''' <summary>Almacén con ubicaciones: el hueco donde se ha contado («001-002-005»).</summary>
+        Public Property Hueco As String
     End Class
 
     ''' <summary>NestoAPI#788: GET api/Inventarios/Pendientes, por usuario y día.</summary>
@@ -155,6 +164,14 @@ Public Class InventarioModel
 
     Public Const LECTURA_CODIGO As String = "código"
     Public Const LECTURA_TECLEADO As String = "tecleado"
+
+    ''' <summary>«001-002-005» o «sin ubicación».</summary>
+    Public Shared Function TextoHueco(pasillo As String, fila As String, columna As String) As String
+        If String.IsNullOrWhiteSpace(pasillo) AndAlso String.IsNullOrWhiteSpace(fila) AndAlso String.IsNullOrWhiteSpace(columna) Then
+            Return "sin ubicación"
+        End If
+        Return $"{If(pasillo, String.Empty).Trim()}-{If(fila, String.Empty).Trim()}-{If(columna, String.Empty).Trim()}"
+    End Function
 
     Public Shared Function TextoLectura(porCodigoBarras As Boolean?) As String
         If Not porCodigoBarras.HasValue Then

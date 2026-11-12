@@ -8,7 +8,13 @@
         xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
+        xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
         mc:Ignorable="d">
+    <UserControl.Resources>
+        <!-- Las columnas de la rejilla no están en el árbol visual: la del hueco ve el ViewModel por el proxy. -->
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="VisibleSiVerdadero"/>
+    </UserControl.Resources>
 
 
     <Grid Name="grdEntradaDatos" FocusManager.FocusedElement="{Binding ElementName=txtFecha}" Background="White">
@@ -37,6 +43,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
@@ -49,16 +56,35 @@
             <TextBlock Grid.Row="1" Grid.Column="0" Text="Fecha: "></TextBlock>
             <TextBox Name="txtFecha" Grid.Row="1" Grid.Column="1" Text="{Binding fechaSeleccionada, StringFormat=d}"></TextBox>
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Producto: "></TextBlock>
-            <TextBox Name="txtProducto" Grid.Row="2" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}" escaner:LectorCodigoBarras.AceptaCodigoBarras="True"></TextBox>
+            <!-- Algete (12/11/26): se cuenta EN un hueco; se queda puesto de un producto al siguiente. En las tiendas no se ve. -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Hueco: " VerticalAlignment="Center"
+                       Visibility="{Binding AlmacenConUbicaciones, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal"
+                        Visibility="{Binding AlmacenConUbicaciones, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Vertical">
+                    <TextBox Name="txtPasillo" Width="130" MaxLength="3" Text="{Binding Pasillo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Pasillo (3 cifras: 1 es 001)"></TextBox>
+                    <TextBlock Text="Pasillo" FontSize="14" HorizontalAlignment="Center"></TextBlock>
+                </StackPanel>
+                <StackPanel Orientation="Vertical">
+                    <TextBox Name="txtFila" Width="130" MaxLength="3" Text="{Binding Fila, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Fila (3 cifras: 1 es 001)"></TextBox>
+                    <TextBlock Text="Fila" FontSize="14" HorizontalAlignment="Center"></TextBlock>
+                </StackPanel>
+                <StackPanel Orientation="Vertical">
+                    <TextBox Name="txtColumna" Width="130" MaxLength="3" Text="{Binding Columna, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Columna (3 cifras: 1 es 001)"></TextBox>
+                    <TextBlock Text="Columna" FontSize="14" HorizontalAlignment="Center"></TextBlock>
+                </StackPanel>
+            </StackPanel>
 
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Cantidad: "></TextBlock>
-            <TextBox Name="txtCantidad" Grid.Row="3" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Producto: "></TextBlock>
+            <TextBox Name="txtProducto" Grid.Row="3" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}" escaner:LectorCodigoBarras.AceptaCodigoBarras="True"></TextBox>
 
-            <CheckBox Name="chkCantidad" Grid.Row="4" Grid.Column="1" Content="Activar Cantidad" IsChecked="{Binding estaCantidadActiva}"></CheckBox>
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Cantidad: "></TextBlock>
+            <TextBox Name="txtCantidad" Grid.Row="4" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>
+
+            <CheckBox Name="chkCantidad" Grid.Row="5" Grid.Column="1" Content="Activar Cantidad" IsChecked="{Binding estaCantidadActiva}"></CheckBox>
 
             <!-- Nesto#597 (NestoAPI#790): contabilizar desde aquí (con las comprobaciones) y ver las diferencias valoradas. -->
-            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+            <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
                 <Button Content="Contabilizar inventario" Command="{Binding cmdContabilizarInventario}" FontSize="16" Padding="14,6" Margin="0,0,12,0"
                         Visibility="{Binding PuedeContabilizar, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTip="Comprueba el inventario del almacén y la fecha y, si no hay nada que lo impida, lo contabiliza"/>
@@ -78,6 +104,8 @@
                         <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="Auto"/>
                         <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
                         <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
+                        <DataGridTextColumn Header="Hueco" Binding="{Binding Hueco}" Width="Auto"
+                                            Visibility="{Binding Data.AlmacenConUbicaciones, Source={StaticResource ViewModelProxy}, Converter={StaticResource VisibleSiVerdadero}}"/>
                         <DataGridTextColumn Header="Stock" Binding="{Binding Cantidad}" Width="Auto"/>
                         <DataGridTextColumn Header="Leído" Binding="{Binding Lectura}" Width="Auto"/>
                     </DataGrid.Columns>
@@ -92,6 +120,8 @@
                                 <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="Auto"/>
                                 <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
                                 <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
+                                <DataGridTextColumn Header="Hueco" Binding="{Binding Hueco}" Width="Auto"
+                                                    Visibility="{Binding Data.AlmacenConUbicaciones, Source={StaticResource ViewModelProxy}, Converter={StaticResource VisibleSiVerdadero}}"/>
                                 <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" Width="Auto"/>
                                 <DataGridTextColumn Header="Leído" Binding="{Binding Lectura}" Width="Auto"/>
                             </DataGrid.Columns>

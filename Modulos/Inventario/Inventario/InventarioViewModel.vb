@@ -65,7 +65,50 @@ Public Class InventarioViewModel
             Return _almacen
         End Get
         Set(ByVal value As String)
-            SetProperty(_almacen, value)
+            If SetProperty(_almacen, value) Then
+                OnPropertyChanged(NameOf(AlmacenConUbicaciones))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Algete (12/11/26): el stock va por huecos, así que se cuenta EN un hueco. Una fila sin ubicación no se puede contabilizar
+    ''' («Productos que se ubican contados sin ubicación») y, si se queda de un día para otro, para el picking. Las tiendas, no.
+    ''' </summary>
+    Public ReadOnly Property AlmacenConUbicaciones As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(almacen) AndAlso Not EsAlmacenDeTienda(almacen)
+        End Get
+    End Property
+
+    ' El hueco donde se cuenta: se queda puesto de un producto al siguiente (se cuenta hueco a hueco) hasta que se cambia.
+    Private _pasillo As String
+    Public Property Pasillo As String
+        Get
+            Return _pasillo
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_pasillo, value)
+        End Set
+    End Property
+
+    Private _fila As String
+    Public Property Fila As String
+        Get
+            Return _fila
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_fila, value)
+        End Set
+    End Property
+
+    Private _columna As String
+    Public Property Columna As String
+        Get
+            Return _columna
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_columna, value)
         End Set
     End Property
 
@@ -211,7 +254,8 @@ Public Class InventarioViewModel
                 .Grupo = linea.Grupo,
                 .Subgrupo = linea.Subgrupo,
                 .Producto = linea.Producto,
-                .Lectura = TextoLectura(porCodigoBarras)
+                .Lectura = TextoLectura(porCodigoBarras),
+                .Hueco = TextoHueco(linea.Pasillo, linea.Fila, linea.Columna)
             }
             movimientosDia.Add(movimientoActual)
             numeroProducto = String.Empty
@@ -238,10 +282,21 @@ Public Class InventarioViewModel
             Return Nothing
         End If
 
+        ' Algete: sin hueco no se manda nada (una fila sin ubicación no se puede contabilizar y para el picking).
+        Dim porHuecos = AlmacenConUbicaciones
+        If porHuecos AndAlso Not PrepararHueco() Then
+            dialogService.ShowError(MensajeFaltaHueco(almacen))
+            Return Nothing
+        End If
+
         Dim leido As String = If(prod, String.Empty).Trim()
         Dim linea As InventarioDTO
         Try
-            linea = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido).ConfigureAwait(True)
+            If porHuecos Then
+                linea = Await _servicio.BuscarLineaEnHueco(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido, Pasillo, Fila, Columna).ConfigureAwait(True)
+            Else
+                linea = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido).ConfigureAwait(True)
+            End If
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing
@@ -259,6 +314,11 @@ Public Class InventarioViewModel
                 .StockCalculado = 0,
                 .StockReal = cantidad
             }
+            If porHuecos Then
+                linea.Pasillo = Pasillo
+                linea.Fila = Fila
+                linea.Columna = Columna
+            End If
             movimientoModificado = Await OnCrearLineaInventario(linea) ' AWAIT
         Else
             linea.StockReal += cantidad
@@ -292,7 +352,11 @@ Public Class InventarioViewModel
         Dim leido = If(linea.Producto, String.Empty).Trim()
         Dim existente As InventarioDTO
         Try
-            existente = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, linea.Almacen, linea.Fecha, leido)
+            If String.IsNullOrWhiteSpace(linea.Pasillo) Then
+                existente = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, linea.Almacen, linea.Fecha, leido)
+            Else
+                existente = Await _servicio.BuscarLineaEnHueco(EMPRESA_DEFECTO, linea.Almacen, linea.Fecha, leido, linea.Pasillo, linea.Fila, linea.Columna)
+            End If
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing
@@ -321,7 +385,8 @@ Public Class InventarioViewModel
             .Grupo = linea.Grupo,
             .Subgrupo = linea.Subgrupo,
             .Producto = linea.Producto,
-            .Lectura = TextoLectura(linea.PorCodigoBarras)
+            .Lectura = TextoLectura(linea.PorCodigoBarras),
+            .Hueco = TextoHueco(linea.Pasillo, linea.Fila, linea.Columna)
         }
         movimientosDia.Add(nuevoMovimiento)
         OnPropertyChanged(NameOf(movimientosDia))
@@ -759,6 +824,39 @@ Public Class InventarioViewModel
     Public Shared Function EsAlmacenDeTienda(almacenInventario As String) As Boolean
         Return Not String.IsNullOrWhiteSpace(almacenInventario) AndAlso
             Not String.Equals(almacenInventario.Trim(), Constantes.Almacenes.ALMACEN_ALGETE, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Public Const MAXIMO_CARACTERES_HUECO As Integer = 3
+
+    ''' <summary>«En ALG el inventario va por huecos: indique el pasillo, la fila y la columna donde está el producto.»</summary>
+    Public Shared Function MensajeFaltaHueco(almacenInventario As String) As String
+        Return $"En {If(almacenInventario, String.Empty).Trim()} el inventario va por huecos: indique el pasillo, la fila y la columna donde está el producto."
+    End Function
+
+    ''' <summary>
+    ''' Pasillo, fila o columna como en el resto del almacén: «1» → «001» (solo cifras; lo demás, sin espacios y tal cual).
+    ''' Nothing si está vacío o tiene más de 3 caracteres.
+    ''' </summary>
+    Public Shared Function NormalizarParteHueco(texto As String) As String
+        Dim limpio = If(texto, String.Empty).Trim()
+        If limpio.Length = 0 OrElse limpio.Length > MAXIMO_CARACTERES_HUECO Then
+            Return Nothing
+        End If
+        Return If(limpio.All(Function(c) Char.IsDigit(c)), limpio.PadLeft(MAXIMO_CARACTERES_HUECO, "0"c), limpio)
+    End Function
+
+    ''' <summary>Normaliza el hueco en sus casillas (se ve «001») y dice si está completo.</summary>
+    Private Function PrepararHueco() As Boolean
+        Dim p = NormalizarParteHueco(Pasillo)
+        Dim f = NormalizarParteHueco(Fila)
+        Dim c = NormalizarParteHueco(Columna)
+        If p Is Nothing OrElse f Is Nothing OrElse c Is Nothing Then
+            Return False
+        End If
+        Pasillo = p
+        Fila = f
+        Columna = c
+        Return True
     End Function
 
     ''' <summary>NestoAPI#788: si lo leído no es la referencia que devuelve la API, se ha leído un código de barras.</summary>

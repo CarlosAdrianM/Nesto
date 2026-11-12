@@ -101,7 +101,35 @@
 
     Private Sub txtFecha_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFecha.KeyUp
         If e.Key = Key.Return Then
-            txtProducto.Focus()
+            Dim vm = TryCast(DataContext, InventarioViewModel)
+            If vm IsNot Nothing AndAlso vm.AlmacenConUbicaciones Then
+                txtPasillo?.Focus()
+            Else
+                txtProducto?.Focus()
+            End If
         End If
+    End Sub
+
+    ' Algete: el hueco se escribe pasillo, fila, columna y, con Intro, se pasa a la siguiente casilla y luego al producto.
+    Private Sub txtPasillo_KeyUp(sender As Object, e As KeyEventArgs) Handles txtPasillo.KeyUp
+        If e.Key = Key.Return Then
+            txtFila?.Focus()
+        End If
+    End Sub
+
+    Private Sub txtFila_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFila.KeyUp
+        If e.Key = Key.Return Then
+            txtColumna?.Focus()
+        End If
+    End Sub
+
+    Private Sub txtColumna_KeyUp(sender As Object, e As KeyEventArgs) Handles txtColumna.KeyUp
+        If e.Key = Key.Return Then
+            txtProducto?.Focus()
+        End If
+    End Sub
+
+    Private Sub Hueco_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtPasillo.GotFocus, txtFila.GotFocus, txtColumna.GotFocus
+        TryCast(sender, TextBox)?.SelectAll()
     End Sub
 End Class

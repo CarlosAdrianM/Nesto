@@ -26,6 +26,11 @@ Public Interface IServicioInventario
     ''' lanza <see cref="ConflictoInventarioException"/> y cualquier otro error lanza: nunca se crea otra fila a ciegas.
     ''' </summary>
     Function BuscarLinea(empresa As String, almacen As String, fecha As Date, producto As String) As Task(Of InventarioDTO)
+    ''' <summary>
+    ''' Almacén con ubicaciones (Algete): como <see cref="BuscarLinea"/>, pero la línea de ESE hueco (GET api/Inventarios con
+    ''' pasillo, fila y columna, NestoAPI#795). Nothing si el producto aún no tiene fila en ese hueco ese día.
+    ''' </summary>
+    Function BuscarLineaEnHueco(empresa As String, almacen As String, fecha As Date, producto As String, pasillo As String, fila As String, columna As String) As Task(Of InventarioDTO)
     Function LeerLineas(empresa As String, almacen As String, fecha As Date) As Task(Of List(Of InventarioDTO))
     ''' <summary>
     ''' POST api/Inventarios: devuelve la línea grabada (con la referencia y PorCodigoBarras que decide la API). NestoAPI#784:
@@ -159,9 +164,17 @@ Public Class ServicioInventario
         End Using
     End Function
 
-    Public Async Function BuscarLinea(empresa As String, almacen As String, fecha As Date, producto As String) As Task(Of InventarioDTO) Implements IServicioInventario.BuscarLinea
+    Public Function BuscarLinea(empresa As String, almacen As String, fecha As Date, producto As String) As Task(Of InventarioDTO) Implements IServicioInventario.BuscarLinea
+        Return LeerLinea($"Inventarios?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}&producto={Uri.EscapeDataString(If(producto, String.Empty))}")
+    End Function
+
+    Public Function BuscarLineaEnHueco(empresa As String, almacen As String, fecha As Date, producto As String, pasillo As String, fila As String, columna As String) As Task(Of InventarioDTO) Implements IServicioInventario.BuscarLineaEnHueco
+        Return LeerLinea($"Inventarios?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}&producto={Uri.EscapeDataString(If(producto, String.Empty))}" +
+                         $"&pasillo={Uri.EscapeDataString(If(pasillo, String.Empty))}&fila={Uri.EscapeDataString(If(fila, String.Empty))}&columna={Uri.EscapeDataString(If(columna, String.Empty))}")
+    End Function
+
+    Private Async Function LeerLinea(url As String) As Task(Of InventarioDTO)
         Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim url = $"Inventarios?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}&producto={Uri.EscapeDataString(If(producto, String.Empty))}"
             Dim response = Await client.GetAsync(url)
             If response.StatusCode = HttpStatusCode.NotFound Then
                 ' Sin línea (o lo leído no es ningún producto: lo dirá el POST con su mensaje).
