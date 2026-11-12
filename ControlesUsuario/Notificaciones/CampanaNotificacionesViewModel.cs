@@ -634,6 +634,14 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS, ParametrosRecogidaSolicitada(item.Notificacion));
                 return;
             }
+            // Nesto#636 (NestoAPI#857): un correo de seguimiento que la API no ha sabido asignar abre «Envíos de proveedor por asignar»
+            // con el envío que contiene ese correo (si ya está abierta, se reutiliza la pestaña y se vuelve a leer)
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_COMPRA_SEGUIMIENTO_POR_ASIGNAR && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR, ParametrosCompraSeguimientoPorAsignar(item.Notificacion));
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");
@@ -669,6 +677,18 @@ namespace ControlesUsuario.Notificaciones
                 { "clienteParameter", cliente },
                 { "contactoParameter", string.IsNullOrEmpty(contacto) ? CONTACTO_POR_DEFECTO : contacto }
             };
+        }
+
+        /// <summary>Nesto#636: el correo del aviso, para que la pantalla elija su envío. Sin correo (o no numérico), vacío: solo se abre.</summary>
+        internal static ParametrosNavegacion ParametrosCompraSeguimientoPorAsignar(NotificacionBuzon notificacion)
+        {
+            var parametros = new ParametrosNavegacion();
+            int? correo = notificacion?.DatoEntero("correo");
+            if (correo.HasValue && correo.Value > 0)
+            {
+                parametros.Add(NotificacionBuzon.PARAMETRO_CORREO_COMPRA, correo.Value);
+            }
+            return parametros;
         }
 
         /// <summary>

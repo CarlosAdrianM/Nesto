@@ -41,13 +41,17 @@
                               LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirRecogidasSolicitadasCommand}" />
             </RibbonGroup>
             <!-- Nesto#529 (NestoAPI#631): solo Compras y Dirección ven las propuestas de stock -->
+            <!-- Nesto#636: el grupo también para Informática (los envíos por asignar); Propuestas y Cambiar estado siguen solo para Compras y Dirección -->
             <RibbonGroup x:Name="grpCompras"
                                 Header="Compras"
-                                Visibility="{Binding PuedeVerPropuestasStock, Converter={StaticResource VisibilidadPropuestasStock}}">
+                                Visibility="{Binding PuedeVerGrupoCompras, Converter={StaticResource VisibilidadPropuestasStock}}">
                 <RibbonButton Label="Propuestas de stock" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirPropuestasStockCommand}" />
                 <!-- Nesto#624 (NestoAPI#738): cambio de estado de muchos productos a la vez -->
                 <RibbonButton Label="Cambiar estado" ToolTip="Cambiar el estado de muchos productos a la vez (por proveedor, familia, grupo, subgrupo o lista de referencias)"
                               LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirCambiarEstadoProductosCommand}" />
+                <!-- Nesto#636 (NestoAPI#857): los avisos de agencias que la API no ha sabido asignar a un pedido de compra -->
+                <RibbonButton Label="Envíos por asignar" ToolTip="Los avisos de las agencias que no se han podido asignar solos a un pedido de compra: asignarlos a su pedido o descartarlos"
+                              LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirEnviosProveedorPorAsignarCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

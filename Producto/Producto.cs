@@ -59,6 +59,12 @@ namespace Nesto.Modulos.Producto
             registro.Vista<RecogidasSolicitadasView>(NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecogidasSolicitadasViewModel>();
             registro.Singleton<IServicioRecogidasSolicitadas, ServicioRecogidasSolicitadas>();
+
+            // Nesto#636 (NestoAPI#857, fase 3): los envíos de proveedor que la API no ha sabido asignar a un pedido de compra (la campana
+            // con CompraSeguimientoPorAsignar abre aquí)
+            registro.Vista<EnviosProveedorPorAsignarView>(NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosProveedorPorAsignarViewModel>();
+            registro.Singleton<IServicioEnviosProveedorPorAsignar, ServicioEnviosProveedorPorAsignar>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

@@ -122,6 +122,17 @@ namespace Nesto.Infrastructure.Contracts
         public static bool EsAvisoRecogidaSolicitada(string tipo)
             => tipo == TIPO_RECOGIDA_SOLICITADA || tipo == TIPO_RECOGIDA_SOLICITADA_SIN_RESPUESTA || tipo == TIPO_RECOGIDA_SOLICITADA_ANULADA;
 
+        /// <summary>
+        /// Nesto#636 (NestoAPI#857, fase 3): un correo de seguimiento de una agencia que la API no ha sabido asignar a un pedido de compra
+        /// (a Compras). Trae Datos["correo"] (Id del correo), Datos["agencia"] y Datos["codigo"]; al pulsarlo se abre
+        /// <see cref="VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR"/> con el envío que contiene ese correo.
+        /// </summary>
+        public const string TIPO_COMPRA_SEGUIMIENTO_POR_ASIGNAR = "CompraSeguimientoPorAsignar";
+        /// <summary>Nesto#636: la ventana (módulo Producto) «Envíos de proveedor por asignar».</summary>
+        public const string VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR = "EnviosProveedorPorAsignarView";
+        /// <summary>Nesto#636: el parámetro de navegación con el Id del correo del aviso (int).</summary>
+        public const string PARAMETRO_CORREO_COMPRA = "correo";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }

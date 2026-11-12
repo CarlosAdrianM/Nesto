@@ -32,6 +32,7 @@ namespace Nesto.Modules.Producto
             AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeVerPropuestasStock);
             AbrirRecorridoAlmacenCommand = new RelayCommand(OnAbrirRecorridoAlmacen);
             AbrirRecogidasSolicitadasCommand = new RelayCommand(OnAbrirRecogidasSolicitadas, CanAbrirRecogidasSolicitadas);
+            AbrirEnviosProveedorPorAsignarCommand = new RelayCommand(OnAbrirEnviosProveedorPorAsignar, CanAbrirEnviosProveedorPorAsignar);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -71,6 +72,25 @@ namespace Nesto.Modules.Producto
         {
             Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
         }
+
+        /// <summary>
+        /// Nesto#636 (NestoAPI#857, fase 3): los envíos de proveedor por asignar a un pedido de compra. Solo Compras, Dirección e
+        /// Informática (los que la API deja verlos y asignarlos); a los demás, si llegan desde la campana, la API les da 403 y se explica.
+        /// </summary>
+        public ICommand AbrirEnviosProveedorPorAsignarCommand { get; private set; }
+        internal bool CanAbrirEnviosProveedorPorAsignar()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
+        }
+        private void OnAbrirEnviosProveedorPorAsignar()
+        {
+            Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR);
+        }
+
+        /// <summary>Nesto#636: el grupo «Compras» de la cinta, para quien pueda abrir alguno de sus botones.</summary>
+        public bool PuedeVerGrupoCompras => PuedeVerPropuestasStock || CanAbrirEnviosProveedorPorAsignar();
 
         /// <summary>
         /// Nesto#624 (NestoAPI#738, sugerencia 793 de Manuel): cambiar el estado de muchos productos a la vez. Solo Compras y

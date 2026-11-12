@@ -133,6 +133,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Proveedores", "Pedidos", "Pedidos"), new DestinoMenu(COMPRAS, "Compras", 10, "Pedidos de compra")),
             (Clave("Productos", "Compras", "Propuestas de stock"), new DestinoMenu(COMPRAS, "Compras", 20)),
             (Clave("Productos", "Compras", "Cambiar estado"), new DestinoMenu(COMPRAS, "Compras", 25, "Cambiar estado de productos")), // Nesto#624
+            (Clave("Productos", "Compras", "Envíos por asignar"), new DestinoMenu(COMPRAS, "Compras", 15, "Envíos de proveedor por asignar")), // Nesto#636 (NestoAPI#857)
             (Clave("Proveedores", "Mantenimientos", "Ganavisiones"), new DestinoMenu(COMPRAS, "Mantenimientos", 30)),
             (Clave("Proveedores", "Mantenimientos", "Ofertas y descuentos"), new DestinoMenu(COMPRAS, "Mantenimientos", 40)),
             (Clave("Clientes", "Mantenimiento", "Mant. familias"), new DestinoMenu(COMPRAS, "Mantenimientos", 50, "Mantenimiento de familias")),

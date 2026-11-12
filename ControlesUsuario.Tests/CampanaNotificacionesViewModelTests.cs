@@ -535,6 +535,42 @@ namespace ControlesUsuario.Tests
         }
 
         [TestMethod]
+        public async Task PulsarUnAvisoDeCompraSeguimientoPorAsignar_AbreLosEnviosPorAsignarEnEseCorreo()
+        {
+            // Nesto#636 (NestoAPI#857): el correo de seguimiento que la API no ha sabido asignar abre «Envíos de proveedor por asignar»
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 42,
+                Titulo = "Envío de proveedor por asignar",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = "CompraSeguimientoPorAsignar", ["correo"] = "1234", ["agencia"] = "UPS", ["codigo"] = "1Z0001" }
+            });
+            vm.PanelAbierto = true;
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "EnviosProveedorPorAsignarView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la pantalla");
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual(1234, parametros.GetValue<int>("correo"));
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void ParametrosCompraSeguimientoPorAsignar_SinCorreo_SoloAbre()
+        {
+            ParametrosNavegacion p = CampanaNotificacionesViewModel.ParametrosCompraSeguimientoPorAsignar(new NotificacionBuzon
+            {
+                Datos = new Dictionary<string, string> { ["tipo"] = "CompraSeguimientoPorAsignar", ["correo"] = "x" }
+            });
+
+            Assert.IsFalse(p.ContainsKey("correo"));
+            Assert.AreEqual(0, CampanaNotificacionesViewModel.ParametrosCompraSeguimientoPorAsignar(null).Count);
+        }
+
+        [TestMethod]
         public void ParametrosRecogidaSolicitada_SinEmpresaNiId_PoneLa1YNoInventaElId()
         {
             ParametrosNavegacion p = CampanaNotificacionesViewModel.ParametrosRecogidaSolicitada(new NotificacionBuzon
