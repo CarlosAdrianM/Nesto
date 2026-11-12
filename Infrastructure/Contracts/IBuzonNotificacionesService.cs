@@ -109,6 +109,15 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Nesto#635: true si el aviso es de una anulada (ya no está entre las pendientes: se abre la pestaña del cliente).</summary>
         public const string PARAMETRO_RECOGIDA_ANULADA = "anulada";
 
+        /// <summary>
+        /// NestoAPI#688/#858: el picking se ha terminado con faltas. Trae Datos["empresa"] y Datos["pedido"] (abre el pedido, como
+        /// cualquier aviso de un pedido) y, si el pedido «todo junto» queda retenido, Datos["retenido"] = "true" y Datos["plazo"]
+        /// (yyyy-MM-ddTHH:mm:ss): en el pedido sale la banda para decidir.
+        /// </summary>
+        public const string TIPO_PICKING_CON_FALTAS = "PickingConFaltas";
+        /// <summary>NestoAPI#858: nadie decidió a tiempo y el pedido retenido espera a tenerlo completo. Datos["empresa"] y Datos["pedido"]: abre el pedido.</summary>
+        public const string TIPO_PEDIDO_RETENIDO_POR_FALTA_ESPERAR = "PedidoRetenidoPorFaltaEsperar";
+
         /// <summary>Nesto#635: si el tipo es uno de los avisos de recogidas solicitadas que abren la pantalla.</summary>
         public static bool EsAvisoRecogidaSolicitada(string tipo)
             => tipo == TIPO_RECOGIDA_SOLICITADA || tipo == TIPO_RECOGIDA_SOLICITADA_SIN_RESPUESTA || tipo == TIPO_RECOGIDA_SOLICITADA_ANULADA;

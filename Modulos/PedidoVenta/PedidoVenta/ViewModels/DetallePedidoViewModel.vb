@@ -130,6 +130,8 @@ Public Class DetallePedidoViewModel
         AplicarCambioClienteCommand = New AsyncRelayCommand(AddressOf AplicarCambioClienteAsync, Function() Not String.IsNullOrWhiteSpace(ClienteNuevo))
         CmdRetenerPedido = New AsyncRelayCommand(AddressOf RetenerPedidoAsync, Function() PuedeRetenerPedido) ' NestoAPI#698
         CmdLiberarPedido = New AsyncRelayCommand(AddressOf LiberarPedidoAsync, Function() EstaRetenido) ' NestoAPI#698
+        ServirLoQueHayCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_SERVIR_LO_QUE_HAY), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
+        EsperarCompletoCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_ESPERAR), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -727,6 +729,7 @@ Public Class DetallePedidoViewModel
                 Dim unusedCupon = CargarCuponAsync() ' Nesto#518: sin esperar, la carga sigue
                 Dim unusedSuPedido = CargarSuPedidoObligatorioAsync() ' Nesto#562: sin esperar, no lanza
                 Dim unusedBultos = BultosPedido?.Cargar(_pedido.empresa, _pedido.numero) ' Nesto#522: sin esperar, no lanza
+                Dim unusedRetencionFalta = CargarRetencionPorFaltaAsync() ' NestoAPI#858: sin esperar, no lanza
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -4459,6 +4462,132 @@ Public Class DetallePedidoViewModel
         End If
         NotificarCambioRetencion()
     End Sub
+#End Region
+
+#Region "NestoAPI#858: pedido «todo junto» retenido en el almacén por una falta"
+    Private _versionRetencionPorFalta As Integer
+    Private _decidiendoRetencionPorFalta As Boolean
+    Private _retencionPorFalta As RetencionPorFaltaModel
+    ''' <summary>La retención pendiente del pedido en pantalla (GET PedidosVenta/RetenidosPorFalta), o Nothing.</summary>
+    Public Property RetencionPorFalta As RetencionPorFaltaModel
+        Get
+            Return _retencionPorFalta
+        End Get
+        Private Set(value As RetencionPorFaltaModel)
+            If SetProperty(_retencionPorFalta, value) Then
+                NotificarCambioRetencionPorFalta()
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property EstaRetenidoPorFalta As Boolean
+        Get
+            Return ReglasRetencionPorFalta.EstaPendiente(RetencionPorFalta)
+        End Get
+    End Property
+
+    ''' <summary>«Pedido retenido en el almacén: falta X. Decida antes de las HH:mm del dd/MM o se esperará a tenerlo completo.»</summary>
+    Public ReadOnly Property TextoRetenidoPorFalta As String
+        Get
+            Return If(EstaRetenidoPorFalta, ReglasRetencionPorFalta.Texto(RetencionPorFalta), String.Empty)
+        End Get
+    End Property
+
+    ''' <summary>Si el usuario no puede decidir, se le dice quién puede (los botones salen deshabilitados).</summary>
+    Public ReadOnly Property TextoNoPuedeDecidirRetencionPorFalta As String
+        Get
+            Return If(EstaRetenidoPorFalta AndAlso Not RetencionPorFalta.PuedeDecidir, ReglasRetencionPorFalta.TEXTO_NO_PUEDE_DECIDIR, String.Empty)
+        End Get
+    End Property
+
+    Public ReadOnly Property PuedeDecidirRetencionPorFalta As Boolean
+        Get
+            Return EstaRetenidoPorFalta AndAlso RetencionPorFalta.PuedeDecidir AndAlso Not _decidiendoRetencionPorFalta
+        End Get
+    End Property
+
+    Public Property ServirLoQueHayCommand As AsyncRelayCommand
+    Public Property EsperarCompletoCommand As AsyncRelayCommand
+
+    Private Sub NotificarCambioRetencionPorFalta()
+        OnPropertyChanged(NameOf(EstaRetenidoPorFalta))
+        OnPropertyChanged(NameOf(TextoRetenidoPorFalta))
+        OnPropertyChanged(NameOf(TextoNoPuedeDecidirRetencionPorFalta))
+        OnPropertyChanged(NameOf(PuedeDecidirRetencionPorFalta))
+        ServirLoQueHayCommand?.NotifyCanExecuteChanged()
+        EsperarCompletoCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>
+    ''' Pregunta a la API si el pedido en pantalla está retenido por una falta. Solo si puede estarlo (algo en un picking y sin
+    ''' albarán). Nunca lanza: con un 503 (script sin lanzar) o cualquier error, como si no lo estuviera. Si mientras tanto se abre
+    ''' otro pedido, la respuesta del anterior se descarta. Friend para los tests.
+    ''' </summary>
+    Friend Async Function CargarRetencionPorFaltaAsync() As Task
+        _versionRetencionPorFalta += 1
+        Dim version As Integer = _versionRetencionPorFalta
+        RetencionPorFalta = Nothing
+        Dim modelo As PedidoVentaDTO = pedido?.Model
+        If servicio Is Nothing OrElse Not ReglasRetencionPorFalta.PuedeEstarRetenido(modelo) Then
+            Return
+        End If
+        Dim empresa As String = modelo.empresa
+        Dim numero As Integer = modelo.numero
+        Dim retencion As RetencionPorFaltaModel
+        Try
+            retencion = ReglasRetencionPorFalta.DelPedido(Await servicio.LeerRetenidosPorFalta(), empresa, numero)
+        Catch ex As Exception
+            retencion = Nothing
+        End Try
+        If version = _versionRetencionPorFalta Then
+            RetencionPorFalta = retencion
+        End If
+    End Function
+
+    ''' <summary>
+    ''' «Servir lo que hay» o «Esperar a tenerlo completo»: confirma explicando la consecuencia, llama a la API y recarga el
+    ''' pedido (sin la banda). Si la API lo rechaza (409: ya decidido, picking sin terminar…) se enseña su mensaje tal cual y
+    ''' también se recarga, para ver cómo está de verdad. Friend para los tests.
+    ''' </summary>
+    Friend Async Function DecidirRetencionPorFaltaAsync(decision As String) As Task
+        If Not PuedeDecidirRetencionPorFalta Then
+            Return
+        End If
+        Dim retencion As RetencionPorFaltaModel = RetencionPorFalta
+        Dim empresa As String = If(pedido?.empresa, retencion.Empresa)
+        Dim numero As Integer = retencion.Pedido
+        Dim esServir As Boolean = decision = ReglasRetencionPorFalta.DECISION_SERVIR_LO_QUE_HAY
+        Dim titulo As String = If(esServir, ReglasRetencionPorFalta.TITULO_SERVIR_LO_QUE_HAY, ReglasRetencionPorFalta.TITULO_ESPERAR)
+        Dim texto As String = If(esServir, ReglasRetencionPorFalta.TextoConfirmacionServir(retencion), ReglasRetencionPorFalta.TextoConfirmacionEsperar(retencion))
+        If Not Await dialogService.ShowConfirmationAsync(titulo, texto) Then
+            Return
+        End If
+
+        _decidiendoRetencionPorFalta = True
+        NotificarCambioRetencionPorFalta()
+        Dim decidida As RetencionPorFaltaModel = Nothing
+        Dim fallo As String = Nothing
+        Try
+            decidida = Await servicio.DecidirRetencionPorFalta(empresa, numero, decision)
+        Catch ex As Exception
+            fallo = ex.Message
+        Finally
+            _decidiendoRetencionPorFalta = False
+        End Try
+
+        If fallo IsNot Nothing Then
+            dialogService.ShowError(fallo)
+        Else
+            RetencionPorFalta = Nothing
+            If Not String.IsNullOrWhiteSpace(decidida?.Mensaje) Then
+                dialogService.ShowNotification(titulo, decidida.Mensaje)
+            End If
+        End If
+        NotificarCambioRetencionPorFalta()
+        If pedido IsNot Nothing AndAlso pedido.numero = numero Then
+            Await CargarPedidoAsync(New ResumenPedido With {.empresa = empresa, .numero = numero})
+        End If
+    End Function
 #End Region
 
     ''' <summary>Cuántas veces se ha preguntado de verdad al servidor (para los tests; protección de #517).</summary>

@@ -321,6 +321,49 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' NestoAPI#858 (punto 4): los pedidos «todo junto» retenidos por una falta que ve el usuario (solo los pendientes).
+    Public Async Function LeerRetenidosPorFalta() As Task(Of List(Of RetencionPorFaltaModel)) Implements IPedidoVentaService.LeerRetenidosPorFalta
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response As HttpResponseMessage = Await client.GetAsync("PedidosVenta/RetenidosPorFalta")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se han podido leer los pedidos retenidos por falta ({CInt(response.StatusCode)}).")
+                End If
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(body))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of List(Of RetencionPorFaltaModel))(body), New List(Of RetencionPorFaltaModel))
+        End Using
+    End Function
+
+    ' NestoAPI#858 (punto 4): «ServirLoQueHay» o «Esperar». El mensaje de la API (400, 403, 409, 503) se enseña tal cual.
+    Public Async Function DecidirRetencionPorFalta(empresa As String, numero As Integer, decision As String) As Task(Of RetencionPorFaltaModel) Implements IPedidoVentaService.DecidirRetencionPorFalta
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"PedidosVenta/{Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))}/{numero}/RetencionPorFalta/Decidir"
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(New With {.Decision = decision}), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(url, contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                If String.IsNullOrWhiteSpace(body) Then
+                    Throw New Exception($"No se ha podido decidir qué hacer con el pedido {numero} ({CInt(response.StatusCode)}).")
+                End If
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(body))
+            End If
+            If String.IsNullOrWhiteSpace(body) Then
+                Return Nothing
+            End If
+            Return JsonConvert.DeserializeObject(Of RetencionPorFaltaModel)(body)
+        End Using
+    End Function
+
     ' NestoAPI#698: la retención activa (204 = no está retenido).
     Public Async Function LeerRetencion(empresa As String, numero As Integer) As Task(Of RetencionPedidoDTO) Implements IPedidoVentaService.LeerRetencion
         Using client As HttpClient = _clienteApiFactory.Crear()

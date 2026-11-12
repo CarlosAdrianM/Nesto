@@ -165,4 +165,10 @@ Public Interface IPedidoVentaService
     ''' <summary>Nesto#562 (NestoAPI#723): pone el P.O. en una factura ya emitida, y en su pedido (PUT Facturas/{empresa}/{numero}/SuPedido).
     ''' Devuelve el P.O. puesto y el que tenía; lanza una excepción con el motivo de la API (403, 404, 400...).</summary>
     Function PonerSuPedidoFactura(empresa As String, numeroFactura As String, suPedido As String) As Task(Of SuPedidoFacturaModel)
+    ''' <summary>NestoAPI#858 (punto 4): los pedidos «todo junto» retenidos por una falta que puede ver el usuario
+    ''' (GET PedidosVenta/RetenidosPorFalta). Lanza si la API falla (también el 503 sin script).</summary>
+    Function LeerRetenidosPorFalta() As Task(Of List(Of RetencionPorFaltaModel))
+    ''' <summary>NestoAPI#858 (punto 4): «ServirLoQueHay» o «Esperar» (POST PedidosVenta/{empresa}/{pedido}/RetencionPorFalta/Decidir).
+    ''' Lanza una excepción con el mensaje de la API tal cual (400, 403, 409, 503).</summary>
+    Function DecidirRetencionPorFalta(empresa As String, numero As Integer, decision As String) As Task(Of RetencionPorFaltaModel)
 End Interface

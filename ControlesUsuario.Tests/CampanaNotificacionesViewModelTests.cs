@@ -429,6 +429,32 @@ namespace ControlesUsuario.Tests
         }
 
         [DataTestMethod]
+        [DataRow(NotificacionBuzon.TIPO_PICKING_CON_FALTAS, "true")]
+        [DataRow(NotificacionBuzon.TIPO_PICKING_CON_FALTAS, null)]
+        [DataRow(NotificacionBuzon.TIPO_PEDIDO_RETENIDO_POR_FALTA_ESPERAR, null)]
+        public async Task PulsarUnAvisoDeRetencionPorFalta_AbreElPedido(string tipo, string retenido)
+        {
+            // NestoAPI#858: el picking con faltas (retenido o no) y el plazo vencido abren el pedido, donde sale la banda para decidir
+            var datos = new Dictionary<string, string> { ["tipo"] = tipo, ["empresa"] = "1", ["pedido"] = "930500" };
+            if (retenido != null)
+            {
+                datos["retenido"] = retenido;
+                datos["plazo"] = "2026-11-12T12:30:00";
+            }
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 23,
+                Titulo = "Pedido 930500 retenido: falta 17404; decida",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = datos
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            A.CallTo(() => abridorPedidos.Abrir("1", 930500)).MustHaveHappenedOnceExactly();
+        }
+
+        [DataTestMethod]
         [DataRow("LeadNuevo")]
         [DataRow("LeadSinLlamar")]
         public async Task PulsarUnAvisoDeLead_AbreLaFichaDeEseClienteYContacto(string tipo)
