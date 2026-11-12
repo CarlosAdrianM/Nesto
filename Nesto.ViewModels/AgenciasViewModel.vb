@@ -346,7 +346,12 @@ Public Class AgenciasViewModel
                     If String.IsNullOrEmpty(PestannaNombre) Then
                         Return
                     End If
-                    If PestannaNombre = Pestannas.PEDIDOS OrElse PestannaNombre = Pestannas.EN_CURSO OrElse PestannaNombre = Pestannas.ETIQUETAS Then
+                    ' ELMAH 12/11/26 (1.10.60.1, pestaña En curso): con una agencia sin clase (ver arriba)
+                    ' se ponían igualmente sus defectos (país, retorno, servicio, horario) y agenciaEspecifica
+                    ' era Nothing: NullReferenceException y la pantalla a medias. Sin clase no hay defectos
+                    ' que poner: se deja lo que hay y se siguen cargando las listas de envíos para consultar.
+                    If agenciaEspecifica IsNot Nothing AndAlso
+                       (PestannaNombre = Pestannas.PEDIDOS OrElse PestannaNombre = Pestannas.EN_CURSO OrElse PestannaNombre = Pestannas.ETIQUETAS) Then
                         ActualizarListas()
                         Dim nombrePais As String = paisActual?.Nombre
                         paisActual = If(Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL,
