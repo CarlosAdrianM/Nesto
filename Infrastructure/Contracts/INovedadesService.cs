@@ -183,6 +183,12 @@ namespace Nesto.Infrastructure.Contracts
     {
         public const string ARIADNA = "Ariadna";
         public const string NESTOAPP = "NestoApp";
+        /// <summary>NestoAPI#495: las de este programa.</summary>
+        public const string NESTO = "Nesto";
+        /// <summary>NestoAPI#495: los cambios de la API, que se anuncian en Nesto y en NestoApp sin publicar ninguno.</summary>
+        public const string NESTOAPI = "NestoAPI";
+        /// <summary>NestoAPI#495: lo que se avisa al arrancar Nesto (GET api/Novedades?ambitos=...).</summary>
+        public const string AVISO_ARRANQUE_NESTO = NESTO + "," + NESTOAPI;
         public static readonly IReadOnlyList<string> OTRAS_APLICACIONES = new[] { ARIADNA, NESTOAPP };
 
         /// <summary>El ámbito es el de otra aplicación (Ariadna o NestoApp), no el de Nesto.</summary>
@@ -208,6 +214,13 @@ namespace Nesto.Infrastructure.Contracts
         /// (las novedades no deben bloquear el arranque de Nesto).
         /// </summary>
         Task<List<NovedadUsuario>> ObtenerNovedades(string desdeVersion = null);
+
+        /// <summary>
+        /// NestoAPI#495: las novedades de Nesto y de NestoAPI con Id mayor que <paramref name="desdeId"/>
+        /// (GET api/Novedades?ambitos=Nesto,NestoAPI&amp;desdeId=n), de los perfiles del usuario. No lanza, pero si falla
+        /// devuelve null (no una lista vacía): así quien la usa no da por vista ninguna novedad sin haberla leído.
+        /// </summary>
+        Task<List<NovedadUsuario>> ObtenerNovedadesDesdeId(int desdeId);
 
         /// <summary>
         /// Sugerencia 551: todas las publicadas, también las que no son de los perfiles del usuario

@@ -73,33 +73,20 @@ Partial Class MainWindow
         AddHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
     End Sub
 
-    ' Nesto#372: si la versión actual es posterior a la última cuyas novedades vio el usuario,
-    ' se muestran las novedades nuevas y se guarda la versión. La primera vez (sin parámetro
-    ' guardado) es un bootstrap silencioso. Nunca debe bloquear ni romper el arranque.
+    ' Nesto#372 + NestoAPI#495: al arrancar se enseñan las novedades de la versión nueva (si se ha actualizado) y las que
+    ' tienen Id mayor que la última vista (ámbitos Nesto y NestoAPI: las de la API salen sin publicar Nesto). La primera
+    ' vez no se enseña el histórico. Las reglas, en ComprobadorNovedadesArranque. Nunca debe bloquear ni romper el arranque.
     Private Async Sub OnMainWindowLoadedComprobarNovedades(sender As Object, e As RoutedEventArgs)
         RemoveHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
         Try
-            ' leerParametro lanza si el parámetro no existe todavía (ni siquiera para el usuario
-            ' "(defecto)"): se trata como "sin versión vista" para que el GuardarParametro de más
-            ' abajo lo cree y el mecanismo arranque solo.
-            Dim ultimaVista As String = String.Empty
-            Try
-                ultimaVista = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades)
-            Catch ex As Exception
-                ultimaVista = String.Empty
-            End Try
-            If NovedadesHelper.DebeMostrarNovedades(_versionActual, ultimaVista) Then
-                Dim novedades = Await _novedadesService.ObtenerNovedades(ultimaVista?.Trim())
-                If novedades.Count > 0 Then
-                    Dim parametros As New ParametrosDialogo From {
-                        {"novedades", novedades}
-                    }
-                    _dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)
-                                                                             End Sub)
-                End If
-            End If
-            If ultimaVista?.Trim() <> _versionActual Then
-                Await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades, _versionActual)
+            Dim comprobador As New ComprobadorNovedadesArranque(_configuracion, _novedadesService, _versionActual)
+            Dim novedades = Await comprobador.Comprobar()
+            If novedades.Count > 0 Then
+                Dim parametros As New ParametrosDialogo From {
+                    {"novedades", novedades}
+                }
+                _dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)
+                                                                         End Sub)
             End If
         Catch ex As Exception
             ' Las novedades nunca deben impedir arrancar Nesto

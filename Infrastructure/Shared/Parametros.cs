@@ -92,6 +92,9 @@
             // Fila «(defecto)»: Scripts/Sugerencia761_ParametroRapport.sql (NestoAPI). Sin ella, desplegada.
             public const string SugerenciasRapportPlegadas = "SugerenciasRapportPlegadas";
             public const string UltimaVersionNovedades = "UltimaVersionNovedades";
+            // NestoAPI#495: el Id de la última novedad (ámbitos Nesto y NestoAPI) que se ha avisado al arrancar. Vacío = la
+            // primera vez (se apunta por dónde va sin enseñar el histórico). Fila «(defecto)»: Scripts/Issue495_UltimaNovedadVista.sql (NestoAPI).
+            public const string UltimaNovedadVista = "UltimaNovedadVista";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
             public const string UsarBusquedaContextualAND = "UsarBusquedaContextualAND";

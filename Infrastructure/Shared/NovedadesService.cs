@@ -29,6 +29,31 @@ namespace Nesto.Infrastructure.Shared
                 ? "Novedades"
                 : $"Novedades?desdeVersion={Uri.EscapeDataString(desdeVersion)}");
 
+        public async Task<List<NovedadUsuario>> ObtenerNovedadesDesdeId(int desdeId)
+        {
+            string url = $"Novedades?ambitos={Uri.EscapeDataString(AmbitosNovedades.AVISO_ARRANQUE_NESTO)}&desdeId={Math.Max(desdeId, 0)}";
+            try
+            {
+                using (var client = _clienteApiFactory.Crear())
+                {
+                    HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Debug.WriteLine($"[NovedadesService] Error HTTP: {response.StatusCode}");
+                        return null;
+                    }
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return JsonConvert.DeserializeObject<List<NovedadUsuario>>(json) ?? new List<NovedadUsuario>();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Nunca rompe el arranque; null = no se sabe qué hay
+                Debug.WriteLine($"[NovedadesService] Error: {ex.Message}");
+                return null;
+            }
+        }
+
         // Sugerencia 551: sin ?todas=true la API solo manda las de los perfiles del usuario.
         public Task<List<NovedadUsuario>> ObtenerTodasLasNovedades() => LeerNovedades("Novedades?todas=true");
 
