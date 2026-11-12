@@ -90,6 +90,29 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Nesto#634: la ficha del cliente (la misma que abre «Editar» en el selector de clientes).</summary>
         public const string VISTA_FICHA_CLIENTE = "CrearClienteView";
 
+        /// <summary>
+        /// Nesto#635 (NestoAPI#855): un vendedor ha pedido una recogida (a Almacén). Trae Datos["id"], Datos["empresa"],
+        /// Datos["cliente"] y Datos["contacto"]; al pulsarlo se abre <see cref="VISTA_RECOGIDAS_SOLICITADAS"/> con esa solicitud.
+        /// </summary>
+        public const string TIPO_RECOGIDA_SOLICITADA = "RecogidaSolicitada";
+        /// <summary>Nesto#635: la solicitud lleva un día laborable sin contestar (a Almacén y a quien la pidió). Mismos Datos.</summary>
+        public const string TIPO_RECOGIDA_SOLICITADA_SIN_RESPUESTA = "RecogidaSolicitadaSinRespuesta";
+        /// <summary>Nesto#635: se ha anulado una recogida ya en marcha (lo que haya que hacer a mano lo dice la pantalla). Mismos Datos.</summary>
+        public const string TIPO_RECOGIDA_SOLICITADA_ANULADA = "RecogidaSolicitadaAnulada";
+        /// <summary>Nesto#635: la ventana (módulo Producto) «Recogidas solicitadas».</summary>
+        public const string VISTA_RECOGIDAS_SOLICITADAS = "RecogidasSolicitadasView";
+        /// <summary>Nesto#635: parámetros de navegación con que la campana abre esa ventana en una solicitud.</summary>
+        public const string PARAMETRO_RECOGIDA_ID = "id";
+        public const string PARAMETRO_RECOGIDA_EMPRESA = "empresa";
+        public const string PARAMETRO_RECOGIDA_CLIENTE = "cliente";
+        public const string PARAMETRO_RECOGIDA_CONTACTO = "contacto";
+        /// <summary>Nesto#635: true si el aviso es de una anulada (ya no está entre las pendientes: se abre la pestaña del cliente).</summary>
+        public const string PARAMETRO_RECOGIDA_ANULADA = "anulada";
+
+        /// <summary>Nesto#635: si el tipo es uno de los avisos de recogidas solicitadas que abren la pantalla.</summary>
+        public static bool EsAvisoRecogidaSolicitada(string tipo)
+            => tipo == TIPO_RECOGIDA_SOLICITADA || tipo == TIPO_RECOGIDA_SOLICITADA_SIN_RESPUESTA || tipo == TIPO_RECOGIDA_SOLICITADA_ANULADA;
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }

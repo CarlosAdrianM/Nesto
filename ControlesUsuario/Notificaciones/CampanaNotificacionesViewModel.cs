@@ -626,6 +626,14 @@ namespace ControlesUsuario.Notificaciones
                     return;
                 }
             }
+            // Nesto#635 (NestoAPI#855): los avisos de recogidas solicitadas (nueva, sin respuesta o anulada) abren la pantalla
+            // «Recogidas solicitadas» en esa solicitud (si ya está abierta, se reutiliza la pestaña y se vuelve a leer)
+            if (NotificacionBuzon.EsAvisoRecogidaSolicitada(item.Notificacion.Tipo) && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS, ParametrosRecogidaSolicitada(item.Notificacion));
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");
@@ -661,6 +669,38 @@ namespace ControlesUsuario.Notificaciones
                 { "clienteParameter", cliente },
                 { "contactoParameter", string.IsNullOrEmpty(contacto) ? CONTACTO_POR_DEFECTO : contacto }
             };
+        }
+
+        /// <summary>
+        /// Nesto#635: la solicitud, la empresa, el cliente y el contacto del aviso, para que la pantalla la deje elegida (y, si es una
+        /// anulada, la busque por su cliente). Lo que no viene, no se pone; sin empresa, la 1.
+        /// </summary>
+        internal static ParametrosNavegacion ParametrosRecogidaSolicitada(NotificacionBuzon notificacion)
+        {
+            var parametros = new ParametrosNavegacion();
+            if (notificacion == null)
+            {
+                return parametros;
+            }
+            int? id = notificacion.DatoEntero("id");
+            if (id.HasValue && id.Value > 0)
+            {
+                parametros.Add(NotificacionBuzon.PARAMETRO_RECOGIDA_ID, id.Value);
+            }
+            string empresa = notificacion.Dato("empresa")?.Trim();
+            parametros.Add(NotificacionBuzon.PARAMETRO_RECOGIDA_EMPRESA, string.IsNullOrEmpty(empresa) ? EMPRESA_POR_DEFECTO : empresa);
+            string cliente = notificacion.Dato("cliente")?.Trim();
+            if (!string.IsNullOrEmpty(cliente))
+            {
+                parametros.Add(NotificacionBuzon.PARAMETRO_RECOGIDA_CLIENTE, cliente);
+                string contacto = notificacion.Dato("contacto")?.Trim();
+                if (!string.IsNullOrEmpty(contacto))
+                {
+                    parametros.Add(NotificacionBuzon.PARAMETRO_RECOGIDA_CONTACTO, contacto);
+                }
+            }
+            parametros.Add(NotificacionBuzon.PARAMETRO_RECOGIDA_ANULADA, notificacion.Tipo == NotificacionBuzon.TIPO_RECOGIDA_SOLICITADA_ANULADA);
+            return parametros;
         }
 
         /// <summary>Nesto#546: el pedido y la empresa del aviso, para que la pantalla lo deje elegido. Sin pedido, vacío.</summary>

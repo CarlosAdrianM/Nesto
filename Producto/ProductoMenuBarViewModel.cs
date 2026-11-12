@@ -31,6 +31,7 @@ namespace Nesto.Modules.Producto
             AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
             AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeVerPropuestasStock);
             AbrirRecorridoAlmacenCommand = new RelayCommand(OnAbrirRecorridoAlmacen);
+            AbrirRecogidasSolicitadasCommand = new RelayCommand(OnAbrirRecogidasSolicitadas, CanAbrirRecogidasSolicitadas);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -52,6 +53,23 @@ namespace Nesto.Modules.Producto
         private void OnAbrirRecorridoAlmacen()
         {
             Navegacion.RequestNavigate("MainRegion", VISTA_RECORRIDO_ALMACEN);
+        }
+
+        /// <summary>
+        /// Nesto#635 (NestoAPI#855): las recogidas que piden los vendedores. Solo Almacén, Administración, Dirección e Informática (los
+        /// que la API deja ver las pendientes y contestarlas); a los demás, si llegan desde la campana, la API les da 403 y se explica.
+        /// </summary>
+        public ICommand AbrirRecogidasSolicitadasCommand { get; private set; }
+        internal bool CanAbrirRecogidasSolicitadas()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
+        }
+        private void OnAbrirRecogidasSolicitadas()
+        {
+            Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
         }
 
         /// <summary>

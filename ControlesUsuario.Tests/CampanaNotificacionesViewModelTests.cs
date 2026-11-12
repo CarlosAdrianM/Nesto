@@ -476,6 +476,53 @@ namespace ControlesUsuario.Tests
             Assert.IsTrue(vm.Notificaciones[0].Desplegada);
         }
 
+        [DataTestMethod]
+        [DataRow("RecogidaSolicitada", false)]
+        [DataRow("RecogidaSolicitadaSinRespuesta", false)]
+        [DataRow("RecogidaSolicitadaAnulada", true)]
+        public async Task PulsarUnAvisoDeRecogidaSolicitada_AbreLaPantallaEnEsaSolicitud(string tipo, bool anulada)
+        {
+            // Nesto#635 (NestoAPI#855): los avisos de recogidas solicitadas abren «Recogidas solicitadas», no la ficha ni un pedido
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 41,
+                Titulo = "Recogida solicitada",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string> { ["tipo"] = tipo, ["id"] = "12", ["empresa"] = "1", ["cliente"] = "15191", ["contacto"] = "0" }
+            });
+            vm.PanelAbierto = true;
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "RecogidasSolicitadasView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            Assert.IsFalse(vm.PanelAbierto, "El panel se cierra antes de abrir la pantalla");
+            Assert.IsNotNull(parametros);
+            Assert.AreEqual(12, parametros.GetValue<int>("id"));
+            Assert.AreEqual("1", parametros.GetValue<string>("empresa"));
+            Assert.AreEqual("15191", parametros.GetValue<string>("cliente"));
+            Assert.AreEqual("0", parametros.GetValue<string>("contacto"));
+            Assert.AreEqual(anulada, parametros.GetValue<bool>("anulada"));
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "CrearClienteView", A<ParametrosNavegacion>._)).MustNotHaveHappened();
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void ParametrosRecogidaSolicitada_SinEmpresaNiId_PoneLa1YNoInventaElId()
+        {
+            ParametrosNavegacion p = CampanaNotificacionesViewModel.ParametrosRecogidaSolicitada(new NotificacionBuzon
+            {
+                Datos = new Dictionary<string, string> { ["tipo"] = "RecogidaSolicitada" }
+            });
+
+            Assert.IsFalse(p.ContainsKey("id"));
+            Assert.IsFalse(p.ContainsKey("cliente"));
+            Assert.AreEqual("1", p.GetValue<string>("empresa"));
+            Assert.IsFalse(p.GetValue<bool>("anulada"));
+            Assert.AreEqual(0, CampanaNotificacionesViewModel.ParametrosRecogidaSolicitada(null).Count);
+        }
+
         [TestMethod]
         public void ParametrosFichaCliente_SinEmpresaNiContacto_PoneLa1YEl0()
         {

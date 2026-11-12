@@ -118,6 +118,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Productos", "Almacén", "Recorrido"), new DestinoMenu(ALMACEN, "Almacén", 65, "Recorrido del almacén")), // Nesto#528
             (Clave("Clientes", "Mantenimiento", "Agencias"), new DestinoMenu(ALMACEN, "Envíos", 70)),
             (Clave("Clientes", "Mantenimiento", "Mant. agencias"), new DestinoMenu(ALMACEN, "Envíos", 80, "Mantenimiento de agencias")),
+            (Clave("Productos", "Almacén", "Recogidas solicitadas"), new DestinoMenu(ALMACEN, "Envíos", 85)), // Nesto#635 (NestoAPI#855)
 
             // ── Tiendas y reposición: lo que la tienda pide, recibe y manda a Algete, y lo facturado en ella
             (Clave("Productos", "Reposición", "Diarios"), new DestinoMenu(TIENDAS, "Reposición", 10, "Diarios de reposición")),

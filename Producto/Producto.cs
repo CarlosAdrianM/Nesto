@@ -54,6 +54,11 @@ namespace Nesto.Modulos.Producto
             registro.Vista<RecorridoAlmacenView>(ProductoMenuBarViewModel.VISTA_RECORRIDO_ALMACEN);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecorridoAlmacenViewModel>();
             registro.Singleton<IServicioRecorridoAlmacen, ServicioRecorridoAlmacen>();
+
+            // Nesto#635 (NestoAPI#855): las recogidas que piden los vendedores (la campana con RecogidaSolicitada… abre aquí)
+            registro.Vista<RecogidasSolicitadasView>(NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecogidasSolicitadasViewModel>();
+            registro.Singleton<IServicioRecogidasSolicitadas, ServicioRecogidasSolicitadas>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

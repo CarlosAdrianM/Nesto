@@ -1,0 +1,174 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.RecogidasSolicitadasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:RecogidasSolicitadasViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="Boton" TargetType="Button">
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Padding" Value="10,2" />
+        </Style>
+        <Style x:Key="Etiqueta" TargetType="TextBlock">
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+        <Style x:Key="Dato" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <!-- Quién recoge, bien visible: el vendedor en naranja, el reparto propio en azul -->
+        <Style x:Key="QuienRecoge" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#1F5FA8" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding LaRecogeElVendedor}" Value="True">
+                    <Setter Property="Foreground" Value="#B85C00" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <!-- Nesto#635 (NestoAPI#855): las recogidas que piden los vendedores; el almacén las confirma, rechaza o anula -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,8" MaxWidth="900" HorizontalAlignment="Left" />
+            <Border Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8,4" Margin="0,0,0,8" HorizontalAlignment="Left"
+                    Visibility="{Binding HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" MaxWidth="880" />
+            </Border>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Volver a leer" Command="{Binding CargarCommand}" Style="{StaticResource Boton}" />
+                <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="10,0,0,6"
+                           Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="900" HorizontalAlignment="Left" FontWeight="SemiBold" />
+        </StackPanel>
+
+        <TabControl Grid.Row="1" SelectedIndex="{Binding PestanaSeleccionada}">
+            <!-- Las pendientes de contestar (más antigua primero) -->
+            <TabItem Header="Pendientes">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="2*" MinWidth="320" />
+                    </Grid.ColumnDefinitions>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding TextoPendientes}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                        <DataGrid ItemsSource="{Binding Pendientes}" SelectedItem="{Binding Seleccionada}" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Nº" Binding="{Binding Id}" Width="45" />
+                                <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteContacto}" Width="75" />
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCliente}" Width="2*" />
+                                <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="*" />
+                                <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}" Width="45" />
+                                <DataGridTemplateColumn Header="Quién recoge" Width="140">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding QuienRecogeTexto}" Style="{StaticResource QuienRecoge}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" Width="50" />
+                                <DataGridTextColumn Header="Pedida" Binding="{Binding Pedida}" Width="1.5*" />
+                                <DataGridTextColumn Header="Aviso" Binding="{Binding AvisoSinRespuestaTexto}" Width="*" Foreground="DarkRed" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+
+                    <!-- La elegida: sus datos, lo que se puede corregir y las dos respuestas -->
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
+                                  Visibility="{Binding HaySeleccionada, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap">
+                                <Run Text="{Binding Seleccionada.NombreCliente, Mode=OneWay}" /><Run Text=" (" /><Run Text="{Binding Seleccionada.ClienteContacto, Mode=OneWay}" /><Run Text=")" />
+                            </TextBlock>
+                            <TextBlock DataContext="{Binding Seleccionada}" Text="{Binding QuienRecogeTexto}" Style="{StaticResource QuienRecoge}"
+                                       FontSize="16" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding Seleccionada.AvisoSinRespuestaTexto}" Foreground="DarkRed" FontWeight="SemiBold"
+                                       Visibility="{Binding Seleccionada.SinRespuesta, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <TextBlock Text="Dirección" Style="{StaticResource Etiqueta}" />
+                            <TextBlock Text="{Binding Seleccionada.DireccionCompleta}" Style="{StaticResource Dato}" />
+                            <TextBlock Text="Teléfono y ruta" Style="{StaticResource Etiqueta}" />
+                            <TextBlock Style="{StaticResource Dato}">
+                                <Run Text="{Binding Seleccionada.Telefono, Mode=OneWay}" /><Run Text="  ·  ruta " /><Run Text="{Binding Seleccionada.Ruta, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="Factura original" Style="{StaticResource Etiqueta}" />
+                            <TextBlock Text="{Binding Seleccionada.FacturaOriginal}" Style="{StaticResource Dato}" />
+                            <TextBlock Text="La pidió" Style="{StaticResource Etiqueta}" />
+                            <TextBlock Text="{Binding Seleccionada.Pedida}" Style="{StaticResource Dato}" />
+
+                            <TextBlock Text="Qué hay que recoger (se puede corregir)" Style="{StaticResource Etiqueta}" />
+                            <TextBox Text="{Binding TextoEditado, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True"
+                                     MinHeight="60" MaxLength="500" VerticalScrollBarVisibility="Auto" />
+                            <TextBlock Text="Bultos (se puede corregir)" Style="{StaticResource Etiqueta}" />
+                            <TextBox Text="{Binding BultosEditados, UpdateSourceTrigger=PropertyChanged}" Width="60" HorizontalAlignment="Left" MaxLength="3" />
+
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="Confirmar" Command="{Binding ConfirmarCommand}" Style="{StaticResource Boton}" FontWeight="SemiBold"
+                                        ToolTip="Crea la nota de recogida (NR…) con los bultos y el texto de arriba" />
+                                <Button Content="Rechazar…" Command="{Binding RechazarCommand}" Style="{StaticResource Boton}"
+                                        ToolTip="Pide el motivo (obligatorio): se lo enseñamos a quien la pidió" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Todas las de un cliente (también las resueltas), para ver cómo quedaron o anular las que están en marcha -->
+            <TabItem Header="Por cliente">
+                <DockPanel Margin="8">
+                    <WrapPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Cliente:" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Text="{Binding ClienteBusqueda, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,12,6" VerticalContentAlignment="Center">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding BuscarClienteCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <TextBlock Text="Contacto (opcional):" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Text="{Binding ContactoBusqueda, UpdateSourceTrigger=PropertyChanged}" Width="50" Margin="0,0,12,6" VerticalContentAlignment="Center">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding BuscarClienteCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Content="Buscar" Command="{Binding BuscarClienteCommand}" Style="{StaticResource Boton}" />
+                        <Button Content="Anular…" Command="{Binding AnularCommand}" Style="{StaticResource Boton}" Margin="24,0,6,6"
+                                ToolTip="Anula la elegida. Si ya está en marcha (picking o reparto) solo pueden Almacén y Administración, y se le dirá qué hacer a mano" />
+                    </WrapPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding TextoDelCliente}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <DataGrid ItemsSource="{Binding DelCliente}" SelectedItem="{Binding SeleccionadaDelCliente}" AutoGenerateColumns="False"
+                              IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nº" Binding="{Binding Id}" Width="45" />
+                            <DataGridTextColumn Header="Estado" Binding="{Binding EstadoTexto}" Width="85" />
+                            <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="60" />
+                            <DataGridTemplateColumn Header="Quién recoge" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding QuienRecogeTexto}" Style="{StaticResource QuienRecoge}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Qué hay que recoger" Binding="{Binding Texto}" Width="2*" />
+                            <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" Width="50" />
+                            <DataGridTextColumn Header="Nota" Binding="{Binding CodigoDocumento}" Width="85" />
+                            <DataGridTextColumn Header="Pedida" Binding="{Binding Pedida}" Width="1.3*" />
+                            <DataGridTextColumn Header="Resolución" Binding="{Binding Resolucion}" Width="2*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

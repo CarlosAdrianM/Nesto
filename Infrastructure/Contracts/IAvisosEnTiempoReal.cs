@@ -58,6 +58,12 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public static string Reposiciones(string almacen)
             => $"Reposiciones:{(almacen ?? string.Empty).Trim().ToUpperInvariant()}";
+
+        /// <summary>
+        /// Nesto#635 (NestoAPI#855): «RecogidasSolicitadas»: las recogidas que piden los vendedores. La API avisa en cada cambio
+        /// (nueva, confirmada, rechazada o anulada).
+        /// </summary>
+        public const string RECOGIDAS_SOLICITADAS = "RecogidasSolicitadas";
     }
 
     /// <summary>Nesto#492: estado de la conexión en tiempo real con la API.</summary>
