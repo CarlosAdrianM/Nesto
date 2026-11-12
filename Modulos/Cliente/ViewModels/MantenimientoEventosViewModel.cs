@@ -64,7 +64,11 @@ namespace Nesto.Modulos.Cliente
             NuevoCommand = new RelayCommand(OnNuevo, () => TieneAcceso);
             GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => SePuedeEditar);
             // NestoAPI#843: el importe mínimo solo se edita con productos que comprar
-            ProductosRequeridosEdicion.CollectionChanged += (s, e) => OnPropertyChanged(nameof(HayProductosRequeridos));
+            ProductosRequeridosEdicion.CollectionChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(HayProductosRequeridos));
+                AvisarCambioCoste();
+            };
             ComprobarProductoCommand = new AsyncRelayCommand(ComprobarProductoAsync, () => !string.IsNullOrWhiteSpace(ProductoCursoEdicion));
             CrearProductoCursoCommand = new AsyncRelayCommand(CrearProductoCursoAsync, () => SePuedeEditar && _idEdicion > 0 && !TieneReferenciaForzada);
             InscribirCommand = new AsyncRelayCommand(InscribirAsync, () => Seleccionado?.Id > 0);
@@ -527,7 +531,17 @@ namespace Nesto.Modulos.Cliente
         public DateTime? FechaEdicion { get => _fechaEdicion; set => SetProperty(ref _fechaEdicion, value); }
 
         private decimal _importeSenalEdicion;
-        public decimal ImporteSenalEdicion { get => _importeSenalEdicion; set => SetProperty(ref _importeSenalEdicion, value); }
+        public decimal ImporteSenalEdicion
+        {
+            get => _importeSenalEdicion;
+            set
+            {
+                if (SetProperty(ref _importeSenalEdicion, value))
+                {
+                    AvisarCambioCoste();
+                }
+            }
+        }
 
         private bool _activoEdicion = true;
         public bool ActivoEdicion { get => _activoEdicion; set => SetProperty(ref _activoEdicion, value); }
@@ -609,7 +623,13 @@ namespace Nesto.Modulos.Cliente
         public decimal? ImporteSenalNoReembolsableEdicion
         {
             get => _importeSenalNoReembolsableEdicion;
-            set => SetProperty(ref _importeSenalNoReembolsableEdicion, value);
+            set
+            {
+                if (SetProperty(ref _importeSenalNoReembolsableEdicion, value))
+                {
+                    AvisarCambioCoste();
+                }
+            }
         }
 
         private decimal _pedidoMinimoCuponEdicion;
@@ -828,6 +848,7 @@ namespace Nesto.Modulos.Cliente
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
             CrearProductoCursoCommand.NotifyCanExecuteChanged();
+            AvisarCambioCoste();
         }
 
         /// <summary>Null si el evento no tiene tienda (los de antes): hay que elegirla para guardar.</summary>
@@ -860,6 +881,7 @@ namespace Nesto.Modulos.Cliente
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
             CrearProductoCursoCommand.NotifyCanExecuteChanged();
+            AvisarCambioCoste();
         }
 
         public AsyncRelayCommand GuardarCommand { get; }
@@ -931,6 +953,13 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError(cambioModalidad);
                 return;
             }
+            // Novedades 1233 (12/11/26): un curso por compra nació con la señal por defecto y las clientas recibieron «pague o
+            // se libera la plaza». Con productos que comprar y señal, se pregunta (con «No» por defecto).
+            if (CursoPorCompraConSenal
+                && !_dialogService.ShowConfirmationAnswer(TITULO_CURSO_POR_COMPRA, PreguntaCursoPorCompraConSenal(), porDefectoNo: true))
+            {
+                return;
+            }
             EventoModel guardadoParaAnunciar = null;
             try
             {
@@ -952,7 +981,7 @@ namespace Nesto.Modulos.Cliente
                     HoraInicio = horaInicio.HasValue ? horaInicio.Value.ToString(@"hh\:mm") : null,
                     HoraFin = horaFin.HasValue ? horaFin.Value.ToString(@"hh\:mm") : null,
                     Ponente = Limpiar(PonenteEdicion),
-                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableEdicion,
+                    ImporteSenalNoReembolsable = ImporteSenalNoReembolsableParaGuardar(),
                     PedidoMinimoCupon = PedidoMinimoCuponEdicion,
                     ProductosRequeridos = ProductosRequeridosParaGuardar(),
                     ProductosRequeridosModo = ModoProductosParaGuardar(),
@@ -982,6 +1011,91 @@ namespace Nesto.Modulos.Cliente
         }
 
         private static string Limpiar(string texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
+
+        // ---------------- Novedades 1233 (12/11/26): curso por compra con señal por error ----------------
+
+        public const string TITULO_CURSO_POR_COMPRA = "Curso por compra";
+
+        /// <summary>
+        /// La no reembolsable que se manda. Con productos que comprar, siempre explícita (vacía = 0): si no viniera, la API
+        /// pondría 60 € al crear. Sin productos, como siempre (vacía no se manda). La reembolsable se manda siempre.
+        /// </summary>
+        public decimal? ImporteSenalNoReembolsableParaGuardar() =>
+            HayProductosRequeridos ? ImporteSenalNoReembolsableEdicion ?? 0 : ImporteSenalNoReembolsableEdicion;
+
+        /// <summary>
+        /// La no reembolsable con la que quedará el evento: la escrita; vacía con productos, 0; vacía sin productos, la que
+        /// pone la API al crear (60 €) o la guardada al modificar.
+        /// </summary>
+        private decimal SenalNoReembolsableQueQueda()
+        {
+            if (ImporteSenalNoReembolsableParaGuardar() is decimal escrita)
+            {
+                return escrita;
+            }
+            if (_idEdicion <= 0)
+            {
+                return SENAL_NO_REEMBOLSABLE_DEFECTO;
+            }
+            EventoModel guardado = Seleccionado?.Id == _idEdicion ? Seleccionado : Eventos?.FirstOrDefault(e => e.Id == _idEdicion);
+            return guardado?.ImporteSenalNoReembolsable ?? 0;
+        }
+
+        /// <summary>Las dos señales a 0 (con lo que se va a guardar).</summary>
+        public bool EventoSinCoste => ImporteSenalEdicion <= 0 && SenalNoReembolsableQueQueda() <= 0;
+
+        /// <summary>«100,00 €», «60,00 € no reembolsable» o «100,00 € reembolsable o 60,00 € no reembolsable».</summary>
+        private string DescripcionSenales()
+        {
+            decimal noReembolsable = SenalNoReembolsableQueQueda();
+            if (ImporteSenalEdicion > 0 && noReembolsable > 0)
+            {
+                return $"{ImporteSenalEdicion:C} reembolsable o {noReembolsable:C} no reembolsable";
+            }
+            return ImporteSenalEdicion > 0 ? $"{ImporteSenalEdicion:C}" : $"{noReembolsable:C} no reembolsable";
+        }
+
+        /// <summary>Lo que se ve en la ficha antes de guardar: «Sin coste» o «Con señal de …».</summary>
+        public string TextoCosteEvento => EventoSinCoste
+            ? "Sin coste: quien se inscriba no paga nada."
+            : $"Con señal de {DescripcionSenales()}: quien se inscriba tendrá que pagarla.";
+
+        /// <summary>Tiene productos que comprar y, además, señal: casi siempre es un error (Novedades 1233).</summary>
+        public bool CursoPorCompraConSenal => HayProductosRequeridos && !EventoSinCoste;
+
+        public string PreguntaCursoPorCompraConSenal() =>
+            $"Este curso se gana comprando productos, pero además tiene señal de {DescripcionSenales()}: quien se inscriba tendrá que pagarla. ¿Es correcto?";
+
+        private void AvisarCambioCoste()
+        {
+            OnPropertyChanged(nameof(EventoSinCoste));
+            OnPropertyChanged(nameof(TextoCosteEvento));
+            OnPropertyChanged(nameof(CursoPorCompraConSenal));
+        }
+
+        /// <summary>Un evento nuevo con las señales que pone la pantalla (100 € y 60 €, o la no reembolsable vacía).</summary>
+        private bool SenalesPorDefectoDeLaPantalla =>
+            EsNuevo && ImporteSenalEdicion == SENAL_REEMBOLSABLE_DEFECTO
+            && (ImporteSenalNoReembolsableEdicion == null || ImporteSenalNoReembolsableEdicion == SENAL_NO_REEMBOLSABLE_DEFECTO);
+
+        /// <summary>
+        /// Novedades 1233: al añadir el primer producto que comprar a un evento nuevo que sigue con la señal por defecto,
+        /// propone dejarlo sin coste (las dos señales a 0). Con «No», se queda la señal (y al guardar se vuelve a preguntar).
+        /// </summary>
+        private void ProponerSinCoste()
+        {
+            if (!SenalesPorDefectoDeLaPantalla)
+            {
+                return;
+            }
+            if (_dialogService.ShowConfirmationAnswer(TITULO_CURSO_POR_COMPRA,
+                $"Ha puesto productos que hay que comprar para apuntarse, pero el evento sigue con la señal por defecto ({DescripcionSenales()}). " +
+                "¿Lo deja sin coste (las dos señales a 0)?"))
+            {
+                ImporteSenalEdicion = 0;
+                ImporteSenalNoReembolsableEdicion = 0;
+            }
+        }
 
         public const string AVISO_NO_GUARDADO =
             "No se ha guardado ningún cambio: la ficha sigue con lo que usted ha escrito y la lista de eventos, con lo guardado. " +
@@ -1139,7 +1253,12 @@ namespace Nesto.Modulos.Cliente
             }
             if (!EstaEnProductosRequeridos(referencia))
             {
+                bool esElPrimero = ProductosRequeridosEdicion.Count == 0;
                 ProductosRequeridosEdicion.Add(new ProductoRequeridoEventoModel { Producto = referencia, Nombre = nombre });
+                if (esElPrimero)
+                {
+                    ProponerSinCoste();
+                }
             }
             ProductoRequeridoNuevo = null;
         }

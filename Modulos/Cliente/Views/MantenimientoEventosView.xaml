@@ -143,6 +143,26 @@
                             </StackPanel>
                             <TextBlock Text="Las dos señales a 0: el evento es gratuito (se apunta quien quiera, sin pagar)." Foreground="DimGray"
                                        TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Margin="110,2,0,0"/>
+                            <!-- Novedades 1233: lo que va a costar el evento, a la vista antes de guardar (rojo si se gana comprando y tiene señal) -->
+                            <TextBlock Text="{Binding TextoCosteEvento}" FontWeight="Bold" TextWrapping="Wrap" MaxWidth="420"
+                                       HorizontalAlignment="Left" Margin="110,2,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="DarkGreen"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding EventoSinCoste}" Value="False">
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding CursoPorCompraConSenal}" Value="True">
+                                                <Setter Property="Foreground" Value="Firebrick"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="Ojo: este evento se gana comprando productos y además tiene señal. Si es un curso por compra, ponga las dos señales a 0."
+                                       Foreground="Firebrick" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" Margin="110,2,0,0"
+                                       Visibility="{Binding CursoPorCompraConSenal, Converter={StaticResource BoolAVisibilidad}}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Pedido mínimo para usar el cupón (€):" VerticalAlignment="Center" Margin="0,0,5,0"
                                            ToolTip="Importe mínimo de productos (IVA incluido, sin cursos ni portes) del pedido en el que se use el cupón de la señal reembolsable"/>
