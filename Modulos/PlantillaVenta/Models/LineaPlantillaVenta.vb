@@ -240,6 +240,11 @@ Public Class LineaPlantillaVenta
         Set(value As Integer)
             SetProperty(_cantidadDisponible, value)
             OnPropertyChanged(NameOf(colorStock))
+            ' Novedad 1215: también dependen del disponible (al cambiar de almacén se quedaban con el de antes)
+            OnPropertyChanged(NameOf(textoUnidadesDisponibles))
+            OnPropertyChanged(NameOf(esSobrePedido))
+            OnPropertyChanged(NameOf(colorSobrePedido))
+            OnPropertyChanged(NameOf(stockTotalTodosAlmacenes))
         End Set
     End Property
     Public Property cantidadPendienteRecibir As Integer
@@ -252,6 +257,10 @@ Public Class LineaPlantillaVenta
         Set(value As Boolean)
             SetProperty(_stockActualizado, value)
             OnPropertyChanged(NameOf(colorStock))
+            ' Novedad 1215: también dependen de si el stock está actualizado
+            OnPropertyChanged(NameOf(textoUnidadesDisponibles))
+            OnPropertyChanged(NameOf(esSobrePedido))
+            OnPropertyChanged(NameOf(colorSobrePedido))
         End Set
     End Property
     Public Property fechaInsercion As DateTime = DateTime.MaxValue

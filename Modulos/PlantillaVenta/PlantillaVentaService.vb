@@ -200,6 +200,26 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function CargarStockProducto(empresa As String, almacen As String, producto As String) As Task(Of StockProductoDTO) Implements IPlantillaVentaService.CargarStockProducto
+        If String.IsNullOrWhiteSpace(almacen) OrElse String.IsNullOrWhiteSpace(producto) Then
+            Return Nothing
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim url As String = "PlantillaVentas/CargarStocks?empresa=" & Uri.EscapeDataString(If(empresa, String.Empty).Trim()) &
+                    "&almacen=" & Uri.EscapeDataString(almacen.Trim()) & "&productoStock=" & Uri.EscapeDataString(producto.Trim())
+                Dim response = Await client.GetAsync(url)
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
     Public Async Function CargarSaldoAFavor(cliente As String) As Task(Of SaldoAFavorCliente) Implements IPlantillaVentaService.CargarSaldoAFavor
         If String.IsNullOrWhiteSpace(cliente) Then
             Return Nothing

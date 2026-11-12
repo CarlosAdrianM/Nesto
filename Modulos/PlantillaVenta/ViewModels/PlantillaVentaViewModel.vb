@@ -248,11 +248,14 @@ Public Class PlantillaVentaViewModel
                                                                      ' de línea del pedido en edición (ni la oferta personalizada ni el bloqueo por
                                                                      ' picking): modificar un pedido con la plantilla perdía TODOS los ids, el PUT
                                                                      ' borraba y recreaba las líneas y las que tenían picking no se dejaban guardar.
-                                                                     Dim nuevosStocks As List(Of LineaPlantillaVenta) = CopiarStocksEnSitio(listaCast, conStocks)
+                                                                     ' Novedad 1215: cada línea con el disponible del almacén NUEVO (no el legado de PonerStock).
+                                                                     Dim nuevosStocks As List(Of LineaPlantillaVenta) = CopiarStocksEnSitio(listaCast, conStocks, value.Codigo)
+                                                                     Await CompletarStockDelAlmacenAsync(nuevosStocks, value.Codigo)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      ' Nesto#430 (slice 1): con el pedido empezado hay que refrescar las vistas del
                                                                      ' pedido y avisar (sin bloquear) de las líneas que se quedan sin stock suficiente
-                                                                     ' en el nuevo almacén; su color rojo/ámbar ya lo pinta colorStock solo.
+                                                                     ' en el nuevo almacén; su color ya lo pinta colorStock solo, con el disponible
+                                                                     ' del almacén nuevo que acaba de poner CopiarStocksEnSitio (Novedad 1215).
                                                                      OnPropertyChanged(NameOf(hayProductosEnElPedido))
                                                                      OnPropertyChanged(NameOf(NoHayProductosEnElPedido))
                                                                      OnPropertyChanged(NameOf(listaProductosPedido))
@@ -284,8 +287,9 @@ Public Class PlantillaVentaViewModel
     ''' SIN sustituirlas (la respuesta es una copia con el modelo de la API, que no lleva ids de línea, oferta
     ''' personalizada, descuento calculado ni bloqueo por picking). La API devuelve las líneas en el mismo orden;
     ''' si no cuadra, se busca por producto. Devuelve las líneas originales, ya con stock.
+    ''' Novedad 1215: el disponible es el de <paramref name="almacen"/> (<see cref="PonerDisponibleDelAlmacen"/>).
     ''' </summary>
-    Friend Shared Function CopiarStocksEnSitio(originales As IList(Of LineaPlantillaVenta), conStocks As IEnumerable(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
+    Friend Shared Function CopiarStocksEnSitio(originales As IList(Of LineaPlantillaVenta), conStocks As IEnumerable(Of LineaPlantillaVenta), almacen As String) As List(Of LineaPlantillaVenta)
         Dim resultado As New List(Of LineaPlantillaVenta)(originales)
         If conStocks Is Nothing Then
             Return resultado
@@ -311,9 +315,95 @@ Public Class PlantillaVentaViewModel
             Else
                 original.StockDisponibleTodosLosAlmacenes = 0
             End If
-            original.stockActualizado = True
+            original.stockActualizado = PonerDisponibleDelAlmacen(original, almacen)
         Next
         Return resultado
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1215 (Sancho): el stock del almacén <paramref name="almacen"/> en la lista por almacén que devuelve
+    ''' POST PlantillaVentas/PonerStock (sin distinguir mayúsculas ni espacios). Nothing si la lista no lo trae.
+    ''' </summary>
+    Friend Shared Function StockDelAlmacen(stocks As IEnumerable(Of StockAlmacenDTO), almacen As String) As StockAlmacenDTO
+        If stocks Is Nothing OrElse String.IsNullOrWhiteSpace(almacen) Then
+            Return Nothing
+        End If
+        Return stocks.FirstOrDefault(Function(s) s IsNot Nothing AndAlso
+            String.Equals(s.almacen?.Trim(), almacen.Trim(), StringComparison.OrdinalIgnoreCase))
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1215 (Sancho): LA REGLA del disponible de una línea tras PonerStock. El campo legado cantidadDisponible
+    ''' de esa respuesta es el del PRIMER almacén de la lista del usuario (casi siempre ALG), no el del elegido: al
+    ''' cambiar a REI o ALC las líneas se quedaban verdes con el stock de Algete. Aquí se pone el del almacén elegido.
+    ''' Devuelve si la línea tiene ese dato (es lo que va a stockActualizado):
+    ''' - Con lista por almacén que trae el elegido: su disponible (y su stock). True.
+    ''' - Con lista por almacén SIN el elegido (no está en los almacenes del usuario, «solo el mío»): disponible 0 y
+    '''   False (gris, sin dato), nunca el de otro almacén. Las del pedido las completa CompletarStockDelAlmacenAsync;
+    '''   las demás, cmdCargarStockProducto al ponerles cantidad.
+    ''' - Sin lista por almacén (API anterior): se queda el dato legado, como siempre. True.
+    ''' </summary>
+    Friend Shared Function PonerDisponibleDelAlmacen(linea As LineaPlantillaVenta, almacen As String) As Boolean
+        If linea Is Nothing Then
+            Return False
+        End If
+        If linea.stocks Is Nothing OrElse linea.stocks.Count = 0 Then
+            Return True
+        End If
+        Dim delAlmacen As StockAlmacenDTO = StockDelAlmacen(linea.stocks, almacen)
+        If delAlmacen Is Nothing Then
+            linea.cantidadDisponible = 0
+            Return False
+        End If
+        linea.stock = delAlmacen.stock
+        linea.cantidadDisponible = delAlmacen.cantidadDisponible
+        Return True
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1215: la línea trae stocks por almacén pero no el del almacén elegido (ver PonerDisponibleDelAlmacen):
+    ''' su disponible no se sabe todavía.
+    ''' </summary>
+    Friend Shared Function SinDatoDelAlmacen(linea As LineaPlantillaVenta) As Boolean
+        Return linea IsNot Nothing AndAlso Not linea.stockActualizado AndAlso
+            linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1215: las líneas del PEDIDO (con cantidad) sin el dato del almacén elegido se piden una a una al mismo
+    ''' endpoint que la carga de stock de una línea (GET PlantillaVentas/CargarStocks?almacen=). Si falla, la línea
+    ''' se queda en gris (sin dato). Nunca lanza.
+    ''' </summary>
+    Friend Async Function CompletarStockDelAlmacenAsync(lineas As IEnumerable(Of LineaPlantillaVenta), almacen As String) As Task
+        Try
+            If lineas Is Nothing OrElse String.IsNullOrWhiteSpace(almacen) Then
+                Return
+            End If
+            Dim sinDato As List(Of LineaPlantillaVenta) = lineas.Where(Function(l) SinDatoDelAlmacen(l) AndAlso
+                                                                           Not l.esLineaPortes AndAlso
+                                                                           l.cantidad + l.cantidadOferta > 0).ToList()
+            If Not sinDato.Any() Then
+                Return
+            End If
+            Dim empresa As String = If(clienteSeleccionado?.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
+            Dim resultados As StockProductoDTO() = Await Task.WhenAll(sinDato.Select(Function(l) servicio.CargarStockProducto(empresa, almacen, l.producto)))
+            For i = 0 To sinDato.Count - 1
+                Dim datos As StockProductoDTO = resultados(i)
+                If datos Is Nothing Then
+                    Continue For
+                End If
+                Dim linea As LineaPlantillaVenta = sinDato(i)
+                linea.stock = datos.stock
+                linea.cantidadDisponible = datos.cantidadDisponible
+                linea.cantidadPendienteRecibir = datos.cantidadPendienteRecibir
+                If datos.StockDisponibleTodosLosAlmacenes > 0 Then
+                    linea.StockDisponibleTodosLosAlmacenes = datos.StockDisponibleTodosLosAlmacenes
+                End If
+                linea.stockActualizado = True
+            Next
+        Catch ex As Exception
+            ' El stock nunca debe tumbar la plantilla: las líneas se quedan en gris (sin dato).
+        End Try
     End Function
 
     Public ReadOnly Property baseImponiblePedido As Decimal
@@ -360,6 +450,8 @@ Public Class PlantillaVentaViewModel
     ''' Nesto#430 (slice 1): líneas del pedido cuya cantidad (normal + oferta) supera el stock
     ''' disponible del almacén seleccionado. Se usa para AVISAR tras cambiar de almacén con el
     ''' pedido empezado — sin bloquear: el color de cada línea ya refleja la falta.
+    ''' Novedad 1215: cantidadDisponible es ya el del almacén seleccionado (PonerDisponibleDelAlmacen); las líneas
+    ''' cuyo disponible en ese almacén no se ha podido saber (SinDatoDelAlmacen) no se cuentan como falta.
     ''' </summary>
     Public Shared Function LineasConFaltaDeStock(lineas As IEnumerable(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
         If lineas Is Nothing Then
@@ -367,6 +459,7 @@ Public Class PlantillaVentaViewModel
         End If
         Return lineas.Where(Function(l) Not l.esLineaPortes AndAlso
                                 l.cantidad + l.cantidadOferta > 0 AndAlso
+                                Not SinDatoDelAlmacen(l) AndAlso
                                 l.cantidadDisponible < l.cantidad + l.cantidadOferta).ToList()
     End Function
 
@@ -2577,15 +2670,9 @@ Public Class PlantillaVentaViewModel
             If conStocks Is Nothing Then
                 Return
             End If
-            For Each lineaConStock In conStocks
-                Dim original = lineas.FirstOrDefault(Function(l) l.producto?.Trim() = lineaConStock.producto?.Trim())
-                If original IsNot Nothing Then
-                    original.stocks = lineaConStock.stocks
-                    original.cantidadDisponible = lineaConStock.cantidadDisponible
-                    original.StockDisponibleTodosLosAlmacenes = lineaConStock.StockDisponibleTodosLosAlmacenes
-                    original.stockActualizado = True
-                End If
-            Next
+            ' Novedad 1215: la misma regla que al cambiar de almacén (el disponible del almacén seleccionado)
+            Dim actualizadas = CopiarStocksEnSitio(lineas, conStocks, almacenSeleccionado.Codigo)
+            Await CompletarStockDelAlmacenAsync(actualizadas, almacenSeleccionado.Codigo)
         Catch ex As Exception
             ' La preferencia nunca debe tumbar la plantilla: los stocks se refrescarán en la
             ' siguiente carga.
@@ -4014,7 +4101,7 @@ Public Class PlantillaVentaViewModel
                         If producto.StockDisponibleTodosLosAlmacenes = 0 AndAlso producto.stocks IsNot Nothing AndAlso producto.stocks.Count > 0 Then
                             producto.StockDisponibleTodosLosAlmacenes = producto.stocks.Sum(Function(s) s.cantidadDisponible)
                         End If
-                        producto.stockActualizado = True
+                        producto.stockActualizado = PonerDisponibleDelAlmacen(producto, almacenSeleccionado.Codigo) ' Novedad 1215
                         If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
                             producto.aplicarDescuentoFicha = True
@@ -4024,7 +4111,10 @@ Public Class PlantillaVentaViewModel
                             If productoOriginal.StockDisponibleTodosLosAlmacenes = 0 AndAlso productoOriginal.stocks IsNot Nothing AndAlso productoOriginal.stocks.Count > 0 Then
                                 productoOriginal.StockDisponibleTodosLosAlmacenes = productoOriginal.stocks.Sum(Function(s) s.cantidadDisponible)
                             End If
-                            productoOriginal.stockActualizado = True
+                            ' Novedad 1215: la línea de la plantilla ya tiene su dato; si no lo tiene del almacén elegido, sigue sin él
+                            If Not SinDatoDelAlmacen(productoOriginal) Then
+                                productoOriginal.stockActualizado = True
+                            End If
                             ListaFiltrableProductos.ListaFijada(i) = productoOriginal
                         End If
                     Next
@@ -4079,7 +4169,7 @@ Public Class PlantillaVentaViewModel
                         If producto.StockDisponibleTodosLosAlmacenes = 0 AndAlso producto.stocks IsNot Nothing AndAlso producto.stocks.Count > 0 Then
                             producto.StockDisponibleTodosLosAlmacenes = producto.stocks.Sum(Function(s) s.cantidadDisponible)
                         End If
-                        producto.stockActualizado = True
+                        producto.stockActualizado = PonerDisponibleDelAlmacen(producto, almacenSeleccionado.Codigo) ' Novedad 1215
                         If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
                             producto.aplicarDescuentoFicha = True
@@ -4089,7 +4179,10 @@ Public Class PlantillaVentaViewModel
                             If productoOriginal.StockDisponibleTodosLosAlmacenes = 0 AndAlso productoOriginal.stocks IsNot Nothing AndAlso productoOriginal.stocks.Count > 0 Then
                                 productoOriginal.StockDisponibleTodosLosAlmacenes = productoOriginal.stocks.Sum(Function(s) s.cantidadDisponible)
                             End If
-                            productoOriginal.stockActualizado = True
+                            ' Novedad 1215: la línea de la plantilla ya tiene su dato; si no lo tiene del almacén elegido, sigue sin él
+                            If Not SinDatoDelAlmacen(productoOriginal) Then
+                                productoOriginal.stockActualizado = True
+                            End If
                             ListaFiltrableProductos.ListaFijada(i) = productoOriginal
                         End If
                     Next
@@ -4426,8 +4519,9 @@ Public Class PlantillaVentaViewModel
                 If linea.StockDisponibleTodosLosAlmacenes = 0 AndAlso linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0 Then
                     linea.StockDisponibleTodosLosAlmacenes = linea.stocks.Sum(Function(s) s.cantidadDisponible)
                 End If
-                linea.stockActualizado = True
+                linea.stockActualizado = PonerDisponibleDelAlmacen(linea, almacenSeleccionado.Codigo) ' Novedad 1215
             Next
+            Await CompletarStockDelAlmacenAsync(ListaFiltrableProductos.ListaOriginal.Cast(Of LineaPlantillaVenta)().ToList(), almacenSeleccionado.Codigo)
             estaOcupado = False
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
@@ -6893,10 +6987,11 @@ Public Class PlantillaVentaViewModel
                                     lineaOriginal.StockDisponibleTodosLosAlmacenes = lineaConStock.stocks.Sum(Function(s) s.cantidadDisponible)
                                 End If
                                 lineaOriginal.urlImagen = lineaConStock.urlImagen
-                                lineaOriginal.stockActualizado = True
+                                lineaOriginal.stockActualizado = PonerDisponibleDelAlmacen(lineaOriginal, almacenSeleccionado.Codigo) ' Novedad 1215
                                 productosActualizados += 1
                             End If
                         Next
+                        Await CompletarStockDelAlmacenAsync(productosSinStock, almacenSeleccionado.Codigo)
                     End If
 
                     System.Diagnostics.Debug.WriteLine($"[Borrador] Stocks: {productosSinStock.Count} productos sin stock, {If(stocksActualizados?.Count, 0)} respuestas, {productosActualizados} actualizados")

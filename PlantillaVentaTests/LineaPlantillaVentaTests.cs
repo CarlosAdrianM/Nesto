@@ -372,6 +372,43 @@ namespace PlantillaVentaTests
             Assert.IsTrue(colorStockNotificado, "Deberia notificar cambio en colorStock");
         }
 
+        // Novedad 1215 (Sancho): al cambiar de almacén el disponible cambia y el grid tiene que repintar
+        // también el texto de unidades y la marca de sobre pedido, no solo el color del stock.
+        private static System.Collections.Generic.HashSet<string> Notificadas(LineaPlantillaVenta linea)
+        {
+            var notificadas = new System.Collections.Generic.HashSet<string>();
+            linea.PropertyChanged += (sender, e) => notificadas.Add(e.PropertyName);
+            return notificadas;
+        }
+
+        [TestMethod]
+        public void CantidadDisponible_AlCambiar_NotificaLasPropiedadesQueDependenDeEl()
+        {
+            var linea = new LineaPlantillaVenta { stockActualizado = true, cantidad = 5, estado = 1, cantidadDisponible = 10 };
+            var notificadas = Notificadas(linea);
+
+            linea.cantidadDisponible = 2;
+
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.textoUnidadesDisponibles)));
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.esSobrePedido)));
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.colorSobrePedido)));
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.stockTotalTodosAlmacenes)));
+            Assert.IsTrue(linea.esSobrePedido, "Con 2 disponibles no llegan las 5");
+        }
+
+        [TestMethod]
+        public void StockActualizado_AlCambiar_NotificaLasPropiedadesQueDependenDeEl()
+        {
+            var linea = new LineaPlantillaVenta { cantidad = 1, cantidadDisponible = 10, StockDisponibleTodosLosAlmacenes = 10 };
+            var notificadas = Notificadas(linea);
+
+            linea.stockActualizado = true;
+
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.colorSobrePedido)));
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.esSobrePedido)));
+            Assert.IsTrue(notificadas.Contains(nameof(LineaPlantillaVenta.textoUnidadesDisponibles)));
+        }
+
         #endregion
 
         #region baseImponible Tests

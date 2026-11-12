@@ -40,6 +40,12 @@ Public Interface IPlantillaVentaService
     ''' </summary>
     Function BuscarLineaProducto(empresa As String, producto As String) As Task(Of LineaPlantillaVenta)
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
+    ''' <summary>
+    ''' Novedad 1215: el stock de UN producto en el almacén indicado (GET api/PlantillaVentas/CargarStocks?almacen=,
+    ''' el mismo que la carga de stock de una línea). Para las líneas del pedido cuyo almacén elegido no viene en la
+    ''' lista por almacén de PonerStock (no está en los almacenes del usuario). Nothing si falla.
+    ''' </summary>
+    Function CargarStockProducto(empresa As String, almacen As String, producto As String) As Task(Of StockProductoDTO)
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
     Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String))
