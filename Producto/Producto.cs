@@ -49,6 +49,11 @@ namespace Nesto.Modulos.Producto
             registro.Vista<CambiarEstadoProductosView>(ProductoMenuBarViewModel.VISTA_CAMBIAR_ESTADO_PRODUCTOS);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.CambiarEstadoProductosViewModel>();
             registro.Singleton<IServicioEstadoProductos, ServicioEstadoProductos>();
+
+            // Nesto#528 (corte 4 de NestoAPI#639, API en NestoAPI#642): las calles del recorrido de preparación del almacén
+            registro.Vista<RecorridoAlmacenView>(ProductoMenuBarViewModel.VISTA_RECORRIDO_ALMACEN);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecorridoAlmacenViewModel>();
+            registro.Singleton<IServicioRecorridoAlmacen, ServicioRecorridoAlmacen>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

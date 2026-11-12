@@ -1,0 +1,160 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.RecorridoAlmacenView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:RecorridoAlmacenViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="BotonLateral" TargetType="Button">
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Padding" Value="10,2" />
+        </Style>
+        <Style x:Key="TituloBloque" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </UserControl.Resources>
+    <!-- Nesto#528 (corte 4 de NestoAPI#639, API en NestoAPI#642): las calles del recorrido de preparación de Algete -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8">
+                <Run Text="{Binding Titulo, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Almacen, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,8" MaxWidth="900" HorizontalAlignment="Left" />
+            <Border Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8,4" Margin="0,0,0,8" HorizontalAlignment="Left"
+                    Visibility="{Binding HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" MaxWidth="880" />
+            </Border>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Content="Volver a leer" Command="{Binding CargarCommand}" Style="{StaticResource BotonLateral}" />
+                <Button Content="Vista previa" Command="{Binding VistaPreviaCommand}" Style="{StaticResource BotonLateral}"
+                        ToolTip="Enseña abajo los tramos que saldrían con lo que hay en pantalla, sin guardar nada" />
+                <Button Content="Guardar" Command="{Binding GuardarCommand}" Style="{StaticResource BotonLateral}" FontWeight="SemiBold"
+                        ToolTip="Sustituye el recorrido entero del almacén por lo que hay en pantalla" />
+                <TextBlock Text="Fila a mano:" VerticalAlignment="Center" Margin="16,0,6,6" />
+                <TextBox Width="50" Margin="0,0,0,6" VerticalContentAlignment="Center" IsReadOnly="{Binding NoEditable}"
+                         Text="{Binding FilaAMano, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Desde qué fila se llega con la mano: las de arriba (de la 1 a la anterior) son de escalera" />
+                <TextBlock Text="Hay cambios sin guardar" Foreground="DarkOrange" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,6"
+                           Visibility="{Binding HayCambios, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="16,0,0,6"
+                           Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,8" MaxWidth="900" HorizontalAlignment="Left" />
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="4*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Las calles en el orden del recorrido -->
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Calles (en el orden del recorrido)" Style="{StaticResource TituloBloque}" />
+                <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button Content="Subir" Command="{Binding SubirCalleCommand}" Style="{StaticResource BotonLateral}" />
+                    <Button Content="Bajar" Command="{Binding BajarCalleCommand}" Style="{StaticResource BotonLateral}" />
+                    <Button Content="Nueva calle…" Command="{Binding NuevaCalleCommand}" Style="{StaticResource BotonLateral}" />
+                    <Button Content="Borrar calle" Command="{Binding BorrarCalleCommand}" Style="{StaticResource BotonLateral}"
+                            ToolTip="Sus pasillos pasan a «sin calle»" />
+                    <Button Content="Serpentina" Command="{Binding SerpentinaCommand}" Style="{StaticResource BotonLateral}"
+                            ToolTip="Alterna el sentido (A, D, A…) en el orden de las calles, empezando por el de la primera" />
+                </WrapPanel>
+                <DataGrid ItemsSource="{Binding Calles}" SelectedItem="{Binding CalleSeleccionada}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" CanUserReorderColumns="False"
+                          SelectionMode="Single" HeadersVisibility="Column" IsReadOnly="{Binding NoEditable}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Calle" Binding="{Binding Calle, UpdateSourceTrigger=PropertyChanged}" Width="70" />
+                        <DataGridTemplateColumn Header="Sentido" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox SelectedValue="{Binding Sentido, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Valor" DisplayMemberPath="Texto"
+                                              ItemsSource="{Binding DataContext.Sentidos, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              IsEnabled="{Binding DataContext.Editable, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Pasillos" Binding="{Binding ResumenPasillos, Mode=OneWay}" IsReadOnly="True" Width="1.2*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <!-- Los pasillos de la calle elegida, en su orden -->
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource TituloBloque}">
+                    <Run Text="Pasillos de la calle" /><Run Text=" " /><Run Text="{Binding CalleSeleccionada.Calle, Mode=OneWay}" />
+                </TextBlock>
+                <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button Content="Subir" Command="{Binding SubirPasilloCommand}" Style="{StaticResource BotonLateral}" />
+                    <Button Content="Bajar" Command="{Binding BajarPasilloCommand}" Style="{StaticResource BotonLateral}" />
+                    <Button Content="Quitar de la calle" Command="{Binding QuitarPasilloCommand}" Style="{StaticResource BotonLateral}"
+                            ToolTip="El pasillo pasa a «sin calle» (al final del recorrido)" />
+                    <Button Content="Añadir pasillo…" Command="{Binding AnadirPasilloCommand}" Style="{StaticResource BotonLateral}"
+                            ToolTip="Teclee el número de un pasillo para ponerlo al final de esta calle" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
+                        <Button Content="Mover a la calle" Command="{Binding MoverPasilloCommand}" Padding="10,2" />
+                        <ComboBox Width="70" Margin="4,0,0,0" ItemsSource="{Binding Calles}" DisplayMemberPath="Calle" SelectedItem="{Binding CalleDestino}"
+                                  IsEnabled="{Binding Editable}" ToolTip="A qué calle se lleva el pasillo elegido (va al final)" />
+                    </StackPanel>
+                </WrapPanel>
+                <DataGrid ItemsSource="{Binding CalleSeleccionada.Pasillos}" SelectedItem="{Binding PasilloSeleccionado}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" CanUserReorderColumns="False"
+                          SelectionMode="Single" HeadersVisibility="Column" IsReadOnly="{Binding NoEditable}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Pasillo" Binding="{Binding Pasillo, Mode=OneWay}" IsReadOnly="True" Width="60" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Huecos" Binding="{Binding Huecos, Mode=OneWay}" IsReadOnly="True" Width="60" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+
+            <!-- Los pasillos que no van en ninguna calle (van al final) -->
+            <DockPanel Grid.Column="4">
+                <TextBlock DockPanel.Dock="Top" Text="Pasillos sin calle (al final)" Style="{StaticResource TituloBloque}" />
+                <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button Content="Añadir a la calle elegida" Command="{Binding AnadirPasilloSinCalleCommand}" Style="{StaticResource BotonLateral}"
+                            ToolTip="Lo pone al final de la calle elegida a la izquierda" />
+                </WrapPanel>
+                <DataGrid ItemsSource="{Binding PasillosSinCalle}" SelectedItem="{Binding PasilloSinCalleSeleccionado}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" CanUserReorderColumns="False"
+                          SelectionMode="Single" HeadersVisibility="Column" IsReadOnly="{Binding NoEditable}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Pasillo" Binding="{Binding Pasillo, Mode=OneWay}" IsReadOnly="True" Width="60" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Huecos" Binding="{Binding Huecos, Mode=OneWay}" IsReadOnly="True" Width="60" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="2" Text="{Binding TextoTramos}" Style="{StaticResource TituloBloque}" Margin="0,12,0,4" />
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Tramos}" AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
+                  CanUserAddRows="False" HeadersVisibility="Column" HorizontalAlignment="Left">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Orden" Binding="{Binding Orden}" Width="55" />
+                <DataGridTextColumn Header="Calle" Binding="{Binding Calle}" Width="80" />
+                <DataGridTextColumn Header="Pasillo" Binding="{Binding Pasillo}" Width="60" />
+                <DataGridTextColumn Header="Columna" Binding="{Binding Columna}" Width="70" />
+                <DataGridTextColumn Header="Nivel" Binding="{Binding Nivel}" Width="80" />
+                <DataGridTextColumn Header="Filas" Binding="{Binding Filas}" MinWidth="200" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

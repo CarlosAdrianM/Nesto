@@ -30,6 +30,7 @@ namespace Nesto.Modules.Producto
             AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
             AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
             AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeVerPropuestasStock);
+            AbrirRecorridoAlmacenCommand = new RelayCommand(OnAbrirRecorridoAlmacen);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -41,6 +42,17 @@ namespace Nesto.Modules.Producto
         public const string ETIQUETA_DIFERENCIAS = "Diferencias";
         public const string VISTA_FACTURACION_TIENDA = "FacturacionTiendaView";
         public const string VISTA_CAMBIAR_ESTADO_PRODUCTOS = "CambiarEstadoProductosView";
+        public const string VISTA_RECORRIDO_ALMACEN = "RecorridoAlmacenView";
+
+        /// <summary>
+        /// Nesto#528 (corte 4 de NestoAPI#639): las calles del recorrido de preparación del almacén. La abre cualquiera (leer solo pide
+        /// sesión); para quien no es de Almacén ni Dirección es de solo lectura (la API da 403 al guardar).
+        /// </summary>
+        public ICommand AbrirRecorridoAlmacenCommand { get; private set; }
+        private void OnAbrirRecorridoAlmacen()
+        {
+            Navegacion.RequestNavigate("MainRegion", VISTA_RECORRIDO_ALMACEN);
+        }
 
         /// <summary>
         /// Nesto#624 (NestoAPI#738, sugerencia 793 de Manuel): cambiar el estado de muchos productos a la vez. Solo Compras y

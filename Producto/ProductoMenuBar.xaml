@@ -33,6 +33,9 @@
             <RibbonGroup x:Name="grpAlmacen"
                                 Header="Almacén">
                 <RibbonButton Label="Etiquetas de hueco" LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirEtiquetasHuecoCommand}" />
+                <!-- Nesto#528 (NestoAPI#642): las calles del recorrido de preparación (solo lectura salvo Almacén y Dirección) -->
+                <RibbonButton Label="Recorrido" ToolTip="El orden de calles y pasillos del recorrido de preparación del almacén, con su sentido y la vista previa de los tramos"
+                              LargeImageSource="Images/Diarios.png" Command="{Binding AbrirRecorridoAlmacenCommand}" />
             </RibbonGroup>
             <!-- Nesto#529 (NestoAPI#631): solo Compras y Dirección ven las propuestas de stock -->
             <RibbonGroup x:Name="grpCompras"

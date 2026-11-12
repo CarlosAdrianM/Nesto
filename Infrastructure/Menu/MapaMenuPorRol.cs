@@ -115,6 +115,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Informes", "Inventario", "Inventario"), new DestinoMenu(ALMACEN, "Almacén", 40, "Inventario de ubicaciones")),
             (Clave("Productos", "Inventarios", "Tienda"), new DestinoMenu(ALMACEN, "Almacén", 50, "Inventario de tienda")),
             (Clave("Productos", "Almacén", "Etiquetas de hueco"), new DestinoMenu(ALMACEN, "Almacén", 60)),
+            (Clave("Productos", "Almacén", "Recorrido"), new DestinoMenu(ALMACEN, "Almacén", 65, "Recorrido del almacén")), // Nesto#528
             (Clave("Clientes", "Mantenimiento", "Agencias"), new DestinoMenu(ALMACEN, "Envíos", 70)),
             (Clave("Clientes", "Mantenimiento", "Mant. agencias"), new DestinoMenu(ALMACEN, "Envíos", 80, "Mantenimiento de agencias")),
 
