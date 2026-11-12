@@ -6,54 +6,117 @@
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
              d:DataContext="{d:DesignInstance Type=viewmodels:FacturacionTiendaViewModel}"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="700"
+             d:DesignHeight="500" d:DesignWidth="900"
              Background="White">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="CeldaNumero" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="4,0" />
+        </Style>
     </UserControl.Resources>
     <!-- Sugerencia 648 (NestoAPI#658): el Excel de lo facturado en la tienda para pasar las cifras de la semana. Se manda por correo:
-         en el escritorio remoto Office no tiene licencia, así que aquí no se abre -->
-    <StackPanel Margin="16" HorizontalAlignment="Left" MaxWidth="700">
-        <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
-        <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,16" />
+         en el escritorio remoto Office no tiene licencia, así que aquí no se abre.
+         Nesto#559 (NestoAPI#719): además, el acumulado del año y el comparativo con años anteriores, en pantalla, y su Excel se guarda
+         donde diga el usuario (tampoco se abre aquí) -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel HorizontalAlignment="Left" MaxWidth="760">
+            <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,16" />
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <TextBlock Text="Tienda:" VerticalAlignment="Center" Margin="0,0,8,8" />
-            <ComboBox Grid.Column="1" Width="180" Margin="0,0,0,8" ItemsSource="{Binding Tiendas}" SelectedItem="{Binding Tienda}"
-                      DisplayMemberPath="Texto" IsEnabled="{Binding PuedeElegirTienda}"
-                      ToolTip="Dirección, Administración e Informática pueden elegir la tienda; los demás sacan la suya" />
+                <TextBlock Text="Informe:" VerticalAlignment="Center" Margin="0,0,8,8" />
+                <ComboBox Grid.Column="1" Grid.ColumnSpan="2" Width="260" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo}" DisplayMemberPath="Texto"
+                          ToolTip="La semana se manda por correo con las facturas; el acumulado y el comparativo se ven aquí y su Excel se guarda donde usted diga" />
 
-            <TextBlock Grid.Row="1" Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,8" />
-            <DatePicker Grid.Row="1" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Desde}" />
-            <Button Grid.Row="1" Grid.Column="2" Content="Semana anterior" Command="{Binding SemanaAnteriorCommand}" Padding="12,2"
-                    Margin="12,0,0,8" ToolTip="De lunes a domingo de la semana pasada" />
+                <TextBlock Grid.Row="1" Text="Tienda:" VerticalAlignment="Center" Margin="0,0,8,8" />
+                <ComboBox Grid.Row="1" Grid.Column="1" Width="180" Margin="0,0,0,8" ItemsSource="{Binding Tiendas}" SelectedItem="{Binding Tienda}"
+                          DisplayMemberPath="Texto" IsEnabled="{Binding PuedeElegirTienda}"
+                          ToolTip="Dirección, Administración e Informática pueden elegir la tienda; los demás sacan la suya" />
 
-            <TextBlock Grid.Row="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,8" />
-            <DatePicker Grid.Row="2" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Hasta}" />
+                <TextBlock Grid.Row="2" Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,8"
+                           Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <DatePicker Grid.Row="2" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Desde}"
+                            Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Grid.Row="2" Grid.Column="2" Content="Semana anterior" Command="{Binding SemanaAnteriorCommand}" Padding="12,2"
+                        Margin="12,0,0,8" ToolTip="De lunes a domingo de la semana pasada"
+                        Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <TextBlock Grid.Row="3" Text="Correo:" VerticalAlignment="Center" Margin="0,0,8,8" />
-            <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Width="320" HorizontalAlignment="Left" Margin="0,0,0,8"
-                     Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="El Excel le llega a este correo. Si no es el suyo, tiene que ser de @nuevavision.es" />
-        </Grid>
+                <TextBlock Grid.Row="3" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,8" />
+                <DatePicker Grid.Row="3" Grid.Column="1" Width="180" Margin="0,0,0,8" SelectedDate="{Binding Hasta}" />
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="(desde el 1 de enero de ese año)" VerticalAlignment="Center" Opacity="0.7"
+                           Margin="12,0,0,8" Visibility="{Binding EsAnual, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-            <Button Content="Mandar el Excel a mi correo" Command="{Binding MandarCommand}" Padding="16,4" FontWeight="SemiBold" IsDefault="True" />
-            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
-                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Grid.Row="4" Text="Años anteriores:" VerticalAlignment="Center" Margin="0,0,8,8"
+                           Visibility="{Binding EsComparativo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ComboBox Grid.Row="4" Grid.Column="1" Width="80" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          ItemsSource="{Binding AniosPosibles}" SelectedItem="{Binding Anios}"
+                          ToolTip="Con cuántos años anteriores se compara (el mismo periodo de cada uno)"
+                          Visibility="{Binding EsComparativo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <TextBlock Grid.Row="5" Text="Correo:" VerticalAlignment="Center" Margin="0,0,8,8"
+                           Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Width="320" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="El Excel le llega a este correo. Si no es el suyo, tiene que ser de @nuevavision.es"
+                         Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="Mandar el Excel a mi correo" Command="{Binding MandarCommand}" Padding="16,4" FontWeight="SemiBold"
+                        Visibility="{Binding EsSemana, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Content="Ver" Command="{Binding VerCommand}" Padding="16,4" FontWeight="SemiBold" MinWidth="80"
+                        Visibility="{Binding EsAnual, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Content="Guardar el Excel…" Command="{Binding GuardarExcelCommand}" Padding="16,4" Margin="8,0,0,0"
+                        ToolTip="Lo guarda donde usted diga (por ejemplo, en la unidad de su ordenador); aquí no se abre" />
+                <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="12,0,0,0"
+                           Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,12,0,0" />
+            <TextBlock Text="{Binding Resumen}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,12,0,4"
+                       Visibility="{Binding HayResultado, Converter={StaticResource BooleanToVisibilityConverter}}" />
         </StackPanel>
-        <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,12,0,0" />
-    </StackPanel>
+
+        <!-- Nesto#559: los meses y el total al final; las columnas de los años anteriores las pone el code-behind -->
+        <DataGrid x:Name="TablaAnual" Grid.Row="1" Margin="0,4,0,0" ItemsSource="{Binding Filas}" AutoGenerateColumns="False"
+                  IsReadOnly="True" CanUserSortColumns="False" CanUserAddRows="False" HeadersVisibility="Column"
+                  HorizontalAlignment="Left" GridLinesVisibility="Horizontal"
+                  Visibility="{Binding HayResultado, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EsTotal}" Value="True">
+                            <Setter Property="FontWeight" Value="Bold" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mes" Binding="{Binding Mes}" MinWidth="150" />
+                <DataGridTextColumn Header="Facturas" Binding="{Binding NumeroFacturas}" ElementStyle="{StaticResource CeldaNumero}" />
+                <DataGridTextColumn Header="Base imponible" Binding="{Binding BaseImponible, StringFormat=N2}" ElementStyle="{StaticResource CeldaNumero}" />
+                <DataGridTextColumn Header="De ello, cursos" Binding="{Binding BaseImponibleCursos, StringFormat=N2}" ElementStyle="{StaticResource CeldaNumero}" />
+                <DataGridTextColumn Header="Acumulado" Binding="{Binding Acumulado, StringFormat=N2}" ElementStyle="{StaticResource CeldaNumero}" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
 </UserControl>

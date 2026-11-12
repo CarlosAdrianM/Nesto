@@ -23,6 +23,7 @@ namespace Producto.Tests
         private IServicioFacturacionTienda _servicio = null!;
         private IConfiguracion _configuracion = null!;
         private IServicioDialogos _dialogos = null!;
+        private IGuardadorFicheros _guardador = null!;
 
         [TestInitialize]
         public void Inicializar()
@@ -30,6 +31,7 @@ namespace Producto.Tests
             _servicio = A.Fake<IServicioFacturacionTienda>();
             _configuracion = A.Fake<IConfiguracion>();
             _dialogos = A.Fake<IServicioDialogos>();
+            _guardador = A.Fake<IGuardadorFicheros>();
             A.CallTo(() => _servicio.LeerCorreoUsuario()).Returns(Task.FromResult<string>("paloma@nuevavision.es"));
             A.CallTo(() => _servicio.MandarExcelPorCorreo(A<string>._, A<DateTime>._, A<DateTime>._, A<string>._))
                 .ReturnsLazily((string tienda, DateTime desde, DateTime hasta, string correo) => Task.FromResult(new ResultadoCorreoFacturacionTienda
@@ -49,7 +51,7 @@ namespace Producto.Tests
             {
                 A.CallTo(() => _configuracion.UsuarioEnGrupo(grupo)).Returns(true);
             }
-            return new FacturacionTiendaViewModel(_servicio, _configuracion, _dialogos, () => MARTES);
+            return new FacturacionTiendaViewModel(_servicio, _configuracion, _dialogos, () => MARTES, _guardador);
         }
 
         [TestMethod]
@@ -90,12 +92,12 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public void ElViewModel_YaNoAbreElExcelEnElServidor()
+        public void ElViewModel_NoAbreElExcelEnElServidor()
         {
-            // En el escritorio remoto Office no tiene licencia: ni descarga ni «abrir aquí»
+            // En el escritorio remoto Office no tiene licencia: el Excel (Nesto#559) solo se guarda donde diga el usuario, nunca se abre
             Assert.IsNull(typeof(FacturacionTiendaViewModel).GetProperty("GuardarYAbrir",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic));
-            Assert.IsNull(typeof(IServicioFacturacionTienda).GetMethod("DescargarExcel"));
+            Assert.IsFalse(typeof(IGuardadorFicheros).GetMethods().Any(m => m.Name.Contains("Abrir")));
         }
 
         // ---------------------------------------------------------------- el correo

@@ -27,7 +27,7 @@
             <!-- Sugerencia 648 (NestoAPI#658): las cifras de la semana de cada tienda, en Excel -->
             <RibbonGroup x:Name="grpTienda"
                                 Header="Tienda">
-                <RibbonButton Label="Facturado en tienda" ToolTip="Excel con lo facturado en la tienda (cursos incluidos): por defecto, la semana anterior"
+                <RibbonButton Label="Facturado en tienda" ToolTip="Lo facturado en la tienda (cursos incluidos): la semana anterior en Excel por correo, el acumulado del año o el comparativo con años anteriores"
                               LargeImageSource="Images/Diarios.png" Command="{Binding AbrirFacturacionTiendaCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpAlmacen"
