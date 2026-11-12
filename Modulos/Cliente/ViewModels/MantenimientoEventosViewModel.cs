@@ -992,7 +992,15 @@ namespace Nesto.Modulos.Cliente
                 Seleccionado = Eventos.FirstOrDefault(e => e.Id == guardado?.Id);
                 // Nesto#545: si con lo guardado ya está completo y no se ha anunciado, la pregunta hace de aviso de guardado.
                 guardadoParaAnunciar = guardado;
-                if (!TocaPreguntarSiAnunciar(guardado))
+                // Novedades 1233: al pasar a gratuito la API convierte las reservas sin pagar (y recupera las caducadas si caben)
+                // y lo cuenta: se dice tal cual y se releen los inscritos, que han cambiado.
+                string pasoAGratuito = guardado?.MensajePasoAGratuito?.Trim();
+                if (!string.IsNullOrEmpty(pasoAGratuito))
+                {
+                    _dialogService.ShowNotification(TITULO_PASO_A_GRATUITO, pasoAGratuito);
+                    await CargarInscripcionesAsync();
+                }
+                else if (!TocaPreguntarSiAnunciar(guardado))
                 {
                     _dialogService.ShowNotification("Evento guardado", $"Guardado el evento «{guardado?.Titulo}» del {guardado?.Fecha:dd/MM/yyyy}.");
                 }
@@ -1015,6 +1023,8 @@ namespace Nesto.Modulos.Cliente
         // ---------------- Novedades 1233 (12/11/26): curso por compra con señal por error ----------------
 
         public const string TITULO_CURSO_POR_COMPRA = "Curso por compra";
+        /// <summary>Novedades 1233: el aviso con lo que ha pasado a las inscripciones al poner el evento sin coste.</summary>
+        public const string TITULO_PASO_A_GRATUITO = "Evento sin coste";
 
         /// <summary>
         /// La no reembolsable que se manda. Con productos que comprar, siempre explícita (vacía = 0): si no viniera, la API
@@ -1102,9 +1112,10 @@ namespace Nesto.Modulos.Cliente
             "Pulse «Recargar» para volver a ver en la ficha lo guardado.";
 
         /// <summary>
-        /// Novedades 1132 (Paloma, 09/11/26, evento 6): con plazas ocupadas, la API no deja que un evento de pago pase a ser
-        /// gratuito (las dos señales a 0) ni al revés (NestoAPI#690). Se avisa antes de llamarla, diciendo qué hacer. Null si
-        /// el cambio se puede guardar (o es un evento nuevo).
+        /// Novedades 1132 (Paloma, 09/11/26, evento 6): con plazas ocupadas, la API no deja que un evento gratuito pase a ser de
+        /// pago (NestoAPI#690). Se avisa antes de llamarla, diciendo qué hacer. Null si el cambio se puede intentar guardar (o es
+        /// un evento nuevo). Novedades 1233 (12/11/26): de pago a gratuito ya no se frena aquí: la API convierte las reservas sin
+        /// pagar en inscritas sin coste (y lo dice al guardar) o lo rechaza con su motivo si alguna tiene dinero o documentos.
         /// </summary>
         internal string AvisoCambioDeModalidadConInscritos()
         {
@@ -1121,18 +1132,13 @@ namespace Nesto.Modulos.Cliente
             // Sin no reembolsable (API de antes de #690) no se manda y se queda la guardada
             decimal noReembolsable = ImporteSenalNoReembolsableEdicion ?? guardado.ImporteSenalNoReembolsable ?? 0;
             bool seraGratuito = ImporteSenalEdicion <= 0 && noReembolsable <= 0;
-            if (eraGratuito == seraGratuito)
+            if (!eraGratuito || seraGratuito)
             {
                 return null;
             }
             string plazas = guardado.PlazasOcupadas == 1 ? "1 plaza ocupada" : $"{guardado.PlazasOcupadas} plazas ocupadas";
-            string explicacion = eraGratuito
-                ? $"No se puede guardar: el evento ya tiene {plazas} por inscripciones gratuitas y, con señal, pasaría a ser de pago. " +
-                  "Si tiene que ser de pago, anule antes esas inscripciones o cree otro evento con su señal."
-                : $"No se puede guardar: el evento ya tiene {plazas} por inscripciones de pago y, con las dos señales a 0, pasaría a ser gratuito. " +
-                  "Si es un curso por compra (gratuito, con los productos que hay que comprar), anule antes esas inscripciones (si alguna " +
-                  "ya está facturada, Administración tiene que abonar la factura) o cree otro evento gratuito. Si solo quiere cambiar la " +
-                  "señal, deje importe en una de las dos (por ejemplo, en la no reembolsable en lugar de en la reembolsable).";
+            string explicacion = $"No se puede guardar: el evento ya tiene {plazas} por inscripciones gratuitas y, con señal, pasaría a ser de pago. " +
+                "Si tiene que ser de pago, anule antes esas inscripciones o cree otro evento con su señal.";
             return $"{explicacion}{Environment.NewLine}{Environment.NewLine}{AVISO_NO_GUARDADO}";
         }
 

@@ -132,6 +132,25 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public decimal? ImporteMinimoProductosRequeridos { get; set; }
 
+        // Novedades 1233 (12/11/26): solo en la respuesta del PUT que pasa un evento con señal a gratuito (0 / null en cualquier
+        // otro caso, también con la API de antes). Solo lectura: no se mandan.
+
+        /// <summary>Reservas sin pagar que han pasado a Inscrita / Gratuita.</summary>
+        public int InscripcionesConvertidasAGratuitas { get; set; }
+        public bool ShouldSerializeInscripcionesConvertidasAGratuitas() => false;
+        /// <summary>Caducadas recuperadas como Inscrita / Gratuita (solo si cabían todas).</summary>
+        public int InscripcionesRecuperadas { get; set; }
+        public bool ShouldSerializeInscripcionesRecuperadas() => false;
+        /// <summary>Caducadas que no cabían en las plazas libres (no se ha recuperado ninguna).</summary>
+        public int CaducadasSinRecuperar { get; set; }
+        public bool ShouldSerializeCaducadasSinRecuperar() => false;
+        /// <summary>Enlaces de pago pendientes anulados por el paso a gratuito.</summary>
+        public int EnlacesPagoAnulados { get; set; }
+        public bool ShouldSerializeEnlacesPagoAnulados() => false;
+        /// <summary>Qué ha pasado con las inscripciones al pasar a gratuito, de usted (null si nada): se enseña tal cual al guardar.</summary>
+        public string MensajePasoAGratuito { get; set; }
+        public bool ShouldSerializeMensajePasoAGratuito() => false;
+
         /// <summary>El modo leído: «Todos» o, en cualquier otro caso, «Alguno».</summary>
         [JsonIgnore]
         public bool HacenFaltaTodos => string.Equals(ProductosRequeridosModo?.Trim(), MODO_PRODUCTOS_TODOS, StringComparison.OrdinalIgnoreCase);

@@ -67,18 +67,87 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public async Task ConInscripcionesDePago_PonerLasDosSenalesA0_AvisaQueHacerYNoLlamaALaApi()
+        public async Task ConInscripciones_PonerLasDosSenalesA0_LoDecideLaApi()
         {
+            // Novedades 1233: antes Nesto lo frenaba; ahora la API convierte las reservas sin pagar o lo rechaza con su motivo
             MantenimientoEventosViewModel vm = await ConElEvento(Viales(1));
 
             vm.ImporteSenalEdicion = 0;
             await vm.GuardarAsync();
 
-            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).MustNotHaveHappened();
-            Assert.AreEqual(1, errores.Count);
-            StringAssert.Contains(errores[0], "gratuito");
-            StringAssert.Contains(errores[0], "anule antes");
-            StringAssert.Contains(errores[0], "Recargar");
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.That.Matches(e => e.ImporteSenal == 0 && e.ImporteSenalNoReembolsable == 0)))
+                .MustHaveHappenedOnceExactly();
+            Assert.AreEqual(0, errores.Count);
+        }
+
+        [TestMethod]
+        public async Task PasoAGratuito_ConMensajeDeLaApi_LoEnsenaYReleeLosInscritos()
+        {
+            const string mensaje = "Se han pasado a inscritas sin coste 3 reservas sin pagar y se han anulado 2 enlaces de pago.";
+            MantenimientoEventosViewModel vm = await ConElEvento(Viales(3));
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).ReturnsLazily((EventoModel e) =>
+            {
+                e.InscripcionesConvertidasAGratuitas = 3;
+                e.EnlacesPagoAnulados = 2;
+                e.MensajePasoAGratuito = mensaje;
+                return e;
+            });
+            Fake.ClearRecordedCalls(eventos);
+
+            vm.ImporteSenalEdicion = 0;
+            await vm.GuardarAsync();
+
+            A.CallTo(() => dialogos.ShowNotification(MantenimientoEventosViewModel.TITULO_PASO_A_GRATUITO, mensaje)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowNotification("Evento guardado", A<string>.Ignored)).MustNotHaveHappened();
+            A.CallTo(() => eventos.LeerInscripciones(6)).MustHaveHappened();
+            Assert.AreEqual(0, errores.Count);
+        }
+
+        [TestMethod]
+        public async Task GuardarSinPasoAGratuito_AvisoDeGuardadoDeSiempre()
+        {
+            MantenimientoEventosViewModel vm = await ConElEvento(Viales(0));
+
+            vm.ImporteSenalNoReembolsableEdicion = 50;
+            await vm.GuardarAsync();
+
+            A.CallTo(() => dialogos.ShowNotification(MantenimientoEventosViewModel.TITULO_PASO_A_GRATUITO, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void PasoAGratuito_LosCamposDeLaRespuestaNoSeMandan()
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(new EventoModel
+            {
+                Id = 6,
+                InscripcionesConvertidasAGratuitas = 3,
+                InscripcionesRecuperadas = 1,
+                CaducadasSinRecuperar = 2,
+                EnlacesPagoAnulados = 2,
+                MensajePasoAGratuito = "x"
+            });
+
+            foreach (string campo in new[] { "InscripcionesConvertidasAGratuitas", "InscripcionesRecuperadas", "CaducadasSinRecuperar", "EnlacesPagoAnulados", "MensajePasoAGratuito" })
+            {
+                Assert.IsFalse(json.Contains(campo), campo);
+            }
+            EventoModel leido = Newtonsoft.Json.JsonConvert.DeserializeObject<EventoModel>(
+                "{\"Id\":6,\"InscripcionesConvertidasAGratuitas\":3,\"InscripcionesRecuperadas\":1,\"CaducadasSinRecuperar\":2,\"EnlacesPagoAnulados\":4,\"MensajePasoAGratuito\":\"Hecho.\"}");
+            Assert.AreEqual(3, leido.InscripcionesConvertidasAGratuitas);
+            Assert.AreEqual(1, leido.InscripcionesRecuperadas);
+            Assert.AreEqual(2, leido.CaducadasSinRecuperar);
+            Assert.AreEqual(4, leido.EnlacesPagoAnulados);
+            Assert.AreEqual("Hecho.", leido.MensajePasoAGratuito);
+        }
+
+        [TestMethod]
+        public void PasoAGratuitoRechazado_El400DeLaApiSeEnsenaEntero()
+        {
+            const string motivo = "Hay 1 inscripción con dinero o documentos de por medio (1 pagada): el evento no puede pasar a ser gratuito. " +
+                "Antes hay que abonarlas o anularlas a mano (factura, cupón, cobro o enlace); no se ha cambiado nada.";
+            string body = Newtonsoft.Json.JsonConvert.SerializeObject(new { error = new { code = "NEGOCIO", message = motivo } });
+
+            StringAssert.Contains(EventosService.MensajeError(400, body, "No se pudo guardar el evento"), motivo);
         }
 
         [TestMethod]
