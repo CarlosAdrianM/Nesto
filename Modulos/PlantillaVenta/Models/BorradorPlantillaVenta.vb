@@ -164,6 +164,11 @@ Public Class BorradorPlantillaVenta
     Public Property RecogerProducto As Boolean
 
     ''' <summary>
+    ''' Nesto#503: la casilla «Recoge en tienda» si el usuario la tocó (Nothing = no la tocó: manda la ruta).
+    ''' </summary>
+    Public Property RecogeEnTienda As Boolean?
+
+    ''' <summary>
     ''' Email para enviar el cobro por tarjeta
     ''' </summary>
     Public Property CobroTarjetaCorreo As String

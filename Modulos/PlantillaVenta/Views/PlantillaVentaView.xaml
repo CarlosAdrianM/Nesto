@@ -855,6 +855,12 @@
                                        FontStyle="Italic" Foreground="DarkOrange"
                                        Visibility="{Binding FechaEntregaAgencia.HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox Content="Recoger Producto" IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al crear el pedido" Margin="3,0"/>
+                            <!-- Nesto#503 (NestoAPI#571): sin portes ni comisión de reembolso; la API pone la ruta (AM en Algete). Fija en
+                                 Alcobendas y Reina; no sale en otros almacenes ni con Glovo. -->
+                            <CheckBox Content="Recoge en tienda" IsChecked="{Binding RecogeEnTienda, Mode=TwoWay}" Margin="3,0"
+                                      IsEnabled="{Binding PuedeCambiarRecogeEnTienda}"
+                                      ToolTip="{Binding AyudaRecogeEnTienda}" ToolTipService.ShowOnDisabled="True"
+                                      Visibility="{Binding RecogeEnTiendaVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox Content="Avisar con importe cuando coja picking" IsChecked="{Binding AvisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir" Margin="3,0"/>
                             <TextBlock Margin="3,0">
                                 <Run Text="Periodo de Facturación:"></Run>

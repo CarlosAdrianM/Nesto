@@ -506,6 +506,12 @@
                                        FontStyle="Italic" Foreground="DarkOrange"
                                        Visibility="{Binding FechaEntregaAgencia.HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
+                            <!-- Nesto#503 (NestoAPI#571): la API pone la ruta de recogida (AM en Algete) y quita portes y comisión al guardar;
+                                 fija en Alcobendas y Reina, sin tocar con picking, albarán o factura (el motivo, en la ayuda). -->
+                            <CheckBox Content="Recoge en tienda" IsChecked="{Binding RecogeEnTienda, Mode=TwoWay}"
+                                      IsEnabled="{Binding PuedeCambiarRecogeEnTienda}"
+                                      ToolTip="{Binding AyudaRecogeEnTienda}" ToolTipService.ShowOnDisabled="True"
+                                      Visibility="{Binding RecogeEnTiendaVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
                                 <DataGrid.Columns>

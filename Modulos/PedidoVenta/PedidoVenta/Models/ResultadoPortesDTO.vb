@@ -26,4 +26,6 @@ Public Class PedidoPortesInputDTO
     ' Issue #159: flag para que el vendedor marque pedidos sin comisión reembolso.
     ' Se ignora en backend a partir de 2026-09-01.
     Public Property NoCobrarComisionReembolso As Boolean
+    ' Nesto#503 / NestoAPI#571: la casilla «Recoge en tienda» de la plantilla. True = sin portes ni comisión contra reembolso.
+    Public Property RecogeEnTienda As Boolean?
 End Class

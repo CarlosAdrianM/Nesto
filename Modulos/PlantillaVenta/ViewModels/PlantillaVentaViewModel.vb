@@ -233,6 +233,7 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar código con Estado
             Estado.AlmacenCodigo = If(value IsNot Nothing, value.Codigo, Nothing)
             ActualizarAnadirPortesPorDefecto()
+            NotificarRecogeEnTienda() ' Nesto#503: fija en Alcobendas y Reina, a elegir en Algete, no se ofrece en el resto
             ' Nesto#484: los modos permitidos dependen del almacén (en tienda, solo «según vaya entrando»).
             PedirSugerenciasConDebounce()
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
@@ -479,6 +480,7 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property TextoPortes As String
         Get
             If IsNothing(_resultadoPortes) Then Return ""
+            If RecogeEnTienda Then Return RecogeEnTiendaReglas.TEXTO_PORTES ' Nesto#503
             Dim importeFalta = _resultadoPortes.ImporteMinimoPedidoSinPortes - baseImponibleParaPortes
             If importeFalta <= 0 Then
                 Return "Pedido con portes pagados"
@@ -491,6 +493,7 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property PortesGratis As Boolean
         Get
             If IsNothing(_resultadoPortes) Then Return False
+            If RecogeEnTienda Then Return True ' Nesto#503: lo recoge en la tienda, sin portes
             Return baseImponibleParaPortes >= _resultadoPortes.ImporteMinimoPedidoSinPortes
         End Get
     End Property
@@ -515,7 +518,7 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property ImporteReembolsoMostrar As Decimal
         Get
-            If IsNothing(_resultadoPortes) OrElse Not HayProductosQueNoSonCurso Then Return 0
+            If IsNothing(_resultadoPortes) OrElse Not HayProductosQueNoSonCurso OrElse RecogeEnTienda Then Return 0 ' Nesto#503
             Return _resultadoPortes.ComisionReembolso
         End Get
     End Property
@@ -623,7 +626,8 @@ Public Class PlantillaVentaViewModel
                 .Iva = Estado.IvaCliente,
                 .BaseImponibleProductos = baseImponibleParaPortes,
                 .AnadirPortes = Estado.AnadirPortes,
-                .NoCobrarComisionReembolso = _noCobrarComisionReembolso
+                .NoCobrarComisionReembolso = _noCobrarComisionReembolso,
+                .RecogeEnTienda = If(RecogeEnTienda, CType(True, Boolean?), Nothing) ' Nesto#503
             }
             Dim resultado = Await servicioPedidosVenta.CalcularPortesPost(input)
             If resultado IsNot Nothing Then
@@ -2453,6 +2457,11 @@ Public Class PlantillaVentaViewModel
                 Estado.Vendedor = value.vendedor
                 Estado.PeriodoFacturacion = value.periodoFacturacion
                 Estado.Ruta = value.ruta
+                ' Nesto#503: con otro contacto la casilla vuelve a lo que diga su ruta
+                If Not mismoContacto AndAlso _borradorEnRestauracion Is Nothing Then
+                    _recogeEnTiendaTocado = False
+                End If
+                NotificarRecogeEnTienda()
                 ' Nesto#525: con el mismo contacto se respeta el CCC que haya elegido el usuario en la plantilla.
                 If Not mismoContacto Then
                     Estado.Ccc = value.ccc
@@ -3586,6 +3595,79 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_recogerProducto, value)
         End Set
     End Property
+
+#Region "Nesto#503: Recoge en tienda"
+    ' Lo que ha hecho el usuario con la casilla (solo cuenta en Algete). Sin tocar, manda la ruta.
+    Private _recogeEnTiendaTocado As Boolean
+    Private _recogeEnTiendaMarcado As Boolean
+
+    ''' <summary>Nesto#503: solo en Algete, Alcobendas y Reina y si no va por Glovo.</summary>
+    Public ReadOnly Property RecogeEnTiendaVisible As Boolean
+        Get
+            Return RecogeEnTiendaReglas.AlmacenPermiteRecoger(Estado?.AlmacenCodigo) AndAlso Not EnviarPorGlovo
+        End Get
+    End Property
+
+    ''' <summary>Nesto#503: Alcobendas y Reina, marcada y sin poder desmarcarla.</summary>
+    Public ReadOnly Property RecogeEnTiendaFijo As Boolean
+        Get
+            Return RecogeEnTiendaReglas.AlmacenObligaARecoger(Estado?.AlmacenCodigo)
+        End Get
+    End Property
+
+    ''' <summary>Nesto#503: lo contrario de <see cref="RecogeEnTiendaFijo"/>, para el IsEnabled de la casilla.</summary>
+    Public ReadOnly Property PuedeCambiarRecogeEnTienda As Boolean
+        Get
+            Return Not RecogeEnTiendaFijo
+        End Get
+    End Property
+
+    Public ReadOnly Property AyudaRecogeEnTienda As String
+        Get
+            Return If(RecogeEnTiendaFijo, RecogeEnTiendaReglas.AYUDA_FIJA, RecogeEnTiendaReglas.AYUDA)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#503 (NestoAPI#571): la casilla. Al cambiarla se vuelven a pedir los portes a la API, que con ella no pone ni portes
+    ''' ni comisión contra reembolso. La ruta la pone la API al grabar (en Algete, AM).
+    ''' </summary>
+    Public Property RecogeEnTienda As Boolean
+        Get
+            Return RecogeEnTiendaVisible AndAlso
+                RecogeEnTiendaReglas.Efectivo(Estado?.AlmacenCodigo, _recogeEnTiendaTocado, _recogeEnTiendaMarcado, Estado?.Ruta)
+        End Get
+        Set(value As Boolean)
+            If Not RecogeEnTiendaVisible OrElse RecogeEnTiendaFijo OrElse value = RecogeEnTienda Then
+                OnPropertyChanged(NameOf(RecogeEnTienda))
+                Return
+            End If
+            _recogeEnTiendaMarcado = value
+            _recogeEnTiendaTocado = True
+            NotificarRecogeEnTienda()
+            CargarInfoPortesConDebounce()
+        End Set
+    End Property
+
+    ''' <summary>Nesto#503: lo que viaja en el pedido. Nothing (no tocar) salvo que el usuario la haya tocado en Algete.</summary>
+    Friend ReadOnly Property RecogeEnTiendaParaGuardar As Boolean?
+        Get
+            If Not RecogeEnTiendaVisible Then
+                Return Nothing
+            End If
+            Return RecogeEnTiendaReglas.ParaGuardar(Estado?.AlmacenCodigo, _recogeEnTiendaTocado, _recogeEnTiendaMarcado)
+        End Get
+    End Property
+
+    Private Sub NotificarRecogeEnTienda()
+        OnPropertyChanged(NameOf(RecogeEnTiendaVisible))
+        OnPropertyChanged(NameOf(RecogeEnTiendaFijo))
+        OnPropertyChanged(NameOf(PuedeCambiarRecogeEnTienda))
+        OnPropertyChanged(NameOf(AyudaRecogeEnTienda))
+        OnPropertyChanged(NameOf(RecogeEnTienda))
+        ActualizarEtiquetaPortes()
+    End Sub
+#End Region
 
     Public ReadOnly Property NoHayProductosEnElPedido
         Get
@@ -5352,6 +5434,10 @@ Public Class PlantillaVentaViewModel
         ' Issue #159: propagar flag elegido por el vendedor para no cobrar la comisión de reembolso
         pedido.NoCobrarComisionReembolso = _noCobrarComisionReembolso
 
+        ' Nesto#503 (NestoAPI#571): solo si el usuario tocó «Recoge en tienda»; la API pone la ruta y quita portes y comisión
+        pedido.RecogeEnTienda = RecogeEnTiendaParaGuardar
+        pedido.RecogeEnTiendaTocado = pedido.RecogeEnTienda.HasValue
+
         ' Manejar ccc condicionalmente según forma de pago
         If IsNothing(FormaPagoSeleccionada) OrElse Not FormaPagoSeleccionada.cccObligatorio Then
             pedido.ccc = Nothing
@@ -6680,7 +6766,8 @@ Public Class PlantillaVentaViewModel
             .MandarCobroTarjeta = Estado.MandarCobroTarjeta,
             .CobroTarjetaCorreo = Estado.CobroTarjetaCorreo,
             .CobroTarjetaMovil = Estado.CobroTarjetaMovil,
-            .RecogerProducto = RecogerProducto
+            .RecogerProducto = RecogerProducto,
+            .RecogeEnTienda = If(_recogeEnTiendaTocado, CType(_recogeEnTiendaMarcado, Boolean?), Nothing) ' Nesto#503
         }
 
         Return borrador
@@ -6951,6 +7038,10 @@ Public Class PlantillaVentaViewModel
 
             ' Nesto#380: restaurar la casilla "Recoger Producto"
             RecogerProducto = borrador.RecogerProducto
+            ' Nesto#503: la casilla «Recoge en tienda», si se tocó
+            _recogeEnTiendaTocado = borrador.RecogeEnTienda.HasValue
+            _recogeEnTiendaMarcado = borrador.RecogeEnTienda.GetValueOrDefault()
+            NotificarRecogeEnTienda()
             If Not String.IsNullOrEmpty(borrador.CobroTarjetaCorreo) Then
                 CobroTarjetaCorreo = borrador.CobroTarjetaCorreo
             End If

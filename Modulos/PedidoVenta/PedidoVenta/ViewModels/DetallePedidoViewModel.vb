@@ -596,6 +596,97 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+#Region "Nesto#503: Recoge en tienda"
+
+    ''' <summary>El almacén de las líneas vivas del pedido (Nothing si no hay o son de varios).</summary>
+    Private ReadOnly Property AlmacenRecogeEnTienda As String
+        Get
+            Return RecogeEnTiendaReglas.AlmacenDelPedido(pedido?.Model?.Lineas)
+        End Get
+    End Property
+
+    ''' <summary>Nesto#503: solo al modificar un pedido (no nota de entrega) de Algete, Alcobendas o Reina.</summary>
+    Public ReadOnly Property RecogeEnTiendaVisible As Boolean
+        Get
+            Return pedido?.Model IsNot Nothing AndAlso pedido.numero > 0 AndAlso Not pedido.Model.notaEntrega AndAlso
+                RecogeEnTiendaReglas.AlmacenPermiteRecoger(AlmacenRecogeEnTienda)
+        End Get
+    End Property
+
+    ''' <summary>Nesto#503: en Algete y sin picking, albarán ni factura (en Alcobendas y Reina se recoge siempre).</summary>
+    Public ReadOnly Property PuedeCambiarRecogeEnTienda As Boolean
+        Get
+            Return RecogeEnTiendaVisible AndAlso Not RecogeEnTiendaReglas.AlmacenObligaARecoger(AlmacenRecogeEnTienda) AndAlso
+                RecogeEnTiendaReglas.SePuedeCambiar(pedido.Model.Lineas)
+        End Get
+    End Property
+
+    Public ReadOnly Property AyudaRecogeEnTienda As String
+        Get
+            If RecogeEnTiendaReglas.AlmacenObligaARecoger(AlmacenRecogeEnTienda) Then
+                Return RecogeEnTiendaReglas.AYUDA_FIJA
+            End If
+            If Not PuedeCambiarRecogeEnTienda Then
+                Return RecogeEnTiendaReglas.AYUDA_BLOQUEADA
+            End If
+            Return RecogeEnTiendaReglas.AYUDA & " Se aplica al guardar el pedido."
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#503: la casilla. Lee lo que trae la API (o, si no lo trae, la ruta); al tocarla se apunta para mandarla en el PUT, que
+    ''' cambia la ruta y los portes y la comisión. Tras guardar se vuelve a leer el pedido.
+    ''' </summary>
+    Public Property RecogeEnTienda As Boolean
+        Get
+            Dim modelo = pedido?.Model
+            If modelo Is Nothing Then
+                Return False
+            End If
+            ' Lo marcado (o lo que trajo la API) manda; si la API no lo trae (versión vieja), la ruta
+            Dim marcado As Boolean = If(modelo.RecogeEnTienda, RecogeEnTiendaReglas.EsRutaDeRecogida(modelo.ruta))
+            Return RecogeEnTiendaReglas.Efectivo(AlmacenRecogeEnTienda, True, marcado, modelo.ruta)
+        End Get
+        Set(value As Boolean)
+            Dim modelo = pedido?.Model
+            If modelo Is Nothing OrElse Not PuedeCambiarRecogeEnTienda OrElse value = RecogeEnTienda Then
+                OnPropertyChanged(NameOf(RecogeEnTienda))
+                Return
+            End If
+            modelo.RecogeEnTienda = value
+            modelo.RecogeEnTiendaTocado = True
+            OnPropertyChanged(NameOf(RecogeEnTienda))
+        End Set
+    End Property
+
+    Private Sub NotificarRecogeEnTienda()
+        ' En Alcobendas y Reina se recoge siempre: lo que se hubiera tocado en Algete ya no se manda (desmarcado daría 400)
+        If pedido?.Model IsNot Nothing AndAlso RecogeEnTiendaReglas.AlmacenObligaARecoger(AlmacenRecogeEnTienda) Then
+            pedido.Model.RecogeEnTiendaTocado = False
+        End If
+        OnPropertyChanged(NameOf(RecogeEnTiendaVisible))
+        OnPropertyChanged(NameOf(PuedeCambiarRecogeEnTienda))
+        OnPropertyChanged(NameOf(AyudaRecogeEnTienda))
+        OnPropertyChanged(NameOf(RecogeEnTienda))
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#503: si la API rechaza el cambio (400 «… «Recoge en tienda» …», que se enseña tal cual), la casilla vuelve a lo
+    ''' guardado para no volver a mandarlo.
+    ''' </summary>
+    Friend Sub DeshacerRecogeEnTiendaSiLoRechaza(mensaje As String)
+        Dim modelo = pedido?.Model
+        If modelo Is Nothing OrElse Not modelo.RecogeEnTiendaTocado OrElse
+            If(mensaje, String.Empty).IndexOf("Recoge en tienda", StringComparison.OrdinalIgnoreCase) < 0 Then
+            Return
+        End If
+        modelo.RecogeEnTiendaTocado = False
+        modelo.RecogeEnTienda = If(_snapshotPedidoGuardado?.RecogeEnTienda, RecogeEnTiendaReglas.EsRutaDeRecogida(modelo.ruta))
+        OnPropertyChanged(NameOf(RecogeEnTienda))
+    End Sub
+
+#End Region
+
     Public Shared Function TieneEtiquetaRecogida(envios As List(Of EnvioAgenciaDTO)) As Boolean
         If envios Is Nothing Then Return False
         Return envios.Any(Function(e) e.Retorno > 0)
@@ -664,6 +755,7 @@ Public Class DetallePedidoViewModel
             OnPropertyChanged(NameOf(HayLineasEditables))
             OnPropertyChanged(NameOf(PuedeEditarSelectoresLinea))
             OnPropertyChanged(NameOf(PuedeEditarSelectorAlmacen)) ' Nesto#510
+            NotificarRecogeEnTienda() ' Nesto#503
             OnPropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
@@ -933,6 +1025,7 @@ Public Class DetallePedidoViewModel
         End If
 
         AplicarAlmacenALineas(nuevo)
+        NotificarRecogeEnTienda() ' Nesto#503: de Algete a Alcobendas la casilla pasa a fija
     End Function
 
     ''' <summary>Nesto#510: «Hay 4 unidades de 45146 en la reposición 80885 que viajan a Alcobendas, puede que para este pedido.»</summary>
@@ -1028,6 +1121,8 @@ Public Class DetallePedidoViewModel
     Public ReadOnly Property TextoPortes As String
         Get
             If IsNothing(_resultadoPortes) Then Return ""
+            ' Nesto#503: con la ruta de recogida guardada la API no pone ni portes ni comisión
+            If RecogeEnTiendaReglas.EsRutaDeRecogida(pedido?.ruta) Then Return RecogeEnTiendaReglas.TEXTO_PORTES
             Dim importeFalta = _resultadoPortes.ImporteMinimoPedidoSinPortes - pedido.BaseImponible
             If importeFalta <= 0 Then
                 Return "Pedido con portes pagados"
@@ -2764,6 +2859,7 @@ Public Class DetallePedidoViewModel
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         Dim guardado As Boolean = False ' NestoAPI#606
+        Dim recogeEnTiendaTocado As Boolean = pedido.Model.RecogeEnTiendaTocado ' Nesto#503: tras guardar se vuelve a leer
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
@@ -2884,6 +2980,7 @@ Public Class DetallePedidoViewModel
             ' se enseña el mensaje de la API tal cual y se vuelve a preguntar qué modos valen, para que el combo
             ' deshabilite el que no.
             dialogService.ShowError(ex.Message)
+            DeshacerRecogeEnTiendaSiLoRechaza(ex.Message) ' Nesto#503: el 400 de la API, tal cual
             VolverAPedirModosFacturacion()
         Finally
             estaBloqueado = False
@@ -2898,6 +2995,13 @@ Public Class DetallePedidoViewModel
 
         If rechazoYaEnAgencia IsNot Nothing AndAlso pedido IsNot Nothing Then
             Await AvisoLogisticaAplazamiento.OfrecerAsync(dialogService, servicio, pedido.empresa, pedido.numero, rechazoYaEnAgencia)
+        End If
+
+        ' Nesto#503: la API ha cambiado la ruta y ha quitado o puesto los portes y la comisión: se vuelve a leer el pedido
+        ' (la carga ya pide la fecha de entrega, el cheque y el cupón)
+        If guardado AndAlso recogeEnTiendaTocado AndAlso pedido IsNot Nothing AndAlso pedido.numero > 0 Then
+            Await CargarPedidoAsync(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
+            Return
         End If
 
         ' NestoAPI#606: guardar puede cambiar el día (líneas, modo...). Ya sin bloquear la pantalla.

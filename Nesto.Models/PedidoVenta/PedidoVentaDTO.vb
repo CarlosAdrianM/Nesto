@@ -141,6 +141,18 @@ Public Class PedidoVentaDTO
     ''' manda (versión vieja) y Nesto lo calcula como antes. Solo de salida: no se envía si es Nothing.</summary>
     <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
     Public Property tieneFechasFuturas As Boolean?
+    ''' <summary>Nesto#503 / NestoAPI#571: «Recoge en tienda». Al leer, la API lo calcula de la ruta (AM, ALC o REI). Al escribir,
+    ''' solo viaja si el usuario ha tocado la casilla (<see cref="RecogeEnTiendaTocado"/>): sin él la API no toca nada; con él lo
+    ''' traduce a ruta y recalcula portes y comisión. Ver RecogeEnTiendaReglas (módulo PedidoVenta).</summary>
+    Public Property RecogeEnTienda As Boolean?
+    ''' <summary>Nesto#503: el usuario ha tocado la casilla y hay que mandar <see cref="RecogeEnTienda"/>. No viaja.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public Property RecogeEnTiendaTocado As Boolean
+    ''' <summary>Newtonsoft: RecogeEnTienda solo se manda si se ha tocado (si no, la API comparaba con lo leído y no cambiaba
+    ''' nada, pero así ni se arriesga).</summary>
+    Public Function ShouldSerializeRecogeEnTienda() As Boolean
+        Return RecogeEnTiendaTocado
+    End Function
 
     Public ReadOnly Property Bruto As Decimal
         Get
@@ -231,7 +243,8 @@ Public Class PedidoVentaDTO
                Nullable.Equals(modoServicio, other.modoServicio) AndAlso
                Nullable.Equals(modoFacturacion, other.modoFacturacion) AndAlso
                avisarConImporteAlCogerPicking = other.avisarConImporteAlCogerPicking AndAlso
-               notaEntrega = other.notaEntrega
+               notaEntrega = other.notaEntrega AndAlso
+               Nullable.Equals(RecogeEnTienda, other.RecogeEnTienda) ' Nesto#503
     End Function
 
     ''' <summary>
@@ -284,6 +297,9 @@ Public Class PedidoVentaDTO
         End If
         If notaEntrega <> other.notaEntrega Then
             difs.Add($"notaEntrega: '{other.notaEntrega}' -> '{notaEntrega}'")
+        End If
+        If Not Nullable.Equals(RecogeEnTienda, other.RecogeEnTienda) Then
+            difs.Add($"RecogeEnTienda: '{other.RecogeEnTienda}' -> '{RecogeEnTienda}'")
         End If
         Return difs
     End Function
@@ -358,7 +374,8 @@ Public Class PedidoVentaDTO
             .servirJunto = Me.servirJunto,
             .modoServicio = Me.modoServicio,
             .modoFacturacion = Me.modoFacturacion,
-            .notaEntrega = Me.notaEntrega
+            .notaEntrega = Me.notaEntrega,
+            .RecogeEnTienda = Me.RecogeEnTienda
         }
     End Function
 
