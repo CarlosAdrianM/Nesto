@@ -219,6 +219,41 @@ Public Class AlquileresViewModelTests
     End Function
 
     <TestMethod()>
+    Public Async Function BuscarAlquileresCliente_CadaFilaDiceElEquipoYElNombreDelCliente() As Task
+        Dim alquileres = AlquileresDelCliente()
+        alquileres(0).ProductoNombre = "CAVITACION ODÍN"
+        alquileres(0).ClienteNombre = "PELUQUERÍA EJEMPLO"
+        alquileres(1).NombreProducto = "COPIA DE LA CABECERA"
+        A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "15191")).Returns(Task.FromResult(alquileres))
+
+        Dim vm = CrearViewModel()
+        vm.ClienteBuscado = "15191"
+        Await vm.BuscarAlquileresClienteAsync()
+
+        Dim odin = vm.AlquileresCollection.Single(Function(a) a.Número = 100)
+        Assert.AreEqual("26780 CAVITACION ODÍN", odin.Equipo)
+        Assert.AreEqual("PELUQUERÍA EJEMPLO", odin.ClienteNombre)
+        ' Sin el nombre de la ficha, el de la copia de la cabecera; sin ninguno, solo la referencia.
+        Assert.AreEqual("31002 COPIA DE LA CABECERA", vm.AlquileresCollection.Single(Function(a) a.Número = 205).Equipo)
+        Assert.AreEqual("31002", New AlquilerModel With {.Producto = "31002          "}.Equipo)
+    End Function
+
+    <TestMethod()>
+    Public Sub AlquilerModel_LosNombresLleganDeLaApiPeroNoViajanAlGuardar()
+        Dim json As String = "{""Numero"":100,""Producto"":""26780"",""ProductoNombre"":""CAVITACION ODÍN"",""ClienteNombre"":""PELUQUERÍA EJEMPLO""}"
+
+        Dim leido = Newtonsoft.Json.JsonConvert.DeserializeObject(Of AlquilerModel)(json)
+        Dim enviado As String = Newtonsoft.Json.JsonConvert.SerializeObject(leido)
+
+        Assert.AreEqual("CAVITACION ODÍN", leido.ProductoNombre)
+        Assert.AreEqual("PELUQUERÍA EJEMPLO", leido.ClienteNombre)
+        Assert.IsFalse(enviado.Contains("ProductoNombre"))
+        Assert.IsFalse(enviado.Contains("ClienteNombre"))
+        Assert.IsFalse(enviado.Contains("Equipo"))
+        StringAssert.Contains(enviado, """Producto"":""26780""")
+    End Sub
+
+    <TestMethod()>
     Public Async Function BuscarAlquileresCliente_SinAlquileres_AvisaDeUsted() As Task
         A.CallTo(Function() _servicio.LeerCabecerasAlquilerPorCliente("1", "99999")).Returns(Task.FromResult(New List(Of AlquilerModel)))
 

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 
@@ -80,6 +81,20 @@ namespace Nesto.Infrastructure.Models.Alquileres
         public string CodPostalCliente { get; set; }
         public string PoblacionCliente { get; set; }
         public string ProvinciaCliente { get; set; }
+
+        // Novedad 1181: solo lectura para la rejilla. Llegan de la API pero NO se mandan al guardar (ShouldSerialize).
+        /// <summary>Nombre del equipo, de la ficha del producto.</summary>
+        public string ProductoNombre { get; set; }
+        public bool ShouldSerializeProductoNombre() => false;
+
+        /// <summary>Nombre del cliente de la ficha (el del contacto o, si no casa, el del principal).</summary>
+        public string ClienteNombre { get; set; }
+        public bool ShouldSerializeClienteNombre() => false;
+
+        /// <summary>Columna «Equipo» de la búsqueda por cliente: referencia y nombre («32242 CAVITACION ODÍN»).</summary>
+        [JsonIgnore]
+        public string Equipo => string.Join(" ", new[] { Producto?.Trim(), (ProductoNombre ?? NombreProducto)?.Trim() }
+            .Where(t => !string.IsNullOrEmpty(t)));
 
         public event PropertyChangedEventHandler PropertyChanged;
 
