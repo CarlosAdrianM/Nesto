@@ -160,7 +160,8 @@ Public Class ComprobacionesInventarioDialogViewModel
 
     ''' <summary>Incidencia 1186 (Carlos): borrar NO es «no hay»; se dice arriba siempre que alguna línea tenga el botón.</summary>
     Public Const TEXTO_SOLO_FILAS_QUE_SOBRAN As String =
-        "Solo se pueden borrar las filas que sobran (duplicadas o contadas sin ubicación): borrar NO pone el producto a 0, lo deja " +
+        "Solo se pueden borrar las filas que sobran (duplicadas o contadas sin ubicación) y las pendientes de días anteriores: " +
+        "borrar NO pone el producto a 0, lo deja " +
         "SIN CONTAR. Para decir que no hay ninguna unidad, cuéntela a 0."
 
     ''' <summary>Incidencia 1186: alguna línea trae SePuedeBorrar de la API.</summary>

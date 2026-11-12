@@ -203,6 +203,8 @@ Public Class InventarioComprobacionesBorrarFilaTests
         Dim sinBoton = CrearDialogo(ConBloqueante("SinUbicacion", Fila(12, False)))
 
         StringAssert.Contains(conBoton.Explicacion, "Solo se pueden borrar las filas que sobran")
+        ' NestoAPI 8dfc4dfe: también las pendientes de días anteriores (bloqueante OtraFecha)
+        StringAssert.Contains(conBoton.Explicacion, "las pendientes de días anteriores")
         StringAssert.Contains(conBoton.Explicacion, "cuéntela a 0")
         Assert.IsFalse(sinBoton.Explicacion.Contains("borrar"))
     End Sub
