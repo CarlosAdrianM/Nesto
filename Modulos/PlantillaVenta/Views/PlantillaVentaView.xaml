@@ -1023,6 +1023,17 @@
                                     <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="False" Text="{Binding PortesGlovo, StringFormat=c}"></TextBox>
                                 </Grid>
                             </Grid>
+                            <!-- Sugerencia 1261: preferencia del usuario (parámetro PlantillaMantenerAbierta). Discreta, al final
+                                 del paso: letra pequeña y sin colores fijos (vale en claro y en oscuro). Solo al crear un pedido. -->
+                            <CheckBox Content="{Binding TextoMantenerPlantillaAbierta}"
+                                      IsChecked="{Binding MantenerPlantillaAbierta, Mode=TwoWay}"
+                                      ToolTip="{Binding AyudaMantenerPlantillaAbierta}"
+                                      FontSize="11" Opacity="0.75" Margin="0,14,0,0" HorizontalAlignment="Left"
+                                      VerticalContentAlignment="Center"/>
+                            <TextBlock Text="{Binding AvisoMantenerPlantillaAbierta}"
+                                       FontStyle="Italic" FontSize="11" Foreground="#B00020"
+                                       TextWrapping="Wrap" Margin="20,0,0,0" MaxWidth="600" HorizontalAlignment="Left"
+                                       Visibility="{Binding HayAvisoMantenerPlantillaAbierta, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>

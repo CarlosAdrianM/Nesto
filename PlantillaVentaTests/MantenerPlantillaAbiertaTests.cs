@@ -22,6 +22,9 @@ namespace PlantillaVentaTests
     /// queda abierta una plantilla limpia (una NUEVA, por la navegación de siempre: sin restos del pedido grabado) además
     /// del pedido. Apagado, sin fila o si no se puede leer: la plantilla se cierra y se abre el pedido, como siempre.
     /// Cargar un borrador nunca cierra la pestaña ni abre otra.
+    /// Decisiones de Carlos (13/11/26): la pestaña que queda delante es la del PEDIDO (se abre después de la plantilla
+    /// nueva); solo al CREAR un pedido, nunca al modificar con plantilla ni al ampliar; y el usuario se lo activa él con
+    /// la casilla del paso Finalizar (MantenerPlantillaAbierta), que lee su parámetro y lo guarda al cambiarla.
     /// </summary>
     [TestClass]
     public class MantenerPlantillaAbiertaTests
@@ -169,18 +172,233 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public async Task MantenerPlantillaAbierta_SoloConUnUno()
+        public async Task Casilla_SeCargaDelParametroDelUsuario_MarcadaSoloConUnUno_YCargarNoGuardaNada()
         {
+            foreach (var (valor, marcada) in new[] { ("1", true), ("1 ", true), ("0", false), ("", false), ("SI", false), ((string)null, false) })
+            {
+                ElParametroVale(valor);
+                var vm = CrearViewModel();
+                Assert.IsFalse(vm.MantenerPlantillaAbierta, "Antes de leer el parámetro, desmarcada");
+
+                await vm.CargarMantenerPlantillaAbiertaAsync();
+
+                Assert.AreEqual(marcada, vm.MantenerPlantillaAbierta, $"Con el parámetro a «{valor ?? "(sin fila)"}»");
+            }
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Casilla_AlCargarla_AvisaALaVista()
+        {
+            ElParametroVale("1");
+            var vm = CrearViewModel();
+            var cambios = new List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+
+            CollectionAssert.Contains(cambios, nameof(PlantillaVentaViewModel.MantenerPlantillaAbierta));
+        }
+
+        [TestMethod]
+        public async Task Casilla_SiElParametroNoSePuedeLeer_SeQuedaDesmarcadaSinAvisos()
+        {
+            A.CallTo(() => _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta))
+                .ThrowsAsync(new InvalidOperationException("sin red"));
             var vm = CrearViewModel();
 
-            ElParametroVale("1");
-            Assert.IsTrue(await vm.MantenerPlantillaAbiertaAsync());
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+
+            Assert.IsFalse(vm.MantenerPlantillaAbierta);
+            Assert.IsFalse(vm.HayAvisoMantenerPlantillaAbierta);
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Casilla_AlMarcarlaYDesmarcarla_SeGuardaElParametroDelUsuario()
+        {
             ElParametroVale("0");
-            Assert.IsFalse(await vm.MantenerPlantillaAbiertaAsync());
-            ElParametroVale("");
-            Assert.IsFalse(await vm.MantenerPlantillaAbiertaAsync());
-            ElParametroVale("SI");
-            Assert.IsFalse(await vm.MantenerPlantillaAbiertaAsync());
+            var vm = CrearViewModel();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            A.CallTo(() => _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta, "1"))
+                .MustHaveHappenedOnceExactly();
+            Assert.IsTrue(vm.MantenerPlantillaAbierta);
+            Assert.IsFalse(vm.HayAvisoMantenerPlantillaAbierta);
+
+            vm.MantenerPlantillaAbierta = false;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            A.CallTo(() => _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta, "0"))
+                .MustHaveHappenedOnceExactly();
+            Assert.IsFalse(vm.MantenerPlantillaAbierta);
+        }
+
+        [TestMethod]
+        public async Task Casilla_PonerleElValorQueYaTiene_NoGuardaNada()
+        {
+            ElParametroVale("1");
+            var vm = CrearViewModel();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Casilla_SiGuardarFalla_VuelveASuValorAnteriorYAvisaSinDialogo()
+        {
+            ElParametroVale("0");
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, Parametros.Claves.PlantillaMantenerAbierta, A<string>._))
+                .ThrowsAsync(new InvalidOperationException("sin red"));
+            var vm = CrearViewModel();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+            var cambios = new List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            Assert.IsFalse(vm.MantenerPlantillaAbierta, "La casilla vuelve a como estaba");
+            Assert.AreEqual(2, cambios.Count(c => c == nameof(PlantillaVentaViewModel.MantenerPlantillaAbierta)), "Se avisa a la vista al marcar y al deshacer");
+            Assert.IsTrue(vm.HayAvisoMantenerPlantillaAbierta);
+            Assert.AreEqual(PlantillaVentaViewModel.AVISO_MANTENER_PLANTILLA_ABIERTA_NO_GUARDADA, vm.AvisoMantenerPlantillaAbierta);
+            A.CallTo(() => _dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Casilla_SiGuardarFalla_ElPedidoSeGrabaIgual_SinPlantillaNueva()
+        {
+            ElParametroVale("0");
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, Parametros.Claves.PlantillaMantenerAbierta, A<string>._))
+                .ThrowsAsync(new InvalidOperationException("sin red"));
+            var vm = ListoParaGrabar();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            await vm.CrearPedidoAsync();
+
+            Assert.AreEqual(1, Fake.GetCalls(_servicio).Count(c => c.Method.Name == nameof(IPlantillaVentaService.CrearPedido)), "El pedido se graba igual");
+            SeCierraYSeAbreElPedidoSinPlantillaNueva();
+        }
+
+        [TestMethod]
+        public async Task Casilla_TrasUnFalloAlGuardar_ElSiguienteCambioQueSeGuardaQuitaElAviso()
+        {
+            ElParametroVale("0");
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, Parametros.Claves.PlantillaMantenerAbierta, A<string>._))
+                .ThrowsAsync(new InvalidOperationException("sin red")).Once()
+                .Then.Returns(Task.CompletedTask);
+            var vm = CrearViewModel();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+            Assert.IsTrue(vm.HayAvisoMantenerPlantillaAbierta);
+
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            Assert.IsTrue(vm.MantenerPlantillaAbierta);
+            Assert.IsFalse(vm.HayAvisoMantenerPlantillaAbierta);
+        }
+
+        [TestMethod]
+        public async Task Crear_ConLaCasillaMarcada_PlantillaNuevaYElPedidoQuedaDelante_SinReleerElParametro()
+        {
+            // El usuario la acaba de marcar: vale lo que tiene la casilla al grabar, no se vuelve a preguntar a la API.
+            ElParametroVale("0");
+            var vm = ListoParaGrabar();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+            vm.MantenerPlantillaAbierta = true;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+            Fake.ClearRecordedCalls(_configuracion);
+
+            await vm.CrearPedidoAsync();
+
+            // El pedido se abre el ÚLTIMO: su pestaña es la que queda delante, con la plantilla nueva detrás.
+            A.CallTo(() => _navegacion.CerrarVistaActiva("MainRegion")).MustHaveHappenedOnceExactly()
+                .Then(A.CallTo(() => _navegacion.RequestNavigate("MainRegion", "PlantillaVentaView")).MustHaveHappenedOnceExactly())
+                .Then(A.CallTo(() => _abridorPedidos.Abrir("1", 930001)).MustHaveHappenedOnceExactly());
+            A.CallTo(() => _configuracion.leerParametro(A<string>._, Parametros.Claves.PlantillaMantenerAbierta)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Crear_ConLaCasillaDesmarcadaAMano_AunqueElParametroEstuvieraEncendido_SinPlantillaNueva()
+        {
+            ElParametroVale("1");
+            var vm = ListoParaGrabar();
+            await vm.CargarMantenerPlantillaAbiertaAsync();
+            vm.MantenerPlantillaAbierta = false;
+            await vm.TareaGuardarMantenerPlantillaAbierta;
+
+            await vm.CrearPedidoAsync();
+
+            SeCierraYSeAbreElPedidoSinPlantillaNueva();
+        }
+
+        [TestMethod]
+        public async Task ModificarConPlantilla_AunqueLaCasillaEsteMarcada_NuncaPlantillaNueva()
+        {
+            foreach (bool marcadaAMano in new[] { false, true })
+            {
+                Fake.ClearRecordedCalls(_navegacion);
+                Fake.ClearRecordedCalls(_abridorPedidos);
+                ElParametroVale("1");
+                var vm = ListoParaGrabar();
+                if (marcadaAMano)
+                {
+                    await vm.CargarMantenerPlantillaAbiertaAsync();
+                    Assert.IsTrue(vm.MantenerPlantillaAbierta);
+                }
+                vm.NumeroPedidoEnEdicion = 930001;
+                A.CallTo(() => _servicio.CargarPedidoParaPlantilla("1", 930001)).Returns(Task.FromResult(new PedidoParaPlantillaModel
+                {
+                    ModoServicio = ModosServicio.POR_DEFECTO,
+                    ServirJunto = false,
+                    Lineas = new List<LineaParaPlantillaModel>()
+                }));
+                A.CallTo(() => _pedidosVenta.modificarPedido(A<PedidoVentaDTO>._)).Returns(Task.FromResult(new List<AvisoPedidoModel>()));
+
+                await vm.CrearPedidoAsync();
+
+                A.CallTo(() => _pedidosVenta.modificarPedido(A<PedidoVentaDTO>._)).MustHaveHappened();
+                A.CallTo(() => _servicio.CrearPedido(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+                SeCierraYSeAbreElPedidoSinPlantillaNueva();
+            }
+        }
+
+        [TestMethod]
+        public async Task AmpliarUnPedidoPendiente_AunqueLaCasillaEsteMarcada_NuncaPlantillaNueva()
+        {
+            foreach (bool marcadaAMano in new[] { false, true })
+            {
+                Fake.ClearRecordedCalls(_navegacion);
+                Fake.ClearRecordedCalls(_abridorPedidos);
+                ElParametroVale("1");
+                A.CallTo(() => _pedidosVenta.cargarPedido("1", 930001)).ReturnsLazily(() => Task.FromResult(
+                    new PedidoVentaDTO { empresa = "1", numero = 930001, cliente = "9238", Lineas = new List<LineaPedidoVentaDTO>() }));
+                A.CallTo(() => _servicio.UnirPedidos("1", 930001, A<PedidoVentaDTO>._))
+                    .Returns(Task.FromResult(new PedidoVentaDTO { empresa = "1", numero = 930001 }));
+                var vm = ListoParaGrabar();
+                if (marcadaAMano)
+                {
+                    await vm.CargarMantenerPlantillaAbiertaAsync();
+                    Assert.IsTrue(vm.MantenerPlantillaAbierta);
+                }
+                vm.PedidoPendienteSeleccionado = 930001;
+
+                await vm.CrearPedidoAsync();
+
+                A.CallTo(() => _servicio.UnirPedidos("1", 930001, A<PedidoVentaDTO>._)).MustHaveHappened();
+                A.CallTo(() => _servicio.CrearPedido(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+                SeCierraYSeAbreElPedidoSinPlantillaNueva();
+            }
         }
 
         [TestMethod]

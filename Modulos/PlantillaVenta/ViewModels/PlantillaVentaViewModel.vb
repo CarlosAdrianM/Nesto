@@ -4870,8 +4870,15 @@ Public Class PlantillaVentaViewModel
         End If
 
         delegacionUsuario = Await leerParametro(Parametros.Claves.DelegacionDefecto)
-        ' Sugerencia 1261: se lee ya, para no meter una espera entre grabar el pedido y cerrar la pestaña
-        Dim mantenerPlantillaAbierta As Boolean = Await MantenerPlantillaAbiertaAsync()
+        ' Sugerencia 1261: solo al CREAR un pedido nuevo (Carlos 13/11/26): al modificar con plantilla o al ampliar un
+        ' pedido pendiente se hace lo de siempre, aunque la casilla esté marcada. Se mira ya, antes de grabar (al grabar
+        ' una modificación NumeroPedidoEnEdicion se vacía), y vale lo que tenga la casilla en este momento; si la
+        ' preferencia aún no se había podido leer, se lee ahora para no meter una espera entre grabar y cerrar la pestaña.
+        Dim esPedidoNuevo As Boolean = Not NumeroPedidoEnEdicion.HasValue AndAlso PedidoPendienteSeleccionado = 0
+        If esPedidoNuevo AndAlso Not _mantenerPlantillaAbiertaCargada Then
+            Await CargarMantenerPlantillaAbiertaAsync()
+        End If
+        Dim abrirPlantillaNueva As Boolean = esPedidoNuevo AndAlso MantenerPlantillaAbierta
 
         If formaVentaSeleccionada = 1 Then
             formaVentaPedido = "DIR"
@@ -5111,10 +5118,12 @@ Public Class PlantillaVentaViewModel
             ' Cerramos la ventana
             navegacion.CerrarVistaActiva("MainRegion")
 
-            ' Sugerencia 1261 (Lidia): con el parámetro PlantillaMantenerAbierta, queda una plantilla lista para el
-            ' siguiente cliente. Es una plantilla NUEVA (la misma navegación del menú), no esta vaciada a mano: así no
-            ' puede quedar ningún resto del pedido que se acaba de grabar (cliente, líneas, pago, borrador, cheque…).
-            If mantenerPlantillaAbierta Then
+            ' Sugerencia 1261 (Lidia): con la casilla «Dejar una plantilla nueva abierta…» (parámetro
+            ' PlantillaMantenerAbierta), queda una plantilla lista para el siguiente cliente. Es una plantilla NUEVA (la
+            ' misma navegación del menú), no esta vaciada a mano: así no puede quedar ningún resto del pedido que se acaba
+            ' de grabar (cliente, líneas, pago, borrador, cheque…). El pedido se abre DESPUÉS, así que es el que queda
+            ' delante: que lo vea y lo cierre si quiere (Carlos 13/11/26).
+            If abrirPlantillaNueva Then
                 navegacion.RequestNavigate("MainRegion", "PlantillaVentaView")
             End If
 
@@ -5653,17 +5662,109 @@ Public Class PlantillaVentaViewModel
         Return Await configuracion.leerParametro(empresa, v)
     End Function
 
+    Public Const TEXTO_MANTENER_PLANTILLA_ABIERTA As String = "Dejar una plantilla nueva abierta al grabar el pedido"
+    Public Const AYUDA_MANTENER_PLANTILLA_ABIERTA As String = "Al grabar el pedido se abre otra plantilla vacía para seguir con el siguiente cliente. Es una preferencia suya: solo cambia en su usuario. No se aplica al modificar ni al ampliar un pedido."
+    Public Const AVISO_MANTENER_PLANTILLA_ABIERTA_NO_GUARDADA As String = "No se ha podido guardar esta preferencia. Inténtelo de nuevo más tarde, por favor."
+
+    Private _mantenerPlantillaAbierta As Boolean
+    ' True cuando la casilla ya dice lo que quiere el usuario: se ha leído su parámetro o la ha tocado él
+    Private _mantenerPlantillaAbiertaCargada As Boolean
+
     ''' <summary>
-    ''' Sugerencia 1261: si el usuario quiere seguir con una plantilla abierta después de grabar el pedido (parámetro
-    ''' PlantillaMantenerAbierta = «1», siempre de la empresa por defecto). Sin fila, con otro valor o si no se puede
-    ''' leer, no: la plantilla se cierra como siempre.
+    ''' Sugerencia 1261: la casilla del paso Finalizar. Refleja el parámetro PlantillaMantenerAbierta del usuario
+    ''' (siempre de la empresa por defecto; marcada solo con «1»: sin fila, con otro valor o si no se puede leer, no) y,
+    ''' al marcarla o desmarcarla, lo guarda para ESE usuario. Si no se puede guardar, vuelve a como estaba y se avisa
+    ''' debajo de la casilla (sin diálogo): nunca impide grabar el pedido.
     ''' </summary>
-    Friend Async Function MantenerPlantillaAbiertaAsync() As Task(Of Boolean)
+    Public Property MantenerPlantillaAbierta As Boolean
+        Get
+            Return _mantenerPlantillaAbierta
+        End Get
+        Set(value As Boolean)
+            If _mantenerPlantillaAbierta = value Then
+                Return
+            End If
+            Dim anterior As Boolean = _mantenerPlantillaAbierta
+            _mantenerPlantillaAbierta = value
+            _mantenerPlantillaAbiertaCargada = True
+            OnPropertyChanged()
+            TareaGuardarMantenerPlantillaAbierta = GuardarMantenerPlantillaAbiertaAsync(anterior, value)
+        End Set
+    End Property
+
+    ''' <summary>El último guardado de la casilla, para poder esperarlo en los tests.</summary>
+    Friend Property TareaGuardarMantenerPlantillaAbierta As Task = Task.CompletedTask
+
+    Private _avisoMantenerPlantillaAbierta As String
+    ''' <summary>Aviso discreto bajo la casilla cuando la preferencia no se ha podido guardar.</summary>
+    Public Property AvisoMantenerPlantillaAbierta As String
+        Get
+            Return _avisoMantenerPlantillaAbierta
+        End Get
+        Private Set(value As String)
+            If _avisoMantenerPlantillaAbierta <> value Then
+                _avisoMantenerPlantillaAbierta = value
+                OnPropertyChanged()
+                OnPropertyChanged(NameOf(HayAvisoMantenerPlantillaAbierta))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property HayAvisoMantenerPlantillaAbierta As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(AvisoMantenerPlantillaAbierta)
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoMantenerPlantillaAbierta As String
+        Get
+            Return TEXTO_MANTENER_PLANTILLA_ABIERTA
+        End Get
+    End Property
+
+    Public ReadOnly Property AyudaMantenerPlantillaAbierta As String
+        Get
+            Return AYUDA_MANTENER_PLANTILLA_ABIERTA
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Lee el parámetro del usuario (sin fila propia, la API da el de «(defecto)») y pone la casilla SIN guardar nada.
+    ''' Si no se puede leer, la casilla se queda como está y se volverá a intentar al grabar. Si el usuario ya la ha
+    ''' tocado mientras se leía, manda lo que ha puesto él.
+    ''' </summary>
+    Friend Async Function CargarMantenerPlantillaAbiertaAsync() As Task
+        Dim valor As String
         Try
-            Dim valor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta)
-            Return valor?.Trim() = "1"
+            valor = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta)
         Catch ex As Exception
-            Return False
+            Return
+        End Try
+        If _mantenerPlantillaAbiertaCargada Then
+            Return
+        End If
+        _mantenerPlantillaAbiertaCargada = True
+        Dim marcada As Boolean = valor?.Trim() = "1"
+        If _mantenerPlantillaAbierta <> marcada Then
+            _mantenerPlantillaAbierta = marcada
+            OnPropertyChanged(NameOf(MantenerPlantillaAbierta))
+        End If
+    End Function
+
+    Private Async Function GuardarMantenerPlantillaAbiertaAsync(anterior As Boolean, nuevo As Boolean) As Task
+        Try
+            ' IConfiguracion.GuardarParametro lo guarda en la fila del usuario de Windows que tiene abierto Nesto
+            Await configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta, If(nuevo, "1", "0"))
+            If _mantenerPlantillaAbierta = nuevo Then
+                AvisoMantenerPlantillaAbierta = Nothing
+            End If
+        Catch ex As Exception
+            ' Solo se deshace si la casilla sigue como la dejó este cambio (puede haberla vuelto a tocar entretanto)
+            If _mantenerPlantillaAbierta = nuevo Then
+                _mantenerPlantillaAbierta = anterior
+                OnPropertyChanged(NameOf(MantenerPlantillaAbierta))
+            End If
+            AvisoMantenerPlantillaAbierta = AVISO_MANTENER_PLANTILLA_ABIERTA_NO_GUARDADA
         End Try
     End Function
 
@@ -6500,6 +6601,9 @@ Public Class PlantillaVentaViewModel
 
         ' NestoAPI#482: modo de servicio por defecto del usuario (antes de que se elija ninguna dirección)
         Await CargarModoServicioPorDefectoAsync().ConfigureAwait(True)
+
+        ' Sugerencia 1261: la casilla «Dejar una plantilla nueva abierta al grabar el pedido» sale como la tiene el usuario
+        Await CargarMantenerPlantillaAbiertaAsync().ConfigureAwait(True)
 
         ' Nesto#397: si se navega con un pedido a modificar (botón "Modificar con plantilla" de
         ' ListaPedidosVenta), cargarlo en modo edición.
