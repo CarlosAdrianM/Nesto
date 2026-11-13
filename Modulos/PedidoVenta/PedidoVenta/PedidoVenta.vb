@@ -25,6 +25,9 @@ Public Class PedidoVenta
         ' Nesto#568 (NestoAPI#734): Administración contesta si un pedido sale con o sin reembolso (desde la campana)
         registro.RegistrarDialogo(Of ConsultaReembolsoDialog, ConsultaReembolsoDialogViewModel)(ConsultaReembolsoDialogViewModel.NOMBRE)
         registro.Singleton(Of IConsultaReembolsoService, ConsultaReembolsoService)()
+        ' Nesto#640 (NestoAPI#864): pago a plazos de un pedido ya creado (canal y enlace para el cliente)
+        registro.RegistrarDialogo(Of PagoAPlazosDialog, PagoAPlazosDialogViewModel)(PagoAPlazosDialogViewModel.NOMBRE)
+        registro.Singleton(Of Services.IServicioPagoAPlazos, Services.ServicioPagoAPlazos)()
 
         ' Registrar servicios del módulo
         registro.Singleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)()

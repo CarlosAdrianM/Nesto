@@ -132,6 +132,7 @@ Public Class DetallePedidoViewModel
         CmdLiberarPedido = New AsyncRelayCommand(AddressOf LiberarPedidoAsync, Function() EstaRetenido) ' NestoAPI#698
         ServirLoQueHayCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_SERVIR_LO_QUE_HAY), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         EsperarCompletoCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_ESPERAR), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
+        InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -730,6 +731,7 @@ Public Class DetallePedidoViewModel
                 Dim unusedSuPedido = CargarSuPedidoObligatorioAsync() ' Nesto#562: sin esperar, no lanza
                 Dim unusedBultos = BultosPedido?.Cargar(_pedido.empresa, _pedido.numero) ' Nesto#522: sin esperar, no lanza
                 Dim unusedRetencionFalta = CargarRetencionPorFaltaAsync() ' NestoAPI#858: sin esperar, no lanza
+                Dim unusedPagoAPlazos = CargarPagoAPlazosAsync() ' Nesto#640: sin esperar, no lanza
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245

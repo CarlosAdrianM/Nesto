@@ -716,6 +716,17 @@
                                     </StackPanel>
                                 </Button>
                             </Grid>
+                            <!-- Nesto#640 (NestoAPI#864): pago a plazos del pedido con la financiera que diga la API. El botón solo sale si la
+                                 API lo ofrece; si este pedido no se puede, deshabilitado con el motivo. Debajo, el estado y «Cancelar». -->
+                            <Button Margin="0,3,0,0" Content="Pago a plazos…" Command="{Binding PagoAPlazosCommand}"
+                                    Visibility="{Binding MostrarPagoAPlazos, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="{Binding TextoAyudaPagoAPlazos}" ToolTipService.ShowOnDisabled="True"/>
+                            <TextBlock Margin="0,3,0,0" Text="{Binding TextoEstadoPagoAPlazos}" TextWrapping="Wrap" FontWeight="SemiBold"
+                                       Visibility="{Binding HayEstadoPagoAPlazos, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                       ToolTip="{Binding DetalleEstadoPagoAPlazos}"/>
+                            <Button Margin="0,3,0,0" Content="Cancelar pago a plazos" Command="{Binding CancelarPagoAPlazosCommand}"
+                                    Visibility="{Binding HayPagoAPlazosVivo, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="Cancela la solicitud de pago a plazos de este pedido (se pide el motivo)"/>
                             <CheckBox IsChecked="{Binding pedido.CrearEfectosManualmente}">Crear vencimientos manualmente</CheckBox>
                             <StackPanel Visibility="{Binding pedido.CrearEfectosManualmente, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <!-- Issue #274: Grid.IsSharedSizeScope para alinear columnas entre filas -->
