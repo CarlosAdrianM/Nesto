@@ -455,6 +455,37 @@ namespace ControlesUsuario.Tests
         }
 
         [DataTestMethod]
+        [DataRow("PagoAPlazosAprobado", "Aprobado")]
+        [DataRow("PagoAPlazosRechazado", "Rechazado")]
+        [DataRow("PagoAPlazosPlazoCerca", "Aprobado")]
+        [DataRow("PagoAPlazosPerdido", "Cancelado")]
+        public async Task PulsarUnAvisoDelPagoAPlazos_AbreElPedido_YNadaMas(string tipo, string estado)
+        {
+            // Nesto#640 (NestoAPI#864): los cuatro avisos del pago a plazos traen Datos["pedido"] y Datos["empresa"], así que abren
+            // el pedido por el salto genérico (cualquier aviso que hable de un pedido), sin código propio. En el pedido se ve el
+            // estado de la solicitud. Ni «cliente» ni «importe» ni «idSolicitud» lo desvían a otra pantalla.
+            await CargarCon(new NotificacionBuzon
+            {
+                Id = 24,
+                Titulo = "Pedido 930500: pago a plazos",
+                FechaCreacion = Ahora.AddHours(-1),
+                Datos = new Dictionary<string, string>
+                {
+                    ["tipo"] = tipo, ["empresa"] = "3", ["pedido"] = "930500", ["idSolicitud"] = "7", ["cliente"] = "9238",
+                    ["estado"] = estado, ["proveedor"] = "Prueba", ["importe"] = "250.50", ["fechaLimite"] = "2026-11-28", ["dias"] = "3"
+                }
+            });
+
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+
+            Assert.IsFalse(vm.PanelAbierto);
+            A.CallTo(() => abridorPedidos.Abrir("3", 930500)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowDialog(A<string>._, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustNotHaveHappened();
+        }
+
+        [DataTestMethod]
         [DataRow("LeadNuevo")]
         [DataRow("LeadSinLlamar")]
         public async Task PulsarUnAvisoDeLead_AbreLaFichaDeEseClienteYContacto(string tipo)

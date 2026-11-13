@@ -28,6 +28,7 @@ Public Class PagoAPlazosDialogViewModel
         Title = ReglasPagoAPlazos.TITULO
         SolicitarCommand = New AsyncRelayCommand(AddressOf SolicitarAsync, Function() PuedeSolicitar)
         CopiarEnlaceCommand = New RelayCommand(AddressOf CopiarEnlace, Function() HayEnlace)
+        CopiarInvitacionCommand = New RelayCommand(AddressOf CopiarInvitacion, Function() HayInvitacionApp)
         CerrarCommand = New RelayCommand(AddressOf Cerrar)
     End Sub
 
@@ -36,6 +37,7 @@ Public Class PagoAPlazosDialogViewModel
 
     Public ReadOnly Property SolicitarCommand As AsyncRelayCommand
     Public ReadOnly Property CopiarEnlaceCommand As RelayCommand
+    Public ReadOnly Property CopiarInvitacionCommand As RelayCommand
     Public ReadOnly Property CerrarCommand As RelayCommand
 
 #Region "Lo que se ofrece"
@@ -225,6 +227,56 @@ Public Class PagoAPlazosDialogViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Lo que se copia con «Copiar enlace»: el mensaje completo de la API (el enlace y, si el cliente no tiene la app, la
+    ''' invitación debajo) o, si no lo trae (API anterior), solo el enlace.
+    ''' </summary>
+    Public ReadOnly Property TextoParaElCliente As String
+        Get
+            Dim mensaje As String = If(Solicitud?.MensajeCliente, String.Empty).Trim()
+            Return If(mensaje.Length > 0, mensaje, UrlPago)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' La invitación a instalar la app (mensaje listo para pegar): la de la respuesta del POST o, antes de pedirlo, la de la
+    ''' disponibilidad. Vacía si el cliente ya tiene la app.
+    ''' </summary>
+    Public ReadOnly Property InvitacionApp As String
+        Get
+            Dim deLaSolicitud As String = If(Solicitud?.InvitacionApp, String.Empty).Trim()
+            Return If(deLaSolicitud.Length > 0, deLaSolicitud, If(_disponibilidad?.InvitacionApp, String.Empty).Trim())
+        End Get
+    End Property
+
+    Public ReadOnly Property HayInvitacionApp As Boolean
+        Get
+            Return InvitacionApp.Length > 0
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoCopiarInvitacion As String
+        Get
+            Return ReglasPagoAPlazos.TEXTO_COPIAR_INVITACION
+        End Get
+    End Property
+
+    Public ReadOnly Property AyudaCopiarInvitacion As String
+        Get
+            Return ReglasPagoAPlazos.AYUDA_COPIAR_INVITACION
+        End Get
+    End Property
+
+    Private _textoInvitacionCopiada As String = String.Empty
+    Public Property TextoInvitacionCopiada As String
+        Get
+            Return _textoInvitacionCopiada
+        End Get
+        Private Set(value As String)
+            Dim unused = SetProperty(_textoInvitacionCopiada, value)
+        End Set
+    End Property
+
     Private _textoCopiado As String = String.Empty
     Public Property TextoCopiado As String
         Get
@@ -251,8 +303,12 @@ Public Class PagoAPlazosDialogViewModel
         OnPropertyChanged(NameOf(UrlPago))
         OnPropertyChanged(NameOf(HayEnlace))
         OnPropertyChanged(NameOf(TextoBotonCerrar))
+        OnPropertyChanged(NameOf(TextoParaElCliente))
+        OnPropertyChanged(NameOf(InvitacionApp))
+        OnPropertyChanged(NameOf(HayInvitacionApp))
         SolicitarCommand.NotifyCanExecuteChanged()
         CopiarEnlaceCommand.NotifyCanExecuteChanged()
+        CopiarInvitacionCommand.NotifyCanExecuteChanged()
     End Sub
 
     Friend Async Function SolicitarAsync() As Task
@@ -281,10 +337,23 @@ Public Class PagoAPlazosDialogViewModel
             Return
         End If
         Try
-            Portapapeles.CopiarTexto(UrlPago)
-            TextoCopiado = ReglasPagoAPlazos.TEXTO_ENLACE_COPIADO
+            Dim texto As String = TextoParaElCliente
+            Portapapeles.CopiarTexto(texto)
+            TextoCopiado = If(texto = UrlPago, ReglasPagoAPlazos.TEXTO_ENLACE_COPIADO, ReglasPagoAPlazos.TEXTO_MENSAJE_COPIADO)
         Catch ex As Exception
             TextoCopiado = "No se ha podido copiar el enlace. Selecciónelo y cópielo a mano."
+        End Try
+    End Sub
+
+    Private Sub CopiarInvitacion()
+        If Not HayInvitacionApp Then
+            Return
+        End If
+        Try
+            Portapapeles.CopiarTexto(InvitacionApp)
+            TextoInvitacionCopiada = ReglasPagoAPlazos.TEXTO_INVITACION_COPIADA
+        Catch ex As Exception
+            TextoInvitacionCopiada = "No se ha podido copiar la invitación. Inténtelo de nuevo, por favor."
         End Try
     End Sub
 

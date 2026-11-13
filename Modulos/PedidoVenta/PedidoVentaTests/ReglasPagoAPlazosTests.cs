@@ -263,5 +263,72 @@ namespace PedidoVentaTests
             string sinNombre = ReglasPagoAPlazos.TextoPedirMotivoCancelacion(new EstadoPagoAPlazosModel { HaySolicitud = true, Estado = "Aprobado" });
             StringAssert.Contains(sinNombre, "se cancelará en la financiera");
         }
+
+        #region La plantilla de venta
+
+        [DataTestMethod]
+        [DataRow("Activo", null, "9238", true)]
+        [DataRow(" activo ", null, "9238", true)]
+        [DataRow("Activo", null, null, true)]
+        [DataRow("Pruebas", "9238, 15191", "9238", true)]
+        [DataRow("Pruebas", "15191;9238", "9238  ", true)]
+        [DataRow("Sandbox", "9238", "9238", true)]
+        [DataRow("Pruebas", "15191", "9238", false)]
+        [DataRow("Pruebas", null, "9238", false)]
+        [DataRow("Pruebas", "9238", null, false)]
+        [DataRow("Apagado", "9238", "9238", false)]
+        [DataRow("", "9238", "9238", false)]
+        [DataRow(null, "9238", "9238", false)]
+        [DataRow("1", "9238", "9238", false)]
+        public void SeOfreceAntesDeGrabar_LaMismaReglaQueLaApi(string modo, string clientesPrueba, string cliente, bool esperado)
+        {
+            var interruptor = new InterruptorPagoAPlazosModel { Modo = modo, ClientesPrueba = clientesPrueba };
+
+            Assert.AreEqual(esperado, ReglasPagoAPlazos.SeOfreceAntesDeGrabar(interruptor, cliente));
+        }
+
+        [TestMethod]
+        public void SeOfreceAntesDeGrabar_SinInterruptor_No()
+        {
+            Assert.IsFalse(ReglasPagoAPlazos.SeOfreceAntesDeGrabar(null, "9238"));
+        }
+
+        [TestMethod]
+        public void TextoNoSePuedeTrasGrabar_DiceQueElPedidoEstaGrabadoYElMotivoDeLaApiTalCual()
+        {
+            string texto = ReglasPagoAPlazos.TextoNoSePuedeTrasGrabar(930500,
+                Disponibilidad(disponible: false, motivo: " El importe del pedido no llega al mínimo de Financiera Prueba. "));
+
+            StringAssert.StartsWith(texto, "El pedido 930500 se ha grabado, pero no se puede pagar a plazos.");
+            StringAssert.EndsWith(texto, "El importe del pedido no llega al mínimo de Financiera Prueba.");
+        }
+
+        [TestMethod]
+        public void TextoNoSePuedeTrasGrabar_SinMotivo_DiceQueAhoraNoSeOfrece()
+        {
+            StringAssert.EndsWith(ReglasPagoAPlazos.TextoNoSePuedeTrasGrabar(930500, null), "Ahora mismo no se ofrece el pago a plazos.");
+        }
+
+        [TestMethod]
+        public void TextoNoSeHaPodidoComprobarTrasGrabar_DiceDondePedirloYElFallo()
+        {
+            string texto = ReglasPagoAPlazos.TextoNoSeHaPodidoComprobarTrasGrabar(930500, "Error 503 de la API.");
+
+            StringAssert.StartsWith(texto, "El pedido 930500 se ha grabado, pero no se ha podido comprobar si se puede pagar a plazos.");
+            StringAssert.Contains(texto, "con el botón «Pago a plazos…»");
+            StringAssert.EndsWith(texto, "Error 503 de la API.");
+        }
+
+        [TestMethod]
+        public void TextosDeLaPlantilla_DeUstedYSinNombrarAUnaFinanciera()
+        {
+            foreach (string texto in new[] { ReglasPagoAPlazos.TEXTO_CASILLA_PLANTILLA, ReglasPagoAPlazos.AYUDA_CASILLA_PLANTILLA, ReglasPagoAPlazos.TEXTO_PLANTILLA_SOLO_PEDIDO_NUEVO })
+            {
+                Assert.IsFalse(texto.IndexOf("plazame", StringComparison.OrdinalIgnoreCase) >= 0, texto);
+                Assert.IsFalse(texto.IndexOf("aplázame", StringComparison.OrdinalIgnoreCase) >= 0, texto);
+            }
+        }
+
+        #endregion
     }
 }

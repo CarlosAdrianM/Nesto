@@ -1024,6 +1024,14 @@
                                     <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="False" Text="{Binding PortesGlovo, StringFormat=c}"></TextBox>
                                 </Grid>
                             </Grid>
+                            <!-- Nesto#640 (NestoAPI#864): ofrecer el pago a plazos sin ir a buscar el pedido. Solo se pinta si la API lo
+                                 tiene encendido para este cliente. Marcada, al grabar se abre el diálogo del pago a plazos de ese pedido
+                                 (o se dice el motivo por el que no se puede). Nunca impide grabar. Solo al crear un pedido. -->
+                            <CheckBox Content="{Binding TextoOfrecerPagoAPlazos}"
+                                      IsChecked="{Binding OfrecerPagoAPlazos, Mode=TwoWay}"
+                                      ToolTip="{Binding AyudaOfrecerPagoAPlazos}"
+                                      Visibility="{Binding MostrarOfrecerPagoAPlazos, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      Margin="0,8,0,0" HorizontalAlignment="Left" VerticalContentAlignment="Center"/>
                             <!-- Sugerencia 1261: preferencia del usuario (parámetro PlantillaMantenerAbierta). Discreta, al final
                                  del paso: letra pequeña y sin colores fijos (vale en claro y en oscuro). Solo al crear un pedido.
                                  El ancla es la de su globo (tabla Globos: Pantalla «PlantillaVenta», Ancla «PlantillaVenta.MantenerAbierta»):

@@ -14,5 +14,10 @@ Namespace Services
         Function LeerEstado(empresa As String, pedido As Integer) As Task(Of EstadoPagoAPlazosModel)
         ''' <summary>DELETE …/PagoAPlazos?motivo=: cancela la solicitud viva.</summary>
         Function Cancelar(empresa As String, pedido As Integer, motivo As String) As Task(Of EstadoPagoAPlazosModel)
+        ''' <summary>
+        ''' El interruptor de la API (ParametrosUsuario de «(defecto)», sin crear ninguna fila al leerlo): solo para saber si la
+        ''' plantilla de venta pinta su casilla antes de que el pedido exista. Lanza si no hay fila o no se puede leer.
+        ''' </summary>
+        Function LeerInterruptor() As Task(Of InterruptorPagoAPlazosModel)
     End Interface
 End Namespace

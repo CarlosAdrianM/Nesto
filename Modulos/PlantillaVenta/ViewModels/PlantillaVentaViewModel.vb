@@ -90,6 +90,7 @@ Public Class PlantillaVentaViewModel
         ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(_clienteApiFactory) ' NestoAPI#593
         ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(_clienteApiFactory) ' Nesto#518
         ServicioSugerenciasProductos = New Nesto.Infrastructure.Services.ServicioSugerenciasProductos(_clienteApiFactory) ' Nesto#537
+        InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
 
         Titulo = "Plantilla Ventas"
 
@@ -5120,6 +5121,11 @@ Public Class PlantillaVentaViewModel
             _borradorEnRestauracion = Nothing
             _borradorRestauradoEnFormasVenta = False
 
+            ' Nesto#640: con la casilla «Ofrecer el pago a plazos…» marcada y el pedido YA grabado, se abre el diálogo del
+            ' pago a plazos de ese pedido (o se dice por qué no se puede). Antes de abrir el pedido, para que su pestaña
+            ' nazca ya con el estado de la solicitud. No lanza.
+            Await OfrecerPagoAPlazosAlTerminarAsync(clienteSeleccionado.empresa, numPedido, esPedidoNuevo)
+
             ' Cerramos la ventana
             navegacion.CerrarVistaActiva("MainRegion")
 
@@ -6514,6 +6520,7 @@ Public Class PlantillaVentaViewModel
         CargarSuPedidoObligatorio() ' Nesto#562: sin esperar; no lanza
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
+        NotificarOfrecerPagoAPlazos() ' Nesto#640: en modo de pruebas la casilla solo sale con los clientes de prueba
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa
         Estado.Cliente = value.cliente
@@ -6547,6 +6554,7 @@ Public Class PlantillaVentaViewModel
         CargarSuPedidoObligatorio() ' Nesto#562
         ReiniciarSugerenciasProductosSiCambiaElCliente(value) ' Nesto#537
         OnPropertyChanged(NameOf(hayUnClienteSeleccionado))
+        NotificarOfrecerPagoAPlazos() ' Nesto#640: en modo de pruebas la casilla solo sale con los clientes de prueba
         ' Sincronizar datos del cliente con Estado
         Estado.Empresa = value.empresa
         Estado.Cliente = value.cliente
@@ -6609,6 +6617,10 @@ Public Class PlantillaVentaViewModel
 
         ' Sugerencia 1261: la casilla «Dejar una plantilla nueva abierta al grabar el pedido» sale como la tiene el usuario
         Await CargarMantenerPlantillaAbiertaAsync().ConfigureAwait(True)
+
+        ' Nesto#640: la casilla «Ofrecer el pago a plazos al grabar el pedido» solo sale si la API lo tiene encendido.
+        ' Sin esperar: no lanza y no puede retrasar la carga de la plantilla.
+        Dim unusedPagoAPlazos = CargarOfrecerPagoAPlazosAsync()
 
         ' Nesto#397: si se navega con un pedido a modificar (botón "Modificar con plantilla" de
         ' ListaPedidosVenta), cargarlo en modo edición.

@@ -256,6 +256,108 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
+        public async Task CopiarEnlace_ConMensajeCliente_CopiaElMensajeCompleto_NoSoloElEnlace()
+        {
+            // La API trae el mensaje para el cliente: el enlace y, si no tiene la app, la invitación debajo
+            const string MENSAJE = "Puede pagar su pedido a plazos aquí: https://pago.prueba.test/PAP-7\n\nInstale nuestra app: https://app.prueba.test";
+            IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();
+            var vm = Vm(ServicioQueDevuelve(new SolicitudPagoAPlazosModel
+            {
+                HaySolicitud = true, Estado = "Pendiente", Canal = "Enlace", UrlPago = "https://pago.prueba.test/PAP-7", MensajeCliente = MENSAJE
+            }), Disponibilidad(tieneApp: false, canal: "Enlace"), portapapeles);
+            await vm.SolicitarAsync();
+
+            vm.CopiarEnlaceCommand.Execute(null);
+
+            A.CallTo(() => portapapeles.CopiarTexto(MENSAJE)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => portapapeles.CopiarTexto("https://pago.prueba.test/PAP-7")).MustNotHaveHappened();
+            Assert.AreEqual("Mensaje copiado. Péguelo en el mensaje para el cliente.", vm.TextoCopiado);
+            Assert.AreEqual("https://pago.prueba.test/PAP-7", vm.UrlPago, "En pantalla se sigue viendo el enlace");
+        }
+
+        [DataTestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        [DataRow("   ")]
+        public async Task CopiarEnlace_SinMensajeCliente_ApiAnterior_CopiaSoloElEnlace(string mensaje)
+        {
+            IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();
+            var vm = Vm(ServicioQueDevuelve(new SolicitudPagoAPlazosModel
+            {
+                HaySolicitud = true, Estado = "Pendiente", Canal = "Enlace", UrlPago = "https://pago.prueba.test/PAP-7", MensajeCliente = mensaje
+            }), Disponibilidad(tieneApp: false, canal: "Enlace"), portapapeles);
+            await vm.SolicitarAsync();
+
+            vm.CopiarEnlaceCommand.Execute(null);
+
+            A.CallTo(() => portapapeles.CopiarTexto("https://pago.prueba.test/PAP-7")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual("Enlace copiado. Péguelo en el mensaje para el cliente.", vm.TextoCopiado);
+        }
+
+        [TestMethod]
+        public void InvitacionApp_SinInvitacion_ElBotonNoSale()
+        {
+            // El cliente ya tiene la app (o la API es anterior): InvitacionApp viene a null
+            var vm = Vm(A.Fake<IServicioPagoAPlazos>(), Disponibilidad());
+
+            Assert.IsFalse(vm.HayInvitacionApp);
+            Assert.IsFalse(vm.CopiarInvitacionCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public void InvitacionApp_DeLaDisponibilidad_SeCopiaAntesDePedirlo_YLoDice()
+        {
+            IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();
+            DisponibilidadPagoAPlazosModel disponibilidad = Disponibilidad(tieneApp: false, canal: "Enlace", aviso: "El cliente no tiene la app.");
+            disponibilidad.InvitacionApp = " Instale nuestra app: https://app.prueba.test ";
+            var vm = Vm(A.Fake<IServicioPagoAPlazos>(), disponibilidad, portapapeles);
+
+            Assert.IsTrue(vm.HayInvitacionApp);
+            Assert.AreEqual("Copiar invitación a la app", vm.TextoCopiarInvitacion);
+            Assert.AreEqual("Copia un mensaje para el cliente con el enlace para instalar la app", vm.AyudaCopiarInvitacion);
+            Assert.AreEqual("El cliente no tiene la app.", vm.Aviso, "El aviso amarillo sigue saliendo de Aviso tal cual");
+            vm.CopiarInvitacionCommand.Execute(null);
+
+            A.CallTo(() => portapapeles.CopiarTexto("Instale nuestra app: https://app.prueba.test")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual("Invitación copiada. Péguela en el mensaje para el cliente.", vm.TextoInvitacionCopiada);
+            Assert.AreEqual(string.Empty, vm.TextoCopiado, "No se confunde con el aviso de «Copiar enlace»");
+        }
+
+        [TestMethod]
+        public async Task InvitacionApp_DelPost_MandaSobreLaDeLaDisponibilidad_YAvisaALaVista()
+        {
+            IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();
+            var vm = Vm(ServicioQueDevuelve(new SolicitudPagoAPlazosModel
+            {
+                HaySolicitud = true, Estado = "Pendiente", Canal = "Enlace", UrlPago = "https://pago.prueba.test/PAP-7", InvitacionApp = "Invitación del POST"
+            }), Disponibilidad(tieneApp: false, canal: "Enlace"), portapapeles);
+            Assert.IsFalse(vm.HayInvitacionApp);
+            var cambios = new System.Collections.Generic.List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            await vm.SolicitarAsync();
+            vm.CopiarInvitacionCommand.Execute(null);
+
+            Assert.IsTrue(vm.HayInvitacionApp);
+            CollectionAssert.Contains(cambios, nameof(PagoAPlazosDialogViewModel.HayInvitacionApp));
+            A.CallTo(() => portapapeles.CopiarTexto("Invitación del POST")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void InvitacionApp_ElPortapapelesFalla_NoRompeYLoDice()
+        {
+            IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();
+            A.CallTo(() => portapapeles.CopiarTexto(A<string>._)).Throws(new Exception("Portapapeles ocupado"));
+            DisponibilidadPagoAPlazosModel disponibilidad = Disponibilidad(tieneApp: false, canal: "Enlace");
+            disponibilidad.InvitacionApp = "Instale nuestra app";
+            var vm = Vm(A.Fake<IServicioPagoAPlazos>(), disponibilidad, portapapeles);
+
+            vm.CopiarInvitacionCommand.Execute(null);
+
+            Assert.AreEqual("No se ha podido copiar la invitación. Inténtelo de nuevo, por favor.", vm.TextoInvitacionCopiada);
+        }
+
+        [TestMethod]
         public async Task CopiarEnlace_ElPortapapelesFalla_NoRompeYLoDice()
         {
             IPortapapelesTexto portapapeles = A.Fake<IPortapapelesTexto>();

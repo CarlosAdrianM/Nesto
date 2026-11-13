@@ -22,6 +22,8 @@ Public Class DisponibilidadPagoAPlazosModel
     ''' <summary>Algo que conviene saber (no impide nada).</summary>
     Public Property Aviso As String
     Public Property Pruebas As Boolean
+    ''' <summary>Mensaje listo para pegar con el enlace para instalar la app. Nothing si el cliente ya la tiene (o la API es anterior).</summary>
+    Public Property InvitacionApp As String
 End Class
 
 ''' <summary>Nesto#640: GET …/PagoAPlazos/Estado y la respuesta del DELETE.</summary>
@@ -56,6 +58,25 @@ Public Class SolicitudPagoAPlazosModel
 
     Public Property DispositivosAvisados As Integer
     Public Property Aviso As String
+    ''' <summary>Mensaje listo para pegar con el enlace para instalar la app. Nothing si el cliente ya la tiene (o la API es anterior).</summary>
+    Public Property InvitacionApp As String
+    ''' <summary>
+    ''' Con enlace de pago, el mensaje completo para el cliente: el enlace y, si no tiene la app, la invitación debajo. Nothing sin
+    ''' enlace (o con una API anterior: entonces se copia solo el enlace).
+    ''' </summary>
+    Public Property MensajeCliente As String
+End Class
+
+''' <summary>
+''' Nesto#640: el interruptor del pago a plazos tal y como lo tiene la API en ParametrosUsuario de «(defecto)». Es solo una PISTA
+''' para pintar la casilla de la plantilla de venta ANTES de que el pedido exista; la verdad la da siempre
+''' GET …/PagoAPlazos/Disponible del pedido ya grabado.
+''' </summary>
+Public Class InterruptorPagoAPlazosModel
+    ''' <summary>«Activo», «Pruebas» o cualquier otra cosa (apagado).</summary>
+    Public Property Modo As String
+    ''' <summary>En modo Pruebas, los clientes a los que se les ofrece (separados por comas).</summary>
+    Public Property ClientesPrueba As String
 End Class
 
 ''' <summary>
@@ -81,6 +102,10 @@ Public NotInheritable Class ReglasPagoAPlazos
     Public Const TITULO_CANCELAR As String = "Cancelar pago a plazos"
     Public Const TEXTO_FALTA_MOTIVO As String = "Para cancelar el pago a plazos hay que indicar el motivo."
     Public Const TEXTO_ENLACE_COPIADO As String = "Enlace copiado. Péguelo en el mensaje para el cliente."
+    Public Const TEXTO_MENSAJE_COPIADO As String = "Mensaje copiado. Péguelo en el mensaje para el cliente."
+    Public Const TEXTO_INVITACION_COPIADA As String = "Invitación copiada. Péguela en el mensaje para el cliente."
+    Public Const TEXTO_COPIAR_INVITACION As String = "Copiar invitación a la app"
+    Public Const AYUDA_COPIAR_INVITACION As String = "Copia un mensaje para el cliente con el enlace para instalar la app"
     Public Const TEXTO_PRUEBAS As String = "Entorno de pruebas de la financiera: no se mueve dinero."
     Private Const NOMBRE_POR_DEFECTO As String = "la financiera"
 
@@ -150,6 +175,45 @@ Public NotInheritable Class ReglasPagoAPlazos
         Return If(hayEnlace,
                   "Solicitud creada. Copie el enlace y mándeselo al cliente: el pago no empieza hasta que lo abra y lo termine.",
                   "Solicitud creada.")
+    End Function
+#End Region
+
+#Region "La plantilla de venta"
+    Public Const TEXTO_CASILLA_PLANTILLA As String = "Ofrecer el pago a plazos al grabar el pedido"
+    Public Const AYUDA_CASILLA_PLANTILLA As String = "Al grabar el pedido se abre «Pago a plazos» para ese pedido: el cliente termina el pago en su app o con un enlace. " &
+        "Si el pedido no se puede pagar a plazos, se le dirá el motivo; el pedido se graba igual. No se aplica al modificar ni al ampliar un pedido: en ese caso, pídalo desde el propio pedido."
+    Public Const TEXTO_PLANTILLA_SOLO_PEDIDO_NUEVO As String = "El pedido se ha grabado. El pago a plazos de un pedido modificado o ampliado se pide desde el propio pedido, con el botón «Pago a plazos…»."
+
+    ''' <summary>
+    ''' Si la casilla de la plantilla se pinta para ese cliente: con el interruptor «Activo», a todos; en «Pruebas», solo a los
+    ''' clientes de prueba; apagado, sin fila o sin poder leerlo, a nadie (la misma regla que aplica la API). Es una pista: lo
+    ''' que se puede hacer de verdad lo dice la API con el pedido ya grabado.
+    ''' </summary>
+    Public Shared Function SeOfreceAntesDeGrabar(interruptor As InterruptorPagoAPlazosModel, cliente As String) As Boolean
+        If interruptor Is Nothing Then
+            Return False
+        End If
+        If Es(interruptor.Modo, "Activo") Then
+            Return True
+        End If
+        If Not (Es(interruptor.Modo, "Pruebas") OrElse Es(interruptor.Modo, "Sandbox")) OrElse String.IsNullOrWhiteSpace(cliente) Then
+            Return False
+        End If
+        Dim clientes As String() = If(interruptor.ClientesPrueba, String.Empty).Split({","c, ";"c, " "c}, StringSplitOptions.RemoveEmptyEntries)
+        Return clientes.Any(Function(c) String.Equals(c.Trim(), cliente.Trim(), StringComparison.OrdinalIgnoreCase))
+    End Function
+
+    ''' <summary>Lo que se dice tras grabar desde la plantilla si ese pedido no se puede pagar a plazos: el motivo de la API tal cual.</summary>
+    Public Shared Function TextoNoSePuedeTrasGrabar(pedido As Integer, disponibilidad As DisponibilidadPagoAPlazosModel) As String
+        Dim motivo As String = If(String.IsNullOrWhiteSpace(disponibilidad?.Motivo), "Ahora mismo no se ofrece el pago a plazos.", disponibilidad.Motivo.Trim())
+        Return $"El pedido {pedido} se ha grabado, pero no se puede pagar a plazos." & vbCrLf & vbCrLf & motivo
+    End Function
+
+    ''' <summary>Lo que se dice si, con el pedido ya grabado, la API no contesta si se puede pagar a plazos.</summary>
+    Public Shared Function TextoNoSeHaPodidoComprobarTrasGrabar(pedido As Integer, fallo As String) As String
+        Dim detalle As String = If(String.IsNullOrWhiteSpace(fallo), String.Empty, vbCrLf & vbCrLf & fallo.Trim())
+        Return $"El pedido {pedido} se ha grabado, pero no se ha podido comprobar si se puede pagar a plazos. " &
+            "Puede pedirlo desde el propio pedido, con el botón «Pago a plazos…»." & detalle
     End Function
 #End Region
 

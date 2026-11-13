@@ -53,6 +53,34 @@ Namespace Services
             Return JsonConvert.DeserializeObject(Of EstadoPagoAPlazosModel)(body)
         End Function
 
+        ' Las claves del interruptor en la API (ConfiguracionPagoAPlazos de NestoAPI#864) y el usuario del que cuelgan
+        Friend Const CLAVE_INTERRUPTOR As String = "PagoAPlazosPedidos"
+        Friend Const CLAVE_CLIENTES_PRUEBA As String = "PagoAPlazosPedidosClientesPrueba"
+        Friend Const USUARIO_DEFECTO As String = "(defecto)"
+
+        Public Async Function LeerInterruptor() As Task(Of InterruptorPagoAPlazosModel) Implements IServicioPagoAPlazos.LeerInterruptor
+            ' Se pide la fila de «(defecto)» a propósito: pedida con el usuario, la API le crearía una copia que ya no cambiaría
+            Dim interruptor As New InterruptorPagoAPlazosModel With {.Modo = Await LeerParametroDefecto(CLAVE_INTERRUPTOR)}
+            If String.Equals(interruptor.Modo, "Pruebas", StringComparison.OrdinalIgnoreCase) OrElse
+                    String.Equals(interruptor.Modo, "Sandbox", StringComparison.OrdinalIgnoreCase) Then
+                Dim clientes As String = Nothing
+                Try
+                    clientes = Await LeerParametroDefecto(CLAVE_CLIENTES_PRUEBA)
+                Catch ex As Exception
+                    ' sin lista de clientes de prueba, a nadie
+                End Try
+                interruptor.ClientesPrueba = clientes
+            End If
+            Return interruptor
+        End Function
+
+        Private Async Function LeerParametroDefecto(clave As String) As Task(Of String)
+            Dim url As String = $"ParametrosUsuario?empresa={Uri.EscapeDataString(Constantes.Empresas.EMPRESA_DEFECTO)}" &
+                $"&usuario={Uri.EscapeDataString(USUARIO_DEFECTO)}&clave={Uri.EscapeDataString(clave)}"
+            Dim body As String = Await Enviar(HttpMethod.Get, url, Nothing)
+            Return If(JsonConvert.DeserializeObject(Of String)(body), String.Empty).Trim()
+        End Function
+
         Private Async Function Enviar(metodo As HttpMethod, url As String, cuerpo As Object) As Task(Of String)
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Using request As New HttpRequestMessage(metodo, url)

@@ -49,10 +49,20 @@
                 <TextBox Text="{Binding UrlPago, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="70"
                          VerticalScrollBarVisibility="Auto"/>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <Button Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Padding="10,3"/>
+                    <Button Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Padding="10,3"
+                            ToolTip="Copia el mensaje para el cliente: el enlace de pago y, si no tiene la app, la invitación a instalarla"/>
                     <TextBlock Text="{Binding TextoCopiado}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#2E7D32"/>
                 </StackPanel>
             </StackPanel>
+        </StackPanel>
+
+        <!-- La invitación a instalar la app (solo si la API la trae: el cliente no tiene la app). Discreta: antes y después de pedirlo -->
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0"
+                    Visibility="{Binding HayInvitacionApp, Converter={StaticResource BoolAVisible}}">
+            <Button Content="{Binding TextoCopiarInvitacion}" Command="{Binding CopiarInvitacionCommand}" Padding="8,2" FontSize="11"
+                    ToolTip="{Binding AyudaCopiarInvitacion}"/>
+            <TextBlock Text="{Binding TextoInvitacionCopiada}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="#2E7D32"
+                       TextWrapping="Wrap" MaxWidth="300"/>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">

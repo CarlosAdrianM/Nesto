@@ -169,5 +169,105 @@ namespace PedidoVentaTests
 
             Assert.AreEqual("Error 503 de la API.", ex.Message);
         }
+
+        [TestMethod]
+        public async Task LeerDisponibleYSolicitar_LeenLaInvitacionALaAppYElMensajeParaElCliente()
+        {
+            var disponible = new RespuestaFija(HttpStatusCode.OK, "{\"Disponible\":true,\"Proveedor\":\"Prueba\",\"InvitacionApp\":\"Instale nuestra app: https://app.prueba.test\"}");
+            var post = new RespuestaFija(HttpStatusCode.OK,
+                "{\"HaySolicitud\":true,\"Estado\":\"Pendiente\",\"Canal\":\"Enlace\",\"UrlPago\":\"https://pago.prueba.test/PAP-7\"," +
+                "\"InvitacionApp\":\"Instale nuestra app\",\"MensajeCliente\":\"Pague aquí: https://pago.prueba.test/PAP-7\"}");
+            var apiAnterior = new RespuestaFija(HttpStatusCode.OK, "{\"HaySolicitud\":true,\"Estado\":\"Pendiente\",\"UrlPago\":\"https://pago.prueba.test/PAP-7\"}");
+
+            DisponibilidadPagoAPlazosModel disponibilidad = await Servicio(disponible).LeerDisponible("1", 930500);
+            SolicitudPagoAPlazosModel solicitud = await Servicio(post).Solicitar("1", 930500, "Enlace", null);
+            SolicitudPagoAPlazosModel sinCampos = await Servicio(apiAnterior).Solicitar("1", 930500, "Enlace", null);
+
+            Assert.AreEqual("Instale nuestra app: https://app.prueba.test", disponibilidad.InvitacionApp);
+            Assert.AreEqual("Instale nuestra app", solicitud.InvitacionApp);
+            Assert.AreEqual("Pague aquí: https://pago.prueba.test/PAP-7", solicitud.MensajeCliente);
+            Assert.IsNull(sinCampos.InvitacionApp);
+            Assert.IsNull(sinCampos.MensajeCliente);
+        }
+
+        #region El interruptor (la pista para la casilla de la plantilla de venta)
+
+        /// <summary>Contesta según la clave del parámetro que se pide (null = 404) y apunta las URL pedidas.</summary>
+        private class RespuestaPorClave : HttpMessageHandler
+        {
+            private readonly Func<string, string> _valor;
+            public System.Collections.Generic.List<string> Urls { get; } = new System.Collections.Generic.List<string>();
+
+            public RespuestaPorClave(Func<string, string> valor)
+            {
+                _valor = valor;
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                string url = Uri.UnescapeDataString(request.RequestUri.AbsoluteUri);
+                Urls.Add(url);
+                string clave = url.Substring(url.IndexOf("clave=", StringComparison.Ordinal) + "clave=".Length);
+                string valor = _valor(clave);
+                return Task.FromResult(valor == null
+                    ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) }
+                    : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("\"" + valor + "\"", Encoding.UTF8, "application/json") });
+            }
+        }
+
+        private static ServicioPagoAPlazos Servicio(RespuestaPorClave handler)
+        {
+            IClienteApiFactory factory = A.Fake<IClienteApiFactory>();
+            A.CallTo(() => factory.Crear()).ReturnsLazily(() => new HttpClient(handler, false) { BaseAddress = new Uri("https://api.prueba.test/api/") });
+            return new ServicioPagoAPlazos(factory);
+        }
+
+        [TestMethod]
+        public async Task LeerInterruptor_Activo_PideLaFilaDeDefecto_YNoPreguntaLosClientesDePrueba()
+        {
+            var handler = new RespuestaPorClave(clave => clave == "PagoAPlazosPedidos" ? "Activo   " : null);
+
+            InterruptorPagoAPlazosModel interruptor = await Servicio(handler).LeerInterruptor();
+
+            Assert.AreEqual("Activo", interruptor.Modo);
+            Assert.IsNull(interruptor.ClientesPrueba);
+            // La fila de «(defecto)», no la del usuario: pedida con el usuario, la API le crearía una copia
+            Assert.AreEqual(1, handler.Urls.Count);
+            Assert.AreEqual("https://api.prueba.test/api/ParametrosUsuario?empresa=1&usuario=(defecto)&clave=PagoAPlazosPedidos", handler.Urls[0]);
+        }
+
+        [TestMethod]
+        public async Task LeerInterruptor_Pruebas_TraeTambienLosClientesDePrueba()
+        {
+            var handler = new RespuestaPorClave(clave => clave == "PagoAPlazosPedidos" ? "Pruebas" : "9238, 15191");
+
+            InterruptorPagoAPlazosModel interruptor = await Servicio(handler).LeerInterruptor();
+
+            Assert.AreEqual("Pruebas", interruptor.Modo);
+            Assert.AreEqual("9238, 15191", interruptor.ClientesPrueba);
+            Assert.AreEqual("https://api.prueba.test/api/ParametrosUsuario?empresa=1&usuario=(defecto)&clave=PagoAPlazosPedidosClientesPrueba", handler.Urls[1]);
+        }
+
+        [TestMethod]
+        public async Task LeerInterruptor_PruebasSinListaDeClientes_NoLanza_YQuedaSinClientes()
+        {
+            var handler = new RespuestaPorClave(clave => clave == "PagoAPlazosPedidos" ? "Pruebas" : null);
+
+            InterruptorPagoAPlazosModel interruptor = await Servicio(handler).LeerInterruptor();
+
+            Assert.AreEqual("Pruebas", interruptor.Modo);
+            Assert.IsNull(interruptor.ClientesPrueba);
+        }
+
+        [TestMethod]
+        public async Task LeerInterruptor_SinFila_Lanza()
+        {
+            // Sin la fila del interruptor la API da 404: quien llama lo trata como apagado
+            var handler = new RespuestaPorClave(clave => null);
+
+            _ = await Assert.ThrowsExceptionAsync<Exception>(() => Servicio(handler).LeerInterruptor());
+        }
+
+        #endregion
     }
 }
