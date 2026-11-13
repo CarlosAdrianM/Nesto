@@ -80,6 +80,10 @@
             public const string PermitirCrearPedidoConErroresValidacion = "PermitirCrearPedidoConErroresValidacion";
             public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
+            // Sugerencia 1261 (Lidia, 13/11/26): "1" = al grabar un pedido desde la Plantilla de venta, además de abrirse el
+            // pedido queda abierta una plantilla limpia para el siguiente cliente. Cualquier otro valor, sin fila o si no se
+            // puede leer = como siempre (la plantilla se cierra). Empresa 1; la fila «(defecto)» va a '0'.
+            public const string PlantillaMantenerAbierta = "PlantillaMantenerAbierta";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             // Nesto#388: "1" = el panel de contactos/direcciones del SelectorCliente aparece
             // desplegado al seleccionar un cliente; cualquier otro valor (o ausencia) = colapsado.

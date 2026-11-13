@@ -4870,6 +4870,8 @@ Public Class PlantillaVentaViewModel
         End If
 
         delegacionUsuario = Await leerParametro(Parametros.Claves.DelegacionDefecto)
+        ' Sugerencia 1261: se lee ya, para no meter una espera entre grabar el pedido y cerrar la pestaña
+        Dim mantenerPlantillaAbierta As Boolean = Await MantenerPlantillaAbiertaAsync()
 
         If formaVentaSeleccionada = 1 Then
             formaVentaPedido = "DIR"
@@ -5108,6 +5110,13 @@ Public Class PlantillaVentaViewModel
 
             ' Cerramos la ventana
             navegacion.CerrarVistaActiva("MainRegion")
+
+            ' Sugerencia 1261 (Lidia): con el parámetro PlantillaMantenerAbierta, queda una plantilla lista para el
+            ' siguiente cliente. Es una plantilla NUEVA (la misma navegación del menú), no esta vaciada a mano: así no
+            ' puede quedar ningún resto del pedido que se acaba de grabar (cliente, líneas, pago, borrador, cheque…).
+            If mantenerPlantillaAbierta Then
+                navegacion.RequestNavigate("MainRegion", "PlantillaVentaView")
+            End If
 
             ' Abrimos el pedido
             abridorPedidos.Abrir(clienteSeleccionado.empresa, numPedido)
@@ -5642,6 +5651,20 @@ Public Class PlantillaVentaViewModel
         End If
 
         Return Await configuracion.leerParametro(empresa, v)
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 1261: si el usuario quiere seguir con una plantilla abierta después de grabar el pedido (parámetro
+    ''' PlantillaMantenerAbierta = «1», siempre de la empresa por defecto). Sin fila, con otro valor o si no se puede
+    ''' leer, no: la plantilla se cierra como siempre.
+    ''' </summary>
+    Friend Async Function MantenerPlantillaAbiertaAsync() As Task(Of Boolean)
+        Try
+            Dim valor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaMantenerAbierta)
+            Return valor?.Trim() = "1"
+        Catch ex As Exception
+            Return False
+        End Try
     End Function
 
 #Region "Nesto#537 (épica NestoAPI#669): productos que puede ofrecer"
