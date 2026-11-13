@@ -13,6 +13,10 @@ namespace ControlesUsuario.Globos
     /// ventana principal es «Principal». Es la misma que se escribe en la columna Ancla de la tabla Globos. No cambiarla al
     /// renombrar el control: los globos ya dados de alta dejarían de encontrarlo (saldrían como tarjeta centrada).
     ///
+    /// <para>Si el control está en la vista pero todavía no se ve (otro paso de un asistente, otra pestaña, colapsado), su globo
+    /// espera y sale junto a él la primera vez que se vea (<see cref="RegistroAnclas.EnEspera"/>). Para eso el control tiene que
+    /// existir desde que se carga la vista: uno que viva dentro de un DataTemplate no existe hasta que se pinta.</para>
+    ///
     /// <para><see cref="Pantalla"/> sirve para las vistas que no siguen la convención del nombre (se pone en la raíz).</para>
     /// </summary>
     public static class Globo
@@ -84,7 +88,58 @@ namespace ControlesUsuario.Globos
             }
             return lista
                 .Select(w => w.TryGetTarget(out FrameworkElement e) ? e : null)
-                .FirstOrDefault(e => e != null && e.IsLoaded && e.IsVisible && e.ActualWidth > 0 && e.ActualHeight > 0);
+                .FirstOrDefault(EstaALaVista);
+        }
+
+        /// <summary>Cargado, visible y con tamaño.</summary>
+        internal static bool EstaALaVista(FrameworkElement e)
+            => e != null && e.IsLoaded && e.IsVisible && e.ActualWidth > 0 && e.ActualHeight > 0;
+
+        /// <summary>
+        /// Los controles de esa clave que EXISTEN dentro de la vista pero todavía no se ven (están en un paso de un asistente o en
+        /// una pestaña que no es la activa, colapsados…): su globo espera a que se vean en vez de salir centrado. Vacía si la
+        /// clave no está en esa vista (o si alguno de los suyos ya se ve: entonces el globo va junto a ese).
+        /// </summary>
+        public static IReadOnlyList<FrameworkElement> EnEspera(string clave, DependencyObject vista)
+        {
+            string limpia = clave?.Trim();
+            if (vista == null || string.IsNullOrEmpty(limpia) || !_anclas.TryGetValue(limpia, out List<WeakReference<FrameworkElement>> lista))
+            {
+                return Array.Empty<FrameworkElement>();
+            }
+            List<FrameworkElement> suyos = lista
+                .Select(w => w.TryGetTarget(out FrameworkElement e) ? e : null)
+                .Where(e => e != null && EstaDentro(e, vista))
+                .ToList();
+            return suyos.Any(EstaALaVista) ? Array.Empty<FrameworkElement>() : suyos;
+        }
+
+        /// <summary>
+        /// Si el control cuelga de la vista, aunque no esté pintado: se sube por el árbol visual y, donde no lo hay (la página de
+        /// un asistente o la pestaña que no se están enseñando), por el lógico.
+        /// </summary>
+        internal static bool EstaDentro(DependencyObject elemento, DependencyObject vista)
+        {
+            // El tope es solo por si un árbol mal montado hiciera un ciclo
+            for (int saltos = 0; elemento != null && saltos < 1000; saltos++)
+            {
+                if (ReferenceEquals(elemento, vista))
+                {
+                    return true;
+                }
+                elemento = Padre(elemento);
+            }
+            return false;
+        }
+
+        private static DependencyObject Padre(DependencyObject elemento)
+        {
+            DependencyObject visual = elemento is System.Windows.Media.Visual || elemento is System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(elemento)
+                : null;
+            return visual
+                ?? LogicalTreeHelper.GetParent(elemento)
+                ?? (elemento as FrameworkElement)?.TemplatedParent;
         }
     }
 

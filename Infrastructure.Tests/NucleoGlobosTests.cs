@@ -134,6 +134,98 @@ public class NucleoGlobosTests
         Assert.IsTrue(q.All(g => g.Centrado));
     }
 
+    // El control está en la pantalla pero aún no se ve (otro paso de un asistente): el globo espera en vez de salir centrado
+
+    [TestMethod]
+    public async Task LosTresCasosDelAncla_VisibleJuntoAlControl_EnEsperaNoSale_InexistenteCentrado()
+    {
+        cliente.Devuelve("P", Globo(1, "P.Visible"), Globo(2, "P.EnOtroPaso"), Globo(3, "P.NoExiste"), Globo(4, null));
+        var conCuatro = new ServicioGlobos(cliente, () => usuario, maximoSeguidos: 4);
+        var preguntadas = new List<string>();
+
+        IReadOnlyList<GloboAEnsenar> tanda = await conCuatro.QueEnsenarAsync("P", a => a == "P.Visible", a =>
+        {
+            preguntadas.Add(a);
+            return a == "P.EnOtroPaso";
+        });
+
+        CollectionAssert.AreEqual(new[] { 1, 3, 4 }, tanda.Select(g => g.Globo.Id).ToList());
+        Assert.IsFalse(tanda[0].Centrado, "el visible, junto a su control, como siempre");
+        Assert.IsTrue(tanda[1].Centrado, "el ancla que no existe en la pantalla, centrado, como siempre");
+        Assert.IsTrue(tanda[2].Centrado, "sin ancla, centrado, como siempre");
+        // Solo se pregunta si espera por los que no se ven (ni por el visible ni por el que no tiene ancla)
+        CollectionAssert.AreEqual(new[] { "P.EnOtroPaso", "P.NoExiste" }, preguntadas);
+    }
+
+    [TestMethod]
+    public async Task EnEspera_NoSeReserva_NoSeMarca_YAlVerseSaleJuntoASuControl()
+    {
+        cliente.Devuelve("P", Globo(1, "P.EnOtroPaso"));
+        bool seVe = false;
+
+        IReadOnlyList<GloboAEnsenar> alAbrir = await servicio.QueEnsenarAsync("P", _ => seVe, _ => !seVe);
+        bool reservadoAlAbrir = servicio.HayEnPantalla;
+        // El usuario llega al paso: quien pregunta vuelve a preguntar
+        seVe = true;
+        IReadOnlyList<GloboAEnsenar> alVerse = await servicio.QueEnsenarAsync("P", _ => seVe, _ => !seVe);
+
+        Assert.AreEqual(0, alAbrir.Count);
+        Assert.IsFalse(reservadoAlAbrir, "el que espera no cuenta como enseñado");
+        Assert.AreEqual(1, alVerse.Count);
+        Assert.AreEqual(1, alVerse[0].Globo.Id);
+        Assert.IsFalse(alVerse[0].Centrado);
+        Assert.IsTrue(servicio.HayEnPantalla);
+        Assert.AreEqual(0, cliente.Vistos.Count);
+        Assert.AreEqual(1, cliente.Leidas.Count, "sin volver a llamar a la API");
+    }
+
+    [TestMethod]
+    public async Task EnEspera_NoFrenaALosDemas_NiCuentaParaElMaximo()
+    {
+        cliente.Devuelve("P", Globo(1, "P.EnOtroPaso"), Globo(2), Globo(3), Globo(4));
+
+        List<int> alAbrir = (await servicio.QueEnsenarAsync("P", _ => false, a => a == "P.EnOtroPaso")).Select(g => g.Globo.Id).ToList();
+        await servicio.EntendidoAsync(Globo(2));
+        await servicio.EntendidoAsync(Globo(3));
+        // Contestados los otros, el que espera sigue pendiente (no se ha retirado) y sale en cuanto se ve
+        List<int> alVerse = (await servicio.QueEnsenarAsync("P", _ => true, _ => false)).Select(g => g.Globo.Id).ToList();
+
+        CollectionAssert.AreEqual(new[] { 2, 3 }, alAbrir);
+        CollectionAssert.AreEqual(new[] { 1, 4 }, alVerse);
+        CollectionAssert.AreEqual(new[] { 2, 3 }, cliente.Vistos.Select(v => v.Id).ToList());
+    }
+
+    [TestMethod]
+    public async Task EnEspera_SiHayOtraTandaEnPantalla_SigueEsperandoSuTurno()
+    {
+        cliente.Devuelve("P", Globo(1, "P.EnOtroPaso"), Globo(2));
+
+        // Sale el 2 (centrado); mientras está en pantalla, el control del 1 empieza a verse
+        List<int> alAbrir = (await servicio.QueEnsenarAsync("P", _ => false, a => a == "P.EnOtroPaso")).Select(g => g.Globo.Id).ToList();
+        List<int> mientras = await Ids("P");
+        await servicio.EntendidoAsync(Globo(2));
+        IReadOnlyList<GloboAEnsenar> despues = await servicio.QueEnsenarAsync("P", _ => true, _ => false);
+
+        CollectionAssert.AreEqual(new[] { 2 }, alAbrir);
+        Assert.AreEqual(0, mientras.Count);
+        Assert.AreEqual(1, despues.Count);
+        Assert.AreEqual(1, despues[0].Globo.Id);
+        Assert.IsFalse(despues[0].Centrado);
+    }
+
+    [TestMethod]
+    public async Task EnEspera_SiLaPreguntaRevientaOSinPregunta_CentradoComoSiempre()
+    {
+        cliente.Devuelve("P", Globo(1, "P.Oculta"));
+
+        IReadOnlyList<GloboAEnsenar> revienta = await servicio.QueEnsenarAsync("P", _ => false, _ => throw new InvalidOperationException());
+        servicio.Soltar(revienta[0].Globo);
+        IReadOnlyList<GloboAEnsenar> sinPregunta = await servicio.QueEnsenarAsync("P", _ => false);
+
+        Assert.IsTrue(revienta.Single().Centrado);
+        Assert.IsTrue(sinPregunta.Single().Centrado);
+    }
+
     [TestMethod]
     public async Task Entendido_MarcaVistoEnElServidor_YNoVuelve()
     {

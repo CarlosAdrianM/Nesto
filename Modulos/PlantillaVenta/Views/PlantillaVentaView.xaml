@@ -8,6 +8,7 @@
              xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:models="clr-namespace:Nesto.Models;assembly=Models"
              xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
+             xmlns:globos="clr-namespace:ControlesUsuario.Globos;assembly=ControlesUsuario"
              xmlns:controls="clr-namespace:Nesto.Modulos.PlantillaVenta"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008">
 
@@ -1024,8 +1025,11 @@
                                 </Grid>
                             </Grid>
                             <!-- Sugerencia 1261: preferencia del usuario (parámetro PlantillaMantenerAbierta). Discreta, al final
-                                 del paso: letra pequeña y sin colores fijos (vale en claro y en oscuro). Solo al crear un pedido. -->
-                            <CheckBox Content="{Binding TextoMantenerPlantillaAbierta}"
+                                 del paso: letra pequeña y sin colores fijos (vale en claro y en oscuro). Solo al crear un pedido.
+                                 El ancla es la de su globo (tabla Globos: Pantalla «PlantillaVenta», Ancla «PlantillaVenta.MantenerAbierta»):
+                                 como la casilla está en el último paso, el globo espera y sale al llegar a «Finalizar». -->
+                            <CheckBox globos:Globo.Ancla="PlantillaVenta.MantenerAbierta"
+                                      Content="{Binding TextoMantenerPlantillaAbierta}"
                                       IsChecked="{Binding MantenerPlantillaAbierta, Mode=TwoWay}"
                                       ToolTip="{Binding AyudaMantenerPlantillaAbierta}"
                                       FontSize="11" Opacity="0.75" Margin="0,14,0,0" HorizontalAlignment="Left"

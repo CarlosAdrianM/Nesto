@@ -52,7 +52,8 @@ public interface IClienteGlobos
 /// <item>Con el cambio de usuario (Ariadna), cada uno tiene lo suyo: la caché va por usuario y el «visto» lo guarda el servidor.</item>
 /// <item>Como mucho <see cref="MaximoSeguidos"/> seguidos, en el orden de la API; los demás, la próxima vez que se entre.</item>
 /// <item>Una tanda a la vez (si ya hay globos en pantalla, ninguno más).</item>
-/// <item>Sin ancla, o con el ancla ausente o no visible: tarjeta centrada.</item>
+/// <item>Sin ancla, o con el ancla ausente o no visible: tarjeta centrada. Salvo que la app diga que el control está en la
+///   pantalla pero aún no se ve (anclaEnEspera): entonces el globo espera a que se vea y sale junto a él.</item>
 /// <item><see cref="EntendidoAsync"/> («Entendido», «Siguiente») → visto en el servidor. <see cref="Aplazar"/> (Esc) → no se marca y
 ///   no vuelve hasta que se reabra la app. <see cref="Soltar"/> (se fue de la pantalla sin contestar) → sigue pendiente.</item>
 /// </list>
@@ -97,7 +98,13 @@ public sealed class ServicioGlobos
     /// <see cref="EntendidoAsync"/>, <see cref="Aplazar"/> o <see cref="Soltar"/>.
     /// </summary>
     /// <param name="anclaVisible">Si el control de esa clave está a la vista. Se llama en el hilo de quien pregunta.</param>
-    public async Task<IReadOnlyList<GloboAEnsenar>> QueEnsenarAsync(string? pantalla, Func<string, bool>? anclaVisible)
+    /// <param name="anclaEnEspera">
+    /// Si el control de esa clave EXISTE en la pantalla pero todavía no se ve (otro paso de un asistente, otra pestaña, colapsado).
+    /// Su globo espera: ni se devuelve ni se reserva, ni cuenta para <see cref="MaximoSeguidos"/>, y no frena a los demás. Quien
+    /// pregunta vuelve a preguntar cuando el control se vea (por evento, sin sondeo) y entonces sale junto a él. Se pregunta por
+    /// todos los que no se ven, también los que no cabrían en esta tanda. Sin ella (null), como siempre: tarjeta centrada.
+    /// </param>
+    public async Task<IReadOnlyList<GloboAEnsenar>> QueEnsenarAsync(string? pantalla, Func<string, bool>? anclaVisible, Func<string, bool>? anclaEnEspera = null)
     {
         string? usuario = Normalizar(_usuario());
         string? clavePantalla = pantalla?.Trim();
@@ -116,8 +123,11 @@ public sealed class ServicioGlobos
             }
             List<GloboAEnsenar> tanda = pendientes
                 .Where(g => !_retirados.Contains(Clave(usuario, g.Id)))
-                .Take(MaximoSeguidos)
                 .Select(g => new GloboAEnsenar(g, EsCentrado(g, anclaVisible)))
+                // El que tiene su control en la pantalla pero aún sin verse, espera (no se reserva: sigue pendiente)
+                .Where(g => !(g.Centrado && EstaEnEspera(g.Globo, anclaEnEspera)))
+                .ToList()
+                .Take(MaximoSeguidos)
                 .ToList();
             foreach (GloboAEnsenar g in tanda)
             {
@@ -193,6 +203,22 @@ public sealed class ServicioGlobos
         catch (Exception)
         {
             return true;
+        }
+    }
+
+    private static bool EstaEnEspera(DatosGlobo globo, Func<string, bool>? anclaEnEspera)
+    {
+        if (string.IsNullOrWhiteSpace(globo.Ancla) || anclaEnEspera == null)
+        {
+            return false;
+        }
+        try
+        {
+            return anclaEnEspera(globo.Ancla!.Trim());
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 

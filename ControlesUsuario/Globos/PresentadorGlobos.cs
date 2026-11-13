@@ -19,6 +19,12 @@ namespace ControlesUsuario.Globos
     /// <see cref="ServicioGlobos"/> qué toca en esa pantalla. Cada globo es un Popup con flecha que apunta a su control (el de
     /// <see cref="Globo.AnclaProperty"/>) o, si no está a la vista, una tarjeta centrada en la ventana. De uno en uno:
     /// «Siguiente» / «Entendido» (los marca vistos) y Esc (lo deja para la próxima vez, sin marcar).
+    ///
+    /// <para>Tres casos del ancla al cargarse la vista: (a) se ve → globo junto al control; (b) está en la vista pero no se ve
+    /// (otro paso de un asistente, otra pestaña, colapsado) → el globo ESPERA (<see cref="EsperaVista"/>): no sale, tampoco
+    /// centrado, hasta que el control se vea, y entonces sale junto a él; (c) no está en la vista (o el globo no tiene ancla) →
+    /// tarjeta centrada. Si el control de un globo que se está enseñando deja de verse (se vuelve a otro paso), el globo se
+    /// retira sin marcarse y vuelve a esperar.</para>
     /// </summary>
     public static class PresentadorGlobos
     {
@@ -51,6 +57,13 @@ namespace ControlesUsuario.Globos
             }
         }
 
+        // La espera de cada vista cuelga de la propia vista (no hay lista estática que la retenga)
+        private static readonly DependencyProperty EsperaProperty = DependencyProperty.RegisterAttached(
+            "Espera", typeof(EsperaVista), typeof(PresentadorGlobos), new PropertyMetadata(null));
+
+        // Las vistas con globos esperando a su control, para volver a mirarlas al terminar una tanda (referencias débiles)
+        private static readonly List<WeakReference<EsperaVista>> _esperas = new List<WeakReference<EsperaVista>>();
+
         private static async void Mirar(FrameworkElement vista)
         {
             try
@@ -66,9 +79,18 @@ namespace ControlesUsuario.Globos
                 {
                     return;
                 }
-                IReadOnlyList<GloboAEnsenar> tanda = await _servicio.QueEnsenarAsync(pantalla, a => RegistroAnclas.Visible(a) != null);
+                IReadOnlyList<GloboAEnsenar> tanda = await _servicio.QueEnsenarAsync(pantalla,
+                    a => RegistroAnclas.Visible(a) != null,
+                    // El control está en esta vista pero aún no se ve (otro paso del asistente, otra pestaña…): su globo espera
+                    a => RegistroAnclas.EnEspera(a, vista).Count > 0 && EsperaDe(vista).Esperar(a));
+                EsperaVista espera = vista.GetValue(EsperaProperty) as EsperaVista;
                 if (tanda.Count == 0)
                 {
+                    // Si no ha salido nada porque ya había otra tanda, se queda apuntada para cuando termine
+                    if (espera != null && _actual == null && !_servicio.HayEnPantalla)
+                    {
+                        espera.PorReintentar = false;
+                    }
                     return;
                 }
                 if (_actual != null || !vista.IsLoaded)
@@ -79,12 +101,61 @@ namespace ControlesUsuario.Globos
                     }
                     return;
                 }
-                _actual = new Tanda(_servicio, tanda, vista, () => _actual = null);
+                if (espera != null)
+                {
+                    espera.PorReintentar = false;
+                }
+                _actual = new Tanda(_servicio, tanda, vista, volverAMirar => AlTerminarTanda(vista, volverAMirar));
                 _actual.Enseñar();
             }
             catch (Exception ex)
             {
                 // Un globo nunca rompe una pantalla
+                Debug.WriteLine($"[PresentadorGlobos] {ex.Message}");
+            }
+        }
+
+        private static EsperaVista EsperaDe(FrameworkElement vista)
+        {
+            if (!(vista.GetValue(EsperaProperty) is EsperaVista espera))
+            {
+                espera = new EsperaVista(vista, AlVerseAncla);
+                vista.SetValue(EsperaProperty, espera);
+                _ = _esperas.RemoveAll(w => !w.TryGetTarget(out _));
+                _esperas.Add(new WeakReference<EsperaVista>(espera));
+            }
+            return espera;
+        }
+
+        // El control que esperaba un globo ya se ve: se vuelve a preguntar qué toca en su pantalla
+        private static void AlVerseAncla(EsperaVista espera)
+        {
+            espera.PorReintentar = true;
+            Mirar(espera.Vista);
+        }
+
+        private static void AlTerminarTanda(FrameworkElement vista, bool volverAMirar)
+        {
+            _actual = null;
+            try
+            {
+                // El control del globo dejó de verse (se volvió a otro paso): el globo vuelve a esperar a su control
+                if (volverAMirar && vista.IsLoaded)
+                {
+                    Mirar(vista);
+                }
+                // Los controles que empezaron a verse mientras había otra tanda en pantalla
+                foreach (WeakReference<EsperaVista> debil in _esperas.ToArray())
+                {
+                    if (debil.TryGetTarget(out EsperaVista espera) && espera.PorReintentar && espera.Vista.IsLoaded
+                        && !(volverAMirar && ReferenceEquals(espera.Vista, vista)))
+                    {
+                        Mirar(espera.Vista);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
                 Debug.WriteLine($"[PresentadorGlobos] {ex.Message}");
             }
         }
@@ -95,13 +166,15 @@ namespace ControlesUsuario.Globos
             private readonly ServicioGlobos _servicio;
             private readonly IReadOnlyList<GloboAEnsenar> _globos;
             private readonly FrameworkElement _vista;
-            private readonly Action _alTerminar;
+            private readonly Action<bool> _alTerminar;
             private readonly Window _ventana;
             private Popup _popup;
+            private FrameworkElement _ancla;
             private int _indice;
             private bool _terminada;
 
-            public Tanda(ServicioGlobos servicio, IReadOnlyList<GloboAEnsenar> globos, FrameworkElement vista, Action alTerminar)
+            /// <param name="alTerminar">Con true si se cortó porque el control del globo dejó de verse (hay que volver a mirar).</param>
+            public Tanda(ServicioGlobos servicio, IReadOnlyList<GloboAEnsenar> globos, FrameworkElement vista, Action<bool> alTerminar)
             {
                 _servicio = servicio;
                 _globos = globos;
@@ -154,6 +227,21 @@ namespace ControlesUsuario.Globos
                     HorizontalOffset = ancla == null ? 0 : (Math.Min(ancla.ActualWidth, 240) / 2) - VistaGlobo.POSICION_FLECHA,
                 };
                 _popup.IsOpen = _ventana == null || _ventana.IsActive;
+                if (ancla != null)
+                {
+                    _ancla = ancla;
+                    _ancla.IsVisibleChanged += AlCambiarVisibilidadAncla;
+                }
+            }
+
+            private void AlCambiarVisibilidadAncla(object sender, DependencyPropertyChangedEventArgs e)
+            {
+                // El control deja de verse sin que se vaya la vista (se vuelve a otro paso del asistente): el globo no se queda
+                // flotando; sigue pendiente y vuelve a salir cuando el control se vea otra vez
+                if (!_terminada && sender is FrameworkElement ancla && !ancla.IsVisible)
+                {
+                    Terminar(soltarRestantes: true, volverAMirar: true);
+                }
             }
 
             // Si el control está en la mitad de abajo de la ventana, el globo va encima (flecha hacia abajo)
@@ -247,7 +335,7 @@ namespace ControlesUsuario.Globos
                 }
             }
 
-            private void Terminar(bool soltarRestantes)
+            private void Terminar(bool soltarRestantes, bool volverAMirar = false)
             {
                 if (_terminada)
                 {
@@ -271,11 +359,16 @@ namespace ControlesUsuario.Globos
                     _ventana.LocationChanged -= AlMoverVentana;
                     _ventana.SizeChanged -= AlMoverVentana;
                 }
-                _alTerminar();
+                _alTerminar(volverAMirar);
             }
 
             private void CerrarPopup()
             {
+                if (_ancla != null)
+                {
+                    _ancla.IsVisibleChanged -= AlCambiarVisibilidadAncla;
+                    _ancla = null;
+                }
                 if (_popup != null)
                 {
                     _popup.IsOpen = false;
@@ -283,6 +376,128 @@ namespace ControlesUsuario.Globos
                     _popup = null;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Los globos de una vista que esperan a que su control se vea (está en la vista, pero en un paso de un asistente o en una
+    /// pestaña que aún no se enseña). Escucha a cada control por evento (sin sondeo) y avisa la primera vez que está a la vista.
+    /// Al descargarse la vista suelta todos los manejadores; si la vista vuelve, el presentador la mira otra vez y se reenganchan.
+    /// No hay nada estático que la retenga: cuelga de su vista y de los controles a los que escucha.
+    /// </summary>
+    internal sealed class EsperaVista
+    {
+        private readonly Action<EsperaVista> _alVerse;
+        private readonly List<FrameworkElement> _anclas = new List<FrameworkElement>();
+        // Los que tienen pedida la segunda mirada (para no pedirla dos veces)
+        private readonly HashSet<FrameworkElement> _recomprobando = new HashSet<FrameworkElement>();
+
+        public EsperaVista(FrameworkElement vista, Action<EsperaVista> alVerse)
+        {
+            Vista = vista ?? throw new ArgumentNullException(nameof(vista));
+            _alVerse = alVerse ?? throw new ArgumentNullException(nameof(alVerse));
+            Vista.Unloaded += AlDescargarVista;
+        }
+
+        public FrameworkElement Vista { get; }
+
+        /// <summary>Un control ya se ve y su globo todavía no ha podido salir (había otra tanda en pantalla).</summary>
+        public bool PorReintentar { get; set; }
+
+        /// <summary>A cuántos controles se está escuchando.</summary>
+        internal int Escuchando => _anclas.Count;
+
+        /// <summary>
+        /// Se queda escuchando a los controles de esa clave que están en la vista sin verse. False si no hay ninguno (o si la
+        /// vista ya no está cargada: no se deja nada enganchado a una vista que se ha ido).
+        /// </summary>
+        public bool Esperar(string clave)
+        {
+            IReadOnlyList<FrameworkElement> ocultas = RegistroAnclas.EnEspera(clave, Vista);
+            if (ocultas.Count == 0 || !Vista.IsLoaded)
+            {
+                return ocultas.Count > 0;
+            }
+            foreach (FrameworkElement ancla in ocultas)
+            {
+                if (!_anclas.Contains(ancla))
+                {
+                    _anclas.Add(ancla);
+                    // Al entrar en su paso cambia IsVisible, pero el tamaño llega con el primer pintado (SizeChanged / Loaded)
+                    ancla.IsVisibleChanged += AlCambiarVisible;
+                    ancla.SizeChanged += AlCambiarTamano;
+                    ancla.Loaded += AlCargarAncla;
+                }
+            }
+            return true;
+        }
+
+        private void AlCambiarVisible(object sender, DependencyPropertyChangedEventArgs e) => Comprobar(sender as FrameworkElement);
+        private void AlCambiarTamano(object sender, SizeChangedEventArgs e) => Comprobar(sender as FrameworkElement);
+        private void AlCargarAncla(object sender, RoutedEventArgs e) => Comprobar(sender as FrameworkElement);
+
+        private void Comprobar(FrameworkElement ancla, bool trasPintar = false)
+        {
+            try
+            {
+                if (ancla == null || !_anclas.Contains(ancla))
+                {
+                    return;
+                }
+                if (!RegistroAnclas.EstaALaVista(ancla))
+                {
+                    // Ya es visible pero aún no está cargado o medido (acaba de entrar en el árbol): se mira otra vez, una sola,
+                    // cuando WPF haya terminado de cargarlo y pintarlo. Al volver a un paso ya visitado no hay SizeChanged (el
+                    // tamaño no cambia) y Loaded no siempre llega a un control al que se empezó a escuchar fuera del árbol
+                    if (!trasPintar && ancla.IsVisible && _recomprobando.Add(ancla))
+                    {
+                        _ = ancla.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                        {
+                            _ = _recomprobando.Remove(ancla);
+                            Comprobar(ancla, trasPintar: true);
+                        }));
+                    }
+                    return;
+                }
+                // Una sola vez: si al preguntar resultara que sigue sin verse, se vuelve a enganchar
+                Dejar(ancla);
+                _alVerse(this);
+            }
+            catch (Exception ex)
+            {
+                // Un globo nunca rompe una pantalla
+                Debug.WriteLine($"[EsperaVista] {ex.Message}");
+            }
+        }
+
+        private void Dejar(FrameworkElement ancla)
+        {
+            if (_anclas.Remove(ancla))
+            {
+                ancla.IsVisibleChanged -= AlCambiarVisible;
+                ancla.SizeChanged -= AlCambiarTamano;
+                ancla.Loaded -= AlCargarAncla;
+            }
+        }
+
+        private void AlDescargarVista(object sender, RoutedEventArgs e)
+        {
+            // Solo la propia vista (Unloaded no se propaga, pero por si acaso)
+            if (ReferenceEquals(sender, Vista))
+            {
+                Soltar();
+            }
+        }
+
+        /// <summary>Deja de escuchar a todos los controles.</summary>
+        internal void Soltar()
+        {
+            foreach (FrameworkElement ancla in _anclas.ToArray())
+            {
+                Dejar(ancla);
+            }
+            _recomprobando.Clear();
+            PorReintentar = false;
         }
     }
 
