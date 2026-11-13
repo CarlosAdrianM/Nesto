@@ -244,6 +244,7 @@ namespace Producto.Tests
         {
             await _vm.CargarAsync();
             await _vm.ImprimirEtiquetasSinCodigoCommand.ExecuteAsync(null);
+            _vm.LeerTodo();
 
             Assert.AreEqual("Se mandan 6 unidades de 3 productos a Algete. ¿Terminar?", _vm.TextoConfirmacion());
         }
@@ -275,6 +276,7 @@ namespace Producto.Tests
             await _vm.ImprimirEtiquetasSinCodigoCommand.ExecuteAsync(null);
 
             CollectionAssert.AreEquivalent(new[] { "17404", "33333" }, _impresas.Select(i => i.Producto).ToList());
+            _vm.LeerTodo();
             Assert.AreEqual("Se mandan 11 unidades de 4 productos a Algete. ¿Terminar?", _vm.TextoConfirmacion());
         }
 

@@ -42,11 +42,50 @@ namespace Nesto.Modules.Producto.ViewModels
                     OnPropertyChanged(nameof(EstaACero));
                     // NestoAPI#762: sin cambiarlas a mano, las etiquetas siguen a las unidades que se mandan
                     OnPropertyChanged(nameof(CopiasEtiqueta));
+                    // Novedades 1264: no se puede tener leído más de lo que se manda
+                    if (Leidas > Cantidad)
+                    {
+                        Leidas = Cantidad;
+                    }
+                    OnPropertyChanged(nameof(PorLeer));
+                    OnPropertyChanged(nameof(SeMandan));
+                    OnPropertyChanged(nameof(TextoLeidas));
                 }
             }
         }
 
         public bool EstaACero => Cantidad == 0;
+
+        private int _leidas;
+        /// <summary>
+        /// Novedades 1264 (Carlos 13/11/26): las unidades cuyo código de barras se ha leído al prepararla. Solo sale de la
+        /// tienda lo leído (en Algete solo se recibe leyendo: lo que no coincide tiene que verse al salir, no al llegar).
+        /// </summary>
+        public int Leidas
+        {
+            get => _leidas;
+            set
+            {
+                if (SetProperty(ref _leidas, Math.Max(0, Math.Min(value, Cantidad))))
+                {
+                    OnPropertyChanged(nameof(PorLeer));
+                    OnPropertyChanged(nameof(SeMandan));
+                    OnPropertyChanged(nameof(TextoLeidas));
+                }
+            }
+        }
+
+        /// <summary>Novedades 1264: hay que leer su código. Las muestras sin código (Nesto#605) no: se teclean, como hasta ahora.</summary>
+        public bool SeLee => !SeMandaSinEtiqueta;
+
+        /// <summary>Novedades 1264: las unidades que faltan por leer (0 en las que no se leen).</summary>
+        public int PorLeer => SeLee ? Math.Max(0, Cantidad - Leidas) : 0;
+
+        /// <summary>Novedades 1264: lo que sale de verdad: lo leído (o la cantidad, en las muestras sin código).</summary>
+        public int SeMandan => SeLee ? Math.Min(Leidas, Cantidad) : Cantidad;
+
+        /// <summary>«2 de 3», o «no se lee» en las muestras sin código.</summary>
+        public string TextoLeidas => SeLee ? $"{Leidas} de {Cantidad}" : "no se lee";
 
         /// <summary>
         /// NestoAPI#762: todos los códigos activos del producto (también el interno 290… y el que se le asigna al imprimir
@@ -133,8 +172,12 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         internal bool TieneCodigo(string codigo)
+            => TieneCodigoDeBarras(codigo)
+               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Novedades 1264: el código es uno de sus códigos de barras (la referencia tecleada no cuenta como lectura).</summary>
+        internal bool TieneCodigoDeBarras(string codigo)
             => string.Equals(CodigoBarras?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
-               || string.Equals(Producto?.Trim(), codigo, StringComparison.OrdinalIgnoreCase)
                || (CodigosBarras ?? new List<string>()).Any(c => string.Equals(c?.Trim(), codigo, StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
@@ -1358,11 +1401,53 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida($"El código {codigo} lo comparten varios productos: elige en la lista el que es.");
                 return;
             }
-            Mensaje = null;
+            LineaEnviarReposicion linea = candidatas[0];
+            Seleccionada = linea;
+            if (!linea.SeLee)
+            {
+                // Muestra sin código (Nesto#605): se teclea, como siempre
+                Mensaje = null;
+                _sonidos?.Correcto();
+                PedirFocoEnCantidad?.Invoke(linea);
+                return;
+            }
+            // Novedades 1264: cada lectura del código de barras cuenta una unidad; solo sale lo leído
+            if (!linea.TieneCodigoDeBarras(codigo))
+            {
+                LecturaFallida($"Lea el código de barras de {linea.Producto}: la referencia tecleada no cuenta como lectura.");
+                return;
+            }
+            if (linea.Leidas >= linea.Cantidad)
+            {
+                LecturaFallida(linea.Cantidad == 0
+                    ? $"De {linea.Producto} no se manda ninguna (está a 0): esa unidad se queda en la tienda."
+                    : $"De {linea.Producto} ya ha leído las {linea.Cantidad} que pide la reposición: esa unidad se queda en la tienda.");
+                return;
+            }
+            linea.Leidas++;
+            Mensaje = TextoLeida(linea);
             _sonidos?.Correcto();
-            Seleccionada = candidatas[0];
-            PedirFocoEnCantidad?.Invoke(candidatas[0]);
+            // El cursor se queda en el lector: cada lectura suma una
+            PedirFocoEnLector?.Invoke();
         }
+
+        internal static string TextoLeida(LineaEnviarReposicion linea)
+            => linea.PorLeer == 0
+                ? $"{linea.Producto}: leídas las {linea.Cantidad}."
+                : $"{linea.Producto}: {linea.Leidas} de {linea.Cantidad} leídas.";
+
+        /// <summary>Novedades 1264: lo leído de cada línea (por su número de orden), para que no se pierda al recargar la pantalla.</summary>
+        private readonly Dictionary<int, int> _leidasPorLinea = new Dictionary<int, int>();
+
+        /// <summary>Novedades 1264: lo que sale de verdad (lo leído, más las muestras sin código).</summary>
+        public int UnidadesQueSeMandan => Lineas.Sum(l => l.SeMandan);
+        public int ProductosQueSeMandan => Lineas.Count(l => l.SeMandan > 0);
+        public int UnidadesPorLeer => Lineas.Sum(l => l.PorLeer);
+        public string TextoPorLeer => !HayReposicion ? null
+            : UnidadesPorLeer == 0 ? "Todo leído"
+            : UnidadesPorLeer == 1 ? "Falta 1 unidad por leer" : $"Faltan {UnidadesPorLeer} unidades por leer";
+
+        internal const string TEXTO_NADA_LEIDO = "No ha leído ningún código de barras: lea cada unidad que meta en la caja. Solo sale de la tienda lo leído.";
 
         /// <summary>Lo leído no entra: se dice, suena el error y el cursor se queda en el lector para la siguiente lectura.</summary>
         private void LecturaFallida(string mensaje)
@@ -1406,6 +1491,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 Mensaje = "Todas las líneas están a 0: no hay nada que mandar a Algete.";
                 return;
             }
+            // Novedades 1264: solo sale lo leído
+            if (UnidadesQueSeMandan == 0)
+            {
+                Mensaje = TEXTO_NADA_LEIDO;
+                _sonidos?.Error();
+                PedirFocoEnLector?.Invoke();
+                return;
+            }
             if (!await _dialogos.ShowConfirmationAsync("Terminar y mandar a Algete", TextoConfirmacion()).ConfigureAwait(true))
             {
                 return;
@@ -1413,6 +1506,11 @@ namespace Nesto.Modules.Producto.ViewModels
             ResultadoTerminarReposicion terminada = null;
             await Ocupado(async () =>
             {
+                // Lo que no se ha leído no sale: se baja en el servidor a lo leído antes de terminar
+                foreach (var sinLeer in Lineas.Where(l => l.PorLeer > 0).Select(l => new { l.NumeroOrden, l.Leidas }).ToList())
+                {
+                    Actualizar(await _servicio.CambiarCantidad(Empresa, Almacen, sinLeer.NumeroOrden, sinLeer.Leidas).ConfigureAwait(true));
+                }
                 ResultadoTerminarReposicion resultado = await _servicio.Terminar(Empresa, Almacen).ConfigureAwait(true);
                 string texto = TextoResultado(resultado);
                 Ensenar(null);
@@ -1928,7 +2026,16 @@ namespace Nesto.Modules.Producto.ViewModels
 
         internal string TextoConfirmacion()
         {
-            string texto = $"Se mandan {Unidades} unidades de {Productos} productos a Algete. ¿Terminar?";
+            string texto = $"Se mandan {UnidadesQueSeMandan} unidades de {ProductosQueSeMandan} productos a Algete. ¿Terminar?";
+            // Novedades 1264: lo que no se ha leído se queda en la tienda
+            List<LineaEnviarReposicion> sinLeer = Lineas.Where(l => l.PorLeer > 0).ToList();
+            if (sinLeer.Count > 0)
+            {
+                int unidades = sinLeer.Sum(l => l.PorLeer);
+                texto = (unidades == 1 ? "Falta 1 unidad por leer" : $"Faltan {unidades} unidades por leer")
+                        + $" ({string.Join(", ", sinLeer.Select(l => $"{l.Producto}: {l.PorLeer}"))}): no se mandan, se quedan en la tienda."
+                        + Environment.NewLine + texto;
+            }
             // NestoAPI#762: en Algete solo se recibe escaneando: lo que no lleve etiqueta llegará como «Sin etiqueta»
             List<string> sinEtiquetas = LineasSinEtiquetas().Select(l => l.Producto).ToList();
             return sinEtiquetas.Count == 0
@@ -1951,6 +2058,12 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             Lineas.Clear();
             Seleccionada = null;
+            // Novedades 1264: de las líneas que ya no están (enviada, borradas) no se guarda lo leído
+            var siguen = new HashSet<int>((reposicion?.Lineas ?? new List<LineaReposicionEnPreparacion>()).Select(l => l.NumeroOrden));
+            foreach (int quitada in _leidasPorLinea.Keys.Where(k => !siguen.Contains(k)).ToList())
+            {
+                _ = _leidasPorLinea.Remove(quitada);
+            }
             foreach (LineaReposicionEnPreparacion linea in reposicion?.Lineas ?? new List<LineaReposicionEnPreparacion>())
             {
                 var nueva = new LineaEnviarReposicion
@@ -1968,6 +2081,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     Preparada = linea.Cantidad,
                     Cantidad = linea.Cantidad
                 };
+                // Novedades 1264: lo ya leído sigue leído al recargar
+                nueva.Leidas = _leidasPorLinea.TryGetValue(linea.NumeroOrden, out int leidas) ? leidas : 0;
                 nueva.PropertyChanged += LineaCambiada;
                 Lineas.Add(nueva);
             }
@@ -2024,6 +2139,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void LineaCambiada(object sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(LineaEnviarReposicion.Leidas) && sender is LineaEnviarReposicion leida)
+            {
+                _leidasPorLinea[leida.NumeroOrden] = leida.Leidas;
+                RefrescarTotales();
+                return;
+            }
             if (e.PropertyName != nameof(LineaEnviarReposicion.Cantidad))
             {
                 return;
@@ -2039,6 +2160,9 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             OnPropertyChanged(nameof(Unidades));
             OnPropertyChanged(nameof(Productos));
+            OnPropertyChanged(nameof(UnidadesQueSeMandan));
+            OnPropertyChanged(nameof(UnidadesPorLeer));
+            OnPropertyChanged(nameof(TextoPorLeer));
             RefrescarEtiquetas();
         }
 

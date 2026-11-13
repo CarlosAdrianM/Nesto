@@ -191,6 +191,7 @@ namespace Producto.Tests
             A.CallTo(() => _dialogos.GetText(A<string>._, A<string>._, A<string>._)).Returns(null);
             await _vm.CargarAsync();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             Assert.AreEqual("81100", _vm.NumeroReimprimirBultos);

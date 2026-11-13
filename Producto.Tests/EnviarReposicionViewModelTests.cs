@@ -277,8 +277,9 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Leer_UnCodigoDeLaLista_SeleccionaSuLineaYPideElFocoEnLaCantidad()
+        public async Task Leer_UnCodigoDeLaLista_SeleccionaSuLineaYCuentaUnaUnidad()
         {
+            // Novedades 1264: la lectura ya no lleva a la cantidad: cuenta una unidad leída
             await _vm.CargarAsync();
             LineaEnviarReposicion? enfocada = null;
             _vm.PedirFocoEnCantidad += l => enfocada = l;
@@ -287,7 +288,8 @@ namespace Producto.Tests
             _vm.LeerLecturaCommand.Execute(null);
 
             Assert.AreSame(_vm.Lineas[1], _vm.Seleccionada);
-            Assert.AreSame(_vm.Lineas[1], enfocada);
+            Assert.IsNull(enfocada);
+            Assert.AreEqual(1, _vm.Lineas[1].Leidas);
             Assert.AreEqual(string.Empty, _vm.Lectura);
         }
 
@@ -328,6 +330,7 @@ namespace Producto.Tests
             });
             await _vm.CargarAsync();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, "Se mandan 5 unidades de 2 productos a Algete. ¿Terminar?"))
@@ -404,6 +407,7 @@ namespace Producto.Tests
             Assert.IsTrue(_vm.HayAvisoAutomatica);
             LaApiAvisa();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             Assert.IsFalse(_vm.HayAvisoAutomatica);
@@ -431,6 +435,7 @@ namespace Producto.Tests
             await _vm.CargarAsync();
             await CambiarCantidadAsync(0, 0);
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, "Se mandan 2 unidades de 1 productos a Algete. ¿Terminar?"))
@@ -443,6 +448,7 @@ namespace Producto.Tests
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(false);
             await _vm.CargarAsync();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).MustNotHaveHappened();
@@ -456,6 +462,7 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).Throws(new EnvioReposicionException(motivo));
             await _vm.CargarAsync();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _dialogos.ShowError(motivo)).MustHaveHappenedOnceExactly();
@@ -473,6 +480,7 @@ namespace Producto.Tests
             });
             await _vm.CargarAsync();
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).MustNotHaveHappened();
@@ -630,8 +638,9 @@ namespace Producto.Tests
         // ---- Sonido al leer y cursor en el lector ----
 
         [TestMethod]
-        public async Task Leer_QueEstaEnLaReposicion_SuenaElDeConfirmacionYVaASuCantidad()
+        public async Task Leer_QueEstaEnLaReposicion_SuenaElDeConfirmacionYSeQuedaEnElLector()
         {
+            // Novedades 1264: cada lectura suma una; el cursor se queda en el lector para la siguiente
             await _vm.CargarAsync();
             LineaEnviarReposicion? enfocada = null;
             _vm.PedirFocoEnCantidad += l => enfocada = l;
@@ -640,8 +649,9 @@ namespace Producto.Tests
 
             A.CallTo(() => _sonidos.Correcto()).MustHaveHappenedOnceExactly();
             A.CallTo(() => _sonidos.Error()).MustNotHaveHappened();
-            Assert.AreEqual("40057", enfocada?.Producto);
-            Assert.AreEqual(0, _focosEnLector);
+            Assert.IsNull(enfocada);
+            Assert.AreEqual("40057", _vm.Seleccionada?.Producto);
+            Assert.AreEqual(1, _focosEnLector);
         }
 
         [TestMethod]
@@ -1283,6 +1293,7 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.LeerEstadoPuntual(A<string>._, A<string>._)).Returns(EstadoBultos(0, 3));
             A.CallTo(() => _servicio.Terminar(A<string>._, A<string>._)).Returns(new ResultadoTerminarReposicion { NumTraspaso = 80947 });
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             A.CallTo(() => _servicio.LeerEstadoPuntual("1", "ALC")).MustHaveHappenedTwiceExactly();

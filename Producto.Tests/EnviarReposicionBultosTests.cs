@@ -65,6 +65,7 @@ namespace Producto.Tests
         private async Task TerminarAsync()
         {
             await _vm.CargarAsync();
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
         }
 

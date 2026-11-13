@@ -197,6 +197,8 @@
                 <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
                 <DataGridTextColumn Header="Código de barras" Binding="{Binding CodigoBarras}" IsReadOnly="True" />
                 <DataGridTextColumn x:Name="colCantidad" Header="Cantidad" Binding="{Binding Cantidad}" />
+                <!-- Novedades 1264: cada lectura del código de barras cuenta una unidad; solo sale lo leído -->
+                <DataGridTextColumn Header="Leídas" Binding="{Binding TextoLeidas, Mode=OneWay}" IsReadOnly="True" FontWeight="SemiBold" />
                 <DataGridTextColumn Header="Stock en la tienda" Binding="{Binding StockOrigen}" IsReadOnly="True" />
                 <!-- NestoAPI#762: el origen etiqueta lo que no tiene código de barras (EAN-13; si no tiene, el interno 290…) -->
                 <DataGridTextColumn Header="Etiquetas" Binding="{Binding CopiasEtiqueta}" />
@@ -221,6 +223,8 @@
             <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
                 <Run Text="Total: " /><Run Text="{Binding Unidades, Mode=OneWay}" /><Run Text=" unidades de " /><Run Text="{Binding Productos, Mode=OneWay}" /><Run Text=" productos" />
             </TextBlock>
+            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="16,0,0,0" Text="{Binding TextoPorLeer}"
+                       ToolTip="Lea el código de barras de cada unidad que meta en la caja: solo sale de la tienda lo leído" />
             <Button Content="Terminar y mandar a Algete" Command="{Binding TerminarCommand}" Padding="16,2" Margin="16,0,0,0"
                     ToolTip="Se pone número de traspaso, sale de la tienda y queda pendiente de recibir en Algete" />
             <!-- NestoAPI#762: lo que no tiene código de barras se etiqueta aquí, en el origen (sin colores fijos) -->

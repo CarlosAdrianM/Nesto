@@ -257,6 +257,7 @@ namespace Producto.Tests
             A.CallTo(() => _servicio.LeerEnviadas(A<string>._, "ALC"))
                 .Returns(new List<ReposicionEnviada> { Enviada(81093, 2), Enviada(81097, 1), Enviada(81100, 0) });
 
+            _vm.LeerTodo();
             await _vm.TerminarCommand.ExecuteAsync(null);
 
             Assert.AreEqual(81100, _vm.Enviadas[0].Traspaso);
