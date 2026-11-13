@@ -53,7 +53,7 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("Las cuentas no se han podido cargar correctamente");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("Las cuentas no se han podido cargar correctamente", await response.Content.ReadAsStringAsync()));
                     }
                 }
                 catch (Exception ex)
@@ -113,26 +113,7 @@ namespace Nesto.Modulos.Cajas.Services
                     else
                     {
                         string textoError = await response.Content.ReadAsStringAsync();
-                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                        string errorMostrar = $"No se ha podido contabilizar\n";
-                        if (requestException != null && requestException["exceptionMessage"] != null)
-                        {
-                            errorMostrar += requestException["exceptionMessage"] + "\n";
-                        }
-                        if (requestException != null && requestException["ModelState"] != null)
-                        {
-                            var firstError = requestException["ModelState"];
-                            var nodoError = firstError.LastOrDefault();
-                            errorMostrar += nodoError.FirstOrDefault()[0];
-                        }
-                        var innerException = requestException != null ? requestException["InnerException"] : null;
-                        while (innerException != null)
-                        {
-                            errorMostrar += "\n" + innerException["ExceptionMessage"];
-                            innerException = innerException["InnerException"];
-                        }
-                        throw new Exception(errorMostrar);
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido contabilizar", textoError));
                     }
                 }
                 catch (Exception ex)
@@ -176,10 +157,10 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("No se han podido cargar el asiento contable");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar el asiento contable", await response.Content.ReadAsStringAsync()));
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not ErrorApiCajasException)
                 {
                     throw new Exception("No se han podido cargar el asiento contable", ex);
                 }
@@ -215,7 +196,7 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("No se han podido cargar los apuntes de la contabilidad");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los apuntes de la contabilidad", await response.Content.ReadAsStringAsync()));
                     }
                 }
                 catch (Exception ex)
@@ -254,7 +235,7 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("No se ha podido calcular el saldo de la cuenta");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido calcular el saldo de la cuenta", await response.Content.ReadAsStringAsync()));
                     }
                 }
                 catch (Exception ex)
@@ -294,10 +275,10 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("No se han podido cargar correctamente las cuentas filtradas por concepto");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar correctamente las cuentas filtradas por concepto", await response.Content.ReadAsStringAsync()));
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not ErrorApiCajasException)
                 {
                     throw new Exception("No se han podido cargar correctamente las cuentas filtradas por concepto", ex);
                 }
@@ -347,34 +328,7 @@ namespace Nesto.Modulos.Cajas.Services
                     else
                     {
                         string textoError = await response.Content.ReadAsStringAsync();
-                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                        string errorMostrar = $"No se ha podido crear el punteo de contabilidad\n";
-                        if (requestException != null && requestException["Message"] != null)
-                        {
-                            errorMostrar += requestException["Message"] + "\n";
-                        }
-                        if (requestException != null && requestException["message"] != null)
-                        {
-                            errorMostrar += requestException["message"] + "\n";
-                        }
-                        if (requestException != null && requestException["exceptionMessage"] != null)
-                        {
-                            errorMostrar += requestException["exceptionMessage"] + "\n";
-                        }
-                        if (requestException != null && requestException["ModelState"] != null)
-                        {
-                            var firstError = requestException["ModelState"];
-                            var nodoError = firstError.LastOrDefault();
-                            errorMostrar += nodoError.FirstOrDefault()[0];
-                        }
-                        var innerException = requestException != null ? requestException["InnerException"] : null;
-                        while (innerException != null)
-                        {
-                            errorMostrar += "\n" + innerException["ExceptionMessage"];
-                            innerException = innerException["InnerException"];
-                        }
-                        throw new Exception(errorMostrar);
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido crear el punteo de contabilidad", textoError));
                     }
                 }
                 catch (Exception ex)
@@ -412,7 +366,7 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("No se han podido cargar los apuntes de la contabilidad");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los apuntes de la contabilidad", await response.Content.ReadAsStringAsync()));
                     }
                 }
                 catch (Exception ex)

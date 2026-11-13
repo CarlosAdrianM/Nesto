@@ -65,34 +65,7 @@ namespace Nesto.Modulos.Cajas.Services
                 else
                 {
                     string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = $"No se ha podido contabilizar\n";
-                    if (requestException != null && requestException["Message"] != null)
-                    {
-                        errorMostrar += requestException["Message"] + "\n";
-                    }
-                    if (requestException != null && requestException["message"] != null)
-                    {
-                        errorMostrar += requestException["message"] + "\n";
-                    }
-                    if (requestException != null && requestException["exceptionMessage"] != null)
-                    {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
-                    }
-                    if (requestException != null && requestException["ModelState"] != null)
-                    {
-                        JToken? firstError = requestException["ModelState"];
-                        JToken? nodoError = firstError.LastOrDefault();
-                        errorMostrar += nodoError.FirstOrDefault()[0];
-                    }
-                    JToken? innerException = requestException?["InnerException"];
-                    while (innerException != null)
-                    {
-                        errorMostrar += "\n" + innerException["ExceptionMessage"];
-                        innerException = innerException["InnerException"];
-                    }
-                    throw new Exception(errorMostrar);
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido contabilizar", textoError));
                 }
             }
             catch (Exception)
@@ -140,34 +113,7 @@ namespace Nesto.Modulos.Cajas.Services
                 else
                 {
                     string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = $"No se ha podido cargar los movimientos del TPV\n";
-                    if (requestException != null && requestException["Message"] != null)
-                    {
-                        errorMostrar += requestException["Message"] + "\n";
-                    }
-                    if (requestException != null && requestException["message"] != null)
-                    {
-                        errorMostrar += requestException["message"] + "\n";
-                    }
-                    if (requestException != null && requestException["exceptionMessage"] != null)
-                    {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
-                    }
-                    if (requestException != null && requestException["ModelState"] != null)
-                    {
-                        JToken? firstError = requestException["ModelState"];
-                        JToken? nodoError = firstError.LastOrDefault();
-                        errorMostrar += nodoError.FirstOrDefault()[0];
-                    }
-                    JToken? innerException = requestException?["InnerException"];
-                    while (innerException != null)
-                    {
-                        errorMostrar += "\n" + innerException["ExceptionMessage"];
-                        innerException = innerException["InnerException"];
-                    }
-                    throw new Exception(errorMostrar);
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido cargar los movimientos del TPV", textoError));
                 }
             }
             catch (Exception)
@@ -219,34 +165,7 @@ namespace Nesto.Modulos.Cajas.Services
                 else
                 {
                     string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = $"No se ha podido crear el punteo de la conciliación\n";
-                    if (requestException != null && requestException["Message"] != null)
-                    {
-                        errorMostrar += requestException["Message"] + "\n";
-                    }
-                    if (requestException != null && requestException["message"] != null)
-                    {
-                        errorMostrar += requestException["message"] + "\n";
-                    }
-                    if (requestException != null && requestException["exceptionMessage"] != null)
-                    {
-                        errorMostrar += requestException["exceptionMessage"] + "\n";
-                    }
-                    if (requestException != null && requestException["ModelState"] != null)
-                    {
-                        JToken? firstError = requestException["ModelState"];
-                        JToken? nodoError = firstError.LastOrDefault();
-                        errorMostrar += nodoError.FirstOrDefault()[0];
-                    }
-                    JToken? innerException = requestException?["InnerException"];
-                    while (innerException != null)
-                    {
-                        errorMostrar += "\n" + innerException["ExceptionMessage"];
-                        innerException = innerException["InnerException"];
-                    }
-                    throw new Exception(errorMostrar);
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido crear el punteo de la conciliación", textoError));
                 }
             }
             catch (Exception)
@@ -284,7 +203,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se han podido cargar los apuntes del banco");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los apuntes del banco", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -322,7 +241,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido cargar el banco");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido cargar el banco", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -360,7 +279,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido cargar el banco");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido cargar el banco", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -396,10 +315,10 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se han podido cargar los extractos del proveedor para el asiento");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los extractos del proveedor para el asiento", await response.Content.ReadAsStringAsync()));
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not ErrorApiCajasException)
             {
                 throw new Exception("No se han podido cargar los extractos del proveedor para el asiento", ex);
             }
@@ -431,10 +350,10 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se han podido cargar los extractos del cliente para el asiento");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los extractos del cliente para el asiento", await response.Content.ReadAsStringAsync()));
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not ErrorApiCajasException)
             {
                 throw new Exception("No se han podido cargar los extractos del cliente para el asiento", ex);
             }
@@ -468,10 +387,10 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se han podido cargar los movimientos de la tarjeta");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los movimientos de la tarjeta", await response.Content.ReadAsStringAsync()));
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not ErrorApiCajasException)
             {
                 throw new Exception("No se han podido cargar los movimientos relacioados de la tarjeta", ex);
             }
@@ -507,10 +426,10 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se han podido cargar los prepagos pendientes");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se han podido cargar los prepagos pendientes", await response.Content.ReadAsStringAsync()));
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not ErrorApiCajasException)
             {
                 throw new Exception("No se han podido cargar los prepagos pendientes", ex);
             }
@@ -543,7 +462,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido comprobar si existe un proveedor con ese nombre");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido comprobar si existe un proveedor con ese nombre", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -579,7 +498,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido comprobar si existe un proveedor con ese nombre");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido comprobar si existe un proveedor con ese nombre", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -615,7 +534,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido calcular el número de recibos de la remesa");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido calcular el número de recibos de la remesa", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -657,7 +576,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido comprobar si existe un pago pendiente a ese proveedor de ese importe");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido comprobar si existe un pago pendiente a ese proveedor de ese importe", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -694,7 +613,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido calcular el saldo final del banco");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido calcular el saldo final del banco", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -731,7 +650,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido calcular el saldo inicial del banco");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido calcular el saldo inicial del banco", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -768,7 +687,7 @@ namespace Nesto.Modulos.Cajas.Services
                 }
                 else
                 {
-                    throw new Exception("No se ha podido deshacer la última conciliación");
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido deshacer la última conciliación", await response.Content.ReadAsStringAsync()));
                 }
             }
             catch (Exception)
@@ -802,18 +721,7 @@ namespace Nesto.Modulos.Cajas.Services
                 else
                 {
                     string textoError = await response.Content.ReadAsStringAsync();
-                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                    string errorMostrar = "No se ha podido deshacer la conciliación\n";
-                    if (requestException != null && requestException["Message"] != null)
-                    {
-                        errorMostrar += requestException["Message"] + "\n";
-                    }
-                    if (requestException != null && requestException["message"] != null)
-                    {
-                        errorMostrar += requestException["message"] + "\n";
-                    }
-                    throw new Exception(errorMostrar);
+                    throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha podido deshacer la conciliación", textoError));
                 }
             }
             catch (Exception)

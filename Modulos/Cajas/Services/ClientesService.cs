@@ -63,10 +63,10 @@ namespace Nesto.Modulos.Cajas.Services
                     }
                     else
                     {
-                        throw new Exception("Las deudas no se han podido cargar correctamente");
+                        throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("Las deudas no se han podido cargar correctamente", await response.Content.ReadAsStringAsync()));
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not ErrorApiCajasException)
                 {
                     throw new Exception("Las deudas no se han podido cargar correctamente", ex);
                 }
