@@ -19,16 +19,23 @@ namespace Nesto.Modulos.Cajas.Services
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public BancosService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
+        public BancosService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IClienteApiFactory clienteApiFactory = null)
         {
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
+            _clienteApiFactory = clienteApiFactory;
         }
+
+        // 13/11/26: el HttpClient sale de la fábrica común (reintentos de GET, token y, sobre todo, el aviso vertical de
+        // bloqueos de la base de datos, que se lee en la cadena de manejadores de la fábrica). Sin fábrica (tests
+        // antiguos), el cliente a mano de siempre. La dirección base y la autorización las sigue poniendo cada método.
+        private HttpClient CrearCliente() => _clienteApiFactory != null ? _clienteApiFactory.Crear() : new HttpClient();
 
         public async Task<ContenidoCuaderno43> CargarFicheroCuaderno43(string contenidoFichero)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -76,7 +83,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<MovimientoTPV>> CargarFicheroTarjetas(string contenidoFichero)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -124,7 +131,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<int> CrearPunteo(int? apunteBancoId, int? apunteContabilidadId, decimal importePunteo, string simboloPunteo, int? grupoPunteo = null)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -176,7 +183,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ApunteBancarioDTO>> LeerApuntesBanco(string empresa, string codigo, DateTime fechaDesde, DateTime fechaHasta)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -214,7 +221,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<BancoDTO> LeerBanco(string entidad, string oficina, string numeroCuenta)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -252,7 +259,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<BancoDTO> LeerBanco(string empresa, string codigo)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -290,7 +297,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ExtractoProveedorDTO>> LeerExtractoProveedorAsiento(string empresa, int asiento)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -326,7 +333,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ExtractoClienteDTO>> LeerExtractoClienteAsiento(string empresa, int asiento)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
@@ -361,7 +368,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<MovimientoTPV>> LeerMovimientosTPV(DateTime fechaCaptura, string tipoDatafono)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -398,7 +405,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<ObservableCollection<PrepagoDTO>> LeerPrepagosPendientes(decimal importe)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -437,7 +444,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<string> LeerProveedorPorNif(string nifProveedor)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -473,7 +480,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<string> LeerProveedorPorNombre(string nombreProveedor)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -509,7 +516,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<int> NumeroRecibosRemesa(string remesa)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -545,7 +552,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<ExtractoProveedorDTO> PagoPendienteUnico(string proveedor, decimal importe)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -587,7 +594,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<decimal> SaldoBancoFinal(string entidad, string oficina, string cuenta, DateTime fecha)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -624,7 +631,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<decimal> SaldoBancoInicial(string entidad, string oficina, string cuenta, DateTime fecha)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             // Carlos 21/11/24: Agregar autenticación
@@ -661,7 +668,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<ConciliacionEliminadaDTO> DeshacerUltimaConciliacion()
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
@@ -698,7 +705,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ConciliacionEliminadaDTO>> DeshacerConciliacionPorApunte(int apunteContabilidadId)
         {
-            using HttpClient client = new();
+            using HttpClient client = CrearCliente();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
             if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))

@@ -17,18 +17,25 @@ namespace Nesto.Modulos.Cajas.Services
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ContabilidadService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
+        public ContabilidadService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IClienteApiFactory clienteApiFactory = null)
         {
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
+            _clienteApiFactory = clienteApiFactory;
         }
+
+        // 13/11/26: el HttpClient sale de la fábrica común (reintentos de GET, token y, sobre todo, el aviso vertical de
+        // bloqueos de la base de datos, que se lee en la cadena de manejadores de la fábrica). Sin fábrica (tests
+        // antiguos), el cliente a mano de siempre. La dirección base y la autorización las sigue poniendo cada método.
+        private HttpClient CrearCliente() => _clienteApiFactory != null ? _clienteApiFactory.Crear() : new HttpClient();
                 
 
         public async Task<List<CuentaContableDTO>> LeerCuentas(string empresa, string grupo)
         {
             List<CuentaContableDTO> cuentas;
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -76,7 +83,7 @@ namespace Nesto.Modulos.Cajas.Services
             {
                 linea.Usuario = _configuracion.usuario;
             }
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -131,7 +138,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ContabilidadDTO>> LeerAsientoContable(string empresa, int asiento)
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -168,7 +175,7 @@ namespace Nesto.Modulos.Cajas.Services
         }
         public async Task<List<ContabilidadDTO>> LeerApuntesContabilidad(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta)
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -208,7 +215,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<decimal> SaldoCuenta(string empresa, string cuenta, DateTime fecha)
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -248,7 +255,7 @@ namespace Nesto.Modulos.Cajas.Services
         public async Task<List<ContabilidadDTO>> LeerCuentasPorConcepto(string empresa, string concepto, DateTime fechaDesde, DateTime fechaHasta)
         {
             List<ContabilidadDTO> cuentas;
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -289,7 +296,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<bool> PuntearPorImporte(string empresa, string cuenta, decimal importe)
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
@@ -340,7 +347,7 @@ namespace Nesto.Modulos.Cajas.Services
 
         public async Task<List<ContabilidadDTO>> LeerApuntesContabilidad(string cuenta, bool punteado)
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearCliente())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
