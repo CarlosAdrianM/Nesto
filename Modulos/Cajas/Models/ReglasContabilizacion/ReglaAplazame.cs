@@ -20,7 +20,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteContabilidad = apuntesContabilidad.First();
             var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
-            var importeIngresado = apunteBancario.ImporteMovimiento;
+            // Carlos 13/11/26: una venta puede llegar en varios ingresos (caso real: 841,13 € el 21/10/26 y 0,10 € el
+            // 24/10/26 por una operación cancelada y rehecha con otro importe): lo ingresado es la SUMA de lo seleccionado.
+            var importeIngresado = apuntesBancarios.Sum(b => b.ImporteMovimiento);
             var importeComision = -importeDescuadre; ;
             var importeOriginal = importeIngresado + importeComision;
 
@@ -74,25 +76,32 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() != 1 || !apuntesContabilidad.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
             {
                 return false;
             }
-            var apunteBancario = apuntesBancarios.Single();
 
-            var importeIngresado = apunteBancario.ImporteMovimiento;
-            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
+            // Carlos 13/11/26: varios ingresos de Aplázame valen como uno (se suman), pero TODOS tienen que ser de Aplázame.
+            var importeIngresado = apuntesBancarios.Sum(b => b.ImporteMovimiento);
+            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - importeIngresado;
             var importeOriginal = importeIngresado + importeComision;
+            if (importeOriginal == 0M)
+            {
+                return false;
+            }
 
-
-            return apunteBancario.ConceptoComun == "02" &&
-                apunteBancario.ConceptoPropio == "002" &&
-                apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "wizink bank s.a." &&
+            return apuntesBancarios.All(EsIngresoDeAplazame) &&
                 (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()) ||
                 VerificarImportesAplazameZero(importeOriginal, importeComision));
         }
+
+        private static bool EsIngresoDeAplazame(ApunteBancarioDTO apunteBancario) =>
+            apunteBancario is not null &&
+            apunteBancario.ConceptoComun == "02" &&
+            apunteBancario.ConceptoPropio == "002" &&
+            apunteBancario.RegistrosConcepto != null &&
+            apunteBancario.RegistrosConcepto.Any() &&
+            apunteBancario.RegistrosConcepto[0]?.Concepto?.ToLower().Trim() == "wizink bank s.a.";
 
         private bool VerificarImportesAplazameZero(decimal importeOriginal, decimal importeComision)
         {
