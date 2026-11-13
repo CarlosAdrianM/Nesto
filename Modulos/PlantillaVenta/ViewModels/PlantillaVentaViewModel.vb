@@ -3952,6 +3952,11 @@ Public Class PlantillaVentaViewModel
                 urlConsulta += "&productoPrecio=" + arg.producto
                 urlConsulta += "&cantidad=" + arg.cantidad.ToString
                 urlConsulta += "&aplicarDescuento=" + arg.aplicarDescuento.ToString
+                ' Novedades 1263 (13/11/26): las unidades de oferta viajan también. Lo normal no cambia (con oferta, la
+                ' unidad de pago va a precio de ficha), pero si la oferta permitida del producto está marcada como
+                ' «admite además el precio especial» (los packs de la feria online), la API devuelve el precio especial.
+                ' Una API anterior ignora el parámetro.
+                urlConsulta += "&cantidadOferta=" + arg.cantidadOferta.ToString
                 response = Await client.GetAsync(urlConsulta)
 
                 If response.IsSuccessStatusCode Then
