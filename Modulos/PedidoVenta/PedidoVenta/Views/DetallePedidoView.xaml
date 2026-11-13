@@ -10,6 +10,7 @@
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:models="clr-namespace:Nesto.Models;assembly=Models"
              xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
+             xmlns:globos="clr-namespace:ControlesUsuario.Globos;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
@@ -718,7 +719,7 @@
                             </Grid>
                             <!-- Nesto#640 (NestoAPI#864): pago a plazos del pedido con la financiera que diga la API. El botón solo sale si la
                                  API lo ofrece; si este pedido no se puede, deshabilitado con el motivo. Debajo, el estado y «Cancelar». -->
-                            <Button Margin="0,3,0,0" Content="Pago a plazos…" Command="{Binding PagoAPlazosCommand}"
+                            <Button Margin="0,3,0,0" Content="Pago a plazos…" Command="{Binding PagoAPlazosCommand}" globos:Globo.Ancla="DetallePedido.PagoAPlazos"
                                     Visibility="{Binding MostrarPagoAPlazos, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     ToolTip="{Binding TextoAyudaPagoAPlazos}" ToolTipService.ShowOnDisabled="True"/>
                             <TextBlock Margin="0,3,0,0" Text="{Binding TextoEstadoPagoAPlazos}" TextWrapping="Wrap" FontWeight="SemiBold"
