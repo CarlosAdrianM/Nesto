@@ -26,6 +26,12 @@ Partial Class MainWindow
     ''' </summary>
     Public ReadOnly Property IndicadorConexion As IndicadorConexionServidor
 
+    ''' <summary>
+    ''' Aviso vertical de bloqueos (13/11/26): la banda de abajo que dice que la base de datos está ocupada y quién la
+    ''' bloquea, cuando la API lo dice en cualquier llamada de cualquier pantalla (cabecera X-Nesto-Bloqueo).
+    ''' </summary>
+    Public ReadOnly Property AvisoBloqueo As AvisoBloqueoViewModel
+
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
@@ -67,6 +73,12 @@ Partial Class MainWindow
                                                           Sub(accion) Dispatcher.BeginInvoke(accion))
         IndicadorConexion.Iniciar()
         AddHandler Me.Closed, Sub(s, e) IndicadorConexion.Dispose()
+
+        ' Aviso vertical de bloqueos: los avisos llegan en hilos de fondo (el manejador HTTP) y se pintan en el de la interfaz
+        AvisoBloqueo = New AvisoBloqueoViewModel(Sub(accion) Dispatcher.BeginInvoke(accion))
+        BandaBloqueo.DataContext = AvisoBloqueo
+        AvisoBloqueo.Iniciar()
+        AddHandler Me.Closed, Sub(s, e) AvisoBloqueo.Dispose()
         ObtenerTokenAlArrancar()
 
         ' Nesto#372: mostrar las novedades la primera vez que se arranca tras actualizar

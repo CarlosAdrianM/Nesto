@@ -12,6 +12,7 @@ namespace Nesto.Infrastructure.Shared
     {
         private readonly string _baseUrl;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly CanalAvisosBloqueo _canalAvisosBloqueo;
 
         // NestoAPI#288 (punto 3): pipeline de reintentos compartido por todos los HttpClient de
         // la factoría. Solo reintenta transitorios (5xx, 408, 429, timeouts, errores de red) y
@@ -25,11 +26,30 @@ namespace Nesto.Infrastructure.Shared
             _servicioAutenticacion = servicioAutenticacion;
         }
 
+        /// <summary>Con el canal de los avisos de bloqueo inyectado (tests); el otro constructor usa el común de la aplicación.</summary>
+        internal ClienteApiFactory(string baseUrl, IServicioAutenticacion servicioAutenticacion, CanalAvisosBloqueo canalAvisosBloqueo)
+            : this(baseUrl, servicioAutenticacion)
+        {
+            _canalAvisosBloqueo = canalAvisosBloqueo;
+        }
+
         public HttpClient Crear()
+        {
+            return new HttpClient(CrearCadena(new HttpClientHandler()))
+            {
+                BaseAddress = new Uri(_baseUrl)
+            };
+        }
+
+        /// <summary>
+        /// La cadena de manejadores, de fuera adentro: avisos de bloqueo → reintentos → token → <paramref name="transporte"/>
+        /// (el HttpClientHandler; en los tests, uno de mentira).
+        /// </summary>
+        internal HttpMessageHandler CrearCadena(HttpMessageHandler transporte)
         {
             var authHandler = new AuthTokenHandler(_servicioAutenticacion)
             {
-                InnerHandler = new HttpClientHandler()
+                InnerHandler = transporte
             };
 
             // El handler de resiliencia va por FUERA del de auth: cada reintento vuelve a pasar
@@ -44,9 +64,11 @@ namespace Nesto.Infrastructure.Shared
             };
 #pragma warning restore EXTEXP0001
 
-            return new HttpClient(resilienceHandler)
+            // Aviso vertical de bloqueos (13/11/26): el que mira la cabecera X-Nesto-Bloqueo va por FUERA de los reintentos,
+            // para ver solo la respuesta definitiva de cada llamada: un GET reintentado tres veces da un aviso, no tres.
+            return new AvisoBloqueosHandler(_canalAvisosBloqueo)
             {
-                BaseAddress = new Uri(_baseUrl)
+                InnerHandler = resilienceHandler
             };
         }
 

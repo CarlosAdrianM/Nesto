@@ -16,6 +16,7 @@
         <SolidColorBrush x:Key="ColorAutenticado" Color="#4CAF50"/>
         <SolidColorBrush x:Key="ColorConexionAviso" Color="#FFA000"/>
         <SolidColorBrush x:Key="ColorNoAutenticado" Color="#F44336"/>
+        <BooleanToVisibilityConverter x:Key="BoolAVisible"/>
     </Window.Resources>
 
     <!-- Nesto#490 (panel lateral): la columna 0 está vacía (ancho 0) salvo con el piloto NavegacionLateral, que pone ahí
@@ -24,6 +25,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
+            <!-- Aviso vertical de bloqueos: la banda de abajo (sin aviso, alto 0) -->
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -94,6 +97,26 @@
                     </Style>
                 </TabControl.ItemContainerStyle>
             </TabControl>
+        </Border>
+        <!-- Aviso vertical de bloqueos (13/11/26): cuando la API dice que la base de datos está bloqueada (cabecera
+             X-Nesto-Bloqueo, que mira AvisoBloqueosHandler en todas las llamadas de ClienteApiFactory), se enseña aquí, en un
+             único sitio para todas las pantallas. No es modal ni coge el foco: una banda ámbar a todo el ancho, debajo de
+             las pantallas (las encoge un poco; no tapa nada). Se cierra sola o con su botón. Su DataContext es un
+             AvisoBloqueoViewModel (lo pone el código de la ventana). -->
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" x:Name="BandaBloqueo" x:FieldModifier="Private"
+                Background="#FFF3CD" BorderBrush="#FFA000" BorderThickness="0,3,0,0" Padding="12,8" Focusable="False"
+                Visibility="{Binding Visible, Converter={StaticResource BoolAVisible}, FallbackValue=Collapsed}">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="Cerrar" MinWidth="70" Padding="8,3" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Focusable="False" IsTabStop="False" ToolTip="Quita este aviso (también se quita solo)"
+                        Command="{Binding CerrarCommand}"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Titulo}"
+                               FontWeight="Bold" FontSize="15" Foreground="#5D4037" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Detalle}"
+                               FontSize="13" Foreground="#3E2723" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>

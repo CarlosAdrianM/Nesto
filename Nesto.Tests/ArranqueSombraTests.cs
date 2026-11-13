@@ -62,6 +62,7 @@ namespace Nesto.Tests
             public bool CatalogoEsElDelServicio { get; set; }
             // Y el menú lateral montado sobre el shell de verdad (como con NavegacionLateral = "1")
             public List<string> PanelMontado { get; } = new List<string>();
+            public List<string> BandaBloqueo { get; } = new List<string>();
         }
 
         private sealed class Arranque
@@ -204,6 +205,8 @@ namespace Nesto.Tests
             }
             // Lo último, porque carga WPF-UI: el menú lateral sobre el shell de verdad, como con el piloto encendido
             MirarPanelMontado(arranque, resultado);
+            // La banda del aviso de bloqueos, en la ventana de verdad
+            MirarBandaBloqueo(arranque, resultado);
             return resultado;
         }
 
@@ -281,6 +284,41 @@ namespace Nesto.Tests
             catch (Exception ex)
             {
                 resultado.PanelMontado.Add("ERROR " + ex);
+            }
+        }
+
+        // Aviso vertical de bloqueos (13/11/26): la banda de MainWindow está enlazada a su AvisoBloqueoViewModel, que escucha el
+        // canal común (el que usa AvisoBloqueosHandler al ver la cabecera X-Nesto-Bloqueo). Aquí no hay Dispatcher en marcha
+        // (vaciar la cola del shell de verdad deja colgada la prueba), así que se mira cómo está montada: a qué propiedad se
+        // enlaza cada cosa y que esa propiedad existe. El comportamiento, en Infrastructure.Tests (AvisoBloqueosTests).
+        private static void MirarBandaBloqueo(Arranque arranque, Resultado resultado)
+        {
+            try
+            {
+                var ventana = (MainWindow)arranque.Shell;
+                var banda = (Border)ventana.FindName("BandaBloqueo");
+                object vm = banda.DataContext;
+                string Enlace(DependencyObject objeto, DependencyProperty propiedad)
+                {
+                    string ruta = System.Windows.Data.BindingOperations.GetBinding(objeto, propiedad)?.Path.Path;
+                    return ruta + (ruta != null && vm.GetType().GetProperty(ruta) != null ? "" : " (NO EXISTE)");
+                }
+                var panel = (DockPanel)banda.Child;
+                var boton = (Button)panel.Children[0];
+                var textos = (StackPanel)panel.Children[1];
+
+                resultado.BandaBloqueo.Add("ViewModel: " + NombreDelTipo(vm) + ", el de la ventana: " + ReferenceEquals(vm, ventana.AvisoBloqueo));
+                resultado.BandaBloqueo.Add("fila " + Grid.GetRow(banda) + " de " + ((Grid)banda.Parent).RowDefinitions.Count + ", columnas " + Grid.GetColumnSpan(banda));
+                resultado.BandaBloqueo.Add("sin aviso: " + banda.Visibility + ", visible: " + ventana.AvisoBloqueo.Visible);
+                resultado.BandaBloqueo.Add("se ve con: " + Enlace(banda, UIElement.VisibilityProperty));
+                resultado.BandaBloqueo.Add("título: " + Enlace(textos.Children[0], TextBlock.TextProperty) + " = " + ventana.AvisoBloqueo.Titulo);
+                resultado.BandaBloqueo.Add("detalle: " + Enlace(textos.Children[1], TextBlock.TextProperty));
+                resultado.BandaBloqueo.Add("botón: " + boton.Content + " → " + Enlace(boton, System.Windows.Controls.Primitives.ButtonBase.CommandProperty)
+                    + ", coge el foco: " + (boton.Focusable || banda.Focusable));
+            }
+            catch (Exception ex)
+            {
+                resultado.BandaBloqueo.Add("ERROR " + ex);
             }
         }
 
@@ -477,6 +515,22 @@ namespace Nesto.Tests
                 "WPF-UI en Application.Resources: False",
                 "Ctrl+K: True",
             }, r.PanelMontado, string.Join("\n", r.PanelMontado));
+        }
+
+        [TestMethod]
+        public void LaBandaDelAvisoDeBloqueos_EstaEnLaVentanaPrincipal_EnlazadaASuViewModel_YSinAvisoNoSeVe()
+        {
+            Resultado r = ResultadoDelArranque();
+            CollectionAssert.AreEqual(new[]
+            {
+                "ViewModel: AvisoBloqueoViewModel, el de la ventana: True",
+                "fila 2 de 3, columnas 2",
+                "sin aviso: Collapsed, visible: False",
+                "se ve con: Visible",
+                "título: Titulo = La base de datos está ocupada.",
+                "detalle: Detalle",
+                "botón: Cerrar → CerrarCommand, coge el foco: False",
+            }, r.BandaBloqueo, string.Join("\n", r.BandaBloqueo));
         }
 
         [TestMethod]
