@@ -135,6 +135,8 @@ Public Class AgenciasViewModel
         ReenviarDevueltoCommand = New RelayCommand(AddressOf OnReenviarDevuelto, AddressOf CanDecidirDevuelto)
         AbonarDevueltoCommand = New RelayCommand(AddressOf OnAbonarDevuelto, AddressOf CanDecidirDevuelto)
         CargarDevueltosCommand = New RelayCommand(AddressOf OnCargarDevueltos)
+        ' NestoAPI#870: «Ya está aquí» (la caja del devuelto ha vuelto a Algete)
+        YaEstaAquiDevueltoCommand = New RelayCommand(AddressOf OnYaEstaAquiDevuelto, AddressOf CanYaEstaAquiDevuelto)
         cmdCargarRetrasados = New RelayCommand(AddressOf CargarRetrasados)
         cmdPegarCodigoBarras = New RelayCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New RelayCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
@@ -2242,12 +2244,25 @@ Public Class AgenciasViewModel
         If envioActual.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
-        If Not ConfirmarDireccionPropia(envioActual) Then
-            Return
+        Dim unused = Await TramitarUnEnvio(envioActual, agenciaEspecifica, enBucle:=False)
+    End Sub
+
+    ''' <summary>
+    ''' Tramita UN envío (el botón Tramitar y cada vuelta de «Tramitar todos» de las agencias clásicas). NestoAPI#870: si la API lo
+    ''' para porque es un reenvío cuya caja no ha vuelto (409 ESPERANDO_CAJA en ConfirmarTramitacion): suelto, se enseña su texto
+    ''' y se ofrece «Ya está aquí, tramitar» (repite forzando); en el bucle (<paramref name="enBucle"/>) se salta sin preguntar y se
+    ''' devuelve la excepción para el resumen. Nothing si no se ha saltado.
+    ''' </summary>
+    Friend Async Function TramitarUnEnvio(envioATramitar As EnviosAgencia, agencia As IAgencia, enBucle As Boolean) As Task(Of EsperandoCajaException)
+        If envioATramitar Is Nothing OrElse envioATramitar.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
+            Return Nothing
+        End If
+        If Not ConfirmarDireccionPropia(envioATramitar) Then
+            Return Nothing
         End If
 
-        Dim envioATramitar = envioActual ' Capturar referencia
         Dim excepcionTramitacion As Exception = Nothing
+        Dim esperandoCaja As EsperandoCajaException = Nothing
 
         ' Issue #135: Convertir sentinel de reembolso antes de enviar a la agencia
         If envioATramitar.Reembolso < 0 Then
@@ -2257,32 +2272,21 @@ Public Class AgenciasViewModel
         ' NestoAPI#552 (fase 4): con el parámetro GlsPorApi = "API", GLS lo graba y lo cierra la API (lo mismo que abajo).
         If Await DebeTramitarGlsPorApi(envioATramitar.Agencia) Then
             Dim unused = Await TramitarGlsPorApi(New List(Of EnviosAgencia) From {envioATramitar})
-            Return
+            Return Nothing
         End If
 
         Try
-            Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioATramitar, _servicio)
+            ' Nesto viejo (NestoAPI#870): las agencias clásicas hablan con la agencia DESDE NESTO antes de ConfirmarTramitacion; la
+            ' guarda de la caja llega después (la agencia ya puede tener el envío). Ver el informe de la issue.
+            Dim respuesta = Await agencia.LlamadaWebService(envioATramitar, _servicio)
             Await _servicio.GuardarLlamadaAgencia(respuesta)
 
-            If respuesta.Exito OrElse agenciaEspecifica.RespuestaYaTramitada(respuesta.TextoRespuestaError) Then
-                Dim resultado = _servicio.TramitarEnvio(envioATramitar)
-
-                ' ⭐ VERIFICAR que realmente se tramitó
-                If resultado.Contains("Error") Then
-                    mensajeError = resultado
-                    ' ⚠️ NO recargar lista si hubo error
-                Else
-                    mensajeError = resultado
-                    listaEnvios = _servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
-
-                    ' ⭐ Verificar en BD que el estado cambió
-                    Dim envioVerificacion = listaEnvios.FirstOrDefault(Function(e) e.Numero = envioATramitar.Numero)
-                    If envioVerificacion IsNot Nothing AndAlso envioVerificacion.Estado <> Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
-                        mensajeError = "ADVERTENCIA: El envío no se marcó como tramitado en BD"
-                    Else
-                        envioActual = listaEnvios.LastOrDefault
-                    End If
-                End If
+            If respuesta.Exito OrElse agencia.RespuestaYaTramitada(respuesta.TextoRespuestaError) Then
+                Try
+                    AplicarResultadoTramitacion(envioATramitar, _servicio.TramitarEnvio(envioATramitar))
+                Catch ex As EsperandoCajaException
+                    esperandoCaja = ex
+                End Try
             Else
                 mensajeError = respuesta.TextoRespuestaError
             End If
@@ -2294,13 +2298,74 @@ Public Class AgenciasViewModel
             excepcionTramitacion = ex
         End Try
 
+        If esperandoCaja IsNot Nothing Then
+            If enBucle Then
+                mensajeError = esperandoCaja.Message
+                Return esperandoCaja
+            End If
+            If ConfirmarYaEstaAqui(esperandoCaja, "tramitar", "tramitará el envío") Then
+                Try
+                    AplicarResultadoTramitacion(envioATramitar, _servicio.TramitarEnvio(envioATramitar, yaEstaAqui:=True))
+                Catch ex As Exception
+                    mensajeError = ex.Message
+                    excepcionTramitacion = ex
+                End Try
+            Else
+                mensajeError = esperandoCaja.Message
+            End If
+        End If
+
         If excepcionTramitacion IsNot Nothing Then
             Await RegistrarErrorAgenciaEnElmah(excepcionTramitacion, "AgenciasViewModel.Tramitar")
         End If
 
         OnPropertyChanged(NameOf(listaReembolsos))
         OnPropertyChanged(NameOf(mensajeError))
+        Return Nothing
+    End Function
+
+    ''' <summary>Lo que se hace con la respuesta de ConfirmarTramitacion (el texto; si lleva «Error», no se recarga la lista).</summary>
+    Private Sub AplicarResultadoTramitacion(envioATramitar As EnviosAgencia, resultado As String)
+        ' ⭐ VERIFICAR que realmente se tramitó
+        If resultado.Contains("Error") Then
+            mensajeError = resultado
+            ' ⚠️ NO recargar lista si hubo error
+            Return
+        End If
+        mensajeError = resultado
+        listaEnvios = _servicio.CargarListaEnvios(If(agenciaSeleccionada?.Numero, envioATramitar.Agencia))
+
+        ' ⭐ Verificar en BD que el estado cambió
+        Dim envioVerificacion = listaEnvios?.FirstOrDefault(Function(e) e.Numero = envioATramitar.Numero)
+        If envioVerificacion IsNot Nothing AndAlso envioVerificacion.Estado <> Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
+            mensajeError = "ADVERTENCIA: El envío no se marcó como tramitado en BD"
+        Else
+            envioActual = listaEnvios?.LastOrDefault
+        End If
     End Sub
+
+    ''' <summary>
+    ''' NestoAPI#870: la API para un reenvío cuya caja del envío original no ha vuelto. Se enseña su texto y se pregunta (por
+    ''' defecto No) si la caja ya está aquí: Sí = repetir la MISMA llamada con yaEstaAqui=true. <paramref name="verbo"/> va en el
+    ''' título («Ya está aquí, imprimir»); <paramref name="accion"/>, en la pregunta («imprimirá la etiqueta»).
+    ''' </summary>
+    Friend Function ConfirmarYaEstaAqui(ex As EsperandoCajaException, verbo As String, accion As String) As Boolean
+        Return _dialogService.ShowConfirmationAnswer($"Ya está aquí, {verbo}", EsperandoCajaException.PreguntaYaEstaAqui(ex, accion), True)
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#870: el resumen de los reenvíos que «Tramitar todos» se ha saltado porque su caja no ha vuelto. Nothing si no hay.
+    ''' </summary>
+    Friend Shared Function TextoEnviosEsperandoCaja(envios As IEnumerable(Of (Numero As Integer, Pedido As Integer?))) As String
+        Dim lista = If(envios, Enumerable.Empty(Of (Numero As Integer, Pedido As Integer?))()).ToList()
+        If lista.Count = 0 Then
+            Return Nothing
+        End If
+        Dim numeros As String = String.Join(", ", lista.Select(Function(e) If(e.Pedido.HasValue AndAlso e.Pedido.Value <> 0, $"{e.Numero} (pedido {e.Pedido})", e.Numero.ToString())))
+        Dim cabecera As String = If(lista.Count = 1, $"1 envío esperando que vuelva su caja: {numeros}.", $"{lista.Count} envíos esperando que vuelva su caja: {numeros}.")
+        Return cabecera & If(lista.Count = 1, " Se ha saltado: es un reenvío y no puede salir", " Se han saltado: son reenvíos y no pueden salir") &
+            " hasta que la caja del envío original esté aquí. Cuando llegue, léala en Ariadna («Ha vuelto un paquete») o pulse «Ya está aquí» en Agencias › Devueltos."
+    End Function
 
     ' Carlos 29/09/26 (pedido 927075): un pedido de la tienda online (cliente 31517) salió por CTT a
     ' nuestra propia dirección, la de la ficha genérica, en vez de a la de la clienta (que va en los
@@ -2386,16 +2451,37 @@ Public Class AgenciasViewModel
             Return
         End Try
 
+        Dim unused1 = Await TramitarEnviosClasicos(listaEnvios.ToList(), agenciaEspecifica)
+    End Sub
+
+    ''' <summary>
+    ''' «Tramitar todos» de las agencias clásicas: uno detrás de otro (antes, cmdTramitar.Execute sin esperar). NestoAPI#870: los
+    ''' reenvíos cuya caja no ha vuelto se SALTAN sin preguntar por cada uno y al final se dice cuáles y por qué (un solo aviso).
+    ''' Devuelve los saltados.
+    ''' </summary>
+    Friend Async Function TramitarEnviosClasicos(envios As IList(Of EnviosAgencia), agencia As IAgencia) As Task(Of List(Of EnviosAgencia))
+        Dim saltados As New List(Of EnviosAgencia)
+        If envios Is Nothing OrElse agencia Is Nothing Then
+            Return saltados
+        End If
         barraProgresoActual = 0
-        barraProgresoFinal = listaEnvios.Count
-        For Each envio In listaEnvios
+        barraProgresoFinal = envios.Count
+        For Each envio In envios
             barraProgresoActual += 1
             envioActual = envio
             mensajeError = "Tramitando pedido " + envio.Pedido.ToString
             Debug.Print("Tramitando pedido " + envio.Pedido.ToString)
-            cmdTramitar.Execute(Nothing)
+            If Await TramitarUnEnvio(envio, agencia, enBucle:=True) IsNot Nothing Then
+                saltados.Add(envio)
+            End If
         Next
-    End Sub
+        Dim resumen As String = TextoEnviosEsperandoCaja(saltados.Select(Function(e) (e.Numero, CType(e.Pedido, Integer?))))
+        If resumen IsNot Nothing Then
+            mensajeError = resumen
+            _dialogService.ShowNotification("Esperando la caja", resumen)
+        End If
+        Return saltados
+    End Function
 
     ' ===== NestoAPI#552 (fase 4): GLS por la API (decisión de Carlos del 21/10/26) =====
     ' La etiqueta de GLS la monta NestoAPI sin grabar en GLS, y Tramitar / Tramitar todos graban y cierran en el servidor. Así
@@ -2479,6 +2565,9 @@ Public Class AgenciasViewModel
         ElseIf total.EnviosConAviso.Any() Then
             ' NestoAPI#552 (fase 5): tramitados, pero GLS tiene otros datos: que no pase desapercibido.
             _dialogService.ShowNotification("Revise con GLS", mensajeError)
+        ElseIf total.EnviosEsperandoCaja.Any() Then
+            ' NestoAPI#870: un solo aviso al final con los que se han saltado (no uno por envío).
+            _dialogService.ShowNotification("Esperando la caja", mensajeError)
         End If
         OnPropertyChanged(NameOf(listaReembolsos))
         OnPropertyChanged(NameOf(mensajeError))
@@ -2491,6 +2580,12 @@ Public Class AgenciasViewModel
         Dim conAviso = resultado.EnviosConAviso.ToList()
         If resultado.Envios.Count = 1 AndAlso resultado.Tramitados = 1 AndAlso excepcion Is Nothing AndAlso conAviso.Count = 0 Then
             Return resultado.Envios(0).Mensaje
+        End If
+        Dim esperandoCaja = resultado.EnviosEsperandoCaja.ToList()
+        ' NestoAPI#870: el botón Tramitar con un solo envío, que es un reenvío cuya caja no ha vuelto: el texto de la API tal cual.
+        If resultado.Envios.Count = 1 AndAlso esperandoCaja.Count = 1 AndAlso excepcion Is Nothing AndAlso
+           Not String.IsNullOrWhiteSpace(esperandoCaja(0).Mensaje) Then
+            Return esperandoCaja(0).Mensaje
         End If
         Dim unused = texto.Append(If(resultado.Tramitados = 1, "Se ha tramitado 1 envío de GLS.", $"Se han tramitado {resultado.Tramitados} envíos de GLS."))
         If resultado.YaTramitados > 0 Then
@@ -2510,6 +2605,10 @@ Public Class AgenciasViewModel
                 unused = texto.AppendLine().Append($"- Pedido {conCambios.Pedido} (envío {conCambios.Numero}): {conCambios.Aviso}")
             Next
         End If
+        ' NestoAPI#870: los reenvíos cuya caja no ha vuelto: no se han tocado (ni GLS ni el envío); se dice cuáles y por qué.
+        If esperandoCaja.Count > 0 Then
+            unused = texto.AppendLine().AppendLine().Append(TextoEnviosEsperandoCaja(esperandoCaja.Select(Function(e) (e.Numero, e.Pedido))))
+        End If
         If excepcion IsNot Nothing Then
             unused = texto.AppendLine().AppendLine().Append($"Se ha cortado la tramitación: {excepcion.Message}").AppendLine() _
                 .Append("Vuelva a pulsar «Tramitar todos»: los envíos ya tramitados se saltan y GLS no duplica los que ya tiene.")
@@ -2521,9 +2620,10 @@ Public Class AgenciasViewModel
     ''' NestoAPI#552 (fase 4): la etiqueta de una agencia clásica (TramitarAlCerrar). GLS (agencias 1 y 5) con el parámetro GlsPorApi =
     ''' "API": la monta la API y se manda a la Zebra de GLS; si no, la agencia la monta e imprime como siempre.
     ''' </summary>
-    Friend Async Function ImprimirEtiquetaClasica(agencia As IAgencia, envio As EnviosAgencia) As Task
+    Friend Async Function ImprimirEtiquetaClasica(agencia As IAgencia, envio As EnviosAgencia, Optional yaEstaAqui As Boolean = False) As Task
         If Await DebeTramitarGlsPorApi(envio.Agencia) Then
-            Dim etiqueta As EtiquetaEnvioGlsDto = Await _servicio.LeerEtiquetaGls(envio.Numero)
+            ' NestoAPI#870: con un reenvío cuya caja no ha vuelto lanza EsperandoCajaException (yaEstaAqui = forzar)
+            Dim etiqueta As EtiquetaEnvioGlsDto = Await _servicio.LeerEtiquetaGls(envio.Numero, yaEstaAqui)
             Await MandarZplAImpresoraGls(envio, ZplDeLaEtiqueta(etiqueta))
             Return
         End If
@@ -2616,7 +2716,20 @@ Public Class AgenciasViewModel
                 ' reimpresión (no hay que volver a avisar al cliente).
                 Dim eraNuevoRegistro As Boolean = String.IsNullOrWhiteSpace(envioActual.CodigoBarras)
                 ' El servidor ya audita la llamada (con el SOAP crudo), así que no se guarda aquí.
-                Dim respuestaRemota = Await agenciaRemota.InsertarYEtiquetar(envioActual, _servicio)
+                ' NestoAPI#870: un reenvío cuya caja no ha vuelto no se registra: se pregunta si ya está aquí y, si sí, se repite forzando.
+                Dim respuestaRemota As RespuestaAgencia = Nothing
+                Dim esperandoCaja As EsperandoCajaException = Nothing
+                Try
+                    respuestaRemota = Await agenciaRemota.InsertarYEtiquetar(envioActual, _servicio)
+                Catch ex As EsperandoCajaException
+                    esperandoCaja = ex
+                End Try
+                If esperandoCaja IsNot Nothing Then
+                    If Not ConfirmarYaEstaAqui(esperandoCaja, "imprimir", "imprimirá la etiqueta") Then
+                        Return
+                    End If
+                    respuestaRemota = Await agenciaRemota.InsertarYEtiquetar(envioActual, _servicio, yaEstaAqui:=True)
+                End If
                 If Not respuestaRemota.Exito Then
                     _dialogService.ShowError($"No se pudo tramitar el envío con la agencia: {respuestaRemota.TextoRespuestaError}")
                     Return
@@ -2627,7 +2740,19 @@ Public Class AgenciasViewModel
                 End If
             Else
                 ' NestoAPI#552 (fase 4): la de GLS, con GlsPorApi = "API", la monta la API (sin grabar en GLS).
-                Await ImprimirEtiquetaClasica(agenciaDelEnvio, envioActual)
+                Dim esperandoCaja As EsperandoCajaException = Nothing
+                Try
+                    Await ImprimirEtiquetaClasica(agenciaDelEnvio, envioActual)
+                Catch ex As EsperandoCajaException
+                    esperandoCaja = ex
+                End Try
+                If esperandoCaja IsNot Nothing Then
+                    ' NestoAPI#870: GET …/EtiquetaZpl de un reenvío cuya caja no ha vuelto
+                    If Not ConfirmarYaEstaAqui(esperandoCaja, "imprimir", "imprimirá la etiqueta") Then
+                        Return
+                    End If
+                    Await ImprimirEtiquetaClasica(agenciaDelEnvio, envioActual, yaEstaAqui:=True)
+                End If
             End If
 
             If Not _facturarAlImprimirEtiqueta Then
@@ -3488,6 +3613,13 @@ Public Class AgenciasViewModel
             Else
                 _servicio.Modificar(envio)
             End If
+            Return True
+        Catch ex As EsperandoCajaException
+            ' NestoAPI#870: pasar a en curso (o tramitar) a mano un reenvío cuya caja no ha vuelto. Sí = repetir forzando.
+            If Not ConfirmarYaEstaAqui(ex, "guardar", "guardará el envío") Then
+                Return False
+            End If
+            _servicio.ModificarYaEstaAqui(envio, quitarRetorno AndAlso envio.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO AndAlso envio.Retorno = 0)
             Return True
         Catch ex As CambioSinAgenciaException
             Dim confirmacion As String = PeticionCambioSinAgencia.Pedir(_dialogService, ex.Campos)
@@ -4516,8 +4648,8 @@ Public Class AgenciasViewModel
 
     ' ===== NestoAPI#699 (corte 2): pestaña Devueltos, «volver a enviar» y «abonar» =====
     ' La agencia devuelve un envío (o lo deja incidentado) y el almacén o el vendedor dicen si el cliente lo sigue queriendo.
-    ' «Volver a enviar» crea en la API un envío NUEVO del mismo pedido (en curso, sin etiqueta: se tramita e imprime como
-    ' cualquier otro cuando llega la caja); «Abonar» solo lo apunta (el abono se hace con Copiar factura).
+    ' «Volver a enviar» crea en la API un envío NUEVO del mismo pedido (NestoAPI#870: nace en Pendientes y la API no deja
+    ' imprimirlo, pasarlo a en curso ni tramitarlo hasta que vuelva la caja); «Abonar» solo lo apunta (el abono se hace con Copiar factura).
 
     Private _listaDevueltos As ObservableCollection(Of EnvioDevueltoModel)
     Public Property listaDevueltos As ObservableCollection(Of EnvioDevueltoModel)
@@ -4538,6 +4670,7 @@ Public Class AgenciasViewModel
             If SetProperty(_devueltoSeleccionado, value) Then
                 ReenviarDevueltoCommand?.NotifyCanExecuteChanged()
                 AbonarDevueltoCommand?.NotifyCanExecuteChanged()
+                YaEstaAquiDevueltoCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -4562,6 +4695,47 @@ Public Class AgenciasViewModel
     Private Async Sub OnAbonarDevuelto()
         Await AbonarDevueltoSeleccionado()
     End Sub
+
+    ' ===== NestoAPI#870: «Ya está aquí» =====
+    ' El reenvío nace en Pendientes y la API no lo deja salir hasta que la caja del envío original haya vuelto. La marca la pone
+    ' Ariadna leyendo la etiqueta o, de respaldo, este botón (POST api/EnviosAgencias/{id}/HaVuelto, idempotente).
+
+    Public Property YaEstaAquiDevueltoCommand As RelayCommand
+
+    ''' <summary>Con una fila cuya caja no conste todavía como vuelta.</summary>
+    Private Function CanYaEstaAquiDevuelto() As Boolean
+        Return DevueltoSeleccionado IsNot Nothing AndAlso Not DevueltoSeleccionado.HaVuelto
+    End Function
+
+    Private Async Sub OnYaEstaAquiDevuelto()
+        Await YaEstaAquiDevueltoSeleccionado()
+    End Sub
+
+    ''' <summary>«Ya está aquí»: marca que la caja del envío seleccionado ha vuelto, enseña el Mensaje de la API y refresca la lista.</summary>
+    Friend Async Function YaEstaAquiDevueltoSeleccionado() As Task
+        Dim devuelto As EnvioDevueltoModel = DevueltoSeleccionado
+        If devuelto Is Nothing OrElse devuelto.HaVuelto Then
+            Return
+        End If
+        Dim excepcion As Exception = Nothing
+        Try
+            EstaOcupado = True
+            Dim respuesta As EnvioHaVueltoModel = Await _servicio.MarcarHaVuelto(devuelto.Numero)
+            _dialogService.ShowNotification("Ya está aquí",
+                If(String.IsNullOrWhiteSpace(respuesta?.Mensaje), $"Queda marcado que la caja del envío {devuelto.Numero} ha vuelto.", respuesta.Mensaje))
+        Catch ex As Exception
+            excepcion = ex
+            ' 404/409/503: el Message de la API tal cual
+            _dialogService.ShowError(ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+        If excepcion Is Nothing Then
+            Await CargarDevueltos()
+        Else
+            Await RegistrarErrorAgenciaEnElmah(excepcion, "AgenciasViewModel.YaEstaAquiDevueltoSeleccionado")
+        End If
+    End Function
 
     Friend Async Function CargarDevueltos() As Task
         If empresaSeleccionada Is Nothing Then
@@ -5127,12 +5301,17 @@ Public Class AgenciasViewModel
                     envioActual.CodigoBarras = codigoBarrasCalculado
                 End If
                 Dim avisosModificar As IReadOnlyList(Of String)
-                If estabaPendiente AndAlso retornoDelPendiente > 0 AndAlso envioActual.Retorno = 0 Then
-                    ' Sugerencia 906: solo llega aquí si el usuario lo ha quitado a mano (AplicarServicioYRetornoAlPendiente).
-                    avisosModificar = _servicio.ModificarQuitandoRetorno(envioActual)
-                Else
-                    avisosModificar = _servicio.Modificar(envioActual)
-                End If
+                ' Sugerencia 906: solo se quita el retorno si el usuario lo ha quitado a mano (AplicarServicioYRetornoAlPendiente).
+                Dim quitarRetorno As Boolean = estabaPendiente AndAlso retornoDelPendiente > 0 AndAlso envioActual.Retorno = 0
+                Try
+                    avisosModificar = If(quitarRetorno, _servicio.ModificarQuitandoRetorno(envioActual), _servicio.Modificar(envioActual))
+                Catch ex As EsperandoCajaException
+                    ' NestoAPI#870: el pendiente es un reenvío cuya caja no ha vuelto (la API no ha guardado nada). Sí = repetir forzando.
+                    If Not ConfirmarYaEstaAqui(ex, "imprimir", "imprimirá la etiqueta") Then
+                        Throw
+                    End If
+                    avisosModificar = _servicio.ModificarYaEstaAqui(envioActual, quitarRetorno)
+                End Try
                 ' Nesto#603 / NestoAPI#785: el servicio ya ha dejado en envioActual el Reembolso con el que ha quedado (la etiqueta
                 ' GLS local lo lee de ahí); los avisos (p. ej. «se ha recalculado a 134,16 €») se enseñan sin parar la impresión.
                 MostrarAvisosModificar(avisosModificar)
@@ -5192,6 +5371,12 @@ Public Class AgenciasViewModel
                 CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
                 imprimirEtiqueta = False
                 _dialogService.ShowError(ex.Message)
+                Throw New EnvioNoTramitadoException(ex.Message)
+            Catch ex As EsperandoCajaException
+                ' NestoAPI#870: la caja no está aquí (se ha contestado que no): sigue en Pendientes, no se imprime y no se repite el
+                ' mensaje (ya se ha enseñado en la pregunta).
+                CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
+                imprimirEtiqueta = False
                 Throw New EnvioNoTramitadoException(ex.Message)
             Catch ex As EnvioRepartoPropioRepetidoException
                 ' NestoAPI#847: la API no ha creado nada (el pedido ya tiene su envío del reparto propio). Quien imprime ofrece

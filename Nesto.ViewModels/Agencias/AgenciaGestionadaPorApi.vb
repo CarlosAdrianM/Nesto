@@ -82,9 +82,9 @@ Public MustInherit Class AgenciaGestionadaPorApi
 
     ' ---- IAgenciaConGestionRemota (flujo registrar al imprimir) ----
 
-    Public Async Function InsertarYEtiquetar(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.InsertarYEtiquetar
+    Public Async Function InsertarYEtiquetar(envio As EnviosAgencia, servicio As IAgenciaService, Optional yaEstaAqui As Boolean = False) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.InsertarYEtiquetar
         Try
-            Dim resultado As TramitarEnvioResultadoDto = Await servicio.TramitarEnvioRemoto(envio.Numero).ConfigureAwait(False)
+            Dim resultado As TramitarEnvioResultadoDto = Await servicio.TramitarEnvioRemoto(envio.Numero, yaEstaAqui).ConfigureAwait(False)
 
             ' La plataforma asigna el albarán (va a CodigoBarras) y los bultos.
             envio.CodigoBarras = resultado.Albaran
@@ -95,6 +95,9 @@ Public MustInherit Class AgenciaGestionadaPorApi
             Await ImprimirZpl(envio, resultado).ConfigureAwait(False)
 
             Return RespuestaCorrecta(envio, $"Albarán {resultado.Albaran}, {resultado.Bultos} bulto(s)")
+        Catch ex As EsperandoCajaException
+            ' NestoAPI#870: no es un error de la agencia: quien imprime pregunta si la caja ya está aquí.
+            Throw
         Catch ex As Exception
             Return RespuestaError(ex.Message)
         End Try

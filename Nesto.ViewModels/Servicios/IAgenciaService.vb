@@ -16,6 +16,9 @@ Public Interface IAgenciaService
     ''' <summary>Sugerencia 906: el PUT de un envío PENDIENTE al que el usuario le quita a mano el retorno (?quitarRetorno=true). Sin
     ''' ese parámetro la API conserva el retorno del pendiente.</summary>
     Function ModificarQuitandoRetorno(envio As EnviosAgencia) As IReadOnlyList(Of String)
+    ''' <summary>NestoAPI#870: el mismo PUT (o el de quitar el retorno) con ?yaEstaAqui=true, tras un 409 ESPERANDO_CAJA
+    ''' (<see cref="EsperandoCajaException"/>): la caja del envío original ya está aquí y la API lo marca «ha vuelto».</summary>
+    Function ModificarYaEstaAqui(envio As EnviosAgencia, quitarRetorno As Boolean) As IReadOnlyList(Of String)
     Sub Borrar(Id As Integer)
     ' Nesto#340 (A3): el pedido de Agencias ya no es la entidad EF CabPedidoVta, sino un POCO
     ' que viene de GET api/PedidosVenta/ParaAgencia. Los cuatro modos cubren los cuatro caminos
@@ -65,10 +68,12 @@ Public Interface IAgenciaService
     Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia
     Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte
     Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia
-    Function TramitarEnvio(envio As EnviosAgencia) As String
+    ' NestoAPI#870: con un reenvío cuya caja no ha vuelto lanza EsperandoCajaException (no lo convierte en texto); yaEstaAqui =
+    ' repetir forzando (?yaEstaAqui=true). TramitarEnvioRemoto y LeerEtiquetaGls, igual.
+    Function TramitarEnvio(envio As EnviosAgencia, Optional yaEstaAqui As Boolean = False) As String
     ' Innovatrans (registrar al imprimir): tramita el envío contra la agencia en el servidor
     ' (POST api/EnviosAgencias/{id}/Tramitar) y devuelve el albarán + bultos + etiqueta ZPL.
-    Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto)
+    Function TramitarEnvioRemoto(numeroEnvio As Integer, Optional yaEstaAqui As Boolean = False) As Task(Of TramitarEnvioResultadoDto)
     ' Nesto#411 (NestoAPI#316): anula en la agencia un envío YA registrado; el servidor lo devuelve
     ' a etiqueta pendiente (Estado -1, sin albarán). Lanza con el motivo de la agencia si rechaza
     ' (p. ej. la ventana de edición del día ya cerró).
@@ -92,6 +97,9 @@ Public Interface IAgenciaService
     Function ReenviarEnvioDevuelto(numeroEnvio As Integer, peticion As ReenvioEnvioPeticion) As Task(Of DecisionReenvioModel)
     ' NestoAPI#699: el cliente no lo quiere: solo se apunta; el abono, con Copiar factura (POST api/EnviosAgencias/{id}/Abonar).
     Function AbonarEnvioDevuelto(numeroEnvio As Integer) As Task(Of DecisionReenvioModel)
+    ' NestoAPI#870: «Ya está aquí»: la caja del envío devuelto/incidentado ha vuelto (POST api/EnviosAgencias/{id}/HaVuelto).
+    ' Idempotente. Lanza con el Message de la API tal cual (404/409/503).
+    Function MarcarHaVuelto(numeroEnvio As Integer) As Task(Of EnvioHaVueltoModel)
     ' Nesto#571 (NestoAPI#739), desde el 10/11/26 de cualquier agencia: la prueba de entrega del envío (GET api/EnviosAgencias/
     ' {id}/PruebaEntrega), con el documento (firma, albarán firmado o PDF) dentro. Disponible = False con el motivo si no la hay.
     ' Lanza con el motivo del servidor si falla (403 sin permiso, 404 si no existe).
@@ -126,7 +134,7 @@ Public Interface IAgenciaService
     Function TramitarEnviosGls(numeros As List(Of Integer), agencia As Integer) As Task(Of ResultadoTramitarEnviosGlsDto)
     ' NestoAPI#552 (fase 4): la etiqueta ZPL de un envío de GLS montada en la API, sin grabarlo en GLS (GET
     ' api/EnviosAgencias/{id}/EtiquetaZpl). Lanza con el motivo del servidor si no la da.
-    Function LeerEtiquetaGls(numeroEnvio As Integer) As Task(Of EtiquetaEnvioGlsDto)
+    Function LeerEtiquetaGls(numeroEnvio As Integer, Optional yaEstaAqui As Boolean = False) As Task(Of EtiquetaEnvioGlsDto)
     ' Nesto#340 (Agencias, slice A4.4): reembolso/retorno/estado/fecha de un envío tramitado (y rehusar),
     ' con historia y contabilización en el servidor. Lanza con el motivo del servidor si lo rechaza.
     Function ModificarDatosEnvio(numeroEnvio As Integer, datos As ModificarDatosEnvioDto) As Task(Of ResultadoModificacionEnvioDto)

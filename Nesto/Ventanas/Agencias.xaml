@@ -742,12 +742,14 @@
                 </DockPanel>
             </TabItem>
             <!-- NestoAPI#699 (corte 2): devueltos e incidentados de 60 días con la decisión (sin decidir primero). «Volver a enviar»
-                 crea un envío nuevo del mismo pedido (en curso: sale en la pestaña En curso para tramitar e imprimir); «Abonar»
-                 solo lo apunta (el abono, con Copiar factura). -->
+                 crea un envío nuevo del mismo pedido (NestoAPI#870: nace en Pendientes y no sale hasta que vuelva la caja); «Abonar»
+                 solo lo apunta (el abono, con Copiar factura). NestoAPI#870: columna «Caja» y botón «Ya está aquí» (la caja ha vuelto). -->
             <TabItem Name="tabDevueltos" Header="Devueltos">
                 <DockPanel Background="White">
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
                         <Button Content="Actualizar lista" MinWidth="110" Margin="3" Command="{Binding CargarDevueltosCommand}"/>
+                        <Button Content="Ya está aquí" MinWidth="110" Margin="3" Command="{Binding YaEstaAquiDevueltoCommand}"
+                                ToolTip="La caja de este envío ha vuelto al almacén. Si es de un reenvío, ya se podrá imprimir su etiqueta. Lo normal es leerla en Ariadna («Ha vuelto un paquete»)."/>
                         <Button Content="El cliente lo sigue queriendo: volver a enviar…" MinWidth="120" Margin="3" Command="{Binding ReenviarDevueltoCommand}"
                                 ToolTip="Crea un envío nuevo del mismo pedido, sin abono, sin picking y sin factura. Podrá corregir la dirección. La etiqueta se imprime cuando llegue la caja."/>
                         <Button Content="No lo quiere: abonar" MinWidth="120" Margin="3" Command="{Binding AbonarDevueltoCommand}"
@@ -790,6 +792,22 @@
                                                 </TextBlock>
                                             </Setter.Value>
                                         </Setter>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Caja" Binding="{Binding TextoCaja}" Width="Auto">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="ToolTip" Value="{Binding DetalleCaja}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ReenvioEsperandoCaja}" Value="True">
+                                                <Setter Property="Foreground" Value="#B34700"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding HaVuelto}" Value="True">
+                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>

@@ -42,6 +42,53 @@ Public Class EnvioDevueltoModel
     Public Property UsuarioDecision As String
     Public Property FechaDecision As Date?
 
+    ' NestoAPI#870: si la caja ha vuelto físicamente a Algete (la lectura de Ariadna o «Ya está aquí») y si hay un reenvío
+    ' esperándola (decisión Reenviar, el reenvío sin tramitar y la caja sin volver: la API no lo deja salir).
+    Public Property HaVuelto As Boolean
+    Public Property FechaHaVuelto As Date?
+    Public Property UsuarioHaVuelto As String
+    ''' <summary>«Lectura» (Ariadna), «YaEstaAqui» (botón de Nesto) o «AlImprimir» (forzado al imprimir el reenvío).</summary>
+    Public Property ComoHaVuelto As String
+    Public Property ReenvioEsperandoCaja As Boolean
+
+    ''' <summary>NestoAPI#870: la columna «Caja»: esperando, ha vuelto (con día y hora) o nada.</summary>
+    Public ReadOnly Property TextoCaja As String
+        Get
+            If HaVuelto Then
+                Return If(FechaHaVuelto.HasValue, $"Ha vuelto ({FechaHaVuelto.Value:dd/MM HH:mm})", "Ha vuelto")
+            End If
+            If ReenvioEsperandoCaja Then
+                Return "Esperando la caja"
+            End If
+            Return String.Empty
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#870: el tooltip de la columna «Caja»: quién y cómo la dio por vuelta.</summary>
+    Public ReadOnly Property DetalleCaja As String
+        Get
+            If HaVuelto Then
+                Dim como As String = TextoComoHaVuelto(ComoHaVuelto)
+                Dim quien As String = If(String.IsNullOrWhiteSpace(UsuarioHaVuelto), String.Empty, $" por {UsuarioHaVuelto.Trim()}")
+                Dim cuando As String = If(FechaHaVuelto.HasValue, $" el {FechaHaVuelto.Value:dd/MM/yyyy HH:mm}", String.Empty)
+                Return $"Ha vuelto{cuando}{quien}{como}"
+            End If
+            If ReenvioEsperandoCaja Then
+                Return $"El reenvío {EnvioNuevo} no puede salir hasta que vuelva esta caja. Cuando llegue, léala en Ariadna («Ha vuelto un paquete») o pulse «Ya está aquí»."
+            End If
+            Return Nothing
+        End Get
+    End Property
+
+    Friend Shared Function TextoComoHaVuelto(como As String) As String
+        Select Case como
+            Case "Lectura" : Return " (leída en Ariadna)"
+            Case "YaEstaAqui" : Return " (botón «Ya está aquí»)"
+            Case "AlImprimir" : Return " (al imprimir el reenvío)"
+            Case Else : Return String.Empty
+        End Select
+    End Function
+
     Public ReadOnly Property SinDecidir As Boolean
         Get
             Return String.IsNullOrWhiteSpace(Decision) OrElse Decision = SIN_DECIDIR
@@ -97,5 +144,32 @@ Public Class DecisionReenvioModel
     Public Property PortesIncluidos As Boolean
     Public Property Reembolso As Decimal
     Public Property Avisos As List(Of String) = New List(Of String)
+    Public Property Mensaje As String
+End Class
+
+''' <summary>NestoAPI#870: la respuesta de POST api/EnviosAgencias/{id}/HaVuelto (EnvioHaVueltoDTO).</summary>
+Public Class EnvioHaVueltoModel
+    Public Property Envio As Integer
+    Public Property Empresa As String
+    Public Property Agencia As Integer
+    Public Property NombreAgencia As String
+    Public Property CodigoBarras As String
+    Public Property Pedido As Integer?
+    Public Property Cliente As String
+    Public Property Contacto As String
+    Public Property Nombre As String
+    Public Property Poblacion As String
+    Public Property Estado As Short
+    Public Property Bultos As Short
+    Public Property FechaHaVuelto As Date?
+    Public Property UsuarioHaVuelto As String
+    Public Property ComoHaVuelto As String
+    Public Property YaEstabaMarcado As Boolean
+    Public Property Decision As String
+    Public Property EnvioNuevo As Integer?
+    Public Property EstadoEnvioNuevo As Short?
+    Public Property ReenvioEsperando As Boolean
+    Public Property AvisoEnviadoA As String
+    ''' <summary>El texto para el usuario (de usted), tal cual.</summary>
     Public Property Mensaje As String
 End Class

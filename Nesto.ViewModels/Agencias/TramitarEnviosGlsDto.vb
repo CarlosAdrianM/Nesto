@@ -12,6 +12,8 @@ Public Class ResultadoTramitarEnvioGlsDto
     Public Const TRAMITADO As String = "Tramitado"
     Public Const YA_TRAMITADO As String = "YaTramitado"
     Public Const [ERROR] As String = "Error"
+    ''' <summary>NestoAPI#870: un reenvío cuya caja no ha vuelto al almacén: no se ha tocado (ni GLS ni el envío).</summary>
+    Public Const ESPERANDO_CAJA As String = "EsperandoCaja"
 
     Public Property Numero As Integer
     Public Property Pedido As Integer?
@@ -40,6 +42,13 @@ Public Class ResultadoTramitarEnviosGlsDto
     Public ReadOnly Property YaTramitados As Integer
         Get
             Return Envios.Where(Function(e) e.Resultado = ResultadoTramitarEnvioGlsDto.YA_TRAMITADO).Count()
+        End Get
+    End Property
+
+    ''' <summary>NestoAPI#870: los reenvíos que se han saltado porque su caja no ha vuelto (calculado con la lista, como los demás).</summary>
+    Public ReadOnly Property EnviosEsperandoCaja As IEnumerable(Of ResultadoTramitarEnvioGlsDto)
+        Get
+            Return Envios.Where(Function(e) e.Resultado = ResultadoTramitarEnvioGlsDto.ESPERANDO_CAJA)
         End Get
     End Property
 

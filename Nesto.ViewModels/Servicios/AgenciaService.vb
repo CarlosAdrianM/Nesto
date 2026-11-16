@@ -73,6 +73,26 @@ Public Class AgenciaService
         Return $"EnviosAgencias/{numeroEnvio}?quitarRetorno=true"
     End Function
 
+    ''' <summary>
+    ''' NestoAPI#870: el MISMO PUT de un pendiente que la API ha parado con 409 ESPERANDO_CAJA, repetido con yaEstaAqui=true
+    ''' (la persona dice que la caja del envío original ya está aquí: la API lo marca «ha vuelto» y sigue como siempre).
+    ''' </summary>
+    Public Function ModificarYaEstaAqui(envio As EnviosAgencia, quitarRetorno As Boolean) As IReadOnlyList(Of String) Implements IAgenciaService.ModificarYaEstaAqui
+        Return PutEnvio(envio, RutaModificarYaEstaAqui(envio.Numero, quitarRetorno))
+    End Function
+
+    Friend Shared Function RutaModificarYaEstaAqui(numeroEnvio As Integer, quitarRetorno As Boolean) As String
+        Return ConYaEstaAqui(If(quitarRetorno, RutaModificarQuitandoRetorno(numeroEnvio), RutaModificar(numeroEnvio, Nothing)), True)
+    End Function
+
+    ''' <summary>NestoAPI#870: añade yaEstaAqui=true a la query de una ruta (con «?» o «&amp;» según lleve ya parámetros).</summary>
+    Friend Shared Function ConYaEstaAqui(ruta As String, yaEstaAqui As Boolean) As String
+        If Not yaEstaAqui Then
+            Return ruta
+        End If
+        Return ruta & If(ruta.Contains("?"), "&", "?") & "yaEstaAqui=true"
+    End Function
+
     ''' <summary>PUT api/EnviosAgencias/{id}; con confirmación, ?confirmadoConLaAgencia=true&amp;confirmacionAgencia=... (NestoAPI#725).</summary>
     Friend Shared Function RutaModificar(numeroEnvio As Integer, confirmacionAgencia As String) As String
         Dim ruta As String = $"EnviosAgencias/{numeroEnvio}"
@@ -122,6 +142,11 @@ Public Class AgenciaService
             Dim cambioSinAgencia = CambioSinAgenciaException.DesdeRespuesta(envio.Numero, codigoEstado, cuerpo)
             If cambioSinAgencia IsNot Nothing Then
                 Throw cambioSinAgencia
+            End If
+            ' NestoAPI#870: un reenvío cuya caja no ha vuelto no pasa a en curso (no se ha guardado nada)
+            Dim esperandoCaja = EsperandoCajaException.DesdeRespuesta(codigoEstado, cuerpo)
+            If esperandoCaja IsNot Nothing Then
+                Throw esperandoCaja
             End If
             Dim reembolsoCero = ReembolsoCeroContraReembolsoException.DesdeRespuesta(envio.Numero, codigoEstado, cuerpo)
             If reembolsoCero IsNot Nothing Then
@@ -848,15 +873,19 @@ Public Class AgenciaService
     ' tres envíos con reembolso verificados en la base de datos, así que el camino de Entity
     ' Framework llevaba diez días sin ejecutarse: se retira junto con la bandera.
 
-    Public Function TramitarEnvio(envio As EnviosAgencia) As String Implements IAgenciaService.TramitarEnvio
-        Return TramitarEnvioPorApi(envio)
+    Public Function TramitarEnvio(envio As EnviosAgencia, Optional yaEstaAqui As Boolean = False) As String Implements IAgenciaService.TramitarEnvio
+        Return TramitarEnvioPorApi(envio, yaEstaAqui)
+    End Function
+
+    Friend Shared Function RutaConfirmarTramitacion(numeroEnvio As Integer, yaEstaAqui As Boolean) As String
+        Return ConYaEstaAqui($"EnviosAgencias/{numeroEnvio}/ConfirmarTramitacion", yaEstaAqui)
     End Function
 
     ''' <summary>
     ''' Cierra el envío en el servidor. Devuelve el mismo tipo de mensaje que el camino antiguo
     ''' porque el ViewModel decide por su contenido (busca la palabra "Error").
     ''' </summary>
-    Private Function TramitarEnvioPorApi(envio As EnviosAgencia) As String
+    Private Function TramitarEnvioPorApi(envio As EnviosAgencia, yaEstaAqui As Boolean) As String
         Try
             Return Task.Run(Async Function() As Task(Of String)
                                 Using client As HttpClient = _clienteApiFactory.Crear()
@@ -864,9 +893,13 @@ Public Class AgenciaService
                                         Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
                                     End If
                                     Dim response As HttpResponseMessage = Await client.PostAsync(
-                                        $"EnviosAgencias/{envio.Numero}/ConfirmarTramitacion", New StringContent(String.Empty, Encoding.UTF8, "application/json"))
+                                        RutaConfirmarTramitacion(envio.Numero, yaEstaAqui), New StringContent(String.Empty, Encoding.UTF8, "application/json"))
                                     Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
                                     If Not response.IsSuccessStatusCode Then
+                                        Dim esperandoCaja = EsperandoCajaException.DesdeRespuesta(CInt(response.StatusCode), cuerpo)
+                                        If esperandoCaja IsNot Nothing Then
+                                            Throw esperandoCaja
+                                        End If
                                         Throw New Exception(cuerpo)
                                     End If
                                     Dim resultado = JsonConvert.DeserializeObject(Of ResultadoTramitacionEnvioModel)(cuerpo)
@@ -878,6 +911,9 @@ Public Class AgenciaService
                                     Return resultado.Mensaje
                                 End Using
                             End Function).GetAwaiter().GetResult()
+        Catch ex As EsperandoCajaException
+            ' NestoAPI#870: no es un error (el envío no se ha tocado): quien tramita decide si la caja ya está aquí o lo salta.
+            Throw
         Catch ex As Exception
             ' Nesto#448: aqui la excepcion se convierte en TEXTO de retorno, asi que el Catch del
             ' ViewModel no llega a verla y su registro en ELMAH nunca se ejecuta. Si no se registra
@@ -946,7 +982,11 @@ Public Class AgenciaService
     End Function
 
 
-    Public Async Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.TramitarEnvioRemoto
+    Friend Shared Function RutaTramitarRemoto(numeroEnvio As Integer, yaEstaAqui As Boolean) As String
+        Return ConYaEstaAqui($"EnviosAgencias/{numeroEnvio}/Tramitar", yaEstaAqui)
+    End Function
+
+    Public Async Function TramitarEnvioRemoto(numeroEnvio As Integer, Optional yaEstaAqui As Boolean = False) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.TramitarEnvioRemoto
         Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -955,10 +995,15 @@ Public Class AgenciaService
 
             ' El cuerpo va vacío: el envío ya existe (lo identifica la ruta); el servidor lo tramita.
             Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
-            Dim response As HttpResponseMessage = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/Tramitar", content)
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaTramitarRemoto(numeroEnvio, yaEstaAqui), content)
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
+                ' NestoAPI#870: reenvío cuya caja no ha vuelto (no se ha registrado nada en la agencia)
+                Dim esperandoCaja = EsperandoCajaException.DesdeRespuesta(CInt(response.StatusCode), cuerpo)
+                If esperandoCaja IsNot Nothing Then
+                    Throw esperandoCaja
+                End If
                 Throw New Exception(MensajeErrorTramitacion(CInt(response.StatusCode), cuerpo))
             End If
 
@@ -1090,6 +1135,29 @@ Public Class AgenciaService
                 Throw New Exception(MensajeErrorApi(cuerpo))
             End If
             Return If(JsonConvert.DeserializeObject(Of List(Of EnvioDevueltoModel))(cuerpo), New List(Of EnvioDevueltoModel))
+        End Using
+    End Function
+
+    Friend Shared Function RutaHaVuelto(numeroEnvio As Integer) As String
+        Return $"EnviosAgencias/{numeroEnvio}/HaVuelto"
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#870: «Ya está aquí»: la caja del envío devuelto/incidentado ha vuelto a Algete (POST api/EnviosAgencias/{id}/
+    ''' HaVuelto, sin cuerpo; idempotente). Lanza con el «Message» de la API tal cual (404/409/503).
+    ''' </summary>
+    Public Async Function MarcarHaVuelto(numeroEnvio As Integer) As Task(Of EnvioHaVueltoModel) Implements IAgenciaService.MarcarHaVuelto
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(RutaHaVuelto(numeroEnvio), content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeErrorApi(cuerpo))
+            End If
+            Return JsonConvert.DeserializeObject(Of EnvioHaVueltoModel)(cuerpo)
         End Using
     End Function
 
@@ -1265,18 +1333,22 @@ Public Class AgenciaService
         Return JsonConvert.SerializeObject(New TramitarEnviosGlsDto With {.Agencia = agencia, .Envios = numeros})
     End Function
 
-    Friend Shared Function RutaEtiquetaGls(numeroEnvio As Integer) As String
-        Return $"EnviosAgencias/{numeroEnvio}/EtiquetaZpl"
+    Friend Shared Function RutaEtiquetaGls(numeroEnvio As Integer, Optional yaEstaAqui As Boolean = False) As String
+        Return ConYaEstaAqui($"EnviosAgencias/{numeroEnvio}/EtiquetaZpl", yaEstaAqui)
     End Function
 
-    Public Async Function LeerEtiquetaGls(numeroEnvio As Integer) As Task(Of EtiquetaEnvioGlsDto) Implements IAgenciaService.LeerEtiquetaGls
+    Public Async Function LeerEtiquetaGls(numeroEnvio As Integer, Optional yaEstaAqui As Boolean = False) As Task(Of EtiquetaEnvioGlsDto) Implements IAgenciaService.LeerEtiquetaGls
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
             End If
-            Dim response As HttpResponseMessage = Await client.GetAsync(RutaEtiquetaGls(numeroEnvio))
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaEtiquetaGls(numeroEnvio, yaEstaAqui))
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
             If Not response.IsSuccessStatusCode Then
+                Dim esperandoCaja = EsperandoCajaException.DesdeRespuesta(CInt(response.StatusCode), cuerpo)
+                If esperandoCaja IsNot Nothing Then
+                    Throw esperandoCaja
+                End If
                 Throw New Exception($"NestoAPI no ha dado la etiqueta de GLS del envío {numeroEnvio} ({CInt(response.StatusCode)}): {cuerpo}")
             End If
             Return JsonConvert.DeserializeObject(Of EtiquetaEnvioGlsDto)(cuerpo)
@@ -1354,7 +1426,12 @@ Public Class AgenciaService
                 If repetido IsNot Nothing Then
                     Throw repetido
                 End If
-                Dim conflicto = JsonConvert.DeserializeObject(Of ConflictoEnvioDesdePedidoDto)(cuerpo)
+                ' NestoAPI#870: por si la API también para aquí el pendiente de un reenvío cuya caja no ha vuelto (su texto, tal cual)
+                Dim esperandoCaja = EsperandoCajaException.DesdeRespuesta(codigoHttp, cuerpo)
+                If esperandoCaja IsNot Nothing Then
+                    Throw esperandoCaja
+                End If
+                Dim conflicto =JsonConvert.DeserializeObject(Of ConflictoEnvioDesdePedidoDto)(cuerpo)
                 Return New ResultadoEnvioDesdePedidoModel With {
                     .Estado = EstadoEnvioDesdePedido.ConPendientes,
                     .Pendientes = If(conflicto?.Pendientes, New List(Of AvisoEnvioDesdePedidoDto))

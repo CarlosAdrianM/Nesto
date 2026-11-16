@@ -50,9 +50,11 @@ Public Interface IAgenciaConGestionRemota
     ''' <summary>
     ''' Inserta el envío en la agencia, guarda el albarán devuelto en el envío (CodigoBarras) e
     ''' imprime la etiqueta (ZPL). Es lo que ocurre al pasar el envío a "En curso". Devuelve
-    ''' Exito=False con el motivo si la agencia rechaza el insert.
+    ''' Exito=False con el motivo si la agencia rechaza el insert. NestoAPI#870: si es un reenvío cuya caja no ha vuelto, LANZA
+    ''' <see cref="EsperandoCajaException"/> (no se ha registrado nada) para que quien imprime pregunte; con
+    ''' <paramref name="yaEstaAqui"/> se repite forzando (la API lo marca «ha vuelto»).
     ''' </summary>
-    Function InsertarYEtiquetar(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia)
+    Function InsertarYEtiquetar(envio As EnviosAgencia, servicio As IAgenciaService, Optional yaEstaAqui As Boolean = False) As Task(Of RespuestaAgencia)
 
     ''' <summary>
     ''' Reimprime la etiqueta de un envío YA insertado, sin volver a insertarlo (mismo albarán).
