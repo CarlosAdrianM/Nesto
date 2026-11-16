@@ -67,6 +67,7 @@ namespace Nesto.Modules.Producto.ViewModels
             ServicioSustituciones = new ServicioSustitucionesProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#581
             ServicioEtiquetasProducto = new ServicioEtiquetasProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#534
             ServicioEstadoProductos = new ServicioEstadoProductos(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#624
+            ServicioProximaEntrada = new ServicioProximaEntradaProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#869
 
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
@@ -120,6 +121,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 EstaCargandoControlesStock = true;
                 ControlStock = null;
+                ProximaEntrada = null;
                 ProductoModel producto;
                 try
                 {
@@ -180,6 +182,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 await CargarVariantesAsync(productoId);
                 await CargarCodigosBarrasAsync();
                 await CargarSustitucionesAsync();
+                await CargarProximaEntradaAsync();
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
@@ -1545,6 +1548,99 @@ namespace Nesto.Modules.Producto.ViewModels
         // NestoAPI#581: «mientras tanto, servid la 45685 en lugar de la 25539». Compras la da de alta aquí y quien mete
         // el pedido (plantilla, detalle, NestoApp) lo ve al meter el producto, con la opción de cambiarlo. Una sola
         // activa por producto: dar de alta otra anula la anterior. Cuándo deja de avisar lo decide la API.
+
+        // NestoAPI#869: «Próxima entrada» de Algete. La API decide (pedido en el aire con su fecha, o la orientativa de los plazos del
+        // proveedor habitual, o nada con el motivo) y da la frase; aquí solo se pinta.
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioProximaEntradaProducto ServicioProximaEntrada { get; set; }
+
+        private ProximaEntradaProducto _proximaEntrada;
+        /// <summary>Null si la API no la ha dado (falla o es anterior al endpoint): no se ve la línea.</summary>
+        public ProximaEntradaProducto ProximaEntrada
+        {
+            get => _proximaEntrada;
+            private set
+            {
+                if (SetProperty(ref _proximaEntrada, value))
+                {
+                    OnPropertyChanged(nameof(HayProximaEntrada));
+                    OnPropertyChanged(nameof(TextoProximaEntrada));
+                    OnPropertyChanged(nameof(AyudaProximaEntrada));
+                }
+            }
+        }
+
+        public bool HayProximaEntrada => !string.IsNullOrWhiteSpace(ProximaEntrada?.Texto);
+
+        /// <summary>«Próxima entrada: Pedido 220856: 27/11 (fecha aproximada, …)» u «Orientativa: no hay pedido; si se pidiera hoy…».</summary>
+        public string TextoProximaEntrada => HayProximaEntrada ? $"Próxima entrada: {ProximaEntrada.Texto.Trim()}" : null;
+
+        /// <summary>El detalle de las cuentas (proveedor habitual, cada cuánto se le pide, cuánto tarda), para el ToolTip.</summary>
+        public string AyudaProximaEntrada
+        {
+            get
+            {
+                ProximaEntradaProducto p = ProximaEntrada;
+                if (p == null)
+                {
+                    return null;
+                }
+                var lineas = new List<string>();
+                if (!string.IsNullOrWhiteSpace(p.EtiquetaCerteza))
+                {
+                    lineas.Add($"Certeza: {p.EtiquetaCerteza.Trim()}");
+                }
+                if (!string.IsNullOrWhiteSpace(p.NombreProveedorPedido) && p.Pedido.HasValue)
+                {
+                    lineas.Add($"Proveedor del pedido {p.Pedido}: {p.NombreProveedorPedido.Trim()}");
+                }
+                if (!string.IsNullOrWhiteSpace(p.ProveedorHabitual))
+                {
+                    string nombre = string.IsNullOrWhiteSpace(p.NombreProveedorHabitual) ? string.Empty : $" ({p.NombreProveedorHabitual.Trim()})";
+                    lineas.Add($"Proveedor habitual: {p.ProveedorHabitual.Trim()}{nombre}");
+                }
+                if (p.CadenciaDias.HasValue)
+                {
+                    lineas.Add($"Se le suele pedir cada {p.CadenciaDias} días");
+                }
+                if (p.PlazoDias.HasValue)
+                {
+                    lineas.Add(p.PlazoPropio
+                        ? $"Suele tardar hasta {p.PlazoDias} días (8 de cada 10 pedidos llegan antes)"
+                        : $"Sin historial suficiente de este proveedor: se cuenta con el plazo general ({p.PlazoDias} días)");
+                }
+                if (p.Tipo == ProximaEntradaProducto.TIPO_PEDIDO && p.FechaSiSePidieraHoy.HasValue)
+                {
+                    lineas.Add($"Si se pidiera hoy, llegaría hacia el {p.FechaSiSePidieraHoy.Value:dd/MM/yyyy}");
+                }
+                return lineas.Any() ? string.Join(Environment.NewLine, lineas) : null;
+            }
+        }
+
+        internal async Task CargarProximaEntradaAsync()
+        {
+            // En su propio try, como las sustituciones: que esto falle no puede impedir abrir la ficha.
+            try
+            {
+                ProximaEntrada = null;
+                string producto = ProductoActual?.Producto?.Trim();
+                if (string.IsNullOrEmpty(producto) || ServicioProximaEntrada == null)
+                {
+                    return;
+                }
+                ProximaEntradaProducto leida = await ServicioProximaEntrada.Leer(Constantes.Empresas.EMPRESA_DEFECTO, producto, Constantes.Almacenes.ALMACEN_ALGETE);
+                // Si mientras tanto se ha cargado otro producto, no se pinta la de este
+                if (leida != null && string.Equals(ProductoActual?.Producto?.Trim(), producto, StringComparison.OrdinalIgnoreCase))
+                {
+                    ProximaEntrada = leida;
+                }
+            }
+            catch (Exception)
+            {
+                // Información de apoyo: sin ella, la ficha se abre igual
+            }
+        }
 
         /// <summary>El cliente de la API (sustituible en los tests).</summary>
         internal IServicioSustitucionesProducto ServicioSustituciones { get; set; }

@@ -78,6 +78,11 @@
             <!-- NestoAPI#581: la sustitución temporal, a la vista de todos (la mantiene Compras en su pestaña) -->
             <TextBlock Text="{Binding TextoSustitucionActiva}" TextWrapping="Wrap" FontWeight="Bold" Margin="0,3"
                        Visibility="{Binding HaySustitucionActiva, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
+            <!-- NestoAPI#869: la próxima entrada de compra en Algete (pedido en el aire o, sin él, la fecha orientativa del proveedor habitual).
+                 La frase la da la API; el ToolTip lleva las cuentas (proveedor, cada cuánto se le pide, cuánto tarda). -->
+            <TextBlock Text="{Binding TextoProximaEntrada}" TextWrapping="Wrap" Margin="0,3"
+                       ToolTip="{Binding AyudaProximaEntrada}" ToolTipService.ShowDuration="60000"
+                       Visibility="{Binding HayProximaEntrada, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
         </StackPanel>
         <Button Grid.Column="0" Grid.Row="12" Command="{Binding AbrirProductoWebCommand}" Margin="0,5">Web</Button>
 
