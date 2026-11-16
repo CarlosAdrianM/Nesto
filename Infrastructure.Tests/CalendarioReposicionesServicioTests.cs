@@ -121,5 +121,68 @@ namespace Infrastructure.Tests
             Assert.AreEqual(403, error.Codigo);
             StringAssert.Contains(error.Message, "personas autorizadas");
         }
+
+        private const string EXCEPCION = "{\"Id\":7,\"Empresa\":\"1\",\"Origen\":\"ALG\",\"Destino\":\"REI\",\"FechaLlegada\":\"2026-11-20T00:00:00\"," +
+            "\"Tipo\":\"SinReposicion\",\"HoraCierre\":null,\"LaborablesAntelacionCierre\":null,\"HoraLlegadaHabitual\":null," +
+            "\"Motivo\":\"Inventario del sábado 21\",\"Usuario\":\"Carlos\",\"FechaModificacion\":\"2026-11-16T10:00:00\",\"CierraEl\":\"2026-11-19T16:00:00\"}";
+
+        [TestMethod]
+        public async Task LeerExcepciones_PideLasDeLaEmpresa()
+        {
+            var handler = new HandlerFalso { Respuesta = "[" + EXCEPCION + "]" };
+
+            List<ExcepcionCalendarioReposicion> excepciones = await new ServicioCalendarioReposiciones(new FactoriaFalsa(handler)).LeerExcepciones("1  ");
+
+            Assert.AreEqual("GET /api/Reposiciones/Calendario/Excepciones?empresa=1", handler.Urls[0]);
+            Assert.AreEqual(new DateTime(2026, 11, 20), excepciones[0].FechaLlegada);
+            Assert.AreEqual(TiposExcepcionCalendario.SIN_REPOSICION, excepciones[0].Tipo);
+            Assert.AreEqual(new DateTime(2026, 11, 19, 16, 0, 0), excepciones[0].CierraEl);
+        }
+
+        [TestMethod]
+        public async Task GuardarExcepcion_PostConLaRutaElDiaYElMotivo()
+        {
+            var handler = new HandlerFalso { Respuesta = EXCEPCION };
+
+            ExcepcionCalendarioReposicion guardada = await new ServicioCalendarioReposiciones(new FactoriaFalsa(handler)).GuardarExcepcion(
+                new ExcepcionCalendarioReposicion
+                {
+                    Empresa = "1", Origen = "ALG", Destino = "REI", FechaLlegada = new DateTime(2026, 11, 20),
+                    Tipo = TiposExcepcionCalendario.REPOSICION_EXTRA, HoraCierre = new TimeSpan(9, 0, 0), Motivo = "Feria"
+                });
+
+            Assert.AreEqual("POST /api/Reposiciones/Calendario/Excepciones", handler.Urls[0]);
+            JObject cuerpo = JObject.Parse(handler.Cuerpos[0]);
+            Assert.AreEqual("ReposicionExtra", (string)cuerpo["Tipo"]);
+            Assert.AreEqual("09:00:00", (string)cuerpo["HoraCierre"]);
+            Assert.AreEqual("Feria", (string)cuerpo["Motivo"]);
+            Assert.AreEqual(7, guardada.Id);
+        }
+
+        [TestMethod]
+        public async Task GuardarExcepcion_409DeLaApi_LanzaConSuMensaje()
+        {
+            var handler = new HandlerFalso
+            {
+                Codigo = HttpStatusCode.Conflict,
+                Respuesta = "{\"Message\":\"La reposición de ALG a REI que llega el viernes 20/11/2026 cerraba el jueves 19/11/2026 a las 16:00 y esa hora ya ha pasado.\"}"
+            };
+
+            CalendarioReposicionesException error = await Assert.ThrowsExceptionAsync<CalendarioReposicionesException>(
+                () => new ServicioCalendarioReposiciones(new FactoriaFalsa(handler)).GuardarExcepcion(new ExcepcionCalendarioReposicion()));
+
+            Assert.AreEqual(409, error.Codigo);
+            StringAssert.Contains(error.Message, "ya ha pasado");
+        }
+
+        [TestMethod]
+        public async Task BorrarExcepcion_DeletePorId()
+        {
+            var handler = new HandlerFalso { Respuesta = EXCEPCION };
+
+            await new ServicioCalendarioReposiciones(new FactoriaFalsa(handler)).BorrarExcepcion(7);
+
+            Assert.AreEqual("DELETE /api/Reposiciones/Calendario/Excepciones/7", handler.Urls[0]);
+        }
     }
 }

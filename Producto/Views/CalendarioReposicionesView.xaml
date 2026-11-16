@@ -19,6 +19,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -85,5 +86,51 @@
         </DataGrid>
 
         <TextBlock Grid.Row="4" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <!-- NestoAPI#867: excepciones por fecha (quitar un día concreto o añadir uno extra), de hoy en adelante. -->
+        <GroupBox Grid.Row="5" Header="Excepciones: días concretos" Margin="0,12,0,0" Padding="8">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Opacity="0.8"
+                           Text="Para un día concreto (un inventario, un cierre…) sin tocar el calendario de todas las semanas. La fecha es la de LLEGADA. Ese día no se rellena ni se avisa (o, si es extra, se rellena como uno más). Desde la hora de cierre de ese día ya no se puede cambiar." />
+                <WrapPanel Margin="0,0,0,8"
+                           Visibility="{Binding PuedeEditar, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="De" VerticalAlignment="Center" Margin="0,0,4,0" />
+                    <ComboBox Width="70" ItemsSource="{x:Static viewmodels:CalendarioReposicionesViewModel.Almacenes}" SelectedItem="{Binding ExcepcionOrigen}" />
+                    <TextBlock Text="a" VerticalAlignment="Center" Margin="6,0,4,0" />
+                    <ComboBox Width="70" ItemsSource="{x:Static viewmodels:CalendarioReposicionesViewModel.Almacenes}" SelectedItem="{Binding ExcepcionDestino}" />
+                    <TextBlock Text="que llega el" VerticalAlignment="Center" Margin="6,0,4,0" />
+                    <DatePicker Width="120" SelectedDate="{Binding ExcepcionFecha}" />
+                    <TextBlock Text="Motivo:" VerticalAlignment="Center" Margin="10,0,4,0" />
+                    <TextBox Width="220" Text="{Binding ExcepcionMotivo, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" VerticalContentAlignment="Center" />
+                    <Button Content="Quitar un día" Command="{Binding QuitarDiaCommand}" Padding="10,2" Margin="10,0,0,0"
+                            ToolTip="Ese día no habrá la reposición del calendario" />
+                    <TextBlock Text="o, para un día extra, cierre" VerticalAlignment="Center" Margin="14,0,4,0" />
+                    <TextBox Width="50" Text="{Binding ExcepcionHoraCierre, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                             ToolTip="En blanco, la de la ruta" />
+                    <TextBlock Text="llegada" VerticalAlignment="Center" Margin="6,0,4,0" />
+                    <TextBox Width="50" Text="{Binding ExcepcionHoraLlegada, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                             ToolTip="En blanco, la de la ruta" />
+                    <Button Content="Añadir día extra" Command="{Binding AnadirDiaExtraCommand}" Padding="10,2" Margin="8,0,0,0"
+                            ToolTip="Ese día habrá una reposición que el calendario no tiene (se cierra con la antelación de la ruta)" />
+                </WrapPanel>
+                <DataGrid ItemsSource="{Binding Excepciones}" SelectedItem="{Binding ExcepcionSeleccionada}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" SelectionMode="Single" MaxHeight="180">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Llega el" Binding="{Binding Fecha, Mode=OneWay}" Width="150" />
+                        <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta, Mode=OneWay}" />
+                        <DataGridTextColumn Header="Tipo" Binding="{Binding TipoTexto, Mode=OneWay}" Width="260" />
+                        <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo, Mode=OneWay}" Width="*" />
+                        <DataGridTextColumn Header="Quién" Binding="{Binding Usuario, Mode=OneWay}" />
+                        <DataGridTextColumn Header="Cierra" Binding="{Binding CierraEl, Mode=OneWay}" Width="140" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="Borrar excepción" Command="{Binding BorrarExcepcionCommand}" Padding="10,2"
+                            Visibility="{Binding PuedeEditar, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            ToolTip="Ese día vuelve a ser como dice el calendario" />
+                    <TextBlock Text="{Binding MensajeExcepciones}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
     </Grid>
 </UserControl>

@@ -39,6 +39,41 @@ namespace Nesto.Infrastructure.Models
         public List<FilaCalendarioReposicion> Filas { get; set; } = new List<FilaCalendarioReposicion>();
     }
 
+    /// <summary>
+    /// NestoAPI#867: una excepción por fecha del calendario de reposiciones (GET/POST/DELETE
+    /// api/Reposiciones/Calendario/Excepciones): ese día de llegada no hay la reposición del calendario
+    /// (<see cref="TiposExcepcionCalendario.SIN_REPOSICION"/>) o hay una que el calendario no tiene
+    /// (<see cref="TiposExcepcionCalendario.REPOSICION_EXTRA"/>, con sus horas; sin ellas, las de la ruta).
+    /// </summary>
+    public class ExcepcionCalendarioReposicion
+    {
+        /// <summary>Solo lectura (la API busca por empresa, ruta y fecha).</summary>
+        public int? Id { get; set; }
+        public string Empresa { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        /// <summary>El día de llegada.</summary>
+        public DateTime FechaLlegada { get; set; }
+        public string Tipo { get; set; }
+        public TimeSpan? HoraCierre { get; set; }
+        public byte? LaborablesAntelacionCierre { get; set; }
+        public TimeSpan? HoraLlegadaHabitual { get; set; }
+        public string Motivo { get; set; }
+        /// <summary>Solo lectura.</summary>
+        public string Usuario { get; set; }
+        /// <summary>Solo lectura.</summary>
+        public DateTime? FechaModificacion { get; set; }
+        /// <summary>Solo lectura: cuándo cierra (o cerraba) la reposición de ese día; desde entonces no se puede tocar.</summary>
+        public DateTime? CierraEl { get; set; }
+    }
+
+    /// <summary>NestoAPI#867: los valores de <see cref="ExcepcionCalendarioReposicion.Tipo"/>.</summary>
+    public static class TiposExcepcionCalendario
+    {
+        public const string SIN_REPOSICION = "SinReposicion";
+        public const string REPOSICION_EXTRA = "ReposicionExtra";
+    }
+
     /// <summary>La API no ha leído o guardado el calendario: el mensaje es el suyo (400 con el motivo, 403 sin permiso…).</summary>
     public class CalendarioReposicionesException : Exception
     {

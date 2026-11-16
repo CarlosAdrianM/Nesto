@@ -240,6 +240,161 @@ namespace Producto.Tests
             Assert.IsFalse(CalendarioReposicionesViewModel.LeerHora("", out _));
         }
 
+        #region Excepciones por fecha (NestoAPI#867)
+
+        private static List<ExcepcionCalendarioReposicion> ExcepcionesApi() => new()
+        {
+            new() { Id = 7, Empresa = "1", Origen = "ALG", Destino = "REI", FechaLlegada = new DateTime(2026, 11, 20),
+                Tipo = TiposExcepcionCalendario.SIN_REPOSICION, Motivo = "Inventario del sábado 21", Usuario = "Carlos",
+                CierraEl = new DateTime(2026, 11, 19, 16, 0, 0) },
+            new() { Id = 8, Empresa = "1", Origen = "REI", Destino = "ALG", FechaLlegada = new DateTime(2026, 11, 17),
+                Tipo = TiposExcepcionCalendario.REPOSICION_EXTRA, HoraCierre = new TimeSpan(10, 0, 0), HoraLlegadaHabitual = new TimeSpan(13, 30, 0),
+                Motivo = "Feria", Usuario = "Manuel" }
+        };
+
+        [TestMethod]
+        public async Task Cargar_TraeLasExcepcionesPorFecha()
+        {
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._)).ReturnsLazily(() => Task.FromResult(ExcepcionesApi()));
+
+            await _vm.CargarAsync();
+
+            CollectionAssert.AreEqual(new int?[] { 8, 7 }, _vm.Excepciones.Select(e => e.Id).ToArray(), "Por fecha");
+            ExcepcionCalendarioFila quitado = _vm.Excepciones.Single(e => e.Id == 7);
+            Assert.AreEqual("viernes 20/11/2026", quitado.Fecha);
+            Assert.AreEqual("ALG → REI", quitado.Ruta);
+            Assert.AreEqual("Sin reposición", quitado.TipoTexto);
+            Assert.AreEqual("jueves 19/11 16:00", quitado.CierraEl);
+            Assert.AreEqual("Día extra (cierra a las 10:00, llega a las 13:30)", _vm.Excepciones.Single(e => e.Id == 8).TipoTexto);
+            Assert.IsNull(_vm.MensajeExcepciones);
+        }
+
+        [TestMethod]
+        public async Task Cargar_FallanLasExcepciones_ElCalendarioSeVeIgual()
+        {
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._))
+                .ThrowsAsync(new CalendarioReposicionesException("Falta lanzar Scripts/Issue867_ReposicionesCalendarioExcepciones.sql", 503));
+
+            await _vm.CargarAsync();
+
+            Assert.AreEqual(3, _vm.Filas.Count);
+            Assert.IsNull(_vm.Mensaje);
+            StringAssert.Contains(_vm.MensajeExcepciones, "Issue867");
+        }
+
+        [TestMethod]
+        public async Task QuitarDia_MandaLaRutaElDiaYElMotivo_YRecarga()
+        {
+            ExcepcionCalendarioReposicion? mandada = null;
+            A.CallTo(() => _servicio.GuardarExcepcion(A<ExcepcionCalendarioReposicion>._))
+                .ReturnsLazily((ExcepcionCalendarioReposicion e) =>
+                {
+                    mandada = e;
+                    return Task.FromResult(e);
+                });
+            await _vm.CargarAsync();
+            _vm.ExcepcionOrigen = "ALG";
+            _vm.ExcepcionDestino = "REI";
+            _vm.ExcepcionFecha = new DateTime(2026, 11, 20, 15, 0, 0);
+            _vm.ExcepcionMotivo = " Inventario del sábado 21 ";
+            _vm.ExcepcionHoraCierre = "09:00";
+
+            await _vm.QuitarDiaCommand.ExecuteAsync(null);
+
+            Assert.IsNotNull(mandada);
+            Assert.AreEqual(TiposExcepcionCalendario.SIN_REPOSICION, mandada!.Tipo);
+            Assert.AreEqual(new DateTime(2026, 11, 20), mandada.FechaLlegada);
+            Assert.AreEqual("Inventario del sábado 21", mandada.Motivo);
+            Assert.IsNull(mandada.HoraCierre, "Un día quitado no lleva horas");
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._)).MustHaveHappenedTwiceExactly();
+            StringAssert.Contains(_vm.MensajeExcepciones, "Quitada la reposición de ALG a REI que llega el viernes 20/11/2026");
+            Assert.IsNull(_vm.ExcepcionMotivo, "Se limpia el motivo");
+        }
+
+        [TestMethod]
+        public async Task AnadirDiaExtra_ConHorasEnBlanco_LasDeLaRuta()
+        {
+            ExcepcionCalendarioReposicion? mandada = null;
+            A.CallTo(() => _servicio.GuardarExcepcion(A<ExcepcionCalendarioReposicion>._))
+                .ReturnsLazily((ExcepcionCalendarioReposicion e) =>
+                {
+                    mandada = e;
+                    return Task.FromResult(e);
+                });
+            await _vm.CargarAsync();
+            _vm.ExcepcionOrigen = "REI";
+            _vm.ExcepcionDestino = "ALG";
+            _vm.ExcepcionFecha = new DateTime(2026, 11, 17);
+            _vm.ExcepcionMotivo = "Feria";
+            _vm.ExcepcionHoraLlegada = "12:00";
+
+            await _vm.AnadirDiaExtraCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(TiposExcepcionCalendario.REPOSICION_EXTRA, mandada!.Tipo);
+            Assert.IsNull(mandada.HoraCierre);
+            Assert.AreEqual(new TimeSpan(12, 0, 0), mandada.HoraLlegadaHabitual);
+            StringAssert.Contains(_vm.MensajeExcepciones, "Añadida una reposición extra");
+        }
+
+        [TestMethod]
+        public async Task QuitarDia_SinMotivo_NoLlamaALaApi()
+        {
+            await _vm.CargarAsync();
+            _vm.ExcepcionFecha = new DateTime(2026, 11, 20);
+            _vm.ExcepcionMotivo = " ";
+
+            await _vm.QuitarDiaCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.GuardarExcepcion(A<ExcepcionCalendarioReposicion>._)).MustNotHaveHappened();
+            StringAssert.Contains(_vm.MensajeExcepciones, "Indique el motivo");
+        }
+
+        [TestMethod]
+        public async Task QuitarDia_409DeLaApi_EnsenaSuMensajeYNoRecarga()
+        {
+            A.CallTo(() => _servicio.GuardarExcepcion(A<ExcepcionCalendarioReposicion>._))
+                .ThrowsAsync(new CalendarioReposicionesException("ya no se puede cambiar", 409));
+            await _vm.CargarAsync();
+            _vm.ExcepcionFecha = new DateTime(2026, 11, 20);
+            _vm.ExcepcionMotivo = "Inventario";
+
+            await _vm.QuitarDiaCommand.ExecuteAsync(null);
+
+            Assert.AreEqual("ya no se puede cambiar", _vm.MensajeExcepciones);
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task BorrarExcepcion_LaSeleccionada_YRecarga()
+        {
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._)).ReturnsLazily(() => Task.FromResult(ExcepcionesApi()));
+            await _vm.CargarAsync();
+            Assert.IsFalse(_vm.BorrarExcepcionCommand.CanExecute(null), "Sin seleccionar no se borra nada");
+
+            _vm.ExcepcionSeleccionada = _vm.Excepciones.Single(e => e.Id == 7);
+            await _vm.BorrarExcepcionCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.BorrarExcepcion(7)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(_vm.MensajeExcepciones, "Borrada la excepción del viernes 20/11/2026");
+        }
+
+        [TestMethod]
+        public async Task Excepciones_SinPermiso_NoSeTocan()
+        {
+            A.CallTo(() => _servicio.PuedeEditar()).Returns(false);
+            A.CallTo(() => _servicio.LeerExcepciones(A<string>._)).ReturnsLazily(() => Task.FromResult(ExcepcionesApi()));
+
+            await _vm.CargarAsync();
+            _vm.ExcepcionSeleccionada = _vm.Excepciones.First();
+
+            Assert.AreEqual(2, _vm.Excepciones.Count, "Las ve igual");
+            Assert.IsFalse(_vm.QuitarDiaCommand.CanExecute(null));
+            Assert.IsFalse(_vm.AnadirDiaExtraCommand.CanExecute(null));
+            Assert.IsFalse(_vm.BorrarExcepcionCommand.CanExecute(null));
+        }
+
+        #endregion
+
         [TestMethod]
         public void Ayuda_DiceQueCambiarLaHoraDeHoyNoRepiteLaReposicion()
         {

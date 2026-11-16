@@ -111,6 +111,36 @@ namespace Nesto.Modules.Producto.ViewModels
         }
     }
 
+    /// <summary>NestoAPI#867: una excepción por fecha, como se enseña en la lista (solo lectura).</summary>
+    public class ExcepcionCalendarioFila
+    {
+        private static readonly CultureInfo _castellano = new CultureInfo("es-ES");
+
+        public ExcepcionCalendarioFila(ExcepcionCalendarioReposicion excepcion)
+        {
+            Excepcion = excepcion ?? throw new ArgumentNullException(nameof(excepcion));
+        }
+
+        public ExcepcionCalendarioReposicion Excepcion { get; }
+        public int? Id => Excepcion.Id;
+        public DateTime FechaLlegada => Excepcion.FechaLlegada.Date;
+        public string Fecha => FechaLlegada.ToString("dddd dd/MM/yyyy", _castellano);
+        public string Ruta => $"{Excepcion.Origen?.Trim().ToUpperInvariant()} → {Excepcion.Destino?.Trim().ToUpperInvariant()}";
+        public bool EsDiaExtra => Excepcion.Tipo == TiposExcepcionCalendario.REPOSICION_EXTRA;
+
+        public string TipoTexto => EsDiaExtra
+            ? "Día extra" + (Excepcion.HoraCierre.HasValue && Excepcion.HoraLlegadaHabitual.HasValue
+                ? $" (cierra a las {CalendarioReposicionesViewModel.TextoHora(Excepcion.HoraCierre.Value)}, llega a las {CalendarioReposicionesViewModel.TextoHora(Excepcion.HoraLlegadaHabitual.Value)})"
+                : string.Empty)
+            : "Sin reposición";
+
+        public string Motivo => Excepcion.Motivo;
+        public string Usuario => Excepcion.Usuario?.Trim();
+
+        /// <summary>«jueves 19/11 16:00»: desde entonces ya no se puede cambiar ni borrar.</summary>
+        public string CierraEl => Excepcion.CierraEl?.ToString("dddd dd/MM HH:mm", _castellano);
+    }
+
     /// <summary>
     /// NestoAPI#577 (09/10/26): el calendario de reposiciones de tiendas (qué días llega cada ruta, a qué hora se cierra y
     /// a qué hora llega), que antes se cambiaba con scripts. Lo ve cualquiera; lo cambian quienes la API deja (los mismos
@@ -131,6 +161,9 @@ namespace Nesto.Modules.Producto.ViewModels
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             GuardarCommand = new AsyncRelayCommand(GuardarAsync, () => PuedeEditar && HayCambios && !EstaOcupado);
             AnadirCommand = new RelayCommand(Anadir, () => PuedeEditar && !EstaOcupado);
+            QuitarDiaCommand = new AsyncRelayCommand(() => GuardarExcepcionAsync(TiposExcepcionCalendario.SIN_REPOSICION), () => PuedeEditar && !EstaOcupado);
+            AnadirDiaExtraCommand = new AsyncRelayCommand(() => GuardarExcepcionAsync(TiposExcepcionCalendario.REPOSICION_EXTRA), () => PuedeEditar && !EstaOcupado);
+            BorrarExcepcionCommand = new AsyncRelayCommand(BorrarExcepcionAsync, () => PuedeEditar && !EstaOcupado && ExcepcionSeleccionada?.Id != null);
             Filas.CollectionChanged += (_, e) =>
             {
                 foreach (FilaCalendarioEditable fila in e.NewItems?.OfType<FilaCalendarioEditable>() ?? Enumerable.Empty<FilaCalendarioEditable>())
@@ -179,10 +212,18 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _puedeEditar, value))
                 {
                     OnPropertyChanged(nameof(SoloLectura));
-                    GuardarCommand.NotifyCanExecuteChanged();
-                    AnadirCommand.NotifyCanExecuteChanged();
+                    NotificarComandos();
                 }
             }
+        }
+
+        private void NotificarComandos()
+        {
+            GuardarCommand.NotifyCanExecuteChanged();
+            AnadirCommand.NotifyCanExecuteChanged();
+            QuitarDiaCommand.NotifyCanExecuteChanged();
+            AnadirDiaExtraCommand.NotifyCanExecuteChanged();
+            BorrarExcepcionCommand.NotifyCanExecuteChanged();
         }
 
         public bool SoloLectura => !PuedeEditar;
@@ -197,8 +238,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _estaOcupado, value))
                 {
-                    GuardarCommand.NotifyCanExecuteChanged();
-                    AnadirCommand.NotifyCanExecuteChanged();
+                    NotificarComandos();
                 }
             }
         }
@@ -219,9 +259,178 @@ namespace Nesto.Modules.Producto.ViewModels
         public IAsyncRelayCommand GuardarCommand { get; }
         public IRelayCommand AnadirCommand { get; }
 
+        #region Excepciones por fecha (NestoAPI#867)
+
+        /// <summary>Las excepciones de hoy en adelante (días quitados y días extra).</summary>
+        public ObservableCollection<ExcepcionCalendarioFila> Excepciones { get; } = new ObservableCollection<ExcepcionCalendarioFila>();
+
+        private ExcepcionCalendarioFila _excepcionSeleccionada;
+        public ExcepcionCalendarioFila ExcepcionSeleccionada
+        {
+            get => _excepcionSeleccionada;
+            set
+            {
+                if (SetProperty(ref _excepcionSeleccionada, value))
+                {
+                    BorrarExcepcionCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _excepcionOrigen = Constantes.Almacenes.ALMACEN_ALGETE;
+        public string ExcepcionOrigen { get => _excepcionOrigen; set => SetProperty(ref _excepcionOrigen, value); }
+
+        private string _excepcionDestino = Constantes.Almacenes.ALMACEN_REINA;
+        public string ExcepcionDestino { get => _excepcionDestino; set => SetProperty(ref _excepcionDestino, value); }
+
+        private DateTime? _excepcionFecha;
+        /// <summary>El día de LLEGADA de la reposición que se quita o se añade.</summary>
+        public DateTime? ExcepcionFecha { get => _excepcionFecha; set => SetProperty(ref _excepcionFecha, value); }
+
+        private string _excepcionMotivo;
+        public string ExcepcionMotivo { get => _excepcionMotivo; set => SetProperty(ref _excepcionMotivo, value); }
+
+        private string _excepcionHoraCierre;
+        /// <summary>Solo para un día extra; en blanco, la de la ruta.</summary>
+        public string ExcepcionHoraCierre { get => _excepcionHoraCierre; set => SetProperty(ref _excepcionHoraCierre, value); }
+
+        private string _excepcionHoraLlegada;
+        /// <summary>Solo para un día extra; en blanco, la de la ruta.</summary>
+        public string ExcepcionHoraLlegada { get => _excepcionHoraLlegada; set => SetProperty(ref _excepcionHoraLlegada, value); }
+
+        private string _mensajeExcepciones;
+        /// <summary>Lo que pasa con las excepciones (aparte del mensaje del calendario).</summary>
+        public string MensajeExcepciones { get => _mensajeExcepciones; set => SetProperty(ref _mensajeExcepciones, value); }
+
+        public IAsyncRelayCommand QuitarDiaCommand { get; }
+        public IAsyncRelayCommand AnadirDiaExtraCommand { get; }
+        public IAsyncRelayCommand BorrarExcepcionCommand { get; }
+
+        private async Task CargarExcepcionesAsync()
+        {
+            await Ocupado(async () =>
+            {
+                PonerExcepciones(await _servicio.LeerExcepciones(Empresa).ConfigureAwait(true));
+            }, m => MensajeExcepciones = m).ConfigureAwait(true);
+        }
+
+        private void PonerExcepciones(IEnumerable<ExcepcionCalendarioReposicion> excepciones)
+        {
+            Excepciones.Clear();
+            foreach (ExcepcionCalendarioReposicion excepcion in (excepciones ?? Enumerable.Empty<ExcepcionCalendarioReposicion>())
+                .Where(e => e != null)
+                .OrderBy(e => e.FechaLlegada).ThenBy(e => e.Origen).ThenBy(e => e.Destino))
+            {
+                Excepciones.Add(new ExcepcionCalendarioFila(excepcion));
+            }
+            ExcepcionSeleccionada = null;
+        }
+
+        /// <summary>
+        /// Quitar un día (<see cref="TiposExcepcionCalendario.SIN_REPOSICION"/>) o añadir uno extra: la ruta y el día de
+        /// llegada elegidos. Las reglas (día que exista, que no haya cerrado…) las pone la API y su mensaje se enseña tal cual.
+        /// </summary>
+        private async Task GuardarExcepcionAsync(string tipo)
+        {
+            MensajeExcepciones = null;
+            string origen = ExcepcionOrigen?.Trim().ToUpperInvariant();
+            string destino = ExcepcionDestino?.Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(origen) || string.IsNullOrEmpty(destino) || origen == destino)
+            {
+                MensajeExcepciones = "Elija un almacén de origen y otro de destino distintos.";
+                return;
+            }
+            if (!ExcepcionFecha.HasValue)
+            {
+                MensajeExcepciones = "Elija el día de llegada.";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(ExcepcionMotivo))
+            {
+                MensajeExcepciones = "Indique el motivo (por ejemplo, «Inventario del sábado»).";
+                return;
+            }
+            bool extra = tipo == TiposExcepcionCalendario.REPOSICION_EXTRA;
+            TimeSpan? cierre = null;
+            TimeSpan? llegada = null;
+            if (extra)
+            {
+                if (!string.IsNullOrWhiteSpace(ExcepcionHoraCierre))
+                {
+                    if (!LeerHora(ExcepcionHoraCierre, out TimeSpan hora))
+                    {
+                        MensajeExcepciones = $"La hora de cierre «{ExcepcionHoraCierre}» no es una hora: escríbala como 09:30 (o déjela en blanco para usar la de la ruta).";
+                        return;
+                    }
+                    cierre = hora;
+                }
+                if (!string.IsNullOrWhiteSpace(ExcepcionHoraLlegada))
+                {
+                    if (!LeerHora(ExcepcionHoraLlegada, out TimeSpan hora))
+                    {
+                        MensajeExcepciones = $"La hora de llegada «{ExcepcionHoraLlegada}» no es una hora: escríbala como 13:30 (o déjela en blanco para usar la de la ruta).";
+                        return;
+                    }
+                    llegada = hora;
+                }
+            }
+            var excepcion = new ExcepcionCalendarioReposicion
+            {
+                Empresa = Empresa,
+                Origen = origen,
+                Destino = destino,
+                FechaLlegada = ExcepcionFecha.Value.Date,
+                Tipo = tipo,
+                HoraCierre = cierre,
+                HoraLlegadaHabitual = llegada,
+                Motivo = ExcepcionMotivo.Trim()
+            };
+            bool guardada = false;
+            await Ocupado(async () =>
+            {
+                _ = await _servicio.GuardarExcepcion(excepcion).ConfigureAwait(true);
+                guardada = true;
+            }, m => MensajeExcepciones = m).ConfigureAwait(true);
+            if (!guardada)
+            {
+                return;
+            }
+            string dia = new ExcepcionCalendarioFila(excepcion).Fecha;
+            await CargarExcepcionesAsync().ConfigureAwait(true);
+            ExcepcionMotivo = null;
+            MensajeExcepciones ??= extra
+                ? $"Añadida una reposición extra de {origen} a {destino} que llega el {dia}."
+                : $"Quitada la reposición de {origen} a {destino} que llega el {dia}: ese día no se rellenará ni se avisará.";
+        }
+
+        private async Task BorrarExcepcionAsync()
+        {
+            ExcepcionCalendarioFila seleccionada = ExcepcionSeleccionada;
+            if (seleccionada?.Id == null)
+            {
+                return;
+            }
+            MensajeExcepciones = null;
+            bool borrada = false;
+            await Ocupado(async () =>
+            {
+                await _servicio.BorrarExcepcion(seleccionada.Id.Value).ConfigureAwait(true);
+                borrada = true;
+            }, m => MensajeExcepciones = m).ConfigureAwait(true);
+            if (!borrada)
+            {
+                return;
+            }
+            await CargarExcepcionesAsync().ConfigureAwait(true);
+            MensajeExcepciones ??= $"Borrada la excepción del {seleccionada.Fecha} ({seleccionada.Ruta}): ese día vuelve a ser como dice el calendario.";
+        }
+
+        #endregion
+
         public async Task CargarAsync()
         {
             Mensaje = null;
+            MensajeExcepciones = null;
             await Ocupado(async () =>
             {
                 PuedeEditar = await _servicio.PuedeEditar().ConfigureAwait(true);
@@ -231,6 +440,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     Mensaje = "Solo lectura: el calendario lo pueden cambiar las personas autorizadas a rellenar reposiciones a mano.";
                 }
             }).ConfigureAwait(true);
+            // Aparte: si las excepciones fallan (API anterior, falta el script), el calendario se ve igual.
+            await CargarExcepcionesAsync().ConfigureAwait(true);
         }
 
         /// <summary>
@@ -320,8 +531,9 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         /// <summary>Lo que falla al hablar con la API se enseña en <see cref="Mensaje"/> tal cual (lo escribe el servidor).</summary>
-        private async Task Ocupado(Func<Task> accion)
+        private async Task Ocupado(Func<Task> accion, Action<string> alFallar = null)
         {
+            alFallar ??= m => Mensaje = m;
             EstaOcupado = true;
             try
             {
@@ -329,11 +541,11 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (CalendarioReposicionesException ex)
             {
-                Mensaje = ex.Message;
+                alFallar(ex.Message);
             }
             catch (Exception ex)
             {
-                Mensaje = "No se ha podido hablar con el servidor: " + ex.Message;
+                alFallar("No se ha podido hablar con el servidor: " + ex.Message);
             }
             finally
             {

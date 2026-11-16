@@ -25,6 +25,15 @@ namespace Nesto.Infrastructure.Services
         /// <summary>Guarda las filas y devuelve el calendario entero como queda.</summary>
         /// <exception cref="CalendarioReposicionesException">400 con el motivo, 403 sin permiso…</exception>
         Task<List<FilaCalendarioReposicion>> Guardar(GuardarCalendarioReposiciones peticion);
+        /// <summary>NestoAPI#867: las excepciones por fecha de hoy en adelante.</summary>
+        /// <exception cref="CalendarioReposicionesException">503 si falta el script en la BD, 404 con una API anterior…</exception>
+        Task<List<ExcepcionCalendarioReposicion>> LeerExcepciones(string empresa);
+        /// <summary>NestoAPI#867: crea o cambia la excepción de esa ruta y ese día; devuelve la guardada.</summary>
+        /// <exception cref="CalendarioReposicionesException">400 con el motivo, 403, 409 si ese día ya ha cerrado…</exception>
+        Task<ExcepcionCalendarioReposicion> GuardarExcepcion(ExcepcionCalendarioReposicion excepcion);
+        /// <summary>NestoAPI#867: borra una excepción (ese día vuelve a ser como dice el calendario).</summary>
+        /// <exception cref="CalendarioReposicionesException">403, 404, 409 si ese día ya ha cerrado…</exception>
+        Task BorrarExcepcion(int id);
     }
 
     public class ServicioCalendarioReposiciones : IServicioCalendarioReposiciones
@@ -75,6 +84,45 @@ namespace Nesto.Infrastructure.Services
                 HttpResponseMessage response = await client.PutAsync("Reposiciones/Calendario", contenido).ConfigureAwait(false);
                 return await Leer(response).ConfigureAwait(false);
             }
+        }
+
+        public async Task<List<ExcepcionCalendarioReposicion>> LeerExcepciones(string empresa)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync("Reposiciones/Calendario/Excepciones?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty))
+                    .ConfigureAwait(false);
+                return await LeerJson<List<ExcepcionCalendarioReposicion>>(response).ConfigureAwait(false) ?? new List<ExcepcionCalendarioReposicion>();
+            }
+        }
+
+        public async Task<ExcepcionCalendarioReposicion> GuardarExcepcion(ExcepcionCalendarioReposicion excepcion)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                var contenido = new StringContent(JsonConvert.SerializeObject(excepcion), Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("Reposiciones/Calendario/Excepciones", contenido).ConfigureAwait(false);
+                return await LeerJson<ExcepcionCalendarioReposicion>(response).ConfigureAwait(false);
+            }
+        }
+
+        public async Task BorrarExcepcion(int id)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.DeleteAsync("Reposiciones/Calendario/Excepciones/" + id).ConfigureAwait(false);
+                _ = await LeerJson<ExcepcionCalendarioReposicion>(response).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<T> LeerJson<T>(HttpResponseMessage response)
+        {
+            string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new CalendarioReposicionesException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode), (int)response.StatusCode);
+            }
+            return string.IsNullOrWhiteSpace(json) ? default : JsonConvert.DeserializeObject<T>(json);
         }
 
         private static async Task<List<FilaCalendarioReposicion>> Leer(HttpResponseMessage response)
