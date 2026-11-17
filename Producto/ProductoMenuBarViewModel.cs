@@ -29,7 +29,7 @@ namespace Nesto.Modules.Producto
             AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
             AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
             AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
-            AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeVerPropuestasStock);
+            AbrirCambiarEstadoProductosCommand = new RelayCommand(OnAbrirCambiarEstadoProductos, () => PuedeCambiarEstadoProductos);
             AbrirRecorridoAlmacenCommand = new RelayCommand(OnAbrirRecorridoAlmacen);
             AbrirRecogidasSolicitadasCommand = new RelayCommand(OnAbrirRecogidasSolicitadas, CanAbrirRecogidasSolicitadas);
             AbrirEnviosProveedorPorAsignarCommand = new RelayCommand(OnAbrirEnviosProveedorPorAsignar, CanAbrirEnviosProveedorPorAsignar);
@@ -90,12 +90,15 @@ namespace Nesto.Modules.Producto
         }
 
         /// <summary>Nesto#636: el grupo «Compras» de la cinta, para quien pueda abrir alguno de sus botones.</summary>
-        public bool PuedeVerGrupoCompras => PuedeVerPropuestasStock || CanAbrirEnviosProveedorPorAsignar();
+        public bool PuedeVerGrupoCompras => PuedeVerPropuestasStock || PuedeCambiarEstadoProductos || CanAbrirEnviosProveedorPorAsignar();
 
         /// <summary>
         /// Nesto#624 (NestoAPI#738, sugerencia 793 de Manuel): cambiar el estado de muchos productos a la vez. Solo Compras y
-        /// Dirección (como las propuestas de stock; la API lo comprueba igual al aplicar).
+        /// Dirección (la API lo comprueba igual al aplicar). Carlos 17/11/26: tiene su propio permiso; las propuestas de stock ya
+        /// son solo de Dirección, pero esto sigue para Compras.
         /// </summary>
+        public bool PuedeCambiarEstadoProductos => Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS)
+            || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
         public ICommand AbrirCambiarEstadoProductosCommand { get; private set; }
         private void OnAbrirCambiarEstadoProductos()
         {
@@ -171,11 +174,10 @@ namespace Nesto.Modules.Producto
         }
 
         /// <summary>
-        /// Nesto#529 (NestoAPI#631): las propuestas mensuales de máximo y mínimo. Solo las ven y deciden Compras y Dirección
-        /// (la API contesta 403 al resto); los demás no ven la opción en la cinta.
+        /// Nesto#529 (NestoAPI#631): las propuestas mensuales de máximo y mínimo. Carlos 17/11/26: solo las ven y deciden los de
+        /// Dirección (antes también Compras; la API contesta 403 al resto); los demás no ven la opción en la cinta.
         /// </summary>
-        public bool PuedeVerPropuestasStock => Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS)
-            || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        public bool PuedeVerPropuestasStock => Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
         public ICommand AbrirPropuestasStockCommand { get; private set; }
         private void OnAbrirPropuestasStock()
         {

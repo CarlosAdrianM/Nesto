@@ -468,7 +468,7 @@ namespace Producto.Tests
 
             Assert.IsTrue(menu.CanAbrirEnviosProveedorPorAsignar());
             Assert.IsTrue(menu.PuedeVerGrupoCompras);
-            Assert.IsFalse(menu.PuedeVerPropuestasStock, "Las propuestas siguen siendo solo de Compras y Dirección");
+            Assert.IsFalse(menu.PuedeVerPropuestasStock, "Las propuestas son solo de Dirección");
         }
 
         [TestMethod]

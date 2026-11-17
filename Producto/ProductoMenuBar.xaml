@@ -41,7 +41,7 @@
                               LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirRecogidasSolicitadasCommand}" />
             </RibbonGroup>
             <!-- Nesto#529 (NestoAPI#631): solo Compras y Dirección ven las propuestas de stock -->
-            <!-- Nesto#636: el grupo también para Informática (los envíos por asignar); Propuestas y Cambiar estado siguen solo para Compras y Dirección -->
+            <!-- Nesto#636: el grupo también para Informática (los envíos por asignar); Propuestas solo para Dirección (17/11/26); Cambiar estado, Compras y Dirección -->
             <RibbonGroup x:Name="grpCompras"
                                 Header="Compras"
                                 Visibility="{Binding PuedeVerGrupoCompras, Converter={StaticResource VisibilidadPropuestasStock}}">
