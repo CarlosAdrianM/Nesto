@@ -320,6 +320,68 @@ Public Class DetallePedidoNotaEntregaCabeceraTests
             MustNotHaveHappened()
     End Function
 
+    ''' <summary>
+    ''' Novedades 1314 (Alfredo, pedido 930905): la nota nace con el mismo cliente y contacto que el pedido en pantalla, los
+    ''' selectores de la vista no ven cambio y no rellenaban la forma ni los plazos de pago: el POST daba 400 («La solicitud no es
+    ''' válida» y, tras elegir Efectivo/Contado, «El pedido tiene que tener formas y plazos de pago»).
+    ''' </summary>
+    <TestMethod()>
+    Public Async Function NuevaNotaRecogida_AlGrabar_ElPostLlevaLosDatosDePagoDeLaFichaDelContacto() As Task
+        Dim enviado As PedidoVentaDTO = Nothing
+        A.CallTo(Function() servicio.CrearPedido(A(Of PedidoVentaDTO).Ignored)).
+            ReturnsLazily(Function(p As PedidoVentaDTO)
+                              enviado = p
+                              Return Task.FromResult(930906)
+                          End Function)
+        Dim vm = CrearVm(Constantes.GruposSeguridad.ALMACEN)
+        Dim enPantalla = PedidoNormal(930905)
+        enPantalla.Model.formaPago = "TRN"
+        enPantalla.Model.plazosPago = "1/30"
+        vm.pedido = enPantalla
+        ' Lo que la vista deja enlazado al cargar el pedido: la dirección de entrega del contacto y la ficha del cliente
+        vm.DireccionEntregaSeleccionada = New DireccionesEntregaCliente With {
+            .contacto = "0  ", .formaPago = "EFC", .plazosPago = "CONTADO", .iva = "G21", .vendedor = "NV", .ruta = "AT",
+            .periodoFacturacion = "NRM", .ccc = "1"}
+        vm.ClienteCompleto = New ControlesUsuario.Models.ClienteDTO With {.empresa = "1", .contacto = "0"}
+
+        Await vm.NuevaNotaRecogidaAsync()
+        vm.pedido.Lineas.Single().texto = "Recoged producto"
+        Await vm.ModificarPedidoAsync()
+
+        Assert.IsNotNull(enviado, "Se ha llamado al POST")
+        Assert.AreEqual("EFC", enviado.formaPago, "La forma de pago de la ficha, como en un pedido nuevo")
+        Assert.AreEqual("CONTADO", enviado.plazosPago)
+        Assert.AreEqual("G21", enviado.iva)
+        Assert.AreEqual("NV", enviado.vendedor)
+        Assert.AreEqual("AT", enviado.ruta)
+        Assert.AreEqual("NRM", enviado.periodoFacturacion)
+        Assert.IsNull(enviado.ccc, "Sin recibo, sin CCC (como el SelectorCCC)")
+        Assert.AreEqual("1", enviado.origen)
+        Assert.AreEqual("0", enviado.contactoCobro)
+    End Function
+
+    <TestMethod()>
+    Public Async Function NuevaNotaRecogida_SinDireccionDelContacto_TomaLosDatosDePagoDelPedidoEnPantalla() As Task
+        Dim vm = CrearVm(Constantes.GruposSeguridad.ALMACEN)
+        Dim enPantalla = PedidoNormal(930905)
+        enPantalla.Model.formaPago = "RCB"
+        enPantalla.Model.plazosPago = "1/30"
+        enPantalla.Model.ccc = "2"
+        enPantalla.Model.ruta = "16"
+        enPantalla.Model.origen = "1"
+        enPantalla.Model.contactoCobro = "0"
+        vm.pedido = enPantalla
+
+        Await vm.NuevaNotaRecogidaAsync()
+
+        Assert.AreEqual("RCB", vm.pedido.formaPago)
+        Assert.AreEqual("1/30", vm.pedido.plazosPago)
+        Assert.AreEqual("2", vm.pedido.ccc, "Con recibo, la cuenta")
+        Assert.AreEqual("16", vm.pedido.ruta)
+        Assert.AreEqual("1", vm.pedido.Model.origen)
+        Assert.AreEqual("0", vm.pedido.Model.contactoCobro)
+    End Function
+
     <TestMethod()>
     Public Async Function NuevaNotaRecogida_ConFacturaElegida_LaVinculaNadaMasCrearla() As Task
         ApiDevuelveLoQueRecibe()

@@ -524,6 +524,9 @@ Partial Public Class DetallePedidoViewModel
         Dim empresa As String = If(String.IsNullOrWhiteSpace(pedido.empresa), EMPRESA_POR_DEFECTO, pedido.empresa)
         Dim cliente As String = pedido.cliente
         Dim contacto As String = pedido.contacto
+        Dim anterior As PedidoVentaDTO = pedido.Model
+        Dim direccion As DireccionesEntregaCliente = DireccionEntregaSeleccionada
+        Dim fichaCliente As ControlesUsuario.Models.ClienteDTO = ClienteCompleto
         Try
             Dim nueva As PedidoVentaWrapper = Await CrearPedidoVentaWrapperNuevo(empresa)
             nueva.Model.cliente = cliente
@@ -535,6 +538,7 @@ Partial Public Class DetallePedidoViewModel
             Titulo = "Nueva nota de recogida"
             _snapshotPedidoGuardado = Nothing
             pedido = nueva
+            CompletarDatosClienteNotaNueva(anterior, direccion, fichaCliente)
             fechaEntrega = Date.Today
             ListaEnlacesSeguimiento = New List(Of EnvioAgenciaDTO)()
             RecogerProducto = False
@@ -553,6 +557,41 @@ Partial Public Class DetallePedidoViewModel
             dialogService.ShowError($"No se ha podido preparar la nota de recogida: {ex.Message}")
         End Try
     End Function
+
+    ''' <summary>
+    ''' Novedades 1314: la nota nace con el MISMO cliente y contacto que el pedido en pantalla, así que los selectores de la vista
+    ''' (dirección de entrega, cliente, forma y plazos de pago) no ven ningún cambio y no vuelven a rellenar el pedido nuevo como
+    ''' cuando se elige el cliente a mano: la forma y los plazos de pago se quedaban vacíos (el SelectorFormaPago no borra lo que
+    ''' enseña cuando le llega Nothing) y el POST daba 400. Aquí se rellena lo mismo que en un pedido nuevo normal: lo de la ficha
+    ''' del contacto (la dirección de entrega elegida, si es la del contacto) y, si no se tiene, lo del pedido que había en pantalla.
+    ''' </summary>
+    Private Sub CompletarDatosClienteNotaNueva(anterior As PedidoVentaDTO, direccion As DireccionesEntregaCliente, fichaCliente As ControlesUsuario.Models.ClienteDTO)
+        Dim contacto As String = pedido.contacto?.Trim()
+        If direccion IsNot Nothing AndAlso String.Equals(direccion.contacto?.Trim(), contacto, StringComparison.OrdinalIgnoreCase) Then
+            CopiarDatosDireccionAlPedidoNuevo(direccion)
+        ElseIf anterior IsNot Nothing Then
+            pedido.formaPago = anterior.formaPago
+            pedido.plazosPago = anterior.plazosPago
+            pedido.iva = anterior.iva
+            pedido.vendedor = anterior.vendedor
+            pedido.ruta = anterior.ruta
+            pedido.periodoFacturacion = anterior.periodoFacturacion
+        End If
+        ' Lo que pone el SelectorCCC según la forma de pago: con recibo, la cuenta del contacto; si no, sin CCC.
+        If String.Equals(pedido.formaPago?.Trim(), "RCB", StringComparison.OrdinalIgnoreCase) Then
+            pedido.ccc = If(Not String.IsNullOrWhiteSpace(direccion?.ccc), direccion.ccc, anterior?.ccc)
+        Else
+            pedido.ccc = Nothing
+        End If
+        ' Lo que pone ClienteCompleto en un pedido nuevo
+        If fichaCliente IsNot Nothing Then
+            pedido.Model.origen = fichaCliente.empresa
+            pedido.Model.contactoCobro = fichaCliente.contacto
+        ElseIf anterior IsNot Nothing Then
+            pedido.Model.origen = anterior.origen
+            pedido.Model.contactoCobro = anterior.contactoCobro
+        End If
+    End Sub
 #End Region
 
 #Region "Nueva nota de cobro (Nesto#618)"

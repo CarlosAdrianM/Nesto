@@ -312,12 +312,7 @@ Public Class DetallePedidoViewModel
                 ' Carlos 20/11/24: Mantenemos la copia de datos EXCEPTO el CCC (lo maneja SelectorCCC)
                 If EstaCreandoPedido AndAlso Not IsNothing(pedido) Then
                     'Debug.WriteLine($"      → COPIANDO datos (pedido nuevo)")
-                    pedido.formaPago = value.formaPago
-                    pedido.plazosPago = value.plazosPago
-                    pedido.iva = value.iva
-                    pedido.vendedor = value.vendedor
-                    pedido.ruta = value.ruta
-                    pedido.periodoFacturacion = value.periodoFacturacion
+                    CopiarDatosDireccionAlPedidoNuevo(value)
                     ' Carlos 20/11/24: NO copiar CCC aquí - lo maneja SelectorCCC automáticamente
                     ' pedido.ccc = value.ccc
                     'Debug.WriteLine($"      → CCC copiado: {If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc)}")
@@ -327,6 +322,19 @@ Public Class DetallePedidoViewModel
             End If
         End Set
     End Property
+
+    ''' <summary>
+    ''' Lo que un pedido nuevo toma de la ficha del contacto al elegir la dirección de entrega (forma y plazos de pago, IVA,
+    ''' vendedor, ruta y periodo de facturación). El CCC no: lo pone el SelectorCCC.
+    ''' </summary>
+    Private Sub CopiarDatosDireccionAlPedidoNuevo(direccion As DireccionesEntregaCliente)
+        pedido.formaPago = direccion.formaPago
+        pedido.plazosPago = direccion.plazosPago
+        pedido.iva = direccion.iva
+        pedido.vendedor = direccion.vendedor
+        pedido.ruta = direccion.ruta
+        pedido.periodoFacturacion = direccion.periodoFacturacion
+    End Sub
 
     Private _clienteCompleto As ControlesUsuario.Models.ClienteDTO
     Public Property ClienteCompleto As ControlesUsuario.Models.ClienteDTO
