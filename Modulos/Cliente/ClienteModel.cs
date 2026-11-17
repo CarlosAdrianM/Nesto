@@ -18,6 +18,8 @@ namespace Nesto.Modulos.Cliente
         // Nesto#643 (NestoAPI#874): el número que se tecleó porque Google dio la calle sin él (cifras o «S/N»). Ya va dentro de
         // Direccion; la API lo vuelve a comprobar con Google. Null si Google dio el número.
         public string Numero { get; set; }
+        // Nesto#643 (NestoAPI#874): el usuario aceptó guardar un número que Google no encuentra (sin esto, la API da 400).
+        public bool NumeroConfirmadoSinGoogle { get; set; }
         // Nesto#643 (NestoAPI#874): «¿Qué es?» (Piso, Local, Casa, Nave u Otro) y sus datos; la API compone la Dirección 2.
         public string TipoLugar { get; set; }
         public string Piso { get; set; }
@@ -110,6 +112,9 @@ namespace Nesto.Modulos.Cliente
         public string VendedorEstetica { get; set; }
         public string VendedorPeluqueria { get; set; }
         public List<ClienteTelefonoLookup> ClientesMismoTelefono { get; set; }
+        // Nesto#643 (NestoAPI#874): el número propio es válido pero Google no lo encuentra; AvisoNumero es la pregunta al usuario.
+        public bool NumeroSinConfirmarPorGoogle { get; set; }
+        public string AvisoNumero { get; set; }
     }
 
     public class ClienteTelefonoLookup

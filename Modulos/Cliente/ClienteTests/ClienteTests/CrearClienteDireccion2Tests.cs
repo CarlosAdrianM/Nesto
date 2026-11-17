@@ -7,6 +7,7 @@ using Nesto.Infrastructure.Contracts;
 
 using Nesto.Modulos.Cliente;
 using Direccion2Cliente = Nesto.Modulos.Cliente.Models.Direccion2Cliente;
+using NumeroPortal = Nesto.Modulos.Cliente.Models.NumeroPortal;
 
 namespace ClienteTests
 {
@@ -176,6 +177,100 @@ namespace ClienteTests
             A.CallTo(() => servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored, A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
             A.CallTo(() => servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
             Assert.IsFalse(vm.ClienteDireccionValidada);
+        }
+
+        // ---------------------------------------------------------------- número válido que Google no encuentra (Carlos 17/11/26)
+
+        [TestMethod]
+        public void NumeroPortal_ValidosYNoValidos()
+        {
+            foreach (string valido in new[] { "99", "13 B", "13b", "13 BIS", "S/N", "s/n", "sin número" })
+            {
+                Assert.IsTrue(NumeroPortal.FormatoValido(valido), valido);
+            }
+            foreach (string noValido in new[] { "nº 99", "Nº13", "99 local 6", "Edificio Rojo", "trece", " ", null })
+            {
+                Assert.IsFalse(NumeroPortal.FormatoValido(noValido), noValido ?? "null");
+            }
+        }
+
+        [TestMethod]
+        public async Task NumeroNoValido_NiSeValidaNiSePuedeCrear()
+        {
+            CrearClienteViewModel vm = await ConCalleSinNumero();
+            vm.ClienteTipoLugar = Direccion2Cliente.CASA;
+            vm.ClienteNumeroCalle = "nº 99";
+
+            Assert.AreEqual(NumeroPortal.MOTIVO_FORMATO, vm.MotivoNoSePuedeCrearCliente);
+
+            await vm.GoToDatosComisiones();
+
+            A.CallTo(() => dialogos.ShowError(NumeroPortal.MOTIVO_FORMATO)).MustHaveHappened();
+            A.CallTo(() => servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored, A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+            Assert.IsFalse(vm.ClienteDireccionValidada);
+        }
+
+        private void GoogleNoLoEncuentra()
+        {
+            A.CallTo(() => servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored, A<string>.Ignored, A<string>.Ignored))
+                .Returns(new RespuestaDatosGeneralesClientes
+                {
+                    DireccionFormateada = "C/ SOR LIVIA ALCORTA, 99",
+                    CodigoPostal = "28100",
+                    NumeroSinConfirmarPorGoogle = true,
+                    AvisoNumero = "Google Maps no encuentra el número 99 en C/ SOR LIVIA ALCORTA (28100). ¿Quiere guardarlo igualmente?",
+                    ClientesMismoTelefono = new List<ClienteTelefonoLookup>()
+                });
+        }
+
+        [TestMethod]
+        public async Task GoogleNoEncuentraElNumero_SiAcepta_SigueYLoMandaConfirmado()
+        {
+            GoogleNoLoEncuentra();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(CrearClienteViewModel.TITULO_NUMERO_SIN_GOOGLE, A<string>.That.Contains("¿Quiere guardarlo igualmente?")))
+                .Returns(true);
+            CrearClienteViewModel vm = await ConCalleSinNumero();
+            vm.ClienteNumeroCalle = "99";
+            vm.ClienteTipoLugar = Direccion2Cliente.CASA;
+
+            await vm.GoToDatosComisiones();
+
+            Assert.IsTrue(vm.ClienteDireccionValidada);
+            Assert.IsTrue(vm.NumeroConfirmadoSinGoogle);
+            Assert.AreEqual("C/ SOR LIVIA ALCORTA, 99", vm.ClienteDireccion);
+
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.CrearCliente(A<ClienteCrear>.That.Matches(c => c.Numero == "99" && c.NumeroConfirmadoSinGoogle))).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task GoogleNoEncuentraElNumero_SiNoAcepta_SeQuedaParaCorregirlo()
+        {
+            GoogleNoLoEncuentra();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(false);
+            CrearClienteViewModel vm = await ConCalleSinNumero();
+            vm.ClienteNumeroCalle = "99";
+
+            await vm.GoToDatosComisiones();
+
+            Assert.IsFalse(vm.ClienteDireccionValidada);
+            Assert.IsFalse(vm.NumeroConfirmadoSinGoogle);
+        }
+
+        [TestMethod]
+        public async Task CambiarElNumero_QuitaLaConfirmacion()
+        {
+            GoogleNoLoEncuentra();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(true);
+            CrearClienteViewModel vm = await ConCalleSinNumero();
+            vm.ClienteNumeroCalle = "99";
+            await vm.GoToDatosComisiones();
+
+            vm.ClienteNumeroCalle = "98";
+
+            Assert.IsFalse(vm.NumeroConfirmadoSinGoogle);
         }
 
         // ---------------------------------------------------------------- alta

@@ -284,10 +284,19 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref clienteNumeroCalle, value))
                 {
+                    NumeroConfirmadoSinGoogle = false; // otro número: hay que volver a preguntar a Google
                     NotificarSePuedeCrearCliente();
                 }
             }
         }
+
+        /// <summary>
+        /// Google no encuentra el número tecleado (válido) y el usuario ha dicho que se guarde igualmente (Carlos 17/11/26). Viaja
+        /// a la API (que sin esto da 400) y queda apuntado allí para revisarlo.
+        /// </summary>
+        public bool NumeroConfirmadoSinGoogle { get; private set; }
+
+        public const string TITULO_NUMERO_SIN_GOOGLE = "Número de la calle";
 
         public IReadOnlyList<TipoLugarModel> TiposLugar => Direccion2Cliente.TIPOS;
 
@@ -465,6 +474,10 @@ namespace Nesto.Modulos.Cliente
                 if (NumeroSinDarPorGoogle && string.IsNullOrWhiteSpace(ClienteNumeroCalle))
                 {
                     return MOTIVO_SIN_NUMERO;
+                }
+                if (NumeroSinDarPorGoogle && !NumeroPortal.FormatoValido(ClienteNumeroCalle))
+                {
+                    return NumeroPortal.MOTIVO_FORMATO;
                 }
                 return MotivoDireccion2;
             }
@@ -1220,6 +1233,7 @@ namespace Nesto.Modulos.Cliente
             {
                 // Nesto#643 (NestoAPI#874): número propio (la API lo vuelve a comprobar) y «¿Qué es?» (compone la Dirección 2).
                 cliente.Numero = NumeroSinDarPorGoogle ? ClienteNumeroCalle?.Trim() : null;
+                cliente.NumeroConfirmadoSinGoogle = NumeroSinDarPorGoogle && NumeroConfirmadoSinGoogle;
                 cliente.TipoLugar = ClienteTipoLugar;
                 cliente.Piso = EsPiso ? ClientePiso : null;
                 cliente.Puerta = EsPiso ? ClientePuerta : null;
@@ -1402,6 +1416,11 @@ namespace Nesto.Modulos.Cliente
                 DialogService.ShowError(MOTIVO_SIN_NUMERO);
                 return;
             }
+            if (NumeroSinDarPorGoogle && !NumeroPortal.FormatoValido(ClienteNumeroCalle))
+            {
+                DialogService.ShowError(NumeroPortal.MOTIVO_FORMATO);
+                return;
+            }
 
             NormalizarCodigoPostal(); // NestoAPI#596
             try
@@ -1409,6 +1428,15 @@ namespace Nesto.Modulos.Cliente
                 RespuestaDatosGeneralesClientes respuesta = NumeroSinDarPorGoogle
                     ? await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion, ClienteNumeroCalle.Trim())
                     : await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion);
+                // Nesto#643 (NestoAPI#874): Google no encuentra el número (válido). No se bloquea: se pregunta (Carlos 17/11/26).
+                if (NumeroSinDarPorGoogle && respuesta.NumeroSinConfirmarPorGoogle && !NumeroConfirmadoSinGoogle)
+                {
+                    if (!DialogService.ShowConfirmationAnswer(TITULO_NUMERO_SIN_GOOGLE, respuesta.AvisoNumero))
+                    {
+                        return; // se queda en «Datos generales» para corregir el número
+                    }
+                    NumeroConfirmadoSinGoogle = true;
+                }
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {

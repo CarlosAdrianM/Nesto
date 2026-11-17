@@ -14,6 +14,30 @@ namespace Nesto.Modulos.Cliente.Models
     }
 
     /// <summary>
+    /// Nesto#643 (NestoAPI#874, Carlos 17/11/26): en «Número» solo va el número del portal (cifras con letra o BIS opcionales,
+    /// o «S/N»). Espejo de NestoAPI.Infraestructure.Clientes.NumeroPropioDireccion.FormatoValido: «Nº 99», «99 local 6» o
+    /// «Edificio Rojo» no valen nunca (lo demás va en «¿Qué es?»).
+    /// </summary>
+    public static class NumeroPortal
+    {
+        public const string MOTIVO_FORMATO = "En «Número» solo va el número del portal (por ejemplo, 99) o S/N. " +
+            "Lo demás (piso, local, edificio, rótulo…) va en «¿Qué es?».";
+
+        private static readonly Regex FORMATO = new Regex(@"^\d{1,5}(BIS|[A-Z])?$");
+        private static readonly Regex SIN_NUMERO = new Regex(@"^(S\s*[/.\-]?\s*N(º|O|\.)?|SIN\s+N(Ú|U)MERO)\.?$", RegexOptions.IgnoreCase);
+
+        public static bool FormatoValido(string numero)
+        {
+            if (string.IsNullOrWhiteSpace(numero))
+            {
+                return false;
+            }
+            string limpio = numero.Trim();
+            return SIN_NUMERO.IsMatch(limpio) || FORMATO.IsMatch(Regex.Replace(limpio, @"\s+", string.Empty).ToUpperInvariant());
+        }
+    }
+
+    /// <summary>
     /// Nesto#643 (gemela de NestoAPI#874): espejo en el cliente de la regla de la API (NestoAPI.Infraestructure.Clientes.Direccion2Cliente)
     /// para que el usuario vea en el asistente lo que le falta y cómo quedará, sin esperar al error del servidor. Quien manda es la API:
     /// mismos tipos, mismos textos y misma composición («1º D», «LOCAL 6 · RÓTULO: EL EDÉN», «CASA», «NAVE 4»).
