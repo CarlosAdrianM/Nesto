@@ -34,7 +34,17 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
-            <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
+            <!-- Novedades 1314 (Carlos 17/11/26): «Iniciar Pedido Nuevo» estaba abajo del todo, bajo las casillas, y nadie lo encontraba. Va arriba, sobre el buscador. -->
+            <StackPanel Grid.Row="1">
+                <Button Content="Iniciar Pedido Nuevo" FontWeight="SemiBold" Padding="8,4" Margin="0,3,0,3"
+                        Command="{Binding CrearPedidoCommand}"
+                        ToolTip="Empezar un pedido nuevo en blanco"
+                        Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Button Content="Cancelar pedido sin crear" Padding="8,4" Margin="0,3,0,3"
+                        Command="{Binding CancelarCreacionCommand}"
+                        Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <controles:BarraFiltro Name="txtFiltro" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
+            </StackPanel>
             <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
@@ -148,13 +158,6 @@
             <!-- Sugerencia 1184: solo los pedidos retenidos (NestoAPI#698) -->
             <CheckBox Grid.Row="7" IsChecked="{Binding mostrarSoloRetenidos}">Mostrar Sólo Retenidos</CheckBox>
 
-            <Button Grid.Row="8" Content="Iniciar Pedido Nuevo"
-                    Command="{Binding CrearPedidoCommand}"
-                    Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-            <Button Grid.Row="8" Content="Cancelar pedido sin crear"
-                    Command="{Binding CancelarCreacionCommand}"
-                    Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/> 
         </Grid>
         </xctk:BusyIndicator>
         
