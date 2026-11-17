@@ -422,6 +422,7 @@ Public NotInheritable Class PanelNavegacionLateral
                     _buscador.Mover(-1)
                     e.Handled = True
                 Case Key.Enter
+                    TragarElSoltarDeEsteIntro()
                     _buscador.Ejecutar()
                     e.Handled = True
                 Case Key.Escape
@@ -435,6 +436,31 @@ Public NotInheritable Class PanelNavegacionLateral
     End Sub
 
     ' Se recuerda de dónde venía el foco (también si se ha entrado con el ratón), para devolverlo con Esc
+    ''' <summary>
+    ''' El Intro de la búsqueda abre la pantalla al PULSAR; al SOLTAR, el foco ya está en la pantalla nueva y ese KeyUp le
+    ''' llegaba a su primer control (los que saltan al siguiente o buscan con Intro al soltar: filtros, selectores, la ficha
+    ''' de producto…), así que el foco acababa en el control de después (Carlos 17/11/26). Se traga ese único KeyUp en la
+    ''' ventana; con un tope de tiempo por si el soltar no llega nunca (se cambió de ventana con la tecla pulsada).
+    ''' </summary>
+    Private Sub TragarElSoltarDeEsteIntro()
+        Try
+            Dim ventana = Window.GetWindow(Me)
+            If ventana Is Nothing Then Return
+            Dim pulsado = DateTime.UtcNow
+            Dim manejador As KeyEventHandler = Nothing
+            manejador = Sub(s, e)
+                            If e.Key <> Key.Enter Then Return
+                            RemoveHandler ventana.PreviewKeyUp, manejador
+                            If (DateTime.UtcNow - pulsado).TotalSeconds <= 3 Then
+                                e.Handled = True
+                            End If
+                        End Sub
+            AddHandler ventana.PreviewKeyUp, manejador
+        Catch ex As Exception
+            _conmutador.Registrar(ex, BuscadorMenu.CONTEXTO_ERRORES & ": tragar el soltar del Intro")
+        End Try
+    End Sub
+
     Private Sub AlEntrarEnLaBusqueda(sender As Object, e As KeyboardFocusChangedEventArgs)
         Dim anterior = TryCast(e.OldFocus, DependencyObject)
         If anterior IsNot Nothing AndAlso Not EstaEnElPanel(anterior) Then
