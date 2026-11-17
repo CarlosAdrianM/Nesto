@@ -146,12 +146,14 @@ Public Class PedidoVentaService
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
-            Dim urlConsulta As String = "PedidosVenta"
+            ' Nesto#642 (NestoAPI#873, ampliación): la respuesta trae el pedido tal como ha quedado (Nº de orden de las líneas nuevas)
+            Dim urlConsulta As String = URL_PEDIDOS_DEVOLVIENDO_PEDIDO
             If pedido.CrearEfectosManualmente AndAlso pedido.Efectos IsNot Nothing Then
                 pedido.Efectos.ImporteTotal = pedido.Total
                 pedido.Efectos.CuadrarEfectos()
             End If
             pedido.tieneFechasFuturas = Nothing ' Nesto#588: el de antes ya no vale; lo dice la respuesta
+            pedido.GuardadoEnServidor = Nothing
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try
@@ -168,6 +170,7 @@ Public Class PedidoVentaService
                             If Not String.IsNullOrWhiteSpace(avisos?.Version) Then
                                 pedido.Version = avisos.Version ' Nesto#642: para seguir guardando sin recargar
                             End If
+                            pedido.GuardadoEnServidor = PedidoGuardadoValido(avisos?.Pedido, pedido.numero) ' Nesto#642 (ampliación)
                             If avisos?.Avisos IsNot Nothing Then
                                 Return avisos.Avisos
                             End If
@@ -1200,6 +1203,38 @@ Public Class PedidoVentaService
     ''' Nesto#588: «tieneFechasFuturas» del pedido que devuelve el POST (la regla de la lista, calculada en la API). Nothing si no
     ''' viene (API vieja) o el cuerpo no se entiende: entonces se calcula como antes. Nunca lanza.
     ''' </summary>
+    ''' <summary>
+    ''' Nesto#642 (NestoAPI#873, ampliación): PUT y POST con «?devolverPedido=true»: la respuesta trae además el pedido tal como ha
+    ''' quedado (PUT: «Pedido» de la respuesta; POST: «PedidoGuardado» del cuerpo), con los Nº de orden de las líneas nuevas y su
+    ''' versión. Una API vieja ignora el parámetro y contesta lo de siempre.
+    ''' </summary>
+    Friend Const URL_PEDIDOS_DEVOLVIENDO_PEDIDO As String = "PedidosVenta?devolverPedido=true"
+
+    ''' <summary>El «PedidoGuardado» del cuerpo del POST, o Nothing.</summary>
+    Friend Shared Function LeerPedidoGuardado(cuerpo As String) As PedidoVentaDTO
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim valor = TryCast(JToken.Parse(cuerpo), JObject)?("PedidoGuardado")
+            If valor Is Nothing OrElse valor.Type <> JTokenType.Object Then
+                Return Nothing
+            End If
+            Return valor.ToObject(Of PedidoVentaDTO)()
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>Solo vale si es el mismo pedido, trae versión y todas sus líneas tienen Nº de orden; si no, Nothing (como antes).</summary>
+    Friend Shared Function PedidoGuardadoValido(guardado As PedidoVentaDTO, numero As Integer) As PedidoVentaDTO
+        If guardado Is Nothing OrElse guardado.numero <> numero OrElse String.IsNullOrWhiteSpace(guardado.Version) OrElse
+            guardado.Lineas Is Nothing OrElse guardado.Lineas.Any(Function(l) l Is Nothing OrElse l.id <= 0) Then
+            Return Nothing
+        End If
+        Return guardado
+    End Function
+
     ''' <summary>Nesto#642 (NestoAPI#873): la «Version» del cuerpo del POST (el pedido creado), o Nothing.</summary>
     Friend Shared Function LeerVersion(cuerpo As String) As String
         If String.IsNullOrWhiteSpace(cuerpo) Then
@@ -1279,7 +1314,8 @@ Public Class PedidoVentaService
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try
-                Dim response As HttpResponseMessage = Await client.PostAsync("PedidosVenta", content)
+                pedido.GuardadoEnServidor = Nothing
+                Dim response As HttpResponseMessage = Await client.PostAsync(URL_PEDIDOS_DEVOLVIENDO_PEDIDO, content) ' Nesto#642 (ampliación)
 
                 If response.IsSuccessStatusCode Then
                     Dim cuerpoCreado As String = Await response.Content.ReadAsStringAsync()
@@ -1288,7 +1324,9 @@ Public Class PedidoVentaService
                     ' El número del pedido viene en el Location header
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numeroPedidoStr = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
-                    Return Integer.Parse(numeroPedidoStr)
+                    Dim numeroCreado As Integer = Integer.Parse(numeroPedidoStr)
+                    pedido.GuardadoEnServidor = PedidoGuardadoValido(LeerPedidoGuardado(cuerpoCreado), numeroCreado) ' Nesto#642 (ampliación)
+                    Return numeroCreado
                 Else
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)

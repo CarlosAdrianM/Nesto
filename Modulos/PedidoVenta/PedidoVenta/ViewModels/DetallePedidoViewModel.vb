@@ -2512,6 +2512,7 @@ Public Class DetallePedidoViewModel
             ' Actualizar snapshot
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
+            AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
             Return True ' Guardado exitoso, continuar
 
         Catch ex As GuardadoCanceladoPorFechaEntregaException
@@ -2988,6 +2989,7 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 _fotoAlCargar = FotoTrasGuardar() ' Nesto#642: recién creado, sus líneas no tienen Nº de orden: sin foto
+                AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): salvo que la API devuelva el pedido creado
                 AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
@@ -3019,6 +3021,7 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
+                AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
                 messenger.Send(New PedidoModificadoMensaje(pedido.Model))
                 ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
                 Await ProcesarAvisosModificacion(avisosModificacion)

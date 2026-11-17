@@ -146,6 +146,10 @@ Public Class PedidoVentaDTO
     ''' No cuenta como cambio sin guardar (no está en Equals).</summary>
     <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
     Public Property Version As String
+    ''' <summary>Nesto#642 (NestoAPI#873, ampliación): el pedido tal como ha quedado en el servidor tras el último PUT o POST
+    ''' («?devolverPedido=true»: con los Nº de orden de las líneas nuevas y su versión). Lo pone el servicio; no viaja.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public Property GuardadoEnServidor As PedidoVentaDTO
     ''' <summary>Nesto#503 / NestoAPI#571: «Recoge en tienda». Al leer, la API lo calcula de la ruta (AM, ALC o REI). Al escribir,
     ''' solo viaja si el usuario ha tocado la casilla (<see cref="RecogeEnTiendaTocado"/>): sin él la API no toca nada; con él lo
     ''' traduce a ruta y recalcula portes y comisión. Ver RecogeEnTiendaReglas (módulo PedidoVenta).</summary>

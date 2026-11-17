@@ -10,6 +10,8 @@ Public Class RespuestaModificacionPedidoModel
     Public Property tieneFechasFuturas As Boolean?
     ''' <summary>Nesto#642 (NestoAPI#873): la versión del pedido tal como ha quedado (Nothing = la API no la manda).</summary>
     Public Property Version As String
+    ''' <summary>Nesto#642 (NestoAPI#873, ampliación): con «?devolverPedido=true», el pedido tal como ha quedado (Nothing si no).</summary>
+    Public Property Pedido As Nesto.Models.PedidoVentaDTO
 End Class
 
 ''' <summary>Nesto#642 (NestoAPI#873): GET api/PedidosVenta/{empresa}/{numero}/Version: la versión de ahora y quién lo tocó el último.</summary>

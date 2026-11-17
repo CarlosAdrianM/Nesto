@@ -609,5 +609,106 @@ namespace PedidoVentaTests
             A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains("no se pueden separar sus cambios"))).MustHaveHappenedOnceExactly();
             A.CallTo(() => servicio.cargarPedido(A<string>._, A<int>._)).MustNotHaveHappened();
         }
+
+        // ---------- Tras guardar, el pedido tal como ha quedado (NestoAPI#873, ampliación) ----------
+
+        /// <summary>Lo que devuelve la API con ?devolverPedido=true tras guardar una línea nueva: ya con su Nº de orden (9).</summary>
+        private static PedidoVentaDTO GuardadoConLineaNueva(string version)
+        {
+            PedidoVentaDTO guardado = Pedido(version);
+            guardado.Lineas.Add(new LineaPedidoVentaDTO { id = 9, Producto = "17404", Cantidad = 3, almacen = "ALG", tipoLinea = 1, fechaEntrega = new DateTime(2026, 11, 17) });
+            return guardado;
+        }
+
+        [TestMethod]
+        public async Task GuardarLineasNuevas_ConElPedidoDevuelto_LoAdoptaComoFotoYVersion()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ReturnsLazily((PedidoVentaDTO p) =>
+            {
+                p.Version = "v2";
+                p.GuardadoEnServidor = GuardadoConLineaNueva("v2");
+                return Task.FromResult(new List<AvisoPedidoModel>());
+            });
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+            vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 0, Producto = "17404", Cantidad = 3, almacen = "ALG", tipoLinea = 1 });
+
+            await vm.ModificarPedidoAsync();
+
+            Assert.IsTrue(vm.TieneFotoAlCargar, "Ya se pueden conservar los cambios: las líneas tienen Nº de orden");
+            Assert.AreEqual("v2", vm.pedido.Model.Version);
+            CollectionAssert.AreEqual(new[] { 1, 9 }, vm.pedido.Model.Lineas.Select(l => l.id).ToArray());
+            Assert.IsNull(vm.pedido.Model.GuardadoEnServidor);
+            Assert.IsFalse(vm.TieneCambiosSinGuardar);
+        }
+
+        [TestMethod]
+        public async Task GuardarLineasNuevas_YLuegoOtroCambiaLaFormaDePago_ConservarNoDuplicaNiPregunta()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ReturnsLazily((PedidoVentaDTO p) =>
+            {
+                p.Version = "v2";
+                p.GuardadoEnServidor = GuardadoConLineaNueva("v2");
+                return Task.FromResult(new List<AvisoPedidoModel>());
+            });
+            PedidoVentaDTO trasAida = GuardadoConLineaNueva("v3");
+            trasAida.formaPago = "TRN";
+            A.CallTo(() => servicio.cargarPedido("1", NUMERO)).Returns(trasAida);
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            List<string> preguntas = DialogoContesta(dialogos, m => ResultadoBoton.OK);
+            DetallePedidoViewModel vm = Vm(servicio, dialogos);
+            vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 0, Producto = "17404", Cantidad = 3, almacen = "ALG", tipoLinea = 1 });
+            await vm.ModificarPedidoAsync();
+            vm.pedido.Model.Lineas.Single(l => l.id == 9).Cantidad = 4; // sigue trabajando
+            vm.ProcesarPedidoCambiado(Aviso("v3"));
+
+            await vm.RecargarConservandoCambiosAsync();
+
+            Assert.AreEqual(0, preguntas.Count, "Ni una pregunta");
+            Assert.AreEqual(2, vm.pedido.Model.Lineas.Count, "La línea guardada no se duplica");
+            Assert.AreEqual(4, vm.pedido.Model.Lineas.Single(l => l.id == 9).Cantidad);
+            Assert.AreEqual("TRN", vm.pedido.Model.formaPago);
+            Assert.AreEqual("v3", vm.pedido.Model.Version);
+        }
+
+        [TestMethod]
+        public async Task GuardarLineasNuevas_ApiViejaSinPedido_SinFotoComoAntes()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).Returns(new List<AvisoPedidoModel>());
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+            vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 0, Producto = "17404", Cantidad = 3, almacen = "ALG", tipoLinea = 1 });
+
+            await vm.ModificarPedidoAsync();
+
+            Assert.IsFalse(vm.TieneFotoAlCargar);
+        }
+
+        [TestMethod]
+        public void Servicio_PideElPedidoYSoloLoAceptaSiVale()
+        {
+            StringAssert.Contains(PedidoVentaService.URL_PEDIDOS_DEVOLVIENDO_PEDIDO, "devolverPedido=true");
+            Assert.IsNotNull(PedidoVentaService.PedidoGuardadoValido(GuardadoConLineaNueva("v2"), NUMERO));
+            Assert.IsNull(PedidoVentaService.PedidoGuardadoValido(GuardadoConLineaNueva("v2"), 1), "Otro pedido");
+            Assert.IsNull(PedidoVentaService.PedidoGuardadoValido(GuardadoConLineaNueva(null), NUMERO), "Sin versión");
+            PedidoVentaDTO sinNumeroDeOrden = GuardadoConLineaNueva("v2");
+            sinNumeroDeOrden.Lineas.First().id = 0;
+            Assert.IsNull(PedidoVentaService.PedidoGuardadoValido(sinNumeroDeOrden, NUMERO), "Una línea sin Nº de orden");
+            Assert.IsNull(PedidoVentaService.PedidoGuardadoValido(null, NUMERO));
+        }
+
+        [TestMethod]
+        public void Servicio_LeeElPedidoGuardadoDelCuerpoDelPost()
+        {
+            string cuerpo = "{\"$id\":\"1\",\"numero\":929555,\"Version\":\"v1\",\"PedidoGuardado\":{\"$id\":\"2\",\"empresa\":\"1\",\"numero\":929555,\"Version\":\"v1\",\"Lineas\":[{\"$id\":\"3\",\"id\":7,\"Producto\":\"17404\"}]}}";
+
+            PedidoVentaDTO guardado = PedidoVentaService.LeerPedidoGuardado(cuerpo);
+
+            Assert.AreEqual(929555, guardado.numero);
+            Assert.AreEqual("v1", guardado.Version);
+            Assert.AreEqual(7, guardado.Lineas.Single().id);
+            Assert.IsNull(PedidoVentaService.LeerPedidoGuardado("{\"numero\":929555}"), "API vieja");
+        }
     }
 }
