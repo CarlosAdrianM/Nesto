@@ -242,7 +242,7 @@ Partial Public Class DetallePedidoViewModel
         Dim empresa As String = pedido.empresa
         Dim numero As Integer = pedido.numero
         Try
-            Dim respuesta As NotaEntregaCabeceraDTO = Await servicio.CambiarCabeceraNotaEntrega(empresa, numero, _tipoNota, _bultosNota, _facturaOriginalNota).ConfigureAwait(True)
+            Dim respuesta As NotaEntregaCabeceraDTO = Await ConVersionAlDiaAsync(Function() servicio.CambiarCabeceraNotaEntrega(empresa, numero, _tipoNota, _bultosNota, _facturaOriginalNota)).ConfigureAwait(True) ' Nesto#642
             If pedido Is Nothing OrElse pedido.numero <> numero Then
                 Return ' el usuario ya está en otro pedido
             End If
@@ -289,7 +289,7 @@ Partial Public Class DetallePedidoViewModel
             Return
         End If
         Try
-            Dim unused = Await servicio.CambiarCabeceraNotaEntrega(pedido.empresa, pedido.numero, _tipoNota, _bultosNota, _facturaOriginalNota).ConfigureAwait(True)
+            Dim unused = Await ConVersionAlDiaAsync(Function() servicio.CambiarCabeceraNotaEntrega(pedido.empresa, pedido.numero, _tipoNota, _bultosNota, _facturaOriginalNota)).ConfigureAwait(True) ' Nesto#642
         Catch ex As Exception
             dialogService.ShowError($"La nota se ha creado, pero no se ha podido vincular la factura original: {ex.Message}")
             _facturaOriginalNota = Nothing
@@ -473,7 +473,7 @@ Partial Public Class DetallePedidoViewModel
                 Return
             End If
             Try
-                Dim respuesta As NotaEntregaCabeceraDTO = Await servicio.CambiarCabeceraNotaEntrega(empresa, numero, TiposNotaEntrega.RECOGIDA, bultos, _facturaOriginalNota).ConfigureAwait(True)
+                Dim respuesta As NotaEntregaCabeceraDTO = Await ConVersionAlDiaAsync(Function() servicio.CambiarCabeceraNotaEntrega(empresa, numero, TiposNotaEntrega.RECOGIDA, bultos, _facturaOriginalNota)).ConfigureAwait(True) ' Nesto#642
                 If pedido Is Nothing OrElse pedido.numero <> numero Then
                     Return ' el usuario ya está en otro pedido
                 End If

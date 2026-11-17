@@ -1466,12 +1466,22 @@ Public Class DetallePedidoViewModel
 
     ''' <summary>Nesto#581: la carga de cmdCargarPedido, esperable (el abono por recogida abre el pedido y luego entra en modo abono).</summary>
     Friend Async Function CargarPedidoAsync(resumen As ResumenPedido) As Task
+        Dim unused = Await CargarPedidoAsync(resumen, Nothing)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#642 (ampliación): con <paramref name="ponerEncima"/>, lo leído del servidor pasa antes por ahí (recibe una copia) y lo
+    ''' que devuelve es lo que se enseña; si devuelve Nothing no se toca nada de la pantalla (se ha cancelado). La foto y el snapshot
+    ''' son siempre los del servidor. Devuelve si se ha cargado.
+    ''' </summary>
+    Friend Async Function CargarPedidoAsync(resumen As ResumenPedido, ponerEncima As Func(Of PedidoVentaDTO, Task(Of PedidoVentaDTO))) As Task(Of Boolean)
         Try
             If Not IsNothing(resumen) Then
                 ' CASO 1: Pedido nuevo (numero = 0)
                 If resumen.numero = 0 Then
                     Titulo = "Nuevo Pedido"
                     pedido = Await CrearPedidoVentaWrapperNuevo(resumen.empresa)
+                    _fotoAlCargar = Nothing ' Nesto#642
                     fechaEntrega = Date.Today
                     ListaEnlacesSeguimiento = New List(Of EnvioAgenciaDTO)()
                     RecogerProducto = False
@@ -1482,9 +1492,29 @@ Public Class DetallePedidoViewModel
 
                     ' CASO 2: Pedido existente
                 ElseIf resumen.numero > 0 Then
-                    Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
                     Dim pedidoDTO As PedidoVentaDTO = Await servicio.cargarPedido(resumen.empresa, resumen.numero)
-                    pedido = New PedidoVentaWrapper(pedidoDTO)
+                    ' Nesto#642: la foto del pedido tal como está guardado, para separar luego los cambios del usuario
+                    Dim foto As PedidoVentaDTO = FusionCambiosPedido.ClonarPedido(pedidoDTO)
+                    Dim enPantalla As PedidoVentaDTO = pedidoDTO
+                    If ponerEncima IsNot Nothing Then
+                        enPantalla = Await ponerEncima(FusionCambiosPedido.ClonarPedido(pedidoDTO))
+                        If enPantalla Is Nothing Then
+                            Return False ' cancelado: la pantalla sigue como estaba
+                        End If
+                    End If
+                    Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
+                    ' Nesto#642: las líneas nuevas (sin Nº de orden) se añaden como las del usuario, por el wrapper (que las mete en
+                    ' el modelo al añadirlas); en el constructor se insertarían dos veces.
+                    Dim lineasNuevas As List(Of LineaPedidoVentaDTO) = If(enPantalla.Lineas, New List(Of LineaPedidoVentaDTO)).
+                        Where(Function(l) l IsNot Nothing AndAlso l.id <= 0).ToList()
+                    For Each nueva In lineasNuevas
+                        Dim unusedQuitada = enPantalla.Lineas.Remove(nueva)
+                    Next
+                    pedido = New PedidoVentaWrapper(enPantalla)
+                    For Each nueva In lineasNuevas
+                        pedido.Lineas.Add(New LineaPedidoVentaWrapper(nueva))
+                    Next
+                    _fotoAlCargar = foto
                     ' Carlos 04/12/25: Guardar snapshot para detectar cambios sin guardar (Issue #254)
                     _snapshotPedidoGuardado = pedidoDTO.CrearSnapshot()
                     ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
@@ -1495,12 +1525,14 @@ Public Class DetallePedidoViewModel
                     End If
                 End If
                 AlCambiarElPedidoEnPantalla() ' Nesto#642: fuera la banda y al grupo de SignalR de este pedido
+                Return True
             Else
                 Titulo = "Lista de Pedidos"
             End If
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         End Try
+        Return False
     End Function
 
     Private _cargarProductoCommand As RelayCommand(Of LineaPedidoVentaDTO)
@@ -2479,6 +2511,7 @@ Public Class DetallePedidoViewModel
 
             ' Actualizar snapshot
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+            _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
             Return True ' Guardado exitoso, continuar
 
         Catch ex As GuardadoCanceladoPorFechaEntregaException
@@ -2954,6 +2987,7 @@ Public Class DetallePedidoViewModel
                 Titulo = $"Pedido Venta ({pedido.numero})"
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+                _fotoAlCargar = FotoTrasGuardar() ' Nesto#642: recién creado, sus líneas no tienen Nº de orden: sin foto
                 AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
@@ -2984,6 +3018,7 @@ Public Class DetallePedidoViewModel
                 dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
                 ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+                _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
                 messenger.Send(New PedidoModificadoMensaje(pedido.Model))
                 ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
                 Await ProcesarAvisosModificacion(avisosModificacion)
@@ -3336,7 +3371,7 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Try
-            Dim respuesta As SuPedidoFacturaModel = Await servicio.PonerSuPedidoFactura(pedido.empresa, factura, texto)
+            Dim respuesta As SuPedidoFacturaModel = Await ConVersionAlDiaAsync(Function() servicio.PonerSuPedidoFactura(pedido.empresa, factura, texto)) ' Nesto#642
             Dim puesto As String = If(String.IsNullOrWhiteSpace(respuesta?.SuPedido), texto, respuesta.SuPedido.Trim())
             ' El servidor también lo ha puesto en el pedido: así un «Guardar» posterior no lo vuelve a dejar como estaba
             pedido.suPedido = puesto
@@ -3541,6 +3576,7 @@ Public Class DetallePedidoViewModel
     ''' <summary>Toma el pedido en pantalla como el guardado (lo que hace la carga). Para los tests.</summary>
     Friend Sub MarcarComoGuardado()
         _snapshotPedidoGuardado = pedido?.Model?.CrearSnapshot()
+        _fotoAlCargar = FotoTrasGuardar() ' Nesto#642: lo de la pantalla es lo guardado
     End Sub
 
     ''' <summary>NestoAPI#494: agencia 0 en CrearEtiquetaPendiente = que la elija el comparador de la API.</summary>
@@ -3554,7 +3590,7 @@ Public Class DetallePedidoViewModel
             ' Crear etiqueta pendiente de recogida. NestoAPI#494 (28/09/26): la agencia la elige el
             ' comparador de la API en modo envío + retorno (antes GLS, o la del primer envío del pedido).
             Try
-                Await servicio.CrearEtiquetaPendiente(pedido.empresa, pedido.numero, AGENCIA_LA_ELIGE_EL_COMPARADOR, 1)
+                Await ConVersionAlDiaAsync(Function() servicio.CrearEtiquetaPendiente(pedido.empresa, pedido.numero, AGENCIA_LA_ELIGE_EL_COMPARADOR, 1)) ' Nesto#642
             Catch ex As Exception
                 dialogService.ShowError("Error al crear etiqueta de recogida: " & ex.Message)
             End Try
@@ -3573,7 +3609,7 @@ Public Class DetallePedidoViewModel
             End If
             ' Eliminar etiqueta pendiente de recogida
             Try
-                Await servicio.EliminarEtiquetaPendiente(etiquetaExistente.Numero)
+                Await ConVersionAlDiaAsync(Function() servicio.EliminarEtiquetaPendiente(etiquetaExistente.Numero)) ' Nesto#642
             Catch ex As Exception
                 dialogService.ShowError("Error al eliminar etiqueta de recogida: " & ex.Message)
             End Try
@@ -4153,7 +4189,7 @@ Public Class DetallePedidoViewModel
 
     Private Async Function CambiarServirPendienteNotaAsync(valor As Boolean) As Task
         Try
-            Await servicio.CambiarServirPendienteNota(pedido.empresa, pedido.numero, valor, configuracion?.usuario).ConfigureAwait(True)
+            Await ConVersionAlDiaAsync(Function() servicio.CambiarServirPendienteNota(pedido.empresa, pedido.numero, valor, configuracion?.usuario)).ConfigureAwait(True) ' Nesto#642
             If pedido?.Model IsNot Nothing Then
                 pedido.Model.servirPendienteAlHaberStock = valor
             End If
@@ -4428,7 +4464,7 @@ Public Class DetallePedidoViewModel
 
         Dim retencion As RetencionPedidoDTO
         Try
-            retencion = Await servicio.RetenerPedido(empresa, numero, motivo.Trim(), hastaFecha)
+            retencion = Await ConVersionAlDiaAsync(Function() servicio.RetenerPedido(empresa, numero, motivo.Trim(), hastaFecha)) ' Nesto#642
         Catch ex As Exception
             dialogService.ShowError("No se ha retenido el pedido:" & vbCrLf & ex.Message)
             Return
@@ -4462,7 +4498,7 @@ Public Class DetallePedidoViewModel
 
         Dim liberada As RetencionPedidoDTO
         Try
-            liberada = Await servicio.LiberarPedido(empresa, numero)
+            liberada = Await ConVersionAlDiaAsync(Function() servicio.LiberarPedido(empresa, numero)) ' Nesto#642
         Catch ex As Exception
             dialogService.ShowError("No se ha liberado el pedido:" & vbCrLf & ex.Message)
             Return
@@ -4608,7 +4644,7 @@ Public Class DetallePedidoViewModel
         Dim decidida As RetencionPorFaltaModel = Nothing
         Dim fallo As String = Nothing
         Try
-            decidida = Await servicio.DecidirRetencionPorFalta(empresa, numero, decision)
+            decidida = Await ConVersionAlDiaAsync(Function() servicio.DecidirRetencionPorFalta(empresa, numero, decision)) ' Nesto#642
         Catch ex As Exception
             fallo = ex.Message
         Finally

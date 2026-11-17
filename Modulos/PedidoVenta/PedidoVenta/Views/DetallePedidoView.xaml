@@ -95,9 +95,14 @@
             <Border Background="#FDECEA" BorderBrush="#C62828" BorderThickness="2" CornerRadius="3" Padding="8,6" Margin="0,0,0,4"
                     Visibility="{Binding PedidoCambiadoPorOtro, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Recargar" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center"
-                            Command="{Binding RecargarPedidoCambiadoCommand}"
-                            ToolTip="Vuelve a leer el pedido tal como está guardado ahora (se pierden los cambios que no haya guardado)"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <Button Content="Recargar conservando mis cambios" Padding="10,3" Margin="0,0,6,0" FontWeight="Bold"
+                                Command="{Binding RecargarPedidoCambiadoCommand}"
+                                ToolTip="Vuelve a leer el pedido y pone encima lo que usted ha cambiado; solo le pregunta lo que hayan cambiado los dos"/>
+                        <Button Content="Recargar sin mis cambios" Padding="10,3"
+                                Command="{Binding RecargarSinMisCambiosCommand}"
+                                ToolTip="Vuelve a leer el pedido tal como está guardado y descarta lo que no haya guardado (se lo vuelve a preguntar)"/>
+                    </StackPanel>
                     <TextBlock Text="{Binding TextoPedidoCambiadoPorOtro}" TextWrapping="Wrap" FontWeight="Bold" Foreground="#8E0000" VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>

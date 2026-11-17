@@ -7,6 +7,7 @@ using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PedidoVentaTests
@@ -98,18 +99,36 @@ namespace PedidoVentaTests
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>.That.Matches(p => p.Version == VERSION))).MustHaveHappenedOnceExactly();
         }
 
+        /// <summary>El diálogo de botones contesta lo que diga <paramref name="contestar"/> (por su mensaje) y apunta los mensajes.</summary>
+        private static List<string> DialogoContesta(IServicioDialogos dialogos, Func<string, ResultadoBoton> contestar)
+        {
+            var mensajes = new List<string>();
+            A.CallTo(() => dialogos.ShowDialog(ServicioDialogosBase.ConfirmationDialog, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string nombre, ParametrosDialogo parametros, Action<ResultadoDialogo> callback) =>
+                {
+                    string mensaje = parametros.GetValue<string>("message");
+                    mensajes.Add(mensaje);
+                    callback?.Invoke(new ResultadoDialogo(contestar(mensaje)));
+                });
+            return mensajes;
+        }
+
         [TestMethod]
-        public async Task Guardar_409PedidoCambiado_EnsenaElMensajePoneLaBandaYOfreceRecargar()
+        public async Task Guardar_409PedidoCambiado_EnsenaElMensajePoneLaBandaYOfreceRecargarConservando()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new PedidoCambiadoException(MENSAJE_409, "Aida", DateTime.Today.AddHours(15).AddMinutes(14)));
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
-            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(false));
+            List<string> mensajes = DialogoContesta(dialogos, m => ResultadoBoton.Cancel); // «Ahora no»
             DetallePedidoViewModel vm = Vm(servicio, dialogos);
 
             await vm.ModificarPedidoAsync();
 
-            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains(MENSAJE_409))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog(ServicioDialogosBase.ConfirmationDialog, A<ParametrosDialogo>.That.Matches(p =>
+                p.GetValue<string>(ConfirmationDialogViewModel.PARAMETRO_TEXTO_SI) == DetallePedidoViewModel.TEXTO_RECARGAR_CONSERVANDO &&
+                p.GetValue<string>(ConfirmationDialogViewModel.PARAMETRO_TEXTO_TERCERO) == DetallePedidoViewModel.TEXTO_RECARGAR_SIN_CAMBIOS),
+                A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(mensajes.Single(), MENSAJE_409);
             A.CallTo(() => dialogos.ShowNotification(A<string>._, A<string>.That.Contains("modificado correctamente"))).MustNotHaveHappened();
             Assert.IsTrue(vm.PedidoCambiadoPorOtro);
             Assert.AreEqual("Aida ha modificado este pedido a las 15:14. Recárguelo antes de guardar.", vm.TextoPedidoCambiadoPorOtro);
@@ -118,21 +137,49 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public async Task Guardar_409_SiDiceQueSi_RecargaYQuitaLaBanda()
+        public async Task Guardar_409_RecargarConservando_ReleeYPoneEncimaLoDelUsuario()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new PedidoCambiadoException(MENSAJE_409, "Aida", null));
+            PedidoVentaDTO delServidor = Pedido("v2");
+            delServidor.formaPago = "TRN"; // lo de Aida
+            A.CallTo(() => servicio.cargarPedido("1", NUMERO)).Returns(delServidor);
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            DialogoContesta(dialogos, m => ResultadoBoton.OK);
+            DetallePedidoViewModel vm = Vm(servicio, dialogos);
+            vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 0, Producto = "17404", Cantidad = 3, almacen = "ALG", tipoLinea = 1 }); // lo de Alfredo
+
+            await vm.ModificarPedidoAsync();
+
+            A.CallTo(() => servicio.cargarPedido("1", NUMERO)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowNotification(A<string>._, A<string>._)).MustHaveHappened();
+            Assert.IsFalse(vm.PedidoCambiadoPorOtro);
+            Assert.AreEqual("v2", vm.pedido.Model.Version, "Con la versión nueva");
+            Assert.AreEqual("TRN", vm.pedido.Model.formaPago, "Se queda lo de Aida");
+            Assert.AreEqual(2, vm.pedido.Model.Lineas.Count, "Y la línea de Alfredo, sin guardar");
+            Assert.IsTrue(vm.pedido.Model.Lineas.Any(l => l.Producto == "17404" && l.id == 0));
+            Assert.IsTrue(vm.cmdModificarPedido.CanExecute(null));
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).MustHaveHappenedOnceExactly(); // no vuelve a guardar solo
+        }
+
+        [TestMethod]
+        public async Task Guardar_409_RecargarSinMisCambios_PideConfirmacion()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).ThrowsAsync(new PedidoCambiadoException(MENSAJE_409, "Aida", null));
             A.CallTo(() => servicio.cargarPedido("1", NUMERO)).Returns(Pedido("v2"));
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            DialogoContesta(dialogos, m => ResultadoBoton.No); // el del medio: «Recargar sin mis cambios»
             A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(true));
             DetallePedidoViewModel vm = Vm(servicio, dialogos);
 
             await vm.ModificarPedidoAsync();
 
+            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains("se pierde todo lo que no ha guardado"))).MustHaveHappenedOnceExactly();
             A.CallTo(() => servicio.cargarPedido("1", NUMERO)).MustHaveHappenedOnceExactly();
             Assert.IsFalse(vm.PedidoCambiadoPorOtro);
             Assert.AreEqual("v2", vm.pedido.Model.Version);
-            Assert.IsTrue(vm.cmdModificarPedido.CanExecute(null));
         }
 
         [TestMethod]
@@ -140,14 +187,14 @@ namespace PedidoVentaTests
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
-            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(false));
+            DialogoContesta(dialogos, m => ResultadoBoton.Cancel);
             DetallePedidoViewModel vm = Vm(servicio, dialogos);
             vm.ProcesarPedidoCambiado(Aviso("v2"));
 
             await vm.ModificarPedidoAsync();
 
             A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).MustNotHaveHappened();
-            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowDialog(ServicioDialogosBase.ConfirmationDialog, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._)).MustHaveHappenedOnceExactly();
         }
 
         // ---------- «pedidoCambiado» ----------
@@ -380,7 +427,7 @@ namespace PedidoVentaTests
         // ---------- Recargar ----------
 
         [TestMethod]
-        public async Task Recargar_ConCambiosSinGuardar_PreguntaAntes()
+        public async Task RecargarSinMisCambios_SiempreConConfirmacion()
         {
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
@@ -391,9 +438,176 @@ namespace PedidoVentaTests
 
             await vm.RecargarPedidoCambiadoAsync();
 
-            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains("se pierden los cambios"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains("se pierde todo lo que no ha guardado"))).MustHaveHappenedOnceExactly();
             A.CallTo(() => servicio.cargarPedido(A<string>._, A<int>._)).MustNotHaveHappened();
             Assert.IsTrue(vm.PedidoCambiadoPorOtro);
+        }
+
+        // ---------- Acciones que cambian el pedido sin recargarlo: refrescan la versión (Carlos 17/11/26) ----------
+
+        private static IPedidoVentaService ServicioConVersiones(params string[] versiones)
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            A.CallTo(() => servicio.LeerVersionPedido("1", NUMERO)).ReturnsNextFromSequence(
+                versiones.Select(v => v == null ? null : new VersionPedidoModel { Version = v, Usuario = "Aida", Fecha = DateTime.Today.AddHours(15) }).ToArray());
+            return servicio;
+        }
+
+        [TestMethod]
+        public async Task AccionAlDia_AdoptaLaVersionDeDespues_YElSiguienteGuardarLaManda()
+        {
+            IPedidoVentaService servicio = ServicioConVersiones(VERSION, "v2");
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>._)).Returns(new List<AvisoPedidoModel>());
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+
+            bool hecho = await vm.ConVersionAlDiaAsync(() => Task.FromResult(true)); // p. ej. Retener
+
+            Assert.IsTrue(hecho);
+            Assert.AreEqual("v2", vm.pedido.Model.Version);
+            Assert.IsFalse(vm.PedidoCambiadoPorOtro);
+            await vm.ModificarPedidoAsync();
+            A.CallTo(() => servicio.modificarPedido(A<PedidoVentaDTO>.That.Matches(p => p.Version == "v2"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task AccionAlDia_SuPropioPedidoCambiado_NoSacaLaBanda()
+        {
+            IPedidoVentaService servicio = ServicioConVersiones(VERSION, "v2");
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+
+            await vm.ConVersionAlDiaAsync(() =>
+            {
+                vm.ProcesarPedidoCambiado(Aviso("v2", "Alfredo")); // el aviso de la propia acción llega antes de terminar
+                return Task.CompletedTask;
+            });
+
+            Assert.IsFalse(vm.PedidoCambiadoPorOtro);
+            Assert.AreEqual("v2", vm.pedido.Model.Version);
+        }
+
+        [TestMethod]
+        public async Task Accion_SiOtroLoHabiaCambiadoAntes_BandaYNoAdoptaLaVersion()
+        {
+            // Si se adoptara, el siguiente Guardar pisaría lo de Aida sin 409
+            IPedidoVentaService servicio = ServicioConVersiones("vAida", "v3");
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+
+            await vm.ConVersionAlDiaAsync(() => Task.FromResult(1));
+
+            Assert.IsTrue(vm.PedidoCambiadoPorOtro);
+            Assert.AreEqual(VERSION, vm.pedido.Model.Version);
+        }
+
+        [TestMethod]
+        public async Task Accion_QueFalla_NoTocaLaVersionYSePropaga()
+        {
+            IPedidoVentaService servicio = ServicioConVersiones(VERSION, "v2");
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+                vm.ConVersionAlDiaAsync<bool>(() => throw new InvalidOperationException("la API dice que no")));
+
+            Assert.AreEqual(VERSION, vm.pedido.Model.Version);
+            vm.ProcesarPedidoCambiado(Aviso("v9"));
+            Assert.IsTrue(vm.PedidoCambiadoPorOtro, "Ya no se está «guardando»: los avisos vuelven a contar");
+        }
+
+        [TestMethod]
+        public async Task Accion_SinVersionDeLaApi_SeQuedaComoEstaba()
+        {
+            IPedidoVentaService servicio = ServicioConVersiones(null, null);
+            DetallePedidoViewModel vm = Vm(servicio, A.Fake<IServicioDialogos>());
+
+            await vm.ConVersionAlDiaAsync(() => Task.FromResult(true));
+
+            Assert.AreEqual(VERSION, vm.pedido.Model.Version);
+            Assert.IsFalse(vm.PedidoCambiadoPorOtro);
+        }
+
+        [TestMethod]
+        public void AccionesDelDetalle_PasanPorConVersionAlDia()
+        {
+            // Las que cambian el pedido sin recargarlo (si se añade otra, que pase también por ConVersionAlDiaAsync)
+            var dir = new System.IO.DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (dir != null && !System.IO.Directory.Exists(System.IO.Path.Combine(dir.FullName, "PedidoVenta", "ViewModels")))
+            {
+                dir = dir.Parent;
+            }
+            Assert.IsNotNull(dir, "No se encuentra el código del módulo");
+            string carpeta = System.IO.Path.Combine(dir.FullName, "PedidoVenta", "ViewModels");
+            string codigo = System.IO.File.ReadAllText(System.IO.Path.Combine(carpeta, "DetallePedidoViewModel.vb")) +
+                System.IO.File.ReadAllText(System.IO.Path.Combine(carpeta, "DetallePedidoViewModel.NotaEntrega.vb"));
+            foreach (string accion in new[] { "RetenerPedido", "LiberarPedido", "DecidirRetencionPorFalta", "CambiarCabeceraNotaEntrega",
+                "CrearEtiquetaPendiente", "EliminarEtiquetaPendiente", "CambiarServirPendienteNota", "PonerSuPedidoFactura" })
+            {
+                int llamadas = System.Text.RegularExpressions.Regex.Matches(codigo, @"servicio\." + accion + @"\(").Count;
+                int envueltas = System.Text.RegularExpressions.Regex.Matches(codigo, @"ConVersionAlDiaAsync\(Function\(\) servicio\." + accion + @"\(").Count;
+                Assert.IsTrue(llamadas > 0, accion);
+                Assert.AreEqual(llamadas, envueltas, $"{accion}: todas sus llamadas refrescan la versión");
+            }
+        }
+
+        // ---------- «Recargar conservando mis cambios» desde la pantalla ----------
+
+        [TestMethod]
+        public async Task RecargarConservando_ConConflicto_PreguntaDeUstedYSeQuedaConLoElegido()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            PedidoVentaDTO delServidor = Pedido("v2");
+            delServidor.Lineas.First().Cantidad = 5; // Alfredo
+            A.CallTo(() => servicio.cargarPedido("1", NUMERO)).Returns(delServidor);
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            List<string> preguntas = DialogoContesta(dialogos, m => ResultadoBoton.OK); // «Con 8 (el mío)»
+            DetallePedidoViewModel vm = Vm(servicio, dialogos);
+            vm.ProcesarPedidoCambiado(Aviso("v2", "Alfredo"));
+            vm.pedido.Model.Lineas.First().Cantidad = 8;
+
+            await vm.RecargarConservandoCambiosAsync();
+
+            Assert.AreEqual("Alfredo cambió la cantidad de la línea 1 (38093) a 5 y usted a 8: ¿con cuál se queda?", preguntas.Single());
+            Assert.AreEqual(8, vm.pedido.Model.Lineas.First().Cantidad);
+            Assert.AreEqual("v2", vm.pedido.Model.Version);
+            Assert.IsFalse(vm.PedidoCambiadoPorOtro);
+        }
+
+        [TestMethod]
+        public async Task RecargarConservando_CancelarEnUnaPregunta_LaPantallaSigueComoEstaba()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            PedidoVentaDTO delServidor = Pedido("v2");
+            delServidor.Lineas.First().Cantidad = 5;
+            A.CallTo(() => servicio.cargarPedido("1", NUMERO)).Returns(delServidor);
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            DialogoContesta(dialogos, m => ResultadoBoton.Cancel);
+            DetallePedidoViewModel vm = Vm(servicio, dialogos);
+            vm.ProcesarPedidoCambiado(Aviso("v2", "Alfredo"));
+            PedidoVentaDTO enPantalla = vm.pedido.Model;
+            enPantalla.Lineas.First().Cantidad = 8;
+
+            await vm.RecargarConservandoCambiosAsync();
+
+            Assert.AreSame(enPantalla, vm.pedido.Model);
+            Assert.AreEqual(VERSION, vm.pedido.Model.Version);
+            Assert.IsTrue(vm.PedidoCambiadoPorOtro, "La banda sigue");
+            A.CallTo(() => dialogos.ShowNotification(A<string>._, A<string>.That.Contains("No se ha recargado nada"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task RecargarConservando_SinFoto_OfreceRecargarSinCambios()
+        {
+            // Guardado con líneas nuevas: sus Nº de orden solo los sabe el servidor
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>._)).Returns(Task.FromResult(false));
+            DetallePedidoViewModel vm = Vm(servicio, dialogos);
+            vm.pedido.Model.Lineas.Add(new LineaPedidoVentaDTO { id = 0, Producto = "17404", Cantidad = 1, tipoLinea = 1 });
+            vm.MarcarComoGuardado();
+            Assert.IsFalse(vm.TieneFotoAlCargar);
+
+            await vm.RecargarConservandoCambiosAsync();
+
+            A.CallTo(() => dialogos.ShowConfirmationAsync(A<string>._, A<string>.That.Contains("no se pueden separar sus cambios"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.cargarPedido(A<string>._, A<int>._)).MustNotHaveHappened();
         }
     }
 }
