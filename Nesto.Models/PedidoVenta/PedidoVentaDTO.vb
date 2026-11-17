@@ -141,6 +141,11 @@ Public Class PedidoVentaDTO
     ''' manda (versión vieja) y Nesto lo calcula como antes. Solo de salida: no se envía si es Nothing.</summary>
     <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
     Public Property tieneFechasFuturas As Boolean?
+    ''' <summary>Nesto#642 (NestoAPI#873): la versión del pedido guardado (opaca). La traen el GET y las respuestas de crearlo y
+    ''' modificarlo; va en el PUT y, si el pedido ha cambiado desde entonces, la API contesta 409 PEDIDO_CAMBIADO sin guardar nada.
+    ''' No cuenta como cambio sin guardar (no está en Equals).</summary>
+    <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
+    Public Property Version As String
     ''' <summary>Nesto#503 / NestoAPI#571: «Recoge en tienda». Al leer, la API lo calcula de la ruta (AM, ALC o REI). Al escribir,
     ''' solo viaja si el usuario ha tocado la casilla (<see cref="RecogeEnTiendaTocado"/>): sin él la API no toca nada; con él lo
     ''' traduce a ruta y recalcula portes y comisión. Ver RecogeEnTiendaReglas (módulo PedidoVenta).</summary>

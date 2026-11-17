@@ -150,6 +150,25 @@ namespace Nesto.Infrastructure.Shared
         /// <summary>Ariadna#51: otro equipo ha cambiado algo de un grupo del almacén. Llega en un hilo que no es el de la UI.</summary>
         public event EventHandler<string> GrupoHaCambiado;
 
+        /// <summary>Nesto#642 (NestoAPI#873): alguien ha guardado un pedido de cuyo grupo se está. Llega en un hilo que no es el de la UI.</summary>
+        public event EventHandler<PedidoCambiadoAviso> PedidoCambiado;
+
+        private void AvisarPedidoCambiado(PedidoCambiadoAviso aviso)
+        {
+            if (aviso == null)
+            {
+                return;
+            }
+            try
+            {
+                PedidoCambiado?.Invoke(this, aviso);
+            }
+            catch (Exception)
+            {
+                // Quien escucha no debe tumbar la conexión.
+            }
+        }
+
         /// <summary>Ariadna#51: la conexión de SignalR actual (null si no está conectado).</summary>
         public string IdConexion
         {
@@ -370,6 +389,7 @@ namespace Nesto.Infrastructure.Shared
                     var cerrada = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     conexion.HayNotificacionesNuevas += (s, e) => Avisar();
                     conexion.GrupoHaCambiado += (s, grupo) => AvisarGrupo(grupo);
+                    conexion.PedidoCambiado += (s, aviso) => AvisarPedidoCambiado(aviso);
                     conexion.LecturaEscanerRemoto += (s, lectura) => AvisarLectura(lectura);
                     conexion.NotificacionUrgente += (s, e) => AvisarUrgente();
                     conexion.NotificacionResuelta += (s, resuelta) => AvisarResuelta(resuelta);
@@ -563,6 +583,8 @@ namespace Nesto.Infrastructure.Shared
         event EventHandler Cerrada;
         /// <summary>Ariadna#51: el servidor ha llamado a «haCambiado(grupo, dispositivo)» del hub del almacén (el argumento es el grupo).</summary>
         event EventHandler<string> GrupoHaCambiado;
+        /// <summary>Nesto#642 (NestoAPI#873): el servidor ha llamado a «pedidoCambiado(aviso)» del hub del almacén.</summary>
+        event EventHandler<PedidoCambiadoAviso> PedidoCambiado;
         /// <summary>Ariadna#51: la conexión de SignalR (null antes de conectar).</summary>
         string IdConexion { get; }
         Task Iniciar();
@@ -593,6 +615,8 @@ namespace Nesto.Infrastructure.Shared
         internal const string METODO_SALIR = "Salir";
         /// <summary>«haCambiado(grupo, dispositivo)»: otro equipo ha cambiado algo del grupo (sin datos).</summary>
         internal const string METODO_HA_CAMBIADO = "haCambiado";
+        /// <summary>Nesto#642 (NestoAPI#873): «pedidoCambiado(PedidoCambiadoDTO)» al grupo «Pedido:{empresa}:{numero}».</summary>
+        internal const string METODO_PEDIDO_CAMBIADO = "pedidoCambiado";
 
         // Nesto#589 (NestoAPI#768): el escáner remoto, en el hub de la campana
         internal const string METODO_LECTURA_ESCANER = "lecturaEscanerRemoto";
@@ -608,6 +632,7 @@ namespace Nesto.Infrastructure.Shared
 
         public event EventHandler HayNotificacionesNuevas;
         public event EventHandler<string> GrupoHaCambiado;
+        public event EventHandler<PedidoCambiadoAviso> PedidoCambiado;
         public event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
         public event EventHandler NotificacionUrgente;
         public event EventHandler<NotificacionResuelta> NotificacionResuelta;
@@ -634,6 +659,7 @@ namespace Nesto.Infrastructure.Shared
             // Ariadna#51: el proxy se crea antes de Start (SignalR 2 se suscribe a los hubs al conectar)
             _almacen = _conexion.CreateHubProxy(HUB_ALMACEN);
             _ = _almacen.On<string, string>(METODO_HA_CAMBIADO, (grupo, dispositivo) => GrupoHaCambiado?.Invoke(this, grupo));
+            _ = _almacen.On<PedidoCambiadoAviso>(METODO_PEDIDO_CAMBIADO, aviso => PedidoCambiado?.Invoke(this, aviso)); // Nesto#642
             _conexion.Reconnecting += () => Reconectando?.Invoke(this, EventArgs.Empty);
             _conexion.Reconnected += () => Reconectada?.Invoke(this, EventArgs.Empty);
             _conexion.Closed += () => Cerrada?.Invoke(this, EventArgs.Empty);

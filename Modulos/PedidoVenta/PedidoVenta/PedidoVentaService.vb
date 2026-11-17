@@ -165,6 +165,9 @@ Public Class PedidoVentaService
                         Try
                             Dim avisos = JsonConvert.DeserializeObject(Of RespuestaModificacionPedidoModel)(respuesta)
                             pedido.tieneFechasFuturas = avisos?.tieneFechasFuturas ' Nesto#588
+                            If Not String.IsNullOrWhiteSpace(avisos?.Version) Then
+                                pedido.Version = avisos.Version ' Nesto#642: para seguir guardando sin recargar
+                            End If
                             If avisos?.Avisos IsNot Nothing Then
                                 Return avisos.Avisos
                             End If
@@ -192,6 +195,8 @@ Public Class PedidoVentaService
                 Throw ' Nesto#629: el mensaje de la API ya dice que no se ha guardado el pedido
             Catch ex As PedidoYaEnAgenciaException
                 Throw ' Nesto#629: el ViewModel ofrece mandar el correo a logística
+            Catch ex As PedidoCambiadoException
+                Throw ' Nesto#642: el ViewModel enseña quién lo ha cambiado y ofrece recargar
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -491,6 +496,9 @@ Public Class PedidoVentaService
         ElseIf errorCode = PedidoYaEnAgenciaException.CODIGO_ERROR Then
             ' Nesto#629 (NestoAPI#722): la agencia ya tiene el envío y no admite el cambio; se puede avisar a logística.
             Return PedidoYaEnAgenciaException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = PedidoCambiadoException.CODIGO_ERROR Then
+            ' Nesto#642 (NestoAPI#873): alguien ha guardado el pedido desde que se abrió; no se ha guardado nada.
+            Return PedidoCambiadoException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If
@@ -1192,6 +1200,43 @@ Public Class PedidoVentaService
     ''' Nesto#588: «tieneFechasFuturas» del pedido que devuelve el POST (la regla de la lista, calculada en la API). Nothing si no
     ''' viene (API vieja) o el cuerpo no se entiende: entonces se calcula como antes. Nunca lanza.
     ''' </summary>
+    ''' <summary>Nesto#642 (NestoAPI#873): la «Version» del cuerpo del POST (el pedido creado), o Nothing.</summary>
+    Friend Shared Function LeerVersion(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim valor = TryCast(JToken.Parse(cuerpo), JObject)?("Version")
+            If valor Is Nothing OrElse valor.Type <> JTokenType.String Then
+                Return Nothing
+            End If
+            Return valor.Value(Of String)()
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Nesto#642 (NestoAPI#873): GET api/PedidosVenta/{empresa}/{numero}/Version: la versión de ahora y quién lo tocó el último,
+    ''' sin leer el pedido. Nothing si la API no contesta o no la tiene (API vieja): entonces no se avisa de nada.
+    ''' </summary>
+    Public Async Function LeerVersionPedido(empresa As String, numero As Integer) As Task(Of VersionPedidoModel) Implements IPedidoVentaService.LeerVersionPedido
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Return Nothing
+                End If
+                Dim response = Await client.GetAsync($"PedidosVenta/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{numero}/Version")
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+                Return JsonConvert.DeserializeObject(Of VersionPedidoModel)(Await response.Content.ReadAsStringAsync())
+            End Using
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
     Friend Shared Function LeerTieneFechasFuturas(cuerpo As String) As Boolean?
         If String.IsNullOrWhiteSpace(cuerpo) Then
             Return Nothing
@@ -1237,7 +1282,9 @@ Public Class PedidoVentaService
                 Dim response As HttpResponseMessage = Await client.PostAsync("PedidosVenta", content)
 
                 If response.IsSuccessStatusCode Then
-                    pedido.tieneFechasFuturas = LeerTieneFechasFuturas(Await response.Content.ReadAsStringAsync()) ' Nesto#588
+                    Dim cuerpoCreado As String = Await response.Content.ReadAsStringAsync()
+                    pedido.tieneFechasFuturas = LeerTieneFechasFuturas(cuerpoCreado) ' Nesto#588
+                    pedido.Version = LeerVersion(cuerpoCreado) ' Nesto#642: para poder modificarlo sin recargar
                     ' El número del pedido viene en el Location header
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numeroPedidoStr = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)

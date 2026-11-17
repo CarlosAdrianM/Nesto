@@ -20,6 +20,7 @@ Public Class DetallePedidoView
         Dim newVm = TryCast(e.NewValue, DetallePedidoViewModel)
 
         If oldVm IsNot Nothing Then
+            oldVm.DesactivarAvisosPedido() ' Nesto#642: al quitar la vista (o cambiar de pedido) se sale del grupo de SignalR
             RemoveHandler oldVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
             RemoveHandler oldVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
             RemoveHandler oldVm.FocoEnProductoSolicitado, AddressOf ViewModel_FocoEnProductoSolicitado ' Nesto#581
@@ -29,7 +30,22 @@ Public Class DetallePedidoView
             AddHandler newVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
             AddHandler newVm.FocoEnTextoDeLineaSolicitado, AddressOf ViewModel_FocoEnTextoDeLineaSolicitado ' Nesto#579
             AddHandler newVm.FocoEnProductoSolicitado, AddressOf ViewModel_FocoEnProductoSolicitado ' Nesto#581
+            If IsLoaded Then
+                newVm.ActivarAvisosPedido() ' Nesto#642
+            End If
         End If
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#642 (NestoAPI#873): mientras el detalle está a la vista, en el grupo de SignalR del pedido («pedidoCambiado»). Al
+    ''' ocultarlo (otra pestaña) o cerrarlo, fuera. Null-safe: al cerrar, el DataContext ya puede ser Nothing.
+    ''' </summary>
+    Private Sub DetallePedidoView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        TryCast(DataContext, DetallePedidoViewModel)?.ActivarAvisosPedido()
+    End Sub
+
+    Private Sub DetallePedidoView_Unloaded(sender As Object, e As RoutedEventArgs) Handles Me.Unloaded
+        TryCast(DataContext, DetallePedidoViewModel)?.DesactivarAvisosPedido()
     End Sub
 
     ''' <summary>Nesto#579: «Nueva nota de recogida» deja el foco en el texto de su línea, en la pestaña Líneas.</summary>

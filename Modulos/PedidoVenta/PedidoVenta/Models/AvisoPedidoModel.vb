@@ -8,6 +8,15 @@ Public Class RespuestaModificacionPedidoModel
     Public Property Avisos As List(Of AvisoPedidoModel) = New List(Of AvisoPedidoModel)
     ''' <summary>Nesto#588: «fechas futuras» del pedido tal como ha quedado (Nothing = la API no lo manda).</summary>
     Public Property tieneFechasFuturas As Boolean?
+    ''' <summary>Nesto#642 (NestoAPI#873): la versión del pedido tal como ha quedado (Nothing = la API no la manda).</summary>
+    Public Property Version As String
+End Class
+
+''' <summary>Nesto#642 (NestoAPI#873): GET api/PedidosVenta/{empresa}/{numero}/Version: la versión de ahora y quién lo tocó el último.</summary>
+Public Class VersionPedidoModel
+    Public Property Version As String
+    Public Property Usuario As String
+    Public Property Fecha As Date?
 End Class
 
 ''' <summary>

@@ -81,7 +81,8 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, abridorPedidos As IAbridorPedidos, servicioAutenticacion As IServicioAutenticacion)
+    ''' <param name="avisosEnTiempoReal">Nesto#642: los avisos de SignalR («pedidoCambiado» del grupo del pedido). Sin él, solo el 409 de la API.</param>
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IPedidoVentaService, messenger As IMessenger, dialogService As IServicioDialogos, abridorPedidos As IAbridorPedidos, servicioAutenticacion As IServicioAutenticacion, Optional avisosEnTiempoReal As IAvisosEnTiempoReal = Nothing)
         Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
@@ -134,7 +135,8 @@ Public Class DetallePedidoViewModel
         EsperarCompletoCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_ESPERAR), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
-        cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
+        cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido, Function() Not PedidoCambiadoPorOtro) ' Nesto#642
+        InicializarVersionPedido(avisosEnTiempoReal) ' Nesto#642
         cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New RelayCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
         ' Prueba de entrega por agencia (10/11/26): la de cada envío entregado del pedido, como en Agencias › Tramitados
@@ -1492,6 +1494,7 @@ Public Class DetallePedidoViewModel
                         CobroTarjetaImporte = pedido.Total
                     End If
                 End If
+                AlCambiarElPedidoEnPantalla() ' Nesto#642: fuera la banda y al grupo de SignalR de este pedido
             Else
                 Titulo = "Lista de Pedidos"
             End If
@@ -2429,6 +2432,12 @@ Public Class DetallePedidoViewModel
             Return False ' Usuario no quiso guardar, cancelar operación
         End If
 
+        ' Nesto#642: otra persona lo ha guardado desde que se cargó: no se guarda encima
+        If PedidoCambiadoPorOtro Then
+            Await ResolverPedidoCambiadoAsync(Nothing)
+            Return False
+        End If
+
         ' Issue #258: Eliminar líneas de producto (TipoLinea=1) sin referencia antes de guardar
         Dim lineasInvalidas = pedido.Model.Lineas.Where(
             Function(l) l.TipoLinea = 1 AndAlso String.IsNullOrWhiteSpace(l.Producto)
@@ -2447,6 +2456,8 @@ Public Class DetallePedidoViewModel
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
+        Dim rechazoPedidoCambiado As PedidoCambiadoException = Nothing ' Nesto#642
+        EmpezarGuardadoPedido() ' Nesto#642
         Try
             textoBusyIndicator = "Guardando pedido..."
             estaBloqueado = True
@@ -2458,6 +2469,7 @@ Public Class DetallePedidoViewModel
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
                 OnPropertyChanged(NameOf(TextoBotonGuardar))
                 Titulo = $"Pedido Venta ({pedido.numero})"
+                AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
                 ' al guardar cambios pendientes antes de crear albarán/factura).
@@ -2475,6 +2487,8 @@ Public Class DetallePedidoViewModel
             rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
         Catch ex As PedidoYaEnAgenciaException
             rechazoYaEnAgencia = ex ' Nesto#629: el diálogo con el botón de logística va fuera del Catch
+        Catch ex As PedidoCambiadoException
+            rechazoPedidoCambiado = ex ' Nesto#642: el diálogo (¿recargar?) va fuera del Catch
         Catch ex As Exception
             dialogService.ShowError($"Error al guardar el pedido: {ex.Message}" & vbCrLf & vbCrLf &
                                    "No se puede crear el albarán/factura sin guardar primero.")
@@ -2486,7 +2500,14 @@ Public Class DetallePedidoViewModel
             Return False ' Error al guardar, cancelar operación
         Finally
             estaBloqueado = False
+            TerminarGuardadoPedido() ' Nesto#642
         End Try
+
+        ' Nesto#642: PEDIDO_CAMBIADO: no se ha guardado nada; se ofrece recargar y no se sigue con albarán/factura.
+        If rechazoPedidoCambiado IsNot Nothing Then
+            Await ResolverPedidoCambiadoAsync(rechazoPedidoCambiado)
+            Return False
+        End If
 
         ' Solo se llega aquí con MODO_CON_PICKING o PEDIDO_YA_EN_AGENCIA: no se ha guardado, así que no se sigue con albarán/factura.
         If rechazoYaEnAgencia IsNot Nothing Then
@@ -2824,6 +2845,12 @@ Public Class DetallePedidoViewModel
             Exit Function ' sin pedido cargado no hay nada que modificar
         End If
 
+        ' Nesto#642: otra persona lo ha guardado desde que se cargó: no se guarda (la API también lo pararía con un 409)
+        If PedidoCambiadoPorOtro Then
+            Await ResolverPedidoCambiadoAsync(Nothing)
+            Exit Function
+        End If
+
         ' NestoAPI#352: las líneas de inmovilizado comisionan por el grupo que elige quien mete
         ' el pedido; el servidor las rechaza sin grupo. Se pregunta AQUÍ, antes de guardar.
         If Not Await PedirGrupoParaInmovilizados() Then
@@ -2861,9 +2888,11 @@ Public Class DetallePedidoViewModel
 
         Dim rechazoConPicking As ModoConPickingException = Nothing
         Dim rechazoYaEnAgencia As PedidoYaEnAgenciaException = Nothing ' Nesto#629
+        Dim rechazoPedidoCambiado As PedidoCambiadoException = Nothing ' Nesto#642
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         Dim guardado As Boolean = False ' NestoAPI#606
+        EmpezarGuardadoPedido() ' Nesto#642
         Dim recogeEnTiendaTocado As Boolean = pedido.Model.RecogeEnTiendaTocado ' Nesto#503: tras guardar se vuelve a leer
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Try
@@ -2925,6 +2954,7 @@ Public Class DetallePedidoViewModel
                 Titulo = $"Pedido Venta ({pedido.numero})"
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+                AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
@@ -2972,6 +3002,8 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError(ex.Message)
         Catch ex As PedidoYaEnAgenciaException
             rechazoYaEnAgencia = ex ' Nesto#629: el diálogo con el botón de logística va fuera del Catch
+        Catch ex As PedidoCambiadoException
+            rechazoPedidoCambiado = ex ' Nesto#642: el diálogo (¿recargar?) va fuera del Catch
         Catch ex As ModoServicioNoPermitidoException
             ' Nesto#484 / NestoAPI#518: el modo ya no tiene sentido; se enseña el mensaje y se preselecciona el que sí.
             dialogService.ShowError(ex.Message)
@@ -2992,7 +3024,13 @@ Public Class DetallePedidoViewModel
             CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
             CrearFacturaVentaCommand.NotifyCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
+            TerminarGuardadoPedido() ' Nesto#642: el «pedidoCambiado» que llegó mientras, ya con la versión nueva
         End Try
+
+        If rechazoPedidoCambiado IsNot Nothing Then
+            Await ResolverPedidoCambiadoAsync(rechazoPedidoCambiado) ' Nesto#642
+            Return
+        End If
 
         If rechazoConPicking IsNot Nothing Then
             Await ResolverModoConPicking(rechazoConPicking, modoDeseado)

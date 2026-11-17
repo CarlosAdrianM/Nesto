@@ -89,6 +89,18 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0">
+            <!-- Nesto#642 (NestoAPI#873, pedido 929555): otra persona (u otra ventana) ha guardado el pedido desde que se cargó. Arriba y
+                 fuera de las pestañas para que se vea siempre; Guardar queda deshabilitado hasta recargar. -->
+            <Border Background="#FDECEA" BorderBrush="#C62828" BorderThickness="2" CornerRadius="3" Padding="8,6" Margin="0,0,0,4"
+                    Visibility="{Binding PedidoCambiadoPorOtro, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Recargar" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center"
+                            Command="{Binding RecargarPedidoCambiadoCommand}"
+                            ToolTip="Vuelve a leer el pedido tal como está guardado ahora (se pierden los cambios que no haya guardado)"/>
+                    <TextBlock Text="{Binding TextoPedidoCambiadoPorOtro}" TextWrapping="Wrap" FontWeight="Bold" Foreground="#8E0000" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
             <!-- NestoAPI#858: pedido «todo junto» retenido en el almacén porque falta algo de pago. Arriba y fuera de las pestañas
                  para que se vea siempre; decide quien hizo el pedido, su vendedor o Almacén/Administración/Dirección/Informática. -->
             <Border Grid.Row="0" Background="#FDECEA" BorderBrush="#C62828" BorderThickness="2" CornerRadius="3" Padding="8,6" Margin="0,0,0,4"
@@ -116,6 +128,7 @@
                     </StackPanel>
                 </DockPanel>
             </Border>
+            </StackPanel>
             <TabControl x:Name="TabControl" Grid.Row="1">
                 <TabItem Header="Cabecera">
                     <DockPanel>

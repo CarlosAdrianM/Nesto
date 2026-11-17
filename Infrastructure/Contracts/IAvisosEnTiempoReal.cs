@@ -43,6 +43,25 @@ namespace Nesto.Infrastructure.Contracts
 
         /// <summary>La conexión de SignalR de este Nesto (para que la API no le avise de lo suyo). Null si no está conectado.</summary>
         string IdConexion { get; }
+
+        /// <summary>
+        /// Nesto#642 (NestoAPI#873): «pedidoCambiado» al grupo <see cref="GruposAlmacen.Pedido"/>: alguien (también este mismo
+        /// Nesto) ha guardado el pedido. Quien escucha compara la <see cref="PedidoCambiadoAviso.Version"/> con la suya. Llega en un
+        /// hilo que no es el de la UI.
+        /// </summary>
+        event EventHandler<PedidoCambiadoAviso> PedidoCambiado;
+    }
+
+    /// <summary>Nesto#642 (NestoAPI#873): lo que lleva «pedidoCambiado» (PedidoCambiadoDTO de la API).</summary>
+    public sealed class PedidoCambiadoAviso
+    {
+        public string Empresa { get; set; }
+        public int Pedido { get; set; }
+        /// <summary>Quien lo ha guardado, sin dominio.</summary>
+        public string Usuario { get; set; }
+        public DateTime Fecha { get; set; }
+        /// <summary>La versión del pedido tras guardarlo; null si la API no la ha podido calcular.</summary>
+        public string Version { get; set; }
     }
 
     /// <summary>Ariadna#51: los nombres de los grupos del almacén, en un solo sitio (los mismos en la API y en Ariadna).</summary>
@@ -58,6 +77,13 @@ namespace Nesto.Infrastructure.Contracts
         /// </summary>
         public static string Reposiciones(string almacen)
             => $"Reposiciones:{(almacen ?? string.Empty).Trim().ToUpperInvariant()}";
+
+        /// <summary>
+        /// Nesto#642 (NestoAPI#873): «Pedido:1:929555»: el detalle de un pedido. La API manda «pedidoCambiado» cada vez que se
+        /// guarda (el pedido o un prepago suyo).
+        /// </summary>
+        public static string Pedido(string empresa, int numero)
+            => $"Pedido:{(empresa ?? string.Empty).Trim().ToUpperInvariant()}:{numero}";
 
         /// <summary>
         /// Nesto#635 (NestoAPI#855): «RecogidasSolicitadas»: las recogidas que piden los vendedores. La API avisa en cada cambio

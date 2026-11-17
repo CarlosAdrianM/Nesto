@@ -64,6 +64,10 @@ namespace Infrastructure.Tests
 
             public void CambiaElGrupo(string grupo) => GrupoHaCambiado?.Invoke(this, grupo);
 
+            // Nesto#642: el pedido abierto en el detalle
+            public event EventHandler<PedidoCambiadoAviso> PedidoCambiado;
+            public void CambiaElPedido(PedidoCambiadoAviso aviso) => PedidoCambiado?.Invoke(this, aviso);
+
             // Nesto#589: el escáner remoto
             public event EventHandler<LecturaEscanerRemoto> LecturaEscanerRemoto;
             public readonly ConcurrentQueue<(string Equipo, bool ConFoco)> Actividades = new ConcurrentQueue<(string, bool)>();
@@ -346,6 +350,46 @@ namespace Infrastructure.Tests
 
             CollectionAssert.AreEqual(new[] { grupo }, conexion.Entradas.ToArray());
             CollectionAssert.AreEqual(new[] { grupo }, cambiados.ToArray(), "Conectar la primera vez no avisa; el cambio, sí");
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task PedidoCambiado_EntraEnElGrupoDelPedidoYElAvisoLlegaConSusDatos()
+        {
+            // Nesto#642 (NestoAPI#873): el detalle del pedido entra en «Pedido:1:929555» y recibe «pedidoCambiado»
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            var recibidos = new ConcurrentQueue<PedidoCambiadoAviso>();
+            avisos.PedidoCambiado += (s, aviso) => recibidos.Enqueue(aviso);
+            string grupo = GruposAlmacen.Pedido(" 1 ", 929555);
+            Assert.AreEqual("Pedido:1:929555", grupo);
+
+            avisos.EntrarEnGrupo(grupo);
+            avisos.Iniciar();
+            await conexion.HaEntrado.Task.WaitAsync(TIMEOUT);
+            var aviso = new PedidoCambiadoAviso { Empresa = "1", Pedido = 929555, Usuario = "Aida", Version = "v2" };
+            conexion.CambiaElPedido(aviso);
+
+            CollectionAssert.AreEqual(new[] { grupo }, conexion.Entradas.ToArray());
+            Assert.AreSame(aviso, recibidos.Single());
+            avisos.Detener();
+        }
+
+        [TestMethod]
+        public async Task PedidoCambiado_SiQuienEscuchaFalla_NoTumbaLaConexion()
+        {
+            var conexion = new ConexionFalsa();
+            var avisos = new AvisosEnTiempoRealSignalR("http://api/signalr", AutenticacionCon("t1"),
+                (url, token) => conexion, (espera, ct) => EsperaInfinita(ct), null);
+            avisos.PedidoCambiado += (s, aviso) => throw new InvalidOperationException("la pantalla falla");
+            avisos.EntrarEnGrupo(GruposAlmacen.Pedido("1", 929555));
+            avisos.Iniciar();
+            await conexion.HaEntrado.Task.WaitAsync(TIMEOUT);
+
+            conexion.CambiaElPedido(new PedidoCambiadoAviso { Empresa = "1", Pedido = 929555 });
+
+            Assert.AreEqual(EstadoConexionTiempoReal.Conectado, avisos.Estado);
             avisos.Detener();
         }
 

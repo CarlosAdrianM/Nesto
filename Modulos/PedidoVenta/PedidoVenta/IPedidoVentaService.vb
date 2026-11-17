@@ -171,4 +171,7 @@ Public Interface IPedidoVentaService
     ''' <summary>NestoAPI#858 (punto 4): «ServirLoQueHay» o «Esperar» (POST PedidosVenta/{empresa}/{pedido}/RetencionPorFalta/Decidir).
     ''' Lanza una excepción con el mensaje de la API tal cual (400, 403, 409, 503).</summary>
     Function DecidirRetencionPorFalta(empresa As String, numero As Integer, decision As String) As Task(Of RetencionPorFaltaModel)
+    ''' <summary>Nesto#642 (NestoAPI#873): la versión del pedido ahora y quién lo tocó el último (GET PedidosVenta/{empresa}/{numero}/Version).
+    ''' Nothing si la API no contesta; nunca lanza.</summary>
+    Function LeerVersionPedido(empresa As String, numero As Integer) As Task(Of VersionPedidoModel)
 End Interface
