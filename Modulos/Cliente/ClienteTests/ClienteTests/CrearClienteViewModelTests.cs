@@ -594,7 +594,8 @@ namespace ClienteTests
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ480", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
-            return new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            // Nesto#643: «¿Qué es?» también es obligatorio; aquí se prueba la dirección, así que va ya contestado.
+            return new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService) { ClienteTipoLugar = "Casa" };
         }
 
         [TestMethod]
@@ -662,7 +663,7 @@ namespace ClienteTests
                     Provincia = "Vila do Conde",
                     PaisIso = "PT"
                 });
-            return new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            return new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService) { ClienteTipoLugar = "Casa" }; // Nesto#643
         }
 
         [TestMethod]

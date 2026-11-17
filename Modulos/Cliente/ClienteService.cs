@@ -204,7 +204,10 @@ namespace Nesto.Modulos.Cliente
             return respuesta;
         }
 
-        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false, string pais = null)
+        public Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false, string pais = null)
+            => ValidarDatosGenerales(direccion, codigoPostal, telefono, direccionVerificada, pais, null);
+
+        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada, string pais, string numero)
         {
             RespuestaDatosGeneralesClientes respuesta;
 
@@ -227,7 +230,9 @@ namespace Nesto.Modulos.Cliente
                         + "&telefono=" + telefono
                         + "&direccionVerificada=" + direccionVerificada.ToString().ToLower()
                         // Nesto#436: país de la dirección (ISO-2); sin él el servidor asume España
-                        + (string.IsNullOrWhiteSpace(pais) ? string.Empty : "&pais=" + Uri.EscapeDataString(pais.Trim()));
+                        + (string.IsNullOrWhiteSpace(pais) ? string.Empty : "&pais=" + Uri.EscapeDataString(pais.Trim()))
+                        // Nesto#643 (NestoAPI#874): el número propio, si Google dio la calle sin él
+                        + (string.IsNullOrWhiteSpace(numero) ? string.Empty : "&numero=" + Uri.EscapeDataString(numero.Trim()));
 
 
                     response = await client.GetAsync(urlConsulta);

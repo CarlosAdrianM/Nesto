@@ -13,6 +13,9 @@ namespace Nesto.Modulos.Cliente
         // pais (Nesto#436): ISO-2 del país de la DIRECCIÓN; para país != ES el servidor no valida
         // contra la tabla española de CPs ni geocodifica.
         Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false, string pais = null);
+        // Nesto#643 (NestoAPI#874): numero = el que se teclea cuando Google dio la calle sin él; la API lo comprueba con Google
+        // (calle + número + CP) y lo devuelve dentro de DireccionFormateada (400 con el motivo si no lo encuentra).
+        Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada, string pais, string numero);
         Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban);
         Task<Clientes> CrearCliente(ClienteCrear cliente);
         Task<Clientes> ModificarCliente(ClienteCrear cliente);

@@ -109,6 +109,7 @@ namespace ClienteTests
             await vm.CargaOrigenesEnCurso;
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ523" });
             vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.ClienteTipoLugar = "Casa"; // Nesto#643: «¿Qué es?» es obligatorio en el alta
             vm.OrigenSeleccionado = vm.Origenes.Single(o => o.Codigo == META);
 
             vm.CrearClienteCommand.Execute(null);
@@ -126,6 +127,7 @@ namespace ClienteTests
             await vm.CargaOrigenesEnCurso;
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ523" });
             vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.ClienteTipoLugar = "Casa"; // Nesto#643: «¿Qué es?» es obligatorio en el alta
 
             vm.CrearClienteCommand.Execute(null);
             await Task.Delay(300);
@@ -229,6 +231,7 @@ namespace ClienteTests
 
             await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ848" });
             vm.ClienteDireccion = "CALLE MAYOR, 1";
+            vm.ClienteTipoLugar = "Casa"; // Nesto#643: «¿Qué es?» es obligatorio en el alta
             vm.CrearClienteCommand.Execute(null);
             await Task.Delay(300);
 
