@@ -498,9 +498,10 @@ Public Class ClientesViewModel
                 nombre = cliente.nombre
                 Dim cccs As List(Of CCCModel) = Await servicio.LeerCCCs(empresa, numCliente, contacto)
                 cuentasBanco = New ObservableCollection(Of CCCModel)(If(cccs, New List(Of CCCModel)))
-                If Not String.IsNullOrWhiteSpace(cliente.ccc) AndAlso Not IsNothing(cuentasBanco) Then
-                    cuentaActiva = cuentasBanco.Where(Function(x) x.Número.Trim = cliente.ccc.Trim).FirstOrDefault
-                End If
+                ' Carlos 17/11/26: antes, con un cliente sin ccc (o con un ccc que no está en sus cuentas) cuentaActiva NO se
+                ' tocaba y se quedaba la cuenta del cliente ANTERIOR (y Guardar mandaba su número). Ahora siempre se elige
+                ' entre las cuentas de ESTE cliente.
+                cuentaActiva = CuentaParaMostrar(cuentasBanco, cliente.ccc)
                 clienteActivo = cliente
                 If Not IsNothing(cliente.cliente) Then
                     Titulo = String.Format("Cliente {0}", cliente.cliente.Trim)
@@ -512,6 +513,41 @@ Public Class ClientesViewModel
             mensajeError = ex.Message
         End Try
     End Function
+
+    ''' <summary>
+    ''' Carlos 17/11/26: la cuenta que se enseña al cargar la ficha. La del cliente si la tiene y está entre sus cuentas;
+    ''' si no, la primera que no está anulada (para poder verla y, con «Usar esta cuenta para los recibos», asignarla:
+    ''' el texto «El cliente no tiene cuenta asignada» deja claro que no es la suya); si todas están anuladas, la primera;
+    ''' sin cuentas, ninguna. Nunca una cuenta de otro cliente.
+    ''' </summary>
+    Friend Shared Function CuentaParaMostrar(cuentas As IEnumerable(Of CCCModel), cccCliente As String) As CCCModel
+        If IsNothing(cuentas) Then
+            Return Nothing
+        End If
+        If Not String.IsNullOrWhiteSpace(cccCliente) Then
+            Dim suya As CCCModel = cuentas.FirstOrDefault(Function(x) x.Número?.Trim() = cccCliente.Trim())
+            If Not IsNothing(suya) Then
+                Return suya
+            End If
+        End If
+        Return If(cuentas.FirstOrDefault(Function(x) x.Estado <> ESTADO_CCC_ANULADA), cuentas.FirstOrDefault())
+    End Function
+
+    ' Estado de la cuenta «Nulo» (anulada) en EstadosCCC: no vale para los recibos.
+    Friend Const ESTADO_CCC_ANULADA As Short = -1
+
+    ''' <summary>Carlos 17/11/26: cuál es la cuenta del cliente (Clientes.CCC, la de los recibos), junto al combo de cuentas.</summary>
+    Public ReadOnly Property textoCuentaDelCliente As String
+        Get
+            If IsNothing(clienteActivo) Then
+                Return String.Empty
+            End If
+            If String.IsNullOrWhiteSpace(clienteActivo.ccc) Then
+                Return "El cliente no tiene cuenta asignada"
+            End If
+            Return "Cuenta del cliente: " + clienteActivo.ccc.Trim()
+        End Get
+    End Property
 
     ' Nesto#340 (1C.8, slice 4): clienteActivo YA ES la ficha completa de la API (incluye
     ' VendedoresGrupoProducto), así que no hace falta una segunda llamada: clienteServidor se
@@ -661,6 +697,7 @@ Public Class ClientesViewModel
             End If
 
             OnPropertyChanged("clienteActivo")
+            OnPropertyChanged(NameOf(textoCuentaDelCliente))
         End Set
     End Property
 
@@ -1248,6 +1285,52 @@ Public Class ClientesViewModel
     ' upsert de los CCC modificados y devuelve los avisos (efectos pendientes y pedidos abiertos
     ' que apuntan a OTRO CCC) que antes calculaba este VM con dos consultas EF.
     Private Async Sub Guardar(ByVal param As Object)
+        Await GuardarCuentasAsync(establecerComoCuentaDelCliente:=False)
+    End Sub
+
+    ' Carlos 17/11/26 (cliente 37480/2): elegir otra cuenta en el combo y guardar NO cambia la cuenta del cliente (a
+    ' propósito: se puede corregir una cuenta vieja sin querer cambiar la de los recibos). Para eso está este botón, que
+    ' manda en la MISMA llamada las cuentas con cambios sin guardar y la orden de usar la elegida (PUT Clientes/CCCs con
+    ' establecerComoCuentaDelCliente).
+    Private _cmdUsarCuentaParaRecibos As ICommand
+    Public ReadOnly Property cmdUsarCuentaParaRecibos() As ICommand
+        Get
+            If _cmdUsarCuentaParaRecibos Is Nothing Then
+                _cmdUsarCuentaParaRecibos = ComandosReevaluables.Crear(AddressOf UsarCuentaParaRecibos, AddressOf CanUsarCuentaParaRecibos)
+            End If
+            Return _cmdUsarCuentaParaRecibos
+        End Get
+    End Property
+
+    ' Habilitado con una cuenta elegida que ya está guardada (no recién creada con «Nuevo Mandato»), que no es la del
+    ' cliente y que no está anulada. Si hay cuentas con cambios, se guardan a la vez: valen las mismas condiciones del
+    ' mandato que en «Guardar Cambios».
+    Private Function CanUsarCuentaParaRecibos(ByVal param As Object) As Boolean
+        If _guardando OrElse IsNothing(cuentaActiva) OrElse IsNothing(cuentasBanco) OrElse IsNothing(clienteActivo) Then
+            Return False
+        End If
+        If cuentaActiva.EsNueva OrElse String.IsNullOrWhiteSpace(cuentaActiva.Número) OrElse cuentaActiva.Estado = ESTADO_CCC_ANULADA Then
+            Return False
+        End If
+        If cuentaActiva.Número.Trim() = clienteActivo.ccc?.Trim() Then
+            Return False
+        End If
+        If cuentasBanco.Any(Function(c) c.EsModificado) AndAlso
+            Not (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1)) Then
+            Return False
+        End If
+        Return True
+    End Function
+
+    Private Async Sub UsarCuentaParaRecibos(ByVal param As Object)
+        Await GuardarCuentasAsync(establecerComoCuentaDelCliente:=True)
+    End Sub
+
+    Private Async Function GuardarCuentasAsync(establecerComoCuentaDelCliente As Boolean) As Task
+        ' Fuera del Try: si ya se está guardando, el Finally de esta llamada no debe soltar el guardado de la otra.
+        If _guardando Then
+            Return
+        End If
         Try
             ' Nesto#396: sin cuenta activa no hay nada que guardar. CanGuardar ya lo filtra, pero el comando
             ' puede dispararse en un teardown con cuentaActiva ya a Nothing; sin esta guarda, cuentaActiva.Número
@@ -1256,22 +1339,22 @@ Public Class ClientesViewModel
                 Return
             End If
 
-            If _guardando Then
-                Return
-            End If
             Dim modificados = cuentasBanco.Where(Function(c) c.EsModificado).ToList()
-            If Not modificados.Any() Then
+            If Not modificados.Any() AndAlso Not establecerComoCuentaDelCliente Then
                 Return
             End If
             _guardando = True
             CommandManager.InvalidateRequerySuggested()
 
+            Dim cuentaElegida As CCCModel = cuentaActiva
+            Dim fichaCargada As ClienteJson = clienteActivo
             Dim peticion As New GuardarCCCsRequest With {
                 .empresa = empresaActual,
                 .cliente = clienteActual,
                 .contacto = contactoActual,
-                .cccActivo = cuentaActiva.Número,
-                .cccs = modificados
+                .cccActivo = cuentaElegida.Número,
+                .cccs = modificados,
+                .establecerComoCuentaDelCliente = establecerComoCuentaDelCliente
             }
             Dim respuesta As GuardarCCCsRespuesta = Await servicio.GuardarCCCs(peticion)
 
@@ -1280,7 +1363,12 @@ Public Class ClientesViewModel
 
             For Each ccc In modificados
                 ccc.EsModificado = False
+                ccc.EsNueva = False
             Next
+            If establecerComoCuentaDelCliente AndAlso Not IsNothing(fichaCargada) Then
+                fichaCargada.ccc = If(respuesta?.cccCliente, cuentaElegida.Número?.Trim())
+                OnPropertyChanged(NameOf(textoCuentaDelCliente))
+            End If
             mensajeError = ""
         Catch ex As Exception
             ' Nesto#396: ex.InnerException puede ser Nothing (p.ej. un NullReferenceException pelado). Usar
@@ -1291,7 +1379,8 @@ Public Class ClientesViewModel
             ' updating the entries…"). Mostramos la excepción MÁS INTERNA (el error real, accionable) y
             ' registramos la excepción completa en ELMAH vía /api/Errores para poder diagnosticarla.
             mensajeError = ExcepcionMasInterna(ex).Message
-            Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, "ClientesViewModel.Guardar (Nuevo Mandato / CCC)")
+            Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, If(establecerComoCuentaDelCliente,
+                "ClientesViewModel.UsarCuentaParaRecibos (CCC del cliente)", "ClientesViewModel.Guardar (Nuevo Mandato / CCC)"))
         Finally
             If _guardando Then
                 _guardando = False
@@ -1299,7 +1388,7 @@ Public Class ClientesViewModel
             End If
         End Try
 
-    End Sub
+    End Function
 
     ' Nesto#399: EF anida el error real varias capas (DbUpdateException→UpdateException→SqlException).
     ' Devuelve la excepción más interna para mostrar/loguear el mensaje real y no el genérico de EF.
@@ -1384,7 +1473,8 @@ Public Class ClientesViewModel
                 .Número = siguienteNumero.ToString(),
                 .Estado = 0,
                 .Secuencia = "FRST",
-                .EsModificado = True
+                .EsModificado = True,
+                .EsNueva = True
             }
             cuentasBanco.Add(cuentaActiva)
             mensajeError = ""
@@ -2809,6 +2899,11 @@ Public Class CCCModel
     <JsonIgnore>
     Public Property EsModificado As Boolean
 
+    ' Carlos 17/11/26: creada con «Nuevo Mandato» y aún sin guardar (no existe en la BD). No se puede usar para los
+    ' recibos hasta guardarla.
+    <JsonIgnore>
+    Public Property EsNueva As Boolean
+
     Public Property Empresa As String
     Public Property Cliente As String
     Public Property Contacto As String
@@ -2977,11 +3072,15 @@ Public Class GuardarCCCsRequest
     Public Property contacto As String
     Public Property cccActivo As String
     Public Property cccs As List(Of CCCModel)
+    ' Carlos 17/11/26: con True, cccActivo pasa a ser la cuenta de la ficha del cliente (la de los recibos).
+    Public Property establecerComoCuentaDelCliente As Boolean
 End Class
 
 Public Class GuardarCCCsRespuesta
     Public Property extractoOtroCCC As List(Of ExtractoCCCModel)
     Public Property pedidosOtroCCC As List(Of cabeceraPedidoAgrupada)
+    ' Carlos 17/11/26: la cuenta que ha quedado en la ficha si se pidió establecerComoCuentaDelCliente.
+    Public Property cccCliente As String
 End Class
 
 Public Class ExtractoClienteDTO

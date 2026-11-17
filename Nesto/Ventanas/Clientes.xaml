@@ -48,6 +48,10 @@
             </StackPanel>
             <StackPanel Grid.Column="1">
                 <ComboBox ItemsSource="{Binding cuentasBanco}" DisplayMemberPath="Número" SelectedItem="{Binding cuentaActiva}" Name="cmbCuentas"/>
+                <!-- Carlos 17/11/26 (cliente 37480/2): elegir otra cuenta en el combo NO cambia la del cliente; se hace con el botón -->
+                <TextBlock Text="{Binding textoCuentaDelCliente}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                <Button Content="Usar esta cuenta para los recibos" Command="{Binding cmdUsarCuentaParaRecibos}" Margin="0,3,0,0"
+                        ToolTip="Hace que la cuenta elegida sea la del cliente (la de sus recibos). Si hay cambios sin guardar en las cuentas, se guardan a la vez."/>
                 <Button Content="Nuevo Mandato" Command="{Binding cmdNuevoMandato}" Margin="0,3"/>
                 <Grid>
                     <Grid.RowDefinitions>

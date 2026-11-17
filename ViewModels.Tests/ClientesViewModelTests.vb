@@ -225,6 +225,179 @@ Public Class ClientesViewModelTests
         Assert.IsTrue(modificado.EsModificado)
     End Sub
 
+    ' Carlos 17/11/26 (cliente 37480/2): elegir otra cuenta y guardar no cambiaba Clientes.CCC. La cuenta del cliente
+    ' se ve junto al combo y se cambia solo con «Usar esta cuenta para los recibos».
+
+    Private Shared Function CuentaGuardada(numero As String, estado As Short) As CCCModel
+        Dim cuenta As New CCCModel With {.Empresa = "1", .Cliente = "37480", .Contacto = "2", .Número = numero, .Estado = estado}
+        cuenta.EsModificado = False
+        Return cuenta
+    End Function
+
+    Private Function CrearViewModelConCuentas(cccCliente As String, ParamArray cuentas As CCCModel()) As ClientesViewModel
+        Dim vm = CrearViewModel()
+        vm.clienteActivo = New ClienteJson With {.empresa = "1", .cliente = "37480", .contacto = "2", .ccc = cccCliente}
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel)(cuentas)
+        Return vm
+    End Function
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_ConOtraCuentaGuardadaYViva_SePuedePulsar()
+        Dim dos = CuentaGuardada("2  ", 0)
+        Dim vm = CrearViewModelConCuentas(Nothing, CuentaGuardada("1  ", -1), dos)
+        vm.cuentaActiva = dos
+
+        Assert.IsTrue(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing))
+        Assert.AreEqual("El cliente no tiene cuenta asignada", vm.textoCuentaDelCliente)
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_ConLaCuentaQueYaEsDelCliente_NoSePuedePulsar()
+        Dim dos = CuentaGuardada("2  ", 0)
+        Dim vm = CrearViewModelConCuentas("2", dos)
+        vm.cuentaActiva = dos
+
+        Assert.IsFalse(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing))
+        Assert.AreEqual("Cuenta del cliente: 2", vm.textoCuentaDelCliente)
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_ConUnaCuentaAnulada_NoSePuedePulsar()
+        Dim uno = CuentaGuardada("1  ", -1)
+        Dim vm = CrearViewModelConCuentas(Nothing, uno)
+        vm.cuentaActiva = uno
+
+        Assert.IsFalse(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_ConUnaCuentaNuevaSinGuardar_NoSePuedePulsar()
+        Dim vm = CrearViewModelConCuentas(Nothing)
+
+        vm.cmdNuevoMandato.Execute(Nothing)
+
+        Assert.IsTrue(vm.cuentaActiva.EsNueva)
+        Assert.IsFalse(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_SinCambios_LlamaConLaOrdenYActualizaLaFicha()
+        Dim peticionEnviada As GuardarCCCsRequest = Nothing
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Invokes(Sub(p As GuardarCCCsRequest) peticionEnviada = p) _
+            .Returns(Task.FromResult(New GuardarCCCsRespuesta With {
+                .extractoOtroCCC = New List(Of ExtractoCCCModel),
+                .pedidosOtroCCC = New List(Of cabeceraPedidoAgrupada),
+                .cccCliente = "2"
+            }))
+        Dim dos = CuentaGuardada("2  ", 0)
+        Dim vm = CrearViewModelConCuentas(Nothing, CuentaGuardada("1  ", -1), dos)
+        vm.cuentaActiva = dos
+
+        vm.cmdUsarCuentaParaRecibos.Execute(Nothing)
+
+        Assert.IsNotNull(peticionEnviada)
+        Assert.IsTrue(peticionEnviada.establecerComoCuentaDelCliente)
+        Assert.AreEqual("2  ", peticionEnviada.cccActivo)
+        Assert.AreEqual(0, peticionEnviada.cccs.Count)
+        Assert.AreEqual("2", vm.clienteActivo.ccc)
+        Assert.AreEqual("Cuenta del cliente: 2", vm.textoCuentaDelCliente)
+        Assert.IsFalse(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing), "Ya es la del cliente")
+        Assert.AreEqual(String.Empty, vm.mensajeError)
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_ConCambiosSinGuardar_LosMandaEnLaMismaLlamada()
+        Dim peticionEnviada As GuardarCCCsRequest = Nothing
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Invokes(Sub(p As GuardarCCCsRequest) peticionEnviada = p) _
+            .Returns(Task.FromResult(New GuardarCCCsRespuesta With {.cccCliente = "2"}))
+        Dim dos = CuentaGuardada("2  ", 0)
+        Dim vm = CrearViewModelConCuentas("1", CuentaGuardada("1  ", 0), dos)
+        vm.cuentaActiva = dos
+        dos.Entidad = "2100" ' marca EsModificado
+
+        vm.cmdUsarCuentaParaRecibos.Execute(Nothing)
+
+        Assert.IsTrue(peticionEnviada.establecerComoCuentaDelCliente)
+        Assert.AreEqual(1, peticionEnviada.cccs.Count)
+        Assert.AreSame(dos, peticionEnviada.cccs.Single())
+        Assert.IsFalse(dos.EsModificado)
+        Assert.AreEqual("2", vm.clienteActivo.ccc)
+    End Sub
+
+    <TestMethod()>
+    Public Sub UsarCuentaParaRecibos_SiElServicioFalla_NoCambiaLaFichaEInformaDelError()
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Throws(New Exception("La cuenta 2 está anulada: no se puede usar para los recibos del cliente 37480/2."))
+        Dim dos = CuentaGuardada("2  ", 0)
+        Dim vm = CrearViewModelConCuentas(Nothing, dos)
+        vm.cuentaActiva = dos
+
+        vm.cmdUsarCuentaParaRecibos.Execute(Nothing)
+
+        Assert.IsNull(vm.clienteActivo.ccc)
+        Assert.AreEqual("La cuenta 2 está anulada: no se puede usar para los recibos del cliente 37480/2.", vm.mensajeError)
+    End Sub
+
+    <TestMethod()>
+    Public Sub Guardar_ConOtraCuentaElegida_NoCambiaLaCuentaDelCliente()
+        Dim peticionEnviada As GuardarCCCsRequest = Nothing
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Invokes(Sub(p As GuardarCCCsRequest) peticionEnviada = p) _
+            .Returns(Task.FromResult(New GuardarCCCsRespuesta))
+        Dim uno = CuentaGuardada("1  ", 0)
+        Dim vm = CrearViewModelConCuentas("2", uno, CuentaGuardada("2  ", 0))
+        vm.cuentaActiva = uno
+        uno.Entidad = "2100"
+
+        vm.cmdGuardar.Execute(Nothing)
+
+        Assert.IsFalse(peticionEnviada.establecerComoCuentaDelCliente)
+        Assert.AreEqual("2", vm.clienteActivo.ccc)
+    End Sub
+
+    <TestMethod()>
+    Public Async Function ActualizarCliente_SinCccTrasOtroConCcc_NoSeQuedaLaCuentaDelAnterior() As Task
+        A.CallTo(Function() _servicio.LeerCliente("1", "15191", "0")).Returns(Task.FromResult(CrearFicha()))
+        Dim cuentaDelAnterior As New CCCModel With {.Empresa = "1", .Cliente = "15191", .Número = "3  ", .Estado = 0}
+        A.CallTo(Function() _servicio.LeerCCCs("1", "15191", "0")).Returns(Task.FromResult(New List(Of CCCModel) From {cuentaDelAnterior}))
+        A.CallTo(Function() _servicio.LeerCliente("1", "37480", "2")).Returns(Task.FromResult(
+            New ClienteJson With {.empresa = "1", .cliente = "37480", .contacto = "2", .ccc = Nothing}))
+        A.CallTo(Function() _servicio.LeerCCCs("1", "37480", "2")).Returns(Task.FromResult(New List(Of CCCModel)))
+        Dim vm = CrearViewModel()
+
+        Await vm.ActualizarClienteAsync("1", "15191", "0")
+        Assert.AreSame(cuentaDelAnterior, vm.cuentaActiva)
+        Await vm.ActualizarClienteAsync("1", "37480", "2")
+
+        Assert.IsNull(vm.cuentaActiva)
+        Assert.AreEqual("El cliente no tiene cuenta asignada", vm.textoCuentaDelCliente)
+    End Function
+
+    <TestMethod()>
+    Public Async Function ActualizarCliente_SinCcc_EnseñaLaPrimeraCuentaQueNoEstaAnulada() As Task
+        A.CallTo(Function() _servicio.LeerCliente("1", "37480", "2")).Returns(Task.FromResult(
+            New ClienteJson With {.empresa = "1", .cliente = "37480", .contacto = "2", .ccc = Nothing}))
+        A.CallTo(Function() _servicio.LeerCCCs("1", "37480", "2")).Returns(Task.FromResult(New List(Of CCCModel) From {
+            CuentaGuardada("1  ", -1), CuentaGuardada("2  ", 0)
+        }))
+        Dim vm = CrearViewModel()
+
+        Await vm.ActualizarClienteAsync("1", "37480", "2")
+
+        Assert.AreEqual("2  ", vm.cuentaActiva.Número)
+        Assert.IsTrue(vm.cmdUsarCuentaParaRecibos.CanExecute(Nothing))
+    End Function
+
+    <TestMethod()>
+    Public Sub CuentaParaMostrar_TodasAnuladas_LaPrimera()
+        Dim uno = CuentaGuardada("1  ", -1)
+
+        Assert.AreSame(uno, ClientesViewModel.CuentaParaMostrar({uno, CuentaGuardada("2  ", -1)}, Nothing))
+        Assert.IsNull(ClientesViewModel.CuentaParaMostrar(New List(Of CCCModel), "1"))
+    End Sub
+
     ' Nesto#423: el CommandParameter de CargarPedidoCommand es el SelectedItem del DataGrid de
     ' ventas y puede llegar Nothing (doble clic en cabecera o hueco del grid) o ser el
     ' NewItemPlaceholder (que no es un ResumenPedido). El código antiguo hacía param.numero por
