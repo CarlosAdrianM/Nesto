@@ -23,53 +23,20 @@ Imports Newtonsoft.Json
 Imports CommunityToolkit.Mvvm.Input
 Imports CommunityToolkit.Mvvm.ComponentModel
 
-Public Interface IOService
-    Function OpenFileDialog(defaultPath As String) As String
-
-    'Other similar untestable IO operations
-    Function OpenFile(path As String) As Stream
-End Interface
-
-Public Class ClientesViewModel
-    Inherits ObservableObject
+''' <summary>
+''' Nesto#646 (paso 2): la ficha comercial del cliente (Ventanas/ClienteComercial.xaml: vendedores, estado, deudas,
+''' pedidos, facturas, reclamación de deuda…). Antes era la mitad de ClientesViewModel; el código se ha movido tal cual.
+''' Lo común (empresa/cliente/contacto y la carga de la ficha) está en <see cref="ClienteFichaViewModelBase"/>.
+''' </summary>
+Public Class ClienteComercialViewModel
+    Inherits ClienteFichaViewModelBase
     '    Implements IActiveAware
 
-    ' Nesto#340 (1C.8): VM 100% sin EF — el DbContext se eliminó con el último resto
-    ' (listaEmpresas por API + borrado del código muerto de FamiliasVendedor).
-    Public Property configuracion As IConfiguracion
     ' Nesto#490 (4C.5, tramo 3a): sin IUnityContainer. Lo que se le pedía (abrir un pedido, el registro de errores y el
     ' servicio de pedidos) llega por el constructor. Con el constructor de los tests los tres quedan a Nothing, igual que
     ' antes el contenedor.
     Private ReadOnly abridorPedidos As IAbridorPedidos
-    Private servicioErrores As IServicioRegistroErrores
-    Private ReadOnly Property dialogService As IServicioDialogos
-    Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
-    Private ReadOnly Property servicioAutenticacion As IServicioAutenticacion
-    ' Nesto#369: factoría que crea HttpClient con AuthTokenHandler (adjunta el JWT → usuario en ELMAH).
-    Private _clienteApiFactory As IClienteApiFactory
-
-    ''' <summary>Nesto#611: para que los tests pongan una API falsa (el constructor de tests no crea la factoría).</summary>
-    Friend Property ClienteApiFactory As IClienteApiFactory
-        Get
-            Return _clienteApiFactory
-        End Get
-        Set(value As IClienteApiFactory)
-            _clienteApiFactory = value
-        End Set
-    End Property
-
-    ''' <summary>Nesto#611: para que los tests comprueben qué se registra en ELMAH.</summary>
-    Friend Property RegistroErrores As IServicioRegistroErrores
-        Get
-            Return servicioErrores
-        End Get
-        Set(value As IServicioRegistroErrores)
-            servicioErrores = value
-        End Set
-    End Property
-
-    Private ruta As String
     Private EsUsuarioAdministracion As Boolean = False
 
     ' Nesto#458: la GARANTÍA de quién puede cambiar estado/vendedor vive en el servidor
@@ -78,39 +45,6 @@ Public Class ClientesViewModel
     Private EsOficinaComercial As Boolean = False
     Private EquipoUsuario As New List(Of String)
 
-
-    Public Structure tipoIdDescripcion
-        Public Sub New(
-       ByVal _id As String,
-       ByVal _descripcion As String
-       )
-            id = _id
-            descripcion = _descripcion
-        End Sub
-
-        Public Property id As String
-        Public Property descripcion As String
-    End Structure
-
-    Public Sub New()
-        ' Este ViewModel se usa con dos Views y eso es un desastre.
-        ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
-        '***************************
-        configuracion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IConfiguracion))
-        _servicioAutenticacion = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioAutenticacion))
-        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
-        ' Nesto#340 (1C.8, slice 4): actualizarCliente carga la ficha por la API en las dos vistas,
-        ' así que el servicio también hace falta en este constructor.
-        servicio = New ClienteComercialService(configuracion, servicioAutenticacion)
-
-        ' cargarDatos va AL FINAL, y no es un detalle de estilo: antes se llamaba lo PRIMERO,
-        ' confiando en que "no usa el servicio hasta después de su primer Await". Eso dejó de ser
-        ' cierto al pasar las empresas a la API (#340 1C.8): la primera línea de cargarDatos es
-        ' `Await servicio.LeerEmpresas()`, y la LLAMADA se evalúa ANTES de que el Await suspenda.
-        ' Con servicio a Nothing, abrir Clientes -> Ficha daba "Object reference not set to an
-        ' instance of an object" y el combo de empresas se quedaba vacío (31/08/2026).
-        cargarDatos()
-    End Sub
 
     Public Sub New(configuracion As IConfiguracion, abridorPedidos As IAbridorPedidos, dialogService As IServicioDialogos, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion, servicioErrores As IServicioRegistroErrores, servicioPedidos As IPedidoVentaService)
         Me.configuracion = configuracion
@@ -161,97 +95,6 @@ Public Class ClientesViewModel
     End Sub
 
 #Region "Propiedades"
-    Private _titulo As String
-    Public Property Titulo As String
-        Get
-            Return _titulo
-        End Get
-        Set(value As String)
-            Dim unused = SetProperty(_titulo, value)
-        End Set
-    End Property
-
-    Private _empresaActual As String
-    Public Property empresaActual As String
-        Get
-            Return _empresaActual
-        End Get
-        Set(value As String)
-            _empresaActual = value
-            CargarListaContactos()
-            If IsNothing(contactoActual) Then
-                Dim unused = CargarClienteActualEmpresa()
-            End If
-            ActualizarClienteAsync(_empresaActual, clienteActual, contactoActual)
-            OnPropertyChanged("empresaActual")
-        End Set
-    End Property
-
-    Private Async Function CargarClienteActualEmpresa() As Task
-        Dim mainViewModel = New MainViewModel()
-        clienteActual = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
-    End Function
-
-    ' Nesto#340 (1C.7): la lista de contactos se lee de la API (PlantillaVentas/DireccionesEntrega,
-    ' mismo filtro Estado >= 0) en vez de consultar Clientes con EF. Se mantiene la colección de
-    ' Clientes como contenedor porque el ComboBox solo usa el campo Contacto y así los bindings
-    ' quedan intactos. Al asignar clienteActual el setter relanza la carga, así que no hace falta
-    ' recargar tras CargarClienteActualEmpresa.
-    Private _servicioDireccionesEntrega As ControlesUsuario.Services.IServicioDireccionesEntrega
-    Private ReadOnly Property ServicioDireccionesEntrega As ControlesUsuario.Services.IServicioDireccionesEntrega
-        Get
-            If _servicioDireccionesEntrega Is Nothing Then
-                _servicioDireccionesEntrega = Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(ControlesUsuario.Services.IServicioDireccionesEntrega))
-            End If
-            Return _servicioDireccionesEntrega
-        End Get
-    End Property
-
-    Private Async Sub CargarListaContactos()
-        Try
-            If String.IsNullOrWhiteSpace(_empresaActual) OrElse String.IsNullOrWhiteSpace(_clienteActual) Then
-                listaContactos = New ObservableCollection(Of Clientes)()
-                Return
-            End If
-            Dim direcciones = Await ServicioDireccionesEntrega.ObtenerDireccionesEntrega(_empresaActual.Trim(), _clienteActual.Trim())
-            listaContactos = New ObservableCollection(Of Clientes)(
-                direcciones.Select(Function(d) New Clientes With {
-                    .Empresa = _empresaActual,
-                    .Nº_Cliente = _clienteActual,
-                    .Contacto = d.contacto
-                }))
-        Catch ex As Exception
-            listaContactos = New ObservableCollection(Of Clientes)()
-        End Try
-    End Sub
-
-    Private _clienteActual As String
-    Public Property clienteActual As String
-        Get
-            Return _clienteActual
-        End Get
-        Set(value As String)
-            _clienteActual = value
-            CargarListaContactos()
-            ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
-            OnPropertyChanged(NameOf(clienteActual))
-            ' Nesto#340 (1C.8, slice 4): el Titulo se pone en actualizarCliente al terminar la
-            ' carga async (aquí clienteActivo aún sería el cliente anterior).
-        End Set
-    End Property
-
-    Private _contactoActual As String
-    Public Property contactoActual As String
-        Get
-            Return _contactoActual
-        End Get
-        Set(value As String)
-            _contactoActual = value
-            ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
-            OnPropertyChanged("contactoActual")
-        End Set
-    End Property
-
     Private _clienteServidor As ClienteJson
     Public Property clienteServidor As ClienteJson
         Get
@@ -421,134 +264,6 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    ' Nesto#340 (1C.8, último resto EF): POCO del API en vez de la entidad EF Empresas.
-    Private _listaEmpresas As ObservableCollection(Of EmpresaModel)
-    Public Property listaEmpresas As ObservableCollection(Of EmpresaModel)
-        Get
-            Return _listaEmpresas
-        End Get
-        Set(value As ObservableCollection(Of EmpresaModel))
-            _listaEmpresas = value
-            OnPropertyChanged("listaEmpresas")
-        End Set
-    End Property
-
-    Private _nombre As String
-    Public Property nombre As String
-        Get
-            Return _nombre
-        End Get
-        Set(value As String)
-            _nombre = value
-            OnPropertyChanged("nombre")
-        End Set
-    End Property
-
-    ' Nesto#340 (1C.8, slice 5): la cuenta activa deja de ser la entidad EF y pasa al POCO
-    ' CCCModel (mismos nombres de propiedad que bindea la vista, con dirty flag propio).
-    Private _cuentaActiva As CCCModel
-    Public Property cuentaActiva As CCCModel
-        Get
-            Return _cuentaActiva
-        End Get
-        Set(value As CCCModel)
-            _cuentaActiva = value
-            OnPropertyChanged("cuentaActiva")
-            OnPropertyChanged(NameOf(descripcionEstadoCCC))
-        End Set
-    End Property
-
-    ' Nesto#340 (1C.8, slice 4): la vista mostraba clienteActivo.CCC2.EstadosCCC.Descripción (dos
-    ' nav properties de EF). Con el POCO, la descripción se calcula con la cuenta activa y la
-    ' lista de estados que ya está cargada.
-    Public ReadOnly Property descripcionEstadoCCC As String
-        Get
-            If IsNothing(cuentaActiva) OrElse IsNothing(listaEstadosCCC) Then
-                Return String.Empty
-            End If
-            Return listaEstadosCCC.FirstOrDefault(Function(e) e.Número = cuentaActiva.Estado)?.Descripción
-        End Get
-    End Property
-
-    Private _cuentasBanco As ObservableCollection(Of CCCModel)
-    Public Property cuentasBanco As ObservableCollection(Of CCCModel)
-        Get
-            Return _cuentasBanco
-        End Get
-        Set(value As ObservableCollection(Of CCCModel))
-            _cuentasBanco = value
-            OnPropertyChanged("cuentasBanco")
-        End Set
-    End Property
-
-    ' Nesto#340 (1C.8, slice 4): la ficha del cliente se carga de la API (GET Clientes) en vez de
-    ' DbContext.Clientes, y clienteActivo pasa a ser el DTO. La cuenta activa se localiza por el
-    ' campo escalar ccc (antes nav property CCC2). Slice 5: cuentasBanco también viene de la API
-    ' (GET Clientes/CCCs) como POCOs con dirty flag; ya no queda EF en la carga de la ficha.
-    ' El Titulo se pone aquí (antes en el setter de clienteActual) porque la carga es async.
-    ' Es Function As Task (no Sub) para que los tests puedan await; los setters la invocan como
-    ' sentencia (fire-and-forget) y la excepción queda capturada aquí dentro.
-    Public Async Function ActualizarClienteAsync(empresa As String, numCliente As String, contacto As String) As Task
-        If IsNothing(empresa) OrElse IsNothing(numCliente) OrElse IsNothing(contacto) Then
-            Return
-        End If
-        Try
-            Dim cliente As ClienteJson = Await servicio.LeerCliente(empresa, numCliente, contacto)
-            If Not IsNothing(cliente) Then
-                nombre = cliente.nombre
-                Dim cccs As List(Of CCCModel) = Await servicio.LeerCCCs(empresa, numCliente, contacto)
-                cuentasBanco = New ObservableCollection(Of CCCModel)(If(cccs, New List(Of CCCModel)))
-                ' Carlos 17/11/26: antes, con un cliente sin ccc (o con un ccc que no está en sus cuentas) cuentaActiva NO se
-                ' tocaba y se quedaba la cuenta del cliente ANTERIOR (y Guardar mandaba su número). Ahora siempre se elige
-                ' entre las cuentas de ESTE cliente.
-                cuentaActiva = CuentaParaMostrar(cuentasBanco, cliente.ccc)
-                clienteActivo = cliente
-                If Not IsNothing(cliente.cliente) Then
-                    Titulo = String.Format("Cliente {0}", cliente.cliente.Trim)
-                End If
-                extractoCCC = Nothing
-                pedidosCCC = Nothing
-            End If
-        Catch ex As Exception
-            mensajeError = ex.Message
-        End Try
-    End Function
-
-    ''' <summary>
-    ''' Carlos 17/11/26: la cuenta que se enseña al cargar la ficha. La del cliente si la tiene y está entre sus cuentas;
-    ''' si no, la primera que no está anulada (para poder verla y, con «Usar esta cuenta para los recibos», asignarla:
-    ''' el texto «El cliente no tiene cuenta asignada» deja claro que no es la suya); si todas están anuladas, la primera;
-    ''' sin cuentas, ninguna. Nunca una cuenta de otro cliente.
-    ''' </summary>
-    Friend Shared Function CuentaParaMostrar(cuentas As IEnumerable(Of CCCModel), cccCliente As String) As CCCModel
-        If IsNothing(cuentas) Then
-            Return Nothing
-        End If
-        If Not String.IsNullOrWhiteSpace(cccCliente) Then
-            Dim suya As CCCModel = cuentas.FirstOrDefault(Function(x) x.Número?.Trim() = cccCliente.Trim())
-            If Not IsNothing(suya) Then
-                Return suya
-            End If
-        End If
-        Return If(cuentas.FirstOrDefault(Function(x) x.Estado <> ESTADO_CCC_ANULADA), cuentas.FirstOrDefault())
-    End Function
-
-    ' Estado de la cuenta «Nulo» (anulada) en EstadosCCC: no vale para los recibos.
-    Friend Const ESTADO_CCC_ANULADA As Short = -1
-
-    ''' <summary>Carlos 17/11/26: cuál es la cuenta del cliente (Clientes.CCC, la de los recibos), junto al combo de cuentas.</summary>
-    Public ReadOnly Property textoCuentaDelCliente As String
-        Get
-            If IsNothing(clienteActivo) Then
-                Return String.Empty
-            End If
-            If String.IsNullOrWhiteSpace(clienteActivo.ccc) Then
-                Return "El cliente no tiene cuenta asignada"
-            End If
-            Return "Cuenta del cliente: " + clienteActivo.ccc.Trim()
-        End Get
-    End Property
-
     ' Nesto#340 (1C.8, slice 4): clienteActivo YA ES la ficha completa de la API (incluye
     ' VendedoresGrupoProducto), así que no hace falta una segunda llamada: clienteServidor se
     ' unifica con clienteActivo.
@@ -652,55 +367,6 @@ Public Class ClientesViewModel
         End Try
     End Sub
 
-    ' Nesto#340 (1C.8, slice 4): POCO de la API en vez de la entidad EF Clientes. Es la misma
-    ' ficha que clienteServidor (se cargan de una sola llamada en actualizarCliente).
-    Private _clienteActivo As ClienteJson
-    Public Property clienteActivo As ClienteJson
-        Get
-            Return _clienteActivo
-        End Get
-        Set(value As ClienteJson)
-            _clienteActivo = value
-            ' Nesto#558: el estado con que llegó la ficha (el TextBox edita este mismo objeto, así que es la única
-            ' ocasión de saber de qué estado se viene al guardar).
-            _estadoCargado = value?.estado
-
-            If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
-                If Not IsNothing(clienteActivoDTO) Then
-                    cargarVendedoresPorGrupo()
-                    CargarSeguimientos()
-                    CargarListaVentas()
-                    CargarDeudaVencida()
-                Else
-                    seguimientosOrdenados = Nothing
-                    listaVentas = Nothing
-                End If
-            ElseIf IsNothing(value) Then
-                seguimientosOrdenados = Nothing
-                listaVentas = Nothing
-                deudaVencida = 0
-                ListaFacturas = Nothing
-                ListaPedidos = Nothing
-                ListaDeudas = Nothing
-            End If
-
-            If IndiceSeleccionado = 1 Then
-                CargarFacturas()
-            ElseIf IndiceSeleccionado = 2 Then
-                CargarPedidos()
-            ElseIf IndiceSeleccionado = 3 Then
-                CargarDeudas()
-            Else
-                ListaFacturas = Nothing
-                ListaPedidos = Nothing
-                ListaDeudas = Nothing
-            End If
-
-            OnPropertyChanged("clienteActivo")
-            OnPropertyChanged(NameOf(textoCuentaDelCliente))
-        End Set
-    End Property
-
     Private _clienteActivoDTO As ClienteJson
     Public Property clienteActivoDTO As ClienteJson
         Get
@@ -717,43 +383,6 @@ Public Class ClientesViewModel
             End If
 
             OnPropertyChanged("clienteActivoDTO")
-        End Set
-    End Property
-
-    Private Property _mensajeError As String
-    Public Property mensajeError As String
-        Get
-            Return _mensajeError
-        End Get
-        Set(value As String)
-            _mensajeError = value
-            OnPropertyChanged("mensajeError")
-        End Set
-    End Property
-
-    Private _selectedPath As String
-    Public Property selectedPath() As String
-        Get
-            Return _selectedPath
-        End Get
-        Set(value As String)
-            _selectedPath = value
-            OnPropertyChanged("selectedPath")
-        End Set
-    End Property
-
-    ' Nesto#340 (1C.8, slice 5): estados de CCC desde la API (POCO con Número/Descripción, los
-    ' nombres que bindea la vista). Como la carga ahora es async, se notifica también la
-    ' descripción del estado por si la ficha se cargó antes que el catálogo.
-    Private Property _listaEstadosCCC As ObservableCollection(Of EstadoCCCModel)
-    Public Property listaEstadosCCC As ObservableCollection(Of EstadoCCCModel)
-        Get
-            Return _listaEstadosCCC
-        End Get
-        Set(value As ObservableCollection(Of EstadoCCCModel))
-            _listaEstadosCCC = value
-            OnPropertyChanged("listaEstadosCCC")
-            OnPropertyChanged(NameOf(descripcionEstadoCCC))
         End Set
     End Property
 
@@ -906,100 +535,6 @@ Public Class ClientesViewModel
             _deudaVencida = value
             OnPropertyChanged("deudaVencida")
         End Set
-    End Property
-
-    Private _listaSecuencias As ObservableCollection(Of tipoIdDescripcion)
-    Public Property listaSecuencias As ObservableCollection(Of tipoIdDescripcion)
-        Get
-            Return _listaSecuencias
-        End Get
-        Set(value As ObservableCollection(Of tipoIdDescripcion))
-            _listaSecuencias = value
-            OnPropertyChanged("listaSecuencias")
-        End Set
-    End Property
-
-    Private _listaTipos As ObservableCollection(Of tipoIdDescripcion)
-    Public Property listaTipos As ObservableCollection(Of tipoIdDescripcion)
-        Get
-            Return _listaTipos
-        End Get
-        Set(value As ObservableCollection(Of tipoIdDescripcion))
-            _listaTipos = value
-            OnPropertyChanged("listaTipos")
-        End Set
-    End Property
-
-    ' Nesto#340 (1C.8, slice 5): los avisos de efectos con otro CCC vienen del PUT Clientes/CCCs
-    ' como POCO ligero (FechaVto/Concepto/ImportePdte/CCC, lo único que bindea el grid).
-    Private _extractoCCC As ObservableCollection(Of ExtractoCCCModel)
-    Public Property extractoCCC() As ObservableCollection(Of ExtractoCCCModel)
-        Get
-            Return _extractoCCC
-        End Get
-        Set(ByVal value As ObservableCollection(Of ExtractoCCCModel))
-            _extractoCCC = value
-            OnPropertyChanged("extractoCCC")
-            OnPropertyChanged("estaVisibleExtractoCCC")
-        End Set
-    End Property
-
-    Private _pedidosCCC As ObservableCollection(Of cabeceraPedidoAgrupada)
-    Public Property pedidosCCC() As ObservableCollection(Of cabeceraPedidoAgrupada)
-        Get
-            Return _pedidosCCC
-        End Get
-        Set(ByVal value As ObservableCollection(Of cabeceraPedidoAgrupada))
-            _pedidosCCC = value
-            OnPropertyChanged("pedidosCCC")
-            OnPropertyChanged("estaVisiblePedidosCCC")
-        End Set
-    End Property
-
-    Private _listaContactos As ObservableCollection(Of Clientes)
-    Public Property listaContactos() As ObservableCollection(Of Clientes)
-        Get
-            Return _listaContactos
-        End Get
-        Set(ByVal value As ObservableCollection(Of Clientes))
-            _listaContactos = value
-            OnPropertyChanged("listaContactos")
-            If Not IsNothing(value.FirstOrDefault) Then
-                contactoActual = value.FirstOrDefault.Contacto
-                OnPropertyChanged("contactoActual")
-            End If
-        End Set
-    End Property
-
-    Private _estaOcupado As Boolean
-    Public Property estaOcupado As Boolean
-        Get
-            Return _estaOcupado
-        End Get
-        Set(value As Boolean)
-            _estaOcupado = value
-            OnPropertyChanged("estaOcupado")
-        End Set
-    End Property
-
-    Public ReadOnly Property estaVisibleExtractoCCC As Visibility
-        Get
-            If Not IsNothing(extractoCCC) AndAlso extractoCCC.Count > 0 Then
-                Return Visibility.Visible
-            Else
-                Return Visibility.Hidden
-            End If
-        End Get
-    End Property
-
-    Public ReadOnly Property estaVisiblePedidosCCC As Visibility
-        Get
-            If Not IsNothing(pedidosCCC) AndAlso pedidosCCC.Count > 0 Then
-                Return Visibility.Visible
-            Else
-                Return Visibility.Hidden
-            End If
-        End Get
     End Property
 
     Private _listaDeudas As ObservableCollection(Of ExtractoClienteDTO)
@@ -1262,278 +797,6 @@ Public Class ClientesViewModel
 
 #End Region
 #Region "Comandos"
-    Private _cmdGuardar As ICommand
-    Public ReadOnly Property cmdGuardar() As ICommand
-        Get
-            If _cmdGuardar Is Nothing Then
-                _cmdGuardar = ComandosReevaluables.Crear(AddressOf Guardar, AddressOf CanGuardar)
-            End If
-            Return _cmdGuardar
-        End Get
-    End Property
-    ' Nesto#340 (1C.8, slice 5): el dirty pasa del ChangeTracker de EF al flag EsModificado de
-    ' los POCOs CCCModel (mismo patrón que AlquilerModel en 1C.3).
-    ' Regresión ELMAH 30/09/26 (PK_CCC, cliente 41978): mientras se guarda, el botón no se puede volver a
-    ' pulsar. Con el servidor tardando, siete clics mandaban siete PUT que se soltaban a la vez.
-    Private _guardando As Boolean
-    Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return Not _guardando AndAlso Not IsNothing(cuentaActiva) AndAlso Not IsNothing(cuentasBanco) AndAlso
-            cuentasBanco.Any(Function(c) c.EsModificado) AndAlso
-            (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1))
-    End Function
-    ' Nesto#340 (1C.8, slice 5): guardar pasa por PUT api/Clientes/CCCs. El servidor hace el
-    ' upsert de los CCC modificados y devuelve los avisos (efectos pendientes y pedidos abiertos
-    ' que apuntan a OTRO CCC) que antes calculaba este VM con dos consultas EF.
-    Private Async Sub Guardar(ByVal param As Object)
-        Await GuardarCuentasAsync(establecerComoCuentaDelCliente:=False)
-    End Sub
-
-    ' Carlos 17/11/26 (cliente 37480/2): elegir otra cuenta en el combo y guardar NO cambia la cuenta del cliente (a
-    ' propósito: se puede corregir una cuenta vieja sin querer cambiar la de los recibos). Para eso está este botón, que
-    ' manda en la MISMA llamada las cuentas con cambios sin guardar y la orden de usar la elegida (PUT Clientes/CCCs con
-    ' establecerComoCuentaDelCliente).
-    Private _cmdUsarCuentaParaRecibos As ICommand
-    Public ReadOnly Property cmdUsarCuentaParaRecibos() As ICommand
-        Get
-            If _cmdUsarCuentaParaRecibos Is Nothing Then
-                _cmdUsarCuentaParaRecibos = ComandosReevaluables.Crear(AddressOf UsarCuentaParaRecibos, AddressOf CanUsarCuentaParaRecibos)
-            End If
-            Return _cmdUsarCuentaParaRecibos
-        End Get
-    End Property
-
-    ' Habilitado con una cuenta elegida que ya está guardada (no recién creada con «Nuevo Mandato»), que no es la del
-    ' cliente y que no está anulada. Si hay cuentas con cambios, se guardan a la vez: valen las mismas condiciones del
-    ' mandato que en «Guardar Cambios».
-    Private Function CanUsarCuentaParaRecibos(ByVal param As Object) As Boolean
-        If _guardando OrElse IsNothing(cuentaActiva) OrElse IsNothing(cuentasBanco) OrElse IsNothing(clienteActivo) Then
-            Return False
-        End If
-        If cuentaActiva.EsNueva OrElse String.IsNullOrWhiteSpace(cuentaActiva.Número) OrElse cuentaActiva.Estado = ESTADO_CCC_ANULADA Then
-            Return False
-        End If
-        If cuentaActiva.Número.Trim() = clienteActivo.ccc?.Trim() Then
-            Return False
-        End If
-        If cuentasBanco.Any(Function(c) c.EsModificado) AndAlso
-            Not (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1)) Then
-            Return False
-        End If
-        Return True
-    End Function
-
-    Private Async Sub UsarCuentaParaRecibos(ByVal param As Object)
-        Await GuardarCuentasAsync(establecerComoCuentaDelCliente:=True)
-    End Sub
-
-    Private Async Function GuardarCuentasAsync(establecerComoCuentaDelCliente As Boolean) As Task
-        ' Fuera del Try: si ya se está guardando, el Finally de esta llamada no debe soltar el guardado de la otra.
-        If _guardando Then
-            Return
-        End If
-        Try
-            ' Nesto#396: sin cuenta activa no hay nada que guardar. CanGuardar ya lo filtra, pero el comando
-            ' puede dispararse en un teardown con cuentaActiva ya a Nothing; sin esta guarda, cuentaActiva.Número
-            ' abajo lanza NRE.
-            If IsNothing(cuentaActiva) OrElse IsNothing(cuentasBanco) Then
-                Return
-            End If
-
-            Dim modificados = cuentasBanco.Where(Function(c) c.EsModificado).ToList()
-            If Not modificados.Any() AndAlso Not establecerComoCuentaDelCliente Then
-                Return
-            End If
-            _guardando = True
-            CommandManager.InvalidateRequerySuggested()
-
-            Dim cuentaElegida As CCCModel = cuentaActiva
-            Dim fichaCargada As ClienteJson = clienteActivo
-            Dim peticion As New GuardarCCCsRequest With {
-                .empresa = empresaActual,
-                .cliente = clienteActual,
-                .contacto = contactoActual,
-                .cccActivo = cuentaElegida.Número,
-                .cccs = modificados,
-                .establecerComoCuentaDelCliente = establecerComoCuentaDelCliente
-            }
-            Dim respuesta As GuardarCCCsRespuesta = Await servicio.GuardarCCCs(peticion)
-
-            extractoCCC = New ObservableCollection(Of ExtractoCCCModel)(If(respuesta?.extractoOtroCCC, New List(Of ExtractoCCCModel)))
-            pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)(If(respuesta?.pedidosOtroCCC, New List(Of cabeceraPedidoAgrupada)))
-
-            For Each ccc In modificados
-                ccc.EsModificado = False
-                ccc.EsNueva = False
-            Next
-            If establecerComoCuentaDelCliente AndAlso Not IsNothing(fichaCargada) Then
-                fichaCargada.ccc = If(respuesta?.cccCliente, cuentaElegida.Número?.Trim())
-                OnPropertyChanged(NameOf(textoCuentaDelCliente))
-            End If
-            mensajeError = ""
-        Catch ex As Exception
-            ' Nesto#396: ex.InnerException puede ser Nothing (p.ej. un NullReferenceException pelado). Usar
-            ' ex.Message en ese caso, para no provocar un SEGUNDO NRE dentro del Catch que escapa como
-            ' DispatcherUnhandledException y tumba la aplicación (mismo patrón que VerMandato/NuevoMandato).
-            ' Nesto#399: EF anida el error real (SqlException / raiserror de trigger) en
-            ' DbUpdateException→UpdateException, cuyos mensajes son genéricos ("An error occurred when
-            ' updating the entries…"). Mostramos la excepción MÁS INTERNA (el error real, accionable) y
-            ' registramos la excepción completa en ELMAH vía /api/Errores para poder diagnosticarla.
-            mensajeError = ExcepcionMasInterna(ex).Message
-            Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, If(establecerComoCuentaDelCliente,
-                "ClientesViewModel.UsarCuentaParaRecibos (CCC del cliente)", "ClientesViewModel.Guardar (Nuevo Mandato / CCC)"))
-        Finally
-            If _guardando Then
-                _guardando = False
-                CommandManager.InvalidateRequerySuggested()
-            End If
-        End Try
-
-    End Function
-
-    ' Nesto#399: EF anida el error real varias capas (DbUpdateException→UpdateException→SqlException).
-    ' Devuelve la excepción más interna para mostrar/loguear el mensaje real y no el genérico de EF.
-    Private Shared Function ExcepcionMasInterna(ByVal ex As Exception) As Exception
-        Dim actual As Exception = ex
-        While actual.InnerException IsNot Nothing
-            actual = actual.InnerException
-        End While
-        Return actual
-    End Function
-
-    Private _cmdVerMandato As ICommand
-    Public ReadOnly Property cmdVerMandato() As ICommand
-        Get
-            If _cmdVerMandato Is Nothing Then
-                _cmdVerMandato = ComandosReevaluables.Crear(AddressOf VerMandato, AddressOf CanVerMandato)
-            End If
-            Return _cmdVerMandato
-        End Get
-    End Property
-    Private Function CanVerMandato(ByVal param As Object) As Boolean
-        'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
-        If IsNothing(cuentaActiva) Then
-            Return False
-        ElseIf Not File.Exists(rutaMandato) Then
-            Return False
-        Else
-            Return True
-        End If
-    End Function
-    Private Sub VerMandato(ByVal param As Object)
-        Try
-            Dim fileName As String = rutaMandato()
-            If String.IsNullOrEmpty(fileName) Then
-                mensajeError = "Esta cuenta no tiene mandato que enseñar."
-                Return
-            End If
-            Dim process As New System.Diagnostics.Process
-            process.StartInfo.FileName = fileName
-            process.StartInfo.UseShellExecute = True
-            Dim unused = process.Start()
-            process.WaitForExit()
-            mensajeError = ""
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        End Try
-    End Sub
-
-    Private _cmdNuevoMandato As ICommand
-    Public ReadOnly Property cmdNuevoMandato() As ICommand
-        Get
-            If _cmdNuevoMandato Is Nothing Then
-                _cmdNuevoMandato = ComandosReevaluables.Crear(AddressOf NuevoMandato, AddressOf CanNuevoMandato)
-            End If
-            Return _cmdNuevoMandato
-        End Get
-    End Property
-    Private Function CanNuevoMandato(ByVal param As Object) As Boolean
-        Return True
-    End Function
-    ' Nesto#340 (1C.8, slice 5): el CCC nuevo es un POCO marcado como modificado; se persiste
-    ' al Guardar (PUT api/Clientes/CCCs hace el upsert), igual que antes hacía SaveChanges.
-    Private Sub NuevoMandato(ByVal param As Object)
-        Try
-            Dim siguienteNumero As Integer
-            If IsNothing(cuentasBanco) Then
-                cuentasBanco = New ObservableCollection(Of CCCModel)
-            End If
-            If cuentasBanco.Count = 0 Then
-                siguienteNumero = 1
-            Else
-                siguienteNumero = CInt(cuentasBanco.Where(Function(x) x.Cliente.Trim = clienteActual).OrderBy(Function(x) x.Número).LastOrDefault.Número) + 1
-            End If
-            cuentaActiva = New CCCModel With {
-                .Empresa = empresaActual,
-                .Cliente = clienteActual,
-                .Contacto = contactoActual,
-                .Número = siguienteNumero.ToString(),
-                .Estado = 0,
-                .Secuencia = "FRST",
-                .EsModificado = True,
-                .EsNueva = True
-            }
-            cuentasBanco.Add(cuentaActiva)
-            mensajeError = ""
-
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        End Try
-    End Sub
-
-    Private _cmdAsignarMandato As ICommand
-    Public ReadOnly Property cmdAsignarMandato() As ICommand
-        Get
-            If _cmdAsignarMandato Is Nothing Then
-                _cmdAsignarMandato = ComandosReevaluables.Crear(AddressOf AsignarMandato, AddressOf CanAsignarMandato)
-            End If
-            Return _cmdAsignarMandato
-        End Get
-    End Property
-    Private Function CanAsignarMandato(ByVal param As Object) As Boolean
-        Return True
-    End Function
-    Private Sub AsignarMandato(ByVal param As Object)
-        Dim elegirFichero = New OpenFileDialog With {
-            .Filter = "pdf files (*.pdf)|*.pdf|All files (*.*)|*.*",
-            .FilterIndex = 1,
-            .RestoreDirectory = True
-        }
-
-        If elegirFichero.ShowDialog() Then
-            Try
-                ' Incidente 13/10/26: sin cuenta, contacto o ruta de mandatos no hay dónde copiarlo.
-                If String.IsNullOrEmpty(rutaMandato()) Then
-                    mensajeError = "Elige primero el cliente, el contacto y la cuenta a la que asignar el mandato."
-                    Return
-                End If
-                selectedPath = elegirFichero.FileName
-                FileIO.FileSystem.CopyFile(
-                selectedPath,
-                rutaMandato,
-                Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,
-                Microsoft.VisualBasic.FileIO.UICancelOption.DoNothing)
-            Catch ex As Exception
-                If IsNothing(ex.InnerException) Then
-                    mensajeError = ex.Message
-                Else
-                    mensajeError = ex.InnerException.Message
-                End If
-            Finally
-                If selectedPath Is Nothing Then
-                    selectedPath = String.Empty
-                End If
-            End Try
-        End If
-    End Sub
-
     Private _cmdGuardarVendedores As ICommand
     Public ReadOnly Property cmdGuardarVendedores() As ICommand
         Get
@@ -1811,117 +1074,6 @@ Public Class ClientesViewModel
             Return Sub(empresa, numeroPedido) abridorPedidos?.Abrir(empresa, numeroPedido)
         End Get
     End Property
-
-    Private _imprimirMandatoCommand As ICommand
-    Public ReadOnly Property ImprimirMandatoCommand() As ICommand
-        Get
-            If _imprimirMandatoCommand Is Nothing Then
-                _imprimirMandatoCommand = ComandosReevaluables.Crear(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
-            End If
-            Return _imprimirMandatoCommand
-        End Get
-    End Property
-    Private Function CanImprimirMandato(ByVal param As Object) As Boolean
-        Return Not String.IsNullOrEmpty(empresaActual) AndAlso Not String.IsNullOrEmpty(clienteActual) AndAlso
-            Not String.IsNullOrEmpty(contactoActual) AndAlso Not IsNothing(cuentaActiva) AndAlso Not String.IsNullOrEmpty(cuentaActiva.Número)
-    End Function
-    Private Async Sub OnImprimirMandato(ByVal param As Object)
-        estaOcupado = True
-        Try
-            ' Nesto#490 / Nesto#340: el mandato lo pinta NestoAPI; con MotorPdfMandatoSepa = QuestPDF pide el
-            ' generador nuevo (&motor=QuestPDF) y si no, el RDLC de siempre. Va al cliente → piloto por usuario.
-            Dim motorPdf As String = Await LeerMotorPdfMandato()
-            Dim urlPdf As String = ConstruirUrlMandatoPdf(configuracion.servidorAPI, empresaActual, clienteActual, contactoActual, cuentaActiva.Número, motorPdf)
-            Dim unused = Process.Start(New ProcessStartInfo(urlPdf) With {
-                .UseShellExecute = True
-            })
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        Finally
-            estaOcupado = False
-        End Try
-
-
-    End Sub
-
-
-
-    ' Nesto#563 (NestoAPI#724, sugerencia 831): el mandato por correo, sin descargarlo (Outlook web no adjunta
-    ' ficheros del escritorio remoto). Mismo diálogo que el pedido y la factura.
-    Private _envioPorCorreo As ControlesUsuario.Services.IEnvioDocumentoPorCorreo
-    ''' <summary>Nesto#563: el diálogo de envío + la llamada a la API. Friend para los tests.</summary>
-    Friend Property EnvioPorCorreo As ControlesUsuario.Services.IEnvioDocumentoPorCorreo
-        Get
-            If _envioPorCorreo Is Nothing Then
-                ' Con el constructor sin parámetros (la ficha) no llega el servicio de diálogos: se pide al contenedor
-                Dim dialogos As IServicioDialogos = dialogService
-                If dialogos Is Nothing Then
-                    Try
-                        dialogos = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioDialogos)), IServicioDialogos)
-                    Catch
-                        dialogos = Nothing
-                    End Try
-                End If
-                If dialogos IsNot Nothing AndAlso _clienteApiFactory IsNot Nothing Then
-                    _envioPorCorreo = New ControlesUsuario.Services.EnvioDocumentoPorCorreo(
-                        New ControlesUsuario.Services.ServicioEnvioCorreoDocumentos(_clienteApiFactory), dialogos)
-                End If
-            End If
-            Return _envioPorCorreo
-        End Get
-        Set(value As ControlesUsuario.Services.IEnvioDocumentoPorCorreo)
-            _envioPorCorreo = value
-        End Set
-    End Property
-
-    Private _enviarMandatoPorCorreoCommand As ICommand
-    ''' <summary>Nesto#563: «Enviar por correo…» junto a «Imprimir» del mandato SEPA de la cuenta activa.</summary>
-    Public ReadOnly Property EnviarMandatoPorCorreoCommand() As ICommand
-        Get
-            If _enviarMandatoPorCorreoCommand Is Nothing Then
-                _enviarMandatoPorCorreoCommand = ComandosReevaluables.Crear(AddressOf OnEnviarMandatoPorCorreo, AddressOf CanImprimirMandato)
-            End If
-            Return _enviarMandatoPorCorreoCommand
-        End Get
-    End Property
-    Private Async Sub OnEnviarMandatoPorCorreo(ByVal param As Object)
-        Try
-            Await EnviarMandatoPorCorreoAsync()
-        Catch ex As Exception
-            mensajeError = If(ex.InnerException?.Message, ex.Message)
-        End Try
-    End Sub
-
-    Friend Async Function EnviarMandatoPorCorreoAsync() As Task
-        If Not CanImprimirMandato(Nothing) OrElse EnvioPorCorreo Is Nothing Then
-            Return
-        End If
-        ' El mismo motor que al imprimirlo (parámetro MotorPdfMandatoSepa del usuario)
-        Dim motorPdf As String = Await LeerMotorPdfMandato()
-        Await EnvioPorCorreo.EnviarMandato(empresaActual?.Trim(), clienteActual?.Trim(), contactoActual?.Trim(), cuentaActiva.Número?.Trim(), motorPdf)
-    End Function
-
-    ''' <summary>Nesto#490: URL del PDF del mandato SEPA. Solo con motor "QuestPDF" se añade &amp;motor=QuestPDF.</summary>
-    Public Shared Function ConstruirUrlMandatoPdf(servidorAPI As String, empresa As String, cliente As String, contacto As String, ccc As String, motorPdf As String) As String
-        Dim url As String = $"{servidorAPI}Clientes/MandatoPDF?empresa={empresa?.Trim}&cliente={cliente?.Trim}&contacto={contacto?.Trim}&ccc={ccc?.Trim}"
-        If String.Equals(motorPdf?.Trim, "QuestPDF", StringComparison.OrdinalIgnoreCase) Then
-            url &= "&motor=QuestPDF"
-        End If
-        Return url
-    End Function
-
-    ''' <summary>Nesto#490: lee MotorPdfMandatoSepa del usuario. Nunca falla: ante cualquier error, RDLC.</summary>
-    Public Async Function LeerMotorPdfMandato() As Task(Of String)
-        Try
-            Return Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.MotorPdfMandatoSepa)
-        Catch
-            Return "RDLC"
-        End Try
-    End Function
 
     Private _reclamarDeudaCommand As RelayCommand
     Public Property ReclamarDeudaCommand As RelayCommand
@@ -2486,39 +1638,6 @@ Public Class ClientesViewModel
 
     End Sub
 
-    Private Async Function CargarMandato(empresa As String, cliente As String, contacto As String, ccc As String) As Task(Of Byte())
-
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim response As HttpResponseMessage
-            Dim respuesta As Byte()
-
-            Try
-                Dim urlConsulta As String = "Clientes"
-                urlConsulta += "?empresa=" + empresa.Trim
-                urlConsulta += "&cliente=" + cliente.Trim
-                urlConsulta += "&contacto=" + contacto.Trim
-                urlConsulta += "&ccc=" + ccc.Trim
-
-                response = Await client.GetAsync(urlConsulta).ConfigureAwait(True)
-
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsByteArrayAsync()
-                Else
-                    respuesta = Nothing
-                End If
-
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar el mandato desde el servidor")
-            Finally
-
-            End Try
-
-            Return respuesta
-        End Using
-
-
-    End Function
-
     Private Async Sub CargarPedidos()
         If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
             Return
@@ -2658,19 +1777,6 @@ Public Class ClientesViewModel
 #End Region
 
 #Region "Funciones"
-    ' Incidente 13/10/26 (Laura Magán): con la cuenta del cliente anterior aún activa y el contacto a
-    ' Nothing (el combo de contactos lo vacía al cambiar de cliente si la lista llega vacía), el .Trim
-    ' lanzaba NRE dentro de CanVerMandato/CanGuardar en cada RequerySuggested: 174 errores en 7 minutos
-    ' y Nesto imposible de cerrar. Si falta cualquier parte, no hay ruta de mandato (Nothing): los
-    ' llamantes lo tratan como «no hay fichero».
-    Private Function rutaMandato() As String
-        If IsNothing(cuentaActiva) OrElse String.IsNullOrWhiteSpace(ruta) OrElse
-            String.IsNullOrWhiteSpace(empresaActual) OrElse String.IsNullOrWhiteSpace(clienteActual) OrElse
-            String.IsNullOrWhiteSpace(contactoActual) OrElse String.IsNullOrWhiteSpace(cuentaActiva.Número) Then
-            Return Nothing
-        End If
-        Return ruta + empresaActual.Trim + "_" + clienteActual.Trim + "_" + contactoActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf"
-    End Function
     Private Async Sub inicializarListaClientesVendedor(filtro As String)
         'If vendedor <> "" Then
         '    If esVendedorDeFamilias Then
@@ -2716,46 +1822,9 @@ Public Class ClientesViewModel
         End Using
 
     End Sub
-    Private Async Sub cargarDatos()
-        If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
-            Return
-        End If
-        ' Nesto#340 (1C.8, último resto EF): empresas por API; si falla, mensaje y seguimos
-        ' (el resto de la ficha no depende del combo).
-        Dim errorEmpresas As Exception = Nothing
-        Try
-            listaEmpresas = New ObservableCollection(Of EmpresaModel)(Await servicio.LeerEmpresas())
-        Catch ex As Exception
-            listaEmpresas = New ObservableCollection(Of EmpresaModel)
-            mensajeError = $"No se han podido cargar las empresas: {ex.Message}"
-            ' (VB no permite Await dentro de un Catch, por eso se registra fuera del Try.)
-            errorEmpresas = ex
-        End Try
 
-        ' Este fallo se quedaba SOLO en el mensaje de pantalla y no llegaba a ELMAH, asi que
-        ' llevaba tiempo ocurriendo sin que nadie se enterase. Un error que el usuario ve y
-        ' nosotros no es peor que uno que revienta.
-        If errorEmpresas IsNot Nothing Then
-            Try
-                ' En el constructor sin parametros -que es justo el camino que fallaba- no llega
-                ' el registro de errores por el constructor: se pide al contenedor.
-                Dim registroErrores As IServicioRegistroErrores = servicioErrores
-                If registroErrores Is Nothing Then
-                    registroErrores = CType(Nesto.Infrastructure.Contracts.Contenedor.Actual.Resolver(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
-                End If
-                If registroErrores IsNot Nothing Then
-                    Await registroErrores.RegistrarErrorAsync(errorEmpresas, "ClientesViewModel.cargarDatos (empresas)")
-                End If
-            Catch
-                ' El registro de errores nunca debe empeorar lo que ya ha fallado.
-            End Try
-        End If
-
-        Dim mainViewModel As New MainViewModel
-        Dim empresaDefecto As String = Await mainViewModel.leerParametro("1", "EmpresaPorDefecto")
-        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        ruta = Await mainViewModel.leerParametro(empresaActual, "RutaMandatos")
-        Dim clienteDefecto As String = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
+    ' Nesto#646: lo que esta ficha hacía dentro de cargarDatos y del setter de clienteActivo.
+    Protected Overrides Async Function CargarDatosAntesDeElegirClienteAsync(mainViewModel As MainViewModel, empresaDefecto As String) As Task
         vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
         If Not IsNothing(configuracion) Then
             EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
@@ -2785,377 +1854,49 @@ Public Class ClientesViewModel
         If Not String.IsNullOrWhiteSpace(motorPagosParametro) Then
             MotorPagosSeleccionado = motorPagosParametro.Trim()
         End If
+    End Function
 
-        clienteActual = clienteDefecto
-        'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
-
-        ' Nesto#340 (1C.8, slice 5): estados de CCC desde la API (la tabla no se toca desde EF).
-        Try
-            listaEstadosCCC = New ObservableCollection(Of EstadoCCCModel)(Await servicio.LeerEstadosCCC(empresaActual))
-        Catch ex As Exception
-            mensajeError = ex.Message
-        End Try
-
-        Dim rangosFechas As New List(Of String) From {
-            "Ventas del Último Año",
-            "Ventas de Siempre"
-        }
-
+    Protected Overrides Sub CargarDatosDespuesDeElegirCliente()
         CargarDeudaVencida()
+    End Sub
 
-        listaSecuencias = New ObservableCollection(Of tipoIdDescripcion) From {
-            New tipoIdDescripcion("FRST", "Primer adeudo recurrente"),
-            New tipoIdDescripcion("RCUR", "Resto de adeudos recurrentes"),
-            New tipoIdDescripcion("OOFF", "Operación de un único pago"),
-            New tipoIdDescripcion("FNAL", "Último adeudo recurrente")
-        }
+    Protected Overrides Sub AlCambiarClienteActivo(value As ClienteJson)
+        ' Nesto#558: el estado con que llegó la ficha (el TextBox edita este mismo objeto, así que es la única
+        ' ocasión de saber de qué estado se viene al guardar).
+        _estadoCargado = value?.estado
 
-        listaTipos = New ObservableCollection(Of tipoIdDescripcion) From {
-            New tipoIdDescripcion(1, "Consumidor final"),
-            New tipoIdDescripcion(2, "Profesional")
-        }
+        If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
+            If Not IsNothing(clienteActivoDTO) Then
+                cargarVendedoresPorGrupo()
+                CargarSeguimientos()
+                CargarListaVentas()
+                CargarDeudaVencida()
+            Else
+                seguimientosOrdenados = Nothing
+                listaVentas = Nothing
+            End If
+        ElseIf IsNothing(value) Then
+            seguimientosOrdenados = Nothing
+            listaVentas = Nothing
+            deudaVencida = 0
+            ListaFacturas = Nothing
+            ListaPedidos = Nothing
+            ListaDeudas = Nothing
+        End If
 
-        Titulo = "Clientes"
+        If IndiceSeleccionado = 1 Then
+            CargarFacturas()
+        ElseIf IndiceSeleccionado = 2 Then
+            CargarPedidos()
+        ElseIf IndiceSeleccionado = 3 Then
+            CargarDeudas()
+        Else
+            ListaFacturas = Nothing
+            ListaPedidos = Nothing
+            ListaDeudas = Nothing
+        End If
     End Sub
     <DllImport("shell32")>
     Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInteger, ByVal hToken As IntPtr, ByRef np As IntPtr) As Integer : End Function
 #End Region
-End Class
-
-Public Class StringTrimmingConverter
-    Implements IValueConverter
-
-    Public Function ConvertBack(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
-        Return value
-    End Function
-
-    Public Function Convert(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.Convert
-        If IsNothing(value) Then
-            Return ""
-        Else
-            Return value.ToString().Trim
-        End If
-
-    End Function
-
-End Class
-
-Public Class datosBancoConverter
-    Implements IValueConverter
-
-    Public Function ConvertBack(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
-        Return value
-    End Function
-
-    Public Function Convert(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.Convert
-        If IsNothing(value) Then
-            Return "Sin datos de banco"
-        Else
-            Return "Tiene datos de banco"
-        End If
-    End Function
-
-End Class
-
-''' <summary>
-''' Nesto#340 (1C.8, slice 3): fila del grid de seguimientos de la ficha de cliente. Los nombres
-''' coinciden con SeguimientoClienteDTO de la API para deserializar sin mapeos.
-''' </summary>
-Public Class SeguimientoResumen
-    Public Property Fecha As Date
-    Public Property Tipo As String
-    Public Property Vendedor As String
-    Public Property Comentarios As String
-    Public Property Usuario As String
-End Class
-
-Public Class lineaVentaAgrupada
-    Public Property producto As String
-
-    Public Property nombre As String
-    Public Property cantidad As Integer
-
-    Public Property familia As String
-
-    Public Property fechaUltVenta As Date
-
-    Public Property subGrupo As String
-End Class
-
-Public Class cabeceraPedidoAgrupada
-    Public Property Numero As Integer
-    ' Nesto#340 (1C.8, slice 5): nullable porque CabPedidoVta.Fecha puede venir nula de la API
-    Public Property Fecha As Date?
-    Public Property CCC As String
-End Class
-
-' Nesto#340 (1C.8, slice 5): POCO del CCC de la ficha de clientes. Mantiene los nombres de
-' propiedad que bindea Clientes.xaml (SelectedItem.Pais, .Nº_Cuenta, etc.) y mapea con
-' JsonProperty los que no coinciden con el CCCDTO de la API. El dirty que antes llevaba el
-' ChangeTracker de EF lo lleva EsModificado (los setters editables lo activan).
-Public Class CCCModel
-    Inherits ObservableObject
-
-    <JsonIgnore>
-    Public Property EsModificado As Boolean
-
-    ' Carlos 17/11/26: creada con «Nuevo Mandato» y aún sin guardar (no existe en la BD). No se puede usar para los
-    ' recibos hasta guardarla.
-    <JsonIgnore>
-    Public Property EsNueva As Boolean
-
-    Public Property Empresa As String
-    Public Property Cliente As String
-    Public Property Contacto As String
-    <JsonProperty("numero")>
-    Public Property Número As String
-
-    Private _pais As String
-    Public Property Pais As String
-        Get
-            Return _pais
-        End Get
-        Set(value As String)
-            If SetProperty(_pais, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _dcIban As String
-    <JsonProperty("dcIban")>
-    Public Property DC_IBAN As String
-        Get
-            Return _dcIban
-        End Get
-        Set(value As String)
-            If SetProperty(_dcIban, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _entidad As String
-    Public Property Entidad As String
-        Get
-            Return _entidad
-        End Get
-        Set(value As String)
-            If SetProperty(_entidad, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _oficina As String
-    Public Property Oficina As String
-        Get
-            Return _oficina
-        End Get
-        Set(value As String)
-            If SetProperty(_oficina, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _dc As String
-    Public Property DC As String
-        Get
-            Return _dc
-        End Get
-        Set(value As String)
-            If SetProperty(_dc, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _numeroCuenta As String
-    <JsonProperty("numeroCuenta")>
-    Public Property Nº_Cuenta As String
-        Get
-            Return _numeroCuenta
-        End Get
-        Set(value As String)
-            If SetProperty(_numeroCuenta, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _bic As String
-    Public Property BIC As String
-        Get
-            Return _bic
-        End Get
-        Set(value As String)
-            If SetProperty(_bic, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _estado As Short
-    Public Property Estado As Short
-        Get
-            Return _estado
-        End Get
-        Set(value As Short)
-            If SetProperty(_estado, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _tipoMandato As Short?
-    Public Property TipoMandato As Short?
-        Get
-            Return _tipoMandato
-        End Get
-        Set(value As Short?)
-            If SetProperty(_tipoMandato, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _fechaMandato As Date?
-    Public Property FechaMandato As Date?
-        Get
-            Return _fechaMandato
-        End Get
-        Set(value As Date?)
-            If SetProperty(_fechaMandato, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-
-    Private _secuencia As String
-    Public Property Secuencia As String
-        Get
-            Return _secuencia
-        End Get
-        Set(value As String)
-            If SetProperty(_secuencia, value) Then
-                EsModificado = True
-            End If
-        End Set
-    End Property
-End Class
-
-' Nesto#340 (1C.8, slice 5): estados de CCC de la API; Número/Descripción son los nombres
-' que bindea el combo de la vista.
-Public Class EstadoCCCModel
-    <JsonProperty("numero")>
-    Public Property Número As Short
-    <JsonProperty("descripcion")>
-    Public Property Descripción As String
-End Class
-
-' Nesto#340 (1C.8, slice 5): fila del aviso de efectos pendientes con otro CCC (PUT Clientes/CCCs).
-' Nombres = columnas que bindea el grid extractoCCC de Clientes.xaml.
-Public Class ExtractoCCCModel
-    <JsonProperty("fechaVencimiento")>
-    Public Property FechaVto As Date?
-    Public Property Concepto As String
-    <JsonProperty("importePendiente")>
-    Public Property ImportePdte As Decimal
-    Public Property CCC As String
-End Class
-
-' Nesto#340 (1C.8, slice 5): petición/respuesta del PUT api/Clientes/CCCs.
-Public Class GuardarCCCsRequest
-    Public Property empresa As String
-    Public Property cliente As String
-    Public Property contacto As String
-    Public Property cccActivo As String
-    Public Property cccs As List(Of CCCModel)
-    ' Carlos 17/11/26: con True, cccActivo pasa a ser la cuenta de la ficha del cliente (la de los recibos).
-    Public Property establecerComoCuentaDelCliente As Boolean
-End Class
-
-Public Class GuardarCCCsRespuesta
-    Public Property extractoOtroCCC As List(Of ExtractoCCCModel)
-    Public Property pedidosOtroCCC As List(Of cabeceraPedidoAgrupada)
-    ' Carlos 17/11/26: la cuenta que ha quedado en la ficha si se pidió establecerComoCuentaDelCliente.
-    Public Property cccCliente As String
-End Class
-
-Public Class ExtractoClienteDTO
-    Inherits ObservableObject
-    Public Property Id As Integer
-    Public Property Empresa As String
-    Public Property Asiento As Integer
-    Public Property Cliente As String
-    Public Property Contacto As String
-    Public Property Fecha As Date
-    Public Property Tipo As String
-    Public Property Documento As String
-    Public Property Efecto As String
-    Public Property Concepto As String
-    Public Property Importe As Decimal
-    Public Property ImportePendiente As Decimal
-    Public Property Vendedor As String
-    Public Property Vencimiento As Date
-    Public Property CCC As String
-    Public Property Ruta As String
-    Public Property Estado As String
-    Public Property FormaVenta As String
-    Public Property Delegacion As String
-    Public Property FormaPago As String
-    Public Property Usuario As String
-    Private _seleccionada As Boolean
-    Public Property Seleccionada As Boolean
-        Get
-            Return _seleccionada
-        End Get
-        Set(value As Boolean)
-            Dim unused = SetProperty(_seleccionada, value)
-        End Set
-    End Property
-
-End Class
-
-''' <summary>
-''' DTO para pagos TPV (enlaces de pago NestoPago).
-''' Issue Nesto#322: Histórico de enlaces de pago en ventana de Clientes.
-''' </summary>
-Public Class PagoTPVDTO
-    Public Property Id As Integer
-    Public Property NumeroOrden As String
-    Public Property Tipo As String
-    Public Property Empresa As String
-    Public Property Cliente As String
-    Public Property Contacto As String
-    Public Property Importe As Decimal
-    Public Property Descripcion As String
-    Public Property Correo As String
-    Public Property Movil As String
-    Public Property Estado As String
-    Public Property CodigoRespuesta As String
-    Public Property CodigoAutorizacion As String
-    Public Property FechaCreacion As DateTime
-    Public Property FechaActualizacion As DateTime?
-    Public Property Usuario As String
-    Public Property Efectos As List(Of EfectoTPVDTO)
-    Public Property PagoOriginalId As Integer?
-
-    Public ReadOnly Property EstadoDescriptivo As String
-        Get
-            If PagoOriginalId.HasValue Then
-                Return Estado & " (reintento)"
-            End If
-            Return Estado
-        End Get
-    End Property
-End Class
-
-Public Class EfectoTPVDTO
-    Public Property Id As Integer
-    Public Property ExtractoClienteId As Integer
-    Public Property Importe As Decimal
-    Public Property Documento As String
-    Public Property Efecto As String
 End Class

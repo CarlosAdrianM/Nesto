@@ -36,10 +36,10 @@ Public Class ClientesViewModelCambioEstadoTests
     End Sub
 
     ''' <summary>La ficha cargada en estado <paramref name="estadoInicial"/>, con clienteServidor = clienteActivo como en la pantalla.</summary>
-    Private Async Function CrearViewModelConFicha(estadoInicial As Integer) As Task(Of ClientesViewModel)
+    Private Async Function CrearViewModelConFicha(estadoInicial As Integer) As Task(Of ClienteComercialViewModel)
         Dim ficha As New ClienteJson With {.empresa = "1", .cliente = "15191", .contacto = "0", .nombre = "EL EDÉN", .estado = estadoInicial}
         A.CallTo(Function() _servicio.LeerCliente("1", "15191", "0")).Returns(Task.FromResult(ficha))
-        Dim vm As New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
+        Dim vm As New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
         Await vm.ActualizarClienteAsync("1", "15191", "0")
         vm.clienteServidor = vm.clienteActivo
         Return vm
@@ -117,7 +117,7 @@ Public Class ClientesViewModelCambioEstadoTests
 
     <TestMethod()>
     Public Async Function SinFichaCargada_NoPreguntaNiRompe() As Task
-        Dim vm As New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
+        Dim vm As New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
 
         Assert.IsFalse(vm.PedirMotivoCambioEstadoSiHaceFalta())
     End Function

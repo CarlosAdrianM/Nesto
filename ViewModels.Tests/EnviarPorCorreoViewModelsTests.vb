@@ -107,8 +107,8 @@ Public Class EnviarPorCorreoViewModelsTests
             Function(p) p.Destinatarios.Count = 1 AndAlso p.Destinatarios(0) = "facturas@cliente.es"))).MustHaveHappenedOnceExactly()
     End Function
 
-    Private Function FichaCliente() As ClientesViewModel
-        Dim vm = New ClientesViewModel(A.Fake(Of IConfiguracion)(), _dialogos, A.Fake(Of IClienteComercialService)(),
+    Private Function FichaCliente() As ClienteCuentasViewModel
+        Dim vm = New ClienteCuentasViewModel(A.Fake(Of IConfiguracion)(), _dialogos, A.Fake(Of IClienteComercialService)(),
                                        A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
         vm.EnvioPorCorreo = New EnvioDocumentoPorCorreo(_servicioCorreo, _dialogos)
         vm.empresaActual = "1"

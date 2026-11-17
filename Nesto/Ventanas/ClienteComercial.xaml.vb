@@ -1,7 +1,7 @@
 ﻿Imports Nesto.ViewModels
 
 Public Class ClienteComercial
-    Public Sub New(viewModel As ClientesViewModel)
+    Public Sub New(viewModel As ClienteComercialViewModel)
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
@@ -89,7 +89,7 @@ Public Class ClienteComercial
     End Sub
 
     Private Sub Run_MouseRightButtonUp(sender As Object, e As MouseButtonEventArgs)
-        Dim vm As ClientesViewModel = DataContext
+        Dim vm As ClienteComercialViewModel = DataContext
         Clipboard.SetText(vm.EnlaceReclamarDeuda)
     End Sub
 

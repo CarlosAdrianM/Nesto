@@ -39,8 +39,8 @@ Public Class ClientesViewModelTests
         ComandosReevaluables.RegistrarErrorCanExecute = _registradorOriginal
     End Sub
 
-    Private Function CrearViewModel() As ClientesViewModel
-        Return New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
+    Private Function CrearViewModel() As ClienteCuentasViewModel
+        Return New ClienteCuentasViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
     End Function
 
     Private Function CrearFicha() As ClienteJson
@@ -234,7 +234,7 @@ Public Class ClientesViewModelTests
         Return cuenta
     End Function
 
-    Private Function CrearViewModelConCuentas(cccCliente As String, ParamArray cuentas As CCCModel()) As ClientesViewModel
+    Private Function CrearViewModelConCuentas(cccCliente As String, ParamArray cuentas As CCCModel()) As ClienteCuentasViewModel
         Dim vm = CrearViewModel()
         vm.clienteActivo = New ClienteJson With {.empresa = "1", .cliente = "37480", .contacto = "2", .ccc = cccCliente}
         vm.cuentasBanco = New ObservableCollection(Of CCCModel)(cuentas)
@@ -394,8 +394,8 @@ Public Class ClientesViewModelTests
     Public Sub CuentaParaMostrar_TodasAnuladas_LaPrimera()
         Dim uno = CuentaGuardada("1  ", -1)
 
-        Assert.AreSame(uno, ClientesViewModel.CuentaParaMostrar({uno, CuentaGuardada("2  ", -1)}, Nothing))
-        Assert.IsNull(ClientesViewModel.CuentaParaMostrar(New List(Of CCCModel), "1"))
+        Assert.AreSame(uno, ClienteCuentasViewModel.CuentaParaMostrar({uno, CuentaGuardada("2  ", -1)}, Nothing))
+        Assert.IsNull(ClienteCuentasViewModel.CuentaParaMostrar(New List(Of CCCModel), "1"))
     End Sub
 
     ' Nesto#423: el CommandParameter de CargarPedidoCommand es el SelectedItem del DataGrid de
@@ -405,14 +405,14 @@ Public Class ClientesViewModelTests
     ' Lidia, ELMAH 21/07/26). Ahora se ignora en silencio: no hay pedido que cargar.
     <TestMethod()>
     Public Sub CargarPedidoCommand_ConParametroNothing_NoLanza()
-        Dim vm = CrearViewModel()
+        Dim vm = New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
 
         vm.CargarPedidoCommand.Execute(Nothing)
     End Sub
 
     <TestMethod()>
     Public Sub CargarPedidoCommand_ConParametroQueNoEsResumenPedido_NoLanza()
-        Dim vm = CrearViewModel()
+        Dim vm = New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion)
 
         vm.CargarPedidoCommand.Execute("NewItemPlaceholder")
     End Sub
@@ -422,7 +422,7 @@ Public Class ClientesViewModelTests
     <TestMethod()>
     Public Sub CargarPedidoCommand_ConResumenPedido_LoAbreConElAbridorDePedidos()
         Dim abridor = A.Fake(Of ControlesUsuario.Dialogs.IAbridorPedidos)()
-        Dim vm = New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
+        Dim vm = New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
 
         vm.CargarPedidoCommand.Execute(New PedidoVentaModel.ResumenPedido With {.numero = 926123})
 
@@ -432,7 +432,7 @@ Public Class ClientesViewModelTests
     <TestMethod()>
     Public Sub AbrirPedidoAction_LoAbreConElAbridorDePedidos()
         Dim abridor = A.Fake(Of ControlesUsuario.Dialogs.IAbridorPedidos)()
-        Dim vm = New ClientesViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
+        Dim vm = New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, _servicioRapports, _servicioAutenticacion, abridor)
 
         vm.AbrirPedidoAction.Invoke("3", 926124)
 

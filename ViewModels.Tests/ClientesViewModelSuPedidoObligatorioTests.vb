@@ -29,10 +29,10 @@ Public Class ClientesViewModelSuPedidoObligatorioTests
         A.CallTo(Function() _configuracion.UsuarioEnGrupo(grupo)).Returns(True)
     End Sub
 
-    Private Async Function CrearViewModelConFicha(Optional exige As Boolean = False) As Task(Of ClientesViewModel)
+    Private Async Function CrearViewModelConFicha(Optional exige As Boolean = False) As Task(Of ClienteComercialViewModel)
         Dim ficha As New ClienteJson With {.empresa = "1", .cliente = "15191", .contacto = "0", .nombre = "CHANEL", .suPedidoObligatorio = exige}
         A.CallTo(Function() _servicio.LeerCliente("1", "15191", "0")).Returns(Task.FromResult(ficha))
-        Dim vm As New ClientesViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
+        Dim vm As New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
         Await vm.ActualizarClienteAsync("1", "15191", "0")
         vm.clienteServidor = vm.clienteActivo
         Return vm
@@ -82,7 +82,7 @@ Public Class ClientesViewModelSuPedidoObligatorioTests
 
         Assert.IsFalse(vm.ExigeSuPedido, "Vuelve a desmarcada")
         Assert.IsFalse(vm.clienteServidor.suPedidoObligatorio)
-        Assert.IsTrue(avisos.Where(Function(p) p = NameOf(ClientesViewModel.ExigeSuPedido)).Count() >= 2, "La casilla se entera de que vuelve atrás")
+        Assert.IsTrue(avisos.Where(Function(p) p = NameOf(ClienteComercialViewModel.ExigeSuPedido)).Count() >= 2, "La casilla se entera de que vuelve atrás")
         A.CallTo(Sub() _dialogService.ShowError(A(Of String).That.Contains("Solo Administración"))).MustHaveHappenedOnceExactly()
     End Function
 
@@ -102,7 +102,7 @@ Public Class ClientesViewModelSuPedidoObligatorioTests
     <TestMethod()>
     Public Sub SinFicha_NoHaceNada()
         ElUsuarioEsDe(Constantes.GruposSeguridad.ADMINISTRACION)
-        Dim vm As New ClientesViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
+        Dim vm As New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
 
         vm.ExigeSuPedido = True
 

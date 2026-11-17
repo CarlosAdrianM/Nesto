@@ -23,8 +23,8 @@ Public Class ClientesViewModelEnvioFacturasTests
         A.CallTo(Function() _dialogService.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
     End Sub
 
-    Private Function CrearViewModel() As ClientesViewModel
-        Return New ClientesViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
+    Private Function CrearViewModel() As ClienteComercialViewModel
+        Return New ClienteComercialViewModel(_configuracion, _dialogService, _servicio, A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
     End Function
 
     Private Shared Function Facturas(ParamArray numeros As String()) As ObservableCollection(Of FacturaClienteDTO)

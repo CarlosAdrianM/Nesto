@@ -11,12 +11,12 @@ Imports Nesto.ViewModels
 Public Class ClientesViewModelRevisionConceptoTests
 
     Private _revisor As IRevisorConceptoPago
-    Private _vm As ClientesViewModel
+    Private _vm As ClienteComercialViewModel
 
     <TestInitialize()>
     Public Sub Initialize()
         _revisor = A.Fake(Of IRevisorConceptoPago)()
-        _vm = New ClientesViewModel(A.Fake(Of IConfiguracion)(), A.Fake(Of IServicioDialogos)(), A.Fake(Of IClienteComercialService)(),
+        _vm = New ClienteComercialViewModel(A.Fake(Of IConfiguracion)(), A.Fake(Of IServicioDialogos)(), A.Fake(Of IClienteComercialService)(),
                                     A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)()) With {
             .RevisorConceptoPago = _revisor
         }
@@ -35,7 +35,7 @@ Public Class ClientesViewModelRevisionConceptoTests
 
     <TestMethod()>
     Public Sub ReclamarDeuda_ConceptoPorDefecto_NoSeRevisa()
-        _vm.AsuntoReclamarDeuda = ClientesViewModel.ASUNTO_PAGO_POR_DEFECTO
+        _vm.AsuntoReclamarDeuda = ClienteComercialViewModel.ASUNTO_PAGO_POR_DEFECTO
 
         _vm.ReclamarDeudaCommand.Execute(Nothing)
 

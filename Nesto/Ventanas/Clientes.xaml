@@ -5,7 +5,7 @@
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
     <UserControl.DataContext>
-        <vm:ClientesViewModel/>
+        <vm:ClienteCuentasViewModel/>
     </UserControl.DataContext>
 
     <Grid FocusManager.FocusedElement="{Binding ElementName=txtCliente}" Background="White">

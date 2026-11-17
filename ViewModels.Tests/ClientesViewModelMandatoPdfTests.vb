@@ -13,32 +13,32 @@ Imports Nesto.ViewModels
 Public Class ClientesViewModelMandatoPdfTests
 
     Private _configuracion As IConfiguracion
-    Private _vm As ClientesViewModel
+    Private _vm As ClienteCuentasViewModel
 
     <TestInitialize()>
     Public Sub Initialize()
         _configuracion = A.Fake(Of IConfiguracion)()
-        _vm = New ClientesViewModel(_configuracion, A.Fake(Of IServicioDialogos)(), A.Fake(Of IClienteComercialService)(),
+        _vm = New ClienteCuentasViewModel(_configuracion, A.Fake(Of IServicioDialogos)(), A.Fake(Of IClienteComercialService)(),
                                     A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)())
     End Sub
 
     <TestMethod()>
     Public Sub ConstruirUrlMandatoPdf_SinMotor_EsLaUrlDeSiempre()
-        Dim url = ClientesViewModel.ConstruirUrlMandatoPdf("https://api/", "1  ", "15191 ", "0  ", "1  ", Nothing)
+        Dim url = ClienteCuentasViewModel.ConstruirUrlMandatoPdf("https://api/", "1  ", "15191 ", "0  ", "1  ", Nothing)
 
         Assert.AreEqual("https://api/Clientes/MandatoPDF?empresa=1&cliente=15191&contacto=0&ccc=1", url)
     End Sub
 
     <TestMethod()>
     Public Sub ConstruirUrlMandatoPdf_ConRdlc_NoAnadeMotor()
-        Dim url = ClientesViewModel.ConstruirUrlMandatoPdf("https://api/", "1", "15191", "0", "1", "RDLC")
+        Dim url = ClienteCuentasViewModel.ConstruirUrlMandatoPdf("https://api/", "1", "15191", "0", "1", "RDLC")
 
         Assert.IsFalse(url.Contains("motor="))
     End Sub
 
     <TestMethod()>
     Public Sub ConstruirUrlMandatoPdf_ConQuestPdf_AnadeMotor()
-        Dim url = ClientesViewModel.ConstruirUrlMandatoPdf("https://api/", "1", "15191", "0", "1", " questpdf ")
+        Dim url = ClienteCuentasViewModel.ConstruirUrlMandatoPdf("https://api/", "1", "15191", "0", "1", " questpdf ")
 
         Assert.AreEqual("https://api/Clientes/MandatoPDF?empresa=1&cliente=15191&contacto=0&ccc=1&motor=QuestPDF", url)
     End Sub

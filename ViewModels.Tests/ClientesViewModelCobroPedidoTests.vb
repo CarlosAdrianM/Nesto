@@ -16,7 +16,7 @@ Public Class ClientesViewModelCobroPedidoTests
     Private _dialogService As IServicioDialogos
     Private _servicioPedidos As IPedidoVentaService
     Private _copiado As String
-    Private _vm As ClientesViewModel
+    Private _vm As ClienteComercialViewModel
 
     Private Class PortapapelesFalso
         Implements IPortapapelesTexto
@@ -30,7 +30,7 @@ Public Class ClientesViewModelCobroPedidoTests
     Public Sub Initialize()
         _dialogService = A.Fake(Of IServicioDialogos)()
         _servicioPedidos = A.Fake(Of IPedidoVentaService)()
-        _vm = New ClientesViewModel(A.Fake(Of IConfiguracion)(), _dialogService, A.Fake(Of IClienteComercialService)(),
+        _vm = New ClienteComercialViewModel(A.Fake(Of IConfiguracion)(), _dialogService, A.Fake(Of IClienteComercialService)(),
                                     A.Fake(Of IRapportService)(), A.Fake(Of IServicioAutenticacion)()) With {
             .ServicioPedidos = _servicioPedidos,
             .PortapapelesCobroPedido = New PortapapelesFalso()

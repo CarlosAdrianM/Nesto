@@ -29,7 +29,7 @@ Public Class MenuBarView
             registro.Transitorio(tipoVentana, tipoVentana)
         Next
         ' Y los ViewModels que reciben esas ventanas por constructor
-        registro.Transitorio(Of ClientesViewModel)()
+        registro.Transitorio(Of ClienteComercialViewModel)()
         registro.Transitorio(Of AlquileresViewModel)()
         registro.Transitorio(Of RemesasViewModel)()
         registro.Transitorio(Of AgenciasViewModel)()

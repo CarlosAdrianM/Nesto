@@ -34,7 +34,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
     Private _errores As IServicioRegistroErrores
     Private _manejador As ManejadorFalso
     Private _factoria As IClienteApiFactory
-    Private _vm As ClientesViewModel
+    Private _vm As ClienteComercialViewModel
 
     <TestInitialize()>
     Public Sub Initialize()
@@ -50,7 +50,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
         Dim revisor = A.Fake(Of IRevisorConceptoPago)()
         A.CallTo(Function() revisor.ElegirConcepto(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)) _
             .ReturnsLazily(Function(concepto As String, empresa As String, cliente As String) Task.FromResult(concepto))
-        _vm = New ClientesViewModel(A.Fake(Of IConfiguracion)(), _dialogos, A.Fake(Of IClienteComercialService)(),
+        _vm = New ClienteComercialViewModel(A.Fake(Of IConfiguracion)(), _dialogos, A.Fake(Of IClienteComercialService)(),
                                     A.Fake(Of IRapportService)(), autenticacion) With {
             .ClienteApiFactory = _factoria,
             .RegistroErrores = _errores,
@@ -68,7 +68,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
 
         Await _vm.ReclamarDeudaAsync()
 
-        A.CallTo(Function() _dialogos.GetText(ClientesViewModel.TITULO_PEDIR_CONCEPTO_PAGO, ClientesViewModel.TEXTO_PEDIR_CONCEPTO_PAGO)) _
+        A.CallTo(Function() _dialogos.GetText(ClienteComercialViewModel.TITULO_PEDIR_CONCEPTO_PAGO, ClienteComercialViewModel.TEXTO_PEDIR_CONCEPTO_PAGO)) _
             .MustHaveHappenedOnceExactly()
         A.CallTo(Function() _factoria.Crear()).MustNotHaveHappened()
         Assert.AreEqual(0, _manejador.Cuerpos.Count)
@@ -77,7 +77,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
 
     <TestMethod()>
     Public Async Function ReclamarDeuda_SinEfectosConElAsuntoPorDefecto_TambienPideElConcepto() As Task
-        _vm.AsuntoReclamarDeuda = ClientesViewModel.ASUNTO_PAGO_POR_DEFECTO
+        _vm.AsuntoReclamarDeuda = ClienteComercialViewModel.ASUNTO_PAGO_POR_DEFECTO
         A.CallTo(Function() _dialogos.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns("   ")
 
         Await _vm.ReclamarDeudaAsync()
@@ -114,7 +114,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
         _vm.ListaDeudas = New ObjectModel.ObservableCollection(Of ExtractoClienteDTO) From {
             New ExtractoClienteDTO With {.Id = 7, .ImportePendiente = 25D, .Documento = "NV26/1", .Seleccionada = True}
         }
-        _vm.AsuntoReclamarDeuda = ClientesViewModel.ASUNTO_PAGO_POR_DEFECTO
+        _vm.AsuntoReclamarDeuda = ClienteComercialViewModel.ASUNTO_PAGO_POR_DEFECTO
 
         Await _vm.ReclamarDeudaAsync()
 
@@ -129,7 +129,7 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
         _vm.ListaDeudas = New ObjectModel.ObservableCollection(Of ExtractoClienteDTO) From {
             New ExtractoClienteDTO With {.Id = 7, .ImportePendiente = 40D, .Documento = "NV26/1", .Seleccionada = True}
         }
-        _vm.AsuntoReclamarDeuda = ClientesViewModel.ASUNTO_PAGO_POR_DEFECTO
+        _vm.AsuntoReclamarDeuda = ClienteComercialViewModel.ASUNTO_PAGO_POR_DEFECTO
         A.CallTo(Function() _dialogos.GetText(A(Of String).Ignored, A(Of String).Ignored)).Returns("Pago parcial factura NV26/1")
 
         Await _vm.ReclamarDeudaAsync()
@@ -169,6 +169,6 @@ Public Class ClientesViewModelConceptoEnlacePagoTests
 
     <TestMethod()>
     Public Sub MensajeValidacionApi_TextoQueNoEsJson_TalCual()
-        Assert.AreEqual("Importe no válido", ClientesViewModel.MensajeValidacionApi(" Importe no válido "))
+        Assert.AreEqual("Importe no válido", ClienteComercialViewModel.MensajeValidacionApi(" Importe no válido "))
     End Sub
 End Class
