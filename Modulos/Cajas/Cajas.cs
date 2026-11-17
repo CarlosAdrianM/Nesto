@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Contracts;
+﻿using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Views;
 
 namespace Nesto.Modulos.Cajas
@@ -22,6 +23,9 @@ namespace Nesto.Modulos.Cajas
             // Nesto#261: auditoría de enlaces de pago (solo lectura)
             registro.Vista<AuditoriaEnlacesPagoView>(AUDITORIA_ENLACES_PAGO_VIEW);
             registro.Transitorio<Interfaces.IAuditoriaEnlacesPagoService, Services.AuditoriaEnlacesPagoService>();
+            // Nesto#645: cobro en caja de la factura recién creada en la tienda (lo abre el detalle del pedido)
+            registro.RegistrarDialogo<CobroCajaDialog, ViewModels.CobroCajaDialogViewModel>(ViewModels.CobroCajaDialogViewModel.NOMBRE);
+            registro.Transitorio<ViewModels.CobroCajaDialogViewModel>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<CajasMenuBar>();

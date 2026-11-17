@@ -971,6 +971,35 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>Nesto#645: lo que se lee del extracto pendiente para saber si la factura deja algo por cobrar.</summary>
+    Friend Class EfectoPendienteDocumento
+        Public Property Empresa As String
+        Public Property Documento As String
+        Public Property ImportePendiente As Decimal
+    End Class
+
+    ''' <summary>Nesto#645: la suma de lo pendiente de ese documento en esa empresa.</summary>
+    Friend Shared Function SumarPendienteDocumento(efectos As IEnumerable(Of EfectoPendienteDocumento), empresa As String, documento As String) As Decimal
+        If efectos Is Nothing OrElse String.IsNullOrWhiteSpace(documento) Then
+            Return 0
+        End If
+        Return efectos.Where(Function(e) e IsNot Nothing AndAlso
+                                 String.Equals(e.Documento?.Trim(), documento.Trim(), StringComparison.OrdinalIgnoreCase) AndAlso
+                                 (String.IsNullOrWhiteSpace(empresa) OrElse String.Equals(e.Empresa?.Trim(), empresa.Trim(), StringComparison.OrdinalIgnoreCase))).
+            Sum(Function(e) e.ImportePendiente)
+    End Function
+
+    Public Async Function LeerPendienteDocumento(empresa As String, cliente As String, documento As String) As Task(Of Decimal) Implements IPedidoVentaService.LeerPendienteDocumento
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync($"ExtractosCliente?cliente={Uri.EscapeDataString(If(cliente, String.Empty).Trim())}")
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return SumarPendienteDocumento(JsonConvert.DeserializeObject(Of List(Of EfectoPendienteDocumento))(cuerpo), empresa, documento)
+        End Using
+    End Function
+
     ' Nesto#552: GET api/PedidosVenta/PendientesEntregar[/Excel] con los filtros que haya
     Friend Shared Function UrlPendientesEntregar(empresa As String, almacen As String, producto As String, vendedor As String, Optional excel As Boolean = False) As String
         Dim url As String = "PedidosVenta/PendientesEntregar" & If(excel, "/Excel", "") &

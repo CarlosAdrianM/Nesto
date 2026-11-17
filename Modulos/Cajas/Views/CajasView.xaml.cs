@@ -72,7 +72,7 @@ namespace Nesto.Modulos.Cajas.Views
         {
             if (e.Key == Key.Enter)
             {
-                _ = btnContabilizarCobro.Focus();
+                ctlCobros.EnfocarContabilizar(); // Nesto#645: el botón está ahora en el control de cobros (como antes)
             }
             else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
             {
@@ -97,37 +97,6 @@ namespace Nesto.Modulos.Cajas.Views
             }
         }
 
-        private void drgListaDeudas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            _ = txtTotalCobrado.Focus();
-        }
-
-        /// <summary>
-        /// Nesto#511: el menú contextual copia de la fila bajo el cursor. Se marca como manejado para que el clic derecho
-        /// no cambie la selección (las filas seleccionadas son las deudas a cobrar); el menú se abre igual, al soltar.
-        /// </summary>
-        private void dgrListaDeudas_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (DataContext is not CajasViewModel vm)
-            {
-                return;
-            }
-            DependencyObject elemento = e.OriginalSource as DependencyObject;
-            while (elemento != null && elemento is not DataGridRow)
-            {
-                elemento = elemento is System.Windows.Media.Visual
-                    ? System.Windows.Media.VisualTreeHelper.GetParent(elemento)
-                    : LogicalTreeHelper.GetParent(elemento);
-            }
-            if (elemento is DataGridRow fila && fila.Item is Models.ExtractoClienteDTO deuda)
-            {
-                vm.EstablecerDeudaBajoCursor(deuda);
-                e.Handled = true;
-            }
-            else
-            {
-                vm.EstablecerDeudaBajoCursor(null);
-            }
-        }
+        // Nesto#645: lo de la lista de deudas (clic izquierdo y menú contextual) está ahora en CobrosCajaView.
     }
 }

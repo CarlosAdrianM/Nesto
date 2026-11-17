@@ -2020,6 +2020,8 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Try
+            Dim cliente As String = pedido.cliente ' Nesto#645: para el cobro en caja (el pedido se recarga)
+            Dim contacto As String = pedido.contacto
             Dim resultado As CrearFacturaResponseDTO = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
             'If resultado.NumeroFactura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
             '    Throw New Exception("No se pudo crear factura porque el cliente es de fin de mes")
@@ -2030,9 +2032,7 @@ Public Class DetallePedidoViewModel
             cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
 
             dialogService.ShowNotification($"Factura {resultado.NumeroFactura} creada correctamente")
-            MostrarAvisosFacturacion(resultado)
-            Await ImprimirFacturaEnPapelAsync(resultado) ' Nesto#620
-            Await ImprimirFactura(resultado.NumeroFactura)
+            Await TrasCrearFacturaAsync(resultado, cliente, contacto) ' Nesto#645: avisos, cobro en caja e impresión (Nesto#620)
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear la factura:\n {ex.Message}")
         Finally
@@ -2274,6 +2274,8 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Try
+            Dim cliente As String = pedido.cliente ' Nesto#645: para el cobro en caja (el pedido se recarga)
+            Dim contacto As String = pedido.contacto
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
             Await PreguntarFechaNotasEntregaAsync(pedido.empresa.ToString, pedido.numero) ' NestoAPI#582
             Try
@@ -2284,9 +2286,7 @@ Public Class DetallePedidoViewModel
                 cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
 
                 dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
-                MostrarAvisosFacturacion(resultado)
-                Await ImprimirFacturaEnPapelAsync(resultado) ' Nesto#620
-                Await ImprimirFactura(resultado.NumeroFactura)
+                Await TrasCrearFacturaAsync(resultado, cliente, contacto) ' Nesto#645: avisos, cobro en caja e impresión (Nesto#620)
             Catch exFactura As Exception
                 ' Nesto#421 (caso 922687): el albarán SÍ se creó pero la factura falló. Antes la
                 ' pantalla se quedaba con las líneas pintadas en estado 1 y activas, el usuario

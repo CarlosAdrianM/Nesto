@@ -90,7 +90,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _clienteSeleccionado;
             set
             {
-                _ = SetProperty(ref _clienteSeleccionado, value);
+                if (SetProperty(ref _clienteSeleccionado, value))
+                {
+                    EntregaCliente = null; // Nesto#645: otro cliente, otra entrega
+                }
                 _ = CargarDeudasCliente();
                 (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
@@ -251,8 +254,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         FormaPagoTarjetaSeleccionada = false;
                         FormaPagoTransferenciaSeleccionada = false;
                         CuentaCobro = ListaCuentasCaja.Single(c => c.Cuenta == _cuentaCajaDefecto);
-                        FormaPagoSeleccionada = ListaFormaPago.Single(f => f.formaPago == Constantes.FormasPago.EFECTIVO);
+                        FormaPagoSeleccionada = FormaPagoDeLaLista(Constantes.FormasPago.EFECTIVO);
                     }
+                    OnPropertyChanged(nameof(MostrarEntregaCliente)); // Nesto#645
                 }
             }
         }
@@ -273,7 +277,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         FormaPagoEfectivoSeleccionada = false;
                         FormaPagoTransferenciaSeleccionada = false;
                         CuentaCobro = ListaCuentasCaja.Single(c => c.Cuenta == _cuentaTarjetaDefecto);
-                        FormaPagoSeleccionada = ListaFormaPago.Single(f => f.formaPago == Constantes.FormasPago.TARJETA);
+                        FormaPagoSeleccionada = FormaPagoDeLaLista(Constantes.FormasPago.TARJETA);
                     }
                 }
             }
@@ -295,7 +299,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         FormaPagoEfectivoSeleccionada = false;
                         FormaPagoTarjetaSeleccionada = false;
                         CuentaCobro = ListaCuentasCaja.Single(c => c.Cuenta == _cuentaTarjetaDefecto);
-                        FormaPagoSeleccionada = ListaFormaPago.Single(f => f.formaPago == Constantes.FormasPago.TRANSFERENCIA);
+                        FormaPagoSeleccionada = FormaPagoDeLaLista(Constantes.FormasPago.TRANSFERENCIA);
                     }
                 }
             }
@@ -428,8 +432,137 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 _ = SetProperty(ref _totalCobrado, value);
                 OnPropertyChanged(nameof(ImporteACuenta));
                 OnPropertyChanged(nameof(EstaVisibleImporteACuenta));
+                NotificarCambio();
                 (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
+        }
+
+        // ---------------- Nesto#645: «Entrega el cliente» y el cambio (tiendas, en efectivo) ----------------
+
+        public bool EsUsuarioDeTienda => _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
+
+        /// <summary>Nesto#645: en las tiendas y cobrando en efectivo se teclea lo que entrega el cliente y Nesto da el cambio.</summary>
+        public bool MostrarEntregaCliente => EsUsuarioDeTienda && FormaPagoEfectivoSeleccionada;
+
+        private decimal? _entregaCliente;
+        /// <summary>Nesto#645: lo que entrega el cliente en efectivo. Solo sirve para calcular el cambio: no se contabiliza.</summary>
+        public decimal? EntregaCliente
+        {
+            get => _entregaCliente;
+            set
+            {
+                if (SetProperty(ref _entregaCliente, value))
+                {
+                    NotificarCambio();
+                }
+            }
+        }
+
+        /// <summary>Nesto#645: entregado − total cobrado. Null sin entrega; negativo si lo entregado no llega.</summary>
+        public decimal? Cambio => CalcularCambio(EntregaCliente, TotalCobrado);
+
+        public string TextoCambio
+        {
+            get
+            {
+                decimal? cambio = Cambio;
+                if (cambio is null)
+                {
+                    return string.Empty;
+                }
+                var es = System.Globalization.CultureInfo.GetCultureInfo("es-ES");
+                return cambio.Value >= 0
+                    ? $"Cambio: {cambio.Value.ToString("C", es)}"
+                    : $"Faltan {(-cambio.Value).ToString("C", es)}";
+            }
+        }
+
+        /// <summary>Nesto#645: la regla del cambio. Sin entrega (o a cero), no hay cambio que dar.</summary>
+        internal static decimal? CalcularCambio(decimal? entregado, decimal aCobrar)
+        {
+            if (entregado is null || entregado.Value <= 0)
+            {
+                return null;
+            }
+            return Math.Round(entregado.Value - aCobrar, 2, MidpointRounding.AwayFromZero);
+        }
+
+        private void NotificarCambio()
+        {
+            OnPropertyChanged(nameof(Cambio));
+            OnPropertyChanged(nameof(TextoCambio));
+        }
+
+        // ---------------- Nesto#645: cobro de la factura recién creada (desde el detalle del pedido) ----------------
+
+        /// <summary>Nesto#645: se lanza cuando el cobro se ha contabilizado (asiento creado). El diálogo de cobro se cierra con él.</summary>
+        public event EventHandler CobroContabilizado;
+
+        /// <summary>
+        /// Nesto#645: las deudas que se han marcado solas (las del documento con el que se abrió el cobro). La vista las selecciona
+        /// en la lista, que es la que marca lo que se cobra.
+        /// </summary>
+        public event EventHandler<IReadOnlyList<ExtractoClienteDTO>> DeudasPreseleccionadas;
+
+        private (string Empresa, string Documento)? _preseleccion;
+
+        /// <summary>
+        /// Nesto#645: prepara el cobro de un documento (la factura recién creada): carga la caja, el cliente y sus deudas y deja
+        /// marcados los efectos pendientes de ese documento (de esa empresa) con su importe como total cobrado.
+        /// </summary>
+        public async Task PrepararCobroAsync(string empresa, string cliente, string contacto, string documento)
+        {
+            _preseleccion = string.IsNullOrWhiteSpace(documento) ? null : (empresa?.Trim(), documento.Trim());
+            try
+            {
+                await CargarDatosIniciales();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("No se han podido cargar los datos de la caja: " + ex.Message);
+                return;
+            }
+            ClienteCompletoSeleccionado ??= new ClienteDTO { empresa = empresa?.Trim(), cliente = cliente?.Trim(), contacto = contacto?.Trim() };
+            _clienteSeleccionado = cliente?.Trim();
+            OnPropertyChanged(nameof(ClienteSeleccionado));
+            try
+            {
+                await CargarDeudasCliente();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
+        }
+
+        /// <summary>Nesto#645: las deudas de la lista que son del documento a preseleccionar (con algo pendiente).</summary>
+        internal static List<ExtractoClienteDTO> DeudasDelDocumento(IEnumerable<ExtractoClienteDTO> deudas, string empresa, string documento)
+        {
+            if (deudas is null || string.IsNullOrWhiteSpace(documento))
+            {
+                return [];
+            }
+            return deudas.Where(d => d.ImportePendiente != 0 &&
+                    string.Equals(d.Documento?.Trim(), documento.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    (string.IsNullOrWhiteSpace(empresa) || string.Equals(d.Empresa?.Trim(), empresa.Trim(), StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
+        private void AplicarPreseleccion()
+        {
+            if (_preseleccion is null || ListaDeudas is null)
+            {
+                return;
+            }
+            var marcadas = DeudasDelDocumento(ListaDeudas, _preseleccion.Value.Empresa, _preseleccion.Value.Documento);
+            if (!marcadas.Any())
+            {
+                return;
+            }
+            TotalCobrado = 0; // para que el total cobrado se ponga con lo marcado
+            OnSeleccionarDeudas(marcadas);
+            DeudasPreseleccionadas?.Invoke(this, marcadas);
         }
         private decimal _totalGasto;
         public decimal TotalGasto
@@ -738,6 +871,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         ? $"Creados los asientos del cobro, uno por empresa ({string.Join(" y ", empresas)}); el de la empresa {Constantes.Empresas.EMPRESA_DEFECTO.Trim()} es el {asiento}"
                         : $"Creado asiento {asiento} correctamente");
                     ConceptoAdicionalCobros = string.Empty;
+                    _preseleccion = null; // Nesto#645: lo marcado ya está cobrado
+                    EntregaCliente = null;
+                    CobroContabilizado?.Invoke(this, EventArgs.Empty);
                     await CargarDatosIniciales();
                     await CargarDeudasCliente();
                     TotalCobrado = 0;
@@ -1142,6 +1278,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private async Task CargarDeudasCliente()
         {
             ListaDeudas = [.. (await _clientesService.LeerDeudas(ClienteSeleccionado)).OrderBy(e => e.Id)];
+            AplicarPreseleccion(); // Nesto#645
         }
         private async Task CalcularSaldoCuentaOrigen()
         {
@@ -1169,6 +1306,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             return MovimientosCajaPendientesRecibirSeleccionados != null && MovimientosCajaPendientesRecibirSeleccionados.Any();
         }
+        /// <summary>
+        /// La forma de pago de la lista del selector. Nesto#645: la lista la rellena el control al cargarse y puede llegar después
+        /// que los datos de la caja (también en el diálogo de cobro); entonces vale con el código, que es lo que se contabiliza.
+        /// </summary>
+        private FormaPago FormaPagoDeLaLista(string codigo)
+            => ListaFormaPago?.SingleOrDefault(f => f.formaPago == codigo) ?? new FormaPago { formaPago = codigo };
+
         private static string NombreTipo(ExtractoClienteDTO deuda)
         {
             return deuda is null ? "a cuenta" : deuda.Tipo == Constantes.TiposApunte.IMPAGADO ? "Impagado" : "Factura";

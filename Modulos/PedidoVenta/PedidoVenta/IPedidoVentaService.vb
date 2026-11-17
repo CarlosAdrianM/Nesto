@@ -38,6 +38,12 @@ Public Interface IPedidoVentaService
     Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO)
     ''' <summary>NestoAPI#582: las notas de entrega de ese pedido que siguen sin fecha de entrega.</summary>
     Function LeerNotasEntregaSinFecha(empresa As String, numeroPedido As Integer) As Task(Of List(Of NotaEntregaSinFecha))
+    ''' <summary>
+    ''' Nesto#645: lo que queda pendiente de cobro de un documento (la factura recién creada) en el extracto del cliente
+    ''' (GET api/ExtractosCliente?cliente=, lo pendiente de todas las empresas), sumando sus efectos de esa empresa. 0 si no
+    ''' queda nada; si la API falla, lanza.
+    ''' </summary>
+    Function LeerPendienteDocumento(empresa As String, cliente As String, documento As String) As Task(Of Decimal)
     ''' <summary>NestoAPI#582: pone la fecha de entrega a una nota de entrega (y le quita el aviso de «sin fecha»).</summary>
     Function PonerFechaEntregaNota(empresa As String, nota As Integer, fechaEntrega As Date) As Task
     ''' <summary>Nesto#552: las líneas pendientes de entregar de todos los almacenes (filtros opcionales).</summary>

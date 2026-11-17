@@ -1,0 +1,145 @@
+﻿<UserControl x:Class="Nesto.Modulos.Cajas.Views.CobrosCajaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modulos.Cajas.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:CajasViewModel}"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             Background="White"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <!-- Nesto#645: la pestaña «Cobros» de Cajas, aparte para usarla también en el cobro de la factura recién creada
+         (CobroCajaDialog). El DataContext es el CajasViewModel. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Por favor, espere...">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <!-- Novedad 823: el extracto se queda con todo el alto que sobra y nunca baja de 5 filas
+                     (cabecera ~26 + 5 x ~22 por fila con la letra por defecto + barra horizontal ~18 + bordes) -->
+                <RowDefinition Height="*" MinHeight="160"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <cu:SelectorCliente Grid.Row="0" Grid.RowSpan="99"
+                Cliente="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                ClienteCompleto="{Binding DataContext.ClienteCompletoSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWayToSource}">
+            </cu:SelectorCliente>
+
+            <DataGrid x:Name="dgrListaDeudas" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ListaDeudas}" IsReadOnly="True" AutoGenerateColumns="False" MouseLeftButtonUp="drgListaDeudas_MouseLeftButtonUp" PreviewMouseRightButtonDown="dgrListaDeudas_PreviewMouseRightButtonDown">
+                <!-- Nesto#511: copiar de la deuda bajo el cursor (el code-behind la fija en el clic derecho sin cambiar
+                     la selección, que es la que marca las deudas a cobrar). -->
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Copiar número de documento" Command="{Binding CopiarNumeroDocumentoCommand}"/>
+                        <MenuItem Header="Copiar importe pendiente" Command="{Binding CopiarImportePendienteCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="SelectionChanged">
+                        <i:InvokeCommandAction Command="{Binding SeleccionarDeudasCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrListaDeudas}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+                <DataGrid.Columns>
+                    <!-- Nesto#561: cada efecto se cobra (y se vuelca a la caja) en su empresa -->
+                    <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa}"/>
+                    <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
+                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}"/>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                    <DataGridTextColumn Header="Documento" Binding="{Binding Documento}"/>
+                    <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}"/>
+                    <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}"/>
+                    <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=c}">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento, StringFormat=d}"/>
+                    <DataGridTextColumn Header="Delegacion" Binding="{Binding Delegacion}"/>
+                    <DataGridTextColumn Header="FormaVenta" Binding="{Binding FormaVenta}"/>
+                    <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
+                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}"/>
+                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="Total a cobrar..." HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10"></TextBlock>
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ImporteDeudasSeleccionadas, StringFormat=c}" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center"></TextBlock>
+            <Label Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtTotalCobrado}">
+                <AccessText Text="_Total cobrado..." />
+            </Label>
+
+            <xctk:DecimalUpDown x:Name="txtTotalCobrado" Grid.Row="2" Grid.Column="2"
+                                    Text="{Binding TotalCobrado, UpdateSourceTrigger=PropertyChanged, StringFormat=c}" CultureInfo="es-ES"
+                                    TextAlignment="Right"
+                                    HorizontalAlignment="Stretch" FontSize="24" VerticalAlignment="Center"
+                                    PreviewTextInput="DecimalUpDown_PreviewTextInput" KeyUp="DecimalUpDown_KeyUp">
+            </xctk:DecimalUpDown>
+            <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding EmpresaTraspasoMarca}" VerticalAlignment="Center"></TextBlock>
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="Importe a cuenta..." HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center"
+                       Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="10">
+
+            </TextBlock>
+            <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding ImporteACuenta, StringFormat=c}" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+            <Label Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtConceptoAdicionalCobros}">
+                <AccessText Text="_Concepto adicional..." />
+            </Label>
+            <TextBox x:Name="txtConceptoAdicionalCobros" Grid.Row="4" Grid.Column="2" Text="{Binding ConceptoAdicionalCobros}" HorizontalAlignment="Stretch" FontSize="24" VerticalAlignment="Center"></TextBox>
+            <UniformGrid Grid.Row="5" Grid.Column="2" Columns="3">
+                <ToggleButton IsChecked="{Binding FormaPagoEfectivoSeleccionada}">Efectivo</ToggleButton>
+                <ToggleButton IsChecked="{Binding FormaPagoTarjetaSeleccionada}">Tarjeta</ToggleButton>
+                <ToggleButton IsChecked="{Binding FormaPagoTransferenciaSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}">Transferencia</ToggleButton>
+            </UniformGrid>
+            <cu:SelectorFormaPago Grid.Row="6" Grid.Column="2" FormaPagoCompleta="{Binding FormaPagoSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}" Etiqueta="Forma de pago seleccionada:" ListaFormasPago="{Binding ListaFormaPago}"></cu:SelectorFormaPago>
+            <ComboBox Grid.Row="7" Grid.Column="2" SelectedItem="{Binding CuentaCobro, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center" IsEnabled="{Binding EsUsuarioDeAdministracion}"></ComboBox>
+            <DatePicker Grid.Row="8" Grid.Column="2" SelectedDate="{Binding FechaCobro}" IsEnabled="{Binding EsUsuarioDeAdministracion}"></DatePicker>
+
+            <!-- Nesto#645: en las tiendas y en efectivo, lo que entrega el cliente y el cambio (no se contabiliza) -->
+            <Label Grid.Row="9" Grid.Column="1" HorizontalAlignment="Right" FontSize="24" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtEntregaCliente}"
+                   Visibility="{Binding MostrarEntregaCliente, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <AccessText Text="_Entrega el cliente..." />
+            </Label>
+            <xctk:DecimalUpDown x:Name="txtEntregaCliente" Grid.Row="9" Grid.Column="2"
+                                Value="{Binding EntregaCliente, UpdateSourceTrigger=PropertyChanged}" FormatString="C2" CultureInfo="es-ES"
+                                TextAlignment="Right" Minimum="0"
+                                HorizontalAlignment="Stretch" FontSize="24" VerticalAlignment="Center"
+                                PreviewTextInput="DecimalUpDown_PreviewTextInput" KeyUp="DecimalUpDown_KeyUp"
+                                Visibility="{Binding MostrarEntregaCliente, Converter={StaticResource BooleanToVisibilityConverter}}">
+            </xctk:DecimalUpDown>
+            <TextBlock Grid.Row="9" Grid.Column="3" Text="{Binding TextoCambio}" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0,0,0"
+                       Visibility="{Binding MostrarEntregaCliente, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+
+            <Button Name="btnContabilizarCobro" Grid.Row="10" Grid.Column="2" Command="{Binding ContabilizarCobroCommand}">
+                <AccessText>_Contabilizar</AccessText>
+            </Button>
+
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

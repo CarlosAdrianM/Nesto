@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="Nesto.Modulos.Cajas.Views.CobroCajaDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Nesto.Modulos.Cajas.Views"
+             xmlns:viewmodels="clr-namespace:Nesto.Modulos.Cajas.ViewModels"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             d:DataContext="{d:DesignInstance Type=viewmodels:CobroCajaDialogViewModel}"
+             mc:Ignorable="d"
+             MinWidth="1000" MinHeight="620"
+             Background="White">
+    <!-- Nesto#645: el cobro en caja de la factura recién creada (la pestaña «Cobros» de Cajas, con el efecto ya marcado) -->
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8" FontSize="14"
+                   Text="Compruebe el importe y la forma de pago y pulse «Contabilizar». Después se imprimirá la factura, ya cobrada."/>
+        <local:CobrosCajaView Grid.Row="1" DataContext="{Binding Caja}"/>
+        <Button Grid.Row="2" HorizontalAlignment="Right" Margin="0,8,0,0" Padding="12,4" Command="{Binding CerrarCommand}" IsCancel="True">
+            <AccessText>Cerrar _sin cobrar</AccessText>
+        </Button>
+    </Grid>
+</UserControl>
