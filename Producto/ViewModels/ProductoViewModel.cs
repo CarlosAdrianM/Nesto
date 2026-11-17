@@ -115,8 +115,23 @@ namespace Nesto.Modules.Producto.ViewModels
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
         }
 
+        /// <summary>
+        /// Novedades 17/11/26 (44950, Manuel): cada carga lleva su número. Si mientras se espera a la API empieza otra (se ha buscado
+        /// otro producto), la vieja no escribe nada más: antes la respuesta lenta del producto anterior llegaba después y la ficha
+        /// enseñaba la referencia de uno con los máximos y mínimos de otro.
+        /// </summary>
+        private int _cargaProductoActual;
+
+        private bool EsCargaVigente(int carga) => carga == _cargaProductoActual;
+
+        /// <summary>El control de stock es de ese producto (sin ProductoId no se puede saber y se da por bueno, como antes).</summary>
+        internal static bool EsDelProducto(ControlStockProductoModel control, string producto)
+            => control != null && (string.IsNullOrWhiteSpace(control.ProductoId)
+                || string.Equals(control.ProductoId.Trim(), producto?.Trim(), StringComparison.OrdinalIgnoreCase));
+
         public async Task CargarProducto(string productoId)
         {
+            int carga = ++_cargaProductoActual;
             try
             {
                 EstaCargandoControlesStock = true;
@@ -127,7 +142,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     producto = await _servicio.LeerProducto(productoId);
                 }
-                catch (Exception errorReferencia)
+                catch (Exception errorReferencia) when (EsCargaVigente(carga))
                 {
                     // Nesto#582 (sugerencia 908): primero la referencia exacta, como siempre; si no existe, el código de barras.
                     string porCodigoBarras = await ResolverCodigoBarrasAsync(productoId, errorReferencia);
@@ -137,8 +152,16 @@ namespace Nesto.Modules.Producto.ViewModels
                     }
                     productoId = porCodigoBarras;
                     producto = await _servicio.LeerProducto(productoId);
+                    if (!EsCargaVigente(carga))
+                    {
+                        return;
+                    }
                     _referenciaBuscar = productoId;
                     OnPropertyChanged(nameof(ReferenciaBuscar));
+                }
+                if (!EsCargaVigente(carga))
+                {
+                    return;
                 }
                 ProductoActual = producto;
                 if (ProductoActual is not null)
@@ -151,11 +174,25 @@ namespace Nesto.Modules.Producto.ViewModels
                     return;
                 }
                 await SincronizarEstadoProductoAsync(); // Nesto#624: el desplegable del estado, con el de la ficha
-
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
 
                 if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
                 {
-                    ControlStock = new ControlStockProductoWrapper(await _servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true));
+                    ControlStockProductoModel controlLeido = await _servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true);
+                    // Si mientras tanto se ha buscado otro producto, esta carga es vieja y no pinta nada
+                    if (!EsCargaVigente(carga))
+                    {
+                        return;
+                    }
+                    // Y nunca el control de otro producto: si la respuesta dice ser de otro, la ficha se queda sin máximos ni mínimos
+                    if (!EsDelProducto(controlLeido, ProductoActual.Producto))
+                    {
+                        controlLeido = new ControlStockProductoModel();
+                    }
+                    ControlStock = new ControlStockProductoWrapper(controlLeido);
                     foreach (ControlStockAlmacenWrapper controlAlmacen in ControlStock.ControlesStocksAlmacen)
                     {
                         controlAlmacen.IsActive = EsDelGrupoCompras || controlAlmacen.Model.Almacen == AlmacenDefecto;
@@ -168,35 +205,80 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 DatosCargados?.Invoke(this, EventArgs.Empty);
                 ControlStock.StockChanged += ControlStockChanged;
-                VideosRelacionados = await _servicio.BuscarVideosRelacionados(ProductoActual.Producto);
+                var videos = await _servicio.BuscarVideosRelacionados(ProductoActual.Producto);
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
+                VideosRelacionados = videos;
                 if (PestannaSeleccionada == Pestannas.Videos && !TieneVideosRelacionados)
                 {
                     PestannaSeleccionada = Pestannas.Filtros;
                 }
-                ProductosKit = await _servicio.LeerKitsContienePertenece(productoId);
+                var kits = await _servicio.LeerKitsContienePertenece(productoId);
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
+                ProductosKit = kits;
                 // NestoAPI#421: la casilla refleja lo que hay en la ficha. No guarda al cargar:
                 // se guarda con su botón, como los grupos comisionables.
                 ExclusivoProfesional = ProductoActual.ExclusivoProfesional;
                 GuardarExclusivoProfesionalCommand.NotifyCanExecuteChanged();
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarCategoriasWebAsync(productoId);
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarVariantesAsync(productoId);
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarCodigosBarrasAsync();
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarSustitucionesAsync();
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarProximaEntradaAsync();
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 await CargarGruposComisionablesAsync(productoId);
+                if (!EsCargaVigente(carga))
+                {
+                    return;
+                }
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
                     PestannaSeleccionada = Pestannas.Filtros;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (EsCargaVigente(carga))
             {
                 _dialogService.ShowError(ex.Message);
                 EstaCargandoControlesStock = false;
             }
+            catch (Exception)
+            {
+                // De una carga vieja: no se enseña (la ficha ya es de otro producto)
+            }
             finally
             {
-                EstaCargandoControlesStock = false;
+                if (EsCargaVigente(carga))
+                {
+                    EstaCargandoControlesStock = false;
+                }
             }
         }
 
@@ -745,6 +827,12 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             try
             {
+                // Novedades 17/11/26: nunca guardar los máximos y mínimos de un producto que no es el de la ficha
+                if (ProductoActual != null && ControlStock?.Model != null && !EsDelProducto(ControlStock.Model, ProductoActual.Producto))
+                {
+                    _dialogService.ShowError("Los stocks máximos y mínimos que se ven no son de este producto. Vuelva a abrir la ficha antes de guardar.");
+                    return;
+                }
                 List<ControlStock> modificados = ControlStock.ToListModificados;
                 foreach (ControlStock controlStock in modificados)
                 {
