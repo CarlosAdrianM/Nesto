@@ -19,11 +19,50 @@ Public Class SelectorModos
 
     ''' <summary>Habilita/deshabilita las opciones con lo que manda la API (Nothing o sin lista = todas).</summary>
     Public Sub Aplicar(sugerencia As ISugerenciaModos)
+        _ultimaSugerencia = sugerencia
         Dim permitidos As List(Of Byte) = sugerencia?.ModosPermitidos
         Dim hayRestriccion As Boolean = permitidos IsNot Nothing AndAlso permitidos.Any()
         For Each opcion In Opciones
             opcion.Habilitado = Not hayRestriccion OrElse permitidos.Contains(opcion.Codigo)
             opcion.MotivoNoPermitido = If(opcion.Habilitado, Nothing, MotivoDe(sugerencia, opcion.Codigo))
+        Next
+        ActualizarVisibilidad()
+    End Sub
+
+    Private _ultimaSugerencia As ISugerenciaModos
+    ''' <summary>La última respuesta aplicada (Nothing si no hay o se ha reiniciado).</summary>
+    Protected ReadOnly Property UltimaSugerencia As ISugerenciaModos
+        Get
+            Return _ultimaSugerencia
+        End Get
+    End Property
+
+    Private _modoActual As Byte?
+    ''' <summary>
+    ''' Sugerencia 1340: el modo que tiene puesto el pedido. Un modo <see cref="ModoItem.SoloSiSeOfrece"/> se enseña si
+    ''' la API lo ofrece O si es el del pedido (un pedido ya en ese modo no puede quedarse con el combo en blanco).
+    ''' </summary>
+    Public Property ModoActual As Byte?
+        Get
+            Return _modoActual
+        End Get
+        Set(value As Byte?)
+            _modoActual = value
+            ActualizarVisibilidad()
+        End Set
+    End Property
+
+    ''' <summary>Sugerencia 1340: ¿la respuesta de la API ofrece este modo? Por defecto, si está entre los permitidos
+    ''' (una API vieja que no lo conoce no lo manda: no aparece nunca).</summary>
+    Protected Overridable Function Ofrece(sugerencia As ISugerenciaModos, modo As Byte) As Boolean
+        Return sugerencia?.ModosPermitidos IsNot Nothing AndAlso sugerencia.ModosPermitidos.Contains(modo)
+    End Function
+
+    Private Sub ActualizarVisibilidad()
+        For Each opcion In Opciones
+            opcion.Visible = Not opcion.SoloSiSeOfrece OrElse
+                (_modoActual.HasValue AndAlso _modoActual.Value = opcion.Codigo) OrElse
+                Ofrece(_ultimaSugerencia, opcion.Codigo)
         Next
     End Sub
 

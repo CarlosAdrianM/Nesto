@@ -3722,6 +3722,8 @@ Public Class DetallePedidoViewModel
     ' «desmarcar servir junto» solo aplica al SALIR del modo 1: ni al cargar el pedido, ni al
     ' revertir, ni al pasar de un modo parcial a otro (ya se validó al dejar el 1).
     Private _modoServicioPrevio As Byte = ModosServicio.SEGUN_VAYA_ENTRANDO
+    ' Sugerencia 1340: el modo «todo junto» del que se salió (1 o 6), al que se vuelve si no se puede salir.
+    Private _modoJuntoAlQueVolver As Byte = ModosServicio.TODO_JUNTO
 
     Private Async Sub OnValidarServirJunto()
         If pedido Is Nothing OrElse pedido.Lineas Is Nothing Then Return
@@ -3745,15 +3747,16 @@ Public Class DetallePedidoViewModel
                 End If
                 ' Nesto#527: los textos nombran el modo elegido (la casilla «Servir junto» ya no existe).
                 Dim modoElegido As Byte = pedido.ModoServicio
-                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaBorrarYDesmarcar(lineasABorrar, modoElegido)) Then
+                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaBorrarYDesmarcar(lineasABorrar, modoElegido, _modoJuntoAlQueVolver)) Then
                     RevertirDesmarcadoServirJunto()
                     Return
                 End If
                 Dim lineasQueQuedan = pedido.Lineas.Where(Function(l) Not lineasABorrar.Contains(l)).ToList()
                 respuesta = Await ValidarDesmarcarServirJunto(lineasQueQuedan).ConfigureAwait(True)
                 If Not respuesta.PuedeDesmarcar Then
+                    Dim modoAlQueVuelve As Byte = _modoJuntoAlQueVolver
                     RevertirDesmarcadoServirJunto()
-                    dialogService.ShowError($"No se ha borrado ninguna línea: aunque se borraran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}» y se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}». " & respuesta.Mensaje)
+                    dialogService.ShowError($"No se ha borrado ninguna línea: aunque se borraran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}» y se queda en «{ModosServicio.Nombre(modoAlQueVuelve)}». " & respuesta.Mensaje)
                     Return
                 End If
             End If
@@ -3789,7 +3792,8 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Private Sub RevertirDesmarcadoServirJunto()
-        pedido.ModoServicio = ModosServicio.TODO_JUNTO ' Nesto#476: vuelve el selector y, con él, servirJunto
+        ' Nesto#476: vuelve el selector y, con él, servirJunto. Sugerencia 1340: al «todo junto» que tenía (1 o 6).
+        pedido.ModoServicio = If(ModosServicio.EsTodoJunto(_modoJuntoAlQueVolver), _modoJuntoAlQueVolver, ModosServicio.TODO_JUNTO)
         OnPropertyChanged(NameOf(pedido))
     End Sub
 
@@ -3870,7 +3874,7 @@ Public Class DetallePedidoViewModel
     ''' Nesto#452: texto de la confirmación que ofrece borrar las líneas y cambiar de modo en un paso.
     ''' Nesto#527: nombra el modo elegido (la casilla «Servir junto» ya no existe desde NestoAPI#482) y trata de usted.
     ''' </summary>
-    Friend Shared Function ConstruirOfertaBorrarYDesmarcar(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper), modoElegido As Byte) As String
+    Friend Shared Function ConstruirOfertaBorrarYDesmarcar(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper), modoElegido As Byte, Optional modoAlQueVuelve As Byte = ModosServicio.TODO_JUNTO) As String
         Dim nombreModo As String = ModosServicio.Nombre(modoElegido)
         Dim sb As New StringBuilder()
         sb.AppendLine($"No se puede pasar el pedido a «{nombreModo}» porque estas líneas se quedarían pendientes y no está permitido:")
@@ -3879,7 +3883,7 @@ Public Class DetallePedidoViewModel
         Next
         sb.AppendLine()
         sb.AppendLine($"¿Quiere borrarlas del pedido y pasarlo a «{nombreModo}»?")
-        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}».")
+        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(modoAlQueVuelve)}».")
         Return sb.ToString()
     End Function
 
@@ -4071,8 +4075,10 @@ Public Class DetallePedidoViewModel
             End If
             Dim anterior As Byte = _modoServicioPrevio
             _modoServicioPrevio = pedido.ModoServicio
+            ActualizarModoActualSelector() ' Sugerencia 1340
             _peticionesModosFacturacion.Programar() ' NestoAPI#688: con «Todo junto» la facturación no se enseña
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not pedido.servirJunto AndAlso Not _restaurandoModoGuardado Then
+                _modoJuntoAlQueVolver = anterior ' Sugerencia 1340: si no se puede salir, se vuelve al 1 o al 6, el que tenía
                 OnValidarServirJunto()
             End If
         End If
@@ -4133,7 +4139,34 @@ Public Class DetallePedidoViewModel
         _modoElegidoEnEstaEdicion = False
         AvisoModoServicio = Nothing
         _selectorModos.Aplicar(Nothing)
+        ActualizarModoActualSelector()
     End Sub
+
+    ''' <summary>
+    ''' Sugerencia 1340: el 6 («Junto con lo pendiente del cliente») solo aparece en el combo si la API lo ofrece o si es
+    ''' el modo del pedido; y con él elegido, debajo, con qué saldrá junto (texto de la API).
+    ''' </summary>
+    Private Sub ActualizarModoActualSelector()
+        _selectorModos.ModoActual = If(pedido Is Nothing, CType(Nothing, Byte?), pedido.ModoServicio)
+        OnPropertyChanged(NameOf(ExplicacionModoServicio))
+        OnPropertyChanged(NameOf(HayExplicacionModoServicio))
+    End Sub
+
+    ''' <summary>Sugerencia 1340: «Saldrá junto con la nota de entrega 929701.» (lo redacta la API), solo con el 6 elegido.</summary>
+    Public ReadOnly Property ExplicacionModoServicio As String
+        Get
+            If pedido Is Nothing OrElse EstaRetenido OrElse pedido.ModoServicio <> ModosServicio.JUNTO_CON_LO_PENDIENTE Then
+                Return Nothing
+            End If
+            Return _selectorModos.Explicacion(ModosServicio.JUNTO_CON_LO_PENDIENTE)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayExplicacionModoServicio As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(ExplicacionModoServicio)
+        End Get
+    End Property
 
     ''' <summary>
     ''' Refleja lo que dice la API. En un pedido ya grabado el modo NO se cambia solo (el servidor solo lo comprueba
@@ -4486,6 +4519,8 @@ Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(PuedeRetenerPedido))
         OnPropertyChanged(NameOf(PuedeElegirModoServicio))
         OnPropertyChanged(NameOf(OpcionesModoServicio))
+        OnPropertyChanged(NameOf(ExplicacionModoServicio)) ' Sugerencia 1340
+        OnPropertyChanged(NameOf(HayExplicacionModoServicio))
         CmdRetenerPedido?.NotifyCanExecuteChanged()
         CmdLiberarPedido?.NotifyCanExecuteChanged()
     End Sub
@@ -4787,6 +4822,7 @@ Public Class DetallePedidoViewModel
         Else
             _selectorModos.Aplicar(Nothing)
         End If
+        ActualizarModoActualSelector() ' Sugerencia 1340: el 6 y su explicación dependen de la respuesta
         AplicarModosFacturacionPermitidos(opciones?.Facturacion)
         FacturacionVisible = If(opciones?.Facturacion Is Nothing, True, opciones.Facturacion.Visible)
         ServirPendienteAlHaberStock.Aplicar(opciones?.ServirPendienteAlHaberStock)

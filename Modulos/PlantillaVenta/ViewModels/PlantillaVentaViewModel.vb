@@ -1041,6 +1041,10 @@ Public Class PlantillaVentaViewModel
         Get
             Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, Estado.ServirJunto)
             If servirJunto Then
+                ' Sugerencia 1340: el 6 es «todo junto» refinado (servirJunto marcado); si no, el 1.
+                If Estado.ModoServicio.HasValue AndAlso Estado.ModoServicio.Value = ModosServicio.JUNTO_CON_LO_PENDIENTE Then
+                    Return ModosServicio.JUNTO_CON_LO_PENDIENTE
+                End If
                 Return ModosServicio.TODO_JUNTO
             End If
             If Estado.ModoServicio.HasValue AndAlso Not ModosServicio.EsTodoJunto(Estado.ModoServicio.Value) Then
@@ -1081,6 +1085,7 @@ Public Class PlantillaVentaViewModel
             OnPropertyChanged(NameOf(HayMotivoModoServicio))
             OnPropertyChanged(NameOf(DetalleMotivoModoServicio)) ' Nesto#599
             If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) AndAlso Not _restaurandoModoGuardado Then
+                _modoJuntoAlQueVolver = anterior ' Sugerencia 1340: si no se puede salir, se vuelve al 1 o al 6, el que tenía
                 OnValidarServirJunto()
             End If
             PedirFechaEntregaAgenciaConDebounce() ' NestoAPI#606
@@ -1512,7 +1517,34 @@ Public Class PlantillaVentaViewModel
     ''' <summary>Nesto#484: habilita/deshabilita las opciones con lo que manda la API (Nothing = todas).</summary>
     Friend Sub AplicarModosPermitidos(sugerencia As ModoServicioSugeridoDTO)
         _selectorModos.Aplicar(sugerencia)
+        ActualizarModoActualSelector() ' Sugerencia 1340: el 6 y su explicación dependen de la respuesta
     End Sub
+
+    ''' <summary>
+    ''' Sugerencia 1340: el 6 («Junto con lo pendiente del cliente») solo aparece en el combo si la API lo ofrece o si es
+    ''' el modo elegido; y con él elegido, debajo, con qué saldrá junto (texto de la API).
+    ''' </summary>
+    Private Sub ActualizarModoActualSelector()
+        _selectorModos.ModoActual = ModoServicio
+        MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(ExplicacionModoServicio)))
+        MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(HayExplicacionModoServicio)))
+    End Sub
+
+    ''' <summary>Sugerencia 1340: «Saldrá junto con la nota de entrega 929701.» (lo redacta la API), solo con el 6 elegido.</summary>
+    Public ReadOnly Property ExplicacionModoServicio As String
+        Get
+            If ModoServicio <> ModosServicio.JUNTO_CON_LO_PENDIENTE Then
+                Return Nothing
+            End If
+            Return _selectorModos.Explicacion(ModosServicio.JUNTO_CON_LO_PENDIENTE)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayExplicacionModoServicio As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(ExplicacionModoServicio)
+        End Get
+    End Property
 
     Private Function ModoPermitido(modo As Byte) As Boolean
         Return _selectorModos.EsPermitido(modo)
@@ -1867,7 +1899,8 @@ Public Class PlantillaVentaViewModel
         Dim anterior As Byte = ModoServicio
         Dim avisar As Boolean = _modoServicioElegidoPorUsuario AndAlso HayAvisoModoServicio AndAlso
             Not ModosServicio.EsTodoJunto(anterior)
-        Estado.ModoServicio = ModosServicio.TODO_JUNTO
+        Dim modoJunto As Byte = ModoJuntoAlQueVolver
+        Estado.ModoServicio = modoJunto
         Estado.ServirJunto = True
         If direccionEntregaSeleccionada IsNot Nothing Then
             direccionEntregaSeleccionada.servirJunto = True
@@ -1876,9 +1909,18 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(direccionEntregaSeleccionada))
         OnPropertyChanged(NameOf(baseImponibleParaPortes))
         If avisar Then
-            AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(anterior)}»: el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+            AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(anterior)}»: el pedido se queda en «{ModosServicio.Nombre(modoJunto)}»."
         End If
     End Sub
+
+    ' Sugerencia 1340: el modo «todo junto» del que se salió (1 o 6), al que se vuelve si no se puede salir.
+    Private _modoJuntoAlQueVolver As Byte = ModosServicio.TODO_JUNTO
+
+    Private ReadOnly Property ModoJuntoAlQueVolver As Byte
+        Get
+            Return If(ModosServicio.EsTodoJunto(_modoJuntoAlQueVolver), _modoJuntoAlQueVolver, ModosServicio.TODO_JUNTO)
+        End Get
+    End Property
 
     Private Async Sub OnValidarServirJunto()
         ' Issue #286: Si direccionEntregaSeleccionada es Nothing (durante restauración de borrador), salir
@@ -1892,6 +1934,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Dim modoElegido As Byte = ModoServicio
+        Dim modoJunto As Byte = ModoJuntoAlQueVolver ' Sugerencia 1340: 1 o 6
         Try
             Dim lineas As List(Of LineaPlantillaVenta) = LineasPedidoSinCursos ' Nesto#543: sin cursos
             Dim respuesta = Await ValidarSalirDeTodoJunto(lineas, modoElegido).ConfigureAwait(True)
@@ -1905,10 +1948,10 @@ Public Class PlantillaVentaViewModel
                 lineasAQuitar = LineasQueImpidenSalirDeTodoJunto(lineas, respuesta.ProductosProblematicos)
                 If Not SePuedeOfrecerQuitarlas(lineasAQuitar, respuesta.ProductosProblematicos) Then
                     VolverATodoJuntoAvisando(modoElegido)
-                    dialogService.ShowError(AnadirVueltaATodoJunto(respuesta.Mensaje))
+                    dialogService.ShowError(AnadirVueltaATodoJunto(respuesta.Mensaje, modoJunto))
                     Return
                 End If
-                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaQuitarYCambiarModo(lineasAQuitar, modoElegido)) Then
+                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaQuitarYCambiarModo(lineasAQuitar, modoElegido, modoJunto)) Then
                     VolverATodoJuntoAvisando(modoElegido)
                     Return
                 End If
@@ -1917,7 +1960,7 @@ Public Class PlantillaVentaViewModel
                 If Not respuesta.PuedeDesmarcar Then
                     VolverATodoJuntoAvisando(modoElegido)
                     dialogService.ShowError($"No se ha quitado ninguna línea: aunque se quitaran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}». " &
-                                            AnadirVueltaATodoJunto(respuesta.Mensaje))
+                                            AnadirVueltaATodoJunto(respuesta.Mensaje, modoJunto))
                     Return
                 End If
             End If
@@ -2027,13 +2070,14 @@ Public Class PlantillaVentaViewModel
     ''' elegido se ha quedado puesto (María José, 15/10/26: 8 intentos seguidos sin saberlo).
     ''' </summary>
     Private Sub VolverATodoJuntoAvisando(modoElegido As Byte)
+        Dim modoJunto As Byte = ModoJuntoAlQueVolver
         RevertirAServirJunto()
-        AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(modoElegido)}»: el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+        AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(modoElegido)}»: el pedido se queda en «{ModosServicio.Nombre(modoJunto)}»."
     End Sub
 
     ''' <summary>Nesto#527: el mensaje del servidor, terminado con que el pedido se queda en «Todo junto».</summary>
-    Friend Shared Function AnadirVueltaATodoJunto(mensaje As String) As String
-        Dim vuelta As String = $"El pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}»."
+    Friend Shared Function AnadirVueltaATodoJunto(mensaje As String, Optional modoAlQueVuelve As Byte = ModosServicio.TODO_JUNTO) As String
+        Dim vuelta As String = $"El pedido se queda en «{ModosServicio.Nombre(modoAlQueVuelve)}»."
         Dim texto As String = If(mensaje, String.Empty).Trim()
         If texto = String.Empty Then
             Return vuelta
@@ -2069,7 +2113,7 @@ Public Class PlantillaVentaViewModel
     End Function
 
     ''' <summary>Nesto#527: texto de la confirmación que ofrece quitar las líneas y cambiar de modo en un paso.</summary>
-    Friend Shared Function ConstruirOfertaQuitarYCambiarModo(lineasAQuitar As IEnumerable(Of LineaPlantillaVenta), modoElegido As Byte) As String
+    Friend Shared Function ConstruirOfertaQuitarYCambiarModo(lineasAQuitar As IEnumerable(Of LineaPlantillaVenta), modoElegido As Byte, Optional modoAlQueVuelve As Byte = ModosServicio.TODO_JUNTO) As String
         Dim nombreModo As String = ModosServicio.Nombre(modoElegido)
         Dim sb As New StringBuilder()
         sb.AppendLine($"No se puede pasar el pedido a «{nombreModo}» porque estas líneas se quedarían pendientes y no está permitido:")
@@ -2078,7 +2122,7 @@ Public Class PlantillaVentaViewModel
         Next
         sb.AppendLine()
         sb.AppendLine($"¿Quiere quitarlas del pedido y pasarlo a «{nombreModo}»?")
-        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(ModosServicio.TODO_JUNTO)}».")
+        sb.Append($"Si no, el pedido se queda en «{ModosServicio.Nombre(modoAlQueVuelve)}».")
         Return sb.ToString()
     End Function
 
@@ -6352,6 +6396,11 @@ Public Class PlantillaVentaViewModel
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TotalComputableCupon))) ' Nesto#518
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(TextoFaltaCupon)))
             MyBase.OnPropertyChanged(New PropertyChangedEventArgs(NameOf(HayTextoFaltaCupon)))
+        End If
+        ' Sugerencia 1340: el modo cambia por muchos caminos (setter, vuelta a «Todo junto», dirección, pedido base…);
+        ' aquí se recogen todos para que el 6 siga visible si es el elegido y su explicación esté al día.
+        If e IsNot Nothing AndAlso (e.PropertyName = NameOf(ModoServicio) OrElse e.PropertyName = NameOf(direccionEntregaSeleccionada)) Then
+            ActualizarModoActualSelector()
         End If
     End Sub
 

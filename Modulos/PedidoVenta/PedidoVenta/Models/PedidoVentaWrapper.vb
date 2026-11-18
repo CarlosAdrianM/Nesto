@@ -324,7 +324,10 @@ Public Class PedidoVentaWrapper
         Set(value As Boolean)
             Model.servirJunto = value
             If value Then
-                Model.modoServicio = ModosServicio.TODO_JUNTO
+                ' Sugerencia 1340: marcar servirJunto con el 6 puesto lo deja en el 6 (también es «todo junto»).
+                If Not (Model.modoServicio.HasValue AndAlso Model.modoServicio.Value = ModosServicio.JUNTO_CON_LO_PENDIENTE) Then
+                    Model.modoServicio = ModosServicio.TODO_JUNTO
+                End If
             ElseIf Model.modoServicio.HasValue AndAlso ModosServicio.EsTodoJunto(Model.modoServicio.Value) Then
                 Model.modoServicio = ModosServicio.SEGUN_VAYA_ENTRANDO
             End If

@@ -4,11 +4,16 @@
 ''' Lo común a <see cref="ModosServicio.Lista"/> y <see cref="ModosFacturacion.Lista"/>.
 ''' </summary>
 Public Class ModoItem
-    Public Sub New(codigo As Byte, nombre As String, descripcion As String)
+    Public Sub New(codigo As Byte, nombre As String, descripcion As String, Optional soloSiSeOfrece As Boolean = False)
         Me.Codigo = codigo
         Me.Nombre = nombre
         Me.Descripcion = descripcion
+        Me.SoloSiSeOfrece = soloSiSeOfrece
     End Sub
+
+    ''' <summary>Sugerencia 1340: el selector solo lo enseña cuando la API lo ofrece (o el pedido ya lo tiene puesto);
+    ''' si no, no aparece (ni siquiera deshabilitado).</summary>
+    Public ReadOnly Property SoloSiSeOfrece As Boolean
 
     Public ReadOnly Property Codigo As Byte
     Public ReadOnly Property Nombre As String

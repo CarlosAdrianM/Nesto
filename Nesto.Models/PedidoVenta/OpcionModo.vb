@@ -13,11 +13,27 @@ Public Class OpcionModo
         Codigo = item.Codigo
         Nombre = item.Nombre
         Descripcion = item.Descripcion
+        SoloSiSeOfrece = item.SoloSiSeOfrece
+        _visible = Not item.SoloSiSeOfrece
     End Sub
 
     Public ReadOnly Property Codigo As Byte
     Public ReadOnly Property Nombre As String
     Public ReadOnly Property Descripcion As String
+    ''' <summary>Sugerencia 1340: solo se enseña cuando la API lo ofrece o el pedido ya lo tiene (ver <see cref="Visible"/>).</summary>
+    Public ReadOnly Property SoloSiSeOfrece As Boolean
+
+    Private _visible As Boolean
+    ''' <summary>Sugerencia 1340: False = el ítem no aparece en el combo (ni deshabilitado). Siempre True salvo en los
+    ''' modos <see cref="SoloSiSeOfrece"/> mientras la API no los ofrezca.</summary>
+    Public Property Visible As Boolean
+        Get
+            Return _visible
+        End Get
+        Set(value As Boolean)
+            SetProperty(_visible, value)
+        End Set
+    End Property
 
     Private _habilitado As Boolean = True
     Public Property Habilitado As Boolean

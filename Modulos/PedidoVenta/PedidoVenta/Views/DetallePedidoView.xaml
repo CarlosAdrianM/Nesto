@@ -510,6 +510,8 @@
                                             <Setter Property="IsEnabled" Value="{Binding Habilitado}"/>
                                             <Setter Property="ToolTip" Value="{Binding Ayuda}"/>
                                             <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+                                            <!-- Sugerencia 1340: el 6 solo aparece cuando la API lo ofrece (o el pedido ya lo tiene). -->
+                                            <Setter Property="Visibility" Value="{Binding Visible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         </Style>
                                     </ComboBox.ItemContainerStyle>
                                 </ComboBox>
@@ -518,6 +520,10 @@
                             <TextBlock Text="{Binding AvisoModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontWeight="SemiBold" Foreground="DarkOrange"
                                        Visibility="{Binding HayAvisoModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- Sugerencia 1340: con «Junto con lo pendiente del cliente», con qué saldrá junto (lo redacta la API). -->
+                            <TextBlock Text="{Binding ExplicacionModoServicio}" TextWrapping="Wrap" Margin="3,0,3,4"
+                                       FontStyle="Italic" Foreground="#555555"
+                                       Visibility="{Binding HayExplicacionModoServicio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <!-- Nesto#493 / NestoAPI#542: modo de facturación en vez de la casilla «Mantener junto». Los modos
                                  que no se pueden elegir (regla de plazos de la API) salen deshabilitados con su motivo; en una
                                  nota de entrega el combo entero está deshabilitado. -->
