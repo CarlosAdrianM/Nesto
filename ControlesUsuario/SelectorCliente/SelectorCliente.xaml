@@ -56,7 +56,9 @@
             <StackPanel Grid.Row="2" Name="pnlCargando" Visibility="{Binding visibilidadCargando, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
             </StackPanel>
-            <StackPanel Grid.Row="3" Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente, Converter={StaticResource BoolToVisibilityConverter}}">
+            <!-- Sugerencia 1331: con MostrarNombreYDireccion = False (detalle del pedido, que los pinta en grande fuera) no se ven aquí -->
+            <Grid Grid.Row="3" x:Name="pnlNombreYDireccion">
+            <StackPanel Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente, Converter={StaticResource BoolToVisibilityConverter}}">
                 <DockPanel LastChildFill="True">
                     <!-- Nesto#388: badge discreto con el nº de contactos que se verían al desplegar
                          el panel (solo cuando está colapsado) -->
@@ -69,6 +71,7 @@
                 </DockPanel>
                 <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"></TextBlock>
             </StackPanel>
+            </Grid>
             <Popup x:Name="popupListView" StaysOpen="False" IsOpen="{Binding visibilidadSelectorEntrega, Mode=TwoWay}">
                 <!-- Establecemos el PlacementTarget -->
                 <Popup.PlacementTarget>

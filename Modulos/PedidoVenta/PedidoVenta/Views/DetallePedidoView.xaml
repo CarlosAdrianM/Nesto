@@ -265,6 +265,7 @@
                                     <TextBlock Text="Cliente: "></TextBlock>
                                     <controles:SelectorCliente Name="txtSelectorCliente"
                                                                Empresa="1"
+                                                               MostrarNombreYDireccion="False"
                                                                Contacto="{Binding DataContext.pedido.contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                Cliente="{Binding DataContext.pedido.cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}">
@@ -284,6 +285,21 @@
                                             </Style>
                                         </controles:SelectorCliente.Style>
                                     </controles:SelectorCliente>
+                                    <!-- Sugerencia 1331 (Reina): el nombre y la dirección del cliente (del contacto del pedido, lo que enseñaba el
+                                         selector en letra de 10) van aquí fuera, en grande; el selector ya no los pinta (MostrarNombreYDireccion). -->
+                                    <StackPanel Margin="0,4,0,4">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ClienteCompleto}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="{Binding ClienteCompleto.nombre}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding ClienteCompleto.direccion}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
                                     <!-- Nesto#496 / NestoAPI#519: pasar el pedido a otro cliente mientras no tenga picking, albarán ni factura.
                                          Va en un selector aparte: el de arriba está enlazado al pedido y un «Guardar» mandaría el cliente por el PUT. -->
                                     <Button Content="Cambiar cliente…" HorizontalAlignment="Left" Margin="0,2,0,2" Padding="6,1"

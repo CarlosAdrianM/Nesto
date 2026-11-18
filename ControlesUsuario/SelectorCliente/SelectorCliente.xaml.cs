@@ -425,6 +425,29 @@ namespace ControlesUsuario
         }
 
         /// <summary>
+        /// Sugerencia 1331 (Reina): con False no se pinta el nombre y la dirección del cliente debajo de la caja de búsqueda
+        /// (el detalle del pedido los pone fuera, en grande). Por defecto True: el resto de pantallas igual.
+        /// </summary>
+        public bool MostrarNombreYDireccion
+        {
+            get { return (bool)GetValue(MostrarNombreYDireccionProperty); }
+            set { SetValue(MostrarNombreYDireccionProperty, value); }
+        }
+
+        public static readonly DependencyProperty MostrarNombreYDireccionProperty =
+            DependencyProperty.Register(nameof(MostrarNombreYDireccion), typeof(bool),
+              typeof(SelectorCliente),
+              new FrameworkPropertyMetadata(true, new PropertyChangedCallback(OnMostrarNombreYDireccionChanged)));
+
+        private static void OnMostrarNombreYDireccionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is SelectorCliente selector && selector.pnlNombreYDireccion is not null)
+            {
+                selector.pnlNombreYDireccion.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the ETIQUETA para las llamadas a la API
         /// </summary>
         public string Etiqueta
