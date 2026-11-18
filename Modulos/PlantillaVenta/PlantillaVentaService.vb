@@ -432,6 +432,8 @@ Public Class PlantillaVentaService
                 Throw
             Catch ex As FechaEntregaLejanaException
                 Throw ' NestoAPI#712: ídem con la fecha de entrega lejana
+            Catch ex As PedidoEnPreparacionException
+                Throw ' Caso 931007: el ViewModel pregunta (pedido nuevo o pedir a Almacén) y repite
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             Finally

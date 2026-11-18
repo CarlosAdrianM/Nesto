@@ -75,6 +75,15 @@
                 <Button Content="Contestar…" Command="{Binding ContestarConsultaCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
                         Foreground="White" Background="#2E7D32" FontWeight="SemiBold"
                         Visibility="{Binding PuedeContestarConsulta, Converter={StaticResource BoolAVisible}}"/>
+                <!-- Caso 931007: lo añadido a un pedido en preparación, ¿entra en el envío de hoy? -->
+                <Button Content="Sí, lo metemos" Command="{Binding EntraCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
+                        Foreground="White" Background="#2E7D32" FontWeight="SemiBold"
+                        ToolTip="Se saca el picking de lo añadido y va con el envío que está en curso"
+                        Visibility="{Binding PuedeContestarAmpliacion, Converter={StaticResource BoolAVisible}}"/>
+                <Button Content="No llega" Command="{Binding NoLlegaCommand}" MinWidth="95" Padding="8,4" Margin="0,0,8,0"
+                        Foreground="White" Background="#C62828" FontWeight="SemiBold"
+                        ToolTip="Lo añadido pasa a un pedido nuevo, con sus propios portes"
+                        Visibility="{Binding PuedeContestarAmpliacion, Converter={StaticResource BoolAVisible}}"/>
                 <Button Content="Más tarde" Command="{Binding OcultarCommand}" MinWidth="85" Padding="8,4"
                         ToolTip="La cierra aquí; si nadie contesta, vuelve a salir"/>
             </StackPanel>

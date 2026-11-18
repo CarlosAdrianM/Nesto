@@ -121,6 +121,19 @@ Public Class PedidoVentaDTO
     ''' la API pregunta (409 PEDIDO_JUSTIFICA_INSCRIPCIONES_EVENTO); True = el usuario ya ha dicho que sí y se anulan.
     ''' </summary>
     Public Property ConfirmarAnularInscripcionesEventos As Boolean?
+    ''' <summary>
+    ''' Caso 931007: qué hacer con lo que se añade a un pedido EN PREPARACIÓN que sale hoy («PedidoNuevo» o «PedirAlmacen»). Nothing =
+    ''' la API, si hace falta elegir, contesta 409 PEDIDO_EN_PREPARACION sin guardar nada y se pregunta (<see cref="AmpliacionEnPreparacionPreguntando"/>).
+    ''' Solo viaja si tiene valor; no cuenta como cambio sin guardar (no está en Equals).
+    ''' </summary>
+    <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
+    Public Property AmpliacionEnPreparacion As String
+    ''' <summary>Caso 931007: solo de salida (UnirPedidos): el pedido nuevo que ha creado la API con lo añadido. No viaja.</summary>
+    <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
+    Public Property PedidoNuevoAmpliacion As Integer?
+    Public Function ShouldSerializePedidoNuevoAmpliacion() As Boolean
+        Return False
+    End Function
     ' Issue #159: el vendedor puede marcar que no se cobre la comisión por contra reembolso.
     ' El backend ignora este flag a partir de 2026-09-01.
     Public Property NoCobrarComisionReembolso As Boolean

@@ -4937,6 +4937,8 @@ Public Class PlantillaVentaViewModel
         pedido.EnviarCorreoCursos = enviarCorreoCursos
         Dim rechazoConPicking As ModoConPickingException = Nothing ' Nesto#489
         Dim modoGuardado As Byte? = Nothing
+        Dim pedidoNuevoAmpliacion As Integer? = Nothing ' caso 931007: lo añadido ha ido a un pedido nuevo
+        Dim mensajePedidoNuevoAmpliacion As String = Nothing
 
         Try
 
@@ -4970,7 +4972,8 @@ Public Class PlantillaVentaViewModel
 
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
+                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana,
+                                                                                          AddressOf ElegirAmpliacionEnPreparacion) ' NestoAPI#712, Nesto#567 y caso 931007
                 Catch ex As ModoConPickingException
                     rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
                 End Try
@@ -4980,6 +4983,12 @@ Public Class PlantillaVentaViewModel
                 ' Nesto#567 (NestoAPI#732): si ha dicho que sí a anular inscripciones, la API lo confirma en los avisos.
                 For Each aviso In If(avisosModificacion, New List(Of AvisoPedidoModel)).Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
                     dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
+                Next
+                ' Caso 931007: lo añadido ha ido a un pedido nuevo, o se ha pedido a Almacén que lo meta en el envío de hoy
+                pedidoNuevoAmpliacion = AmpliacionPedidoEnPreparacion.PedidoNuevo(avisosModificacion)
+                mensajePedidoNuevoAmpliacion = avisosModificacion?.FirstOrDefault(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_NUEVO)?.Mensaje
+                For Each aviso In If(avisosModificacion, New List(Of AvisoPedidoModel)).Where(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_A_ALMACEN)
+                    dialogService.ShowNotification(AmpliacionPedidoEnPreparacion.TITULO, aviso.Mensaje)
                 Next
                 numPedido = NumeroPedidoEnEdicion.Value.ToString()
                 NumeroPedidoEnEdicion = Nothing
@@ -5049,7 +5058,10 @@ Public Class PlantillaVentaViewModel
                 Dim unirEx As Exception = Nothing
                 Dim pedidoUnido As PedidoVentaDTO = Nothing
                 Try
-                    pedidoUnido = Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
+                    ' Caso 931007: si el pedido que se amplía está en preparación, se pregunta (pedido nuevo o pedírselo a Almacén) y se repite
+                    pedidoUnido = Await AmpliacionEnPreparacionPreguntando.GuardarPreguntando(pedido,
+                        Function() FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido), AddressOf PreguntarFechaEntregaLejana),
+                        AddressOf ElegirAmpliacionEnPreparacion) ' NestoAPI#712
                 Catch ex As ValidationException
                     unirEx = ex
                 End Try
@@ -5074,6 +5086,12 @@ Public Class PlantillaVentaViewModel
                 End If
 
                 numPedido = pedidoUnido.numero.ToString
+                ' Caso 931007: lo ampliado ha ido a un pedido nuevo (UnirPedidos devuelve el original con su número y el aviso)
+                If pedidoUnido.PedidoNuevoAmpliacion.HasValue Then
+                    pedidoNuevoAmpliacion = pedidoUnido.PedidoNuevoAmpliacion
+                    mensajePedidoNuevoAmpliacion = $"El pedido {pedidoUnido.numero} ya estaba en preparación: lo ampliado va en el pedido nuevo " &
+                        $"{pedidoUnido.PedidoNuevoAmpliacion.Value}, con sus propios portes."
+                End If
             End If
 
             If MandarCobroTarjeta Then
@@ -5144,6 +5162,11 @@ Public Class PlantillaVentaViewModel
 
             ' Abrimos el pedido
             abridorPedidos.Abrir(clienteSeleccionado.empresa, numPedido)
+            ' Caso 931007: y, si lo añadido ha ido a un pedido nuevo, se dice con su número y se ofrece abrirlo también
+            If pedidoNuevoAmpliacion.HasValue Then
+                Await AmpliacionPedidoEnPreparacion.OfrecerAbrirAsync(dialogService, abridorPedidos, clienteSeleccionado.empresa,
+                                                                     pedidoNuevoAmpliacion.Value, mensajePedidoNuevoAmpliacion)
+            End If
         Catch ex As GuardadoCanceladoPorFechaEntregaException
             ' NestoAPI#712: ha dicho que la fecha de entrega no es correcta; se queda en la plantilla para corregirla
         Catch ex As ModoServicioNoPermitidoException
@@ -5189,6 +5212,11 @@ Public Class PlantillaVentaViewModel
     ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
     Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
         Return dialogService.ShowConfirmationAsync(titulo, mensaje)
+    End Function
+
+    ''' <summary>Caso 931007: el pedido que se modifica o amplía está en preparación: pedido nuevo con lo añadido, pedírselo a Almacén o cancelar.</summary>
+    Friend Function ElegirAmpliacionEnPreparacion(rechazo As PedidoEnPreparacionException) As String
+        Return AmpliacionPedidoEnPreparacion.Elegir(dialogService, rechazo)
     End Function
 
     ''' <summary>

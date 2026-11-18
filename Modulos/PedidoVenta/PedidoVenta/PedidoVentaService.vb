@@ -200,6 +200,8 @@ Public Class PedidoVentaService
                 Throw ' Nesto#629: el ViewModel ofrece mandar el correo a logística
             Catch ex As PedidoCambiadoException
                 Throw ' Nesto#642: el ViewModel enseña quién lo ha cambiado y ofrece recargar
+            Catch ex As PedidoEnPreparacionException
+                Throw ' Caso 931007: el ViewModel pregunta (pedido nuevo o pedir a Almacén) y repite
             Catch ex As Exception
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
@@ -502,6 +504,9 @@ Public Class PedidoVentaService
         ElseIf errorCode = PedidoCambiadoException.CODIGO_ERROR Then
             ' Nesto#642 (NestoAPI#873): alguien ha guardado el pedido desde que se abrió; no se ha guardado nada.
             Return PedidoCambiadoException.DesdeRespuesta(detallesError, contenido)
+        ElseIf errorCode = PedidoEnPreparacionException.CODIGO_ERROR Then
+            ' Caso 931007: se ha añadido algo a un pedido en preparación; se elige pedido nuevo o pedírselo a Almacén y se repite.
+            Return PedidoEnPreparacionException.DesdeRespuesta(detallesError, contenido)
         Else
             Return New Exception(contenido)
         End If

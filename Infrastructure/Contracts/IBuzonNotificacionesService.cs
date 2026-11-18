@@ -81,6 +81,14 @@ namespace Nesto.Infrastructure.Contracts
         public const string TIPO_AUTORIZACION_REEMBOLSO_TELEFONICA = "AutorizacionReembolsoTelefonica";
 
         /// <summary>
+        /// Caso 931007 (NestoAPI): alguien ha añadido productos a un pedido en preparación y pregunta a Almacén si entran en el envío de hoy
+        /// (Datos["accion"] = <see cref="ACCION_AMPLIACION_PEDIDO_PREGUNTA"/>: urgente, se contesta «Sí, lo metemos» / «No llega»; Datos["id"],
+        /// Datos["pedido"], Datos["productos"]). La respuesta a quien lo pidió comparte tipo («respuesta», normal: abre el pedido).
+        /// </summary>
+        public const string TIPO_AMPLIACION_PEDIDO = "AmpliacionPedidoEnPreparacion";
+        public const string ACCION_AMPLIACION_PEDIDO_PREGUNTA = "pregunta";
+
+        /// <summary>
         /// Nesto#634 (NestoAPI#623): ha entrado un lead de campaña. Trae Datos["empresa"], Datos["cliente"], Datos["contacto"] y
         /// Datos["origen"]; al pulsarlo se abre la ficha del cliente (<see cref="VISTA_FICHA_CLIENTE"/>).
         /// </summary>
@@ -201,6 +209,13 @@ namespace Nesto.Infrastructure.Contracts
         /// el motivo de la API (sin permiso, ya contestada por otro o autorizada por teléfono…).
         /// </summary>
         Task<string> ResponderAutorizacionReembolso(int autorizacionId, bool autorizar, string comentario);
+
+        /// <summary>
+        /// Caso 931007 (NestoAPI): Almacén contesta si lo añadido a un pedido en preparación entra en el envío de hoy
+        /// (POST api/PedidosVenta/AmpliacionesEnPreparacion/{id}/Respuesta). Devuelve el texto de la API (qué ha pasado: picking o pedido
+        /// nuevo). Lanza con el motivo de la API (sin permiso, ya contestada…).
+        /// </summary>
+        Task<string> ResponderAmpliacionPedido(int solicitudId, bool entra, string motivo);
 
         /// <summary>
         /// Nesto#593 (NestoAPI#775): las notificaciones urgentes del usuario que siguen pendientes (GET api/Notificaciones/Urgentes). Lanza con

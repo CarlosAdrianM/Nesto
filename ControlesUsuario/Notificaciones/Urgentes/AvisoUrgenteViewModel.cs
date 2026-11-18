@@ -37,6 +37,8 @@ namespace ControlesUsuario.Notificaciones.Urgentes
             DenegarCommand = new AsyncRelayCommand(() => Responder(false), PuedeResponder);
             OcultarCommand = new RelayCommand(() => _alOcultar?.Invoke(this));
             ContestarConsultaCommand = new RelayCommand(ContestarConsulta, () => PuedeContestarConsulta);
+            EntraCommand = new AsyncRelayCommand(() => ResponderAmpliacion(true), PuedeResponderAmpliacion);
+            NoLlegaCommand = new AsyncRelayCommand(() => ResponderAmpliacion(false), PuedeResponderAmpliacion);
         }
 
         public NotificacionUrgente Notificacion { get; private set; }
@@ -54,11 +56,19 @@ namespace ControlesUsuario.Notificaciones.Urgentes
         /// <summary>NestoAPI#734: la pregunta del almacén a Administración (solo la acción «consulta» es urgente).</summary>
         public bool EsConsultaReembolso => Notificacion.Tipo == NotificacionBuzon.TIPO_CONSULTA_REEMBOLSO;
 
+        /// <summary>
+        /// Caso 931007 (NestoAPI): se ha añadido algo a un pedido en preparación y se pregunta a Almacén si entra en el envío de hoy (solo la
+        /// acción «pregunta» es urgente). Se contesta aquí mismo: «Sí, lo metemos» / «No llega».
+        /// </summary>
+        public bool EsAmpliacionPedido => Notificacion.Tipo == NotificacionBuzon.TIPO_AMPLIACION_PEDIDO;
+
         public string Cabecera => EsAutorizacionReembolso
             ? (Escalada ? "URGENTE (sin respuesta): entregar sin cobrar" : "URGENTE: entregar sin cobrar")
             : EsConsultaReembolso
                 ? (Escalada ? "URGENTE (sin respuesta): ¿sale con o sin reembolso?" : "URGENTE: ¿sale con o sin reembolso?")
-                : "URGENTE";
+                : EsAmpliacionPedido
+                    ? "URGENTE: ¿entra en el envío de hoy?"
+                    : "URGENTE";
 
         public string Titulo => Notificacion.Titulo;
         public string Cuerpo => Notificacion.Cuerpo;
@@ -105,9 +115,12 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                 {
                     OnPropertyChanged(nameof(PuedeContestar));
                     OnPropertyChanged(nameof(PuedeContestarConsulta));
+                    OnPropertyChanged(nameof(PuedeContestarAmpliacion));
                     AutorizarCommand.NotifyCanExecuteChanged();
                     DenegarCommand.NotifyCanExecuteChanged();
                     ContestarConsultaCommand?.NotifyCanExecuteChanged();
+                    EntraCommand?.NotifyCanExecuteChanged();
+                    NoLlegaCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -122,11 +135,58 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                 {
                     AutorizarCommand.NotifyCanExecuteChanged();
                     DenegarCommand.NotifyCanExecuteChanged();
+                    EntraCommand?.NotifyCanExecuteChanged();
+                    NoLlegaCommand?.NotifyCanExecuteChanged();
                 }
             }
         }
 
         public bool PuedeContestar => EsAutorizacionReembolso && !Resuelta;
+
+        /// <summary>Caso 931007: los botones «Sí, lo metemos» y «No llega» (hace falta el Id de la solicitud).</summary>
+        public bool PuedeContestarAmpliacion => EsAmpliacionPedido && !Resuelta && SolicitudAmpliacion.HasValue;
+
+        private int? SolicitudAmpliacion => int.TryParse(Notificacion.Dato("id") ?? Notificacion.Referencia, out int id) && id > 0 ? id : (int?)null;
+
+        /// <summary>Caso 931007: «Sí, lo metemos»: la API saca el picking de lo añadido para que vaya con el envío en curso.</summary>
+        public IAsyncRelayCommand EntraCommand { get; }
+        /// <summary>Caso 931007: «No llega»: la API pasa lo añadido a un pedido nuevo con sus portes.</summary>
+        public IAsyncRelayCommand NoLlegaCommand { get; }
+
+        private bool PuedeResponderAmpliacion() => PuedeContestarAmpliacion && !Enviando;
+
+        /// <summary>Caso 931007: contesta a la API y enseña lo que ha pasado (picking o pedido nuevo). Si ya la contestó otro, se cierra.</summary>
+        internal async Task ResponderAmpliacion(bool entra)
+        {
+            if (!PuedeResponderAmpliacion())
+            {
+                return;
+            }
+            Enviando = true;
+            Mensaje = null;
+            try
+            {
+                string respuesta = await _buzon.ResponderAmpliacionPedido(SolicitudAmpliacion.Value, entra, null);
+                Mensaje = string.IsNullOrWhiteSpace(respuesta)
+                    ? (entra ? "Hecho: lo añadido va en el envío de hoy." : "Hecho: lo añadido va en un pedido nuevo.")
+                    : respuesta.Trim();
+                Terminar();
+            }
+            catch (Exception ex)
+            {
+                Mensaje = ex.Message;
+                // 409: ya la contestó otro (o pasó la hora). Otro fallo (red, permisos…): se deja abierta para reintentar.
+                if ((ex.Message ?? string.Empty).IndexOf(" ya ", StringComparison.OrdinalIgnoreCase) >= 0
+                    || (ex.Message ?? string.Empty).StartsWith("Ya ", StringComparison.OrdinalIgnoreCase))
+                {
+                    Terminar();
+                }
+            }
+            finally
+            {
+                Enviando = false;
+            }
+        }
 
         /// <summary>NestoAPI#734: «Contestar» abre el diálogo de la consulta (hace falta el pedido y el servicio de diálogos).</summary>
         public bool PuedeContestarConsulta => EsConsultaReembolso && !Resuelta && _dialogos != null && PedidoConsulta.HasValue;
@@ -244,6 +304,13 @@ namespace ControlesUsuario.Notificaciones.Urgentes
                     return $"Lo ha contestado {quien}: sale con reembolso.";
                 case "SinReembolso":
                     return $"Lo ha contestado {quien}: sale sin reembolso.";
+                // Caso 931007: lo añadido a un pedido en preparación
+                case "Entra":
+                    return $"Lo ha contestado {quien}: entra en el envío de hoy.";
+                case "NoEntra":
+                    return $"Lo ha contestado {quien}: no llega; va en un pedido nuevo.";
+                case "SinRespuesta":
+                    return "Nadie lo contestó a tiempo: lo añadido va en un pedido nuevo.";
                 default:
                     return $"Ya lo ha contestado {quien}.";
             }

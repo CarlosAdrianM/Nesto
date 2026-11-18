@@ -2370,6 +2370,10 @@ Public Class DetallePedidoViewModel
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "AplazadoConPicking")
             dialogService.ShowNotification("Pedido aplazado con picking en curso", aviso.Mensaje)
         Next
+        ' Caso 931007: se ha pedido a Almacén que meta lo añadido en el envío de hoy (la respuesta llega a la campana)
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_A_ALMACEN)
+            dialogService.ShowNotification(AmpliacionPedidoEnPreparacion.TITULO, aviso.Mensaje)
+        Next
         ' Nesto#629 (NestoAPI#722): el envío ya lo tenía la agencia y se le ha cambiado también la fecha (hoy, CTT)
         For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_FECHA_CAMBIADA_EN_AGENCIA)
             dialogService.ShowNotification(TITULO_FECHA_CAMBIADA_EN_AGENCIA, aviso.Mensaje)
@@ -2493,6 +2497,8 @@ Public Class DetallePedidoViewModel
         ' Intentar guardar el pedido
         Dim rechazoConPicking As ModoConPickingException = Nothing
         Dim rechazoYaEnAgencia As PedidoYaEnAgenciaException = Nothing ' Nesto#629
+        Dim pedidoNuevoAmpliacion As Integer? = Nothing ' caso 931007
+        Dim mensajePedidoNuevoAmpliacion As String = Nothing
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
@@ -2513,14 +2519,21 @@ Public Class DetallePedidoViewModel
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
                 ' al guardar cambios pendientes antes de crear albarán/factura).
-                Dim avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
+                Dim avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana,
+                                                                                           AddressOf ElegirAmpliacionEnPreparacion) ' NestoAPI#712, Nesto#567 y caso 931007
                 Await ProcesarAvisosModificacion(avisosModificacion)
+                pedidoNuevoAmpliacion = AmpliacionPedidoEnPreparacion.PedidoNuevo(avisosModificacion) ' caso 931007
+                mensajePedidoNuevoAmpliacion = avisosModificacion?.FirstOrDefault(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_NUEVO)?.Mensaje
             End If
 
             ' Actualizar snapshot
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
             AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
+            If pedidoNuevoAmpliacion.HasValue Then
+                ' Caso 931007: lo añadido se ha ido a otro pedido; en pantalla aún está: se dice, se ofrece abrirlo y se recarga este
+                Await ResolverPedidoNuevoAmpliacionAsync(pedidoNuevoAmpliacion.Value, mensajePedidoNuevoAmpliacion)
+            End If
             Return True ' Guardado exitoso, continuar
 
         Catch ex As GuardadoCanceladoPorFechaEntregaException
@@ -2931,6 +2944,8 @@ Public Class DetallePedidoViewModel
         Dim rechazoConPicking As ModoConPickingException = Nothing
         Dim rechazoYaEnAgencia As PedidoYaEnAgenciaException = Nothing ' Nesto#629
         Dim rechazoPedidoCambiado As PedidoCambiadoException = Nothing ' Nesto#642
+        Dim pedidoNuevoAmpliacion As Integer? = Nothing ' caso 931007
+        Dim mensajePedidoNuevoAmpliacion As String = Nothing
         Dim modoDeseado As Byte = pedido.ModoServicio
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         Dim guardado As Boolean = False ' NestoAPI#606
@@ -3002,7 +3017,8 @@ Public Class DetallePedidoViewModel
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712 y Nesto#567
+                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido.Model, Function() servicio.modificarPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana,
+                                                                                          AddressOf ElegirAmpliacionEnPreparacion) ' NestoAPI#712, Nesto#567 y caso 931007
                 Catch ex As ValidationException
                     crearModificarEx = ex
                 End Try
@@ -3033,6 +3049,8 @@ Public Class DetallePedidoViewModel
                 messenger.Send(New PedidoModificadoMensaje(pedido.Model))
                 ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
                 Await ProcesarAvisosModificacion(avisosModificacion)
+                pedidoNuevoAmpliacion = AmpliacionPedidoEnPreparacion.PedidoNuevo(avisosModificacion) ' caso 931007
+                mensajePedidoNuevoAmpliacion = avisosModificacion?.FirstOrDefault(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_NUEVO)?.Mensaje
             End If
 
             ' Issue #135: Gestionar etiqueta de recogida
@@ -3078,6 +3096,12 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
+        ' Caso 931007: lo añadido ha ido a un pedido nuevo: se dice, se ofrece abrirlo y se vuelve a leer este (ya sin lo añadido)
+        If guardado AndAlso pedidoNuevoAmpliacion.HasValue Then
+            Await ResolverPedidoNuevoAmpliacionAsync(pedidoNuevoAmpliacion.Value, mensajePedidoNuevoAmpliacion)
+            Return
+        End If
+
         If rechazoConPicking IsNot Nothing Then
             Await ResolverModoConPicking(rechazoConPicking, modoDeseado)
         End If
@@ -3120,6 +3144,24 @@ Public Class DetallePedidoViewModel
     ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
     Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)
         Return dialogService.ShowConfirmationAsync(titulo, mensaje)
+    End Function
+
+    ''' <summary>Caso 931007: el pedido está en preparación: pedido nuevo con lo añadido, pedírselo a Almacén o cancelar.</summary>
+    Friend Function ElegirAmpliacionEnPreparacion(rechazo As PedidoEnPreparacionException) As String
+        Return AmpliacionPedidoEnPreparacion.Elegir(dialogService, rechazo)
+    End Function
+
+    ''' <summary>
+    ''' Caso 931007: tras guardar con «PedidoNuevo», lo añadido ya no está en este pedido (está en el nuevo): se dice con el número y se
+    ''' ofrece abrirlo, y se vuelve a leer este para que la pantalla no siga enseñando lo que se ha ido.
+    ''' </summary>
+    Friend Async Function ResolverPedidoNuevoAmpliacionAsync(pedidoNuevo As Integer, mensaje As String) As Task
+        Dim empresa As String = pedido?.empresa
+        Dim numero As Integer = If(pedido?.numero, 0)
+        Await AmpliacionPedidoEnPreparacion.OfrecerAbrirAsync(dialogService, abridorPedidos, empresa, pedidoNuevo, mensaje)
+        If numero > 0 Then
+            Await CargarPedidoAsync(New ResumenPedido With {.empresa = empresa, .numero = numero})
+        End If
     End Function
 
 #Region "NestoAPI#593 (c5): cheque regalo"

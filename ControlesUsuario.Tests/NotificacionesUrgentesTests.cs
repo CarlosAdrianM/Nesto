@@ -304,6 +304,76 @@ namespace ControlesUsuario.Tests
                 AvisoUrgenteViewModel.TextoResuelta(new NotificacionResuelta { Respondio = "Laura", Resultado = "ConReembolso" }));
         }
 
+        // ================================================================ Caso 931007: ¿entra en el envío de hoy lo añadido?
+
+        private static NotificacionUrgente Ampliacion() => new NotificacionUrgente
+        {
+            IdBuzon = 800,
+            Tipo = NotificacionBuzon.TIPO_AMPLIACION_PEDIDO,
+            Referencia = "12",
+            Titulo = "Pedido 931007: ¿entra en el envío de hoy?",
+            Cuerpo = "Laura ha añadido 39284 (1 ud.) al pedido 931007, que ya está en preparación (picking 100125). ¿Entra en el envío de hoy?",
+            Datos = new Dictionary<string, string>
+            {
+                ["tipo"] = NotificacionBuzon.TIPO_AMPLIACION_PEDIDO, ["accion"] = "pregunta", ["referencia"] = "12", ["id"] = "12", ["empresa"] = "1",
+                ["pedido"] = "931007", ["productos"] = "39284 (1 ud.)"
+            }
+        };
+
+        [TestMethod]
+        public async Task Ampliacion_SiLoMetemos_ContestaEnLaApi_EnsenaLoQuePasaYSeCierra()
+        {
+            A.CallTo(() => buzon.ResponderAmpliacionPedido(12, true, null))
+                .Returns(Task.FromResult("Hecho: lo añadido al pedido 931007 va en el picking 100140. Al hacer su envío se suma al que está en curso."));
+            pendientes.Add(Ampliacion());
+            gestor.Iniciar();
+            await Task.Yield();
+            AvisoUrgenteViewModel aviso = gestor.Abiertos.Single();
+            Assert.IsTrue(aviso.EsAmpliacionPedido);
+            Assert.IsTrue(aviso.PuedeContestarAmpliacion);
+            Assert.IsFalse(aviso.PuedeContestar, "No son los botones de la autorización de reembolso");
+            Assert.AreEqual("URGENTE: ¿entra en el envío de hoy?", aviso.Cabecera);
+
+            await aviso.EntraCommand.ExecuteAsync(null);
+
+            A.CallTo(() => buzon.ResponderAmpliacionPedido(12, true, null)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(aviso.Mensaje, "picking 100140");
+            Assert.IsTrue(aviso.Resuelta);
+            Assert.AreEqual(1, presentador.Cierres.Count(c => c.Aviso == aviso));
+        }
+
+        [TestMethod]
+        public async Task Ampliacion_NoLlega_SiYaLaContestoOtro_EnsenaEl409YSeCierra()
+        {
+            A.CallTo(() => buzon.ResponderAmpliacionPedido(12, false, null))
+                .ThrowsAsync(new InvalidOperationException("Ya la ha contestado Pedro: lo añadido al pedido 931007 entra en el envío de hoy."));
+            pendientes.Add(Ampliacion());
+            gestor.Iniciar();
+            await Task.Yield();
+            AvisoUrgenteViewModel aviso = gestor.Abiertos.Single();
+
+            await aviso.NoLlegaCommand.ExecuteAsync(null);
+
+            Assert.IsTrue(aviso.Resuelta);
+            StringAssert.StartsWith(aviso.Mensaje, "Ya la ha contestado Pedro");
+        }
+
+        [TestMethod]
+        public async Task Ampliacion_ContestadaEnOtroNesto_SeCierraConQuienYQue()
+        {
+            pendientes.Add(Ampliacion());
+            gestor.Iniciar();
+            await Task.Yield();
+
+            avisos.LlegaResuelta(new NotificacionResuelta { Tipo = NotificacionBuzon.TIPO_AMPLIACION_PEDIDO, Referencia = "12", Respondio = "Alfredo", Resultado = "NoEntra" });
+
+            AvisoUrgenteViewModel aviso = gestor.Abiertos.Single();
+            Assert.IsTrue(aviso.Resuelta);
+            Assert.AreEqual("Lo ha contestado Alfredo: no llega; va en un pedido nuevo.", aviso.Mensaje);
+            Assert.AreEqual("Nadie lo contestó a tiempo: lo añadido va en un pedido nuevo.",
+                AvisoUrgenteViewModel.TextoResuelta(new NotificacionResuelta { Resultado = "SinRespuesta" }));
+        }
+
         [TestMethod]
         public async Task SiFallaLaApi_NoPasaNada()
         {

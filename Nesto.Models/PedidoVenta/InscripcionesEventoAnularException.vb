@@ -116,10 +116,14 @@ End Class
 ''' inscripciones a eventos que justifica). Cada guardado nuevo vuelve a preguntar.
 ''' </summary>
 Public Module GuardadoPedidoConAvisos
+    ''' <param name="elegirAmpliacion">Caso 931007: qué hacer si se añade algo a un pedido en preparación (Nothing = no se pregunta).</param>
     Public Async Function GuardarPreguntando(Of T)(pedido As PedidoVentaDTO, guardar As Func(Of Task(Of T)),
-                                                  preguntar As Func(Of String, String, Task(Of Boolean))) As Task(Of T)
+                                                  preguntar As Func(Of String, String, Task(Of Boolean)),
+                                                  Optional elegirAmpliacion As Func(Of PedidoEnPreparacionException, String) = Nothing) As Task(Of T)
         pedido.ConfirmarAnularInscripcionesEventos = False
-        Return Await FechaEntregaLejanaException.GuardarPreguntando(pedido,
-            Function() InscripcionesEventoAnularException.GuardarPreguntando(pedido, guardar, preguntar), preguntar)
+        Return Await AmpliacionEnPreparacionPreguntando.GuardarPreguntando(pedido,
+            Function() FechaEntregaLejanaException.GuardarPreguntando(pedido,
+                Function() InscripcionesEventoAnularException.GuardarPreguntando(pedido, guardar, preguntar), preguntar),
+            elegirAmpliacion)
     End Function
 End Module

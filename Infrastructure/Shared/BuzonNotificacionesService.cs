@@ -83,6 +83,25 @@ namespace Nesto.Infrastructure.Shared
             }
         }
 
+        public async Task<string> ResponderAmpliacionPedido(int solicitudId, bool entra, string motivo)
+        {
+            string cuerpo = JsonConvert.SerializeObject(new { Entra = entra, Motivo = motivo });
+            string json = await Enviar(HttpMethod.Post, $"PedidosVenta/AmpliacionesEnPreparacion/{solicitudId}/Respuesta",
+                entra ? "meter lo añadido en el envío de hoy" : "pasar lo añadido a un pedido nuevo", cuerpo).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+            try
+            {
+                return Newtonsoft.Json.Linq.JObject.Parse(json)["Mensaje"]?.ToString();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
         public async Task<List<NotificacionUrgente>> LeerUrgentes()
         {
             string json = await Enviar(HttpMethod.Get, "Notificaciones/Urgentes", "leer las notificaciones urgentes").ConfigureAwait(false);
