@@ -20,7 +20,7 @@
             <i:InvokeCommandAction Command="{Binding cmdCargarListaPedidos}" />
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos..." FocusAfterBusy="{Binding ElementName=txtFiltro}">
+    <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding EstaOcupada}" BusyContent="{Binding TextoOcupada}" FocusAfterBusy="{Binding ElementName=txtFiltro}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

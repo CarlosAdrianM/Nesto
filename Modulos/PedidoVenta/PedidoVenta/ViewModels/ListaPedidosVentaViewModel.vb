@@ -89,6 +89,8 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(ByVal value As Boolean)
             Dim unused = SetProperty(_estaCargandoListaPedidos, value)
+            OnPropertyChanged(NameOf(EstaOcupada))
+            OnPropertyChanged(NameOf(TextoOcupada))
         End Set
     End Property
 
@@ -195,6 +197,36 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Unir dos pedidos grandes tarda (18/11/26, pedidos 930591 y 930717): sin indicador parecía que no hacía nada y se
+    ''' volvía a pulsar, y cada reintento llegaba con la copia vieja del pedido («X ha modificado el pedido»).
+    ''' </summary>
+    Private _estaUniendoPedidos As Boolean
+    Public Property EstaUniendoPedidos As Boolean
+        Get
+            Return _estaUniendoPedidos
+        End Get
+        Private Set(value As Boolean)
+            If SetProperty(_estaUniendoPedidos, value) Then
+                OnPropertyChanged(NameOf(EstaOcupada))
+                OnPropertyChanged(NameOf(TextoOcupada))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>La lista está ocupada: cargando o uniendo pedidos (lo pinta el indicador de la vista).</summary>
+    Public ReadOnly Property EstaOcupada As Boolean
+        Get
+            Return estaCargandoListaPedidos OrElse EstaUniendoPedidos
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoOcupada As String
+        Get
+            Return If(EstaUniendoPedidos, "Uniendo los pedidos; puede tardar si son grandes...", "Cargando Lista Pedidos...")
+        End Get
+    End Property
+
     Private _pedidoPendienteUnir As ResumenPedido
     Public Property PedidoPendienteUnir As ResumenPedido
         Get
@@ -216,6 +248,9 @@ Public Class ListaPedidosVentaViewModel
     ''' todas formas a los usuarios autorizados, igual que al crear un pedido.
     ''' </summary>
     Friend Async Function UnirPedidoSeleccionadoAsync(pedidoAUnir As ResumenPedido) As Task
+        If EstaUniendoPedidos Then
+            Return ' ya hay una unión en marcha: no se lanza otra
+        End If
         Dim pedidoDestino As ResumenPedido = TryCast(ListaPedidos.ElementoSeleccionado, ResumenPedido)
         If IsNothing(pedidoDestino) Then
             Return
@@ -230,6 +265,7 @@ Public Class ListaPedidosVentaViewModel
             Return
         End If
 
+        EstaUniendoPedidos = True
         Try
             ' VB no admite Await dentro de un Catch: se guarda la excepción y se decide fuera
             ' (mismo patrón que PlantillaVentaViewModel al crear el pedido).
@@ -242,6 +278,7 @@ Public Class ListaPedidosVentaViewModel
 
             If errorValidacion IsNot Nothing Then
                 Dim confirmarSinValidar As Boolean
+                EstaUniendoPedidos = False ' mientras se pregunta, sin indicador
                 dialogService.ShowConfirmation("Pedido no válido", errorValidacion.Message & vbCrLf & "¿Desea unirlos de todos modos?", Sub(r)
                                                                                                                                           confirmarSinValidar = r.Result = ResultadoBoton.OK
                                                                                                                                       End Sub)
@@ -250,6 +287,7 @@ Public Class ListaPedidosVentaViewModel
                 End If
                 ' NestoAPI#324: el flag viaja aparte porque aquí se unen dos pedidos EXISTENTES
                 ' (no hay DTO de ampliación donde ponerlo)
+                EstaUniendoPedidos = True
                 Await servicio.UnirPedidos(pedidoAUnir.empresa, pedidoAUnir.numero, pedidoDestino.numero, sinPasarValidacion:=True)
             End If
 
@@ -263,9 +301,13 @@ Public Class ListaPedidosVentaViewModel
 
             ' Antes usaba ShowDialog(mensaje), que en Prism interpreta el texto como NOMBRE de la
             ' vista de diálogo (no existe): el aviso de éxito no llegaba a mostrarse bien.
+            EstaUniendoPedidos = False
             dialogService.ShowNotification("Pedidos unidos", String.Format("Se han unido los pedidos {0} y {1} correctamente", pedidoAUnir.numero, pedidoDestino.numero))
         Catch ex As Exception
+            EstaUniendoPedidos = False ' antes del aviso: el diálogo no debe quedar detrás del indicador
             dialogService.ShowError(ex.Message)
+        Finally
+            EstaUniendoPedidos = False
         End Try
     End Function
 
