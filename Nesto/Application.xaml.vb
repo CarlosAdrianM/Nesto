@@ -57,6 +57,20 @@ Partial Public Class Application
         IniciarEscanerRemoto()
         ObtenerTokenEIniciarAvisos()
         IniciarGlobos()
+        IniciarTamanoLetraSelectorCliente()
+    End Sub
+
+    ''' <summary>
+    ''' Carlos 18/11/26: el tamaño de letra del nombre y la dirección del cliente en los selectores de clientes (parámetro
+    ''' TamanoLetraSelectorCliente), leído UNA vez aquí para todos. Mientras llega (o si no se puede leer), Normal, el de
+    ''' siempre; al llegar, los selectores abiertos se repintan solos. Nunca impide arrancar.
+    ''' </summary>
+    Private Sub IniciarTamanoLetraSelectorCliente()
+        Try
+            Dim unused = ControlesUsuario.PreferenciaTamanoLetraSelectorCliente.CargarAsync(Contenedor.Actual.Resolver(Of IConfiguracion)())
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"No se pudo leer el tamaño de letra del selector de clientes: {ex.Message}")
+        End Try
     End Sub
 
     ''' <summary>

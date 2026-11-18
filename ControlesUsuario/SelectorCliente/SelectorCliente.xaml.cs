@@ -38,6 +38,58 @@ namespace ControlesUsuario
             DataContext = vm;
             PrepararSelectorCliente();
             this.navegacion = navegacion;
+            AplicarTamanoNombreYDireccion();
+            // La preferencia del usuario se escucha solo mientras el selector está en pantalla (evento estático: sin
+            // suscripción viva no hay fuga); al volver a cargarse se repinta con la que haya entonces.
+            Loaded += (s, e) =>
+            {
+                PreferenciaTamanoLetraSelectorCliente.Cambiado -= PreferenciaTamanoCambiada;
+                PreferenciaTamanoLetraSelectorCliente.Cambiado += PreferenciaTamanoCambiada;
+                AplicarTamanoNombreYDireccion();
+            };
+            Unloaded += (s, e) => PreferenciaTamanoLetraSelectorCliente.Cambiado -= PreferenciaTamanoCambiada;
+        }
+
+        private void PreferenciaTamanoCambiada(object sender, EventArgs e)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                _ = Dispatcher.BeginInvoke(new Action(() => PreferenciaTamanoCambiada(sender, e)));
+                return;
+            }
+            AplicarTamanoNombreYDireccion();
+            (DataContext as SelectorClienteViewModel)?.AvisarTamanoNombreYDireccionCambiado();
+        }
+
+        /// <summary>
+        /// Carlos 18/11/26: tamaño de letra del nombre y la dirección del cliente de debajo de la caja (solo ese bloque, no la
+        /// caja ni la lista de resultados). Null (por defecto) = el del usuario (parámetro TamanoLetraSelectorCliente, que
+        /// lee el arranque de Nesto: <see cref="PreferenciaTamanoLetraSelectorCliente"/>); una pantalla puede fijar el suyo.
+        /// </summary>
+        public TamanoLetraSelectorCliente? TamanoNombreYDireccion
+        {
+            get { return (TamanoLetraSelectorCliente?)GetValue(TamanoNombreYDireccionProperty); }
+            set { SetValue(TamanoNombreYDireccionProperty, value); }
+        }
+
+        public static readonly DependencyProperty TamanoNombreYDireccionProperty =
+            DependencyProperty.Register(nameof(TamanoNombreYDireccion), typeof(TamanoLetraSelectorCliente?),
+              typeof(SelectorCliente),
+              new FrameworkPropertyMetadata(null, (d, e) => (d as SelectorCliente)?.AplicarTamanoNombreYDireccion()));
+
+        /// <summary>El tamaño con el que se pinta: el fijado por la pantalla o, si no, el del usuario.</summary>
+        public TamanoLetraSelectorCliente TamanoNombreYDireccionEfectivo =>
+            TamanoNombreYDireccion ?? PreferenciaTamanoLetraSelectorCliente.Actual;
+
+        private void AplicarTamanoNombreYDireccion()
+        {
+            if (txtNombreCliente is null || txtDireccionCliente is null)
+            {
+                return;
+            }
+            double puntos = ReglaTamanoLetraSelectorCliente.Puntos(TamanoNombreYDireccionEfectivo);
+            txtNombreCliente.FontSize = puntos;
+            txtDireccionCliente.FontSize = puntos;
         }
 
 

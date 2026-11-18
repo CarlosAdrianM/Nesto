@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:controles="clr-namespace:ControlesUsuario" 
+             xmlns:convertidores="clr-namespace:ControlesUsuario.Converters" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:ControlesUsuario.ViewModels"
              d:DataContext="{d:DesignInstance Type=viewmodels:SelectorClienteViewModel}"
              mc:Ignorable="d" 
@@ -13,6 +14,7 @@
     <UserControl.Resources>
         <controles:EstadoColorConverter x:Key="estadoColorConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <convertidores:IgualAConverter x:Key="igualAConverter" />
     </UserControl.Resources>
     
     <!-- REFACTORIZAR 
@@ -37,8 +39,19 @@
             <DockPanel Grid.Row="0" LastChildFill="True">
                 <!-- Nesto#388: ruedita de opciones del selector (patrón reutilizable BotonOpciones) -->
                 <controles:BotonOpciones DockPanel.Dock="Right" VerticalAlignment="Top" Titulo="Opciones del selector de clientes">
-                    <CheckBox Content="Mostrar contactos desplegados por defecto"
-                              IsChecked="{Binding ContactosExpandidosPorDefecto, Mode=TwoWay}"/>
+                    <StackPanel>
+                        <CheckBox Content="Mostrar contactos desplegados por defecto"
+                                  IsChecked="{Binding ContactosExpandidosPorDefecto, Mode=TwoWay}"/>
+                        <!-- Carlos 18/11/26: tamaño del nombre y la dirección del cliente (parámetro TamanoLetraSelectorCliente),
+                             para todos los selectores de clientes; se nota al momento -->
+                        <TextBlock Text="Tamaño del nombre del cliente:" Margin="0,8,0,2"/>
+                        <RadioButton Content="Normal" Margin="8,1,0,1"
+                                     IsChecked="{Binding TamanoNombreYDireccionUsuario, Mode=TwoWay, Converter={StaticResource igualAConverter}, ConverterParameter={x:Static controles:TamanoLetraSelectorCliente.Normal}}"/>
+                        <RadioButton Content="Grande" Margin="8,1,0,1"
+                                     IsChecked="{Binding TamanoNombreYDireccionUsuario, Mode=TwoWay, Converter={StaticResource igualAConverter}, ConverterParameter={x:Static controles:TamanoLetraSelectorCliente.Grande}}"/>
+                        <RadioButton Content="Muy grande" Margin="8,1,0,1"
+                                     IsChecked="{Binding TamanoNombreYDireccionUsuario, Mode=TwoWay, Converter={StaticResource igualAConverter}, ConverterParameter={x:Static controles:TamanoLetraSelectorCliente.MuyGrande}}"/>
+                    </StackPanel>
                 </controles:BotonOpciones>
                 <TextBlock Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <TextBlock.Style>
@@ -67,9 +80,13 @@
                             Visibility="{Binding MostrarBadgeContactos, Converter={StaticResource BoolToVisibilityConverter}}">
                         <TextBlock Text="{Binding NumeroContactos}" Foreground="White" FontSize="9" FontWeight="Bold"/>
                     </Border>
-                    <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"></TextBlock>
+                    <!-- Carlos 18/11/26: FontSize lo pone el código (TamanoNombreYDireccion / parámetro TamanoLetraSelectorCliente; Normal = 10, el
+                         de siempre). Sin saltar de línea: lo que no cabe acaba en «…» y el texto entero sale en el ToolTip -->
+                    <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"></TextBlock>
                 </DockPanel>
-                <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"></TextBlock>
+                <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"></TextBlock>
             </StackPanel>
             </Grid>
             <Popup x:Name="popupListView" StaysOpen="False" IsOpen="{Binding visibilidadSelectorEntrega, Mode=TwoWay}">

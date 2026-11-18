@@ -146,6 +146,41 @@ namespace ControlesUsuario.ViewModels
             }
         }
 
+        // Carlos 18/11/26: tamaño de letra del nombre y la dirección del cliente (parámetro TamanoLetraSelectorCliente).
+        // Es la preferencia de la sesión (la misma para todos los selectores): la lee el arranque de Nesto y aquí, en la
+        // ruedita, la cambia el usuario; se aplica al momento en los selectores abiertos y se guarda en su parámetro.
+        public TamanoLetraSelectorCliente TamanoNombreYDireccionUsuario
+        {
+            get => PreferenciaTamanoLetraSelectorCliente.Actual;
+            set
+            {
+                if (value == PreferenciaTamanoLetraSelectorCliente.Actual)
+                {
+                    return;
+                }
+                PreferenciaTamanoLetraSelectorCliente.Establecer(value);
+                OnPropertyChanged(nameof(TamanoNombreYDireccionUsuario));
+                _ = GuardarTamanoNombreYDireccion(value);
+            }
+        }
+
+        /// <summary>Lo llama el control cuando la preferencia la ha cambiado otro selector (para que la ruedita la refleje).</summary>
+        public void AvisarTamanoNombreYDireccionCambiado() => OnPropertyChanged(nameof(TamanoNombreYDireccionUsuario));
+
+        private async Task GuardarTamanoNombreYDireccion(TamanoLetraSelectorCliente tamano)
+        {
+            try
+            {
+                await Configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO,
+                    Parametros.Claves.TamanoLetraSelectorCliente, ReglaTamanoLetraSelectorCliente.AParametro(tamano));
+            }
+            catch (Exception ex)
+            {
+                // En esta sesión ya se ve con el tamaño elegido; si no se ha podido guardar, al reabrir Nesto vuelve el anterior
+                System.Diagnostics.Debug.WriteLine($"No se pudo guardar el tamaño de letra del selector de clientes: {ex.Message}");
+            }
+        }
+
         // Nesto#388: nº de contactos/direcciones que se verían al desplegar (badge del header).
         private int _numeroContactos;
         public int NumeroContactos

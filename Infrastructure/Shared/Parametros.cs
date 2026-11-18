@@ -95,6 +95,11 @@
             // Sugerencia 761: lo mismo para la cinta «Puede ofrecer» del rapport, que se recuerda aparte de la plantilla.
             // Fila «(defecto)»: Scripts/Sugerencia761_ParametroRapport.sql (NestoAPI). Sin ella, desplegada.
             public const string SugerenciasRapportPlegadas = "SugerenciasRapportPlegadas";
+            // Carlos 18/11/26 (continuación de la sugerencia 1331): tamaño de letra del nombre y la dirección del cliente en el
+            // selector de clientes: "Normal" (el de siempre), "Grande" o "MuyGrande". Sin fila, sin red o con otro valor = Normal.
+            // Se lee una vez al arrancar (PreferenciaTamanoLetraSelectorCliente) y lo cambia el usuario en la ruedita del selector.
+            // Fila «(defecto)» = 'Normal': Scripts/ParametroUsuario_TamanoLetraSelectorCliente.sql (NestoAPI).
+            public const string TamanoLetraSelectorCliente = "TamanoLetraSelectorCliente";
             public const string UltimaVersionNovedades = "UltimaVersionNovedades";
             // NestoAPI#495: el Id de la última novedad (ámbitos Nesto y NestoAPI) que se ha avisado al arrancar. Vacío = la
             // primera vez (se apunta por dónde va sin enseñar el histórico). Fila «(defecto)»: Scripts/Issue495_UltimaNovedadVista.sql (NestoAPI).
