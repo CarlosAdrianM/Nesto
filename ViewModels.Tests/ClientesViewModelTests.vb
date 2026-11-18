@@ -120,7 +120,8 @@ Public Class ClientesViewModelTests
 
         Await vm.ActualizarClienteAsync("1", "15191", "0")
 
-        Assert.AreEqual("Se ha caído el servidor", vm.mensajeError)
+        ' Nesto#644 (3): el motivo sigue llegando, ahora dentro de «No se ha podido leer el cliente…»
+        StringAssert.Contains(vm.mensajeError, "Se ha caído el servidor")
         Assert.IsNull(vm.clienteActivo)
     End Function
 

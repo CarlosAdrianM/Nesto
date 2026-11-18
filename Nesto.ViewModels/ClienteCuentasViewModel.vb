@@ -631,5 +631,11 @@ Public Class ClienteCuentasViewModel
     Protected Overrides Sub AlCambiarClienteActivo(value As ClienteJson)
         OnPropertyChanged(NameOf(textoCuentaDelCliente))
     End Sub
+
+    ' Nesto#644 (3): el cliente no se ha podido leer: fuera también los avisos del CCC del anterior
+    Protected Overrides Sub AlVaciarFicha()
+        extractoCCC = Nothing
+        pedidosCCC = Nothing
+    End Sub
 #End Region
 End Class

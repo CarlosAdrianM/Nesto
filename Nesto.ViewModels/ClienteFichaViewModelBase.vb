@@ -117,7 +117,13 @@ Public MustInherit Class ClienteFichaViewModelBase
                 listaContactos = New ObservableCollection(Of Clientes)()
                 Return
             End If
+            Dim empresaPedida As String = _empresaActual
+            Dim clientePedido As String = _clienteActual
             Dim direcciones = Await ServicioDireccionesEntrega.ObtenerDireccionesEntrega(_empresaActual.Trim(), _clienteActual.Trim())
+            ' Nesto#644 (2): si mientras tanto se ha elegido otro cliente (o empresa), estos contactos ya no son suyos
+            If empresaPedida <> _empresaActual OrElse clientePedido <> _clienteActual Then
+                Return
+            End If
             listaContactos = New ObservableCollection(Of Clientes)(
                 direcciones.Select(Function(d) New Clientes With {
                     .Empresa = _empresaActual,
@@ -227,11 +233,29 @@ Public MustInherit Class ClienteFichaViewModelBase
         If IsNothing(empresa) OrElse IsNothing(numCliente) OrElse IsNothing(contacto) Then
             Return
         End If
+        ' Nesto#644 (2): cada carga lleva su testigo; si cuando contesta la API ya se ha pedido otra (otro cliente, empresa o
+        ' contacto), lo que llega se descarta y no pisa la ficha nueva.
+        Dim testigo As Integer = NuevoTestigoFicha()
+        Dim errorLectura As Exception = Nothing
         Try
             Dim cliente As ClienteJson = Await servicio.LeerCliente(empresa, numCliente, contacto)
+            If Not EsFichaActual(testigo) Then
+                Return
+            End If
+            If IsNothing(cliente) Then
+                ' Nesto#644 (3): antes se quedaba entera la ficha del cliente anterior
+                VaciarFicha(numCliente, contacto, Nothing)
+                Return
+            End If
             If Not IsNothing(cliente) Then
                 nombre = cliente.nombre
                 Dim cccs As List(Of CCCModel) = Await servicio.LeerCCCs(empresa, numCliente, contacto)
+                If Not EsFichaActual(testigo) Then
+                    Return
+                End If
+                If mensajeError = _mensajeFichaNoLeida Then
+                    mensajeError = Nothing ' el aviso de que no se pudo leer era de la carga anterior
+                End If
                 cuentasBanco = New ObservableCollection(Of CCCModel)(If(cccs, New List(Of CCCModel)))
                 ' Carlos 17/11/26: antes, con un cliente sin ccc (o con un ccc que no está en sus cuentas) cuentaActiva NO se
                 ' tocaba y se quedaba la cuenta del cliente ANTERIOR (y Guardar mandaba su número). Ahora siempre se elige
@@ -244,8 +268,56 @@ Public MustInherit Class ClienteFichaViewModelBase
                 AlCargarFicha() ' Nesto#646: la ficha de cuentas vacía aquí sus avisos de otro CCC (extractoCCC, pedidosCCC)
             End If
         Catch ex As Exception
-            mensajeError = ex.Message
+            errorLectura = ex
         End Try
+        ' Nesto#644 (3): si la lectura falla, tampoco se queda la ficha del cliente anterior
+        If errorLectura IsNot Nothing AndAlso EsFichaActual(testigo) Then
+            VaciarFicha(numCliente, contacto, errorLectura.Message)
+        End If
+    End Function
+
+    ' ---------------- Nesto#644 (2 y 3): el cliente que está en pantalla ----------------
+
+    Private _testigoFicha As Integer
+    Private _mensajeFichaNoLeida As String
+
+    ''' <summary>
+    ''' Nesto#644 (2): el testigo de la ficha en pantalla. Cambia al pedir una carga de cliente (ActualizarClienteAsync) y al
+    ''' cambiar clienteActivo. Cada carga async lo apunta al empezar (<see cref="TestigoFicha"/>) y, cuando le contesta la API,
+    ''' solo asigna si <see cref="EsFichaActual"/>: un resultado que llega cuando la ficha ya es de otro cliente (o empresa o
+    ''' contacto) se descarta.
+    ''' </summary>
+    Protected Function TestigoFicha() As Integer
+        Return System.Threading.Volatile.Read(_testigoFicha)
+    End Function
+
+    Protected Function EsFichaActual(testigo As Integer) As Boolean
+        Return testigo = System.Threading.Volatile.Read(_testigoFicha)
+    End Function
+
+    Private Function NuevoTestigoFicha() As Integer
+        Return System.Threading.Interlocked.Increment(_testigoFicha)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (3): el cliente pedido no se ha podido leer: se vacía todo lo que depende del cliente (nombre, cuentas,
+    ''' clienteActivo, que vacía lo de cada ficha por <see cref="AlCambiarClienteActivo"/>, y <see cref="AlVaciarFicha"/>) y se
+    ''' dice en mensajeError y en la cabecera de la pestaña.
+    ''' </summary>
+    Private Sub VaciarFicha(numCliente As String, contacto As String, motivo As String)
+        nombre = Nothing
+        cuentasBanco = New ObservableCollection(Of CCCModel)()
+        cuentaActiva = Nothing
+        clienteActivo = Nothing
+        AlVaciarFicha()
+        _mensajeFichaNoLeida = MensajeFichaNoLeida(numCliente, contacto, motivo)
+        mensajeError = _mensajeFichaNoLeida
+        Titulo = String.Format("Cliente {0}: no se ha podido leer", numCliente?.Trim())
+    End Sub
+
+    Friend Shared Function MensajeFichaNoLeida(numCliente As String, contacto As String, motivo As String) As String
+        Return String.Format("No se ha podido leer el cliente {0} (contacto {1}){2}. Vuelva a elegirlo.",
+                             numCliente?.Trim(), contacto?.Trim(), If(String.IsNullOrWhiteSpace(motivo), String.Empty, ": " & motivo.Trim()))
     End Function
 
     ''' <summary>
@@ -279,6 +351,8 @@ Public MustInherit Class ClienteFichaViewModelBase
         End Get
         Set(value As ClienteJson)
             _clienteActivo = value
+            ' Nesto#644 (2): lo que estuviera cargando para el cliente activo anterior ya no vale
+            Dim unusedTestigo = NuevoTestigoFicha()
             ' Nesto#646: aquí la comercial apunta el estado cargado y lanza sus cargas; la de cuentas avisa de textoCuentaDelCliente
             AlCambiarClienteActivo(value)
 
@@ -424,6 +498,10 @@ Public MustInherit Class ClienteFichaViewModelBase
 
     ''' <summary>En el setter de clienteActivo, con el valor ya guardado y antes de avisar del cambio.</summary>
     Protected Overridable Sub AlCambiarClienteActivo(value As ClienteJson)
+    End Sub
+
+    ''' <summary>Nesto#644 (3): en ActualizarClienteAsync, cuando el cliente no se ha podido leer y se vacía la ficha.</summary>
+    Protected Overridable Sub AlVaciarFicha()
     End Sub
 #End Region
 End Class

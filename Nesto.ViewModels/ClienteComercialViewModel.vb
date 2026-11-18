@@ -289,6 +289,7 @@ Public Class ClienteComercialViewModel
             seguimientosOrdenados = Nothing
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "SeguimientosClientes"
@@ -296,8 +297,14 @@ Public Class ClienteComercialViewModel
                 urlConsulta += "&cliente=" + clienteActivo.cliente.Trim
                 urlConsulta += "&contacto=" + If(clienteActivo.contacto?.Trim, String.Empty)
                 Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If Not EsFichaActual(testigo) Then
+                    Return
+                End If
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    If Not EsFichaActual(testigo) Then
+                        Return
+                    End If
                     Dim seguimientos = JsonConvert.DeserializeObject(Of List(Of SeguimientoResumen))(respuesta)
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)(
                         seguimientos.OrderByDescending(Function(s) s.Fecha).Take(20))
@@ -306,7 +313,9 @@ Public Class ClienteComercialViewModel
                 End If
             End Using
         Catch ex As Exception
-            seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+            If EsFichaActual(testigo) Then
+                seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+            End If
         End Try
     End Sub
 
@@ -318,21 +327,30 @@ Public Class ClienteComercialViewModel
             deudaVencida = 0
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ExtractosCliente/DeudaVencida"
                 urlConsulta += "?cliente=" + clienteActivo.cliente.Trim
                 urlConsulta += "&contacto=" + If(clienteActivo.contacto?.Trim, String.Empty)
                 Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If Not EsFichaActual(testigo) Then
+                    Return
+                End If
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    If Not EsFichaActual(testigo) Then
+                        Return
+                    End If
                     deudaVencida = JsonConvert.DeserializeObject(Of Decimal)(respuesta)
                 Else
                     deudaVencida = 0
                 End If
             End Using
         Catch ex As Exception
-            deudaVencida = 0
+            If EsFichaActual(testigo) Then
+                deudaVencida = 0
+            End If
         End Try
     End Sub
 
@@ -345,6 +363,7 @@ Public Class ClienteComercialViewModel
             listaVentas = Nothing
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ventascliente/productos"
@@ -355,15 +374,23 @@ Public Class ClienteComercialViewModel
                 End If
 
                 Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If Not EsFichaActual(testigo) Then
+                    Return
+                End If
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    If Not EsFichaActual(testigo) Then
+                        Return
+                    End If
                     listaVentas = JsonConvert.DeserializeObject(Of ObservableCollection(Of lineaVentaAgrupada))(respuesta)
                 Else
                     listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
                 End If
             End Using
         Catch ex As Exception
-            listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+            If EsFichaActual(testigo) Then
+                listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+            End If
         End Try
     End Sub
 
@@ -1432,8 +1459,19 @@ Public Class ClienteComercialViewModel
     End Property
 
     Friend Function CanEnviarEnlacePagoPedido() As Boolean
-        Return PedidoCobroPendiente AndAlso ImporteCobroPedido > 0 AndAlso
+        Return PedidoCobroPendiente AndAlso ImporteCobroPedido > 0 AndAlso PedidoCobroEsDelClienteEnPantalla() AndAlso
             (Not String.IsNullOrWhiteSpace(CorreoReclamarDeuda) OrElse Not String.IsNullOrWhiteSpace(MovilReclamarDeuda))
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (1): el correo y el móvil son los del cliente en pantalla, así que el pedido a cobrar tiene que ser suyo:
+    ''' nunca el enlace de un pedido al correo o al móvil de otro cliente.
+    ''' </summary>
+    Private Function PedidoCobroEsDelClienteEnPantalla() As Boolean
+        If PedidoParaCobro Is Nothing OrElse clienteActivo Is Nothing Then
+            Return True
+        End If
+        Return String.Equals(PedidoParaCobro.cliente?.Trim(), clienteActivo.cliente?.Trim(), StringComparison.OrdinalIgnoreCase)
     End Function
 
     Friend Async Function EnviarEnlacePagoPedidoAsync() As Task
@@ -1600,6 +1638,7 @@ Public Class ClienteComercialViewModel
         If IsNothing(clienteActivo) OrElse (ListaFacturas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaFacturas.FirstOrDefault()?.Cliente) Then
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
 
 
         Using client As HttpClient = _clienteApiFactory.Crear()
@@ -1632,6 +1671,9 @@ Public Class ClienteComercialViewModel
 
             End Try
 
+            If Not EsFichaActual(testigo) Then
+                Return ' Nesto#644 (2): ya es otro cliente
+            End If
             ListaFacturas = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
         End Using
 
@@ -1642,6 +1684,7 @@ Public Class ClienteComercialViewModel
         If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
 
 
         Using client As HttpClient = _clienteApiFactory.Crear()
@@ -1673,6 +1716,9 @@ Public Class ClienteComercialViewModel
 
             End Try
 
+            If Not EsFichaActual(testigo) Then
+                Return ' Nesto#644 (2): ya es otro cliente
+            End If
             ListaPedidos = JsonConvert.DeserializeObject(Of ObservableCollection(Of ResumenPedido))(respuesta)
         End Using
 
@@ -1683,6 +1729,7 @@ Public Class ClienteComercialViewModel
         If IsNothing(clienteActivo) OrElse (ListaDeudas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaDeudas.FirstOrDefault()?.Cliente) Then
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
 
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
@@ -1705,6 +1752,9 @@ Public Class ClienteComercialViewModel
             Finally
 
             End Try
+            If Not EsFichaActual(testigo) Then
+                Return ' Nesto#644 (2): ya es otro cliente; sus efectos no pueden acabar en la reclamación del nuevo
+            End If
             Dim lista = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
             For Each l In lista
                 l.Seleccionada = l.Vencimiento < Date.Today OrElse IsNothing(l.Vencimiento)
@@ -1715,12 +1765,29 @@ Public Class ClienteComercialViewModel
             ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
         End Using
 
+        RellenarContactoReclamacion(clienteActivo)
+
+        CargarHistorialPagos()
+
+    End Sub
+
+    ''' <summary>
+    ''' El correo y el móvil a los que se manda la reclamación de deuda o el enlace de pago de un pedido: los del cliente
+    ''' <paramref name="cliente"/> (Nothing = ninguno). Nesto#644 (1): antes solo se ponían al cargar las deudas, y el cobro de
+    ''' un pedido usaba los del cliente anterior; ahora también al cambiar de cliente (<see cref="ReiniciarDatosDelCliente"/>).
+    ''' </summary>
+    Private Sub RellenarContactoReclamacion(cliente As ClienteJson)
+        If cliente Is Nothing Then
+            CorreoReclamarDeuda = Nothing
+            MovilReclamarDeuda = Nothing
+            Return
+        End If
         ' Nesto#340 (1C.8, slice 4): las personas de contacto vienen en la ficha de la API con su
         ' Cargo real; se mapean a la entidad-contenedor que espera CorreoCliente (mismo patrón que
         ' PlantillaVenta, sin consultar EF).
         Dim personasContacto As New List(Of PersonasContactoCliente)
-        If Not IsNothing(clienteActivo.PersonasContacto) Then
-            For Each persona In clienteActivo.PersonasContacto
+        If Not IsNothing(cliente.PersonasContacto) Then
+            For Each persona In cliente.PersonasContacto
                 personasContacto.Add(New PersonasContactoCliente With {
                     .Cargo = If(persona.Cargo, 0),
                     .CorreoElectrónico = persona.CorreoElectronico
@@ -1729,11 +1796,8 @@ Public Class ClienteComercialViewModel
         End If
         Dim correo As New CorreoCliente(personasContacto)
         CorreoReclamarDeuda = correo.CorreoAgencia ' TODO: desarrollar correo deuda
-        Dim telefono As New Telefono(clienteActivo.telefono)
+        Dim telefono As New Telefono(cliente.telefono)
         MovilReclamarDeuda = telefono.MovilUnico
-
-        CargarHistorialPagos()
-
     End Sub
 
     ''' <summary>
@@ -1744,10 +1808,14 @@ Public Class ClienteComercialViewModel
         If IsNothing(clienteActivo) Then
             Return
         End If
+        Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
 
         Using client As HttpClient = _clienteApiFactory.Crear()
             Try
                 If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Return
+                End If
+                If Not EsFichaActual(testigo) Then
                     Return
                 End If
 
@@ -1757,6 +1825,9 @@ Public Class ClienteComercialViewModel
 
                 If response.IsSuccessStatusCode Then
                     Dim respuesta = Await response.Content.ReadAsStringAsync()
+                    If Not EsFichaActual(testigo) Then
+                        Return ' ya es otro cliente
+                    End If
                     Dim pagos = JsonConvert.DeserializeObject(Of List(Of PagoTPVDTO))(respuesta)
                     HistorialPagos = New ObservableCollection(Of PagoTPVDTO)(pagos)
                 End If
@@ -1865,6 +1936,13 @@ Public Class ClienteComercialViewModel
         ' ocasión de saber de qué estado se viene al guardar).
         _estadoCargado = value?.estado
 
+        ' Nesto#644 (1 y 4): con OTRO cliente (o empresa o contacto) no queda nada de la reclamación ni del cobro del anterior
+        Dim clave As String = ClaveCliente(value)
+        If clave <> _claveClienteDatos Then
+            _claveClienteDatos = clave
+            ReiniciarDatosDelCliente(value)
+        End If
+
         If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
             If Not IsNothing(clienteActivoDTO) Then
                 cargarVendedoresPorGrupo()
@@ -1894,6 +1972,42 @@ Public Class ClienteComercialViewModel
             ListaFacturas = Nothing
             ListaPedidos = Nothing
             ListaDeudas = Nothing
+        End If
+    End Sub
+
+    ' Nesto#644 (1 y 4): de qué cliente son los datos de la reclamación y del cobro que hay en pantalla.
+    Private _claveClienteDatos As String
+
+    Private Shared Function ClaveCliente(cliente As ClienteJson) As String
+        If cliente Is Nothing Then
+            Return Nothing
+        End If
+        Return String.Join("|", cliente.empresa?.Trim(), cliente.cliente?.Trim(), cliente.contacto?.Trim())
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644: al pasar a otro cliente (o a ninguno), lo que era del anterior se quita: el correo y el móvil pasan a ser
+    ''' los del nuevo y el pedido elegido para cobrar se suelta (1); las facturas, pedidos y deudas del anterior no se quedan en
+    ''' pantalla mientras se cargan las del nuevo (2: no se pueden reclamar sus efectos con el cliente nuevo); y se vacían el
+    ''' enlace, el asunto, el importe, el nombre, el motivo del cambio de estado y el historial de pagos (4). Sin cliente (no se
+    ''' ha podido leer, Nesto#644 3) se vacía además lo demás que se ve de él.
+    ''' </summary>
+    Private Sub ReiniciarDatosDelCliente(cliente As ClienteJson)
+        RellenarContactoReclamacion(cliente)
+        PedidoSeleccionadoCobro = Nothing
+        ListaFacturas = Nothing
+        ListaPedidos = Nothing
+        ListaDeudas = Nothing
+        EnlaceReclamarDeuda = Nothing
+        AsuntoReclamarDeuda = String.Empty
+        ImporteReclamarDeuda = 0
+        NombreReclamarDeuda = Nothing
+        MotivoCambioEstado = Nothing
+        HistorialPagos = Nothing
+        If cliente Is Nothing Then
+            seguimientosOrdenados = Nothing
+            listaVentas = Nothing
+            deudaVencida = 0
         End If
     End Sub
     <DllImport("shell32")>
