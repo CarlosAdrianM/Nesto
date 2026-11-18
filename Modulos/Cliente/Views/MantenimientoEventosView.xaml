@@ -9,6 +9,7 @@
              xmlns:modelos="clr-namespace:Nesto.Modulos.Cliente.Models"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:escaner="clr-namespace:ControlesUsuario.EscanerRemoto;assembly=ControlesUsuario"
+             xmlns:globos="clr-namespace:ControlesUsuario.Globos;assembly=ControlesUsuario"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1200"
              Background="White">
@@ -228,7 +229,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding TextoDosier}" TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Foreground="DimGray"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <Button Content="Subir dosier…" Command="{Binding SubirDosierCommand}" Padding="8,1"
+                                        <Button globos:Globo.Ancla="MantenimientoEventos.Dosier" Content="Subir dosier…" Command="{Binding SubirDosierCommand}" Padding="8,1"
                                                 ToolTip="PDF de hasta 10 MB. Si ya hay uno, lo sustituye (si ya lo había recibido alguna, se pregunta si se le reenvía). Primero hay que guardar el evento"/>
                                         <Button Content="Abrir" Command="{Binding AbrirDosierCommand}" Padding="8,1" Margin="6,0,0,0"/>
                                         <Button Content="Quitar" Command="{Binding QuitarDosierCommand}" Padding="8,1" Margin="6,0,0,0"

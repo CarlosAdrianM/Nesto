@@ -787,7 +787,7 @@
                             <StackPanel Orientation="Horizontal" Margin="3,0">
                                 <TextBlock Text="Servir:" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                 <!-- Nesto#484: los modos sin sentido para el pedido salen deshabilitados con su motivo. -->
-                                <ComboBox ItemsSource="{Binding OpcionesModoServicio}"
+                                <ComboBox globos:Globo.Ancla="PlantillaVenta.ModoServicio" ItemsSource="{Binding OpcionesModoServicio}"
                                           DisplayMemberPath="Nombre"
                                           SelectedValuePath="Codigo"
                                           SelectedValue="{Binding ModoServicio, Mode=TwoWay}"
