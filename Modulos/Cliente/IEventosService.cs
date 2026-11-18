@@ -52,6 +52,13 @@ namespace Nesto.Modulos.Cliente
         Task<EventoModel> SubirImagen(int eventoId, string ruta);
         Task BorrarImagen(int eventoId);
 
+        // Sugerencia 1332 (Reina): el dosier (PDF) del evento, que sale solo por correo 2 horas antes
+        /// <summary>Sube (o sustituye) el PDF. Devuelve cómo queda.</summary>
+        Task<DosierEventoModel> SubirDosier(int eventoId, string ruta);
+        /// <summary>El PDF (para abrirlo), o null si no tiene.</summary>
+        Task<byte[]> DescargarDosier(int eventoId);
+        Task BorrarDosier(int eventoId);
+
         // Nesto#545 (NestoAPI#692): anunciar el evento en las apps (push a NestoApp y a la tienda online).
 
         /// <summary>Los reclamos que propone la API para volver a anunciar («¡Últimas plazas disponibles!»…).</summary>

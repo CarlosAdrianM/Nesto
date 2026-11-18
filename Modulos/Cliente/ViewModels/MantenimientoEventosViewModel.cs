@@ -79,6 +79,10 @@ namespace Nesto.Modulos.Cliente
                 () => TieneAcceso && InscripcionSeleccionada?.SePuedeConfirmarAsistencia == true);
             SubirImagenCommand = new AsyncRelayCommand(SubirImagenAsync, () => SePuedeEditar && _idEdicion > 0);
             QuitarImagenCommand = new AsyncRelayCommand(QuitarImagenAsync, () => SePuedeEditar && _idEdicion > 0 && !string.IsNullOrWhiteSpace(ImagenUrl));
+            // Sugerencia 1332: el dosier, quien mantiene el evento (como guardarlo)
+            SubirDosierCommand = new AsyncRelayCommand(SubirDosierAsync, () => SePuedeEditar && _idEdicion > 0);
+            AbrirDosierCommand = new AsyncRelayCommand(AbrirDosierAsync, () => SePuedeEditar && _idEdicion > 0 && Dosier != null);
+            QuitarDosierCommand = new AsyncRelayCommand(QuitarDosierAsync, () => SePuedeEditar && _idEdicion > 0 && Dosier != null);
             MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeMarcarPagada == true);
             FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
@@ -557,8 +561,16 @@ namespace Nesto.Modulos.Cliente
                     SubirImagenCommand?.NotifyCanExecuteChanged();
                     CrearProductoCursoCommand?.NotifyCanExecuteChanged();
                     QuitarImagenCommand?.NotifyCanExecuteChanged();
+                    NotificarComandosDosier();
                 }
             }
+        }
+
+        private void NotificarComandosDosier()
+        {
+            SubirDosierCommand?.NotifyCanExecuteChanged();
+            AbrirDosierCommand?.NotifyCanExecuteChanged();
+            QuitarDosierCommand?.NotifyCanExecuteChanged();
         }
 
         public bool EsNuevo => Editando && _idEdicion == 0;
@@ -786,6 +798,155 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        // ---------------- Sugerencia 1332 (Reina): dosier del evento ----------------
+
+        private DosierEventoModel _dosier;
+        /// <summary>El dosier (PDF) del evento en la ficha; null si no tiene.</summary>
+        public DosierEventoModel Dosier
+        {
+            get => _dosier;
+            private set
+            {
+                if (SetProperty(ref _dosier, value))
+                {
+                    OnPropertyChanged(nameof(TextoDosier));
+                    AbrirDosierCommand?.NotifyCanExecuteChanged();
+                    QuitarDosierCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        public const string SIN_DOSIER = "Sin dosier. Si sube un PDF, sale solo por correo a todas las inscritas unas 2 horas antes de empezar.";
+
+        /// <summary>Lo que se ve en la ficha: el PDF, cuándo se subió, cuándo sale y a cuántas ha llegado.</summary>
+        public string TextoDosier => Dosier == null ? SIN_DOSIER : Dosier.Texto(Ahora());
+
+        /// <summary>El reloj (sustituible en los tests).</summary>
+        public Func<DateTime> Ahora { get; set; } = () => DateTime.Now;
+
+        /// <summary>Elige el PDF del dosier (null = cancelado). Sustituible en los tests.</summary>
+        public Func<string> ElegirDosier { get; set; } = ElegirDosierWpf;
+
+        private static string ElegirDosierWpf()
+        {
+            var dialogo = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Dosier del evento",
+                Filter = "PDF (*.pdf)|*.pdf"
+            };
+            return dialogo.ShowDialog() == true ? dialogo.FileName : null;
+        }
+
+        /// <summary>Abre el PDF descargado con el programa de Windows (sustituible en los tests): (bytes, nombre).</summary>
+        public Action<byte[], string> AbrirPdf { get; set; } = AbrirPdfConWindows;
+
+        private static void AbrirPdfConWindows(byte[] contenido, string nombre)
+        {
+            string carpeta = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "NestoDosieres");
+            _ = System.IO.Directory.CreateDirectory(carpeta);
+            string limpio = string.Concat((string.IsNullOrWhiteSpace(nombre) ? "dosier.pdf" : nombre.Trim())
+                .Select(c => System.IO.Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+            string ruta = System.IO.Path.Combine(carpeta, $"{DateTime.Now:yyyyMMddHHmmss}_{limpio}");
+            System.IO.File.WriteAllBytes(ruta, contenido);
+            _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+        }
+
+        public AsyncRelayCommand SubirDosierCommand { get; }
+        public AsyncRelayCommand AbrirDosierCommand { get; }
+        public AsyncRelayCommand QuitarDosierCommand { get; }
+
+        /// <summary>Sube (o sustituye) el PDF del dosier. Quien mantiene el evento (la API lo vuelve a comprobar).</summary>
+        public async Task SubirDosierAsync()
+        {
+            if (_idEdicion <= 0)
+            {
+                return;
+            }
+            string ruta = ElegirDosier?.Invoke();
+            if (string.IsNullOrWhiteSpace(ruta))
+            {
+                return;
+            }
+            if (Dosier != null && Dosier.Enviados > 0
+                && !_dialogService.ShowConfirmationAnswer("Sustituir dosier",
+                    $"El dosier ya ha llegado a {Dosier.Enviados} inscritas y el nuevo no se les reenvía (solo lo recibirán las que aún no lo tengan). ¿Lo sustituye?"))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                DosierEventoModel subido = await _servicio.SubirDosier(_idEdicion, ruta);
+                Dosier = subido;
+                if (Seleccionado != null && Seleccionado.Id == _idEdicion)
+                {
+                    Seleccionado.Dosier = subido;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public async Task AbrirDosierAsync()
+        {
+            if (_idEdicion <= 0 || Dosier == null)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                byte[] contenido = await _servicio.DescargarDosier(_idEdicion);
+                if (contenido == null || contenido.Length == 0)
+                {
+                    _dialogService.ShowError("Este evento ya no tiene dosier. Pulse «Recargar».");
+                    return;
+                }
+                AbrirPdf?.Invoke(contenido, Dosier.Nombre);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public async Task QuitarDosierAsync()
+        {
+            if (_idEdicion <= 0 || Dosier == null
+                || !_dialogService.ShowConfirmationAnswer("Quitar dosier", "¿Quita el dosier del evento? Ya no se mandará a nadie más."))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await _servicio.BorrarDosier(_idEdicion);
+                Dosier = null;
+                if (Seleccionado != null && Seleccionado.Id == _idEdicion)
+                {
+                    Seleccionado.Dosier = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
         /// <summary>«10:00», «9:30» → la hora; vacío → null. False si no se entiende.</summary>
         public static bool LeerHora(string texto, out TimeSpan? hora)
         {
@@ -873,6 +1034,7 @@ namespace Nesto.Modulos.Cliente
             HoraFinEdicion = null;
             PonenteEdicion = null;
             ImagenUrl = null;
+            Dosier = null;
             ActivoEdicion = true;
             TiendaEdicion = TiendaPorCodigo(TiendaEvento.EsTiendaDeEventos(_almacenUsuario) ? _almacenUsuario : null);
             FormatoEdicion = Formatos[0];
@@ -888,6 +1050,7 @@ namespace Nesto.Modulos.Cliente
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
             CrearProductoCursoCommand.NotifyCanExecuteChanged();
+            NotificarComandosDosier();
             AvisarCambioCoste();
         }
 
@@ -916,12 +1079,14 @@ namespace Nesto.Modulos.Cliente
             ImporteSenalNoReembolsableEdicion = evento.ImporteSenalNoReembolsable;
             PedidoMinimoCuponEdicion = evento.PedidoMinimoCupon ?? 0;
             ImagenUrl = string.IsNullOrWhiteSpace(evento.ImagenUrl) ? null : evento.ImagenUrl.Trim();
+            Dosier = evento.Dosier;
             PonerEstadoAnuncio(evento);
             Editando = true;
             OnPropertyChanged(nameof(EsNuevo));
             SubirImagenCommand.NotifyCanExecuteChanged();
             QuitarImagenCommand.NotifyCanExecuteChanged();
             CrearProductoCursoCommand.NotifyCanExecuteChanged();
+            NotificarComandosDosier();
             AvisarCambioCoste();
         }
 

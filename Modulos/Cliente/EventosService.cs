@@ -235,6 +235,48 @@ namespace Nesto.Modulos.Cliente
             _ = await Enviar(c => c.DeleteAsync($"Eventos/{eventoId}/Imagen"), "No se pudo quitar la imagen del evento");
         }
 
+        // ---------------- Sugerencia 1332: dosier del evento ----------------
+
+        public async Task<DosierEventoModel> SubirDosier(int eventoId, string ruta)
+        {
+            byte[] bytes = await File.ReadAllBytesAsync(ruta);
+            string body = await Enviar(c =>
+            {
+                var contenido = new MultipartFormDataContent();
+                var fichero = new ByteArrayContent(bytes);
+                fichero.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+                contenido.Add(fichero, "fichero", Path.GetFileName(ruta));
+                return c.PostAsync($"Eventos/{eventoId}/Dosier", contenido);
+            }, "No se pudo subir el dosier del evento", mensajeTalCual: true);
+            return JsonConvert.DeserializeObject<DosierEventoModel>(body);
+        }
+
+        public async Task<byte[]> DescargarDosier(int eventoId)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(configuracion.servidorAPI);
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+            HttpResponseMessage response = await client.GetAsync($"Eventos/{eventoId}/Dosier");
+            if ((int)response.StatusCode == 404)
+            {
+                return null;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(MensajeError((int)response.StatusCode, await response.Content.ReadAsStringAsync(), "No se pudo abrir el dosier del evento", talCual: true));
+            }
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+
+        public async Task BorrarDosier(int eventoId)
+        {
+            _ = await Enviar(c => c.DeleteAsync($"Eventos/{eventoId}/Dosier"), "No se pudo quitar el dosier del evento",
+                vacioSiNoExiste: true, mensajeTalCual: true);
+        }
+
         /// <summary>El tipo MIME por la extensión (la API acepta PNG, JPEG, GIF y WebP).</summary>
         public static string TipoImagen(string ruta)
         {

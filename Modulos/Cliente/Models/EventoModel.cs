@@ -80,6 +80,10 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string EnlaceOnline { get; set; }
 
+        /// <summary>Sugerencia 1332: solo lectura. El dosier (PDF) del evento; null si no tiene (o con la API de antes). No se manda.</summary>
+        public DosierEventoModel Dosier { get; set; }
+        public bool ShouldSerializeDosier() => false;
+
         [JsonIgnore]
         public bool EsOnline => string.Equals(Formato?.Trim(), FORMATO_ONLINE, StringComparison.OrdinalIgnoreCase);
 
@@ -189,6 +193,43 @@ namespace Nesto.Modulos.Cliente.Models
         /// <summary>«3 / 12», «3» si no hay límite (columna de la lista).</summary>
         [JsonIgnore]
         public string TextoPlazas => Plazas.HasValue ? $"{PlazasOcupadas} / {Plazas.Value}" : PlazasOcupadas.ToString();
+    }
+
+    /// <summary>
+    /// Sugerencia 1332 (Reina; Carlos 18/11/26): el dosier (PDF) del evento (DosierEventoDTO de la API). Sale solo por correo a todas
+    /// las inscritas vivas unas 2 horas antes de empezar, una vez cada una.
+    /// </summary>
+    public class DosierEventoModel
+    {
+        public int EventoId { get; set; }
+        public string Nombre { get; set; }
+        public int Tamano { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Usuario { get; set; }
+        /// <summary>Cuándo sale solo (hora de Madrid); null si el evento ya ha pasado.</summary>
+        public DateTime? EnvioPrevisto { get; set; }
+        /// <summary>A cuántas inscripciones les ha llegado ya.</summary>
+        public int Enviados { get; set; }
+
+        /// <summary>
+        /// «Dosier Peeling.pdf (subido el 18/11 a las 10:15). Sale solo el 20/11 a las 15:00.» o «… Enviado a 12 inscritas.».
+        /// <paramref name="ahora"/> para saber si ya ha salido.
+        /// </summary>
+        public string Texto(DateTime ahora)
+        {
+            string texto = $"{Nombre?.Trim()} (subido el {Fecha:dd/MM} a las {Fecha:HH:mm}).";
+            if (Enviados > 0)
+            {
+                texto += Enviados == 1 ? " Enviado a 1 inscrita." : $" Enviado a {Enviados} inscritas.";
+            }
+            if (EnvioPrevisto.HasValue)
+            {
+                texto += EnvioPrevisto.Value > ahora
+                    ? $" Sale solo el {EnvioPrevisto.Value:dd/MM} a las {EnvioPrevisto.Value:HH:mm}."
+                    : " Les llega a quienes se inscriban ahora.";
+            }
+            return texto;
+        }
     }
 
     /// <summary>Nesto#567 (NestoAPI#732): un producto que hay que haber comprado o pedido para apuntarse (EventoDTO.ProductosRequeridos).</summary>
