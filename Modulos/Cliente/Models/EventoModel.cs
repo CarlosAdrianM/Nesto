@@ -72,6 +72,14 @@ namespace Nesto.Modulos.Cliente.Models
         /// </summary>
         public string Formato { get; set; }
 
+        /// <summary>
+        /// NestoAPI#875: el enlace de la conexión online (Teams, Zoom…), aparte de «Lugar». La API solo lo devuelve a quien puede
+        /// verlo (Tiendas, Administración, Dirección e Informática) y solo se lo acepta a ellos. Null = no se manda (no se toca);
+        /// "" lo quita. Si está vacío, a las inscritas les llega la dirección web de «Lugar», como antes.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string EnlaceOnline { get; set; }
+
         [JsonIgnore]
         public bool EsOnline => string.Equals(Formato?.Trim(), FORMATO_ONLINE, StringComparison.OrdinalIgnoreCase);
 

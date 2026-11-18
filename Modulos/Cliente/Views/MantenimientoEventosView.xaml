@@ -193,6 +193,14 @@
                                 <TextBox Text="{Binding LugarEdicion, UpdateSourceTrigger=PropertyChanged}" Width="320" MaxLength="100"
                                          VerticalContentAlignment="Center"/>
                             </StackPanel>
+                            <!-- NestoAPI#875 (Novedades 1193 de Reina): el enlace de Teams/Zoom, solo para Tiendas, Administración y Dirección -->
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                                        Visibility="{Binding VeEnlaceOnline, Converter={StaticResource BoolAVisibilidad}}">
+                                <TextBlock Text="Enlace de la conexión online:" VerticalAlignment="Center" Width="110" TextWrapping="Wrap"/>
+                                <xctk:WatermarkTextBox Text="{Binding EnlaceOnlineEdicion, UpdateSourceTrigger=PropertyChanged}" Width="320" MaxLength="500"
+                                                       VerticalContentAlignment="Center" Watermark="https://teams.microsoft.com/…"
+                                                       ToolTip="Enlace de la conexión online (Teams, Zoom…). Lo reciben las inscritas online en el recordatorio de 2 días antes; si se inscriben después, al momento, y si lo cambia, les llega el nuevo. Vacío: vale la dirección web que haya en «Lugar». Solo lo ven las tiendas, Administración y Dirección"/>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Text="Descripción:" VerticalAlignment="Top" Width="110"/>
                                 <TextBox Text="{Binding DescripcionLargaEdicion, UpdateSourceTrigger=PropertyChanged}" Width="320" Height="70"

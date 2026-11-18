@@ -150,6 +150,45 @@ namespace Nesto.Modulos.Cliente
         /// <summary>Puede crear y modificar eventos, marcar pagos, pasar lista… (si no, la pantalla es de consulta).</summary>
         public bool TieneAcceso => PuedeMantener(Configuracion);
 
+        /// <summary>
+        /// NestoAPI#875 (Carlos 17/11/26, «con un grupo»): quién ve y cambia el enlace de la conexión online: Tiendas, Administración,
+        /// Dirección e Informática. Gemela de PermisosEventos.PuedeVerEnlaceOnline de la API (que es la que manda: a los demás ni se
+        /// lo devuelve ni se lo acepta).
+        /// </summary>
+        public static bool PuedeVerEnlaceOnline(IConfiguracion configuracion) =>
+            configuracion != null && (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        /// <summary>NestoAPI#875: el campo «Enlace de la conexión online» solo se pinta a quien puede verlo.</summary>
+        public bool VeEnlaceOnline => PuedeVerEnlaceOnline(Configuracion);
+
+        private string _enlaceOnlineEdicion;
+        /// <summary>NestoAPI#875: el enlace de la conexión online del evento (vacío: vale la dirección web de «Lugar»).</summary>
+        public string EnlaceOnlineEdicion { get => _enlaceOnlineEdicion; set => SetProperty(ref _enlaceOnlineEdicion, value); }
+
+        public const string ERROR_ENLACE_ONLINE = "El enlace de la conexión online tiene que ser una dirección web completa, como https://teams.microsoft.com/…";
+
+        /// <summary>NestoAPI#875: vacío o una dirección web (http/https) sin espacios. La API lo vuelve a comprobar.</summary>
+        public static bool EnlaceOnlineValido(string enlace)
+        {
+            string limpio = enlace?.Trim();
+            if (string.IsNullOrEmpty(limpio))
+            {
+                return true;
+            }
+            return !limpio.Any(char.IsWhiteSpace) && limpio.Length <= 500
+                && Uri.TryCreate(limpio, UriKind.Absolute, out Uri uri)
+                && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+        }
+
+        /// <summary>
+        /// NestoAPI#875: lo que se manda: a quien no puede verlo, nada (null: no se toca); a quien puede, lo escrito o "" para
+        /// quitarlo.
+        /// </summary>
+        public string EnlaceOnlineParaGuardar() => VeEnlaceOnline ? (Limpiar(EnlaceOnlineEdicion) ?? string.Empty) : null;
+
         /// <summary>Nesto#619: sin permisos de mantenimiento, la pantalla es de consulta (con el aviso de qué puede hacer).</summary>
         public bool SoloConsulta => !TieneAcceso;
 
@@ -840,6 +879,7 @@ namespace Nesto.Modulos.Cliente
             ProductoCursoEdicion = null;
             PlazasEdicion = null;
             LugarEdicion = null;
+            EnlaceOnlineEdicion = null;
             DescripcionLargaEdicion = null;
             CargarProductosRequeridos(null);
             PonerEstadoAnuncio(null);
@@ -867,6 +907,7 @@ namespace Nesto.Modulos.Cliente
             ProductoCursoEdicion = evento.ProductoCurso?.Trim();
             PlazasEdicion = evento.Plazas;
             LugarEdicion = evento.Lugar;
+            EnlaceOnlineEdicion = evento.EnlaceOnline?.Trim();
             DescripcionLargaEdicion = evento.DescripcionLarga;
             CargarProductosRequeridos(evento);
             HoraInicioEdicion = evento.HoraInicio?.Trim();
@@ -947,6 +988,11 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("Las plazas tienen que ser más de cero (o ninguna, si no hay límite).");
                 return;
             }
+            if (VeEnlaceOnline && !EnlaceOnlineValido(EnlaceOnlineEdicion))
+            {
+                _dialogService.ShowError(ERROR_ENLACE_ONLINE);
+                return;
+            }
             string cambioModalidad = AvisoCambioDeModalidadConInscritos();
             if (cambioModalidad != null)
             {
@@ -977,6 +1023,7 @@ namespace Nesto.Modulos.Cliente
                     ProductoCurso = Limpiar(ProductoCursoEdicion),
                     Plazas = PlazasEdicion,
                     Lugar = Limpiar(LugarEdicion),
+                    EnlaceOnline = EnlaceOnlineParaGuardar(),
                     DescripcionLarga = Limpiar(DescripcionLargaEdicion),
                     HoraInicio = horaInicio.HasValue ? horaInicio.Value.ToString(@"hh\:mm") : null,
                     HoraFin = horaFin.HasValue ? horaFin.Value.ToString(@"hh\:mm") : null,
