@@ -47,6 +47,7 @@ namespace ClienteTests
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await vm.CargarAsync();
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "Formación por compra Lifting Coreano";
             vm.FechaEdicion = DateTime.Today.AddDays(20);
             return vm;
@@ -207,7 +208,7 @@ namespace ClienteTests
         public async Task EventoExistenteDePagoConProductos_AlGuardar_PideConfirmacion()
         {
             var existente = new EventoModel
-            {
+            { HoraInicio = "10:00",
                 Id = 9, Empresa = "1", Titulo = "Curso Lifting", Fecha = DateTime.Today.AddDays(20), Almacen = "ALC", Activo = true,
                 ImporteSenal = 100, ImporteSenalNoReembolsable = 60,
                 ProductosRequeridos = new List<ProductoRequeridoEventoModel> { new() { Producto = "45363", Nombre = "LIFTING COREANO" } }

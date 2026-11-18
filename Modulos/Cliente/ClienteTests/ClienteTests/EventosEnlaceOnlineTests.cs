@@ -49,7 +49,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Evento(string enlace) => new()
-        {
+        { HoraInicio = "10:00",
             Id = 5, Empresa = "1", Titulo = "Webinar Peeling", Fecha = DateTime.Today.AddDays(20), Almacen = "REI", Formato = EventoModel.FORMATO_ONLINE,
             Activo = true, ImporteSenal = 0, ImporteSenalNoReembolsable = 0, Lugar = "Online", EnlaceOnline = enlace
         };

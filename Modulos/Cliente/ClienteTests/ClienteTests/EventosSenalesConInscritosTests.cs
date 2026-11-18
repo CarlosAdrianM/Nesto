@@ -33,7 +33,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Viales(int ocupadas, decimal reembolsable = 400, decimal noReembolsable = 0) => new()
-        {
+        { HoraInicio = "10:00",
             Id = 6,
             Empresa = "1",
             Titulo = "Rentabiliza cada ML de tus viales",

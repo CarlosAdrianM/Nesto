@@ -53,8 +53,11 @@ namespace Nesto.Modulos.Cliente
         Task BorrarImagen(int eventoId);
 
         // Sugerencia 1332 (Reina): el dosier (PDF) del evento, que sale solo por correo 2 horas antes
-        /// <summary>Sube (o sustituye) el PDF. Devuelve cómo queda.</summary>
-        Task<DosierEventoModel> SubirDosier(int eventoId, string ruta);
+        /// <summary>
+        /// Sube (o sustituye) el PDF. Devuelve cómo queda. Con <paramref name="reenviar"/> (Carlos 18/11/26), si ya había salido, la
+        /// API se lo vuelve a mandar, como versión actualizada, a las que ya tenían el anterior.
+        /// </summary>
+        Task<DosierEventoModel> SubirDosier(int eventoId, string ruta, bool reenviar = false);
         /// <summary>El PDF (para abrirlo), o null si no tiene.</summary>
         Task<byte[]> DescargarDosier(int eventoId);
         Task BorrarDosier(int eventoId);

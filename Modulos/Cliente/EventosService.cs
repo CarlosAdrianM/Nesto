@@ -237,7 +237,7 @@ namespace Nesto.Modulos.Cliente
 
         // ---------------- Sugerencia 1332: dosier del evento ----------------
 
-        public async Task<DosierEventoModel> SubirDosier(int eventoId, string ruta)
+        public async Task<DosierEventoModel> SubirDosier(int eventoId, string ruta, bool reenviar = false)
         {
             byte[] bytes = await File.ReadAllBytesAsync(ruta);
             string body = await Enviar(c =>
@@ -246,7 +246,7 @@ namespace Nesto.Modulos.Cliente
                 var fichero = new ByteArrayContent(bytes);
                 fichero.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
                 contenido.Add(fichero, "fichero", Path.GetFileName(ruta));
-                return c.PostAsync($"Eventos/{eventoId}/Dosier", contenido);
+                return c.PostAsync($"Eventos/{eventoId}/Dosier" + (reenviar ? "?reenviar=true" : string.Empty), contenido);
             }, "No se pudo subir el dosier del evento", mensajeTalCual: true);
             return JsonConvert.DeserializeObject<DosierEventoModel>(body);
         }

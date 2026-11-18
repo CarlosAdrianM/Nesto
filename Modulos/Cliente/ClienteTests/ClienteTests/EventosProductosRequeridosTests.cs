@@ -49,7 +49,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Evento(List<ProductoRequeridoEventoModel> productos, string modo = null) => new()
-        {
+        { HoraInicio = "10:00",
             Id = 4, Empresa = "1", Titulo = "Formación por compra Lifting Coreano", Fecha = DateTime.Today.AddDays(20), Almacen = "ALC",
             Activo = true, Gratuito = true, ImporteSenal = 0, ImporteSenalNoReembolsable = 0,
             ProductosRequeridos = productos, ProductosRequeridosModo = modo

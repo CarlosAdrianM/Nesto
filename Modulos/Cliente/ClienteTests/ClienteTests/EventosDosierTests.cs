@@ -95,7 +95,7 @@ namespace ClienteTests
         {
             var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, null);
             vm.ElegirDosier = () => "C:\\dosier.pdf";
-            A.CallTo(() => eventos.SubirDosier(5, "C:\\dosier.pdf")).Returns(Dosier());
+            A.CallTo(() => eventos.SubirDosier(5, "C:\\dosier.pdf", false)).Returns(Dosier());
 
             await vm.SubirDosierAsync();
 
@@ -105,15 +105,83 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public async Task Sustituir_YaEnviado_PreguntaYSiDiceQueNoNoSube()
+        public async Task Sustituir_YaEnviado_PreguntaYSiCancelaNoSube()
         {
             var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, Dosier(3));
             vm.ElegirDosier = () => "C:\\nuevo.pdf";
-            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(false);
+            int preguntadoCon = 0;
+            vm.PreguntarReenvioDosier = n => { preguntadoCon = n; return null; };
 
             await vm.SubirDosierAsync();
 
-            A.CallTo(() => eventos.SubirDosier(A<int>._, A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual(3, preguntadoCon);
+            A.CallTo(() => eventos.SubirDosier(A<int>._, A<string>._, A<bool>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Sustituir_YaEnviado_SiReenviar_LoPideALaApi_SiNo_SoloALasQueNoLoTienen()
+        {
+            var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, Dosier(3));
+            vm.ElegirDosier = () => "C:\\nuevo.pdf";
+            A.CallTo(() => eventos.SubirDosier(5, "C:\\nuevo.pdf", A<bool>._)).Returns(Dosier(3));
+
+            vm.PreguntarReenvioDosier = n => true;
+            await vm.SubirDosierAsync();
+            A.CallTo(() => eventos.SubirDosier(5, "C:\\nuevo.pdf", true)).MustHaveHappenedOnceExactly();
+
+            vm.PreguntarReenvioDosier = n => false;
+            await vm.SubirDosierAsync();
+            A.CallTo(() => eventos.SubirDosier(5, "C:\\nuevo.pdf", false)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Sustituir_SinEnviar_NoPregunta()
+        {
+            var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, Dosier(0));
+            vm.ElegirDosier = () => "C:\\nuevo.pdf";
+            bool preguntado = false;
+            vm.PreguntarReenvioDosier = n => { preguntado = true; return true; };
+
+            await vm.SubirDosierAsync();
+
+            Assert.IsFalse(preguntado);
+            A.CallTo(() => eventos.SubirDosier(5, "C:\\nuevo.pdf", false)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void TextosDeLaPregunta()
+        {
+            Assert.AreEqual("Sí, reenviar a las 3 que ya lo tienen", MantenimientoEventosViewModel.TextoReenviarDosier(3));
+            Assert.AreEqual("Sí, reenviar a la que ya lo tiene", MantenimientoEventosViewModel.TextoReenviarDosier(1));
+            StringAssert.Contains(MantenimientoEventosViewModel.PreguntaSustituirDosier(3), "ya les ha llegado a 3 inscritas");
+        }
+
+        [TestMethod]
+        public async Task Guardar_SinHoraDeInicio_NoSeGuarda()
+        {
+            var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, null);
+            vm.NuevoCommand.Execute(null);
+            vm.TituloEdicion = "Masterclass sin hora";
+            vm.FechaEdicion = AHORA.Date.AddDays(3);
+            vm.HoraInicioEdicion = null;
+
+            await vm.GuardarAsync();
+
+            CollectionAssert.Contains(errores, MantenimientoEventosViewModel.FALTA_HORA_INICIO);
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Guardar_EventoPasadoSinHora_SeGuarda()
+        {
+            var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, null);
+            vm.FechaEdicion = AHORA.Date.AddDays(-10);
+            vm.HoraInicioEdicion = null;
+
+            await vm.GuardarAsync();
+
+            CollectionAssert.DoesNotContain(errores, MantenimientoEventosViewModel.FALTA_HORA_INICIO);
+            A.CallTo(() => eventos.GuardarEvento(A<EventoModel>._)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

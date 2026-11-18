@@ -49,7 +49,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Evento(decimal? pedidoMinimo) => new()
-        {
+        { HoraInicio = "10:00",
             Id = 5, Empresa = "1", Titulo = "Curso Peeling", Fecha = DateTime.Today.AddDays(20), Almacen = "REI",
             Activo = true, ImporteSenal = 100, ImporteSenalNoReembolsable = 60, PedidoMinimoCupon = pedidoMinimo
         };
@@ -92,6 +92,7 @@ namespace ClienteTests
             var vm = await Mantenimiento(Evento(200));
 
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
 
             Assert.AreEqual(0M, vm.PedidoMinimoCuponEdicion);
         }

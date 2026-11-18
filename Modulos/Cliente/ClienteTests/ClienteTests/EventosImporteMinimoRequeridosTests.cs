@@ -50,7 +50,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Viales(decimal? importeMinimo) => new()
-        {
+        { HoraInicio = "10:00",
             Id = 6, Empresa = "1", Titulo = "Rentabiliza cada ML de tus viales", Fecha = DateTime.Today.AddDays(20), Almacen = "REI",
             Activo = true, ImporteSenal = 0, ImporteSenalNoReembolsable = 0, PedidoMinimoCupon = 0,
             ProductosRequeridos = new List<ProductoRequeridoEventoModel>
@@ -150,6 +150,7 @@ namespace ClienteTests
             var vm = await Mantenimiento(Viales(400));
 
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
 
             Assert.IsNull(vm.ImporteMinimoProductosRequeridosEdicion);
             Assert.IsFalse(vm.HayProductosRequeridos);

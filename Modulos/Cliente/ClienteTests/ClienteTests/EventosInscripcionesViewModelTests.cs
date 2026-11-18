@@ -36,7 +36,7 @@ namespace ClienteTests
         }
 
         private static EventoModel Evento(int id, DateTime fecha, string almacen = "REI") =>
-            new() { Id = id, Empresa = "1", Titulo = "Masterclass Cloasma", Fecha = fecha, ImporteSenal = 50, Activo = true, Almacen = almacen };
+            new() { HoraInicio = "10:00", Id = id, Empresa = "1", Titulo = "Masterclass Cloasma", Fecha = fecha, ImporteSenal = 50, Activo = true, Almacen = almacen };
 
         private static InscripcionEventoModel Inscripcion(int id, string estado, FacturacionCursoModel facturacion = null) =>
             new()
@@ -66,6 +66,7 @@ namespace ClienteTests
             await vm.CargarAsync();
 
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "Masterclass Cloasma";
             vm.FechaEdicion = DateTime.Today.AddDays(10);
             vm.ImporteSenalEdicion = 50;
@@ -87,12 +88,14 @@ namespace ClienteTests
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await vm.CargarAsync();
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             Assert.AreEqual("REI", vm.TiendaEdicion.Codigo);
 
             A.CallTo(() => configuracion.leerParametro(A<string>.Ignored, Parametros.Claves.AlmacenPedidoVta)).Returns("ALG");
             var otro = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await otro.CargarAsync();
             otro.NuevoCommand.Execute(null);
+            otro.HoraInicioEdicion = "10:00";
             Assert.IsNull(otro.TiendaEdicion, "Algete no hace eventos: hay que elegir la tienda");
         }
 
@@ -103,6 +106,7 @@ namespace ClienteTests
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await vm.CargarAsync();
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "Webinar Cloasma";
             vm.FormatoEdicion = vm.Formatos.Single(f => f.Valor == EventoModel.FORMATO_ONLINE);
 
@@ -119,6 +123,7 @@ namespace ClienteTests
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             await vm.CargarAsync();
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             Assert.AreEqual(EventoModel.FORMATO_PRESENCIAL, vm.FormatoEdicion.Valor);
             Assert.AreEqual("Online (webinar)", vm.Formatos.Single(f => f.Valor == EventoModel.FORMATO_ONLINE).Texto);
 
@@ -165,6 +170,7 @@ namespace ClienteTests
         {
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             A.CallTo(() => eventos.LeerProductoCurso("NOEXISTE")).Returns(Task.FromResult<ProductoCursoModel>(null));
             vm.ProductoCursoEdicion = "NOEXISTE";
             await vm.ComprobarProductoAsync();
@@ -186,6 +192,7 @@ namespace ClienteTests
         {
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             A.CallTo(() => eventos.LeerProductoCurso("12345")).Returns(new ProductoCursoModel { Producto = "12345", Nombre = "Crema", Iva = "G21", Grupo = "COS" });
             vm.ProductoCursoEdicion = "12345";
             await vm.ComprobarProductoAsync();
@@ -433,6 +440,7 @@ namespace ClienteTests
             await vm.CargarAsync();
 
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             await vm.CrearProductoCursoAsync();
 
             Assert.IsFalse(vm.CrearProductoCursoCommand.CanExecute(null));
@@ -769,6 +777,7 @@ namespace ClienteTests
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored)).ReturnsLazily((EventoModel e) => e);
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             Assert.AreEqual(100, vm.ImporteSenalEdicion);
             Assert.AreEqual(60, vm.ImporteSenalNoReembolsableEdicion);
 
@@ -789,6 +798,7 @@ namespace ClienteTests
         {
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "X";
             vm.TiendaEdicion = vm.Tiendas[0]; // la tienda es obligatoria (Carlos 22/10/26)
             vm.HoraInicioEdicion = "las diez";

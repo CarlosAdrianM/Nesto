@@ -34,7 +34,7 @@ namespace ClienteTests
         private void EnGrupo(string grupo) => A.CallTo(() => configuracion.UsuarioEnGrupo(grupo)).Returns(true);
 
         private static EventoModel Evento(int id, string titulo, DateTime fecha) =>
-            new() { Id = id, Empresa = "1", Titulo = titulo, Fecha = fecha, ImporteSenal = 50, Activo = true };
+            new() { HoraInicio = "10:00", Id = id, Empresa = "1", Titulo = titulo, Fecha = fecha, ImporteSenal = 50, Activo = true };
 
         private static ExtractoClienteModel Apunte(int id, decimal pendiente) =>
             new() { Id = id, Empresa = "1", Cliente = "15191", Contacto = "0", Concepto = "S/Pago a cuenta curso", Importe = pendiente, ImportePendiente = pendiente };
@@ -65,11 +65,12 @@ namespace ClienteTests
         {
             EnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
             A.CallTo(() => eventos.GuardarEvento(A<EventoModel>.Ignored))
-                .ReturnsLazily((EventoModel e) => new EventoModel { Id = 7, Titulo = e.Titulo, Fecha = e.Fecha, ImporteSenal = e.ImporteSenal, Activo = e.Activo });
+                .ReturnsLazily((EventoModel e) => new EventoModel { HoraInicio = "10:00", Id = 7, Titulo = e.Titulo, Fecha = e.Fecha, ImporteSenal = e.ImporteSenal, Activo = e.Activo });
             A.CallTo(() => eventos.LeerEventos(false)).Returns(new List<EventoModel> { Evento(7, "Masterclass Cloasma", new DateTime(2026, 10, 13)) });
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
 
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "  Masterclass Cloasma ";
             vm.FechaEdicion = new DateTime(2026, 10, 13, 10, 0, 0);
             vm.ImporteSenalEdicion = 50;
@@ -107,6 +108,7 @@ namespace ClienteTests
         {
             var vm = new MantenimientoEventosViewModel(eventos, configuracion, dialogos);
             vm.NuevoCommand.Execute(null);
+            vm.HoraInicioEdicion = "10:00";
             vm.TituloEdicion = "X";
             await vm.GuardarAsync(); // sin permiso
 

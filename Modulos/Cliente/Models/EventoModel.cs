@@ -196,8 +196,8 @@ namespace Nesto.Modulos.Cliente.Models
     }
 
     /// <summary>
-    /// Sugerencia 1332 (Reina; Carlos 18/11/26): el dosier (PDF) del evento (DosierEventoDTO de la API). Sale solo por correo a todas
-    /// las inscritas vivas unas 2 horas antes de empezar, una vez cada una.
+    /// Sugerencia 1332 (Reina; Carlos 18/11/26): el dosier (PDF) del evento (DosierEventoDTO de la API). Sale solo por correo a las
+    /// inscritas con la plaza formalizada (pagada o gratuita) unas 2 horas antes de empezar, una vez cada una.
     /// </summary>
     public class DosierEventoModel
     {
@@ -206,7 +206,7 @@ namespace Nesto.Modulos.Cliente.Models
         public int Tamano { get; set; }
         public DateTime Fecha { get; set; }
         public string Usuario { get; set; }
-        /// <summary>Cuándo sale solo (hora de Madrid); null si el evento ya ha pasado.</summary>
+        /// <summary>Cuándo sale solo (hora de Madrid); null si el evento ya ha pasado o no tiene hora de inicio.</summary>
         public DateTime? EnvioPrevisto { get; set; }
         /// <summary>A cuántas inscripciones les ha llegado ya.</summary>
         public int Enviados { get; set; }

@@ -40,7 +40,7 @@ namespace ClienteTests
 
         private static EventoModel Evento(bool completo, DateTime? anunciado = null, params string[] queFalta) =>
             new()
-            {
+            { HoraInicio = "10:00",
                 Id = 7, Empresa = "1", Titulo = "Masterclass Cloasma", Fecha = DateTime.Today.AddDays(10), ImporteSenal = 100,
                 Activo = true, Almacen = "REI", Completo = completo, QueFalta = queFalta.ToList(),
                 AnunciadoFecha = anunciado, AnunciadoUsuario = anunciado.HasValue ? "carlos" : null
@@ -183,7 +183,7 @@ namespace ClienteTests
         [TestMethod]
         public async Task ApiDeAntes_SinCompletoNiQueFalta_NoPreguntaNiEnsenaNada()
         {
-            var vm = await Mantenimiento(new EventoModel { Id = 7, Titulo = "Curso", Fecha = DateTime.Today.AddDays(3), Almacen = "REI" });
+            var vm = await Mantenimiento(new EventoModel { HoraInicio = "10:00", Id = 7, Titulo = "Curso", Fecha = DateTime.Today.AddDays(3), Almacen = "REI" });
 
             await vm.GuardarAsync();
 

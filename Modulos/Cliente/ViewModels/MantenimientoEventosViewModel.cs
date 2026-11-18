@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControlesUsuario.Services;
+using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
@@ -816,7 +817,35 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public const string SIN_DOSIER = "Sin dosier. Si sube un PDF, sale solo por correo a todas las inscritas unas 2 horas antes de empezar.";
+        public const string SIN_DOSIER = "Sin dosier. Si sube un PDF, sale solo por correo a las inscritas con la plaza pagada (o gratuita) unas 2 horas antes de empezar.";
+
+        /// <summary>El mismo texto que la API (ReglasHoraInicioEvento.MENSAJE_FALTA).</summary>
+        public const string FALTA_HORA_INICIO = "Falta la hora de inicio del evento: indique a qué hora vienen (o se conectan) las alumnas.";
+
+        public const string TITULO_SUSTITUIR_DOSIER = "Sustituir dosier";
+        public const string TEXTO_NO_REENVIAR_DOSIER = "No, solo a las que aún no lo han recibido";
+        public const string TEXTO_CANCELAR_DOSIER = "Cancelar";
+
+        /// <summary>«Sí, reenviar a las 3 que ya lo tienen» (en singular con 1).</summary>
+        public static string TextoReenviarDosier(int enviados) =>
+            enviados == 1 ? "Sí, reenviar a la que ya lo tiene" : $"Sí, reenviar a las {enviados} que ya lo tienen";
+
+        public static string PreguntaSustituirDosier(int enviados) =>
+            (enviados == 1 ? "El dosier ya le ha llegado a 1 inscrita." : $"El dosier ya les ha llegado a {enviados} inscritas.") +
+            " ¿Quiere mandarles también el nuevo? Les llegará como versión actualizada.";
+
+        /// <summary>
+        /// Carlos (18/11/26): al sustituir un dosier ya enviado, se pregunta si se reenvía a las que ya lo tienen. (enviados) → true
+        /// (reenviar), false (solo a las que no lo tienen) o null (cancelar). Sustituible en los tests.
+        /// </summary>
+        public Func<int, bool?> PreguntarReenvioDosier { get; set; }
+
+        private bool? PreguntarReenvioDosierWpf(int enviados)
+        {
+            ResultadoBoton respuesta = ConfirmacionConBotones.PreguntarTres(_dialogService, TITULO_SUSTITUIR_DOSIER, PreguntaSustituirDosier(enviados),
+                TextoReenviarDosier(enviados), TEXTO_NO_REENVIAR_DOSIER, TEXTO_CANCELAR_DOSIER);
+            return respuesta == ResultadoBoton.OK ? true : respuesta == ResultadoBoton.No ? false : (bool?)null;
+        }
 
         /// <summary>Lo que se ve en la ficha: el PDF, cuándo se subió, cuándo sale y a cuántas ha llegado.</summary>
         public string TextoDosier => Dosier == null ? SIN_DOSIER : Dosier.Texto(Ahora());
@@ -867,16 +896,20 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
-            if (Dosier != null && Dosier.Enviados > 0
-                && !_dialogService.ShowConfirmationAnswer("Sustituir dosier",
-                    $"El dosier ya ha llegado a {Dosier.Enviados} inscritas y el nuevo no se les reenvía (solo lo recibirán las que aún no lo tengan). ¿Lo sustituye?"))
+            bool reenviar = false;
+            if (Dosier != null && Dosier.Enviados > 0)
             {
-                return;
+                bool? respuesta = (PreguntarReenvioDosier ?? PreguntarReenvioDosierWpf)(Dosier.Enviados);
+                if (!respuesta.HasValue)
+                {
+                    return;
+                }
+                reenviar = respuesta.Value;
             }
             try
             {
                 EstaOcupado = true;
-                DosierEventoModel subido = await _servicio.SubirDosier(_idEdicion, ruta);
+                DosierEventoModel subido = await _servicio.SubirDosier(_idEdicion, ruta, reenviar);
                 Dosier = subido;
                 if (Seleccionado != null && Seleccionado.Id == _idEdicion)
                 {
@@ -1141,6 +1174,13 @@ namespace Nesto.Modulos.Cliente
             if (!LeerHora(HoraInicioEdicion, out TimeSpan? horaInicio) || !LeerHora(HoraFinEdicion, out TimeSpan? horaFin))
             {
                 _dialogService.ShowError("Escriba las horas como 10:00.");
+                return;
+            }
+            // Carlos (18/11/26): no puede haber eventos sin hora de inicio (la API lo exige igual). Un evento pasado se puede guardar
+            // sin ella (no se toca); uno nuevo o de hoy en adelante, no.
+            if (!horaInicio.HasValue && (EsNuevo || FechaEdicion.Value.Date >= Ahora().Date))
+            {
+                _dialogService.ShowError(FALTA_HORA_INICIO);
                 return;
             }
             if (horaInicio.HasValue && horaFin.HasValue && horaFin.Value <= horaInicio.Value)
