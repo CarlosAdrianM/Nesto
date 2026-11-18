@@ -1146,13 +1146,33 @@ Public Class AgenciaService
     ''' NestoAPI#870: «Ya está aquí»: la caja del envío devuelto/incidentado ha vuelto a Algete (POST api/EnviosAgencias/{id}/
     ''' HaVuelto, sin cuerpo; idempotente). Lanza con el «Message» de la API tal cual (404/409/503).
     ''' </summary>
-    Public Async Function MarcarHaVuelto(numeroEnvio As Integer) As Task(Of EnvioHaVueltoModel) Implements IAgenciaService.MarcarHaVuelto
+    Public Function MarcarHaVuelto(numeroEnvio As Integer) As Task(Of EnvioHaVueltoModel) Implements IAgenciaService.MarcarHaVuelto
+        Return PostHaVuelto(RutaHaVuelto(numeroEnvio), String.Empty)
+    End Function
+
+    ''' <summary>Sugerencia 1329: la ruta de la lectura (la misma que usa Ariadna en Entradas › F6).</summary>
+    Friend Const RUTA_HA_VUELTO_POR_LECTURA As String = "EnviosAgencias/HaVuelto"
+
+    ''' <summary>Sugerencia 1329: el cuerpo de la lectura, {"Codigo": "..."} (LecturaHaVueltoDTO de NestoAPI), sin espacios alrededor.</summary>
+    Friend Shared Function CuerpoHaVueltoPorLectura(codigo As String) As String
+        Return JsonConvert.SerializeObject(New With {Key .Codigo = If(codigo, String.Empty).Trim()})
+    End Function
+
+    ''' <summary>
+    ''' Sugerencia 1329: la caja de lectura de Agencias › Devueltos: código de barras de la etiqueta o número de envío
+    ''' (POST api/EnviosAgencias/HaVuelto). Idempotente. Lanza con el «Message» de la API tal cual (400/404/409/503).
+    ''' </summary>
+    Public Function MarcarHaVueltoPorLectura(codigo As String) As Task(Of EnvioHaVueltoModel) Implements IAgenciaService.MarcarHaVueltoPorLectura
+        Return PostHaVuelto(RUTA_HA_VUELTO_POR_LECTURA, CuerpoHaVueltoPorLectura(codigo))
+    End Function
+
+    Private Async Function PostHaVuelto(ruta As String, cuerpoPeticion As String) As Task(Of EnvioHaVueltoModel)
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
             End If
-            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
-            Dim response As HttpResponseMessage = Await client.PostAsync(RutaHaVuelto(numeroEnvio), content)
+            Dim content As HttpContent = New StringContent(cuerpoPeticion, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync(ruta, content)
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
             If Not response.IsSuccessStatusCode Then
                 Throw New Exception(MensajeErrorApi(cuerpo))

@@ -100,6 +100,10 @@ Public Interface IAgenciaService
     ' NestoAPI#870: «Ya está aquí»: la caja del envío devuelto/incidentado ha vuelto (POST api/EnviosAgencias/{id}/HaVuelto).
     ' Idempotente. Lanza con el Message de la API tal cual (404/409/503).
     Function MarcarHaVuelto(numeroEnvio As Integer) As Task(Of EnvioHaVueltoModel)
+    ' Sugerencia 1329: lo mismo desde la caja de lectura de Devueltos: el código de barras de la etiqueta (con o sin el número de
+    ' bulto) o el número de envío (POST api/EnviosAgencias/HaVuelto {Codigo}, el de Ariadna). Lanza con el Message de la API tal
+    ' cual (400 sin código, 404 no casa, 409 NO_HA_SALIDO / VARIOS_ENVIOS, 503 sin el script).
+    Function MarcarHaVueltoPorLectura(codigo As String) As Task(Of EnvioHaVueltoModel)
     ' Nesto#571 (NestoAPI#739), desde el 10/11/26 de cualquier agencia: la prueba de entrega del envío (GET api/EnviosAgencias/
     ' {id}/PruebaEntrega), con el documento (firma, albarán firmado o PDF) dentro. Disponible = False con el motivo si no la hay.
     ' Lanza con el motivo del servidor si falla (403 sin permiso, 404 si no existe).

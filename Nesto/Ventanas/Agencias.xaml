@@ -744,8 +744,38 @@
             <!-- NestoAPI#699 (corte 2): devueltos e incidentados de 60 días con la decisión (sin decidir primero). «Volver a enviar»
                  crea un envío nuevo del mismo pedido (NestoAPI#870: nace en Pendientes y no sale hasta que vuelva la caja); «Abonar»
                  solo lo apunta (el abono, con Copiar factura). NestoAPI#870: columna «Caja» y botón «Ya está aquí» (la caja ha vuelto). -->
+            <!-- Sugerencia 1329: por defecto solo lo que tiene algo por hacer (la API marca «Resuelto»), casilla para ver los resueltos
+                 y caja de lectura: el código de barras de la etiqueta o el número de envío + Intro marca que la caja ha vuelto
+                 (POST api/EnviosAgencias/HaVuelto, como Ariadna). Sin diálogos: el resultado sale debajo y la caja sigue con el foco. -->
             <TabItem Name="tabDevueltos" Header="Devueltos">
                 <DockPanel Background="White">
+                    <StackPanel DockPanel.Dock="Top" Margin="3">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Ha vuelto un paquete:" VerticalAlignment="Center" Margin="3,0"/>
+                            <TextBox Text="{Binding LecturaDevuelto, UpdateSourceTrigger=PropertyChanged}" Width="220" VerticalAlignment="Center" Margin="3"
+                                     ToolTip="Lea el código de barras de la etiqueta de la agencia (o teclee el número de envío) y pulse Intro: queda marcado que la caja ha vuelto.">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding LeerDevueltoCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <CheckBox Content="Ver también los resueltos" IsChecked="{Binding VerDevueltosResueltos}" VerticalAlignment="Center" Margin="12,0,3,0"
+                                      ToolTip="Resuelto: la caja ha vuelto, está decidido qué hacer y, si se reenvía, el reenvío ya ha salido."/>
+                            <TextBlock Text="{Binding TextoDevueltosResueltosOcultos}" Foreground="Gray" VerticalAlignment="Center" Margin="3,0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding MensajeLecturaDevuelto}" TextWrapping="Wrap" Margin="3,0,3,3">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#2E7D32"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LecturaDevueltoConError}" Value="True">
+                                            <Setter Property="Foreground" Value="#B34700"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
                         <Button Content="Actualizar lista" MinWidth="110" Margin="3" Command="{Binding CargarDevueltosCommand}"/>
                         <Button Content="Ya está aquí" MinWidth="110" Margin="3" Command="{Binding YaEstaAquiDevueltoCommand}"

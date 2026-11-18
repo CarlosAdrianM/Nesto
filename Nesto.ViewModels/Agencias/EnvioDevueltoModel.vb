@@ -51,6 +51,23 @@ Public Class EnvioDevueltoModel
     Public Property ComoHaVuelto As String
     Public Property ReenvioEsperandoCaja As Boolean
 
+    ''' <summary>
+    ''' Sugerencia 1329: lo calcula la API (ReglaDevueltoResuelto): la caja ha vuelto, hay decisión y, si es Reenviar, el reenvío ya
+    ''' está tramitado. No queda nada por hacer. Con una API anterior no llega y vale False (se ve todo, como antes).
+    ''' </summary>
+    Public Property Resuelto As Boolean
+
+    ''' <summary>
+    ''' Sugerencia 1329: lo que enseña la pestaña Devueltos: por defecto solo lo que tiene algo por hacer; con
+    ''' <paramref name="verResueltos"/>, todo. Conserva el orden de la API.
+    ''' </summary>
+    Public Shared Function Visibles(lista As IEnumerable(Of EnvioDevueltoModel), verResueltos As Boolean) As List(Of EnvioDevueltoModel)
+        If lista Is Nothing Then
+            Return New List(Of EnvioDevueltoModel)
+        End If
+        Return lista.Where(Function(d) d IsNot Nothing AndAlso (verResueltos OrElse Not d.Resuelto)).ToList()
+    End Function
+
     ''' <summary>NestoAPI#870: la columna «Caja»: esperando, ha vuelto (con día y hora) o nada.</summary>
     Public ReadOnly Property TextoCaja As String
         Get

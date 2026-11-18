@@ -4737,19 +4737,166 @@ Public Class AgenciasViewModel
         End If
     End Function
 
-    Friend Async Function CargarDevueltos() As Task
+    ''' <param name="numeroASeleccionar">El envío que se quiere dejar seleccionado (si se ve); sin él, el que ya lo estaba.</param>
+    ''' <param name="errorEnDialogo">False desde la caja de lectura: el fallo va al mensaje de la caja, sin diálogo que obligue a soltar el lector.</param>
+    Friend Async Function CargarDevueltos(Optional numeroASeleccionar As Integer? = Nothing, Optional errorEnDialogo As Boolean = True) As Task
         If empresaSeleccionada Is Nothing Then
             Return
         End If
-        Dim numeroSeleccionado As Integer? = DevueltoSeleccionado?.Numero
+        Dim numeroSeleccionado As Integer? = If(numeroASeleccionar, DevueltoSeleccionado?.Numero)
         Try
             Dim lista As List(Of EnvioDevueltoModel) = Await _servicio.CargarListaDevueltos(empresaSeleccionada.Número)
-            listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel)(If(lista, New List(Of EnvioDevueltoModel)))
-            DevueltoSeleccionado = If(listaDevueltos.FirstOrDefault(Function(d) numeroSeleccionado.HasValue AndAlso d.Numero = numeroSeleccionado.Value),
-                                      listaDevueltos.FirstOrDefault())
+            _todosDevueltos = If(lista, New List(Of EnvioDevueltoModel))
+            AplicarFiltroDevueltos(numeroSeleccionado)
         Catch ex As Exception
-            listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel)
-            _dialogService.ShowError("No se pudieron cargar los envíos devueltos: " & ex.Message)
+            _todosDevueltos = New List(Of EnvioDevueltoModel)
+            AplicarFiltroDevueltos(Nothing)
+            Dim texto As String = "No se pudieron cargar los envíos devueltos: " & ex.Message
+            If errorEnDialogo Then
+                _dialogService.ShowError(texto)
+            Else
+                LecturaDevueltoConError = True
+                MensajeLecturaDevuelto = texto
+            End If
+        End Try
+    End Function
+
+    ' ===== Sugerencia 1329: por defecto solo lo que tiene algo por hacer =====
+    ' La API trae todos los devueltos con «Resuelto» (caja aquí + decisión + reenvío ya tramitado). La pestaña oculta los resueltos
+    ' salvo con la casilla «Ver también los resueltos».
+
+    Private _todosDevueltos As List(Of EnvioDevueltoModel) = New List(Of EnvioDevueltoModel)
+
+    Private _verDevueltosResueltos As Boolean
+    Public Property VerDevueltosResueltos As Boolean
+        Get
+            Return _verDevueltosResueltos
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_verDevueltosResueltos, value) Then
+                AplicarFiltroDevueltos(DevueltoSeleccionado?.Numero)
+            End If
+        End Set
+    End Property
+
+    Private _textoDevueltosResueltosOcultos As String
+    ''' <summary>«3 resueltos ocultos» al lado de la casilla; vacío si no se oculta ninguno.</summary>
+    Public Property TextoDevueltosResueltosOcultos As String
+        Get
+            Return _textoDevueltosResueltosOcultos
+        End Get
+        Private Set(value As String)
+            Dim unused = SetProperty(_textoDevueltosResueltosOcultos, value)
+        End Set
+    End Property
+
+    Friend Shared Function TextoResueltosOcultos(ocultos As Integer) As String
+        If ocultos <= 0 Then
+            Return String.Empty
+        End If
+        Return If(ocultos = 1, "1 resuelto oculto", $"{ocultos} resueltos ocultos")
+    End Function
+
+    Private Sub AplicarFiltroDevueltos(numeroSeleccionado As Integer?)
+        Dim visibles As List(Of EnvioDevueltoModel) = EnvioDevueltoModel.Visibles(_todosDevueltos, VerDevueltosResueltos)
+        listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel)(visibles)
+        TextoDevueltosResueltosOcultos = TextoResueltosOcultos(_todosDevueltos.Count - visibles.Count)
+        DevueltoSeleccionado = If(listaDevueltos.FirstOrDefault(Function(d) numeroSeleccionado.HasValue AndAlso d.Numero = numeroSeleccionado.Value),
+                                  listaDevueltos.FirstOrDefault())
+    End Sub
+
+    ' ===== Sugerencia 1329: caja de lectura en Devueltos =====
+    ' Se lee (o teclea) el código de barras de la etiqueta o el número del envío y, con Intro, POST api/EnviosAgencias/HaVuelto
+    ' {Codigo} (el mismo de Ariadna). Sin diálogos: el resultado va en un mensaje debajo, la caja se vacía y sigue con el foco
+    ' (no se toca EstaOcupado, cuyo indicador taparía la ventana y se llevaría el foco) para leer el siguiente.
+
+    Private ReadOnly _semaforoLecturaDevuelto As New System.Threading.SemaphoreSlim(1, 1)
+
+    Private _lecturaDevuelto As String
+    Public Property LecturaDevuelto As String
+        Get
+            Return _lecturaDevuelto
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_lecturaDevuelto, value)
+        End Set
+    End Property
+
+    Private _mensajeLecturaDevuelto As String
+    Public Property MensajeLecturaDevuelto As String
+        Get
+            Return _mensajeLecturaDevuelto
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_mensajeLecturaDevuelto, value)
+        End Set
+    End Property
+
+    Private _lecturaDevueltoConError As Boolean
+    Public Property LecturaDevueltoConError As Boolean
+        Get
+            Return _lecturaDevueltoConError
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_lecturaDevueltoConError, value)
+        End Set
+    End Property
+
+    Private _leerDevueltoCommand As RelayCommand
+    Public ReadOnly Property LeerDevueltoCommand As RelayCommand
+        Get
+            If _leerDevueltoCommand Is Nothing Then
+                _leerDevueltoCommand = New RelayCommand(AddressOf OnLeerDevuelto)
+            End If
+            Return _leerDevueltoCommand
+        End Get
+    End Property
+
+    Private Async Sub OnLeerDevuelto()
+        Await LeerDevuelto()
+    End Sub
+
+    ''' <summary>El mensaje corto tras una lectura correcta: el de la API (envío, cliente, si ya estaba, si tenía reenvío esperando).</summary>
+    Friend Shared Function TextoLecturaCorrecta(codigo As String, respuesta As EnvioHaVueltoModel) As String
+        If respuesta Is Nothing Then
+            Return $"{codigo}: queda marcado que la caja ha vuelto."
+        End If
+        If Not String.IsNullOrWhiteSpace(respuesta.Mensaje) Then
+            Return respuesta.Mensaje.Trim()
+        End If
+        Return If(respuesta.YaEstabaMarcado,
+                  $"Ya estaba marcado: la caja del envío {respuesta.Envio} ya había vuelto.",
+                  $"La caja del envío {respuesta.Envio} ha vuelto al almacén.")
+    End Function
+
+    ''' <summary>Una lectura de la caja: marca, enseña el resultado, vacía la caja y actualiza la lista. Friend para los tests.</summary>
+    Friend Async Function LeerDevuelto() As Task
+        Dim codigo As String = If(LecturaDevuelto, String.Empty).Trim()
+        LecturaDevuelto = String.Empty
+        If codigo = String.Empty Then
+            Return
+        End If
+        ' Una lectura detrás de otra: el lector puede disparar la siguiente antes de que termine la anterior.
+        Await _semaforoLecturaDevuelto.WaitAsync()
+        Try
+            Dim respuesta As EnvioHaVueltoModel
+            Try
+                respuesta = Await _servicio.MarcarHaVueltoPorLectura(codigo)
+            Catch ex As Exception
+                LecturaDevueltoConError = True
+                MensajeLecturaDevuelto = $"{codigo}: {ex.Message}"
+                ' 400/404/409/503 de la API llegan como Exception con su Message (lectura equivocada: no es un error del sistema);
+                ' lo demás (red, autorización), a ELMAH.
+                If ex.GetType() IsNot GetType(Exception) Then
+                    Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.LeerDevuelto")
+                End If
+                Return
+            End Try
+            LecturaDevueltoConError = False
+            MensajeLecturaDevuelto = TextoLecturaCorrecta(codigo, respuesta)
+            Await CargarDevueltos(If(respuesta IsNot Nothing AndAlso respuesta.Envio > 0, CType(respuesta.Envio, Integer?), Nothing), errorEnDialogo:=False)
+        Finally
+            Dim unused = _semaforoLecturaDevuelto.Release()
         End Try
     End Function
 

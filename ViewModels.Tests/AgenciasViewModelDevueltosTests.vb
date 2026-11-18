@@ -196,6 +196,150 @@ Public Class AgenciasViewModelDevueltosTests
         Assert.IsTrue(CBool(cuerpo("IncluirPortes")))
     End Sub
 
+    ' ---------------------------------------------------------------- Sugerencia 1329: resueltos ocultos por defecto
+
+    <TestMethod()>
+    Public Sub Visibles_PorDefectoSoloLoQueTieneAlgoPorHacer()
+        Dim pendiente As New EnvioDevueltoModel With {.Numero = 1}
+        Dim resuelto As New EnvioDevueltoModel With {.Numero = 2, .Resuelto = True}
+        Dim lista As New List(Of EnvioDevueltoModel) From {pendiente, resuelto}
+
+        CollectionAssert.AreEqual(New List(Of EnvioDevueltoModel) From {pendiente}, EnvioDevueltoModel.Visibles(lista, False))
+        CollectionAssert.AreEqual(lista, EnvioDevueltoModel.Visibles(lista, True))
+        Assert.AreEqual(0, EnvioDevueltoModel.Visibles(Nothing, False).Count)
+    End Sub
+
+    <TestMethod()>
+    Public Sub Resuelto_LlegaDeLaApiYSinElCampoEsFalse()
+        Dim conCampo = Newtonsoft.Json.JsonConvert.DeserializeObject(Of EnvioDevueltoModel)("{""Numero"":1,""Resuelto"":true}")
+        Dim apiAntigua = Newtonsoft.Json.JsonConvert.DeserializeObject(Of EnvioDevueltoModel)("{""Numero"":1}")
+
+        Assert.IsTrue(conCampo.Resuelto)
+        Assert.IsFalse(apiAntigua.Resuelto, "con una API anterior se ve todo, como antes")
+    End Sub
+
+    <TestMethod()>
+    Public Async Function CargarDevueltos_OcultaLosResueltos_YLaCasillaLosEnsena() As Task
+        Dim pendiente As New EnvioDevueltoModel With {.Numero = 1, .Decision = EnvioDevueltoModel.SIN_DECIDIR}
+        Dim resuelto As New EnvioDevueltoModel With {.Numero = 2, .Decision = EnvioDevueltoModel.ABONAR, .HaVuelto = True, .Resuelto = True}
+        A.CallTo(Function() servicio.CargarListaDevueltos("1  ")).Returns(Task.FromResult(New List(Of EnvioDevueltoModel) From {pendiente, resuelto}))
+
+        Await viewModel.CargarDevueltos()
+
+        CollectionAssert.AreEqual(New List(Of EnvioDevueltoModel) From {pendiente}, viewModel.listaDevueltos.ToList())
+        Assert.AreEqual("1 resuelto oculto", viewModel.TextoDevueltosResueltosOcultos)
+
+        viewModel.VerDevueltosResueltos = True
+
+        CollectionAssert.AreEqual(New List(Of EnvioDevueltoModel) From {pendiente, resuelto}, viewModel.listaDevueltos.ToList())
+        Assert.AreEqual(String.Empty, viewModel.TextoDevueltosResueltosOcultos)
+        A.CallTo(Function() servicio.CargarListaDevueltos(A(Of String).Ignored)).MustHaveHappenedOnceExactly() ' la casilla no vuelve a pedir nada
+    End Function
+
+    <TestMethod()>
+    Public Sub TextoResueltosOcultos_SingularPluralYNada()
+        Assert.AreEqual(String.Empty, AgenciasViewModel.TextoResueltosOcultos(0))
+        Assert.AreEqual("1 resuelto oculto", AgenciasViewModel.TextoResueltosOcultos(1))
+        Assert.AreEqual("3 resueltos ocultos", AgenciasViewModel.TextoResueltosOcultos(3))
+    End Sub
+
+    <TestMethod()>
+    Public Async Function YaEstaAqui_SiConEsoQuedaResuelto_DesapareceDeLaLista() As Task
+        Dim abonar As New EnvioDevueltoModel With {.Numero = 251300, .Decision = EnvioDevueltoModel.ABONAR}
+        Dim otro As New EnvioDevueltoModel With {.Numero = 1, .Decision = EnvioDevueltoModel.SIN_DECIDIR}
+        viewModel.listaDevueltos = New ObservableCollection(Of EnvioDevueltoModel) From {abonar, otro}
+        viewModel.DevueltoSeleccionado = abonar
+        A.CallTo(Function() servicio.MarcarHaVuelto(251300)).Returns(Task.FromResult(New EnvioHaVueltoModel With {.Envio = 251300, .Mensaje = "Ha vuelto."}))
+        A.CallTo(Function() servicio.CargarListaDevueltos("1  ")).Returns(Task.FromResult(New List(Of EnvioDevueltoModel) From {
+            New EnvioDevueltoModel With {.Numero = 251300, .Decision = EnvioDevueltoModel.ABONAR, .HaVuelto = True, .Resuelto = True}, otro}))
+
+        Await viewModel.YaEstaAquiDevueltoSeleccionado()
+
+        Assert.IsFalse(viewModel.listaDevueltos.Any(Function(d) d.Numero = 251300), "resuelto: fuera de la vista por defecto")
+        Assert.AreSame(otro, viewModel.DevueltoSeleccionado)
+    End Function
+
+    ' ---------------------------------------------------------------- Sugerencia 1329: caja de lectura
+
+    <TestMethod()>
+    Public Async Function Lectura_MarcaEnsenaElMensajeSinDialogoVaciaLaCajaYRefresca() As Task
+        Dim refrescado As New EnvioDevueltoModel With {.Numero = 251300, .Decision = EnvioDevueltoModel.SIN_DECIDIR, .HaVuelto = True}
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura("8012345678901")).Returns(Task.FromResult(New EnvioHaVueltoModel With {
+            .Envio = 251300, .Mensaje = "La caja del envío 251300 de GLS (15191/0 PELUQUERÍA) ha vuelto al almacén. No tiene reenvío: decida en Agencias › Devueltos si se vuelve a enviar o se abona."}))
+        A.CallTo(Function() servicio.CargarListaDevueltos("1  ")).Returns(Task.FromResult(New List(Of EnvioDevueltoModel) From {
+            New EnvioDevueltoModel With {.Numero = 1}, refrescado}))
+        viewModel.LecturaDevuelto = "  8012345678901 "
+
+        Await viewModel.LeerDevuelto()
+
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura("8012345678901")).MustHaveHappenedOnceExactly()
+        StringAssert.StartsWith(viewModel.MensajeLecturaDevuelto, "La caja del envío 251300 de GLS")
+        Assert.IsFalse(viewModel.LecturaDevueltoConError)
+        Assert.AreEqual(String.Empty, viewModel.LecturaDevuelto, "vacía para leer el siguiente")
+        Assert.AreSame(refrescado, viewModel.DevueltoSeleccionado, "queda seleccionado el que se acaba de leer")
+        A.CallTo(Sub() dialogService.ShowNotification(A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        Assert.IsFalse(viewModel.EstaOcupado, "el indicador de ocupado taparía la ventana y se llevaría el foco")
+    End Function
+
+    <TestMethod()>
+    Public Async Function Lectura_LaApiRechaza_SuMensajeDebajoSinDialogoNiRefresco() As Task
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura(A(Of String).Ignored)).
+            Throws(New Exception("Ese código casa con varios envíos (251300, 251301): teclee el número de envío."))
+        viewModel.LecturaDevuelto = "8012345"
+
+        Await viewModel.LeerDevuelto()
+
+        Assert.AreEqual("8012345: Ese código casa con varios envíos (251300, 251301): teclee el número de envío.", viewModel.MensajeLecturaDevuelto)
+        Assert.IsTrue(viewModel.LecturaDevueltoConError)
+        Assert.AreEqual(String.Empty, viewModel.LecturaDevuelto)
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() servicio.CargarListaDevueltos(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function Lectura_TrasUnErrorUnaBuenaQuitaElRojo() As Task
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura("1")).Throws(New Exception("No hay ningún envío con ese código."))
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura("251300")).Returns(Task.FromResult(New EnvioHaVueltoModel With {.Envio = 251300, .YaEstabaMarcado = True}))
+        viewModel.LecturaDevuelto = "1"
+        Await viewModel.LeerDevuelto()
+        viewModel.LecturaDevuelto = "251300"
+
+        Await viewModel.LeerDevuelto()
+
+        Assert.IsFalse(viewModel.LecturaDevueltoConError)
+        Assert.AreEqual("Ya estaba marcado: la caja del envío 251300 ya había vuelto.", viewModel.MensajeLecturaDevuelto)
+    End Function
+
+    <TestMethod()>
+    Public Async Function Lectura_Vacia_NoLlama() As Task
+        viewModel.LecturaDevuelto = "   "
+
+        Await viewModel.LeerDevuelto()
+
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function Lectura_FallaLaRecarga_AvisaDebajoSinDialogo() As Task
+        A.CallTo(Function() servicio.MarcarHaVueltoPorLectura("251300")).Returns(Task.FromResult(New EnvioHaVueltoModel With {.Envio = 251300, .Mensaje = "Ha vuelto."}))
+        A.CallTo(Function() servicio.CargarListaDevueltos(A(Of String).Ignored)).Throws(New Exception("Sin conexión"))
+        viewModel.LecturaDevuelto = "251300"
+
+        Await viewModel.LeerDevuelto()
+
+        StringAssert.Contains(viewModel.MensajeLecturaDevuelto, "Sin conexión")
+        Assert.IsTrue(viewModel.LecturaDevueltoConError)
+        A.CallTo(Sub() dialogService.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Sub Contrato_LecturaComoAriadna()
+        Assert.AreEqual("EnviosAgencias/HaVuelto", AgenciaService.RUTA_HA_VUELTO_POR_LECTURA)
+        Dim cuerpo = JObject.Parse(AgenciaService.CuerpoHaVueltoPorLectura(" 8012345678901 "))
+        Assert.AreEqual("8012345678901", CStr(cuerpo("Codigo")), "LecturaHaVueltoDTO.Codigo de NestoAPI")
+    End Sub
+
     <TestMethod()>
     Public Sub MensajeErrorApi_ElTextoParaElUsuario()
         Assert.AreEqual("Ya decidido", AgenciaService.MensajeErrorApi("""Ya decidido"""), "409: Content(Conflict, texto)")
