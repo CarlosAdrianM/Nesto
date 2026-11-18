@@ -5015,14 +5015,32 @@ Public Class PlantillaVentaViewModel
                 End If
 
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
+                Dim modificarEx As ValidationException = Nothing
                 Try
                     avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana,
                                                                                           AddressOf ElegirAmpliacionEnPreparacion) ' NestoAPI#712, Nesto#567 y caso 931007
                 Catch ex As ModoConPickingException
                     rechazoConPicking = ex ' Nesto#489: se resuelve fuera del Catch (hay que esperar al diálogo)
+                Catch ex As ValidationException
+                    modificarEx = ex ' Sugerencia 1342: se pregunta fuera del Catch, como al crear
                 End Try
                 If rechazoConPicking IsNot Nothing Then
                     Exit Try ' no se ha guardado nada; se ofrece la solicitud a almacén después del Try
+                End If
+                If modificarEx IsNot Nothing Then
+                    ' Sugerencia 1342 (Sancho, 18/11/26): al MODIFICAR con la plantilla el rechazo de la validación se enseñaba sin
+                    ' más y nadie podía forzarlo (tampoco quien tiene permiso). Mismo criterio que al crear y que el detalle del pedido.
+                    If Not Await PuedeOmitirValidacion(pedido) Then
+                        Throw modificarEx
+                    End If
+                    Dim mensajeModificar As String = modificarEx.Message & vbCrLf & "¿Desea modificarlo de todos modos?"
+                    If Not Await dialogService.ShowConfirmationAsync("Pedido no válido", mensajeModificar) Then
+                        Throw modificarEx
+                    End If
+                    pedido.CreadoSinPasarValidacion = True
+                    ' Reintento: si vuelve a fallar, la excepción la recoge el Catch exterior
+                    avisosModificacion = Await GuardadoPedidoConAvisos.GuardarPreguntando(pedido, Function() servicioPedidosVenta.modificarPedido(pedido), AddressOf PreguntarFechaEntregaLejana,
+                                                                                          AddressOf ElegirAmpliacionEnPreparacion)
                 End If
                 ' Nesto#567 (NestoAPI#732): si ha dicho que sí a anular inscripciones, la API lo confirma en los avisos.
                 For Each aviso In If(avisosModificacion, New List(Of AvisoPedidoModel)).Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
