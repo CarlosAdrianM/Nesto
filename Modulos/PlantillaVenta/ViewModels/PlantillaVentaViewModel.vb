@@ -4963,6 +4963,10 @@ Public Class PlantillaVentaViewModel
                     dialogService.ShowError(errorPicking)
                     Return
                 End If
+                ' Incidencia 1328: las líneas con picking viajan con la fecha que tenían (si no, el servidor lo toma por un aplazamiento)
+                If FechaEntregaLineasConPicking.HayLineasConPicking(estadoFresco) Then
+                    Await ConservarFechaLineasConPickingAsync(pedido, clienteSeleccionado.empresa, NumeroPedidoEnEdicion.Value)
+                End If
 
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
@@ -5309,6 +5313,28 @@ Public Class PlantillaVentaViewModel
             ' El registro nunca debe impedir enseñar el aviso
         End Try
         Return alterada.Mensaje
+    End Function
+
+    ''' <summary>
+    ''' Incidencia 1328: ParaPlantilla no trae la fecha de cada línea, así que, solo si el pedido tiene líneas con picking,
+    ''' se lee el pedido (GET api/PedidosVenta) y las líneas existentes con picking se mandan con su fecha de entrega
+    ''' (<see cref="FechaEntregaLineasConPicking.ConservarFechaOriginal"/>). Si no se puede leer, se guarda como antes
+    ''' (con la fecha de la plantilla) y queda en ELMAH.
+    ''' </summary>
+    Friend Async Function ConservarFechaLineasConPickingAsync(pedido As PedidoVentaDTO, empresa As String, numero As Integer) As Task
+        Try
+            Dim original As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(empresa, numero)
+            Dim unused = FechaEntregaLineasConPicking.ConservarFechaOriginal(pedido, original)
+        Catch ex As Exception
+            Try
+                Dim registro = If(ServicioRegistroErrores, Contenedor.Actual?.Resolver(Of IServicioRegistroErrores)())
+                If registro IsNot Nothing Then
+                    Dim sinEsperar = registro.RegistrarErrorAsync(ex, $"Plantilla de ventas, modificar el pedido {numero}: no se han podido leer las fechas de las líneas con picking (incidencia 1328); van con la fecha de la plantilla.")
+                End If
+            Catch
+                ' El registro nunca debe impedir guardar
+            End Try
+        End Try
     End Function
 
     ''' <summary>Novedad 750: registro de errores en ELMAH (sustituible en los tests; si no, el del contenedor).</summary>
