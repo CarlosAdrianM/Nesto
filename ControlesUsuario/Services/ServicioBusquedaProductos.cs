@@ -70,7 +70,9 @@ namespace ControlesUsuario.Services
                         {
                             Id = r.Id,
                             Texto = r.Nombre,
-                            TextoSecundario = r.Familia
+                            TextoSecundario = r.Familia,
+                            Tamanno = r.Tamanno,
+                            UnidadMedida = r.UnidadMedida
                         })
                         .ToList();
                 }
@@ -96,6 +98,12 @@ namespace ControlesUsuario.Services
             public string Id { get; set; }
             public string Nombre { get; set; }
             public string Familia { get; set; }
+
+            /// <summary>Sugerencia 1339: opcional; mientras la API no lo mande llega null y la línea queda como siempre.</summary>
+            public decimal? Tamanno { get; set; }
+
+            /// <summary>Sugerencia 1339: opcional, la unidad del tamaño.</summary>
+            public string UnidadMedida { get; set; }
         }
     }
 }

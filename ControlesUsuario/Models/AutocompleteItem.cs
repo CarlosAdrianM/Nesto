@@ -23,11 +23,26 @@ namespace ControlesUsuario.Models
         public string TextoSecundario { get; set; }
 
         /// <summary>
-        /// Texto formateado para mostrar en el popup.
-        /// Combina Id y Texto para fácil lectura.
+        /// Sugerencia 1339: tamaño del producto (null si no se conoce: el buscador de la API aún no lo manda, o es una cuenta).
         /// </summary>
-        public string TextoMostrar => string.IsNullOrEmpty(TextoSecundario)
-            ? $"{Id} - {Texto}"
-            : $"{Id} - {Texto} ({TextoSecundario})";
+        public decimal? Tamanno { get; set; }
+
+        /// <summary>Sugerencia 1339: unidad del tamaño («ml», «gr»…). Sin ella no se pinta el tamaño.</summary>
+        public string UnidadMedida { get; set; }
+
+        /// <summary>
+        /// Texto formateado para mostrar en el popup.
+        /// Combina Id y Texto para fácil lectura; con tamaño, detrás del nombre («44256 - HIDRATANTE OPTIMA CREAM 50 ml (Belclinic)»).
+        /// </summary>
+        public string TextoMostrar
+        {
+            get
+            {
+                string texto = TamanoProducto.NombreConTamano(Texto, Tamanno, UnidadMedida);
+                return string.IsNullOrEmpty(TextoSecundario)
+                    ? $"{Id} - {texto}"
+                    : $"{Id} - {texto} ({TextoSecundario})";
+            }
+        }
     }
 }
