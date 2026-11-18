@@ -4,7 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:controles="clr-namespace:ControlesUsuario" 
+             xmlns:controles="clr-namespace:ControlesUsuario" xmlns:globos="clr-namespace:ControlesUsuario.Globos" 
              xmlns:convertidores="clr-namespace:ControlesUsuario.Converters" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:ControlesUsuario.ViewModels"
              d:DataContext="{d:DesignInstance Type=viewmodels:SelectorClienteViewModel}"
@@ -38,7 +38,7 @@
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0" LastChildFill="True">
                 <!-- Nesto#388: ruedita de opciones del selector (patrón reutilizable BotonOpciones) -->
-                <controles:BotonOpciones DockPanel.Dock="Right" VerticalAlignment="Top" Titulo="Opciones del selector de clientes">
+                <controles:BotonOpciones globos:Globo.Ancla="SelectorCliente.Opciones" DockPanel.Dock="Right" VerticalAlignment="Top" Titulo="Opciones del selector de clientes">
                     <StackPanel>
                         <CheckBox Content="Mostrar contactos desplegados por defecto"
                                   IsChecked="{Binding ContactosExpandidosPorDefecto, Mode=TwoWay}"/>
