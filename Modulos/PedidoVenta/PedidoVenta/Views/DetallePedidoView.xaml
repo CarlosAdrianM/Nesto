@@ -604,6 +604,24 @@
                             <TextBlock Text="{Binding FechaEntregaAgencia.Aviso}" TextWrapping="Wrap" Margin="3,0,3,4"
                                        FontStyle="Italic" Foreground="DarkOrange"
                                        Visibility="{Binding FechaEntregaAgencia.HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <!-- «¿Dónde está lo que falta?» (pedido 930942): se pide a la API al abrirlo; una línea por producto que no
+                                 está en Algete (de camino en una reposición y quién la lleva, en una tienda, del proveedor…). -->
+                            <Expander Header="¿Dónde está lo que falta?" Margin="3,0,3,4" IsExpanded="{Binding DondeEstaAbierto, Mode=TwoWay}"
+                                      ToolTip="Dónde está cada producto que aún no está en Algete: en qué reposición viene y quién la lleva, en qué tienda está o de qué pedido de compra llega">
+                                <StackPanel Margin="18,2,0,0">
+                                    <TextBlock Text="{Binding DondeEstaLoQueFalta.Mensaje}" TextWrapping="Wrap" FontWeight="SemiBold"
+                                               Visibility="{Binding DondeEstaLoQueFalta.HayMensaje, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <ItemsControl ItemsSource="{Binding DondeEstaLoQueFalta.Lineas}"
+                                                  Visibility="{Binding DondeEstaLoQueFalta.HayLineas, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Background="Transparent"
+                                                         BorderThickness="0" Margin="0,2,0,0" ToolTip="Puede seleccionarlo y copiarlo"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Expander>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <!-- Nesto#503 (NestoAPI#571): la API pone la ruta de recogida (AM en Algete) y quita portes y comisión al guardar;
                                  fija en Alcobendas y Reina, sin tocar con picking, albarán o factura (el motivo, en la ayuda). -->

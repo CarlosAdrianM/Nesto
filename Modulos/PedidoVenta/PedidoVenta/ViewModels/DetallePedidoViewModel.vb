@@ -93,6 +93,8 @@ Public Class DetallePedidoViewModel
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
         ServicioFechaEntregaAgencia = New Nesto.Infrastructure.Services.ServicioFechaEntregaAgencia(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' NestoAPI#606
+        ServicioDondeEstaLoQueFalta = New Nesto.Infrastructure.Services.ServicioDondeEstaLoQueFalta(
+            New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' «¿Dónde está lo que falta?» (pedido 930942)
         BultosPedido = New ControlesUsuario.BultosPedido.BultosPedidoViewModel(New Nesto.Infrastructure.Services.ServicioBultosAriadna(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), configuracion.servidorAPI) ' Nesto#522
         ComprobadorSustitucion = New Nesto.Infrastructure.Services.ComprobadorSustitucionProducto(
@@ -3580,6 +3582,7 @@ Public Class DetallePedidoViewModel
     ''' otro pedido, la respuesta del anterior se descarta.
     ''' </summary>
     Friend Async Function CargarFechaEntregaAgenciaAsync() As Task
+        RefrescarDondeEstaLoQueFalta() ' «¿Dónde está lo que falta?»: va con la fecha (al abrir y al guardar el pedido)
         _versionFechaEntregaAgencia += 1
         Dim version As Integer = _versionFechaEntregaAgencia
         Dim servicioFecha = ServicioFechaEntregaAgencia
@@ -3598,6 +3601,65 @@ Public Class DetallePedidoViewModel
         End If
         FechaEntregaAgencia.Aplicar(fecha, Hoy.Invoke())
     End Function
+
+#End Region
+
+#Region "«¿Dónde está lo que falta?» (pedido 930942, 19/11/26)"
+
+    ''' <summary>El cliente de la API (sustituible en los tests).</summary>
+    Friend Property ServicioDondeEstaLoQueFalta As Nesto.Infrastructure.Services.IServicioDondeEstaLoQueFalta
+
+    Private _dondeEstaLoQueFalta As Nesto.Infrastructure.Models.DondeEstaLoQueFaltaVista
+    ''' <summary>Una línea por producto que no está en Algete (dónde está y, si viene de camino, quién la lleva), o el mensaje.</summary>
+    Public ReadOnly Property DondeEstaLoQueFalta As Nesto.Infrastructure.Models.DondeEstaLoQueFaltaVista
+        Get
+            If _dondeEstaLoQueFalta Is Nothing Then
+                _dondeEstaLoQueFalta = New Nesto.Infrastructure.Models.DondeEstaLoQueFaltaVista(Function() ServicioDondeEstaLoQueFalta)
+            End If
+            Return _dondeEstaLoQueFalta
+        End Get
+    End Property
+
+    Private _dondeEstaAbierto As Boolean
+    ''' <summary>
+    ''' La sección plegable «¿Dónde está lo que falta?». Se pide a la API al abrirla (no al abrir el pedido: casi nunca hace falta) y
+    ''' al volver a cargar el MISMO pedido con ella abierta (tras guardar). Al cambiar de pedido se cierra.
+    ''' </summary>
+    Public Property DondeEstaAbierto As Boolean
+        Get
+            Return _dondeEstaAbierto
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_dondeEstaAbierto, value) Then
+                If value Then
+                    Dim unused = PedirDondeEstaLoQueFaltaAsync()
+                Else
+                    DondeEstaLoQueFalta.Limpiar()
+                End If
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Friend para los tests.</summary>
+    Friend Function PedirDondeEstaLoQueFaltaAsync() As Task
+        If pedido Is Nothing OrElse pedido.numero <= 0 Then
+            DondeEstaLoQueFalta.Limpiar()
+            Return Task.CompletedTask
+        End If
+        Return DondeEstaLoQueFalta.MostrarAsync(pedido.empresa, pedido.numero)
+    End Function
+
+    ''' <summary>Al cargar o guardar el pedido: si se ve el de otro pedido, se cierra; si es el mismo y está abierto, se vuelve a pedir.</summary>
+    Friend Sub RefrescarDondeEstaLoQueFalta()
+        If Not DondeEstaAbierto Then
+            Return
+        End If
+        If pedido Is Nothing OrElse Not DondeEstaLoQueFalta.Pedido.HasValue OrElse DondeEstaLoQueFalta.Pedido.Value <> pedido.numero Then
+            DondeEstaAbierto = False
+            Return
+        End If
+        Dim unused = PedirDondeEstaLoQueFaltaAsync()
+    End Sub
 
 #End Region
 

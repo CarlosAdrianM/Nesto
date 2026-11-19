@@ -215,6 +215,8 @@ Public NotInheritable Class ComposicionNesto
 
         ' Nesto#546 (NestoAPI#693): los pedidos con la fecha prometida en riesgo (api/PedidosVenta/PromesaEnRiesgo), para la pantalla del módulo Cliente
         registro.Singleton(Of IServicioPedidosPromesaRiesgo)(Function(r) New ServicioPedidosPromesaRiesgo(r.Resolver(Of IClienteApiFactory)()))
+        ' «¿Dónde está lo que falta?» (pedido 930942): el detalle del pedido elegido en «Pedidos con la fecha en riesgo»
+        registro.Singleton(Of IServicioDondeEstaLoQueFalta)(Function(r) New ServicioDondeEstaLoQueFalta(r.Resolver(Of IClienteApiFactory)()))
 
         ' NestoAPI#593 (c5): el cheque regalo del cliente (api/ChequesRegalo/Cliente) para ofrecerlo al meter el pedido
         registro.Singleton(Of IServicioChequesRegalo)(Function(r) New ServicioChequesRegalo(r.Resolver(Of IClienteApiFactory)()))

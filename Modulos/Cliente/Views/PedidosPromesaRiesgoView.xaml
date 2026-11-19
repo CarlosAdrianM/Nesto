@@ -104,6 +104,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Text="Qué falla:" FontWeight="SemiBold" Margin="0,0,8,4" />
@@ -112,8 +113,25 @@
                 <TextBlock Grid.Row="1" Text="Lo detectó:" FontWeight="SemiBold" Margin="0,0,8,4" />
                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Seleccionado.Evento, TargetNullValue='—'}" TextWrapping="Wrap" Margin="0,0,0,4" />
 
-                <TextBlock Grid.Row="2" Text="Qué hacer:" FontWeight="SemiBold" Margin="0,0,8,0" VerticalAlignment="Center" />
-                <WrapPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
+                <!-- «¿Dónde está lo que falta?» (pedido 930942): se pide a la API al elegir la fila -->
+                <TextBlock Grid.Row="2" Text="Dónde está:" FontWeight="SemiBold" Margin="0,0,8,4"
+                           ToolTip="Dónde está ahora cada producto que falta: en qué reposición viene y quién la lleva, en qué tienda está o de qué pedido de compra llega" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                    <TextBlock Text="{Binding DondeEstaLoQueFalta.Mensaje}" TextWrapping="Wrap"
+                               Visibility="{Binding DondeEstaLoQueFalta.HayMensaje, Converter={StaticResource BoolAVisibilidad}}" />
+                    <ItemsControl ItemsSource="{Binding DondeEstaLoQueFalta.Lineas}"
+                                  Visibility="{Binding DondeEstaLoQueFalta.HayLineas, Converter={StaticResource BoolAVisibilidad}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Background="Transparent" BorderThickness="0"
+                                         Margin="0,1,0,0" ToolTip="Puede seleccionarlo y copiarlo" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <TextBlock Grid.Row="3" Text="Qué hacer:" FontWeight="SemiBold" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <WrapPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8">
                     <Button Content="Abrir el pedido" Padding="12,2" Margin="0,0,8,4" Command="{Binding AbrirPedidoCommand}" />
                     <Button Content="Copiar texto para el cliente" Padding="12,2" Margin="0,0,8,4" Command="{Binding CopiarTextoClienteCommand}"
                             ToolTip="Copia al portapapeles el aviso para el cliente que se ve abajo" />
@@ -125,8 +143,8 @@
                             ToolTip="Por ahora abre el pedido para cambiar el producto en sus líneas" />
                 </WrapPanel>
 
-                <TextBlock Grid.Row="3" Text="Para el cliente:" FontWeight="SemiBold" Margin="0,0,8,0" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TextoCliente, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
+                <TextBlock Grid.Row="4" Text="Para el cliente:" FontWeight="SemiBold" Margin="0,0,8,0" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TextoCliente, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
                          Background="Transparent" BorderThickness="0" ToolTip="Puede seleccionarlo y copiarlo, o usar «Copiar texto para el cliente»" />
             </Grid>
         </Border>

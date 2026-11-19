@@ -111,17 +111,20 @@ namespace Nesto.Modulos.Cliente
         private readonly bool _filtrosListos;
         private int? _pedidoAElegir;
 
-        public PedidosPromesaRiesgoViewModel(IServicioPedidosPromesaRiesgo servicio, IAbridorPedidos abridorPedidos)
-            : this(servicio, abridorPedidos, null)
+        /// <param name="dondeEstaLoQueFalta">«¿Dónde está lo que falta?» del pedido elegido (pedido 930942, 19/11/26).</param>
+        public PedidosPromesaRiesgoViewModel(IServicioPedidosPromesaRiesgo servicio, IAbridorPedidos abridorPedidos, IServicioDondeEstaLoQueFalta dondeEstaLoQueFalta)
+            : this(servicio, abridorPedidos, null, dondeEstaLoQueFalta)
         {
         }
 
         /// <param name="copiarAlPortapapeles">Para las pruebas; sin él, el portapapeles de Windows.</param>
-        internal PedidosPromesaRiesgoViewModel(IServicioPedidosPromesaRiesgo servicio, IAbridorPedidos abridorPedidos, Action<string> copiarAlPortapapeles)
+        internal PedidosPromesaRiesgoViewModel(IServicioPedidosPromesaRiesgo servicio, IAbridorPedidos abridorPedidos, Action<string> copiarAlPortapapeles,
+            IServicioDondeEstaLoQueFalta dondeEstaLoQueFalta = null)
         {
             _servicio = servicio;
             _abridorPedidos = abridorPedidos;
             _copiarAlPortapapeles = copiarAlPortapapeles ?? CopiarConWindows;
+            DondeEstaLoQueFalta = new DondeEstaLoQueFaltaVista(() => dondeEstaLoQueFalta);
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             AbrirPedidoCommand = new RelayCommand<FilaPedidoPromesaRiesgo>(AbrirPedido, fila => PuedeActuar(fila));
             CopiarTextoClienteCommand = new RelayCommand(CopiarTextoCliente, () => PuedeActuar(Seleccionado));
@@ -230,11 +233,29 @@ namespace Nesto.Modulos.Cliente
                     OnPropertyChanged(nameof(HaySeleccionado));
                     OnPropertyChanged(nameof(TextoCliente));
                     AvisarComandos();
+                    PedirDondeEstaLoQueFalta();
                 }
             }
         }
 
         public bool HaySeleccionado => Seleccionado != null;
+
+        /// <summary>
+        /// «¿Dónde está lo que falta?» del pedido elegido: se pide al elegir la fila (una petición por pedido elegido, nunca para toda la
+        /// lista ni con temporizador). Sin fila, vacío.
+        /// </summary>
+        public DondeEstaLoQueFaltaVista DondeEstaLoQueFalta { get; }
+
+        private void PedirDondeEstaLoQueFalta()
+        {
+            FilaPedidoPromesaRiesgo fila = Seleccionado;
+            if (fila == null)
+            {
+                DondeEstaLoQueFalta.Limpiar();
+                return;
+            }
+            _ = DondeEstaLoQueFalta.MostrarAsync(fila.Empresa, fila.Pedido);
+        }
 
         /// <summary>El texto, de usted, para avisar al cliente del pedido elegido (null sin pedido).</summary>
         public string TextoCliente => Seleccionado == null ? null : TextoParaCliente(Seleccionado.Riesgo);

@@ -399,6 +399,38 @@ namespace ClienteTests
             Assert.AreEqual("Ningún pedido con la fecha en riesgo.", vm.Resumen);
         }
 
+        // ---------------- «¿Dónde está lo que falta?» (pedido 930942) ----------------
+
+        [TestMethod]
+        public async Task DondeEsta_SoloSePideAlElegirUnPedido_NoParaTodaLaLista()
+        {
+            var dondeEsta = A.Fake<IServicioDondeEstaLoQueFalta>();
+            A.CallTo(() => dondeEsta.Leer("1", 930942)).Returns(new DondeEstaLoQueFaltaDTO
+            {
+                Mensaje = "Falta 1 producto en Algete.",
+                Productos = { new ProductoQueFaltaDTO { Producto = "43818", Texto = "43818 MULTIVIT GLOW CREMA RICA (1 ud.): viene en la reposición 81463 de Alcobendas, " +
+                    "recogida por Miguel el miércoles 18/11 a las 12:53; pendiente de recibir en Algete." } }
+            });
+            LaApiDevuelve(false, Riesgo(930942, PROMETIDA.AddDays(2)), Riesgo(929000, null));
+            var vm = new PedidosPromesaRiesgoViewModel(servicio, abridor, copiados.Add, dondeEsta);
+
+            await vm.CargarAsync();
+            A.CallTo(() => dondeEsta.Leer(A<string>._, A<int>._)).MustNotHaveHappened();
+
+            vm.Seleccionado = vm.Pedidos.Single(p => p.Pedido == 930942);
+            for (int i = 0; i < 100 && vm.DondeEstaLoQueFalta.Cargando; i++)
+            {
+                await Task.Delay(5);
+            }
+
+            A.CallTo(() => dondeEsta.Leer("1", 930942)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => dondeEsta.Leer(A<string>._, A<int>._)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(vm.DondeEstaLoQueFalta.Lineas.Single(), "recogida por Miguel el miércoles 18/11 a las 12:53");
+
+            vm.Seleccionado = null;
+            Assert.IsFalse(vm.DondeEstaLoQueFalta.HayLineas);
+        }
+
         private static async Task EsperarCarga(PedidosPromesaRiesgoViewModel vm)
         {
             for (int i = 0; i < 200 && (vm.EstaOcupado || !vm.Cargada); i++)
