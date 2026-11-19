@@ -587,15 +587,18 @@ Public Class AlquileresViewModel
 
         Try
             Dim builder As New StringBuilder
+            ' NestoAPI#874: con Dirección 2 (piso, rótulo, nave) va en la segunda línea y la provincia sube con la población
+            Dim lineasDireccion = AlquilerModel.LineasDireccionEtiqueta(LineaSeleccionada.DireccionCliente, LineaSeleccionada.Direccion2Cliente,
+                                                                          LineaSeleccionada.CodPostalCliente, LineaSeleccionada.PoblacionCliente, LineaSeleccionada.ProvinciaCliente)
             For i = 1 To bultos
                 builder.AppendLine("I8,A,034")
                 builder.AppendLine("N")
                 builder.AppendLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
                 builder.AppendLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
                 builder.AppendLine("A190,10,0,4,1,1,N,""" + If(LineaSeleccionada.NombreCliente, "").Trim + """")
-                builder.AppendLine("A190,60,0,4,1,1,N,""" + If(LineaSeleccionada.DireccionCliente, "") + """")
-                builder.AppendLine("A190,110,0,4,1,1,N,""" + If(LineaSeleccionada.CodPostalCliente, "").Trim + " " + If(LineaSeleccionada.PoblacionCliente, "").Trim + """")
-                builder.AppendLine("A190,160,0,4,1,1,N,""" + If(LineaSeleccionada.ProvinciaCliente, "").Trim + "")
+                builder.AppendLine("A190,60,0,4,1,1,N,""" + lineasDireccion(0) + """")
+                builder.AppendLine("A190,110,0,4,1,1,N,""" + lineasDireccion(1) + """")
+                builder.AppendLine("A190,160,0,4,1,1,N,""" + lineasDireccion(2) + "")
                 builder.AppendLine("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
                 builder.AppendLine("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
                 builder.AppendLine("P1")

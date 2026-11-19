@@ -70,6 +70,20 @@ namespace Producto.Tests
             await vm.LlegadaEnCurso;
         }
 
+        // ------------------------------------------------------------------ dirección (NestoAPI#874)
+
+        [TestMethod]
+        public void DireccionCompleta_ConLaDeLaApi_LlevaLaDireccion2_YSinEllaLaDireccion()
+        {
+            var conD2 = Newtonsoft.Json.JsonConvert.DeserializeObject<RecogidaSolicitada>(
+                "{\"Direccion\":\"CALLE MAYOR, 3\",\"DireccionCompleta\":\"CALLE MAYOR, 3, LOCAL · RÓTULO: LOHÉ\",\"CodPostal\":\"28001\",\"Poblacion\":\"MADRID\"}");
+            var vieja = Newtonsoft.Json.JsonConvert.DeserializeObject<RecogidaSolicitada>(
+                "{\"Direccion\":\"CALLE MAYOR, 3\",\"CodPostal\":\"28001\",\"Poblacion\":\"MADRID\"}");
+
+            Assert.AreEqual("CALLE MAYOR, 3, LOCAL · RÓTULO: LOHÉ, 28001 MADRID", conD2!.DireccionCompleta);
+            Assert.AreEqual("CALLE MAYOR, 3, 28001 MADRID", vieja!.DireccionCompleta);
+        }
+
         // ------------------------------------------------------------------ cargar
 
         [TestMethod]

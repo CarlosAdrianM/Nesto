@@ -94,14 +94,22 @@ namespace Nesto.Modules.Producto
         [JsonIgnore]
         public string ClienteContacto => $"{Cliente?.Trim()}/{Contacto?.Trim()}";
 
-        /// <summary>«C/ Mayor 1, 28001 Madrid».</summary>
+        /// <summary>
+        /// NestoAPI#874: Dirección + «, » + Dirección 2 (piso, rótulo, nave) tal como la compone la API («DireccionCompleta» en el JSON);
+        /// null con una API anterior (entonces se enseña la Dirección).
+        /// </summary>
+        [JsonProperty("DireccionCompleta")]
+        public string DireccionConDireccion2 { get; set; }
+
+        /// <summary>«C/ Mayor 1, LOCAL · RÓTULO: X, 28001 Madrid».</summary>
         [JsonIgnore]
         public string DireccionCompleta
         {
             get
             {
                 string poblacion = string.Join(" ", new[] { CodPostal?.Trim(), Poblacion?.Trim() }.Where(t => !string.IsNullOrEmpty(t)));
-                return string.Join(", ", new[] { Direccion?.Trim(), poblacion }.Where(t => !string.IsNullOrEmpty(t)));
+                string calle = Nesto.Infrastructure.Shared.DireccionParaMostrar.Elegir(Direccion, DireccionConDireccion2)?.Trim();
+                return string.Join(", ", new[] { calle, poblacion }.Where(t => !string.IsNullOrEmpty(t)));
             }
         }
 

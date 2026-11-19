@@ -81,6 +81,26 @@ namespace Nesto.Infrastructure.Models.Alquileres
         public string CodPostalCliente { get; set; }
         public string PoblacionCliente { get; set; }
         public string ProvinciaCliente { get; set; }
+        /// <summary>NestoAPI#874: la Dirección 2 del contacto (piso, rótulo, nave), o null. Solo lectura.</summary>
+        public string Direccion2Cliente { get; set; }
+        public bool ShouldSerializeDireccion2Cliente() => false;
+
+        /// <summary>
+        /// NestoAPI#874: las tres líneas de dirección de la etiqueta del pedido (debajo del nombre). Sin Dirección 2: dirección, «CP
+        /// población» y provincia, como siempre. Con ella: dirección, Dirección 2 y «CP población (provincia)» (la provincia, solo si no
+        /// es la misma población), para que el rótulo o el piso lleguen sin mover el resto de la etiqueta.
+        /// </summary>
+        public static string[] LineasDireccionEtiqueta(string direccion, string direccion2, string codPostal, string poblacion, string provincia)
+        {
+            string cpPoblacion = $"{codPostal?.Trim()} {poblacion?.Trim()}".Trim();
+            string prov = provincia?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(direccion2))
+            {
+                return new[] { direccion ?? string.Empty, cpPoblacion, prov };
+            }
+            bool provinciaAparte = prov.Length > 0 && !string.Equals(prov, poblacion?.Trim(), System.StringComparison.OrdinalIgnoreCase);
+            return new[] { direccion ?? string.Empty, direccion2.Trim(), provinciaAparte ? $"{cpPoblacion} ({prov})" : cpPoblacion };
+        }
 
         // Novedad 1181: solo lectura para la rejilla. Llegan de la API pero NO se mandan al guardar (ShouldSerialize).
         /// <summary>Nombre del equipo, de la ficha del producto.</summary>

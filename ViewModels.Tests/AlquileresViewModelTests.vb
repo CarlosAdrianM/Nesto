@@ -295,4 +295,16 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).MustHaveHappened()
     End Function
 
+    ' NestoAPI#874: la etiqueta del pedido de alquiler lleva la Dirección 2 sin mover el resto.
+    <TestMethod()>
+    Public Sub LineasDireccionEtiqueta_ConDireccion2_LaPoneEnLaSegundaLineaYSubeLaProvincia()
+        Dim con = AlquilerModel.LineasDireccionEtiqueta("CALLE MAYOR, 3", "LOCAL · RÓTULO: LOHÉ", "28100", "ALCOBENDAS", "MADRID")
+        Dim sinD2 = AlquilerModel.LineasDireccionEtiqueta("CALLE MAYOR, 3", Nothing, "28100", "ALCOBENDAS", "MADRID")
+        Dim mismaProvincia = AlquilerModel.LineasDireccionEtiqueta("CALLE MAYOR, 3", "1º D", "28001", "MADRID", "MADRID")
+
+        CollectionAssert.AreEqual(New String() {"CALLE MAYOR, 3", "LOCAL · RÓTULO: LOHÉ", "28100 ALCOBENDAS (MADRID)"}, con)
+        CollectionAssert.AreEqual(New String() {"CALLE MAYOR, 3", "28100 ALCOBENDAS", "MADRID"}, sinD2)
+        CollectionAssert.AreEqual(New String() {"CALLE MAYOR, 3", "1º D", "28001 MADRID"}, mismaProvincia)
+    End Sub
+
 End Class
