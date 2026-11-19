@@ -89,6 +89,8 @@ namespace Nesto.Modulos.Cliente
             FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
             RecargarInscripcionesCommand = new AsyncRelayCommand(CargarInscripcionesAsync, () => Seleccionado?.Id > 0);
+            // Sugerencia 1362 (Pilar): la hoja para pasar lista el día de la formación (todos los que ven los inscritos)
+            ImprimirListaCommand = new RelayCommand(ImprimirLista, () => Seleccionado?.Id > 0 && ListaAsistenciaImprimible.Filas(Inscripciones).Any());
             AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
             CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace,
                 i => (i ?? InscripcionSeleccionada)?.TieneEnlacePago == true);
@@ -1944,7 +1946,33 @@ namespace Nesto.Modulos.Cliente
                     OnPropertyChanged(nameof(SePuedePasarLista));
                     OnPropertyChanged(nameof(AvisoListaAsistencia));
                     GuardarAsistenciaCommand.NotifyCanExecuteChanged();
+                    ImprimirListaCommand?.NotifyCanExecuteChanged();
                 }
+            }
+        }
+
+        // ---------------- Sugerencia 1362 (Pilar, 19/11/26): imprimir la lista para pasar lista ----------------
+
+        /// <summary>Internal para los tests (en producción, el FlowDocument + PrintDialog de Windows).</summary>
+        internal IImpresoraListaAsistencia ImpresoraLista { get; set; } = new ImpresoraListaAsistencia();
+
+        /// <summary>«Imprimir lista»: una fila por inscripción no anulada del evento (todas las cargadas, no solo las filtradas).</summary>
+        public RelayCommand ImprimirListaCommand { get; }
+
+        internal void ImprimirLista()
+        {
+            EventoModel evento = Seleccionado;
+            if (evento == null || ImpresoraLista == null)
+            {
+                return;
+            }
+            try
+            {
+                _ = ImpresoraLista.Imprimir(evento, Inscripciones.ToList());
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"No se ha podido imprimir la lista de «{evento.Titulo}»: {ex.Message}");
             }
         }
 
