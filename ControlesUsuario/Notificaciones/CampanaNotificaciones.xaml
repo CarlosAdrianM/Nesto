@@ -108,11 +108,23 @@
 
         <Popup x:Name="Panel" IsOpen="{Binding PanelAbierto, Mode=TwoWay}" StaysOpen="False"
                PlacementTarget="{Binding ElementName=BotonCampana}" Placement="Bottom" AllowsTransparency="True">
-            <Border Background="White" BorderBrush="#BBBBBB" BorderThickness="1" Width="400" Padding="0,0,0,4">
+            <!-- Sugerencia 1367: más grande (como la ventana de Novedades), redimensionable con la esquina y con el tamaño recordado en la sesión -->
+            <Border x:Name="Marco" Background="White" BorderBrush="#BBBBBB" BorderThickness="1" Width="760" MinWidth="400" Padding="0,0,0,4">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.3" />
                 </Border.Effect>
                 <DockPanel>
+                    <!-- Sugerencia 1367: la esquina para hacerla más grande o más pequeña -->
+                    <Thumb x:Name="Esquina" DockPanel.Dock="Bottom" HorizontalAlignment="Right" Width="14" Height="14" Margin="0,0,2,0"
+                           Cursor="SizeNWSE" DragDelta="Esquina_DragDelta" ToolTip="Arrastre para cambiar el tamaño">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <Grid Background="Transparent">
+                                    <Path Data="M 12,2 L 2,12 M 12,6 L 6,12 M 12,10 L 10,12" Stroke="#999999" StrokeThickness="1" />
+                                </Grid>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
                     <DockPanel DockPanel.Dock="Top" Margin="10,8,10,6">
                         <Button DockPanel.Dock="Right" Content="Marcar todas como leídas" Command="{Binding MarcarTodasLeidasCommand}"
                                 Padding="6,1" FontSize="11" />
@@ -135,7 +147,7 @@
                                Visibility="{Binding Cargando, Converter={StaticResource BoolAVisible}}" />
                     <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" Foreground="#777777" TextWrapping="Wrap" Margin="10,4"
                                Visibility="{Binding HayMensaje, Converter={StaticResource BoolAVisible}}" />
-                    <ScrollViewer MaxHeight="460" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="Lista" MaxHeight="560" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Notificaciones}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -227,11 +239,15 @@
                                                             </TextBlock>
                                                         </DockPanel>
                                                         <TextBlock Text="{Binding Cuerpo}" TextWrapping="Wrap" Foreground="#555555" Margin="0,2,0,0"
-                                                                   TextTrimming="CharacterEllipsis">
+                                                                   TextTrimming="CharacterEllipsis" ToolTipService.ShowDuration="60000">
+                                                            <!-- Sugerencia 1367: el texto entero en la ayuda, aunque esté plegada -->
+                                                            <TextBlock.ToolTip>
+                                                                <TextBlock Text="{Binding Cuerpo}" TextWrapping="Wrap" MaxWidth="600" />
+                                                            </TextBlock.ToolTip>
                                                             <TextBlock.Style>
                                                                 <Style TargetType="TextBlock">
-                                                                    <!-- Plegada: dos líneas; al pulsarla (si no lleva a otra ventana) se ve entera -->
-                                                                    <Setter Property="MaxHeight" Value="34" />
+                                                                    <!-- Plegada: tres líneas; al pulsarla (si no lleva a otra ventana) se ve entera -->
+                                                                    <Setter Property="MaxHeight" Value="52" />
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding Desplegada}" Value="True">
                                                                             <Setter Property="MaxHeight" Value="{x:Static sys:Double.PositiveInfinity}" />
