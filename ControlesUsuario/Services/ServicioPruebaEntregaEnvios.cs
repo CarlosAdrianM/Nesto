@@ -32,6 +32,8 @@ namespace ControlesUsuario.Services
         public string CobroReembolso { get; set; }
         public decimal? ImporteCobrado { get; set; }
         public string Usuario { get; set; }
+        /// <summary>Solo el reparto propio (19/11/26): «Leídos 6 de 7. Sin leer: RP…-7.» Null si no hay datos.</summary>
+        public string ResumenBultos { get; set; }
     }
 
     /// <summary>La prueba de entrega de un envío, de cualquier agencia (la API la pide a la agencia en el momento).</summary>
@@ -156,7 +158,8 @@ namespace ControlesUsuario.Services
                 { PruebaEntregaDialogViewModel.PARAMETRO_DOCUMENTO, prueba.Documento },
                 { PruebaEntregaDialogViewModel.PARAMETRO_TIPO_DOCUMENTO, prueba.TipoDocumento },
                 { PruebaEntregaDialogViewModel.PARAMETRO_URL_DOCUMENTO, prueba.UrlDocumento },
-                { PruebaEntregaDialogViewModel.PARAMETRO_AVISO, prueba.Mensaje }
+                { PruebaEntregaDialogViewModel.PARAMETRO_AVISO, prueba.Mensaje },
+                { PruebaEntregaDialogViewModel.PARAMETRO_RESUMEN_BULTOS, prueba.ResumenBultos }
             };
         }
     }

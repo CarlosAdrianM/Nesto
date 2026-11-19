@@ -22,7 +22,7 @@ namespace ControlesUsuario.Tests
         {
             Assert.AreEqual("EnviosAgencias/251500/PruebaEntrega", ServicioPruebaEntregaEnvios.Ruta(251500));
             CollectionAssert.AreEqual(new[] { "Agencia", "CobroReembolso", "Disponible", "DniReceptor", "Documento", "FechaHora", "ImporteCobrado",
-                    "Mensaje", "NombreAgencia", "Numero", "Pedido", "Receptor", "TipoDocumento", "UrlDocumento", "Usuario" },
+                    "Mensaje", "NombreAgencia", "Numero", "Pedido", "Receptor", "ResumenBultos", "TipoDocumento", "UrlDocumento", "Usuario" },
                 typeof(PruebaEntregaEnvio).GetProperties().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray());
         }
 
@@ -76,6 +76,42 @@ namespace ControlesUsuario.Tests
             Assert.AreSame(pdf, parametros.GetValue<byte[]>(PruebaEntregaDialogViewModel.PARAMETRO_DOCUMENTO));
             Assert.IsNull(parametros.GetValue<byte[]>(PruebaEntregaDialogViewModel.PARAMETRO_FIRMA), "Un PDF no se pinta como imagen");
             CollectionAssert.AreEqual(new[] { true, false }, ocupado, "Ocupado solo mientras se pide a la API");
+        }
+
+        [TestMethod]
+        public async Task RepartoPropio_ElResumenDeBultosLlegaAlDialogo_YSeVe()
+        {
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string n, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
+            var prueba = ServicioPruebaEntregaEnvios.DeRespuesta(
+                "{\"Numero\":251099,\"Agencia\":14,\"Disponible\":true,\"Usuario\":\"Miguel\",\"ResumenBultos\":\"Leídos 6 de 7. Sin leer: RP251099-7.\"}");
+            var mostrador = new MostradorPruebaEntrega(n => Task.FromResult(prueba), dialogos);
+
+            await mostrador.Mostrar(251099, "931000");
+
+            Assert.AreEqual("Leídos 6 de 7. Sin leer: RP251099-7.", parametros.GetValue<string>(PruebaEntregaDialogViewModel.PARAMETRO_RESUMEN_BULTOS));
+            var vm = new PruebaEntregaDialogViewModel();
+            vm.OnDialogOpened(parametros);
+            Assert.IsTrue(vm.HayResumenBultos);
+            Assert.AreEqual("Leídos 6 de 7. Sin leer: RP251099-7.", vm.ResumenBultos);
+        }
+
+        [TestMethod]
+        public async Task OtraAgencia_SinResumenDeBultos_NoSePinta()
+        {
+            var dialogos = A.Fake<IServicioDialogos>();
+            ParametrosDialogo parametros = null;
+            A.CallTo(() => dialogos.ShowDialog(PruebaEntregaDialogViewModel.NOMBRE, A<ParametrosDialogo>._, A<Action<ResultadoDialogo>>._))
+                .Invokes((string n, ParametrosDialogo p, Action<ResultadoDialogo> cb) => parametros = p);
+            var mostrador = new MostradorPruebaEntrega(n => Task.FromResult(new PruebaEntregaEnvio { Numero = n, Agencia = 13, Disponible = true }), dialogos);
+
+            await mostrador.Mostrar(251501, "930001");
+
+            var vm = new PruebaEntregaDialogViewModel();
+            vm.OnDialogOpened(parametros);
+            Assert.IsFalse(vm.HayResumenBultos);
         }
 
         [TestMethod]

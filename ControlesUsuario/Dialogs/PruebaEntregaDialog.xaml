@@ -41,6 +41,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Agencia:" Style="{StaticResource Etiqueta}"/>
             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Agencia}" Style="{StaticResource Valor}"/>
@@ -58,6 +59,11 @@
                        Visibility="{Binding HayDatosReparto, Converter={StaticResource BoolAVisible}}"/>
             <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Usuario}" Style="{StaticResource Valor}"
                        Visibility="{Binding HayDatosReparto, Converter={StaticResource BoolAVisible}}"/>
+            <!-- 19/11/26: «Leídos 6 de 7. Sin leer: RP…-7.» (solo reparto propio con datos de la furgoneta) -->
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Bultos:" Style="{StaticResource Etiqueta}"
+                       Visibility="{Binding HayResumenBultos, Converter={StaticResource BoolAVisible}}"/>
+            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ResumenBultos}" Style="{StaticResource Valor}" TextWrapping="Wrap"
+                       Visibility="{Binding HayResumenBultos, Converter={StaticResource BoolAVisible}}"/>
         </Grid>
 
         <Border Grid.Row="2" Margin="0,12,0,0" BorderBrush="#BBBBBB" BorderThickness="1" Background="White" MinHeight="120">

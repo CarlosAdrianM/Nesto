@@ -35,6 +35,8 @@ namespace ControlesUsuario.Dialogs
         public const string PARAMETRO_URL_DOCUMENTO = "urlDocumento";
         /// <summary>La nota de la API (p. ej. «Sin firma (se entregó con DNI).»).</summary>
         public const string PARAMETRO_AVISO = "aviso";
+        /// <summary>19/11/26: «Leídos 6 de 7. Sin leer: RP…-7.» (solo reparto propio; null si no hay datos).</summary>
+        public const string PARAMETRO_RESUMEN_BULTOS = "resumenBultos";
 
         public const string COBRO_EFECTIVO = "Efectivo";
         public const string COBRO_TARJETA = "Tarjeta";
@@ -72,6 +74,21 @@ namespace ControlesUsuario.Dialogs
         public string FechaHora { get => _fechaHora; set => SetProperty(ref _fechaHora, value); }
         public string Cobro { get => _cobro; set => SetProperty(ref _cobro, value); }
         public string Usuario { get => _usuario; set => SetProperty(ref _usuario, value); }
+
+        private string _resumenBultos;
+        /// <summary>19/11/26: los bultos leídos y sin leer al entregar (reparto propio). Null: no se pinta.</summary>
+        public string ResumenBultos
+        {
+            get => _resumenBultos;
+            set
+            {
+                if (SetProperty(ref _resumenBultos, value))
+                {
+                    OnPropertyChanged(nameof(HayResumenBultos));
+                }
+            }
+        }
+        public bool HayResumenBultos => !string.IsNullOrWhiteSpace(ResumenBultos);
 
         /// <summary>El reembolso y quién lo registró: solo los da el reparto propio.</summary>
         public bool HayDatosReparto { get => _hayDatosReparto; set => SetProperty(ref _hayDatosReparto, value); }
@@ -125,6 +142,7 @@ namespace ControlesUsuario.Dialogs
             Cobro = TextoCobro(cobro, importe);
             Usuario = TextoOGuion(usuario);
             HayDatosReparto = !string.IsNullOrWhiteSpace(cobro) || !string.IsNullOrWhiteSpace(usuario);
+            ResumenBultos = parameters.GetValue<string>(PARAMETRO_RESUMEN_BULTOS)?.Trim();
             Firma = parameters.GetValue<byte[]>(PARAMETRO_FIRMA);
 
             _documento = parameters.GetValue<byte[]>(PARAMETRO_DOCUMENTO) ?? Firma;
