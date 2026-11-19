@@ -2386,6 +2386,8 @@ Public Class DetallePedidoViewModel
         For Each aviso In avisos.Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
             dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
         Next
+        ' 19/11/26 (caso 33895): el curso de un evento vendido a mano (se ha guardado igual)
+        AvisoPedidoModel.MostrarCursosVendidosAMano(avisos, Sub(titulo, mensaje) dialogService.ShowNotification(titulo, mensaje))
         ' Nesto#588 (NestoAPI#764): va por nuestra ruta y el cliente cierra justo su día de reparto
         For Each aviso In avisos.Where(Function(a) a?.Tipo = "ClienteCierraDiaReparto")
             dialogService.ShowNotification("Día de reparto", aviso.Mensaje)

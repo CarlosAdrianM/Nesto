@@ -517,6 +517,24 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void Respuesta_ConElAvisoDelCursoVendidoAMano_SeLeeYSeEnsena()
+        {
+            // 19/11/26 (caso 33895): el POST trae en AvisosGrabacion el aviso del curso de un evento vendido a mano
+            var avisos = RespuestaCrearPedidoPlantilla.LeerAvisosGrabacion(
+                "{\"numero\":931500,\"AvisosGrabacion\":[{\"Tipo\":\"CursoVendidoAMano\",\"Mensaje\":\"La referencia 90077 es el curso del evento «Masterclass Rosácea».\"}," +
+                "{\"Tipo\":\"ChequeRegaloSinUsar\",\"Mensaje\":\"otro\"}]}");
+            var mostrados = new List<string>();
+
+            AvisoPedidoModel.MostrarCursosVendidosAMano(avisos, (titulo, mensaje) => mostrados.Add(titulo + ": " + mensaje));
+
+            Assert.AreEqual(2, avisos.Count);
+            Assert.AreEqual(1, mostrados.Count, "Solo el del curso");
+            StringAssert.Contains(mostrados[0], "90077");
+            Assert.AreEqual(0, RespuestaCrearPedidoPlantilla.LeerAvisosGrabacion("no es json").Count);
+            Assert.AreEqual(0, RespuestaCrearPedidoPlantilla.LeerAvisosGrabacion("{\"numero\":1}").Count);
+        }
+
+        [TestMethod]
         public void AlGuardar_ConPedidoDeCursoAparte_SeDiceQueSonDosPedidos()
         {
             var vm = CrearViewModel();

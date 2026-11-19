@@ -33,6 +33,22 @@ Public Class AvisoPedidoModel
     Public Const TIPO_ABONO_PRODUCTO_FUERA_DE_FACTURA As String = "ABONO_PRODUCTO_FUERA_DE_FACTURA"
     ''' <summary>Nesto#629 (NestoAPI#722): al aplazar, la fecha se ha cambiado también en la agencia (Datos.Envio, Agencia, FechaNueva).</summary>
     Public Const TIPO_FECHA_CAMBIADA_EN_AGENCIA As String = "FechaCambiadaEnAgencia"
+    ''' <summary>
+    ''' 19/11/26 (caso 33895): una línea es el curso de un evento vendido a mano en un pedido normal (no bloquea). El mensaje dice
+    ''' que se inscriba a la clienta y se cobre la señal en Cajas.
+    ''' </summary>
+    Public Const TIPO_CURSO_VENDIDO_A_MANO As String = "CursoVendidoAMano"
+    Public Const TITULO_CURSO_VENDIDO_A_MANO As String = "Curso de un evento"
+
+    ''' <summary>19/11/26: enseña los avisos del curso vendido a mano (los demás tipos los trata cada pantalla).</summary>
+    Public Shared Sub MostrarCursosVendidosAMano(avisos As IEnumerable(Of AvisoPedidoModel), mostrar As Action(Of String, String))
+        If avisos Is Nothing OrElse mostrar Is Nothing Then
+            Return
+        End If
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = TIPO_CURSO_VENDIDO_A_MANO AndAlso Not String.IsNullOrWhiteSpace(a.Mensaje))
+            mostrar(TITULO_CURSO_VENDIDO_A_MANO, aviso.Mensaje)
+        Next
+    End Sub
 
     Public Property Tipo As String
     Public Property Mensaje As String

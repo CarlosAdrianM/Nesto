@@ -84,7 +84,8 @@ namespace Nesto.Modulos.Cliente
             SubirDosierCommand = new AsyncRelayCommand(SubirDosierAsync, () => SePuedeEditar && _idEdicion > 0);
             AbrirDosierCommand = new AsyncRelayCommand(AbrirDosierAsync, () => SePuedeEditar && _idEdicion > 0 && Dosier != null);
             QuitarDosierCommand = new AsyncRelayCommand(QuitarDosierAsync, () => SePuedeEditar && _idEdicion > 0 && Dosier != null);
-            MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeMarcarPagada == true);
+            // Carlos (19/11/26): «Marcar pagada» es la salida de emergencia de Administración; las tiendas cobran la señal en Cajas
+            MarcarPagadaCommand = new AsyncRelayCommand(MarcarPagadaAsync, () => VeMarcarPagada && InscripcionSeleccionada?.SePuedeMarcarPagada == true);
             FacturarCommand = new AsyncRelayCommand(FacturarAsync, () => TieneAcceso && InscripcionSeleccionada?.SePuedeFacturar == true);
             GuardarAsistenciaCommand = new AsyncRelayCommand(GuardarAsistenciaAsync, () => SePuedePasarLista);
             RecargarInscripcionesCommand = new AsyncRelayCommand(CargarInscripcionesAsync, () => Seleccionado?.Id > 0);
@@ -165,6 +166,19 @@ namespace Nesto.Modulos.Cliente
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        /// <summary>
+        /// Carlos (19/11/26): «Marcar pagada» a mano (sin contabilizar nada) queda solo para Administración, Dirección e Informática.
+        /// Las tiendas cobran la señal en Cajas (pestaña Cobros), que apunta el cobro, factura el curso y emite el cupón. Gemela de
+        /// PermisosEventos.PuedeMarcarPagadaAMano de la API (que es la que manda: a los demás les contesta 403).
+        /// </summary>
+        public static bool PuedeMarcarPagadaAMano(IConfiguracion configuracion) =>
+            configuracion != null && (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA));
+
+        /// <summary>El recuadro «Marcar pagada» solo se pinta a quien puede usarlo.</summary>
+        public bool VeMarcarPagada => PuedeMarcarPagadaAMano(Configuracion);
 
         /// <summary>NestoAPI#875: el campo «Enlace de la conexión online» solo se pinta a quien puede verlo.</summary>
         public bool VeEnlaceOnline => PuedeVerEnlaceOnline(Configuracion);
@@ -2279,7 +2293,8 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        // Marcar pagada a mano (Carlos, 14/10 y 15/10/26): la API no contabiliza nada; el efectivo lo mete cada usuario en su caja.
+        // Marcar pagada a mano (Carlos, 14/10 y 15/10/26): la API no contabiliza nada. Desde el 19/11/26 solo Administración: lo normal
+        // es cobrar la señal en Cajas.
 
         private string _formaPagoPago = MarcarPagoInscripcionModel.TRANSFERENCIA;
         public string FormaPagoPago { get => _formaPagoPago; set => SetProperty(ref _formaPagoPago, value); }
@@ -2310,9 +2325,7 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError("La fecha del pago no puede ser futura.");
                 return;
             }
-            string aviso = FormaPagoPago == MarcarPagoInscripcionModel.EFECTIVO
-                ? " Recuerde meter el cobro en la caja de la tienda: Nesto no lo contabiliza."
-                : string.Empty;
+            string aviso = " Esto NO contabiliza el cobro: la factura del curso quedará pendiente de cobro. Lo normal es cobrar la señal en Cajas.";
             if (!_dialogService.ShowConfirmationAnswer("Marcar como pagada",
                 $"¿Marca como pagada ({FormaPagoPago.ToLowerInvariant()}, {(ImportePago ?? Seleccionado?.ImporteSenal ?? 0):C}) la inscripción de {inscripcion.Nombre?.Trim()} ({inscripcion.ClienteContacto})?{aviso}"))
             {

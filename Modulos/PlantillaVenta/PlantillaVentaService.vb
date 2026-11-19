@@ -349,7 +349,8 @@ Public Class PlantillaVentaService
                     End Try
                     Return New RespuestaCrearPedidoPlantilla With {
                         .Numero = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1),
-                        .PedidosAdicionales = RespuestaCrearPedidoPlantilla.LeerPedidosAdicionales(cuerpo)
+                        .PedidosAdicionales = RespuestaCrearPedidoPlantilla.LeerPedidosAdicionales(cuerpo),
+                        .AvisosGrabacion = RespuestaCrearPedidoPlantilla.LeerAvisosGrabacion(cuerpo)
                     }
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result

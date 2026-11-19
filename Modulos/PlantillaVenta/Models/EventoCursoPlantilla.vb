@@ -99,6 +99,36 @@ End Class
 Public Class RespuestaCrearPedidoPlantilla
     Public Property Numero As String
     Public Property PedidosAdicionales As List(Of PedidoAdicionalDTO) = New List(Of PedidoAdicionalDTO)
+    ''' <summary>19/11/26: los avisos que no bloquean del pedido creado («AvisosGrabacion» del cuerpo), p. ej. el curso vendido a mano.</summary>
+    Public Property AvisosGrabacion As List(Of Nesto.Modulos.PedidoVenta.AvisoPedidoModel) = New List(Of Nesto.Modulos.PedidoVenta.AvisoPedidoModel)
+
+    ''' <summary>
+    ''' 19/11/26: lee «AvisosGrabacion» del cuerpo, sin importar mayúsculas. Cualquier otra cosa (cuerpo vacío, API anterior, JSON
+    ''' raro) da lista vacía: el pedido ya está creado.
+    ''' </summary>
+    Public Shared Function LeerAvisosGrabacion(json As String) As List(Of Nesto.Modulos.PedidoVenta.AvisoPedidoModel)
+        Dim lista As New List(Of Nesto.Modulos.PedidoVenta.AvisoPedidoModel)
+        If String.IsNullOrWhiteSpace(json) Then
+            Return lista
+        End If
+        Try
+            Dim raiz = TryCast(JToken.Parse(json), JObject)
+            Dim avisos = TryCast(raiz?.GetValue("AvisosGrabacion", StringComparison.OrdinalIgnoreCase), JArray)
+            If avisos Is Nothing Then
+                Return lista
+            End If
+            For Each item In avisos.OfType(Of JObject)()
+                lista.Add(New Nesto.Modulos.PedidoVenta.AvisoPedidoModel With {
+                    .Tipo = item.GetValue("Tipo", StringComparison.OrdinalIgnoreCase)?.ToString(),
+                    .Mensaje = item.GetValue("Mensaje", StringComparison.OrdinalIgnoreCase)?.ToString(),
+                    .Datos = TryCast(item.GetValue("Datos", StringComparison.OrdinalIgnoreCase), JObject)
+                })
+            Next
+        Catch ex As Exception
+            ' Respuesta que no es JSON: sin avisos
+        End Try
+        Return lista
+    End Function
 
     ''' <summary>
     ''' Lee «PedidosAdicionales» del cuerpo de la respuesta, sin importar mayúsculas. Cualquier otra cosa (cuerpo

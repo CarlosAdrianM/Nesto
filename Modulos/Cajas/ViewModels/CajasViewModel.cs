@@ -64,6 +64,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             SeleccionarPendientesRecibirCommand = new RelayCommand<IList>(OnSeleccionarPendientesRecibir);
             CopiarNumeroDocumentoCommand = new RelayCommand(OnCopiarNumeroDocumento, CanCopiarNumeroDocumento);
             CopiarImportePendienteCommand = new RelayCommand(OnCopiarImportePendiente, CanCopiarImportePendiente);
+            QuitarReservaEventoCommand = new RelayCommand(() => ReservaEventoSeleccionada = null, () => ReservaEventoSeleccionada is not null);
 
             // suscribirse a los cambios de ArqueoFondo.TotalArqueo para que cuando cambie actualicemos el importe del traspaso
             ArqueoFondo.PropertyChanged += ArqueoFondo_Changed;
@@ -93,6 +94,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _clienteSeleccionado, value))
                 {
                     EntregaCliente = null; // Nesto#645: otro cliente, otra entrega
+                    ReservaEventoSeleccionada = null; // 19/11/26: y sus reservas
                 }
                 _ = CargarDeudasCliente();
                 (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
@@ -581,6 +583,149 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
 
 
+        // ---------------- 19/11/26 (caso 33895): reservas de eventos sin pagar, cobrables en Cajas ----------------
+
+        private ObservableCollection<ReservaEventoCaja> _listaReservasEvento = [];
+        /// <summary>Las reservas de eventos sin pagar del cliente: se cobran aquí, con la forma de pago de siempre.</summary>
+        public ObservableCollection<ReservaEventoCaja> ListaReservasEvento
+        {
+            get => _listaReservasEvento;
+            set
+            {
+                if (SetProperty(ref _listaReservasEvento, value))
+                {
+                    OnPropertyChanged(nameof(HayReservasEvento));
+                }
+            }
+        }
+
+        public bool HayReservasEvento => ListaReservasEvento?.Any() == true;
+
+        private ReservaEventoCaja _reservaEventoSeleccionada;
+        /// <summary>
+        /// La reserva que se va a cobrar. Se cobra SOLA (sin facturas marcadas) y pone su señal en «Total cobrado» (la señal se
+        /// cobra entera o no se cobra).
+        /// </summary>
+        public ReservaEventoCaja ReservaEventoSeleccionada
+        {
+            get => _reservaEventoSeleccionada;
+            set
+            {
+                if (SetProperty(ref _reservaEventoSeleccionada, value))
+                {
+                    if (value is not null)
+                    {
+                        TotalCobrado = value.Importe;
+                    }
+                    else if (ImporteDeudasSeleccionadas == 0)
+                    {
+                        TotalCobrado = 0;
+                    }
+                    OnPropertyChanged(nameof(TextoReservaEvento));
+                    QuitarReservaEventoCommand?.NotifyCanExecuteChanged();
+                    (ContabilizarCobroCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>Lo que se va a hacer al contabilizar con la reserva marcada (o por qué no se puede).</summary>
+        public string TextoReservaEvento => ReservaEventoSeleccionada is null ? string.Empty
+            : !ReservaEventoSeleccionada.Cobrable ? ReservaEventoSeleccionada.Motivo
+            : $"Al contabilizar se cobra la señal ({Euros(ReservaEventoSeleccionada.Importe)}), la clienta queda inscrita, se factura " +
+              "el curso y se emite su cupón. La señal se cobra sola, sin facturas.";
+
+        public IRelayCommand QuitarReservaEventoCommand { get; private set; }
+
+        private static string Euros(decimal importe) => importe.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-ES"));
+
+        /// <summary>Por qué no se puede cobrar ahora la reserva marcada (de usted), o null.</summary>
+        internal string MotivoNoCobrarReserva()
+        {
+            ReservaEventoCaja reserva = ReservaEventoSeleccionada;
+            if (reserva is null)
+            {
+                return null;
+            }
+            if (!reserva.Cobrable)
+            {
+                return reserva.Motivo ?? "Esta reserva no se puede cobrar en Cajas.";
+            }
+            if (DeudasSeleccionadas?.Any() == true)
+            {
+                return "La señal del evento se cobra sola: quite la selección de las facturas (o cóbrelas antes) y vuelva a contabilizar.";
+            }
+            if (Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero) != Math.Round(reserva.Importe, 2, MidpointRounding.AwayFromZero))
+            {
+                return $"La señal se cobra entera o no se cobra: el total cobrado tiene que ser {Euros(reserva.Importe)}.";
+            }
+            if (EmpresaTraspaso != Constantes.Empresas.EMPRESA_DEFECTO)
+            {
+                return "La señal del evento se cobra en la empresa 1: quite la marca de la otra empresa.";
+            }
+            if (FormaPagoSeleccionada is null || string.IsNullOrWhiteSpace(FormaPagoSeleccionada.formaPago))
+            {
+                return "Elija la forma de pago.";
+            }
+            return null;
+        }
+
+        private async Task CobrarReservaEvento()
+        {
+            string motivo = MotivoNoCobrarReserva();
+            if (motivo is not null)
+            {
+                _dialogService.ShowError(motivo);
+                return;
+            }
+            ReservaEventoCaja reserva = ReservaEventoSeleccionada;
+            try
+            {
+                ResultadoCobroReservaEventoCaja resultado = await _clientesService.CobrarReservaEvento(reserva.InscripcionId, new CobroReservaEventoCaja
+                {
+                    FormaPago = FormaPagoSeleccionada.formaPago,
+                    Importe = Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero),
+                    CuentaCobro = CuentaCobro?.Cuenta,
+                    Fecha = FechaCobro.Date,
+                    Diario = _diarioCaja,
+                    Delegacion = _delegacionUsuario,
+                    FormaVenta = _formaVentaUsuario,
+                    ConceptoAdicional = ConceptoAdicionalCobros
+                });
+                _dialogService.ShowNotification(resultado?.Mensaje ?? $"Cobrada la señal de «{reserva.Evento}».");
+                ConceptoAdicionalCobros = string.Empty;
+                EntregaCliente = null;
+                ReservaEventoSeleccionada = null;
+                CobroContabilizado?.Invoke(this, EventArgs.Empty);
+                await CargarDatosIniciales();
+                await CargarDeudasCliente();
+                TotalCobrado = 0;
+            }
+            catch (Exception ex)
+            {
+                // El mensaje de la API ya dice qué ha pasado (importe, permisos, ya cobrada…) y que no se ha cobrado nada
+                _dialogService.ShowError(ex.Message);
+                await CargarReservasEvento();
+            }
+        }
+
+        private async Task CargarReservasEvento()
+        {
+            string cliente = ClienteSeleccionado;
+            List<ReservaEventoCaja> reservas;
+            try
+            {
+                reservas = string.IsNullOrWhiteSpace(cliente) ? [] : await _clientesService.LeerReservasEventoSinPagar(cliente) ?? [];
+            }
+            catch (Exception)
+            {
+                // Sin las reservas el cobro normal sigue funcionando: no se interrumpe a quien está cobrando
+                reservas = [];
+            }
+            int? marcada = ReservaEventoSeleccionada?.InscripcionId;
+            ListaReservasEvento = [.. reservas];
+            ReservaEventoSeleccionada = marcada.HasValue ? ListaReservasEvento.FirstOrDefault(r => r.InscripcionId == marcada.Value) : null;
+        }
+
         #region Comandos
         // Nesto#511 (incidencia 510 de Aida): copiar el documento o el pendiente de la deuda bajo el cursor con el botón
         // derecho. La lista selecciona por filas (así se marca la deuda a cobrar) y Ctrl+C copia la fila entera; la vista
@@ -642,7 +787,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarCobroCommand { get; private set; }
         private bool CanContabilizarCobro()
         {
-            return !EstaOcupado && (ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0) && ClienteSeleccionado is not null;
+            return !EstaOcupado && (ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0 || ReservaEventoSeleccionada is not null) && ClienteSeleccionado is not null;
         }
 
         // Nesto#464: una sola contabilización a la vez. El guard de dentro es necesario además del
@@ -656,7 +801,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
             try
             {
                 EstaOcupado = true;
-                await ContabilizarCobro();
+                if (ReservaEventoSeleccionada is not null)
+                {
+                    await CobrarReservaEvento(); // 19/11/26: la señal de un evento, por la API
+                }
+                else
+                {
+                    await ContabilizarCobro();
+                }
             }
             finally
             {
@@ -1279,6 +1431,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             ListaDeudas = [.. (await _clientesService.LeerDeudas(ClienteSeleccionado)).OrderBy(e => e.Id)];
             AplicarPreseleccion(); // Nesto#645
+            await CargarReservasEvento(); // 19/11/26
         }
         private async Task CalcularSaldoCuentaOrigen()
         {

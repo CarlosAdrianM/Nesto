@@ -386,8 +386,8 @@ namespace Nesto.Modulos.Cliente
             ? "Evento gratuito: el cliente no paga nada y pasa directamente a la lista de asistencia."
             : FormaPago?.Valor switch
         {
-            MarcarPagoInscripcionModel.TRANSFERENCIA => "La inscripción queda reservada hasta que Administración marque la transferencia como señal del evento, o hasta que se marque como pagada.",
-            MarcarPagoInscripcionModel.EFECTIVO => "La inscripción queda reservada hasta que se marque como pagada. El cobro se mete en la caja de la tienda, como cualquier otro cobro en efectivo.",
+            MarcarPagoInscripcionModel.TRANSFERENCIA => "La inscripción queda reservada hasta que Administración marque la transferencia como señal del evento o la cobre en Cajas.",
+            MarcarPagoInscripcionModel.EFECTIVO => "La inscripción queda reservada hasta que se cobre la señal en Cajas (pestaña Cobros, al elegir la clienta sale su reserva). Al cobrarla queda pagada, se factura el curso y se emite el cupón.",
             _ => "Con el enlace, la inscripción pasa sola a pagada cuando el cliente paga. Hay que pagarla antes de que falten para el evento los días que este marque (7 por defecto): se avisa antes de que venza y, si no, la plaza se libera sola y queda como «Caducada»."
         };
 

@@ -240,6 +240,7 @@ namespace ClienteTests
         [TestMethod]
         public async Task MarcarPagada_EnEfectivo_MandaFormaEImporte_YHoyEsAhora()
         {
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true); // 19/11/26: solo Administración
             MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(5)), Inscripcion(1, InscripcionEventoModel.RESERVADA));
             A.CallTo(() => eventos.MarcarPagada(1, A<MarcarPagoInscripcionModel>.Ignored)).Returns(Inscripcion(1, InscripcionEventoModel.PAGADA));
             vm.InscripcionSeleccionada = vm.Inscripciones.Single();
@@ -250,13 +251,14 @@ namespace ClienteTests
 
             A.CallTo(() => eventos.MarcarPagada(1, A<MarcarPagoInscripcionModel>.That.Matches(p =>
                 p.FormaPago == "Efectivo" && p.Importe == 50 && p.Fecha == null))).MustHaveHappenedOnceExactly();
-            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.That.Contains("caja de la tienda"))).MustHaveHappened();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.That.Contains("cobrar la señal en Cajas"))).MustHaveHappened();
             Assert.AreEqual(InscripcionEventoModel.PAGADA, vm.InscripcionSeleccionada.Estado);
         }
 
         [TestMethod]
         public async Task MarcarPagada_OtroDia_MandaEseDia_YSinConfirmarNoMarca()
         {
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true); // 19/11/26: solo Administración
             MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(5)), Inscripcion(1, InscripcionEventoModel.CADUCADA));
             A.CallTo(() => eventos.MarcarPagada(1, A<MarcarPagoInscripcionModel>.Ignored)).Returns(Inscripcion(1, InscripcionEventoModel.CADUCADA));
             vm.InscripcionSeleccionada = vm.Inscripciones.Single();
@@ -269,6 +271,21 @@ namespace ClienteTests
             A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>.Ignored, A<string>.Ignored)).Returns(false);
             await vm.MarcarPagadaAsync();
             A.CallTo(() => eventos.MarcarPagada(A<int>.Ignored, A<MarcarPagoInscripcionModel>.Ignored)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task MarcarPagada_LaTiendaNoLaVe_SeCobraEnCajas()
+        {
+            // Carlos (19/11/26): las tiendas cobran la señal en Cajas; «Marcar pagada» queda para Administración
+            MantenimientoEventosViewModel vm = await MantenimientoConEvento(Evento(7, DateTime.Today.AddDays(5)), Inscripcion(1, InscripcionEventoModel.RESERVADA));
+            vm.InscripcionSeleccionada = vm.Inscripciones.Single();
+
+            Assert.IsTrue(vm.TieneAcceso, "La tienda sigue manteniendo el evento");
+            Assert.IsFalse(vm.VeMarcarPagada);
+            Assert.IsFalse(vm.MarcarPagadaCommand.CanExecute(null));
+            Assert.IsFalse(MantenimientoEventosViewModel.PuedeMarcarPagadaAMano(configuracion));
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)).Returns(true);
+            Assert.IsTrue(MantenimientoEventosViewModel.PuedeMarcarPagadaAMano(configuracion));
         }
 
         [TestMethod]
@@ -544,7 +561,7 @@ namespace ClienteTests
             vm.Origen = vm.Origenes.Single(o => o.Valor == InscribirEventoModel.ORIGEN_TELEFONO);
             vm.Correo = "pepa@example.com";
             Assert.IsFalse(vm.EsTarjeta);
-            StringAssert.Contains(vm.AvisoFormaPago, "caja de la tienda");
+            StringAssert.Contains(vm.AvisoFormaPago, "se cobre la señal en Cajas");
 
             vm.InscribirCommand.Execute(null);
 

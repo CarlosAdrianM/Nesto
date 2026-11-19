@@ -74,5 +74,34 @@ namespace Nesto.Modulos.Cajas.Services
 
             return deudas;
         }
+
+        public async Task<List<ReservaEventoCaja>> LeerReservasEventoSinPagar(string cliente)
+        {
+            if (string.IsNullOrWhiteSpace(cliente))
+            {
+                return [];
+            }
+            using HttpClient client = await CrearClienteAutenticado();
+            HttpResponseMessage response = await client.GetAsync($"Eventos/Inscripciones/SinPagar?cliente={Uri.EscapeDataString(cliente.Trim())}");
+            string cuerpo = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("Las reservas de eventos no se han podido cargar", cuerpo));
+            }
+            return JsonConvert.DeserializeObject<List<ReservaEventoCaja>>(cuerpo) ?? [];
+        }
+
+        public async Task<ResultadoCobroReservaEventoCaja> CobrarReservaEvento(int inscripcionId, CobroReservaEventoCaja cobro)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(cobro), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync($"Eventos/Inscripciones/{inscripcionId}/CobroCaja", content);
+            string cuerpo = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ErrorApiCajasException(ErroresApiCajas.Mensaje("No se ha cobrado la señal del evento", cuerpo));
+            }
+            return JsonConvert.DeserializeObject<ResultadoCobroReservaEventoCaja>(cuerpo);
+        }
     }
 }

@@ -5046,6 +5046,8 @@ Public Class PlantillaVentaViewModel
                 For Each aviso In If(avisosModificacion, New List(Of AvisoPedidoModel)).Where(Function(a) a?.Tipo = AvisoPedidoModel.TIPO_INSCRIPCIONES_EVENTO_ANULADAS)
                     dialogService.ShowNotification("Inscripciones anuladas", aviso.Mensaje)
                 Next
+                ' 19/11/26 (caso 33895): el curso de un evento vendido a mano (se ha guardado igual)
+                AvisoPedidoModel.MostrarCursosVendidosAMano(avisosModificacion, Sub(titulo, mensaje) dialogService.ShowNotification(titulo, mensaje))
                 ' Caso 931007: lo añadido ha ido a un pedido nuevo, o se ha pedido a Almacén que lo meta en el envío de hoy
                 pedidoNuevoAmpliacion = AmpliacionPedidoEnPreparacion.PedidoNuevo(avisosModificacion)
                 mensajePedidoNuevoAmpliacion = avisosModificacion?.FirstOrDefault(Function(a) a?.Tipo = AmpliacionEnPreparacionPreguntando.TIPO_AVISO_PEDIDO_NUEVO)?.Mensaje
@@ -5186,6 +5188,8 @@ Public Class PlantillaVentaViewModel
 
             ' Nesto#543: si la API ha separado los cursos en otro pedido (serie CV), se dice
             AvisarPedidosAdicionales(respuestaCrear)
+            ' 19/11/26 (caso 33895): el curso de un evento vendido a mano en el pedido (se ha creado igual)
+            AvisoPedidoModel.MostrarCursosVendidosAMano(respuestaCrear?.AvisosGrabacion, Sub(titulo, mensaje) dialogService.ShowNotification(titulo, mensaje))
 
             ' Issue #135: Crear etiqueta de recogida si se marcó
             If RecogerProducto Then

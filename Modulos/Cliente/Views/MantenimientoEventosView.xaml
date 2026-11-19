@@ -582,8 +582,10 @@
                          de otro y con los controles centrados (no se estiran). -->
                     <!-- Nesto#619: pagos y lista, solo quien mantiene eventos (de consulta no se enseñan) -->
                     <StackPanel Grid.Row="3" Margin="0,6,0,0" Visibility="{Binding TieneAcceso, Converter={StaticResource BoolAVisibilidad}}">
-                        <!-- Marcar pagada a mano: la API no contabiliza nada (el efectivo, a la caja de la tienda) -->
-                        <GroupBox Header="Marcar pagada" Padding="6,3">
+                        <!-- Marcar pagada a mano: la API no contabiliza nada. Desde el 19/11/26 solo Administración (las tiendas cobran
+                             la señal en Cajas, pestaña Cobros) -->
+                        <GroupBox Header="Marcar pagada (Administración: no contabiliza; lo normal es cobrar la señal en Cajas)" Padding="6,3"
+                                  Visibility="{Binding VeMarcarPagada, Converter={StaticResource BoolAVisibilidad}}">
                             <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <ComboBox ItemsSource="{Binding FormasPago}" SelectedItem="{Binding FormaPagoPago}" Width="120"
                                           VerticalAlignment="Center" Margin="0,2,6,2"/>
