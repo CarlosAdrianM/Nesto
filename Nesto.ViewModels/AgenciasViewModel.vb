@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports ControlesUsuario.Services
 Imports System.ComponentModel
 Imports System.Data
 Imports System.IO
@@ -4900,84 +4901,39 @@ Public Class AgenciasViewModel
         End Try
     End Function
 
+    ' Sugerencia 1356: el paso de decidir (diálogo, llamada, mensajes) es ControlesUsuario.Services.DecisorEnviosDevueltos, el
+    ' mismo que usa la pestaña «Entrega» del detalle del pedido. Aquí solo se le dan las llamadas de IAgenciaService, ELMAH y el
+    ' «ocupado» de la ventana.
     Friend Shared Function ParametrosReenvio(devuelto As EnvioDevueltoModel) As ParametrosDialogo
-        Return New ParametrosDialogo From {
-            {ReenviarEnvioDialogViewModel.PARAMETRO_ENVIO, devuelto.Numero},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_PEDIDO, If(devuelto.Pedido.HasValue, devuelto.Pedido.Value.ToString(), String.Empty)},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_NOMBRE, devuelto.Nombre},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_DIRECCION, devuelto.Direccion},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_COD_POSTAL, devuelto.CodPostal},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_POBLACION, devuelto.Poblacion},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_PROVINCIA, devuelto.Provincia},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_TELEFONO, devuelto.Telefono},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_MOVIL, devuelto.Movil},
-            {ReenviarEnvioDialogViewModel.PARAMETRO_OBSERVACIONES, devuelto.Observaciones}
-        }
+        Return DecisorEnviosDevueltos.ParametrosReenvio(devuelto)
     End Function
 
     Friend Shared Function PeticionReenvio(parametros As ParametrosDialogo) As ReenvioEnvioPeticion
-        Return New ReenvioEnvioPeticion With {
-            .Direccion = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_DIRECCION),
-            .CodPostal = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_COD_POSTAL),
-            .Poblacion = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_POBLACION),
-            .Provincia = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_PROVINCIA),
-            .Telefono = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_TELEFONO),
-            .Movil = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_MOVIL),
-            .Observaciones = parametros.GetValue(Of String)(ReenviarEnvioDialogViewModel.PARAMETRO_OBSERVACIONES),
-            .IncluirPortes = parametros.GetValue(Of Boolean)(ReenviarEnvioDialogViewModel.PARAMETRO_INCLUIR_PORTES)
-        }
+        Return DecisorEnviosDevueltos.PeticionReenvio(parametros)
+    End Function
+
+    Private Function DecisorDevueltos(origen As String) As DecisorEnviosDevueltos
+        Return New DecisorEnviosDevueltos(Function(numero, peticion) _servicio.ReenviarEnvioDevuelto(numero, peticion),
+                                          Function(numero) _servicio.AbonarEnvioDevuelto(numero),
+                                          _dialogService,
+                                          Sub(ex) RegistrarErrorAgenciaEnElmah(ex, origen),
+                                          Sub(ocupado) EstaOcupado = ocupado)
     End Function
 
     ''' <summary>«El cliente lo sigue queriendo: volver a enviar…». Friend para probar el flujo sin UI.</summary>
     Friend Async Function ReenviarDevueltoSeleccionado() As Task
-        Dim devuelto As EnvioDevueltoModel = DevueltoSeleccionado
-        If devuelto Is Nothing OrElse Not devuelto.SinDecidir Then
-            Return
-        End If
-        Dim resultado As ResultadoDialogo = Await _dialogService.ShowDialogAsync(ReenviarEnvioDialogViewModel.NOMBRE, ParametrosReenvio(devuelto))
-        If resultado Is Nothing OrElse resultado.Result <> ResultadoBoton.OK Then
-            Return ' cancelado
-        End If
-        Dim peticion As ReenvioEnvioPeticion = PeticionReenvio(resultado.Parameters)
-        Try
-            EstaOcupado = True
-            Dim decision As DecisionReenvioModel = Await _servicio.ReenviarEnvioDevuelto(devuelto.Numero, peticion)
-            Dim mensaje As String = If(decision?.Mensaje, $"Envío nuevo {decision?.EnvioNuevo} creado: imprima la etiqueta cuando llegue la caja.")
-            If decision?.Avisos IsNot Nothing AndAlso decision.Avisos.Any() Then
-                mensaje &= vbCr & vbCr & String.Join(vbCr, decision.Avisos)
-            End If
-            _dialogService.ShowNotification("Volver a enviar", mensaje)
+        Dim resultado As ResultadoDecisionDevuelto = Await DecisorDevueltos("AgenciasViewModel.ReenviarDevueltoSeleccionado").Reenviar(DevueltoSeleccionado)
+        If resultado = ResultadoDecisionDevuelto.Decidido Then
             Await CargarDevueltos()
-        Catch ex As Exception
-            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ReenviarDevueltoSeleccionado")
-            _dialogService.ShowError($"No se ha podido volver a enviar el envío {devuelto.Numero}:" & vbCr & ex.Message)
-        Finally
-            EstaOcupado = False
-        End Try
+        End If
     End Function
 
     ''' <summary>«No lo quiere: abonar». Solo lo apunta: el abono se hace con Copiar factura.</summary>
     Friend Async Function AbonarDevueltoSeleccionado() As Task
-        Dim devuelto As EnvioDevueltoModel = DevueltoSeleccionado
-        If devuelto Is Nothing OrElse Not devuelto.SinDecidir Then
-            Return
-        End If
-        Dim descripcion As String = If(devuelto.Pedido.HasValue, $"el pedido {devuelto.Pedido}", $"el envío {devuelto.Numero}")
-        If Not _dialogService.ShowConfirmationAnswer("Abonar", $"¿Confirma que el cliente no quiere {descripcion} y hay que abonarlo?") Then
-            Return
-        End If
-        Try
-            EstaOcupado = True
-            Dim decision As DecisionReenvioModel = Await _servicio.AbonarEnvioDevuelto(devuelto.Numero)
-            _dialogService.ShowNotification("Abonar",
-                If(decision?.Mensaje, "Marcado para abonar: hágalo con Copiar factura (abono + rehacer si hiciera falta)."))
+        Dim resultado As ResultadoDecisionDevuelto = Await DecisorDevueltos("AgenciasViewModel.AbonarDevueltoSeleccionado").Abonar(DevueltoSeleccionado)
+        If resultado = ResultadoDecisionDevuelto.Decidido Then
             Await CargarDevueltos()
-        Catch ex As Exception
-            Dim unused = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AbonarDevueltoSeleccionado")
-            _dialogService.ShowError($"No se ha podido marcar para abonar {descripcion}:" & vbCr & ex.Message)
-        Finally
-            EstaOcupado = False
-        End Try
+        End If
     End Function
 
     ' ===== NestoAPI#841: día sin reparto propio (la furgoneta no sale) =====

@@ -488,6 +488,35 @@
                             Seleccionada="{Binding pedido.contacto, Mode=TwoWay}">
                         </controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
+                            <!-- Sugerencia 1356: un envío del pedido devuelto o incidentado que espera decisión. Las mismas acciones
+                                 que Agencias › Devueltos (DecisorEnviosDevueltos); si no hay ninguno, no se ve nada. -->
+                            <Border Background="#FFF4E5" BorderBrush="DarkOrange" BorderThickness="1" CornerRadius="4"
+                                    Padding="6" Margin="0,0,0,6"
+                                    Visibility="{Binding HayDevueltosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Envío devuelto: ¿lo sigue queriendo el cliente?" FontWeight="Bold" Foreground="#B34700" TextWrapping="Wrap"/>
+                                    <ItemsControl ItemsSource="{Binding DevueltosPendientes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,4,0,0">
+                                                    <TextBlock Text="{Binding Resumen}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Destino}" TextWrapping="Wrap" Foreground="#555555"/>
+                                                    <WrapPanel Margin="0,4,0,0">
+                                                        <Button Content="Volver a enviar…" Padding="8,2" Margin="0,0,6,0"
+                                                                ToolTip="El cliente lo sigue queriendo: se crea un envío nuevo (puede corregir la dirección y los teléfonos); la etiqueta se imprime cuando vuelva la caja"
+                                                                Command="{Binding DataContext.ReenviarDevueltoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Content="Abonar" Padding="8,2"
+                                                                ToolTip="El cliente no lo quiere: queda apuntado para abonarlo (el abono se hace con Copiar factura)"
+                                                                Command="{Binding DataContext.AbonarDevueltoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </WrapPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
                             <!-- Issue #51: Fechas de entrega individuales por línea -->
                             <CheckBox IsChecked="{Binding UsarFechasIndividuales}" ToolTip="Cuando está activo, cada línea tiene su propia fecha de entrega (editable en la pestaña Líneas)">Fechas individuales por línea</CheckBox>
                             <TextBlock Text="Fecha de Entrega:" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>

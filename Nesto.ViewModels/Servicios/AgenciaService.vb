@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports ControlesUsuario.Services
 Imports System.Net.Http
 Imports System.Text
 Imports ControlesUsuario.Dialogs
@@ -1083,20 +1084,26 @@ Public Class AgenciaService
 
     ' ===== NestoAPI#699 (corte 2): devueltos, «volver a enviar» y «abonar» =====
 
+    ' Sugerencia 1356: las llamadas viven en ControlesUsuario.Services.ServicioEnviosDevueltos (las usa también el detalle del
+    ' pedido); aquí solo se delega.
+    Private Function ServicioDevueltos() As ServicioEnviosDevueltos
+        Return New ServicioEnviosDevueltos(_clienteApiFactory)
+    End Function
+
     Friend Shared Function RutaDevueltos(empresa As String) As String
-        Return $"EnviosAgencias/Devueltos?empresa={Uri.EscapeDataString(If(empresa, String.Empty).Trim())}"
+        Return ServicioEnviosDevueltos.RutaDevueltos(empresa)
     End Function
 
     Friend Shared Function RutaReenviar(numeroEnvio As Integer) As String
-        Return $"EnviosAgencias/{numeroEnvio}/Reenviar"
+        Return ServicioEnviosDevueltos.RutaReenviar(numeroEnvio)
     End Function
 
     Friend Shared Function RutaAbonarDevuelto(numeroEnvio As Integer) As String
-        Return $"EnviosAgencias/{numeroEnvio}/Abonar"
+        Return ServicioEnviosDevueltos.RutaAbonar(numeroEnvio)
     End Function
 
     Friend Shared Function CuerpoReenviar(peticion As ReenvioEnvioPeticion) As String
-        Return JsonConvert.SerializeObject(If(peticion, New ReenvioEnvioPeticion()))
+        Return ServicioEnviosDevueltos.CuerpoReenviar(peticion)
     End Function
 
     ''' <summary>
@@ -1124,18 +1131,8 @@ Public Class AgenciaService
         Return cuerpo
     End Function
 
-    Public Async Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel)) Implements IAgenciaService.CargarListaDevueltos
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-            End If
-            Dim response As HttpResponseMessage = Await client.GetAsync(RutaDevueltos(empresa))
-            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-            If Not response.IsSuccessStatusCode Then
-                Throw New Exception(MensajeErrorApi(cuerpo))
-            End If
-            Return If(JsonConvert.DeserializeObject(Of List(Of EnvioDevueltoModel))(cuerpo), New List(Of EnvioDevueltoModel))
-        End Using
+    Public Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel)) Implements IAgenciaService.CargarListaDevueltos
+        Return ServicioDevueltos().Cargar(empresa)
     End Function
 
     Friend Shared Function RutaHaVuelto(numeroEnvio As Integer) As String
@@ -1182,26 +1179,11 @@ Public Class AgenciaService
     End Function
 
     Public Function ReenviarEnvioDevuelto(numeroEnvio As Integer, peticion As ReenvioEnvioPeticion) As Task(Of DecisionReenvioModel) Implements IAgenciaService.ReenviarEnvioDevuelto
-        Return PostDecisionReenvio(RutaReenviar(numeroEnvio), CuerpoReenviar(peticion))
+        Return ServicioDevueltos().Reenviar(numeroEnvio, peticion)
     End Function
 
     Public Function AbonarEnvioDevuelto(numeroEnvio As Integer) As Task(Of DecisionReenvioModel) Implements IAgenciaService.AbonarEnvioDevuelto
-        Return PostDecisionReenvio(RutaAbonarDevuelto(numeroEnvio), "{}")
-    End Function
-
-    Private Async Function PostDecisionReenvio(ruta As String, cuerpoPeticion As String) As Task(Of DecisionReenvioModel)
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-            End If
-            Dim content As HttpContent = New StringContent(cuerpoPeticion, Encoding.UTF8, "application/json")
-            Dim response As HttpResponseMessage = Await client.PostAsync(ruta, content)
-            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-            If Not response.IsSuccessStatusCode Then
-                Throw New Exception(MensajeErrorApi(cuerpo))
-            End If
-            Return JsonConvert.DeserializeObject(Of DecisionReenvioModel)(cuerpo)
-        End Using
+        Return ServicioDevueltos().Abonar(numeroEnvio)
     End Function
 
     ' ===== Nesto#571 (NestoAPI#739): prueba de entrega; desde el 10/11/26 de cualquier agencia por el endpoint único =====

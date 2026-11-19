@@ -1,3 +1,4 @@
+Imports ControlesUsuario.Services
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Contracts

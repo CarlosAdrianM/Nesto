@@ -1,3 +1,4 @@
+Imports ControlesUsuario.Services
 Imports ControlesUsuario.Dialogs
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting

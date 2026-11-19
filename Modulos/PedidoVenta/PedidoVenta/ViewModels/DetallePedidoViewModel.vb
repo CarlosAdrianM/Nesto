@@ -134,6 +134,7 @@ Public Class DetallePedidoViewModel
         ServirLoQueHayCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_SERVIR_LO_QUE_HAY), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         EsperarCompletoCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_ESPERAR), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
+        InicializarDevueltos(servicioAutenticacion) ' Sugerencia 1356
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido, Function() Not PedidoCambiadoPorOtro) ' Nesto#642
         InicializarVersionPedido(avisosEnTiempoReal) ' Nesto#642
@@ -595,7 +596,9 @@ Public Class DetallePedidoViewModel
             Return _listaEnlacesSeguimiento
         End Get
         Set(value As List(Of EnvioAgenciaDTO))
-            Dim unused = SetProperty(_listaEnlacesSeguimiento, value)
+            If SetProperty(_listaEnlacesSeguimiento, value) Then
+                Dim unusedDevueltos = CargarDevueltosDelPedidoAsync() ' Sugerencia 1356: nunca lanza
+            End If
         End Set
     End Property
 
