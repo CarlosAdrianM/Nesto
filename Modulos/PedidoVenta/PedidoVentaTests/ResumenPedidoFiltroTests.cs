@@ -35,5 +35,18 @@ namespace PedidoVentaTests
             Assert.IsFalse(resumen.Contains("tinte lk "));
             Assert.IsTrue(resumen.Contains("tinte lk"));
         }
+
+        [TestMethod]
+        public void DireccionMostrar_ConLaCompletaDeLaApi_YSeFiltraPorElRotulo()
+        {
+            // NestoAPI#874: la lista pinta la dirección con la Dirección 2; sin ella (API anterior), la de siempre.
+            var resumen = new ResumenPedido { numero = 927000, cliente = "1", direccion = "CALLE MAYOR, 3", direccionCompleta = "CALLE MAYOR, 3, LOCAL · RÓTULO: LOHÉ" };
+            var viejo = new ResumenPedido { numero = 927001, cliente = "1", direccion = "CALLE MAYOR, 3" };
+
+            Assert.AreEqual("CALLE MAYOR, 3, LOCAL · RÓTULO: LOHÉ", resumen.DireccionMostrar);
+            Assert.AreEqual("CALLE MAYOR, 3", viejo.DireccionMostrar);
+            Assert.IsTrue(resumen.Contains("lohé"));
+            Assert.IsTrue(viejo.Contains("mayor"));
+        }
     }
 }

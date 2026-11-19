@@ -693,6 +693,7 @@ Public Class ListaPedidosVentaViewModel
         resumenEnCreacion.contacto = eventArgs.Pedido.contacto
         resumenEnCreacion.nombre = eventArgs.NombreCliente
         resumenEnCreacion.direccion = eventArgs.DireccionCliente
+        resumenEnCreacion.direccionCompleta = eventArgs.DireccionCompletaCliente
         resumenEnCreacion.codPostal = eventArgs.CodigoPostal
         resumenEnCreacion.poblacion = eventArgs.Poblacion
         resumenEnCreacion.provincia = eventArgs.Provincia

@@ -231,7 +231,7 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Fecha" Binding="{Binding fecha, StringFormat=d}" Width="Auto" />
                                         <DataGridTextColumn Header="Pedido" Binding="{Binding numero}" Width="Auto" />
-                                        <DataGridTextColumn Header="Dirección" Binding="{Binding direccion}" Width="*"/>
+                                        <DataGridTextColumn Header="Dirección" Binding="{Binding DireccionMostrar, Mode=OneWay}" Width="*"/>
                                         <DataGridTextColumn Header="Población" Binding="{Binding poblacion}" Width="*"/>
                                         <DataGridTextColumn Header="Seguimiento" Binding="{Binding ultimoSeguimiento}" Width="Auto" />
                                         <DataGridTextColumn Header="Base Imponible" Binding="{Binding baseImponible,StringFormat=c}" Width="Auto">

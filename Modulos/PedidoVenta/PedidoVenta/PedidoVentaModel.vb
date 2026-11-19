@@ -63,7 +63,28 @@ Public Class PedidoVentaModel
             End Get
             Set(value As String)
                 Dim unused = SetProperty(_direccion, value)
+                OnPropertyChanged(NameOf(DireccionMostrar))
             End Set
+        End Property
+
+        Private _direccionCompleta As String
+        ''' <summary>NestoAPI#874: Dirección + Dirección 2 que compone la API (con una API anterior no llega). Solo para enseñar.</summary>
+        Public Property direccionCompleta As String
+            Get
+                Return _direccionCompleta
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_direccionCompleta, value)
+                OnPropertyChanged(NameOf(DireccionMostrar))
+            End Set
+        End Property
+
+        ''' <summary>NestoAPI#874: lo que se pinta: la completa o, si no llega, la de siempre.</summary>
+        <Newtonsoft.Json.JsonIgnore>
+        Public ReadOnly Property DireccionMostrar As String
+            Get
+                Return Nesto.Infrastructure.Shared.DireccionParaMostrar.Elegir(direccion, direccionCompleta)
+            End Get
         End Property
 
         Private _codPostal As String
@@ -234,7 +255,7 @@ Public Class PedidoVentaModel
         End Property
 
         Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
-            Return (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse
+            Return (Not IsNothing(DireccionMostrar) AndAlso DireccionMostrar.ToLower.Contains(filtro.ToLower)) OrElse
                     (Not IsNothing(nombre) AndAlso nombre.ToLower.Contains(filtro.ToLower)) OrElse
                     (Not IsNothing(cliente) AndAlso cliente.Trim.ToLower.Equals(filtro.Trim.ToLower)) OrElse
                     (Not IsNothing(vendedor) AndAlso vendedor.Trim.ToLower.Equals(filtro.Trim.ToLower)) OrElse

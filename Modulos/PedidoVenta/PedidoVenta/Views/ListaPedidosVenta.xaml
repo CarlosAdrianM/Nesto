@@ -72,7 +72,7 @@
                                 </CheckBox>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding nombre}" TextTrimming="CharacterEllipsis" ToolTip="{Binding nombre}"></TextBlock>
-                                    <TextBlock Text="{Binding direccion}" TextTrimming="CharacterEllipsis" ToolTip="{Binding direccion}"></TextBlock>
+                                    <TextBlock Text="{Binding DireccionMostrar, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DireccionMostrar, Mode=OneWay}"></TextBlock>
                                     <WrapPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding cliente}"></TextBlock>
                                         <TextBlock xml:space="preserve" Text=" - "></TextBlock>

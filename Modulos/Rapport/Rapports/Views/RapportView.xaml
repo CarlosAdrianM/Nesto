@@ -94,9 +94,9 @@
             <TextBlock Text="Nombre: "></TextBlock>
             <TextBlock Text="{Binding ClienteCompleto.nombre}"></TextBlock>
         </StackPanel>
-        <StackPanel Grid.Row="2" Orientation="Horizontal" ToolTip="{Binding ClienteCompleto.direccion}">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" ToolTip="{Binding ClienteCompleto.DireccionMostrar}">
             <TextBlock Text="Dirección: "></TextBlock>
-            <TextBlock Text="{Binding ClienteCompleto.direccion}"></TextBlock>
+            <TextBlock Text="{Binding ClienteCompleto.DireccionMostrar}"></TextBlock>
         </StackPanel>
         <TextBlock Grid.Row="3" Text="Población: ">            
             <Run Text="{Binding ClienteCompleto.poblacionConCodigoPostal,Mode=OneWay}"></Run>

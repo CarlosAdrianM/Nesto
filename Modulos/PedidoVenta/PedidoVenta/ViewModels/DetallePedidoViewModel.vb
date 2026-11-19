@@ -3009,6 +3009,7 @@ Public Class DetallePedidoViewModel
                     .Pedido = pedido.Model,
                     .NombreCliente = If(DireccionEntregaSeleccionada?.nombre, String.Empty),
                     .DireccionCliente = If(DireccionEntregaSeleccionada?.direccion, String.Empty),
+                    .DireccionCompletaCliente = DireccionEntregaSeleccionada?.direccionCompleta,
                     .CodigoPostal = If(DireccionEntregaSeleccionada?.codigoPostal, String.Empty),
                     .Poblacion = If(DireccionEntregaSeleccionada?.poblacion, String.Empty),
                     .Provincia = If(DireccionEntregaSeleccionada?.provincia, String.Empty),
@@ -4972,7 +4973,7 @@ Public Class DetallePedidoViewModel
         Dim pedidoString As String = $"Pedido {pedido.numero}" + vbCr + $"Cliente {pedido.cliente}/{pedido.contacto}"
         If Not IsNothing(DireccionEntregaSeleccionada) Then
             pedidoString += vbCr + DireccionEntregaSeleccionada.nombre
-            pedidoString += vbCr + DireccionEntregaSeleccionada.direccion
+            pedidoString += vbCr + DireccionEntregaSeleccionada.DireccionMostrar ' NestoAPI#874: con la Dirección 2
             pedidoString += vbCr + $"{DireccionEntregaSeleccionada.codigoPostal} {DireccionEntregaSeleccionada.poblacion} ({DireccionEntregaSeleccionada.provincia})"
         End If
         pedidoString += vbCr + $"Vendedor estética: {pedido.vendedor}"

@@ -6709,6 +6709,10 @@ Public Class PlantillaVentaViewModel
         Dim clienteEncontrado As ClienteJson = listaClientes?.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
         If Not IsNothing(clienteEncontrado) Then
             clienteEncontrado.nombre = cliente.Nombre
+            ' NestoAPI#874: si cambia la dirección, la completa guardada ya no vale (se enseña la nueva hasta recargar)
+            If Not String.Equals(clienteEncontrado.direccion?.Trim(), cliente.Dirección?.Trim()) Then
+                clienteEncontrado.direccionCompleta = Nothing
+            End If
             clienteEncontrado.direccion = cliente.Dirección
             clienteEncontrado.poblacion = cliente.Población
             clienteEncontrado.comentarios = cliente.Comentarios
