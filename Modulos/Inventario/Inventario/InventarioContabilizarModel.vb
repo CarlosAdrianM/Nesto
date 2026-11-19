@@ -8,6 +8,12 @@ Partial Public Class InventarioModel
         Public Property Almacen As String
         Public Property Fecha As Date
         Public Property ControlUbicaciones As Boolean
+        ''' <summary>
+        ''' Novedad 1364: estas comprobaciones cuentan las filas pendientes de días anteriores como del día (pedidas con
+        ''' incluirDiasAnteriores). Al contabilizar se manda IncluirDiasAnteriores = True.
+        ''' </summary>
+        Public Property IncluyeDiasAnteriores As Boolean
+        Public Property DiasAnterioresIncluidos As New List(Of Date)
         Public Property Bloqueantes As New List(Of ComprobacionInventarioDTO)
         Public Property Avisos As New List(Of ComprobacionInventarioDTO)
         ''' <summary>Quién ha metido inventario ese día en ese almacén (filas pendientes de cada uno).</summary>
@@ -22,6 +28,11 @@ Partial Public Class InventarioModel
         ''' ConfirmarContadoCero = true. Los demás bloqueantes no se saltan nunca.
         ''' </summary>
         Public Property SeConfirma As Boolean
+        ''' <summary>
+        ''' Novedad 1364: solo en OtraFecha, todas sus filas son de días anteriores al del inventario: se pueden contabilizar
+        ''' junto con las del día («Contabilizar también la del dd/MM»).
+        ''' </summary>
+        Public Property SePuedeIncluir As Boolean
         Public Property Filas As New List(Of FilaComprobacionInventarioDTO)
         ''' <summary>«Título (N filas)» para la cabecera de cada comprobación.</summary>
         <JsonIgnore>
@@ -29,6 +40,68 @@ Partial Public Class InventarioModel
             Get
                 Dim n = If(Filas Is Nothing, 0, Filas.Count)
                 Return $"{Titulo} ({TextoFilas(n)})"
+            End Get
+        End Property
+
+        <JsonIgnore>
+        Public ReadOnly Property EsOtraFecha As Boolean
+            Get
+                Return String.Equals(Codigo, CodigosComprobacionInventario.OTRA_FECHA, StringComparison.OrdinalIgnoreCase)
+            End Get
+        End Property
+
+        ''' <summary>Novedad 1364: se enseña «Contabilizar también…» (OtraFecha con todas sus filas de días anteriores).</summary>
+        <JsonIgnore>
+        Public ReadOnly Property MostrarIncluir As Boolean
+            Get
+                Return EsOtraFecha AndAlso SePuedeIncluir
+            End Get
+        End Property
+
+        ''' <summary>Novedad 1364: los días de las filas, «18/11» o «17/11 y 18/11».</summary>
+        <JsonIgnore>
+        Public ReadOnly Property TextoDias As String
+            Get
+                Return InventarioModel.TextoDias(If(Filas, New List(Of FilaComprobacionInventarioDTO)).
+                    Where(Function(f) f IsNot Nothing AndAlso f.Fecha.HasValue).Select(Function(f) f.Fecha.Value))
+            End Get
+        End Property
+
+        ''' <summary>Novedad 1364: «Contabilizar también la del 18/11» (o «las del 17/11 y 18/11» con varias filas).</summary>
+        <JsonIgnore>
+        Public ReadOnly Property TextoIncluir As String
+            Get
+                Dim n = If(Filas Is Nothing, 0, Filas.Count)
+                Return $"Contabilizar también {If(n = 1, "la", "las")} del {TextoDias}"
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Novedad 1364 (Paloma, ALC): en OtraFecha, qué salidas hay y qué hace cada una, para no dejar a nadie sin saber qué hacer.
+        ''' Vacío en los demás bloqueantes.
+        ''' </summary>
+        <JsonIgnore>
+        Public ReadOnly Property ExplicacionSalidas As String
+            Get
+                If Not EsOtraFecha Then
+                    Return String.Empty
+                End If
+                Dim hayBorrables = Filas IsNot Nothing AndAlso Filas.Any(Function(f) f IsNot Nothing AndAlso f.SePuedeBorrar)
+                If SePuedeIncluir Then
+                    Dim texto = $"«{TextoIncluir}»: se cuentan junto con las de este día y se contabilizan todas a la vez (antes se vuelven a comprobar)."
+                    If hayBorrables Then
+                        texto += " «Borrar esta fila»: la quita del recuento; ese producto no se contabiliza y se queda con el stock que diga el sistema."
+                    End If
+                    Return texto
+                End If
+                Dim posteriores = InventarioModel.TextoDias(If(Filas, New List(Of FilaComprobacionInventarioDTO)).
+                    Where(Function(f) f IsNot Nothing AndAlso f.Fecha.HasValue).Select(Function(f) f.Fecha.Value))
+                Dim aviso = $"Hay filas de otro día ({posteriores}) que no se pueden contabilizar en este. Cierre esta ventana, elija en la fecha " +
+                    "el día más reciente y vuelva a contabilizar: allí podrá contabilizar también las de días anteriores."
+                If hayBorrables Then
+                    aviso += " También puede borrar las que tienen el botón (el producto se queda con el stock que diga el sistema)."
+                End If
+                Return aviso
             End Get
         End Property
     End Class
@@ -41,6 +114,8 @@ Partial Public Class InventarioModel
         Public Const RECONTADA_SIN_CONTAR As String = "RecontadaSinContar"
         ''' <summary>Contado 0 con stock: solo aviso.</summary>
         Public Const CONTADO_CERO_CON_STOCK As String = "ContadoCeroConStock"
+        ''' <summary>Filas pendientes de otro día (el SP contabiliza todas las del usuario). Novedad 1364: se pueden incluir o borrar.</summary>
+        Public Const OTRA_FECHA As String = "OtraFecha"
     End Class
 
     Public Class FilaComprobacionInventarioDTO
@@ -72,6 +147,8 @@ Partial Public Class InventarioModel
     Public Class RecuentoUsuarioInventarioDTO
         Public Property Usuario As String
         Public Property Filas As Integer
+        ''' <summary>Novedad 1364: los días de sus filas (más de uno solo si se incluyen días anteriores).</summary>
+        Public Property Dias As New List(Of Date)
     End Class
 
     ''' <summary>NestoAPI#790: el cuerpo 200 de POST api/Inventarios/Contabilizar (un traspaso por usuario).</summary>
@@ -166,6 +243,16 @@ Partial Public Class InventarioModel
     ''' <summary>«1 fila», «12 filas».</summary>
     Public Shared Function TextoFilas(n As Integer) As String
         Return $"{n} {If(n = 1, "fila", "filas")}"
+    End Function
+
+    ''' <summary>Novedad 1364: «18/11», «17/11 y 18/11», «16/11, 17/11 y 18/11» (sin repetir, en orden).</summary>
+    Public Shared Function TextoDias(dias As IEnumerable(Of Date)) As String
+        Dim lista = If(dias, Enumerable.Empty(Of Date)()).Select(Function(d) d.Date).Distinct().OrderBy(Function(d) d).
+            Select(Function(d) d.ToString("dd/MM", Globalization.CultureInfo.InvariantCulture)).ToList()
+        If lista.Count <= 1 Then
+            Return String.Join(String.Empty, lista)
+        End If
+        Return String.Join(", ", lista.Take(lista.Count - 1)) + " y " + lista.Last()
     End Function
 
     ''' <summary>«1 usuario», «3 usuarios».</summary>

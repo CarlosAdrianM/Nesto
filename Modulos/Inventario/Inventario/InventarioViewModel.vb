@@ -518,7 +518,12 @@ Public Class InventarioViewModel
             dialogService.ShowNotification("Contabilizar inventario", $"No hay filas pendientes de contabilizar en {almacenInventario} el {textoDia}.")
             Return
         End If
+        ' Novedad 1364: si en la ventana se ha pulsado «Contabilizar también la del dd/MM», las comprobaciones lo dicen.
+        Dim incluirDiasAnteriores = comprobaciones.IncluyeDiasAnteriores
         Dim mensaje = $"Se va a contabilizar el inventario de {almacenInventario} del {textoDia}: {TextoFilas(filas)} de {TextoUsuarios(recuento.Count)}."
+        If incluirDiasAnteriores AndAlso comprobaciones.DiasAnterioresIncluidos IsNot Nothing AndAlso comprobaciones.DiasAnterioresIncluidos.Any() Then
+            mensaje += $" Incluye las filas pendientes del {InventarioModel.TextoDias(comprobaciones.DiasAnterioresIncluidos)}."
+        End If
         If confirmarContadoCero Then
             mensaje += " Ha confirmado que hay 0 en los productos vueltos a contar: su stock se quedará a cero."
         End If
@@ -527,7 +532,7 @@ Public Class InventarioViewModel
             Return
         End If
 
-        Dim resultado = Await LlamarContabilizar(almacenInventario, fecha, confirmarContadoCero)
+        Dim resultado = Await LlamarContabilizar(almacenInventario, fecha, confirmarContadoCero, incluirDiasAnteriores)
         If resultado Is Nothing Then
             Return
         End If
@@ -538,7 +543,7 @@ Public Class InventarioViewModel
             If confirmarContadoCero OrElse decision <> DecisionComprobaciones.SeguirConfirmandoContadoCero Then
                 Return
             End If
-            resultado = Await LlamarContabilizar(almacenInventario, fecha, True)
+            resultado = Await LlamarContabilizar(almacenInventario, fecha, True, incluirDiasAnteriores)
             If resultado Is Nothing Then
                 Return
             End If
@@ -563,10 +568,10 @@ Public Class InventarioViewModel
     End Function
 
     ''' <summary>Nothing si ha fallado (ya se ha enseñado el error).</summary>
-    Private Async Function LlamarContabilizar(almacenInventario As String, fecha As Date, confirmarContadoCero As Boolean) As Task(Of ResultadoContabilizarInventario)
+    Private Async Function LlamarContabilizar(almacenInventario As String, fecha As Date, confirmarContadoCero As Boolean, incluirDiasAnteriores As Boolean) As Task(Of ResultadoContabilizarInventario)
         estaOcupado = True
         Try
-            Return Await _servicio.Contabilizar(EMPRESA_DEFECTO, almacenInventario, fecha, confirmarContadoCero)
+            Return Await _servicio.Contabilizar(EMPRESA_DEFECTO, almacenInventario, fecha, confirmarContadoCero, incluirDiasAnteriores)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing

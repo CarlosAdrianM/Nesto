@@ -38,7 +38,45 @@ Public Class ComprobacionesInventarioDialogViewModel
         CancelarCommand = New RelayCommand(Sub() RaiseRequestClose(ResultadoBoton.Cancel))
         BorrarFilaCommand = New AsyncRelayCommand(Of FilaComprobacionInventarioDTO)(AddressOf BorrarFila,
             Function(f) EsBorrable(f) AndAlso Not EstaOcupado)
+        IncluirDiasAnterioresCommand = New AsyncRelayCommand(Of ComprobacionInventarioDTO)(AddressOf IncluirDiasAnteriores,
+            Function(c) c IsNot Nothing AndAlso c.MostrarIncluir AndAlso Not EstaOcupado)
     End Sub
+
+    ''' <summary>
+    ''' Novedad 1364 (Paloma, ALC, 19/11/26): «Contabilizar también la del dd/MM». Vuelve a pedir las comprobaciones contando las
+    ''' filas de días anteriores como del día; si ya no queda nada que bloquee, «Continuar» las contabiliza todas a la vez.
+    ''' </summary>
+    Public Property IncluirDiasAnterioresCommand As AsyncRelayCommand(Of ComprobacionInventarioDTO)
+
+    Public Async Function IncluirDiasAnteriores(comprobacion As ComprobacionInventarioDTO) As Task
+        If _comprobaciones Is Nothing OrElse comprobacion Is Nothing OrElse Not comprobacion.MostrarIncluir OrElse EstaOcupado Then
+            Return
+        End If
+        EstaOcupado = True
+        Try
+            Dim nuevas = Await _servicio.Comprobaciones(_empresa, _comprobaciones.Almacen?.Trim(), _comprobaciones.Fecha, True)
+            If nuevas IsNot Nothing Then
+                Cargar(nuevas)
+            End If
+        Catch ex As Exception
+            _dialogos.ShowError("No se han podido volver a comprobar las filas con las de días anteriores: " + ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Function
+
+    ''' <summary>Novedad 1364: las comprobaciones que se ven ya incluyen días anteriores (al contabilizar, se incluyen).</summary>
+    Public ReadOnly Property IncluyeDiasAnteriores As Boolean
+        Get
+            Return _comprobaciones IsNot Nothing AndAlso _comprobaciones.IncluyeDiasAnteriores
+        End Get
+    End Property
+
+    Private ReadOnly Property TextoDiasIncluidos As String
+        Get
+            Return InventarioModel.TextoDias(If(_comprobaciones?.DiasAnterioresIncluidos, New List(Of Date)))
+        End Get
+    End Property
 
     Public Property ContinuarCommand As RelayCommand
     Public Property CancelarCommand As RelayCommand
@@ -61,6 +99,7 @@ Public Class ComprobacionesInventarioDialogViewModel
             If SetProperty(_estaOcupado, value) Then
                 ContinuarCommand.NotifyCanExecuteChanged()
                 BorrarFilaCommand.NotifyCanExecuteChanged()
+                IncluirDiasAnterioresCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -137,14 +176,42 @@ Public Class ComprobacionesInventarioDialogViewModel
 
     Public ReadOnly Property TextoContinuar As String
         Get
-            Return If(HayAvisos OrElse HayBloqueantes, "Continuar de todos modos", "Continuar")
+            Dim texto = If(HayAvisos OrElse HayBloqueantes, "Continuar de todos modos", "Continuar")
+            If IncluyeDiasAnteriores AndAlso Not String.IsNullOrEmpty(TextoDiasIncluidos) Then
+                texto += $" (con las del {TextoDiasIncluidos})"
+            End If
+            Return texto
+        End Get
+    End Property
+
+    ''' <summary>Novedad 1364: dicho arriba, para que se sepa qué se va a contabilizar.</summary>
+    Private ReadOnly Property AvisoIncluidas As String
+        Get
+            If Not IncluyeDiasAnteriores OrElse String.IsNullOrEmpty(TextoDiasIncluidos) Then
+                Return String.Empty
+            End If
+            Return $" Se contabilizarán también las filas pendientes del {TextoDiasIncluidos}, comprobadas junto con las de este día."
+        End Get
+    End Property
+
+    ''' <summary>Novedad 1364: el bloqueante de otra fecha tiene su propia explicación de salidas en su recuadro.</summary>
+    Private ReadOnly Property AvisoOtraFecha As String
+        Get
+            Return If(Bloqueantes.Any(Function(b) b.EsOtraFecha),
+                " Las filas de otro día tienen debajo lo que puede hacer con ellas.", String.Empty)
         End Get
     End Property
 
     Public ReadOnly Property Explicacion As String
         Get
+            Return ExplicacionSinIncluidas + AvisoIncluidas
+        End Get
+    End Property
+
+    Private ReadOnly Property ExplicacionSinIncluidas As String
+        Get
             If HayBloqueantesSinConfirmacion Then
-                Return "Hay problemas que impiden contabilizar el inventario. Corríjalos y vuelva a intentarlo." + AvisoBorrar
+                Return "Hay problemas que impiden contabilizar el inventario. Corríjalos y vuelva a intentarlo." + AvisoOtraFecha + AvisoBorrar
             End If
             If HayBloqueantes Then
                 Return "Hay productos que ya se contabilizaron ese día, se han vuelto a abrir y siguen con contado 0: si los " +
@@ -225,8 +292,10 @@ Public Class ComprobacionesInventarioDialogViewModel
         OnPropertyChanged(NameOf(TextoContinuar))
         OnPropertyChanged(NameOf(HayFilasQueSePuedenBorrar))
         OnPropertyChanged(NameOf(Explicacion))
+        OnPropertyChanged(NameOf(IncluyeDiasAnteriores))
         ContinuarCommand.NotifyCanExecuteChanged()
         BorrarFilaCommand.NotifyCanExecuteChanged()
+        IncluirDiasAnterioresCommand.NotifyCanExecuteChanged()
     End Sub
 
     ''' <summary>
@@ -263,7 +332,8 @@ Public Class ComprobacionesInventarioDialogViewModel
             Return
         End If
         Try
-            Dim nuevas = Await _servicio.Comprobaciones(_empresa, _comprobaciones.Almacen?.Trim(), _comprobaciones.Fecha)
+            ' Novedad 1364: si ya se estaban incluyendo los días anteriores, se siguen incluyendo.
+            Dim nuevas = Await _servicio.Comprobaciones(_empresa, _comprobaciones.Almacen?.Trim(), _comprobaciones.Fecha, _comprobaciones.IncluyeDiasAnteriores)
             If nuevas IsNot Nothing Then
                 Cargar(nuevas)
             End If
@@ -278,14 +348,19 @@ Public Class ComprobacionesInventarioDialogViewModel
         Dim ubicacion = If(String.IsNullOrWhiteSpace(fila.Ubicacion), "sin ubicación", fila.Ubicacion)
         Dim calculado = If(fila.StockCalculado.HasValue, fila.StockCalculado.Value.ToString(), "-")
         Dim contado = If(fila.StockReal.HasValue, fila.StockReal.Value.ToString(), "-")
+        ' Novedad 1364: una fila de un día anterior se borra porque se quedó sin contabilizar (no porque sobre).
+        Dim deDiaAnterior = fila.Fecha.HasValue AndAlso fila.Fecha.Value.Date < Date.Today
+        Dim dia = If(deDiaAnterior, fila.Fecha.Value.ToString("dd/MM/yyyy", Globalization.CultureInfo.InvariantCulture), String.Empty)
         Dim lineas As New List(Of String) From {
-            "Va a BORRAR esta fila del recuento de hoy:",
+            If(deDiaAnterior, $"Va a BORRAR esta fila del recuento del {dia}:", "Va a BORRAR esta fila del recuento de hoy:"),
             $"{producto} · {ubicacion} · calculado {calculado}, contado {contado}",
             String.Empty,
             "Borrar NO pone el producto a 0: lo deja SIN CONTAR, y al contabilizar se quedará con lo que diga el sistema. " +
                 "Si lo que quiere decir es que no hay ninguna unidad, no la borre: cuéntela a 0.",
             String.Empty,
-            "Borre solo una fila que sobra (duplicada o contada sin ubicación). ¿Borrarla?"
+            If(deDiaAnterior,
+               $"Es una fila del {dia} que se quedó sin contabilizar. Si lo contado vale, conteste «No» y pulse «Contabilizar también» en vez de borrarla. ¿Borrarla?",
+               "Borre solo una fila que sobra (duplicada o contada sin ubicación). ¿Borrarla?")
         }
         Return String.Join(Environment.NewLine, lineas)
     End Function

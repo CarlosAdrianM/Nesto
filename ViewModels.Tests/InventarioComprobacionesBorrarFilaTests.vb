@@ -234,6 +234,139 @@ Public Class InventarioComprobacionesBorrarFilaTests
         A.CallTo(Function() _servicio.Contabilizar("1", "ALG", _dia, False)).MustHaveHappenedOnceExactly()
     End Function
 
+    ' --- Novedad 1364 (Paloma, ALC, 19/11/26): una fila de ayer (954605) y otra de hoy (954609) se bloqueaban entre sí ---
+
+    Private ReadOnly _hoy1364 As New Date(2026, 11, 19)
+
+    Private Function OtraFechaDeAyer(sePuedeBorrar As Boolean) As ComprobacionesInventarioDTO
+        Dim c As New ComprobacionesInventarioDTO With {.Almacen = "ALC", .Fecha = _hoy1364}
+        c.Bloqueantes.Add(New ComprobacionInventarioDTO With {
+            .Codigo = CodigosComprobacionInventario.OTRA_FECHA, .Titulo = "Filas pendientes de este almacén con otra fecha", .SePuedeIncluir = True,
+            .Filas = New List(Of FilaComprobacionInventarioDTO) From {
+                New FilaComprobacionInventarioDTO With {.NumOrden = 954605, .Producto = "44365", .StockCalculado = 1, .StockReal = 0,
+                    .Usuario = "NUEVAVISION\Paloma", .Fecha = New Date(2026, 11, 18, 18, 0, 0), .SePuedeBorrar = sePuedeBorrar}}})
+        c.Recuento.Add(New RecuentoUsuarioInventarioDTO With {.Usuario = "NUEVAVISION\Paloma", .Filas = 1})
+        Return c
+    End Function
+
+    Private Function LasDosIncluidas() As ComprobacionesInventarioDTO
+        Dim c As New ComprobacionesInventarioDTO With {.Almacen = "ALC", .Fecha = _hoy1364, .IncluyeDiasAnteriores = True,
+            .DiasAnterioresIncluidos = New List(Of Date) From {New Date(2026, 11, 18)}}
+        c.Recuento.Add(New RecuentoUsuarioInventarioDTO With {.Usuario = "NUEVAVISION\Paloma", .Filas = 2})
+        Return c
+    End Function
+
+    <TestMethod()>
+    Public Sub OtraFechaDeAyer_OfreceLasDosSalidas_YDiceQueHaceCadaUna()
+        Dim dialogo = CrearDialogo(OtraFechaDeAyer(True))
+        Dim bloqueante = dialogo.Bloqueantes.Single()
+
+        Assert.IsTrue(bloqueante.MostrarIncluir)
+        Assert.AreEqual("Contabilizar también la del 18/11", bloqueante.TextoIncluir)
+        StringAssert.Contains(bloqueante.ExplicacionSalidas, "«Contabilizar también la del 18/11»: se cuentan junto con las de este día")
+        StringAssert.Contains(bloqueante.ExplicacionSalidas, "«Borrar esta fila»: la quita del recuento")
+        Assert.IsTrue(dialogo.IncluirDiasAnterioresCommand.CanExecute(bloqueante))
+        Assert.IsTrue(dialogo.BorrarFilaCommand.CanExecute(bloqueante.Filas.Single()))
+    End Sub
+
+    <TestMethod()>
+    Public Sub OtraFechaDeAyer_SinPermisoDeBorrar_SigueTeniendoSalida()
+        Dim dialogo = CrearDialogo(OtraFechaDeAyer(False))
+        Dim bloqueante = dialogo.Bloqueantes.Single()
+
+        Assert.IsTrue(bloqueante.MostrarIncluir)
+        Assert.IsFalse(bloqueante.ExplicacionSalidas.Contains("Borrar esta fila"))
+    End Sub
+
+    <TestMethod()>
+    Public Sub OtraFechaPosterior_NoSeIncluye_YDiceQueFechaElegir()
+        Dim c As New ComprobacionesInventarioDTO With {.Almacen = "ALC", .Fecha = New Date(2026, 11, 18)}
+        c.Bloqueantes.Add(New ComprobacionInventarioDTO With {.Codigo = CodigosComprobacionInventario.OTRA_FECHA, .Titulo = "Otra fecha", .SePuedeIncluir = False,
+            .Filas = New List(Of FilaComprobacionInventarioDTO) From {New FilaComprobacionInventarioDTO With {.NumOrden = 954609, .Fecha = _hoy1364}}})
+
+        Dim bloqueante = CrearDialogo(c).Bloqueantes.Single()
+
+        Assert.IsFalse(bloqueante.MostrarIncluir)
+        StringAssert.Contains(bloqueante.ExplicacionSalidas, "(19/11)")
+        StringAssert.Contains(bloqueante.ExplicacionSalidas, "elija en la fecha el día más reciente")
+    End Sub
+
+    <TestMethod()>
+    Public Async Function ContabilizarTambien_PideLasComprobacionesIncluyendo_YAlContinuarLasDevuelve() As Task
+        A.CallTo(Function() _servicio.Comprobaciones("1", "ALC", _hoy1364, True)).Returns(Task.FromResult(LasDosIncluidas()))
+        Dim dialogo = CrearDialogo(OtraFechaDeAyer(True))
+        Dim resultado As ResultadoDialogo = Nothing
+        AddHandler dialogo.RequestClose, Sub(r) resultado = r
+
+        Await dialogo.IncluirDiasAnteriores(dialogo.Bloqueantes.Single())
+
+        Assert.IsFalse(dialogo.HayBloqueantes)
+        Assert.IsTrue(dialogo.IncluyeDiasAnteriores)
+        Assert.AreEqual("Continuar (con las del 18/11)", dialogo.TextoContinuar)
+        StringAssert.Contains(dialogo.Explicacion, "Se contabilizarán también las filas pendientes del 18/11")
+        dialogo.ContinuarCommand.Execute(Nothing)
+        Assert.AreEqual(ResultadoBoton.OK, resultado.Result)
+        Assert.IsTrue(resultado.Parameters.GetValue(Of ComprobacionesInventarioDTO)(ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES).IncluyeDiasAnteriores)
+    End Function
+
+    <TestMethod()>
+    Public Async Function TrasIncluir_BorrarUnaFila_RefrescaSiguiendoIncluyendo() As Task
+        Dim incluidasConBloqueo = LasDosIncluidas()
+        incluidasConBloqueo.Bloqueantes.Add(New ComprobacionInventarioDTO With {.Codigo = "FilasDuplicadas", .Titulo = "Duplicadas",
+            .Filas = New List(Of FilaComprobacionInventarioDTO) From {Fila(954605)}})
+        A.CallTo(Function() _servicio.Comprobaciones("1", "ALC", _hoy1364, True)).ReturnsNextFromSequence(
+            Task.FromResult(incluidasConBloqueo), Task.FromResult(LasDosIncluidas()))
+        Dim dialogo = CrearDialogo(OtraFechaDeAyer(True))
+        Await dialogo.IncluirDiasAnteriores(dialogo.Bloqueantes.Single())
+
+        Await dialogo.BorrarFila(dialogo.Bloqueantes.Single().Filas.Single())
+
+        A.CallTo(Function() _servicio.Comprobaciones("1", "ALC", _hoy1364, True)).MustHaveHappenedTwiceExactly()
+        A.CallTo(Function() _servicio.Comprobaciones("1", "ALC", _hoy1364, False)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Sub TextoConfirmarBorrado_FilaDeUnDiaAnterior_DiceSuDiaYLaOtraSalida()
+        Dim texto = ComprobacionesInventarioDialogViewModel.TextoConfirmarBorrado(New FilaComprobacionInventarioDTO With {
+            .NumOrden = 954605, .Producto = "44365", .StockCalculado = 1, .StockReal = 0, .Fecha = Date.Today.AddDays(-1)})
+
+        StringAssert.Contains(texto, $"del recuento del {Date.Today.AddDays(-1):dd/MM/yyyy}:")
+        StringAssert.Contains(texto, "«Contabilizar también»")
+    End Sub
+
+    <TestMethod()>
+    Public Async Function Pantalla_ConLasDeAyerIncluidas_ContabilizaIncluyendo() As Task
+        Dim configuracion = A.Fake(Of IConfiguracion)()
+        A.CallTo(Function() configuracion.leerParametro(A(Of String).Ignored, Parametros.Claves.AlmacenInventario)).Returns(Task.FromResult("ALC"))
+        A.CallTo(Function() configuracion.UsuarioEnGrupo(A(Of String).Ignored)).Returns(True)
+        A.CallTo(Function() _servicio.Comprobaciones("1", "ALC", _hoy1364, False)).Returns(Task.FromResult(OtraFechaDeAyer(True)))
+        A.CallTo(Function() _dialogos.ShowDialogAsync(ComprobacionesInventarioDialogViewModel.NOMBRE, A(Of ParametrosDialogo).Ignored)) _
+            .Returns(Task.FromResult(New ResultadoDialogo(ResultadoBoton.OK, New ParametrosDialogo From {
+                {ComprobacionesInventarioDialogViewModel.PARAMETRO_CONFIRMAR_CONTADO_CERO, False},
+                {ComprobacionesInventarioDialogViewModel.PARAMETRO_COMPROBACIONES, LasDosIncluidas()}})))
+        A.CallTo(Function() _servicio.Contabilizar(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of Boolean).Ignored, A(Of Boolean).Ignored)) _
+            .Returns(Task.FromResult(New ResultadoContabilizarInventario With {.Contabilizacion = New ContabilizacionInventarioDTO}))
+        Dim vm As New InventarioViewModel(A.Fake(Of IServicioNavegacion)(), configuracion, _dialogos, _servicio)
+        vm.fechaSeleccionada = _hoy1364
+
+        Await vm.ContabilizarInventario()
+
+        A.CallTo(Function() _dialogos.ShowConfirmationAnswer("Contabilizar inventario",
+            A(Of String).That.Contains("Incluye las filas pendientes del 18/11"), True)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Contabilizar("1", "ALC", _hoy1364, False, True)).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function Servicio_IncluirDiasAnteriores_VaEnLaUrlYEnElCuerpo() As Task
+        Dim servicio = CrearServicio(HttpStatusCode.OK, "{""Almacen"":""ALC""}")
+
+        Await servicio.Comprobaciones("1", "ALC", _hoy1364, True)
+        Await servicio.Comprobaciones("1", "ALC", _hoy1364)
+
+        StringAssert.Contains(_manejador.Peticiones(0), "&incluirDiasAnteriores=true")
+        Assert.IsFalse(_manejador.Peticiones(1).Contains("incluirDiasAnteriores"))
+    End Function
+
     ' --- Servicio (HTTP falso) ---
 
     Private Class ManejadorFalso

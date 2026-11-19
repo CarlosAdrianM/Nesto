@@ -60,6 +60,14 @@
                                         <TextBlock Text="Se puede confirmar abajo si de verdad hay 0." FontStyle="Italic" Foreground="DarkRed" Margin="0,2,0,0"
                                                    Visibility="{Binding SeConfirma, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                         <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource FilasComprobacion}"/>
+                                        <!-- Novedad 1364 (Paloma, ALC): las filas de otro día tienen salida: contabilizarlas también o borrarlas. -->
+                                        <TextBlock Text="{Binding ExplicacionSalidas}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                   Visibility="{Binding EsOtraFecha, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        <Button Content="{Binding TextoIncluir}" HorizontalAlignment="Left" Padding="10,3" Margin="0,6,0,0" FontWeight="SemiBold"
+                                                ToolTip="Las cuenta junto con las de este día y vuelve a comprobarlas todas. Se contabilizan al pulsar «Continuar»."
+                                                Command="{Binding DataContext.IncluirDiasAnterioresCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding MostrarIncluir, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
