@@ -45,7 +45,7 @@ namespace PedidoVentaTests
 
             await vm.CargarDevueltosDelPedidoAsync();
 
-            A.CallTo(() => devueltos.Cargar(A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => devueltos.CargarDelPedido(A<string>._, A<int>._)).MustNotHaveHappened();
             Assert.IsFalse(vm.HayDevueltosPendientes);
         }
 
@@ -53,7 +53,7 @@ namespace PedidoVentaTests
         public async Task ConUnDevuelto_EnsenaSoloLosDeEstePedidoSinDecidir()
         {
             var (vm, devueltos, _, _) = Vm();
-            A.CallTo(() => devueltos.Cargar("1")).Returns(Task.FromResult(new List<EnvioDevueltoModel>
+            A.CallTo(() => devueltos.CargarDelPedido("1", 925137)).Returns(Task.FromResult(new List<EnvioDevueltoModel>
             {
                 Devuelto(251300, 925137),
                 Devuelto(251301, 925137, EnvioDevueltoModel.ABONAR),
@@ -71,7 +71,7 @@ namespace PedidoVentaTests
         public async Task SiLaApiFalla_NoSeVeNadaYNoLanza()
         {
             var (vm, devueltos, dialogos, _) = Vm();
-            A.CallTo(() => devueltos.Cargar(A<string>._)).ThrowsAsync(new System.UnauthorizedAccessException(ServicioEnviosDevueltos.MENSAJE_SIN_PERMISO));
+            A.CallTo(() => devueltos.CargarDelPedido(A<string>._, A<int>._)).ThrowsAsync(new System.UnauthorizedAccessException(ServicioEnviosDevueltos.MENSAJE_SIN_PERMISO));
 
             vm.ListaEnlacesSeguimiento = Envios(3);
             await vm.CargarDevueltosDelPedidoAsync();

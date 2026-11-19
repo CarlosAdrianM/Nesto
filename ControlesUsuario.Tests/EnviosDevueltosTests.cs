@@ -92,6 +92,8 @@ namespace ControlesUsuario.Tests
             Assert.AreEqual("EnviosAgencias/Devueltos?empresa=1", ServicioEnviosDevueltos.RutaDevueltos("1  "));
             Assert.AreEqual("EnviosAgencias/251300/Reenviar", ServicioEnviosDevueltos.RutaReenviar(251300));
             Assert.AreEqual("EnviosAgencias/251300/Abonar", ServicioEnviosDevueltos.RutaAbonar(251300));
+            // Sugerencia 1356 (fleco): desde el pedido, solo los suyos.
+            Assert.AreEqual("EnviosAgencias/Devueltos?empresa=1&pedido=925137", ServicioEnviosDevueltos.RutaDevueltosDelPedido("1  ", 925137));
         }
 
         private static (DecisorEnviosDevueltos decisor, IServicioEnviosDevueltos servicio, IServicioDialogos dialogos, List<Exception> registrados, List<bool> ocupado) Decisor()

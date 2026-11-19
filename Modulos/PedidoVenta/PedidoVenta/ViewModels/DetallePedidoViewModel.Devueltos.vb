@@ -62,7 +62,7 @@ Partial Public Class DetallePedidoViewModel
     End Function
 
     ''' <summary>
-    ''' Lee de la API (GET api/EnviosAgencias/Devueltos, la lista de Agencias) los envíos de este pedido que esperan decisión. Nunca
+    ''' Lee de la API (GET api/EnviosAgencias/Devueltos?pedido=, solo los de este pedido) los envíos que esperan decisión. Nunca
     ''' lanza: si falla (sin permiso, sin script, sin red) no se enseña nada. Si mientras tanto se abre otro pedido, la respuesta del
     ''' anterior se descarta. Friend para los tests.
     ''' </summary>
@@ -82,7 +82,8 @@ Partial Public Class DetallePedidoViewModel
         Dim numero As Integer = modelo.numero
         Dim pendientes As List(Of EnvioDevueltoModel)
         Try
-            pendientes = EnvioDevueltoModel.PendientesDeDecidirDelPedido(Await lector.Cargar(empresa), empresa, numero)
+            ' Solo los de este pedido (la API filtra; se vuelve a filtrar por si contesta una API anterior, que devuelve todos).
+            pendientes = EnvioDevueltoModel.PendientesDeDecidirDelPedido(Await lector.CargarDelPedido(empresa, numero), empresa, numero)
         Catch ex As Exception
             pendientes = New List(Of EnvioDevueltoModel)
         End Try

@@ -232,6 +232,12 @@ namespace ControlesUsuario.Services
     {
         /// <summary>GET api/EnviosAgencias/Devueltos?empresa=: devueltos e incidentados de 60 días con su decisión.</summary>
         Task<List<EnvioDevueltoModel>> Cargar(string empresa);
+        /// <summary>
+        /// Sugerencia 1356 (fleco, 19/11/26): GET api/EnviosAgencias/Devueltos?empresa=&amp;pedido=: solo los de ese pedido (antes el
+        /// detalle del pedido bajaba los 60 días de toda la empresa). Una API anterior ignora «pedido» y devuelve todos: quien llama
+        /// sigue filtrando por el pedido.
+        /// </summary>
+        Task<List<EnvioDevueltoModel>> CargarDelPedido(string empresa, int pedido);
         Task<DecisionReenvioModel> Reenviar(int numeroEnvio, ReenvioEnvioPeticion peticion);
         Task<DecisionReenvioModel> Abonar(int numeroEnvio);
     }
@@ -253,6 +259,7 @@ namespace ControlesUsuario.Services
         }
 
         public static string RutaDevueltos(string empresa) => $"EnviosAgencias/Devueltos?empresa={Uri.EscapeDataString((empresa ?? string.Empty).Trim())}";
+        public static string RutaDevueltosDelPedido(string empresa, int pedido) => $"{RutaDevueltos(empresa)}&pedido={pedido}";
         public static string RutaReenviar(int numeroEnvio) => $"EnviosAgencias/{numeroEnvio}/Reenviar";
         public static string RutaAbonar(int numeroEnvio) => $"EnviosAgencias/{numeroEnvio}/Abonar";
         public static string CuerpoReenviar(ReenvioEnvioPeticion peticion) => JsonConvert.SerializeObject(peticion ?? new ReenvioEnvioPeticion());
@@ -267,10 +274,14 @@ namespace ControlesUsuario.Services
             return new InvalidOperationException(ServicioEnvioCorreoDocumentos.MensajeDeError(cuerpo));
         }
 
-        public async Task<List<EnvioDevueltoModel>> Cargar(string empresa)
+        public Task<List<EnvioDevueltoModel>> Cargar(string empresa) => Leer(RutaDevueltos(empresa));
+
+        public Task<List<EnvioDevueltoModel>> CargarDelPedido(string empresa, int pedido) => Leer(RutaDevueltosDelPedido(empresa, pedido));
+
+        private async Task<List<EnvioDevueltoModel>> Leer(string ruta)
         {
             using (HttpClient client = _clienteApiFactory.Crear())
-            using (HttpResponseMessage respuesta = await client.GetAsync(RutaDevueltos(empresa)).ConfigureAwait(false))
+            using (HttpResponseMessage respuesta = await client.GetAsync(ruta).ConfigureAwait(false))
             {
                 string cuerpo = respuesta.Content == null ? string.Empty : await respuesta.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (!respuesta.IsSuccessStatusCode)
