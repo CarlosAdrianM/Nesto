@@ -45,7 +45,11 @@
                         Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <controles:BarraFiltro Name="txtFiltro" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
             </StackPanel>
-            <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch">
+            <!-- Sugerencia 1341 (Sancho, 19/11/26): con poco ancho, «Modificar con plantilla» quedaba a la derecha, fuera de la
+                 vista, y había que desplazar una barra. Sin desplazamiento horizontal: cada ficha mide lo que mide la lista, los
+                 textos largos se recortan (con su tooltip) y las acciones del pedido seleccionado van DEBAJO de sus datos, envolviendo. -->
+            <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
@@ -53,8 +57,11 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
                                 <CheckBox Grid.Column="0" IsChecked="{Binding estaSeleccionado}" VerticalAlignment="Center" Margin="5,0">
                                     <i:Interaction.Triggers>
@@ -64,29 +71,30 @@
                                     </i:Interaction.Triggers>
                                 </CheckBox>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{Binding nombre}"></TextBlock>
-                                    <TextBlock Text="{Binding direccion}"></TextBlock>
-                                    <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding nombre}" TextTrimming="CharacterEllipsis" ToolTip="{Binding nombre}"></TextBlock>
+                                    <TextBlock Text="{Binding direccion}" TextTrimming="CharacterEllipsis" ToolTip="{Binding direccion}"></TextBlock>
+                                    <WrapPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding cliente}"></TextBlock>
                                         <TextBlock xml:space="preserve" Text=" - "></TextBlock>
                                         <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
                                         <TextBlock xml:space="preserve" Text=" ("></TextBlock>
                                         <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
                                         <TextBlock>)</TextBlock>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
+                                    </WrapPanel>
+                                    <WrapPanel Orientation="Horizontal">
                                         <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
                                         <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
                                         <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
                                         <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
                                         <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
-                                        <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
+                                        <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ultimoSeguimiento}"></TextBlock>
                                         <TextBlock Background="DarkOrange" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=estaRetenido, Converter={StaticResource BooleanToVisibilityConverter} }">Retenido</TextBlock>
-                                    </StackPanel>
+                                    </WrapPanel>
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <StackPanel.Style>
-                                        <Style TargetType="{x:Type StackPanel}">
+                                <!-- Acciones del seleccionado: debajo de sus datos, a todo el ancho de la ficha (1341) -->
+                                <WrapPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,3,0,0">
+                                    <WrapPanel.Style>
+                                        <Style TargetType="{x:Type WrapPanel}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding 
@@ -97,15 +105,15 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </StackPanel.Style>
+                                    </WrapPanel.Style>
                                     <!-- Nesto#397: editar el pedido con la ergonomía de la plantilla (PUT al guardar) -->
                                     <Button Content="Modificar con plantilla"
-                                            Margin="0,0,0,3" Padding="5,2"
+                                            Margin="0,0,8,3" Padding="5,2" VerticalAlignment="Center"
                                             Command="{Binding DataContext.ModificarConPlantillaCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
                                             ToolTip="Abre este pedido en la Plantilla de Ventas para modificarlo (al guardar se actualiza el pedido, no se crea uno nuevo)."/>
-                                    <TextBlock Text="{Binding DataContext.TextoUnirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"></TextBlock>
-                                    <ComboBox ItemsSource="{Binding DataContext.ListaPedidosPendientes, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" DisplayMemberPath="numero" SelectedItem="{Binding DataContext.PedidoPendienteUnir, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}">
+                                    <TextBlock Text="{Binding DataContext.TextoUnirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" VerticalAlignment="Center" Margin="0,0,4,3" TextWrapping="Wrap"></TextBlock>
+                                    <ComboBox MinWidth="90" Margin="0,0,0,3" VerticalAlignment="Center" ItemsSource="{Binding DataContext.ListaPedidosPendientes, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" DisplayMemberPath="numero" SelectedItem="{Binding DataContext.PedidoPendienteUnir, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}">
                                         <ComboBox.Style>
                                             <Style TargetType="{x:Type ComboBox}">
                                                 <Setter Property="Visibility" Value="Visible"/>
@@ -121,7 +129,7 @@
                                             </Style>
                                         </ComboBox.Style>
                                     </ComboBox>
-                                </StackPanel>
+                                </WrapPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
