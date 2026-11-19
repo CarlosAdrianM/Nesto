@@ -34,9 +34,8 @@ Public NotInheritable Class CambioClientePedido
                                                                   Not String.IsNullOrWhiteSpace(l.Factura)) Then
             Return False
         End If
-        If pedido.Prepagos IsNot Nothing AndAlso pedido.Prepagos.Any(Function(p) String.IsNullOrWhiteSpace(p.Factura)) Then
-            Return False
-        End If
+        ' Incidencia 1360 (Carlos 19/11/26): un prepago sin facturar ya NO lo impide: es del pedido y se va con él al cliente
+        ' nuevo. Lo cobrado con tarjeta y los pagos a plazos (a nombre del cliente) los para la API con su mensaje.
         If pedido.CrearEfectosManualmente AndAlso pedido.Efectos IsNot Nothing AndAlso pedido.Efectos.Any() Then
             Return False
         End If

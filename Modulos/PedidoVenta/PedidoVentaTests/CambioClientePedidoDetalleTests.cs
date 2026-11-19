@@ -121,12 +121,13 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void PuedeCambiarse_ConPrepagoSinFacturar_No()
+        public void PuedeCambiarse_ConPrepagoSinFacturar_Si()
         {
+            // Incidencia 1360 (19/11/26): el prepago es del pedido y se va con él al cliente nuevo
             PedidoVentaDTO pedido = Pedido();
             pedido.Prepagos = new ObservableCollection<PrepagoDTO> { new PrepagoDTO { Importe = 10 } };
 
-            Assert.IsFalse(CambioClientePedido.PuedeCambiarse(pedido));
+            Assert.IsTrue(CambioClientePedido.PuedeCambiarse(pedido));
         }
 
         [TestMethod]
