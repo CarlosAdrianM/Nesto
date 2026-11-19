@@ -215,6 +215,9 @@
                                     ToolTip="Cuántas etiquetas iguales (de 1 a 100)"/>
                 <Button Command="{Binding ImprimirEtiquetaCodigoBarrasCommand}" Margin="4,0,0,0" Padding="10,5"
                         ToolTip="Imprime la etiqueta de código de barras del producto (30 × 20 mm: nombre, subgrupo, tamaño, código de barras y referencia) en su impresora de etiquetas">Imprimir etiqueta</Button>
+                <!-- Sugerencia 1359: el resultado de la última etiqueta, sin ventana que cerrar -->
+                <TextBlock Text="{Binding MensajeEtiquetaCodigoBarras}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="DarkGreen"
+                           MaxWidth="420" TextWrapping="Wrap"/>
             </StackPanel>
         </StackPanel>
 

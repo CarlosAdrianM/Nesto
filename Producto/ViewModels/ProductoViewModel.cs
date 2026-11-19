@@ -407,6 +407,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     }
                     AbrirProductoWebCommand.NotifyCanExecuteChanged();
                     ImprimirEtiquetaCodigoBarrasCommand?.NotifyCanExecuteChanged();
+                    MensajeEtiquetaCodigoBarras = null; // sugerencia 1359: el aviso es de la ficha anterior
                     AbrirPendientesEntregarCommand?.NotifyCanExecuteChanged();
                 }
             }
@@ -2127,6 +2128,17 @@ namespace Nesto.Modules.Producto.ViewModels
         /// </summary>
         public event Action EtiquetaCodigoBarrasImpresa;
 
+        private string _mensajeEtiquetaCodigoBarras;
+        /// <summary>
+        /// Sugerencia 1359 (Paloma): lo que ha pasado con la última etiqueta, escrito junto al botón, sin ventana que cerrar.
+        /// La ventana solo sale cuando hay algo que conviene leer: al producto se le acaba de dar un código interno, o ha fallado.
+        /// </summary>
+        public string MensajeEtiquetaCodigoBarras
+        {
+            get => _mensajeEtiquetaCodigoBarras;
+            private set => SetProperty(ref _mensajeEtiquetaCodigoBarras, value);
+        }
+
         internal async Task ImprimirEtiquetaCodigoBarrasAsync()
         {
             string producto = ProductoActual?.Producto?.Trim();
@@ -2134,11 +2146,17 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 return;
             }
+            MensajeEtiquetaCodigoBarras = null;
             try
             {
                 ResultadoEtiquetasProducto resultado = await ServicioEtiquetasProducto
                     .Imprimir(Constantes.Empresas.EMPRESA_DEFECTO, producto, CopiasEtiquetaCodigoBarras).ConfigureAwait(true);
-                _dialogService.ShowNotification(TextoEtiquetaImpresa(producto, resultado));
+                string texto = TextoEtiquetaImpresa(producto, resultado);
+                MensajeEtiquetaCodigoBarras = texto;
+                if (resultado?.CodigoAsignado == true)
+                {
+                    _dialogService.ShowNotification(texto);
+                }
                 EtiquetaCodigoBarrasImpresa?.Invoke();
                 if (resultado?.CodigoAsignado == true && !string.IsNullOrWhiteSpace(resultado.CodigoBarras))
                 {

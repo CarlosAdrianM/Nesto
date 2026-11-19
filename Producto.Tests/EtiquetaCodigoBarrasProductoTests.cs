@@ -63,7 +63,9 @@ namespace Producto.Tests
             await vm.ImprimirEtiquetaCodigoBarrasCommand.ExecuteAsync(null);
 
             A.CallTo(() => _etiquetas.Imprimir(Constantes.Empresas.EMPRESA_DEFECTO, "17404", 3, false)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => _dialogos.ShowNotification(@"3 etiqueta de 17404 mandada a \\RDS2016\etiquetasalcobendas.")).MustHaveHappenedOnceExactly();
+            // Sugerencia 1359 (Paloma): sin ventana que cerrar; el mensaje queda escrito junto al botón
+            Assert.AreEqual(@"3 etiqueta de 17404 mandada a \\RDS2016\etiquetasalcobendas.", vm.MensajeEtiquetaCodigoBarras);
+            A.CallTo(() => _dialogos.ShowNotification(A<string>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
@@ -137,8 +139,8 @@ namespace Producto.Tests
 
             await vm.ImprimirEtiquetaCodigoBarrasCommand.ExecuteAsync(null);
 
-            A.CallTo(() => _dialogos.ShowNotification("1 etiqueta de 17404 mandada a etiquetas4.\nCódigo impreso: 8411111111110."))
-                .MustHaveHappenedOnceExactly();
+            Assert.AreEqual("1 etiqueta de 17404 mandada a etiquetas4.\nCódigo impreso: 8411111111110.", vm.MensajeEtiquetaCodigoBarras);
+            A.CallTo(() => _dialogos.ShowNotification(A<string>._)).MustNotHaveHappened();
             A.CallTo(() => _productos.LeerCodigosBarras(A<string>._)).MustNotHaveHappened();
         }
 
