@@ -782,12 +782,14 @@ namespace Nesto.Tests
             "SelectorGrupoComisionDialog | SelectorGrupoComisionDialog | SelectorGrupoComisionDialogViewModel",
             "RetenerPedidoDialog | RetenerPedidoDialog | RetenerPedidoDialogViewModel", // NestoAPI#698
             "ConsultaReembolsoDialog | ConsultaReembolsoDialog | ConsultaReembolsoDialogViewModel", // Nesto#568 (NestoAPI#734)
+            "PagoAPlazosDialog | PagoAPlazosDialog | PagoAPlazosDialogViewModel", // Nesto#640 (pago a plazos de un pedido)
             "CopiarSeguimientosView | CopiarSeguimientosView | CopiarSeguimientosViewModel",
             "ElegirEventoDialog | ElegirEventoDialog | ElegirEventoDialogViewModel",
             "InscribirEventoDialog | InscribirEventoDialog | InscribirEventoDialogViewModel",
             "AnunciarEventoDialog | AnunciarEventoDialog | AnunciarEventoDialogViewModel",
             "NotificacionTelefonoView | NotificacionTelefonoView | NotificacionTelefonoViewModel",
             "NotaCobroDialog | NotaCobroDialog | NotaCobroDialogViewModel", // NestoAPI#786 (nota de cobro)
+            "CobroCajaDialog | CobroCajaDialog | CobroCajaDialogViewModel", // Nesto#645 (cobro en caja de la factura)
         };
 
         // La cinta, de arriba abajo: cada elemento con su tipo, su texto y el tipo de su DataContext (el ViewModel del
