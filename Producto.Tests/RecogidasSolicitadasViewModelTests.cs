@@ -608,6 +608,72 @@ namespace Producto.Tests
             Assert.IsFalse(vm.AnularCommand.CanExecute(null), "Ya está anulada");
         }
 
+        // ------------------------------------------------------------------ NestoAPI#881: servicio técnico
+
+        [TestMethod]
+        public async Task ConfirmarConServicioTecnico_LoMandaConSusMinutos_YCargaLosTiposDelCombo()
+        {
+            A.CallTo(() => _servicio.LeerTiposServicioTecnico()).Returns(Task.FromResult(new List<string> { "Desmontaje", "Revisión" }));
+            A.CallTo(() => _servicio.ConfirmarConServicioTecnico(12, A<short?>._, A<string>._, A<string>._, A<int?>._)).Returns(Task.FromResult(Confirmada(12)));
+            RecogidasSolicitadasViewModel vm = Crear();
+            await Llegar(vm);
+            CollectionAssert.AreEqual(new[] { "Desmontaje", "Revisión" }, vm.TiposServicioTecnico.ToList());
+            vm.ServicioTecnicoEditado = " Desmontar sillón ";
+            vm.MinutosServicioEditado = "45";
+
+            await vm.ConfirmarAsync();
+
+            A.CallTo(() => _servicio.ConfirmarConServicioTecnico(12, null, null, "Desmontar sillón", 45)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.Confirmar(A<int>._, A<short?>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task ConfirmarSinServicioTecnico_ComoAntes()
+        {
+            A.CallTo(() => _servicio.Confirmar(12, A<short?>._, A<string>._)).Returns(Task.FromResult(Confirmada(12)));
+            RecogidasSolicitadasViewModel vm = Crear();
+            await Llegar(vm);
+            vm.ServicioTecnicoEditado = "  ";
+
+            await vm.ConfirmarAsync();
+
+            A.CallTo(() => _servicio.Confirmar(12, null, null)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.ConfirmarConServicioTecnico(A<int>._, A<short?>._, A<string>._, A<string>._, A<int?>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task ConfirmarConMinutosQueNoValen_OSinServicio_NoConfirmaYLoDice()
+        {
+            RecogidasSolicitadasViewModel vm = Crear();
+            await Llegar(vm);
+            vm.ServicioTecnicoEditado = "Revisión";
+            vm.MinutosServicioEditado = "700";
+            await vm.ConfirmarAsync();
+            Assert.AreEqual(RecogidasSolicitadasViewModel.MENSAJE_MINUTOS_SERVICIO, vm.Mensaje);
+
+            vm.ServicioTecnicoEditado = null;
+            vm.MinutosServicioEditado = "30";
+            await vm.ConfirmarAsync();
+            Assert.AreEqual(RecogidasSolicitadasViewModel.MENSAJE_MINUTOS_SIN_SERVICIO, vm.Mensaje);
+
+            A.CallTo(() => _servicio.ConfirmarConServicioTecnico(A<int>._, A<short?>._, A<string>._, A<string>._, A<int?>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.Confirmar(A<int>._, A<short?>._, A<string>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task OtraRecogida_EmpiezaSinServicioTecnico()
+        {
+            RecogidasSolicitadasViewModel vm = Crear();
+            await Llegar(vm);
+            vm.ServicioTecnicoEditado = "Revisión";
+            vm.MinutosServicioEditado = "30";
+
+            vm.Seleccionada = vm.Pendientes.Single(p => p.Id == 13);
+
+            Assert.IsNull(vm.ServicioTecnicoEditado);
+            Assert.IsNull(vm.MinutosServicioEditado);
+        }
+
         // ------------------------------------------------------------------ servicio
 
         [TestMethod]

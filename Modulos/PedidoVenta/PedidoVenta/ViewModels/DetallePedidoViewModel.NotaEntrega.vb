@@ -82,6 +82,8 @@ Partial Public Class DetallePedidoViewModel
             _facturaOriginalNota = Nothing
             CopiarCabeceraNotaAlPedido()
             NotificarCambioNotaEntrega()
+            InicializarServicioTecnico() ' NestoAPI#881: vacío y con los tipos para el combo
+            CopiarServicioTecnicoAlPedido()
         End Set
     End Property
 #End Region
@@ -310,6 +312,7 @@ Partial Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(MostrarSelectorFacturaOriginal))
         OnPropertyChanged(NameOf(FacturaOriginalEnLista))
         NotificarCambioNotaEntrega()
+        InicializarServicioTecnico() ' NestoAPI#881
     End Sub
 
     Private Sub NotificarCambioCabeceraNota()
@@ -337,6 +340,7 @@ Partial Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(PuedeMarcarNotaEntrega))
         OnPropertyChanged(NameOf(MostrarPanelNotaEntrega))
         OnPropertyChanged(NameOf(PuedeElegirModoFacturacion))
+        OnPropertyChanged(NameOf(PuedeIndicarServicioTecnico)) ' NestoAPI#881
         NotificarCambioCabeceraNota()
         NuevaNotaRecogidaCommand?.NotifyCanExecuteChanged()
         NuevaNotaCobroCommand?.NotifyCanExecuteChanged()

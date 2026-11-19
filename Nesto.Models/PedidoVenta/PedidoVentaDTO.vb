@@ -108,6 +108,12 @@ Public Class PedidoVentaDTO
     Public Property bultosNota As Integer?
     ''' <summary>Nesto#579 / NestoAPI#757 (solo lectura): la factura original que se devuelve en una recogida, si se vinculó.</summary>
     Public Property facturaOriginalNota As String
+    ''' <summary>NestoAPI#881: SOLO al crear la nota (POST). El servicio técnico se lee y se cambia luego con api/NotasEntrega/{empresa}/{pedido}/ServicioTecnico.</summary>
+    Public Property tipoServicioTecnicoId As Integer?
+    ''' <summary>NestoAPI#881: el tipo por nombre (si no existe, la API lo crea). Solo al crear.</summary>
+    Public Property tipoServicioTecnicoNombre As String
+    ''' <summary>NestoAPI#881: los minutos tecleados (opcional, 1..600). Solo al crear.</summary>
+    Public Property minutosServicio As Integer?
     Public Property Agrupada As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
     ''' <summary>

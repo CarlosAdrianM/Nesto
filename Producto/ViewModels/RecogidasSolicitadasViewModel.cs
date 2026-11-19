@@ -35,6 +35,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public const string MENSAJE_FALTA_MOTIVO = "Indique el motivo del rechazo: se lo enseñamos a quien la pidió. No se ha rechazado.";
         public const string MENSAJE_POR_CLIENTE_SIN_PERMISO = "En «Por cliente» puede ver las recogidas de sus clientes y anular las que haya pedido usted.";
         public const string MENSAJE_FALTA_CLIENTE = "Escriba el número de cliente.";
+        public const string MENSAJE_MINUTOS_SERVICIO = "Los minutos del servicio técnico tienen que ser un número de 1 a 600 (o vacío: los del tipo).";
+        public const string MENSAJE_MINUTOS_SIN_SERVICIO = "Para indicar los minutos, elija también el servicio técnico.";
 
         private readonly IServicioRecogidasSolicitadas _servicio;
         private readonly IServicioDialogos _dialogos;
@@ -167,6 +169,8 @@ namespace Nesto.Modules.Producto.ViewModels
                         _idEnEdicion = value?.Id;
                         BultosEditados = value?.Bultos.ToString();
                         TextoEditado = value?.Texto?.Trim();
+                        ServicioTecnicoEditado = null; // NestoAPI#881: cada recogida empieza sin servicio técnico
+                        MinutosServicioEditado = null;
                     }
                     OnPropertyChanged(nameof(HaySeleccionada));
                     NotificarComandos();
@@ -185,6 +189,59 @@ namespace Nesto.Modules.Producto.ViewModels
         public string TextoEditado { get => _textoEditado; set => SetProperty(ref _textoEditado, value); }
 
         private bool PuedeContestar => PuedeGestionar && Disponible && !EstaOcupado && Seleccionada != null;
+
+        // ------------------------------------------------------------------ NestoAPI#881: servicio técnico de la nota
+
+        /// <summary>Los nombres del combo editable (los tipos que ya hay; escribir uno nuevo lo crea la API al confirmar).</summary>
+        public ObservableCollection<string> TiposServicioTecnico { get; } = new ObservableCollection<string>();
+
+        private string _servicioTecnicoEditado;
+        /// <summary>El servicio técnico de la nota que se creará. Vacío: no lleva.</summary>
+        public string ServicioTecnicoEditado { get => _servicioTecnicoEditado; set => SetProperty(ref _servicioTecnicoEditado, value); }
+
+        private string _minutosServicioEditado;
+        /// <summary>Opcional: los minutos del servicio (1..600). Vacío: los del tipo (o 60).</summary>
+        public string MinutosServicioEditado { get => _minutosServicioEditado; set => SetProperty(ref _minutosServicioEditado, value); }
+
+        private bool _tiposServicioTecnicoCargados;
+
+        internal async Task CargarTiposServicioTecnicoAsync()
+        {
+            if (_tiposServicioTecnicoCargados || !PuedeGestionar || _servicio == null)
+            {
+                return;
+            }
+            try
+            {
+                List<string> tipos = await _servicio.LeerTiposServicioTecnico().ConfigureAwait(true) ?? new List<string>();
+                TiposServicioTecnico.Clear();
+                foreach (string tipo in tipos)
+                {
+                    TiposServicioTecnico.Add(tipo);
+                }
+                _tiposServicioTecnicoCargados = true;
+            }
+            catch (Exception)
+            {
+                // Sin la lista se puede escribir igual: no se molesta al usuario.
+            }
+        }
+
+        /// <summary>PURA. Los minutos tecleados (null si vacío); false si no valen.</summary>
+        internal static bool LeerMinutosServicio(string texto, out int? minutos)
+        {
+            minutos = null;
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return true;
+            }
+            if (int.TryParse(texto.Trim(), out int valor) && valor >= 1 && valor <= 600)
+            {
+                minutos = valor;
+                return true;
+            }
+            return false;
+        }
 
         // ------------------------------------------------------------------ por cliente
 
@@ -245,6 +302,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private async Task LlegarInternoAsync(string empresa, string cliente, string contacto, bool anulada)
         {
             int? id = _idAElegir;
+            await CargarTiposServicioTecnicoAsync().ConfigureAwait(true); // NestoAPI#881: una vez
             await CargarPendientesAsync().ConfigureAwait(true);
             if (string.IsNullOrEmpty(cliente) || !Disponible)
             {
@@ -298,6 +356,7 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <summary>«Volver a leer»: las pendientes y, si se ha buscado un cliente, las suyas.</summary>
         internal async Task RecargarTodoAsync()
         {
+            await CargarTiposServicioTecnicoAsync().ConfigureAwait(true); // NestoAPI#881: una vez
             await CargarPendientesAsync().ConfigureAwait(true);
             if (_clienteCargado.HasValue && Disponible)
             {
@@ -322,6 +381,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 int? idEnEdicion = _idEnEdicion;
                 string bultosEnEdicion = BultosEditados;
                 string textoEnEdicion = TextoEditado;
+                string servicioEnEdicion = ServicioTecnicoEditado;
+                string minutosEnEdicion = MinutosServicioEditado;
                 Pendientes.Clear();
                 foreach (RecogidaSolicitada recogida in leidas)
                 {
@@ -332,6 +393,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     BultosEditados = bultosEnEdicion;
                     TextoEditado = textoEnEdicion;
+                    ServicioTecnicoEditado = servicioEnEdicion;
+                    MinutosServicioEditado = minutosEnEdicion;
                 }
             }
             catch (RecogidaSolicitadaException ex) when (ex.Codigo == 503)
@@ -486,6 +549,17 @@ namespace Nesto.Modules.Producto.ViewModels
                 Mensaje = MENSAJE_FALTA_TEXTO;
                 return;
             }
+            string servicioTecnico = string.IsNullOrWhiteSpace(ServicioTecnicoEditado) ? null : ServicioTecnicoEditado.Trim();
+            if (!LeerMinutosServicio(MinutosServicioEditado, out int? minutosServicio))
+            {
+                Mensaje = MENSAJE_MINUTOS_SERVICIO;
+                return;
+            }
+            if (servicioTecnico == null && minutosServicio.HasValue)
+            {
+                Mensaje = MENSAJE_MINUTOS_SIN_SERVICIO;
+                return;
+            }
             // Solo se manda lo que se corrige (null: lo pedido)
             short? bultosCorregidos = bultos == recogida.Bultos ? (short?)null : bultos;
             string textoCorregido = string.Equals(texto, recogida.Texto?.Trim(), StringComparison.Ordinal) ? null : texto;
@@ -497,7 +571,9 @@ namespace Nesto.Modules.Producto.ViewModels
             EstaOcupado = true;
             try
             {
-                RecogidaSolicitada confirmada = await _servicio.Confirmar(recogida.Id, bultosCorregidos, textoCorregido).ConfigureAwait(true);
+                RecogidaSolicitada confirmada = servicioTecnico == null
+                    ? await _servicio.Confirmar(recogida.Id, bultosCorregidos, textoCorregido).ConfigureAwait(true)
+                    : await _servicio.ConfirmarConServicioTecnico(recogida.Id, bultosCorregidos, textoCorregido, servicioTecnico, minutosServicio).ConfigureAwait(true);
                 EstaOcupado = false;
                 _dialogos?.ShowNotification("Recogida confirmada", TextoConfirmada(confirmada ?? recogida));
                 Mensaje = $"Recogida {recogida.Id} confirmada" + (string.IsNullOrWhiteSpace(confirmada?.CodigoDocumento) ? "." : $": nota {confirmada.CodigoDocumento.Trim()}.");

@@ -74,6 +74,15 @@ Public Interface IPedidoVentaService
     ''' (PUT api/NotasEntrega/{empresa}/{pedido}/Cabecera). Devuelve la cabecera como queda; si la API lo rechaza
     ''' (no es nota, recogida sin bultos, factura de otro cliente, parada ya entregada...), lanza una excepción con su mensaje tal cual.</summary>
     Function CambiarCabeceraNotaEntrega(empresa As String, pedido As Integer, tipo As String, bultos As Integer, facturaOriginal As String) As Task(Of NotaEntregaCabeceraDTO)
+    ''' <summary>NestoAPI#881: los tipos de servicio técnico (GET api/RepartoPropio/TiposServicioTecnico). Sin el script de la API, vacía.</summary>
+    Function LeerTiposServicioTecnico() As Task(Of List(Of TipoServicioTecnicoDTO))
+    ''' <summary>NestoAPI#881: el servicio técnico de una nota (GET api/NotasEntrega/{empresa}/{pedido}/ServicioTecnico).</summary>
+    Function LeerServicioTecnicoNota(empresa As String, pedido As Integer) As Task(Of ServicioTecnicoNotaDTO)
+    ''' <summary>
+    ''' NestoAPI#881: pone, cambia o (con el tipo vacío) quita el servicio técnico de una nota (PUT api/NotasEntrega/{empresa}/{pedido}/ServicioTecnico).
+    ''' Por nombre: si el tipo no existe, la API lo crea. Si la API lo rechaza, lanza una excepción con su mensaje tal cual.
+    ''' </summary>
+    Function CambiarServicioTecnicoNota(empresa As String, pedido As Integer, tipo As String, minutos As Integer?) As Task(Of ServicioTecnicoNotaDTO)
     ''' <summary>Nesto#580 / NestoAPI#758: el PDF de la nota de entrega o de recogida con su código de barras NE/NR
     ''' (GET api/NotasEntrega/{empresa}/{pedido}/Documento). Vale también para las notas de Nesto viejo; no crea la parada.</summary>
     Function CargarDocumentoNotaEntrega(empresa As String, pedido As Integer) As Task(Of Byte())

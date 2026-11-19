@@ -188,6 +188,18 @@
                                             <Button Content="Quitar" Padding="6,1" Command="{Binding QuitarFacturaOriginalCommand}"
                                                     ToolTip="Dejar la nota sin factura original"/>
                                         </StackPanel>
+                                        <!-- NestoAPI#881: servicio técnico (vacío = no lleva). Combo editable: escribir uno nuevo lo crea. Cuenta en el fin previsto de la ruta. -->
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding PuedeIndicarServicioTecnico, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <TextBlock Text="Servicio técnico:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <ComboBox IsEditable="True" IsTextSearchEnabled="True" ItemsSource="{Binding TiposServicioTecnico}"
+                                                      Text="{Binding ServicioTecnico, UpdateSourceTrigger=LostFocus}" Width="190" VerticalAlignment="Center" Margin="0,0,10,0"
+                                                      ToolTip="Si la nota lleva un servicio técnico (instalación, revisión…), elíjalo o escriba uno nuevo. Vacío: no lleva."/>
+                                            <TextBlock Text="Minutos (opcional):" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBox Text="{Binding MinutosServicioTexto, UpdateSourceTrigger=LostFocus}" Width="45" VerticalAlignment="Center"
+                                                     HorizontalContentAlignment="Right" Margin="0,0,5,0" MaxLength="3"
+                                                     ToolTip="Lo que se calcula que dura el servicio en casa del cliente. Vacío: los del tipo (o 60)."/>
+                                            <TextBlock Text="{Binding TextoMinutosServicio}" Foreground="Gray" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                                        </StackPanel>
                                         <!-- Nesto#580 (NestoAPI#758): el PDF con el código de barras NE/NR (cualquier nota grabada, también de Nesto viejo)
                                              y las etiquetas NR{Pedido}-{N} por la Zebra (solo recogidas; las entregas llevan la etiqueta del packing) -->
                                         <StackPanel Orientation="Horizontal" Margin="15,0,0,0"

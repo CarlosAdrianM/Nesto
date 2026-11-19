@@ -1584,6 +1584,54 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    Public Async Function LeerTiposServicioTecnico() As Task(Of List(Of TipoServicioTecnicoDTO)) Implements IPedidoVentaService.LeerTiposServicioTecnico
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response = Await client.GetAsync("RepartoPropio/TiposServicioTecnico")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se han podido leer los tipos de servicio técnico ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return If(String.IsNullOrWhiteSpace(body), New List(Of TipoServicioTecnicoDTO)(), JsonConvert.DeserializeObject(Of List(Of TipoServicioTecnicoDTO))(body))
+        End Using
+    End Function
+
+    Public Async Function LeerServicioTecnicoNota(empresa As String, pedido As Integer) As Task(Of ServicioTecnicoNotaDTO) Implements IPedidoVentaService.LeerServicioTecnicoNota
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response = Await client.GetAsync($"NotasEntrega/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{pedido}/ServicioTecnico")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido leer el servicio técnico de la nota ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return If(String.IsNullOrWhiteSpace(body), Nothing, JsonConvert.DeserializeObject(Of ServicioTecnicoNotaDTO)(body))
+        End Using
+    End Function
+
+    Public Async Function CambiarServicioTecnicoNota(empresa As String, pedido As Integer, tipo As String, minutos As Integer?) As Task(Of ServicioTecnicoNotaDTO) Implements IPedidoVentaService.CambiarServicioTecnicoNota
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim nombre As String = If(String.IsNullOrWhiteSpace(tipo), Nothing, tipo.Trim())
+            Dim cuerpo = New With {.TipoServicioTecnicoNombre = nombre, .MinutosServicio = If(nombre Is Nothing, CType(Nothing, Integer?), minutos)}
+            Dim contenido As HttpContent = New StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json")
+            Dim response = Await client.PutAsync($"NotasEntrega/{Uri.EscapeDataString(If(empresa, String.Empty).Trim())}/{pedido}/ServicioTecnico", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim mensaje As String = If(String.IsNullOrWhiteSpace(body), Nothing, HttpErrorHelper.ParsearErrorHttp(body))
+                Throw New Exception(If(String.IsNullOrWhiteSpace(mensaje), $"No se ha podido guardar el servicio técnico de la nota ({CInt(response.StatusCode)}).", mensaje))
+            End If
+            Return If(String.IsNullOrWhiteSpace(body), Nothing, JsonConvert.DeserializeObject(Of ServicioTecnicoNotaDTO)(body))
+        End Using
+    End Function
+
     Public Async Function CargarDocumentoNotaEntrega(empresa As String, pedido As Integer) As Task(Of Byte()) Implements IPedidoVentaService.CargarDocumentoNotaEntrega
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then

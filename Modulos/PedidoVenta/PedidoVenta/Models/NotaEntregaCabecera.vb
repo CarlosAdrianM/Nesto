@@ -26,6 +26,27 @@ Public Class EtiquetasRecogidaRespuestaDTO
     Public Property Codigos As List(Of String) = New List(Of String)()
 End Class
 
+''' <summary>NestoAPI#881: un tipo de servicio técnico (GET api/RepartoPropio/TiposServicioTecnico).</summary>
+Public Class TipoServicioTecnicoDTO
+    Public Property Id As Integer
+    Public Property Nombre As String
+    ''' <summary>Null = los de por defecto (60).</summary>
+    Public Property MinutosEstimados As Integer?
+    Public Property Activo As Boolean
+End Class
+
+''' <summary>NestoAPI#881: el servicio técnico de una nota (GET/PUT api/NotasEntrega/{empresa}/{pedido}/ServicioTecnico).</summary>
+Public Class ServicioTecnicoNotaDTO
+    Public Property Empresa As String
+    Public Property Pedido As Integer
+    Public Property TipoServicioTecnicoId As Integer?
+    Public Property ServicioTecnico As String
+    ''' <summary>Los tecleados (null si no se teclearon).</summary>
+    Public Property MinutosServicio As Integer?
+    ''' <summary>Los que se cuentan: tecleados, del tipo o 60. Null sin servicio técnico.</summary>
+    Public Property MinutosEstimados As Integer?
+End Class
+
 ''' <summary>Nesto#579: los tipos de nota de entrega (los mismos textos que guarda la API).</summary>
 Public NotInheritable Class TiposNotaEntrega
     Public Const ENTREGA As String = "Entrega"

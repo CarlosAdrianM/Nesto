@@ -25,6 +25,13 @@ namespace Nesto.Modules.Producto
 
         /// <summary>POST …/{id}/Confirmar { Bultos?, Texto? }: null en lo que no se corrige.</summary>
         Task<RecogidaSolicitada> Confirmar(int id, short? bultos, string texto);
+        /// <summary>
+        /// NestoAPI#881: lo mismo con el servicio técnico de la nota (por nombre: si el tipo no existe, la API lo crea) y sus minutos
+        /// (opcionales, 1..600).
+        /// </summary>
+        Task<RecogidaSolicitada> ConfirmarConServicioTecnico(int id, short? bultos, string texto, string servicioTecnico, int? minutosServicio);
+        /// <summary>NestoAPI#881: los nombres de los tipos de servicio técnico (GET api/RepartoPropio/TiposServicioTecnico). Sin el script, vacía.</summary>
+        Task<List<string>> LeerTiposServicioTecnico();
 
         /// <summary>POST …/{id}/Rechazar { Motivo } (obligatorio).</summary>
         Task<RecogidaSolicitada> Rechazar(int id, string motivo);
@@ -227,6 +234,32 @@ namespace Nesto.Modules.Producto
 
         public Task<RecogidaSolicitada> Confirmar(int id, short? bultos, string texto)
             => Enviar($"{URL}/{id}/Confirmar", new { Bultos = bultos, Texto = texto });
+
+        public Task<RecogidaSolicitada> ConfirmarConServicioTecnico(int id, short? bultos, string texto, string servicioTecnico, int? minutosServicio)
+            => Enviar($"{URL}/{id}/Confirmar", new
+            {
+                Bultos = bultos,
+                Texto = texto,
+                TipoServicioTecnicoNombre = string.IsNullOrWhiteSpace(servicioTecnico) ? null : servicioTecnico.Trim(),
+                MinutosServicio = string.IsNullOrWhiteSpace(servicioTecnico) ? null : minutosServicio
+            });
+
+        internal const string URL_TIPOS_SERVICIO_TECNICO = "RepartoPropio/TiposServicioTecnico";
+
+        private class TipoServicioTecnico
+        {
+            public string Nombre { get; set; }
+        }
+
+        public async Task<List<string>> LeerTiposServicioTecnico()
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.GetAsync(URL_TIPOS_SERVICIO_TECNICO).ConfigureAwait(false);
+                List<TipoServicioTecnico> tipos = await LeerRespuesta<List<TipoServicioTecnico>>(response).ConfigureAwait(false);
+                return (tipos ?? new List<TipoServicioTecnico>()).Select(t => t?.Nombre?.Trim()).Where(n => !string.IsNullOrEmpty(n)).ToList();
+            }
+        }
 
         public Task<RecogidaSolicitada> Rechazar(int id, string motivo)
             => Enviar($"{URL}/{id}/Rechazar", new { Motivo = motivo });

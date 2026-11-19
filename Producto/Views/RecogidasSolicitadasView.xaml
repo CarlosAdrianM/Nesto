@@ -114,6 +114,16 @@
                                      MinHeight="60" MaxLength="500" VerticalScrollBarVisibility="Auto" />
                             <TextBlock Text="Bultos (se puede corregir)" Style="{StaticResource Etiqueta}" />
                             <TextBox Text="{Binding BultosEditados, UpdateSourceTrigger=PropertyChanged}" Width="60" HorizontalAlignment="Left" MaxLength="3" />
+                            <!-- NestoAPI#881: servicio técnico de la nota (vacío = no lleva); escribir uno nuevo lo crea al confirmar -->
+                            <TextBlock Text="Servicio técnico (opcional)" Style="{StaticResource Etiqueta}" />
+                            <StackPanel Orientation="Horizontal">
+                                <ComboBox IsEditable="True" ItemsSource="{Binding TiposServicioTecnico}" Text="{Binding ServicioTecnicoEditado, UpdateSourceTrigger=PropertyChanged}"
+                                          Width="220" Margin="0,0,10,0"
+                                          ToolTip="Si la recogida lleva un servicio técnico (desmontaje, revisión…), elíjalo o escriba uno nuevo. Vacío: no lleva." />
+                                <TextBlock Text="Minutos (opcional):" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                <TextBox Text="{Binding MinutosServicioEditado, UpdateSourceTrigger=PropertyChanged}" Width="50" MaxLength="3"
+                                         ToolTip="Lo que se calcula que dura el servicio. Vacío: los del tipo (o 60)." />
+                            </StackPanel>
 
                             <WrapPanel Margin="0,12,0,0">
                                 <Button Content="Confirmar" Command="{Binding ConfirmarCommand}" Style="{StaticResource Boton}" FontWeight="SemiBold"
