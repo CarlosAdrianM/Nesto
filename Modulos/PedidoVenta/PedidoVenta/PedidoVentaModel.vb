@@ -299,6 +299,10 @@ Public Class PedidoVentaModel
         Public Property ShippingMethodAmazon As String
         ' NestoAPI 87cfeb51: Amazon exige CarrierCode en España ("GLS", "Correos Express" u "Other")
         Public Property CarrierCodeAmazon As String
+        ' NestoAPI#880: reparto propio entregado con algún bulto de menos (lo calcula la API; con una API anterior, False)
+        Public Property EntregaIncompleta As Boolean
+        ' NestoAPI#880: «Entregado (reparto propio): 4 de 5 bultos. Falta RP251099-5»; Nothing si no es incompleta
+        Public Property DetalleEntregaIncompleta As String
     End Class
 
     Public Class ParametroStringIntInt

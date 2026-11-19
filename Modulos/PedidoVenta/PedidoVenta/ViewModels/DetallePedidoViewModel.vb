@@ -600,9 +600,43 @@ Public Class DetallePedidoViewModel
         Set(value As List(Of EnvioAgenciaDTO))
             If SetProperty(_listaEnlacesSeguimiento, value) Then
                 Dim unusedDevueltos = CargarDevueltosDelPedidoAsync() ' Sugerencia 1356: nunca lanza
+                OnPropertyChanged(NameOf(AvisoEntregaIncompleta))
+                OnPropertyChanged(NameOf(HayEntregaIncompleta))
             End If
         End Set
     End Property
+
+    ''' <summary>
+    ''' NestoAPI#880: los envíos del pedido entregados con algún bulto de menos, en una línea cada uno («Envío 251099: entregado con
+    ''' 4 de 5 bultos. Falta RP251099-5»). Nothing si no hay ninguno (el bloque no se ve).
+    ''' </summary>
+    Public ReadOnly Property AvisoEntregaIncompleta As String
+        Get
+            Return TextoEntregaIncompleta(ListaEnlacesSeguimiento)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayEntregaIncompleta As Boolean
+        Get
+            Return AvisoEntregaIncompleta IsNot Nothing
+        End Get
+    End Property
+
+    Friend Shared Function TextoEntregaIncompleta(envios As IEnumerable(Of EnvioAgenciaDTO)) As String
+        If envios Is Nothing Then
+            Return Nothing
+        End If
+        Const PREFIJO As String = "Entregado (reparto propio): "
+        Dim lineas = envios.Where(Function(e) e IsNot Nothing AndAlso e.EntregaIncompleta).Select(
+            Function(e)
+                Dim detalle As String = If(e.DetalleEntregaIncompleta, String.Empty).Trim()
+                If detalle.StartsWith(PREFIJO, StringComparison.Ordinal) Then
+                    detalle = detalle.Substring(PREFIJO.Length)
+                End If
+                Return $"Envío {e.Numero}: entregado con {detalle}"
+            End Function).ToList()
+        Return If(lineas.Count = 0, Nothing, String.Join(Environment.NewLine, lineas))
+    End Function
 
     Private _recogerProducto As Boolean
     Public Property RecogerProducto As Boolean

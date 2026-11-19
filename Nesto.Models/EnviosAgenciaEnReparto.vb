@@ -10,6 +10,13 @@ Namespace Nesto.Models
         ''' </summary>
         <JsonIgnore>
         Public Property EnReparto As Boolean
+
+        ''' <summary>
+        ''' NestoAPI#880: reparto propio entregado con algún bulto de menos (DetalleEstado «Entregado (reparto propio): 4 de 5 bultos.
+        ''' Falta RP…-5»). Lo calcula la API; con una API antigua llega False. Solo lectura.
+        ''' </summary>
+        <JsonIgnore>
+        Public Property EntregaIncompleta As Boolean
     End Class
 
 End Namespace

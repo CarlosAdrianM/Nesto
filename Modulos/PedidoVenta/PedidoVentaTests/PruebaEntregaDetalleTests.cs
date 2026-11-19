@@ -28,6 +28,21 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
+        public void NestoAPI880_EntregaIncompleta_SeVeEnLaPestanaEntrega()
+        {
+            var envios = new System.Collections.Generic.List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 251000, Estado = 2 },
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 251099, Estado = 2, EntregaIncompleta = true,
+                    DetalleEntregaIncompleta = "Entregado (reparto propio): 4 de 5 bultos. Falta RP251099-5" }
+            };
+
+            Assert.AreEqual("Envío 251099: entregado con 4 de 5 bultos. Falta RP251099-5", DetallePedidoViewModel.TextoEntregaIncompleta(envios));
+            Assert.IsNull(DetallePedidoViewModel.TextoEntregaIncompleta(envios.GetRange(0, 1)));
+            Assert.IsNull(DetallePedidoViewModel.TextoEntregaIncompleta(null));
+        }
+
+        [TestMethod]
         public async Task EnvioEntregado_EnsenaSuPruebaConElPedido()
         {
             var (vm, mostrador) = Vm();

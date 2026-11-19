@@ -1781,7 +1781,16 @@ Public Class AgenciasViewModel
 
     Public Shared Function TextoCabeceraTramitados(envios As IEnumerable(Of EnviosAgencia)) As String
         Dim enReparto As Integer = If(envios Is Nothing, 0, envios.Count(Function(e) e IsNot Nothing AndAlso e.EnReparto))
-        Return If(enReparto = 0, "Tramitados", $"Tramitados ({enReparto} en reparto)")
+        ' NestoAPI#880: los entregados con algún bulto de menos, para que se vean sin buscarlos
+        Dim incompletos As Integer = If(envios Is Nothing, 0, envios.Count(Function(e) e IsNot Nothing AndAlso e.EntregaIncompleta))
+        Dim partes As New List(Of String)
+        If enReparto > 0 Then
+            partes.Add($"{enReparto} en reparto")
+        End If
+        If incompletos > 0 Then
+            partes.Add($"{incompletos} {If(incompletos = 1, "incompleto", "incompletos")}")
+        End If
+        Return If(partes.Count = 0, "Tramitados", $"Tramitados ({String.Join(", ", partes)})")
     End Function
 
     ' #387: todos los envíos que siguen incidentados (Estado=3), sin filtro de fecha ni de agencia.

@@ -50,4 +50,20 @@ Public Class AgenciasEnRepartoTests
             New EnviosAgencia With {.Estado = 1, .EnReparto = True}}))
     End Sub
 
+    <TestMethod()>
+    Public Sub CabeceraTramitados_CuentaLosEntregadosIncompletos_NestoAPI880()
+        Assert.AreEqual("Tramitados (1 en reparto, 1 incompleto)", AgenciasViewModel.TextoCabeceraTramitados(New List(Of EnviosAgencia) From {
+            New EnviosAgencia With {.Estado = 1, .EnReparto = True},
+            New EnviosAgencia With {.Estado = 2, .EntregaIncompleta = True}}))
+        Assert.AreEqual("Tramitados (2 incompletos)", AgenciasViewModel.TextoCabeceraTramitados(New List(Of EnviosAgencia) From {
+            New EnviosAgencia With {.Estado = 2, .EntregaIncompleta = True},
+            New EnviosAgencia With {.Estado = 2, .EntregaIncompleta = True}}))
+    End Sub
+
+    <TestMethod()>
+    Public Sub EntregaIncompleta_LlegaDeLaApi_NestoAPI880()
+        Dim envio = DesdeJson("[{""Numero"":251099,""Empresa"":""1"",""Agencia"":14,""Estado"":2,""DetalleEstado"":""Entregado (reparto propio): 4 de 5 bultos. Falta RP251099-5"",""EntregaIncompleta"":true}]")
+        Assert.IsTrue(envio.EntregaIncompleta)
+    End Sub
+
 End Class

@@ -558,6 +558,12 @@
                                                                 <Setter Property="Text" Value="En reparto"/>
                                                                 <Setter Property="ToolTip" Value="La agencia ya lo ha sacado a reparto: en principio se entrega hoy"/>
                                                             </DataTrigger>
+                                                            <!-- NestoAPI#880: entregado con algún bulto de menos -->
+                                                            <DataTrigger Binding="{Binding EntregaIncompleta}" Value="True">
+                                                                <Setter Property="Text" Value="Incompleto"/>
+                                                                <Setter Property="Foreground" Value="Firebrick"/>
+                                                                <Setter Property="ToolTip" Value="{Binding DetalleEstado}"/>
+                                                            </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </TextBlock.Style>

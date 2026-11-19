@@ -607,6 +607,7 @@ Public Class AgenciaService
             .RowVersion = dto.RowVersion,
             .DetalleEstado = dto.DetalleEstado,
             .EnReparto = dto.EnReparto,
+            .EntregaIncompleta = dto.EntregaIncompleta,
             .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
                 .Empresa = ComoCharDeLaBD(dto.Empresa, LONGITUD_EMPRESA), .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
         }
@@ -1912,4 +1913,6 @@ Friend Class EnvioAgenciaListadoDTO
     ' NestoAPI#516: tramitado que la agencia ya ha sacado a reparto (derivado de DetalleEstado en la API).
     ' Con una API anterior no viene y se queda en False.
     Public Property EnReparto As Boolean
+    ' NestoAPI#880: reparto propio entregado con algún bulto de menos (derivado de DetalleEstado en la API).
+    Public Property EntregaIncompleta As Boolean
 End Class

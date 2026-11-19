@@ -630,6 +630,12 @@
                                       ToolTip="{Binding AyudaRecogeEnTienda}" ToolTipService.ShowOnDisabled="True"
                                       Visibility="{Binding RecogeEnTiendaVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>
+                            <!-- NestoAPI#880: entrega incompleta del reparto propio (falta algún bulto) -->
+                            <Border BorderBrush="Firebrick" BorderThickness="1" Background="MistyRose" Padding="6,3" Margin="0,4"
+                                    Visibility="{Binding HayEntregaIncompleta, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding AvisoEntregaIncompleta}" Foreground="Firebrick" FontWeight="Bold" TextWrapping="Wrap"
+                                           ToolTip="El repartidor entregó menos bultos de los que tiene el envío. Almacén ya está avisado."/>
+                            </Border>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
