@@ -25,6 +25,13 @@ namespace Nesto.Modulos.Producto
             {
                 vm.VideoCompletoSeleccionadoCambiado += video =>
                     ActualizarDescripcionYProtocolo(video?.Descripcion, video?.Protocolo);
+                // Sugerencia 1355: tras imprimir la etiqueta, el cursor a «Referencia» (su GotFocus lo selecciona todo)
+                vm.EtiquetaCodigoBarrasImpresa += () => Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+                {
+                    _ = txtReferencia.Focus();
+                    _ = Keyboard.Focus(txtReferencia);
+                    txtReferencia.SelectAll();
+                }));
             }
         }
 

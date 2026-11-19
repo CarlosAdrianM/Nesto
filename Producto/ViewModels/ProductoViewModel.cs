@@ -2121,6 +2121,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public IAsyncRelayCommand ImprimirEtiquetaCodigoBarrasCommand { get; }
 
+        /// <summary>
+        /// Sugerencia 1355 (Paloma): la etiqueta ya ha salido y el aviso está cerrado. La vista pone el cursor en «Referencia»
+        /// para teclear la siguiente sin tocar el ratón.
+        /// </summary>
+        public event Action EtiquetaCodigoBarrasImpresa;
+
         internal async Task ImprimirEtiquetaCodigoBarrasAsync()
         {
             string producto = ProductoActual?.Producto?.Trim();
@@ -2133,6 +2139,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 ResultadoEtiquetasProducto resultado = await ServicioEtiquetasProducto
                     .Imprimir(Constantes.Empresas.EMPRESA_DEFECTO, producto, CopiasEtiquetaCodigoBarras).ConfigureAwait(true);
                 _dialogService.ShowNotification(TextoEtiquetaImpresa(producto, resultado));
+                EtiquetaCodigoBarrasImpresa?.Invoke();
                 if (resultado?.CodigoAsignado == true && !string.IsNullOrWhiteSpace(resultado.CodigoBarras))
                 {
                     // Nesto#598: el código interno recién dado tiene que salir en la lista de códigos de la ficha

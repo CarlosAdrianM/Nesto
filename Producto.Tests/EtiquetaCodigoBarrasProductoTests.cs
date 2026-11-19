@@ -66,6 +66,34 @@ namespace Producto.Tests
             A.CallTo(() => _dialogos.ShowNotification(@"3 etiqueta de 17404 mandada a \\RDS2016\etiquetasalcobendas.")).MustHaveHappenedOnceExactly();
         }
 
+        [TestMethod]
+        public async Task Ficha_AlImprimirLaEtiqueta_AvisaALaVistaParaPonerElCursorEnLaReferencia()
+        {
+            // Sugerencia 1355 (Paloma): tras el aviso, el cursor vuelve a «Referencia» para teclear la siguiente
+            ProductoViewModel vm = Ficha(Constantes.GruposSeguridad.TIENDAS);
+            vm.ProductoActual = new ProductoModel { Producto = "17404     ", Nombre = "ROLLO PAPEL CAMILLA" };
+            int avisos = 0;
+            vm.EtiquetaCodigoBarrasImpresa += () => avisos++;
+
+            await vm.ImprimirEtiquetaCodigoBarrasCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(1, avisos);
+        }
+
+        [TestMethod]
+        public async Task Ficha_SiLaEtiquetaNoSeImprime_NoMueveElCursor()
+        {
+            ProductoViewModel vm = Ficha(Constantes.GruposSeguridad.TIENDAS);
+            vm.ProductoActual = new ProductoModel { Producto = "17404     ", Nombre = "ROLLO PAPEL CAMILLA" };
+            A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<bool>._)).Throws(new Exception("sin impresora"));
+            int avisos = 0;
+            vm.EtiquetaCodigoBarrasImpresa += () => avisos++;
+
+            await vm.ImprimirEtiquetaCodigoBarrasCommand.ExecuteAsync(null);
+
+            Assert.AreEqual(0, avisos);
+        }
+
         private void ApiDevuelve(string codigo, bool asignado, string mensaje)
             => A.CallTo(() => _etiquetas.Imprimir(A<string>._, A<string>._, A<int>._, A<bool>._))
                 .Returns(new ResultadoEtiquetasProducto
