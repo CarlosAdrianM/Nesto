@@ -33,20 +33,8 @@ namespace Nesto.Modulos.Cliente
                 return;
             }
             vm.PaginaActual = DatosFiscales;
-            // Nesto#480: al borrar la direccion verificada, el foco vuelve al campo para buscar otra
-            // sin tener que pinchar. Se desuscribe antes por si la vista se recarga en la misma region.
-            vm.FocoEnDireccionSolicitado -= PonerFocoEnDireccion;
-            vm.FocoEnDireccionSolicitado += PonerFocoEnDireccion;
-        }
-
-        private void PonerFocoEnDireccion(object sender, EventArgs e)
-        {
-            Dispatcher.BeginInvoke(DispatcherPriority.Input,
-            new Action(delegate ()
-            {
-                txtDireccion.Focus();
-                Keyboard.Focus(txtDireccion);
-            }));
+            // Nesto#480: al borrar la dirección verificada, el foco vuelve al campo: lo hace cada bloque de dirección
+            // (BloqueDireccionAltaView), la fiscal y la de entrega (19/11/26).
         }
 
         private void TxtNif_KeyUp(object sender, KeyEventArgs e)
@@ -89,12 +77,7 @@ namespace Nesto.Modulos.Cliente
 
         private void DatosGenerales_Enter(object sender, RoutedEventArgs e)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Input,
-            new Action(delegate ()
-            {
-                txtDireccion.Focus();         // Set Logical Focus
-                Keyboard.Focus(txtDireccion); // Set Keyboard Focus
-            }));
+            bloqueDireccionFiscal.EnfocarDireccion();
         }
 
         private void DatosFiscales_Enter(object sender, RoutedEventArgs e)
@@ -123,97 +106,9 @@ namespace Nesto.Modulos.Cliente
             }));
         }
 
-        // Nesto#409: navegación por teclado del combo de sugerencias SIN sacar el foco del
-        // TextBox: ↑/↓ mueven el resaltado, Intro aplica la resaltada, Escape cierra.
-        private void TxtDireccion_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (!(DataContext is CrearClienteViewModel vm) || !vm.HaySugerenciasDireccion)
-            {
-                return;
-            }
-
-            switch (e.Key)
-            {
-                case Key.Down:
-                    vm.MoverSeleccionSugerencias(1);
-                    lstSugerenciasDireccion.ScrollIntoView(vm.SugerenciaDireccionSeleccionada);
-                    e.Handled = true;
-                    break;
-                case Key.Up:
-                    vm.MoverSeleccionSugerencias(-1);
-                    lstSugerenciasDireccion.ScrollIntoView(vm.SugerenciaDireccionSeleccionada);
-                    e.Handled = true;
-                    break;
-                case Key.Escape:
-                    vm.CerrarSugerenciasDireccion();
-                    e.Handled = true;
-                    break;
-                case Key.Enter:
-                    // Aplica la resaltada; el KeyUp de siempre moverá el foco al siguiente campo
-                    _ = vm.AplicarSugerenciaSeleccionadaAsync();
-                    break;
-            }
-        }
-
-        // Nesto#409: el clic en una sugerencia la aplica (la selección por sí sola es solo resaltado)
-        private async void LstSugerenciasDireccion_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (DataContext is CrearClienteViewModel vm)
-            {
-                _ = await vm.AplicarSugerenciaSeleccionadaAsync();
-                Keyboard.Focus(txtDireccion); // devolver el teclado al TextBox
-            }
-        }
-
-        private void TxtDireccion_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
-            {
-                e.Handled = true;
-                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-            }
-        }
-
-        private void TxtCodigoPostal_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
-            {
-                e.Handled = true;
-                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-            }
-        }
-
-        // NestoAPI#596: lo tecleado («4480 670») se sustituye por el canónico («4480-670») al salir del cuadro
-        private void TxtCodigoPostal_LostFocus(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is CrearClienteViewModel vm)
-            {
-                vm.NormalizarCodigoPostal();
-            }
-        }
-
-        private void TxtTelefono_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
-            {
-                e.Handled = true;
-                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-            }
-        }
-
         private void OptRecibo_Checked(object sender, RoutedEventArgs e)
         {
             Keyboard.Focus(txtIban);
-        }
-
-        // Nesto#643: Intro pasa al siguiente campo (el número que Google no dio).
-        private void TxtSiguienteConIntro_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
-            {
-                e.Handled = true;
-                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-            }
         }
 
         private void DatosComisiones_Enter(object sender, RoutedEventArgs e)

@@ -2,8 +2,26 @@
 
 namespace Nesto.Modulos.Cliente
 {
-    public class ClienteCrear
+    /// <summary>
+    /// El número propio y «¿Qué es?» (Nesto#643, NestoAPI#874) de una dirección del alta (<see cref="ClienteCrear"/>); los rellena el
+    /// bloque de la dirección (BloqueDireccionAlta).
+    /// </summary>
+    public interface IDireccion2Alta
     {
+        string Numero { get; set; }
+        bool NumeroConfirmadoSinGoogle { get; set; }
+        string TipoLugar { get; set; }
+        string Piso { get; set; }
+        string Puerta { get; set; }
+        string NumeroLocal { get; set; }
+        string Rotulo { get; set; }
+        string NumeroNave { get; set; }
+        string OtroTexto { get; set; }
+    }
+
+    public class ClienteCrear : IDireccion2Alta
+    {
+
         public string Cliente { get; set; }
         public string CodigoPostal { get; set; }
         public string Comentarios { get; set; }

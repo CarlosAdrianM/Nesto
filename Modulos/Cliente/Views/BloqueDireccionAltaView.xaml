@@ -1,0 +1,159 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.BloqueDireccionAltaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             mc:Ignorable="d"
+             Background="White"
+             d:DesignHeight="250" d:DesignWidth="600">
+    <!-- Una dirección del alta (la fiscal o la de entrega, 19/11/26): DataContext = BloqueDireccionAlta. Las mismas columnas que
+         «Datos generales» (etiqueta *, 3, campo *, país *), para que las dos direcciones queden alineadas. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="3"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Al modificar: la dirección que ya tiene (no editable); tras validar en el alta, la que se guardará. -->
+        <TextBlock Grid.Column="0" Grid.Row="0" TextAlignment="Right" ToolTip="Dirección actual, no editable" Visibility="{Binding TieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección actual</TextBlock>
+        <Grid Grid.Column="2" Grid.Row="0" HorizontalAlignment="Stretch" Visibility="{Binding TieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding Direccion, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"/>
+            <Button Grid.Column="1" Command="{Binding LimpiarDireccionCommand}" FontFamily="Segoe UI Symbol" Content="&#xE104;" ToolTip="Borrar la dirección para buscar otra"/>
+        </Grid>
+        <TextBlock Grid.Column="0" Grid.Row="0" TextAlignment="Right" ToolTip="Poner solo tipo de vía, nombre de la vía y número. Ejemplo: Paseo de la Castellana, 110" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (solo calle y número)</TextBlock>
+        <!-- Nesto#480: la dirección de Google se SELECCIONA, no se escribe. Elegida, queda de solo lectura (en verde); para cambiarla,
+             se borra con el botón de al lado y se busca otra. -->
+        <Grid Grid.Column="2" Grid.Row="0" HorizontalAlignment="Stretch" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Name="txtDireccion" Grid.Column="0" Text="{Binding CalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtSiguienteConIntro_KeyUp" PreviewKeyDown="TxtDireccion_PreviewKeyDown" IsReadOnly="{Binding DireccionEsSoloLectura}">
+                <TextBox.Style>
+                    <Style TargetType="TextBox">
+                        <Setter Property="ToolTip" Value="Escriba para buscar y elija una dirección de la lista que propone Google"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DireccionEsSoloLectura}" Value="True">
+                                <Setter Property="Background" Value="#EAF7EA"/>
+                                <Setter Property="ToolTip" Value="Dirección verificada con Google. Para cambiarla, bórrela con el botón de al lado y busque otra"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+            </TextBox>
+            <Button Grid.Column="1" Command="{Binding LimpiarDireccionCalleNumeroCommand}" Visibility="{Binding DireccionEsSoloLectura, Converter={StaticResource BooleanToVisibilityConverter}}" FontFamily="Segoe UI Symbol" Content="&#xE104;" ToolTip="Borrar la dirección para buscar otra"/>
+        </Grid>
+        <!-- Nesto#409: sugerencias de Google Places. El foco se queda en el cuadro: ↑/↓ mueven el resaltado, Intro aplica, Escape cierra. -->
+        <Popup PlacementTarget="{Binding ElementName=txtDireccion}" Placement="Bottom"
+               IsOpen="{Binding HaySugerenciasDireccion, Mode=TwoWay}" StaysOpen="False"
+               Focusable="False"
+               Width="{Binding ActualWidth, ElementName=txtDireccion}">
+            <Border Background="White" BorderBrush="Gray" BorderThickness="1">
+                <StackPanel>
+                    <ListBox Name="lstSugerenciasDireccion" ItemsSource="{Binding SugerenciasDireccion}"
+                             SelectedItem="{Binding SugerenciaDireccionSeleccionada, Mode=TwoWay}"
+                             DisplayMemberPath="Descripcion" MaxHeight="200" BorderThickness="0"
+                             PreviewMouseLeftButtonUp="LstSugerenciasDireccion_PreviewMouseLeftButtonUp"/>
+                    <TextBlock Text="Powered by Google" FontSize="10" Foreground="Gray" HorizontalAlignment="Right" Margin="3,1"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+        <!-- Nesto#436: país de la DIRECCIÓN (puede diferir del fiscal). Manda en las sugerencias y en la validación. -->
+        <StackPanel Grid.Column="3" Grid.Row="0" Orientation="Horizontal" Margin="6,0,0,0" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock VerticalAlignment="Center" Margin="0,0,3,0" ToolTip="País de la dirección (puede ser distinto del país fiscal)">País</TextBlock>
+            <controles:SelectorPais MinWidth="140" VerticalAlignment="Center"
+                                    Seleccionado="{Binding PaisDireccion, Mode=TwoWay}"
+                                    VisibilidadEtiqueta="Collapsed"
+                                    ToolTip="País de la dirección (puede ser distinto del país fiscal)"/>
+        </StackPanel>
+
+        <!-- Nesto#643 (NestoAPI#874): si Google da la calle sin número, se pide aquí (cifras o «S/N») y la API lo comprueba con Google. -->
+        <TextBlock Grid.Column="0" Grid.Row="2" TextAlignment="Right" VerticalAlignment="Center"
+                   ToolTip="Google no tiene el número de esta calle. Escríbalo (por ejemplo, 13 o 13 B) o «S/N» si no tiene"
+                   Visibility="{Binding NumeroSinDarPorGoogle, Converter={StaticResource BooleanToVisibilityConverter}}">Número</TextBlock>
+        <TextBox Grid.Column="2" Grid.Row="2" HorizontalAlignment="Left" Width="90"
+                 Text="{Binding NumeroCalle, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtSiguienteConIntro_KeyUp"
+                 ToolTip="Google no tiene el número de esta calle. Escríbalo (por ejemplo, 13 o 13 B) o «S/N» si no tiene"
+                 Visibility="{Binding NumeroSinDarPorGoogle, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Nesto#643 (NestoAPI#874): «¿Qué es?», obligatorio en el alta y sin valor por defecto (tampoco el rótulo). -->
+        <TextBlock Grid.Column="0" Grid.Row="4" TextAlignment="Right" VerticalAlignment="Top" Margin="0,3,0,0"
+                   ToolTip="Lo que necesita el repartidor para encontrar la dirección"
+                   Visibility="{Binding EsAlta, Converter={StaticResource BooleanToVisibilityConverter}}">¿Qué es?</TextBlock>
+        <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="4"
+                    Visibility="{Binding EsAlta, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <ComboBox ItemsSource="{Binding TiposLugar}" DisplayMemberPath="Nombre" SelectedValuePath="Codigo"
+                      SelectedValue="{Binding TipoLugar, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="160"
+                      ToolTip="Piso, local, casa o chalet, nave u otro: el repartidor lo necesita para encontrar la dirección"/>
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,0" Visibility="{Binding EsPiso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,3,0">Piso</TextBlock>
+                <TextBox Width="60" Text="{Binding Piso, UpdateSourceTrigger=PropertyChanged}" ToolTip="Por ejemplo, 1 o BAJO"/>
+                <TextBlock VerticalAlignment="Center" Margin="10,0,3,0">Puerta</TextBlock>
+                <TextBox Width="60" Text="{Binding Puerta, UpdateSourceTrigger=PropertyChanged}" ToolTip="Por ejemplo, D"/>
+            </StackPanel>
+            <Grid Margin="0,3,0,0" Visibility="{Binding EsLocal, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="0,0,3,0">Nº de local</TextBlock>
+                <TextBox Grid.Column="1" Width="60" Text="{Binding NumeroLocal, UpdateSourceTrigger=PropertyChanged}" ToolTip="Opcional"/>
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="10,0,3,0">Rótulo</TextBlock>
+                <TextBox Grid.Column="3" Text="{Binding Rotulo, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Lo que pone en el rótulo de la entrada (el nombre comercial, no el fiscal): es lo que busca el repartidor"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="0,3,0,0" Visibility="{Binding EsNave, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,3,0">Nº de nave</TextBlock>
+                <TextBox Width="60" Text="{Binding NumeroNave, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <TextBox Margin="0,3,0,0" Text="{Binding OtroTexto, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Describa el lugar (por ejemplo, «Centro comercial, planta 2»)"
+                     Visibility="{Binding EsOtro, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <TextBlock Margin="0,3,0,0" Foreground="DarkRed" TextWrapping="Wrap" Text="{Binding MotivoDireccion2}"/>
+        </StackPanel>
+
+        <!-- Corte 1 (19/11/26): al crear, el CP sale de Google; solo se teclea si Google no lo da (novedad 482). -->
+        <TextBlock Grid.Column="0" Grid.Row="6" TextAlignment="Right">Código Postal</TextBlock>
+        <TextBox Grid.Column="2" Grid.Row="6" Text="{Binding CodigoPostal, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtSiguienteConIntro_KeyUp" LostFocus="TxtCodigoPostal_LostFocus"
+                 IsEnabled="{Binding CodigoPostalIsEnabled}" ToolTip="{Binding AyudaCodigoPostal}" ToolTipService.ShowOnDisabled="True"/>
+        <TextBlock Grid.Column="0" Grid.Row="8" TextAlignment="Right">Teléfono</TextBlock>
+        <TextBox Grid.Column="2" Grid.Row="8" Text="{Binding Telefono, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtSiguienteConIntro_KeyUp"/>
+
+        <!-- Solo en la de entrega: sus comentarios de ruta y de picking (los de la fiscal van en «Datos de contacto»). -->
+        <TextBlock Grid.Column="0" Grid.Row="10" TextAlignment="Right" Visibility="{Binding MostrarComentarios, Converter={StaticResource BooleanToVisibilityConverter}}">Comentarios ruta</TextBlock>
+        <TextBox Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="10" Background="LightYellow" Text="{Binding ComentariosRuta, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" SpellCheck.IsEnabled="True"
+                 ToolTip="Lo que tiene que saber el repartidor en esta dirección (50 caracteres)"
+                 Visibility="{Binding MostrarComentarios, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <TextBlock Grid.Column="0" Grid.Row="12" TextAlignment="Right" Visibility="{Binding MostrarComentarios, Converter={StaticResource BooleanToVisibilityConverter}}">Comentarios picking</TextBlock>
+        <TextBox Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="12" Background="LightYellow" Text="{Binding ComentariosPicking, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" SpellCheck.IsEnabled="True"
+                 ToolTip="Lo que tiene que saber el almacén al preparar los pedidos de esta dirección (50 caracteres)"
+                 Visibility="{Binding MostrarComentarios, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+    </Grid>
+</UserControl>

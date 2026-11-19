@@ -203,7 +203,7 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public async System.Threading.Tasks.Task EditarLaDireccionAMano_QuitaLaVerificacionYDesbloqueaElCodigoPostal()
+        public async System.Threading.Tasks.Task EditarLaDireccionAMano_QuitaLaVerificacion_YEnElAltaElCodigoPostalSigueCerrado()
         {
             A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ555", A<string>.Ignored))
                 .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
@@ -213,7 +213,32 @@ namespace ClienteTests
             vm.ClienteDireccionCalleNumero = "Calle Mayor, 2"; // el usuario lo toca a mano
 
             Assert.IsFalse(vm.DireccionVerificadaPorGoogle);
+            Assert.IsFalse(vm.CodigoPostalIsEnabled, "Corte 1 (19/11/26): al crear, el CP sale siempre de Google");
+        }
+
+        // Corte 1 (Carlos 19/11/26): al crear, el código postal sale SIEMPRE de Google; solo se teclea si Google no lo da.
+
+        [TestMethod]
+        public void AlCrear_SinDireccionDeGoogle_ElCodigoPostalNoSeTeclea()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+
+            Assert.IsFalse(vm.CodigoPostalIsEnabled);
+            StringAssert.Contains(vm.AyudaCodigoPostal, "no se escribe a mano");
+        }
+
+        [TestMethod]
+        public void AlModificar_SinDireccionDeGoogle_ElCodigoPostalSigueAbiertoComoAntes()
+        {
+            var vm = new CrearClienteViewModel(Navegacion, Configuracion, Servicio, Messenger, DialogService);
+            var avisados = new List<string>();
+            vm.PropertyChanged += (s, e) => avisados.Add(e.PropertyName);
+
+            vm.EsUnaModificacion = true;
+
             Assert.IsTrue(vm.CodigoPostalIsEnabled);
+            CollectionAssert.Contains(avisados, nameof(vm.CodigoPostalIsEnabled), "La vista se entera al pasar a modificación");
+            Assert.IsFalse(vm.AyudaCodigoPostal.Contains("no se escribe a mano"));
         }
 
         [TestMethod]
@@ -622,7 +647,7 @@ namespace ClienteTests
             Assert.AreEqual(string.Empty, vm.ClienteDireccionCalleNumero);
             Assert.IsFalse(vm.DireccionVerificadaPorGoogle);
             Assert.IsFalse(vm.DireccionEsSoloLectura, "Reabierto para buscar otra");
-            Assert.IsTrue(vm.CodigoPostalIsEnabled);
+            Assert.IsFalse(vm.CodigoPostalIsEnabled, "Corte 1 (19/11/26): el CP llegará con la dirección que se elija");
             Assert.IsTrue(pidioFoco);
         }
 

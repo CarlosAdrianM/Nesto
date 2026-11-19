@@ -41,6 +41,11 @@ namespace Nesto.Modulos.Cliente
             Messenger = messenger;
             DialogService = dialogService;
 
+            // 19/11/26: las dos direcciones del alta, con el mismo núcleo.
+            DireccionFiscal = new BloqueDireccionAlta(servicio, () => !EsUnaModificacion);
+            DireccionFiscal.PropertyChanged += AlCambiarDireccionFiscal;
+            DireccionFiscal.FocoEnDireccionSolicitado += (s, e) => FocoEnDireccionSolicitado?.Invoke(this, e);
+
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
             AbrirModelo347Command = new RelayCommand(OnAbrirModelo347);
             AbrirExtractoClienteCommand = new RelayCommand(OnAbrirExtractoCliente);
@@ -53,8 +58,8 @@ namespace Nesto.Modulos.Cliente
             AnnadirPersonaContactoCommand = new RelayCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new RelayCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new RelayCommand(OnCrearCliente);
-            LimpiarDireccionCommand = new RelayCommand(OnLimpiarDireccion);
-            LimpiarDireccionCalleNumeroCommand = new RelayCommand(OnLimpiarDireccionCalleNumero); // Nesto#480
+            LimpiarDireccionCommand = DireccionFiscal.LimpiarDireccionCommand;
+            LimpiarDireccionCalleNumeroCommand = DireccionFiscal.LimpiarDireccionCalleNumeroCommand; // Nesto#480
 
             Titulo = "Crear Cliente";
             PersonasContacto = new ObservableCollection<PersonaContactoDTO>()
@@ -209,238 +214,103 @@ namespace Nesto.Modulos.Cliente
         #endregion
 
         #region "Propiedades"
-        private string clienteCodigoPostal;
-        public string ClienteCodigoPostal {
-            get { return clienteCodigoPostal; }
-            set
+        #region La dirección fiscal y la de entrega (núcleo común: BloqueDireccionAlta, 19/11/26)
+        /// <summary>
+        /// La dirección fiscal (la de siempre). Las propiedades «Cliente…» de la dirección de este ViewModel son la misma cosa con su
+        /// nombre de antes (las usan la vista y las pruebas): leen y escriben en este bloque, que avisa de sus cambios con ese nombre.
+        /// </summary>
+        public BloqueDireccionAlta DireccionFiscal { get; }
+
+        // Nombre en el bloque → nombre de siempre en este ViewModel (los que no están, se llaman igual).
+        private static readonly Dictionary<string, string> NOMBRES_FISCAL = new Dictionary<string, string>
+        {
+            { nameof(BloqueDireccionAlta.CodigoPostal), nameof(ClienteCodigoPostal) },
+            { nameof(BloqueDireccionAlta.Direccion), nameof(ClienteDireccion) },
+            { nameof(BloqueDireccionAlta.CalleNumero), nameof(ClienteDireccionCalleNumero) },
+            { nameof(BloqueDireccionAlta.NumeroCalle), nameof(ClienteNumeroCalle) },
+            { nameof(BloqueDireccionAlta.TipoLugar), nameof(ClienteTipoLugar) },
+            { nameof(BloqueDireccionAlta.Piso), nameof(ClientePiso) },
+            { nameof(BloqueDireccionAlta.Puerta), nameof(ClientePuerta) },
+            { nameof(BloqueDireccionAlta.NumeroLocal), nameof(ClienteNumeroLocal) },
+            { nameof(BloqueDireccionAlta.Rotulo), nameof(ClienteRotulo) },
+            { nameof(BloqueDireccionAlta.NumeroNave), nameof(ClienteNumeroNave) },
+            { nameof(BloqueDireccionAlta.OtroTexto), nameof(ClienteOtroTexto) },
+            { nameof(BloqueDireccionAlta.PaisDireccion), nameof(ClientePaisDireccion) },
+            { nameof(BloqueDireccionAlta.Poblacion), nameof(ClientePoblacion) },
+            { nameof(BloqueDireccionAlta.Provincia), nameof(ClienteProvincia) },
+            { nameof(BloqueDireccionAlta.Ruta), nameof(ClienteRuta) },
+            { nameof(BloqueDireccionAlta.Telefono), nameof(ClienteTelefono) },
+            { nameof(BloqueDireccionAlta.ComentariosRuta), nameof(ClienteComentariosRuta) },
+            { nameof(BloqueDireccionAlta.ComentariosPicking), nameof(ClienteComentariosPicking) },
+            { nameof(BloqueDireccionAlta.DireccionValidada), nameof(ClienteDireccionValidada) },
+        };
+
+        private void AlCambiarDireccionFiscal(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            OnPropertyChanged(NOMBRES_FISCAL.TryGetValue(e.PropertyName ?? string.Empty, out string nombre) ? nombre : e.PropertyName);
+            if (e.PropertyName == nameof(BloqueDireccionAlta.MotivoNoSePuedeCrear))
             {
-                if (SetProperty(ref clienteCodigoPostal, value) && !aplicandoSugerenciaDireccion)
-                {
-                    if (CodigoPostalSinDarPorGoogle)
-                    {
-                        // Novedad 482: Google dio la dirección sin CP; teclearlo es lo que se espera
-                        NotificarSePuedeCrearCliente();
-                        return;
-                    }
-                    // Editado a mano: la pareja dirección+CP ya no es la que dio Google
-                    DireccionVerificadaPorGoogle = false;
-                }
+                NotificarSePuedeCrearCliente();
             }
         }
 
-        /// <summary>
-        /// NestoAPI#596: el CP se guarda en el formato canónico (las mismas reglas que la API):
-        /// «4480 670», «4480670» y «4480-670» quedan «4480-670»; «8850» en España, «08850». Se llama
-        /// al salir del cuadro y antes de validar. Solo cambia el formato, no el código, así que no
-        /// quita la verificación de Google.
-        /// </summary>
-        public void NormalizarCodigoPostal()
-        {
-            string canonico = Nesto.Infrastructure.Shared.CodigoPostal.Normalizar(clienteCodigoPostal, ClientePaisDireccion);
-            if (canonico == null || canonico == clienteCodigoPostal)
-            {
-                return;
-            }
-            clienteCodigoPostal = canonico;
-            OnPropertyChanged(nameof(ClienteCodigoPostal));
-            NotificarSePuedeCrearCliente();
-        }
+        public string ClienteCodigoPostal { get => DireccionFiscal.CodigoPostal; set => DireccionFiscal.CodigoPostal = value; }
+
+        /// <summary>NestoAPI#596: el CP en el formato canónico (se llama al salir del cuadro y antes de validar).</summary>
+        public void NormalizarCodigoPostal() => DireccionFiscal.NormalizarCodigoPostal();
         public string ClienteContacto { get; set; }
         public bool ClienteDatosPagoValidados { get; set; }
-        private string clienteDireccion;
-        public string ClienteDireccion {
-            get => clienteDireccion; 
-            set { 
-                SetProperty(ref clienteDireccion, value);
-                OnPropertyChanged(nameof(TieneDireccion));
-                OnPropertyChanged(nameof(NoTieneDireccion));
-                NotificarSePuedeCrearCliente(); // Nesto#480
-            }
-        }
-        #region Nesto#643 (NestoAPI#874): número propio y «¿Qué es?» (Dirección 2)
-        // Desaparece el texto libre «Dirección (resto de información)»: el número se comprobaba a ojo y el piso, el local o el
-        // rótulo quedaban como cada uno quería (cliente 42143: «C/ SOR LIVIA ALCORTA, Nº13 LOCAL 6»).
-
-        // Google dio la calle SIN número: se pide en su campo y la API lo vuelve a comprobar con Google (calle + número + CP).
-        private bool numeroSinDarPorGoogle;
-        public bool NumeroSinDarPorGoogle
-        {
-            get => numeroSinDarPorGoogle;
-            private set
-            {
-                if (SetProperty(ref numeroSinDarPorGoogle, value))
-                {
-                    NotificarSePuedeCrearCliente();
-                }
-            }
-        }
-
-        private string clienteNumeroCalle;
-        /// <summary>El número de la calle cuando Google no lo da: cifras o «S/N».</summary>
-        public string ClienteNumeroCalle
-        {
-            get => clienteNumeroCalle;
-            set
-            {
-                if (SetProperty(ref clienteNumeroCalle, value))
-                {
-                    NumeroConfirmadoSinGoogle = false; // otro número: hay que volver a preguntar a Google
-                    NotificarSePuedeCrearCliente();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Google no encuentra el número tecleado (válido) y el usuario ha dicho que se guarde igualmente (Carlos 17/11/26). Viaja
-        /// a la API (que sin esto da 400) y queda apuntado allí para revisarlo.
-        /// </summary>
-        public bool NumeroConfirmadoSinGoogle { get; private set; }
-
-        public const string TITULO_NUMERO_SIN_GOOGLE = "Número de la calle";
-
+        public string ClienteDireccion { get => DireccionFiscal.Direccion; set => DireccionFiscal.Direccion = value; }
+        public bool NumeroSinDarPorGoogle => DireccionFiscal.NumeroSinDarPorGoogle;
+        public string ClienteNumeroCalle { get => DireccionFiscal.NumeroCalle; set => DireccionFiscal.NumeroCalle = value; }
+        public bool NumeroConfirmadoSinGoogle => DireccionFiscal.NumeroConfirmadoSinGoogle;
+        public const string TITULO_NUMERO_SIN_GOOGLE = BloqueDireccionAlta.TITULO_NUMERO_SIN_GOOGLE;
         public IReadOnlyList<TipoLugarModel> TiposLugar => Direccion2Cliente.TIPOS;
-
-        private string clienteTipoLugar;
-        /// <summary>«¿Qué es?»: Piso, Local, Casa, Nave u Otro. Obligatorio en el alta y sin valor por defecto.</summary>
-        public string ClienteTipoLugar
-        {
-            get => clienteTipoLugar;
-            set
-            {
-                if (SetProperty(ref clienteTipoLugar, value))
-                {
-                    OnPropertyChanged(nameof(EsPiso));
-                    OnPropertyChanged(nameof(EsLocal));
-                    OnPropertyChanged(nameof(EsNave));
-                    OnPropertyChanged(nameof(EsOtro));
-                    NotificarDireccion2();
-                }
-            }
-        }
+        public string ClienteTipoLugar { get => DireccionFiscal.TipoLugar; set => DireccionFiscal.TipoLugar = value; }
         /// <summary>«¿Qué es?» solo en las altas (la ficha del cliente lo tendrá en el corte 2 de NestoAPI#874).</summary>
         public bool EsAlta => !EsUnaModificacion;
-        public bool EsPiso => ClienteTipoLugar == Direccion2Cliente.PISO;
-        public bool EsLocal => ClienteTipoLugar == Direccion2Cliente.LOCAL;
-        public bool EsNave => ClienteTipoLugar == Direccion2Cliente.NAVE;
-        public bool EsOtro => ClienteTipoLugar == Direccion2Cliente.OTRO;
-
-        private string clientePiso, clientePuerta, clienteNumeroLocal, clienteRotulo, clienteNumeroNave, clienteOtroTexto;
-        public string ClientePiso { get => clientePiso; set { if (SetProperty(ref clientePiso, value)) NotificarDireccion2(); } }
-        public string ClientePuerta { get => clientePuerta; set { if (SetProperty(ref clientePuerta, value)) NotificarDireccion2(); } }
-        public string ClienteNumeroLocal { get => clienteNumeroLocal; set { if (SetProperty(ref clienteNumeroLocal, value)) NotificarDireccion2(); } }
-        /// <summary>Lo que pone en el rótulo. Obligatorio en un local y SIN valor por defecto: el nombre fiscal no es lo que pone en la puerta.</summary>
-        public string ClienteRotulo { get => clienteRotulo; set { if (SetProperty(ref clienteRotulo, value)) NotificarDireccion2(); } }
-        public string ClienteNumeroNave { get => clienteNumeroNave; set { if (SetProperty(ref clienteNumeroNave, value)) NotificarDireccion2(); } }
-        public string ClienteOtroTexto { get => clienteOtroTexto; set { if (SetProperty(ref clienteOtroTexto, value)) NotificarDireccion2(); } }
-
-        /// <summary>Cómo quedará la Dirección 2 («1º D», «LOCAL 6 · RÓTULO: EL EDÉN»…); null mientras falte algo.</summary>
-        public string Direccion2Compuesta => Direccion2Cliente.Componer(ClienteTipoLugar, ClientePiso, ClientePuerta, ClienteNumeroLocal,
-            ClienteRotulo, ClienteNumeroNave, ClienteOtroTexto, out _);
-
-        /// <summary>Qué le falta a «¿Qué es?» (de usted), o null si está completo.</summary>
-        public string MotivoDireccion2
-        {
-            get
-            {
-                Direccion2Cliente.Componer(ClienteTipoLugar, ClientePiso, ClientePuerta, ClienteNumeroLocal, ClienteRotulo, ClienteNumeroNave,
-                    ClienteOtroTexto, out string motivo);
-                return motivo;
-            }
-        }
-
-        public const string MOTIVO_SIN_NUMERO = "Google no tiene el número de esta calle: escríbalo en «Número» (cifras, o «S/N» si no tiene).";
-
-        private void NotificarDireccion2()
-        {
-            OnPropertyChanged(nameof(Direccion2Compuesta));
-            OnPropertyChanged(nameof(MotivoDireccion2));
-            NotificarSePuedeCrearCliente();
-        }
-        #endregion
-        private string clienteDireccionCalleNumero;
-        public string ClienteDireccionCalleNumero
-        {
-            get { return clienteDireccionCalleNumero; }
-            set
-            {
-                if (SetProperty(ref clienteDireccionCalleNumero, value) && !aplicandoSugerenciaDireccion)
-                {
-                    // Editado a mano: la pareja dirección+CP ya no es la que dio Google
-                    DireccionVerificadaPorGoogle = false;
-                    BuscarSugerenciasDireccionConDebounce(value);
-                }
-                NotificarSePuedeCrearCliente(); // Nesto#480
-            }
-        }
-
-        // Nesto#409: dirección y CP salieron JUNTOS del combo de Places → son consistentes entre
-        // sí. Mientras el usuario no los toque a mano, el CP queda bloqueado y la validación del
-        // wizard se salta el geocoding (direccionVerificada=true): cero llamadas extra a Google.
-        private bool direccionVerificadaPorGoogle;
-        public bool DireccionVerificadaPorGoogle
-        {
-            get { return direccionVerificadaPorGoogle; }
-            set
-            {
-                if (SetProperty(ref direccionVerificadaPorGoogle, value))
-                {
-                    OnPropertyChanged(nameof(CodigoPostalIsEnabled));
-                    OnPropertyChanged(nameof(AyudaCodigoPostal));
-                    OnPropertyChanged(nameof(DireccionEsSoloLectura)); // Nesto#480
-                    NotificarSePuedeCrearCliente();
-                    if (!value)
-                    {
-                        // Sin verificación no hay datos de Google que preferir
-                        PoblacionGoogle = null;
-                        ProvinciaGoogle = null;
-                        CodigoPostalSinDarPorGoogle = false;
-                        NumeroSinDarPorGoogle = false; // Nesto#643
-                        ClienteNumeroCalle = null;
-                    }
-                }
-            }
-        }
-
-        // Novedad 482 (Laura, 05/10/26): para algunas calles (sobre todo de Portugal: «Av. Infante Dom
-        // Henrique 968, Vila do Conde») Google da calle, número y población pero NO el código postal.
-        // La dirección sí se ha elegido de la lista, así que cuenta como verificada; el CP se teclea
-        // (queda abierto y es obligatorio) sin que eso quite la verificación. El servidor comprueba el
-        // CP como siempre: en España tiene que existir en nuestra tabla; fuera, se da de alta al vuelo.
-        private bool codigoPostalSinDarPorGoogle;
-        public bool CodigoPostalSinDarPorGoogle
-        {
-            get { return codigoPostalSinDarPorGoogle; }
-            private set
-            {
-                if (SetProperty(ref codigoPostalSinDarPorGoogle, value))
-                {
-                    OnPropertyChanged(nameof(CodigoPostalIsEnabled));
-                    OnPropertyChanged(nameof(AyudaCodigoPostal));
-                    NotificarSePuedeCrearCliente();
-                }
-            }
-        }
-
-        public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle || CodigoPostalSinDarPorGoogle;
-
-        /// <summary>La ayuda del código postal, según de dónde sale (novedad 482: no siempre lo da Google).</summary>
-        public string AyudaCodigoPostal => !DireccionVerificadaPorGoogle
-            ? "Código postal de la dirección. Se rellena solo al elegir la dirección en la lista de Google"
-            : CodigoPostalSinDarPorGoogle
-                ? "Google no tiene el código postal de esta dirección: escríbalo usted"
-                : "El código postal viene de la dirección seleccionada en el combo de Google; para cambiarlo, modifique la dirección";
-
-        // Nesto#480: la dirección de Google se SELECCIONA, no se escribe. En cuanto se elige una
-        // sugerencia el campo queda de solo lectura (que no deshabilitado: se tiene que poder leer y
-        // copiar); lo que el usuario quiera añadir (portal, local, referencias) va a «Dirección (resto
-        // de información)». Para cambiarla hay que borrarla con el botón de al lado y buscar otra.
-        public bool DireccionEsSoloLectura => DireccionVerificadaPorGoogle;
+        public bool EsPiso => DireccionFiscal.EsPiso;
+        public bool EsLocal => DireccionFiscal.EsLocal;
+        public bool EsNave => DireccionFiscal.EsNave;
+        public bool EsOtro => DireccionFiscal.EsOtro;
+        public string ClientePiso { get => DireccionFiscal.Piso; set => DireccionFiscal.Piso = value; }
+        public string ClientePuerta { get => DireccionFiscal.Puerta; set => DireccionFiscal.Puerta = value; }
+        public string ClienteNumeroLocal { get => DireccionFiscal.NumeroLocal; set => DireccionFiscal.NumeroLocal = value; }
+        public string ClienteRotulo { get => DireccionFiscal.Rotulo; set => DireccionFiscal.Rotulo = value; }
+        public string ClienteNumeroNave { get => DireccionFiscal.NumeroNave; set => DireccionFiscal.NumeroNave = value; }
+        public string ClienteOtroTexto { get => DireccionFiscal.OtroTexto; set => DireccionFiscal.OtroTexto = value; }
+        public string Direccion2Compuesta => DireccionFiscal.Direccion2Compuesta;
+        public string MotivoDireccion2 => DireccionFiscal.MotivoDireccion2;
+        public const string MOTIVO_SIN_NUMERO = BloqueDireccionAlta.MOTIVO_SIN_NUMERO;
+        public string ClienteDireccionCalleNumero { get => DireccionFiscal.CalleNumero; set => DireccionFiscal.CalleNumero = value; }
+        public bool DireccionVerificadaPorGoogle { get => DireccionFiscal.DireccionVerificadaPorGoogle; set => DireccionFiscal.DireccionVerificadaPorGoogle = value; }
+        public bool CodigoPostalSinDarPorGoogle => DireccionFiscal.CodigoPostalSinDarPorGoogle;
+        public bool CodigoPostalIsEnabled => DireccionFiscal.CodigoPostalIsEnabled;
+        public string AyudaCodigoPostal => DireccionFiscal.AyudaCodigoPostal;
+        public bool DireccionEsSoloLectura => DireccionFiscal.DireccionEsSoloLectura;
+        public string PoblacionGoogle => DireccionFiscal.PoblacionGoogle;
+        public string ProvinciaGoogle => DireccionFiscal.ProvinciaGoogle;
+        public ObservableCollection<SugerenciaDireccionModel> SugerenciasDireccion => DireccionFiscal.SugerenciasDireccion;
+        public bool HaySugerenciasDireccion { get => DireccionFiscal.HaySugerenciasDireccion; set => DireccionFiscal.HaySugerenciasDireccion = value; }
+        public SugerenciaDireccionModel SugerenciaDireccionSeleccionada { get => DireccionFiscal.SugerenciaDireccionSeleccionada; set => DireccionFiscal.SugerenciaDireccionSeleccionada = value; }
+        public void MoverSeleccionSugerencias(int delta) => DireccionFiscal.MoverSeleccionSugerencias(delta);
+        public Task<bool> AplicarSugerenciaSeleccionadaAsync() => DireccionFiscal.AplicarSugerenciaSeleccionadaAsync();
+        public void CerrarSugerenciasDireccion() => DireccionFiscal.CerrarSugerenciasDireccion();
+        public Task AplicarSugerenciaDireccionAsync(SugerenciaDireccionModel sugerencia) => DireccionFiscal.AplicarSugerenciaDireccionAsync(sugerencia);
+        public string ClientePaisDireccion { get => DireccionFiscal.PaisDireccion; set => DireccionFiscal.PaisDireccion = value; }
+        public string ClientePoblacion { get => DireccionFiscal.Poblacion; set => DireccionFiscal.Poblacion = value; }
+        public string ClienteProvincia { get => DireccionFiscal.Provincia; set => DireccionFiscal.Provincia = value; }
+        public string ClienteRuta { get => DireccionFiscal.Ruta; set => DireccionFiscal.Ruta = value; }
+        public string ClienteTelefono { get => DireccionFiscal.Telefono; set => DireccionFiscal.Telefono = value; }
+        public string ClienteComentariosRuta { get => DireccionFiscal.ComentariosRuta; set => DireccionFiscal.ComentariosRuta = value; }
+        public string ClienteComentariosPicking { get => DireccionFiscal.ComentariosPicking; set => DireccionFiscal.ComentariosPicking = value; }
+        public bool ClienteDireccionValidada { get => DireccionFiscal.DireccionValidada; set => DireccionFiscal.DireccionValidada = value; }
+        public bool TieneDireccion => DireccionFiscal.TieneDireccion;
+        public bool NoTieneDireccion => DireccionFiscal.NoTieneDireccion;
 
         /// <summary>
-        /// Nesto#480: sin una dirección elegida de Google no se crea el cliente. Espejo exacto de lo que
-        /// hace el servidor en NestoAPI#499 (GestorClientes.MotivoRechazoDireccionNoVerificada): solo en
-        /// las altas, y solo si hay dirección (un contacto de cobro sin dirección no tiene nada que
-        /// verificar). En las modificaciones no se toca: ahí la dirección puede venir de años atrás.
+        /// Nesto#480: sin una dirección elegida de Google no se crea el cliente. Espejo de lo que hace el servidor (NestoAPI#499 y #874):
+        /// solo en las altas, y solo si hay dirección.
         /// </summary>
         public bool SePuedeCrearCliente => MotivoNoSePuedeCrearCliente == null;
 
@@ -454,32 +324,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     return null;
                 }
-                bool hayDireccion = !string.IsNullOrWhiteSpace(ClienteDireccion)
-                                    || !string.IsNullOrWhiteSpace(ClienteDireccionCalleNumero);
-                if (!hayDireccion)
-                {
-                    return null;
-                }
-                if (!DireccionVerificadaPorGoogle)
-                {
-                    return "La dirección tiene que elegirse de las que propone Google, no escribirse a mano. " +
-                      "Vuelva a «Datos generales», borre la dirección con el botón de al lado, búsquela y " +
-                      "selecciónela en la lista. Si Google no la encuentra, avise para darla de alta desde el Nesto viejo.";
-                }
-                if (CodigoPostalSinDarPorGoogle && string.IsNullOrWhiteSpace(ClienteCodigoPostal))
-                {
-                    return "Google no tiene el código postal de esta dirección: escríbalo en «Código postal» (en «Datos generales»).";
-                }
-                // Nesto#643 (NestoAPI#874): el número propio y «¿Qué es?», como la API.
-                if (NumeroSinDarPorGoogle && string.IsNullOrWhiteSpace(ClienteNumeroCalle))
-                {
-                    return MOTIVO_SIN_NUMERO;
-                }
-                if (NumeroSinDarPorGoogle && !NumeroPortal.FormatoValido(ClienteNumeroCalle))
-                {
-                    return NumeroPortal.MOTIVO_FORMATO;
-                }
-                return MotivoDireccion2;
+                return DireccionFiscal.MotivoNoSePuedeCrear;
             }
         }
 
@@ -489,171 +334,13 @@ namespace Nesto.Modulos.Cliente
             OnPropertyChanged(nameof(NoSePuedeCrearCliente));
             OnPropertyChanged(nameof(MotivoNoSePuedeCrearCliente));
         }
-
-        // Nesto#409: población/provincia que dio Google junto a la dirección (en mayúsculas).
-        // Un CP puede cubrir varias poblaciones y nuestra tabla solo tiene una: la de Google es
-        // la correcta para la ficha (importante para las agencias de transporte). La ruta y los
-        // vendedores siguen saliendo SIEMPRE de nuestra tabla de códigos postales.
-        public string PoblacionGoogle { get; private set; }
-        public string ProvinciaGoogle { get; private set; }
-
-        #region Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
-        // El usuario va tecleando y sale el combo de sugerencias de Google; al seleccionar una se
-        // rellenan calle+número y código postal ya normalizados. Best-effort: cualquier fallo
-        // deja el combo vacío y se sigue tecleando a mano. El sessionToken agrupa
-        // autocomplete+detalle en una sesión de facturación y se renueva tras cada selección.
-        private System.Threading.CancellationTokenSource ctsSugerenciasDireccion;
-        private string sessionTokenDireccion = System.Guid.NewGuid().ToString();
-        private bool aplicandoSugerenciaDireccion;
-
-        public System.Collections.ObjectModel.ObservableCollection<SugerenciaDireccionModel> SugerenciasDireccion { get; } =
-            new System.Collections.ObjectModel.ObservableCollection<SugerenciaDireccionModel>();
-
-        private bool haySugerenciasDireccion;
-        public bool HaySugerenciasDireccion
-        {
-            get { return haySugerenciasDireccion; }
-            set { SetProperty(ref haySugerenciasDireccion, value); }
-        }
-
-        // Solo RESALTA (flechas del teclado o hover); aplicar es cosa de Intro o del clic, para
-        // que se pueda navegar por la lista sin disparar la selección a cada movimiento.
-        private SugerenciaDireccionModel sugerenciaDireccionSeleccionada;
-        public SugerenciaDireccionModel SugerenciaDireccionSeleccionada
-        {
-            get { return sugerenciaDireccionSeleccionada; }
-            set { SetProperty(ref sugerenciaDireccionSeleccionada, value); }
-        }
-
-        /// <summary>Mueve el resaltado con las flechas (delta ±1), sin salirse de la lista.</summary>
-        public void MoverSeleccionSugerencias(int delta)
-        {
-            if (!HaySugerenciasDireccion || SugerenciasDireccion.Count == 0)
-            {
-                return;
-            }
-            int indice = SugerenciaDireccionSeleccionada == null
-                ? -1
-                : SugerenciasDireccion.IndexOf(SugerenciaDireccionSeleccionada);
-            int nuevo = System.Math.Max(0, System.Math.Min(SugerenciasDireccion.Count - 1, indice + delta));
-            SugerenciaDireccionSeleccionada = SugerenciasDireccion[nuevo];
-        }
-
-        /// <summary>Aplica la sugerencia resaltada (Intro o clic). Devuelve si había algo que aplicar.</summary>
-        public async Task<bool> AplicarSugerenciaSeleccionadaAsync()
-        {
-            if (!HaySugerenciasDireccion || SugerenciaDireccionSeleccionada == null)
-            {
-                return false;
-            }
-            await AplicarSugerenciaDireccionAsync(SugerenciaDireccionSeleccionada);
-            return true;
-        }
-
-        /// <summary>Cierra el combo sin aplicar nada (Escape o pérdida de foco).</summary>
-        public void CerrarSugerenciasDireccion()
-        {
-            SugerenciasDireccion.Clear();
-            HaySugerenciasDireccion = false;
-            SugerenciaDireccionSeleccionada = null;
-        }
-
-        private async void BuscarSugerenciasDireccionConDebounce(string texto)
-        {
-            ctsSugerenciasDireccion?.Cancel();
-            ctsSugerenciasDireccion = new System.Threading.CancellationTokenSource();
-            var token = ctsSugerenciasDireccion.Token;
-            try
-            {
-                await Task.Delay(350, token); // debounce: solo busca cuando el usuario para de teclear
-                if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
-                {
-                    SugerenciasDireccion.Clear();
-                    HaySugerenciasDireccion = false;
-                    return;
-                }
-                var sugerencias = await Servicio.BuscarSugerenciasDireccion(texto.Trim(), sessionTokenDireccion, ClientePaisDireccion);
-                if (token.IsCancellationRequested)
-                {
-                    return; // el usuario siguió tecleando: esta respuesta ya está obsoleta
-                }
-                SugerenciasDireccion.Clear();
-                foreach (var sugerencia in sugerencias)
-                {
-                    SugerenciasDireccion.Add(sugerencia);
-                }
-                HaySugerenciasDireccion = SugerenciasDireccion.Count > 0;
-            }
-            catch
-            {
-                // Cancelado o fallo de red/Places: el autocompletado nunca molesta al alta
-            }
-        }
-
-        public async Task AplicarSugerenciaDireccionAsync(SugerenciaDireccionModel sugerencia)
-        {
-            try
-            {
-                DireccionDetalleModel detalle = await Servicio.LeerDetalleDireccion(sugerencia.PlaceId, sessionTokenDireccion);
-                if (detalle == null)
-                {
-                    return;
-                }
-                aplicandoSugerenciaDireccion = true;
-                ClienteDireccionCalleNumero = detalle.CalleNumero; // Nesto#627: en el formato del país
-                ClienteNumeroCalle = null;
-                if (!string.IsNullOrWhiteSpace(detalle.CodigoPostal))
-                {
-                    ClienteCodigoPostal = detalle.CodigoPostal;
-                    // Dirección y CP vienen juntos de Google: pareja verificada → CP bloqueado y
-                    // la validación del wizard se salta el geocoding
-                    DireccionVerificadaPorGoogle = true;
-                    CodigoPostalSinDarPorGoogle = false;
-                    PoblacionGoogle = detalle.Poblacion?.ToUpper().Trim();
-                    ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
-                }
-                else if (!string.IsNullOrWhiteSpace(detalle.Calle) && !string.IsNullOrWhiteSpace(detalle.Poblacion))
-                {
-                    // Novedad 482: elegida de Google, pero sin CP → verificada y el CP se teclea
-                    ClienteCodigoPostal = string.Empty;
-                    DireccionVerificadaPorGoogle = true;
-                    CodigoPostalSinDarPorGoogle = true;
-                    PoblacionGoogle = detalle.Poblacion.ToUpper().Trim();
-                    ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
-                }
-                if (!string.IsNullOrWhiteSpace(detalle.PaisIso))
-                {
-                    // Nesto#436: el país real de la dirección elegida manda (el flag de aplicando
-                    // evita que el setter relance la búsqueda)
-                    ClientePaisDireccion = detalle.PaisIso.Trim().ToUpper();
-                }
-                // Nesto#643 (NestoAPI#874): elegida de Google pero sin número → se pide aparte y se comprueba al validar.
-                NumeroSinDarPorGoogle = DireccionVerificadaPorGoogle && string.IsNullOrWhiteSpace(detalle.Numero);
-            }
-            catch
-            {
-                // best-effort: si el detalle falla, el usuario sigue con lo tecleado
-            }
-            finally
-            {
-                aplicandoSugerenciaDireccion = false;
-                SugerenciasDireccion.Clear();
-                HaySugerenciasDireccion = false;
-                sessionTokenDireccion = System.Guid.NewGuid().ToString(); // nueva sesión de facturación
-            }
-        }
         #endregion
+
         private string clienteComentarios;
         public string ClienteComentarios
         {
             get { return clienteComentarios; }
             set { SetProperty(ref clienteComentarios, value); }
-        }
-        private string clienteComentariosPicking;
-        public string ClienteComentariosPicking
-        {
-            get { return clienteComentariosPicking; }
-            set { SetProperty(ref clienteComentariosPicking, value); }
         }
         // Nesto#432: días que el cliente cierra (NestoAPI#362/#471). Un checkbox por día laborable;
         // la API recibe la cadena de 5 posiciones. Por defecto abre todos los días (11111).
@@ -689,17 +376,6 @@ namespace Nesto.Modulos.Cliente
                     CambiarDia(i, !valido || dias[i] == '1');
                 }
             }
-        }
-        private string clienteComentariosRuta;
-        public string ClienteComentariosRuta
-        {
-            get { return clienteComentariosRuta; }
-            set { SetProperty(ref clienteComentariosRuta, value); }
-        }
-        private bool clienteDireccionValidada;
-        public bool ClienteDireccionValidada {
-            get { return clienteDireccionValidada; }
-            set { SetProperty(ref clienteDireccionValidada, value); }
         }
         public string ClienteEmpresa { get; set; }
         private bool clienteEsContacto;
@@ -757,26 +433,6 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        // Nesto#436: país ISO-2 de la DIRECCIÓN (puede diferir del fiscal). Manda en el
-        // autocompletado de Places y en ValidarDatosGenerales; al cambiarlo se relanza la búsqueda
-        // en el país nuevo.
-        private string clientePaisDireccion = "ES";
-        public string ClientePaisDireccion
-        {
-            get { return clientePaisDireccion; }
-            set
-            {
-                if (SetProperty(ref clientePaisDireccion, value) && !aplicandoSugerenciaDireccion)
-                {
-                    CerrarSugerenciasDireccion();
-                    if (!string.IsNullOrWhiteSpace(ClienteDireccionCalleNumero))
-                    {
-                        DireccionVerificadaPorGoogle = false;
-                        BuscarSugerenciasDireccionConDebounce(ClienteDireccionCalleNumero);
-                    }
-                }
-            }
-        }
         public bool EsPaisExtranjero => !string.IsNullOrWhiteSpace(ClientePais)
             && !string.Equals(ClientePais.Trim(), "ES", StringComparison.OrdinalIgnoreCase);
         private string clienteNombre;
@@ -800,22 +456,6 @@ namespace Nesto.Modulos.Cliente
         {
             get { return clientePlazosPago; }
             set { SetProperty(ref clientePlazosPago, value); }
-        }
-        private string clientePoblacion;
-        public string ClientePoblacion {
-            get { return clientePoblacion; }
-            set { SetProperty(ref clientePoblacion, value); }
-        }
-        private string clienteProvincia;
-        public string ClienteProvincia {
-            get { return clienteProvincia; }
-            set { SetProperty(ref clienteProvincia, value); }
-        }
-        public string ClienteRuta { get; set; }
-        private string clienteTelefono;
-        public string ClienteTelefono {
-            get { return clienteTelefono; }
-            set { SetProperty(ref clienteTelefono, value); }
         }
         private bool clienteTieneEstetica;
         public bool ClienteTieneEstetica {
@@ -903,6 +543,7 @@ namespace Nesto.Modulos.Cliente
                 OnPropertyChanged(nameof(EsCreandoContacto));
                 OnPropertyChanged(nameof(EsAlta)); // Nesto#643
                 OnPropertyChanged(nameof(MostrarOrigenEnDatosGenerales)); // Nesto#523
+                DireccionFiscal.NotificarEsAlta(); // corte 1 del 19/11/26: la regla del CP depende de si es un alta
                 NotificarSePuedeCrearCliente(); // Nesto#480
             }
         }
@@ -962,10 +603,6 @@ namespace Nesto.Modulos.Cliente
                 return EsPaisExtranjero || NombreLoDebeEscribirElUsuario || NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
             }
         }
-        public bool NoTieneDireccion
-        {
-            get => !TieneDireccion;
-        }
         private WizardPage paginaActual;
         public WizardPage PaginaActual {
             get
@@ -989,7 +626,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     Task a = GoToDatosComisiones();
                     a.ContinueWith((t1) => {
-                        if (ClienteDireccionValidada)
+                        if (DatosGeneralesValidados)
                         {
                             PaginaAnterior = paginaActual;
                             SetProperty(ref paginaActual, value);
@@ -1033,10 +670,6 @@ namespace Nesto.Modulos.Cliente
                 }
                 return (!NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNif)) || (NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNombre));
             }
-        }
-        public bool TieneDireccion
-        {
-            get => !string.IsNullOrEmpty(ClienteDireccion);
         }
         private string _titulo;
         public string Titulo
@@ -1232,15 +865,7 @@ namespace Nesto.Modulos.Cliente
             if (!EsUnaModificacion)
             {
                 // Nesto#643 (NestoAPI#874): número propio (la API lo vuelve a comprobar) y «¿Qué es?» (compone la Dirección 2).
-                cliente.Numero = NumeroSinDarPorGoogle ? ClienteNumeroCalle?.Trim() : null;
-                cliente.NumeroConfirmadoSinGoogle = NumeroSinDarPorGoogle && NumeroConfirmadoSinGoogle;
-                cliente.TipoLugar = ClienteTipoLugar;
-                cliente.Piso = EsPiso ? ClientePiso : null;
-                cliente.Puerta = EsPiso ? ClientePuerta : null;
-                cliente.NumeroLocal = EsLocal ? ClienteNumeroLocal : null;
-                cliente.Rotulo = EsLocal ? ClienteRotulo : null;
-                cliente.NumeroNave = EsNave ? ClienteNumeroNave : null;
-                cliente.OtroTexto = EsOtro ? ClienteOtroTexto : null;
+                DireccionFiscal.RellenarNumeroYQueEs(cliente);
             }
 
             try
@@ -1305,28 +930,9 @@ namespace Nesto.Modulos.Cliente
         }
         #endregion
         public ICommand LimpiarDireccionCommand { get; private set; }
-        private void OnLimpiarDireccion()
-        {
-            ClienteDireccion = String.Empty;
-        }
 
+        /// <summary>Nesto#480: borra la dirección fiscal elegida para poder buscar otra (lo hace su bloque).</summary>
         public ICommand LimpiarDireccionCalleNumeroCommand { get; private set; }
-
-        /// <summary>
-        /// Nesto#480: borra la dirección elegida para poder buscar otra. Reabre el campo (el setter baja
-        /// DireccionVerificadaPorGoogle, que es lo que lo tenía de solo lectura y bloqueaba el código
-        /// postal) y pide el foco a la vista para seguir tecleando sin tener que pinchar.
-        /// </summary>
-        private void OnLimpiarDireccionCalleNumero()
-        {
-            CerrarSugerenciasDireccion();
-            ClienteDireccionCalleNumero = string.Empty;
-            // Si el campo ya estaba vacío el setter no salta, así que nos aseguramos aquí.
-            DireccionVerificadaPorGoogle = false;
-            NumeroSinDarPorGoogle = false; // Nesto#643
-            ClienteNumeroCalle = null;
-            FocoEnDireccionSolicitado?.Invoke(this, EventArgs.Empty);
-        }
 
         /// <summary>Nesto#480: la vista devuelve el foco al campo de dirección al borrarla.</summary>
         public event EventHandler FocoEnDireccionSolicitado;
@@ -1396,82 +1002,23 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        /// <summary>
+        /// Al pasar de «Datos generales»: la dirección se valida con la API por su bloque (<see cref="BloqueDireccionAlta.ValidarAsync"/>).
+        /// Los vendedores salen de la respuesta.
+        /// </summary>
         // Público para poder esperarlo en los tests (NestoAPI#596).
         public async Task GoToDatosComisiones()
         {
-            if (clienteTelefono == "undefined")
+            RespuestaDatosGeneralesClientes respuesta = await DireccionFiscal.ValidarAsync(DialogService, ClienteNumero);
+            if (respuesta != null && (!esUnaModificacion || ClienteCodigoPostal != respuesta.CodigoPostal))
             {
-                clienteTelefono = string.Empty;
-            }
-
-            if (!string.IsNullOrEmpty(ClienteDireccion) && string.IsNullOrEmpty(clienteDireccionCalleNumero)) 
-            {
-                ClienteDireccionValidada = true;
-                return;
-            }
-
-            // Nesto#643 (NestoAPI#874): sin el número que Google no dio no se sigue (la API lo comprueba con Google).
-            if (NumeroSinDarPorGoogle && string.IsNullOrWhiteSpace(ClienteNumeroCalle))
-            {
-                DialogService.ShowError(MOTIVO_SIN_NUMERO);
-                return;
-            }
-            if (NumeroSinDarPorGoogle && !NumeroPortal.FormatoValido(ClienteNumeroCalle))
-            {
-                DialogService.ShowError(NumeroPortal.MOTIVO_FORMATO);
-                return;
-            }
-
-            NormalizarCodigoPostal(); // NestoAPI#596
-            try
-            {
-                RespuestaDatosGeneralesClientes respuesta = NumeroSinDarPorGoogle
-                    ? await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion, ClienteNumeroCalle.Trim())
-                    : await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion);
-                // Nesto#643 (NestoAPI#874): Google no encuentra el número (válido). No se bloquea: se pregunta (Carlos 17/11/26).
-                if (NumeroSinDarPorGoogle && respuesta.NumeroSinConfirmarPorGoogle && !NumeroConfirmadoSinGoogle)
-                {
-                    if (!DialogService.ShowConfirmationAnswer(TITULO_NUMERO_SIN_GOOGLE, respuesta.AvisoNumero))
-                    {
-                        return; // se queda en «Datos generales» para corregir el número
-                    }
-                    NumeroConfirmadoSinGoogle = true;
-                }
-                respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
-                if (respuesta.ClientesMismoTelefono.Count > 0)
-                {
-                    DialogService.ShowDialog("NotificacionTelefonoView", new ParametrosDialogo { { "clientesMismoTelefono", respuesta.ClientesMismoTelefono } }, null);
-                }
-
-                // Nesto#643: solo calle y número (lo demás va en «¿Qué es?», que es la Dirección 2).
-                ClienteDireccion = Strings.Left(respuesta.DireccionFormateada, 50);
-                // Nesto#409: un CP puede cubrir varias poblaciones y nuestra tabla solo tiene una;
-                // si la dirección viene verificada de Google, SU población/provincia son las
-                // correctas para la ficha (importa para las agencias de transporte). La ruta y
-                // los vendedores siguen saliendo de nuestra tabla de CPs.
-                // Nesto#436: en direcciones extranjeras la tabla de CPs no da población/provincia
-                // (vienen null del servidor): se conserva lo que hubiera (lo de Google o lo tecleado).
-                ClientePoblacion = Strings.Left(
-                    DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(PoblacionGoogle)
-                        ? PoblacionGoogle
-                        : respuesta.Poblacion ?? ClientePoblacion, 30);
-                ClienteProvincia = DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(ProvinciaGoogle)
-                    ? ProvinciaGoogle
-                    : respuesta.Provincia ?? ClienteProvincia;
-                ClienteRuta = respuesta.Ruta ?? ClienteRuta;
-                ClienteTelefono = respuesta.TelefonoFormateado;
-                if (!esUnaModificacion || ClienteCodigoPostal != respuesta.CodigoPostal)
-                {
-                    ClienteVendedorEstetica = respuesta.VendedorEstetica;
-                    ClienteVendedorPeluqueria = respuesta.VendedorPeluqueria;
-                }
-                ClienteDireccionValidada = true;
-            }
-            catch (Exception ex)
-            {
-                DialogService.ShowError(ex.Message);
+                ClienteVendedorEstetica = respuesta.VendedorEstetica;
+                ClienteVendedorPeluqueria = respuesta.VendedorPeluqueria;
             }
         }
+
+        /// <summary>Se puede pasar de «Datos generales»: la dirección validada.</summary>
+        public bool DatosGeneralesValidados => ClienteDireccionValidada;
         private async Task GoToDatosGenerales()
         {
             if (EsUnaModificacion && ClienteEsContacto)
