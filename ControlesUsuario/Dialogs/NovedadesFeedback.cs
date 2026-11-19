@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.Generic;
@@ -254,9 +255,14 @@ namespace ControlesUsuario.Dialogs
 
         public NovedadItem(NovedadUsuario novedad, INovedadesService servicio, IPortapapelesImagenes portapapeles, Func<string, bool> preguntar,
             ListaMencionables mencionables = null, ContextoAdjuntosNovedades adjuntos = null,
-            ContextoVideosNovedades videos = null)
+            ContextoVideosNovedades videos = null, IServicioPortapapeles portapapelesTexto = null)
         {
             _novedad = novedad ?? throw new ArgumentNullException(nameof(novedad));
+            _portapapelesTexto = portapapelesTexto ?? new ServicioPortapapeles();
+            CopiarDatosCommand = new RelayCommand(() => CopiarDatos());
+            CopiarConComentariosCommand = new AsyncRelayCommand(CopiarConComentarios);
+            CopiarComentarioCommand = new RelayCommand<ComentarioItem>(c => CopiarComentario(c));
+            CopiarNumeroCommand = new RelayCommand(() => CopiarNumero());
             _servicio = servicio;
             _adjuntos = adjuntos;
             // Sugerencia 551: a quién afecta (se pone por script; aquí solo se enseña)
@@ -296,6 +302,89 @@ namespace ControlesUsuario.Dialogs
 
         /// <summary>Sugerencia 551: a quién afecta la novedad («Para: Almacén y Tiendas»).</summary>
         public PerfilesNovedadItem Perfiles { get; }
+
+        #region Copiar los datos con el botón derecho (Carlos, 19/11/26)
+
+        /// <summary>Lo que se dice si Windows no deja copiar (otro programa tiene el portapapeles) tras los reintentos.</summary>
+        internal const string ERROR_COPIAR = "Windows no ha dejado copiar (puede que otro programa esté usando el portapapeles). Vuelva a intentarlo.";
+
+        private readonly IServicioPortapapeles _portapapelesTexto;
+
+        /// <summary>«nº 1362», junto al título (con clic se copia solo el número).</summary>
+        public string TextoNumero => $"nº {Id}";
+
+        public IRelayCommand CopiarDatosCommand { get; }
+        public IAsyncRelayCommand CopiarConComentariosCommand { get; }
+        public IRelayCommand<ComentarioItem> CopiarComentarioCommand { get; }
+        public IRelayCommand CopiarNumeroCommand { get; }
+
+        private string _avisoCopia;
+        /// <summary>«Copiados los datos.» tras copiar o, si no se ha podido, el motivo (<see cref="AvisoCopiaEsError"/>). Junto al número.</summary>
+        public string AvisoCopia
+        {
+            get => _avisoCopia;
+            private set
+            {
+                if (SetProperty(ref _avisoCopia, value))
+                {
+                    OnPropertyChanged(nameof(HayAvisoCopia));
+                }
+            }
+        }
+        public bool HayAvisoCopia => !string.IsNullOrWhiteSpace(AvisoCopia);
+
+        private bool _avisoCopiaEsError;
+        public bool AvisoCopiaEsError { get => _avisoCopiaEsError; private set => SetProperty(ref _avisoCopiaEsError, value); }
+
+        private void AvisarCopia(string aviso, bool esError)
+        {
+            AvisoCopiaEsError = esError;
+            AvisoCopia = aviso;
+        }
+
+        internal bool CopiarDatos() => Copiar(TextoCopiaNovedad.Datos(_novedad, NumeroComentarios), "Copiados los datos");
+
+        internal bool CopiarNumero() => Copiar(Id.ToString(), $"Copiado el número {Id}");
+
+        internal bool CopiarComentario(ComentarioItem comentario)
+            => comentario != null && Copiar(TextoCopiaNovedad.Comentario(_novedad, comentario), "Copiado el comentario");
+
+        /// <summary>Con los comentarios: los ya cargados o, si no se han abierto, se leen (sin abrirlos en la ventana).</summary>
+        internal async Task<bool> CopiarConComentarios()
+        {
+            IReadOnlyList<ComentarioItem> comentarios = Comentarios.ToList();
+            if (comentarios.Count == 0 && NumeroComentarios > 0 && _servicio != null)
+            {
+                try
+                {
+                    comentarios = (await _servicio.LeerComentarios(Id) ?? new List<ComentarioNovedad>())
+                        .Where(c => c != null).Select(c => new ComentarioItem(c)).ToList();
+                }
+                catch (Exception ex)
+                {
+                    AvisarCopia($"No se han podido leer los comentarios para copiarlos: {ex.Message}", esError: true);
+                    return false;
+                }
+            }
+            return Copiar(TextoCopiaNovedad.DatosConComentarios(_novedad, comentarios), "Copiados los datos con los comentarios");
+        }
+
+        private bool Copiar(string texto, string aviso)
+        {
+            bool copiado;
+            try
+            {
+                copiado = _portapapelesTexto.Copiar(texto);
+            }
+            catch (Exception)
+            {
+                copiado = false; // nunca una excepción sin tratar por el portapapeles
+            }
+            AvisarCopia(copiado ? aviso + "." : ERROR_COPIAR, esError: !copiado);
+            return copiado;
+        }
+
+        #endregion
 
         /// <summary>NestoAPI#711: el vídeo de la novedad (null si no tiene).</summary>
         public VideoNovedadItem Video { get; }

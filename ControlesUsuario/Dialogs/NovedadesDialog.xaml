@@ -185,8 +185,20 @@
                     <DataTemplate>
                         <!-- Nesto#487: la elegida en el buscador (o la sugerencia recién creada) se resalta. -->
                         <Border BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="4,8,4,8">
+                            <!-- Carlos (19/11/26): copiar los datos para pegárselos al asistente (el menú hereda la novedad) -->
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Copiar datos" Command="{Binding CopiarDatosCommand}"
+                                              ToolTip="Copia el número, quién y cuándo, el estado, el texto y cuántas capturas y comentarios lleva" />
+                                    <MenuItem Header="Copiar con comentarios" Command="{Binding CopiarConComentariosCommand}"
+                                              ToolTip="Lo mismo y, debajo, cada comentario (autor, fecha y texto)" />
+                                    <MenuItem Header="Copiar el número" Command="{Binding CopiarNumeroCommand}" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
                             <Border.Style>
                                 <Style TargetType="Border">
+                                    <!-- Transparente (no nulo): el botón derecho también vale en los huecos -->
+                                    <Setter Property="Background" Value="Transparent" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Destacada}" Value="True">
                                             <Setter Property="Background" Value="#FFF6D5" />
@@ -217,6 +229,12 @@
                                         </Border.Style>
                                         <TextBlock Text="{Binding Categoria}" Foreground="White" FontSize="11" />
                                     </Border>
+                                    <!-- Carlos (19/11/26): el número, discreto; con clic se copia (el botón derecho copia todo) -->
+                                    <Button DockPanel.Dock="Right" Content="{Binding TextoNumero}" Command="{Binding CopiarNumeroCommand}"
+                                            FontSize="11" Foreground="#999999" Background="Transparent" BorderThickness="0" Padding="2,0"
+                                            Margin="8,0,0,0" VerticalAlignment="Top" Cursor="Hand"
+                                            ToolTip="Clic para copiar el número. Con el botón derecho, «Copiar datos»."
+                                            AutomationProperties.Name="{Binding TextoNumero}" />
                                     <!-- Nesto#623: de otra aplicación (se llega desde la campana): «Sugerencia de Ariadna» -->
                                     <Border DockPanel.Dock="Right" Background="#EEF2F7" CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
                                             VerticalAlignment="Top" ToolTip="Es de otra aplicación: se puede leer, votar y comentar desde aquí"
@@ -229,6 +247,19 @@
                                                Visibility="{Binding VersionVisible, Converter={StaticResource BoolAVisible}}" />
                                     <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
+                                <TextBlock Text="{Binding AvisoCopia}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap"
+                                           Visibility="{Binding HayAvisoCopia, Converter={StaticResource BoolAVisible}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#2E7D32" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AvisoCopiaEsError}" Value="True">
+                                                    <Setter Property="Foreground" Value="#B03A2E" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 <!-- Nesto#487: en una sugerencia, quién/cuándo, lo que escribió el usuario tal cual y su captura;
                                      la descripción (ampliada, nuestra) solo si la hay. -->
                                 <TextBlock Text="{Binding SugeridaPor}" FontSize="11" Foreground="#777777" Margin="0,3,0,0"
@@ -357,10 +388,21 @@
                                                     <DataTemplate>
                                                         <!-- Nesto#477: el comentario al que lleva la notificación de la campana, resaltado -->
                                                         <!-- Nesto#516: el destacado recibe el foco (teclado y lector de pantalla) -->
+                                                        <!-- Carlos (19/11/26): «Copiar comentario» (con el número de su novedad). El menú no está en
+                                                             el árbol visual: la novedad le llega por el Tag del borde. -->
                                                         <Border BorderBrush="#E3E3E3" BorderThickness="0,0,0,1" Padding="0,4,0,6"
-                                                                Focusable="{Binding Destacado}" AutomationProperties.Name="{Binding Texto}">
+                                                                Focusable="{Binding Destacado}" AutomationProperties.Name="{Binding Texto}"
+                                                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                                            <Border.ContextMenu>
+                                                                <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                                                                    <MenuItem Header="Copiar comentario" Command="{Binding CopiarComentarioCommand}"
+                                                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                                    <MenuItem Header="Copiar datos (con comentarios)" Command="{Binding CopiarConComentariosCommand}" />
+                                                                </ContextMenu>
+                                                            </Border.ContextMenu>
                                                             <Border.Style>
                                                                 <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="Transparent" />
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding Destacado}" Value="True">
                                                                             <Setter Property="Background" Value="#FFF6D5" />
