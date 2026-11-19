@@ -1,0 +1,47 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.DireccionesClienteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="200" d:DesignWidth="800"
+             Background="White">
+    <!-- NestoAPI#879 (corte 3): las direcciones del cliente. Facturación = la ficha principal; entrega por defecto = el ContactoDefecto de
+         la principal. «Usar como entrega por defecto» la cambia al momento (con confirmación). La de facturación no se cambia aquí. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <DockPanel x:Name="Raiz" Margin="3">
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" Foreground="DarkGreen" TextWrapping="Wrap" Margin="0,0,0,4"
+                   Visibility="{Binding HayMensaje, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <DataGrid x:Name="dgrDirecciones" ItemsSource="{Binding Direcciones}" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"
+                  HeadersVisibility="Column" SelectionMode="Single">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EsEntregaPorDefecto}" Value="True">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
+                <DataGridTextColumn Header="Uso" Binding="{Binding Marcas}" Width="Auto"/>
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="2*"/>
+                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="4*"/>
+                <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="2*"/>
+                <DataGridTemplateColumn Width="Auto">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Usar como entrega por defecto" Padding="6,0" Margin="2,1"
+                                    Command="{Binding DataContext.HacerEntregaPorDefectoCommand, ElementName=Raiz}" CommandParameter="{Binding}"
+                                    Visibility="{Binding PuedeSerEntregaPorDefecto, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="Hace que esta dirección sea la de entrega por defecto del cliente. La de facturación no cambia."/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

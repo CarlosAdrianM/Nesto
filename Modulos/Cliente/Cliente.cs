@@ -39,6 +39,8 @@ namespace Nesto.Modulos.Cliente
             registro.Vista<HorariosPorRevisarView>("HorariosPorRevisarView");
             // Nesto#606 (NestoAPI#799): día de reparto propio del contacto (excepción al de su código postal)
             registro.Transitorio<IDiaRepartoClienteService, DiaRepartoClienteService>();
+            // NestoAPI#879 (corte 3): pestaña «Direcciones» de la ficha (facturación, entrega por defecto y cambiarla)
+            registro.Transitorio<IDireccionesClienteService, DireccionesClienteService>();
             // Nesto#523 (NestoAPI#623): origen del cliente (campañas) en «Crear cliente» y en la ficha
             registro.Transitorio<IOrigenesClienteService, OrigenesClienteService>();
             // NestoAPI#623 corte 4: importar el fichero de leads de Meta

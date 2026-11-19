@@ -442,6 +442,11 @@
                             <cliente:HorarioPreferibleClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
                                                                   Contacto="{Binding clienteActivo.contacto}"/>
                         </TabItem>
+                        <!-- NestoAPI#879 (corte 3): las direcciones del cliente, con la de facturación (ficha principal) y la de entrega por
+                             defecto marcadas; «Usar como entrega por defecto» la cambia al momento. Lee la API al enseñarse. -->
+                        <TabItem Header="Direcciones">
+                            <cliente:DireccionesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"/>
+                        </TabItem>
                     </TabControl>
                 </Grid>
             </Grid>
