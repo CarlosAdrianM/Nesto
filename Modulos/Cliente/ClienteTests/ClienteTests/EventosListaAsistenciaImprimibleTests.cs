@@ -62,6 +62,26 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public void Telefono_ElDeLaPersona_SiNoElDeLaFichaDelCliente()
+        {
+            InscripcionEventoModel conPersona = Inscripcion(1, "A");
+            conPersona.PersonaContacto = new PersonaContactoEventoModel { Numero = "2", Nombre = "Ana", Telefono = "600111222" };
+            conPersona.Telefono = "915555555";
+            InscripcionEventoModel personaSinTelefono = Inscripcion(2, "B");
+            personaSinTelefono.PersonaContacto = new PersonaContactoEventoModel { Numero = "3", Nombre = "Marta", Telefono = " " };
+            personaSinTelefono.Telefono = " 916666666 ";
+            InscripcionEventoModel sinPersona = Inscripcion(3, "C");
+            sinPersona.Telefono = "917777777";
+            InscripcionEventoModel sinNada = Inscripcion(4, "D");
+
+            Assert.AreEqual("600111222", ListaAsistenciaImprimible.TextoTelefono(conPersona));
+            Assert.AreEqual("916666666", ListaAsistenciaImprimible.TextoTelefono(personaSinTelefono));
+            Assert.AreEqual("917777777", ListaAsistenciaImprimible.TextoTelefono(sinPersona));
+            Assert.AreEqual(string.Empty, ListaAsistenciaImprimible.TextoTelefono(sinNada));
+            Assert.AreEqual("917777777", ListaAsistenciaImprimible.Tabla(EVENTO, new[] { sinPersona })[0][2], "la hoja usa la misma regla");
+        }
+
+        [TestMethod]
         public void Columnas_LasPedidas()
         {
             CollectionAssert.AreEqual(new[] { "Nº", "Cliente", "Teléfono", "Pers.", "Pago", "Asistencia", "Asiste", "Firma" },

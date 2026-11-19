@@ -35,14 +35,25 @@ namespace Nesto.Modulos.Cliente.Models
         {
             new ColumnaListaAsistencia("Nº", 0.5, (n, i, e) => n.ToString(ES)),
             new ColumnaListaAsistencia("Cliente", 4, (n, i, e) => TextoCliente(i)),
-            // Solo el teléfono de la persona que asiste (la API no trae el del cliente): sin persona, en blanco.
-            new ColumnaListaAsistencia("Teléfono", 1.6, (n, i, e) => i.TelefonoPersona),
+            // El de la persona que asiste y, si no lo tiene (o no hay persona), el de la ficha del cliente.
+            new ColumnaListaAsistencia("Teléfono", 1.6, (n, i, e) => TextoTelefono(i)),
             new ColumnaListaAsistencia("Pers.", 0.6, (n, i, e) => i.NumeroAsistentes.ToString(ES)),
             new ColumnaListaAsistencia("Pago", 1.4, (n, i, e) => TextoPago(i)),
             new ColumnaListaAsistencia("Asistencia", 1.3, (n, i, e) => TextoFormaAsistencia(i, e)),
             new ColumnaListaAsistencia("Asiste", 0.9, (n, i, e) => string.Empty),
             new ColumnaListaAsistencia("Firma", 2.4, (n, i, e) => string.Empty)
         };
+
+        /// <summary>Sugerencia 1362 (fleco): el teléfono de la persona que asiste; sin él, el de la ficha del cliente/contacto.</summary>
+        public static string TextoTelefono(InscripcionEventoModel inscripcion)
+        {
+            if (inscripcion == null)
+            {
+                return string.Empty;
+            }
+            string persona = inscripcion.TelefonoPersona;
+            return !string.IsNullOrWhiteSpace(persona) ? persona : inscripcion.Telefono?.Trim() ?? string.Empty;
+        }
 
         /// <summary>Las inscripciones que salen en la hoja: todas menos las anuladas, por nombre (y por número de cliente).</summary>
         public static List<InscripcionEventoModel> Filas(IEnumerable<InscripcionEventoModel> inscripciones)

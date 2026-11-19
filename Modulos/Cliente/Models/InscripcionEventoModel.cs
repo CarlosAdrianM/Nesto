@@ -91,6 +91,11 @@ namespace Nesto.Modulos.Cliente.Models
         public string Correo { get; set; }
         /// <summary>Solo lectura: «Calle, CP Población (Provincia)» de la ficha del contacto.</summary>
         public string Direccion { get; set; }
+        /// <summary>
+        /// Sugerencia 1362 (fleco, 19/11/26): solo lectura, el teléfono de la ficha del cliente/contacto de la inscripción (la API lo
+        /// manda desde entonces; con una anterior, null).
+        /// </summary>
+        public string Telefono { get; set; }
 
         /// <summary>Nesto#567 (NestoAPI#732): el pedido que justifica la inscripción gratuita por compra; null en el resto.</summary>
         public int? PedidoJustificante { get; set; }
