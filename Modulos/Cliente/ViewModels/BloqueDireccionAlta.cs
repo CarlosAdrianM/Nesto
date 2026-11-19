@@ -322,7 +322,51 @@ namespace Nesto.Modulos.Cliente
         {
             OnPropertyChanged(nameof(Direccion2Compuesta));
             OnPropertyChanged(nameof(MotivoDireccion2));
+            OnPropertyChanged(nameof(AvisoDireccion2));
             NotificarMotivo();
+        }
+
+        /// <summary>
+        /// NestoAPI#874 (corte 2): el aviso rojo de «¿Qué es?». En el alta, siempre; al modificar, solo si se ha elegido un tipo (sin
+        /// tipo no se toca lo guardado y no hay nada que avisar).
+        /// </summary>
+        public string AvisoDireccion2 => EsAlta || !string.IsNullOrEmpty(TipoLugar) ? MotivoDireccion2 : null;
+
+        /// <summary>NestoAPI#874 (corte 2): el contacto que se modifica ya tenía Dirección 2 (la que trae GetClienteCrear).</summary>
+        public bool TeniaDireccion2 { get; private set; }
+
+        /// <summary>NestoAPI#874 (corte 2): al abrir la modificación, «¿Qué es?» y sus campos con lo guardado (ya descompuesto por la API).</summary>
+        public void CargarQueEs(IDireccion2Alta origen, string direccion2Guardada)
+        {
+            TeniaDireccion2 = !string.IsNullOrWhiteSpace(direccion2Guardada);
+            Piso = origen?.Piso;
+            Puerta = origen?.Puerta;
+            NumeroLocal = origen?.NumeroLocal;
+            Rotulo = origen?.Rotulo;
+            NumeroNave = origen?.NumeroNave;
+            OtroTexto = origen?.OtroTexto;
+            TipoLugar = origen?.TipoLugar;
+        }
+
+        /// <summary>
+        /// NestoAPI#874 (corte 2): lo que viaja al MODIFICAR: solo «¿Qué es?» (el número propio es del alta). Sin tipo, nada (la API conserva
+        /// lo guardado). Devuelve el motivo si el tipo elegido está incompleto (de usted), o null.
+        /// </summary>
+        public string RellenarQueEsAlModificar(ClienteCrear destino)
+        {
+            if (string.IsNullOrEmpty(TipoLugar))
+            {
+                return null;
+            }
+            string motivo = MotivoDireccion2;
+            if (motivo != null)
+            {
+                return motivo;
+            }
+            RellenarNumeroYQueEs(destino);
+            destino.Numero = null;
+            destino.NumeroConfirmadoSinGoogle = false;
+            return null;
         }
 
         /// <summary>Lo que viaja a la API del número propio y de «¿Qué es?» (solo los campos del tipo elegido).</summary>

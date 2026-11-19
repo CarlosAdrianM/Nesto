@@ -103,10 +103,9 @@
 
         <!-- Nesto#643 (NestoAPI#874): «¿Qué es?», obligatorio en el alta y sin valor por defecto (tampoco el rótulo). -->
         <TextBlock Grid.Column="0" Grid.Row="4" TextAlignment="Right" VerticalAlignment="Top" Margin="0,3,0,0"
-                   ToolTip="Lo que necesita el repartidor para encontrar la dirección"
-                   Visibility="{Binding EsAlta, Converter={StaticResource BooleanToVisibilityConverter}}">¿Qué es?</TextBlock>
-        <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="4"
-                    Visibility="{Binding EsAlta, Converter={StaticResource BooleanToVisibilityConverter}}">
+                   ToolTip="Lo que necesita el repartidor para encontrar la dirección">¿Qué es?</TextBlock>
+        <!-- NestoAPI#874 corte 2: también al modificar (carga lo guardado; sin tipo elegido no se toca). -->
+        <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="4">
             <ComboBox ItemsSource="{Binding TiposLugar}" DisplayMemberPath="Nombre" SelectedValuePath="Codigo"
                       SelectedValue="{Binding TipoLugar, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="160"
                       ToolTip="Piso, local, casa o chalet, nave u otro: el repartidor lo necesita para encontrar la dirección"/>
@@ -136,7 +135,7 @@
             <TextBox Margin="0,3,0,0" Text="{Binding OtroTexto, UpdateSourceTrigger=PropertyChanged}"
                      ToolTip="Describa el lugar (por ejemplo, «Centro comercial, planta 2»)"
                      Visibility="{Binding EsOtro, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <TextBlock Margin="0,3,0,0" Foreground="DarkRed" TextWrapping="Wrap" Text="{Binding MotivoDireccion2}"/>
+            <TextBlock Margin="0,3,0,0" Foreground="DarkRed" TextWrapping="Wrap" Text="{Binding AvisoDireccion2}"/>
         </StackPanel>
 
         <!-- Corte 1 (19/11/26): al crear, el CP sale de Google; solo se teclea si Google no lo da (novedad 482). -->

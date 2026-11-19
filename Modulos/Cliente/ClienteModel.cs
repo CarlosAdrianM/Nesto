@@ -75,6 +75,10 @@ namespace Nesto.Modulos.Cliente
         public string Rotulo { get; set; }
         public string NumeroNave { get; set; }
         public string OtroTexto { get; set; }
+        // NestoAPI#874 (corte 2), solo al modificar: borrar la Dirección 2 guardada (sin tipo y sin esto, la API la conserva).
+        public bool QuitarDireccion2 { get; set; }
+        // NestoAPI#874 (corte 2): la Dirección 2 guardada tal cual (la trae GetClienteCrear; el PUT la ignora).
+        public string Direccion2 { get; set; }
         public string Empresa { get; set; }
         public bool EsContacto { get; set; }
         public short? Estado { get; set; }

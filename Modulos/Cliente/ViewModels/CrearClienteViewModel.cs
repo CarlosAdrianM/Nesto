@@ -917,7 +917,18 @@ namespace Nesto.Modulos.Cliente
                 Origen = ClienteOrigen // Nesto#523
             };
 
-            if (!EsUnaModificacion)
+            if (EsUnaModificacion)
+            {
+                // NestoAPI#874 corte 2: «¿Qué es?» también al modificar; sin tipo elegido no viaja nada y la API conserva lo guardado.
+                string motivoQueEs = DireccionFiscal.RellenarQueEsAlModificar(cliente);
+                if (motivoQueEs != null)
+                {
+                    DialogService.ShowError(motivoQueEs);
+                    return;
+                }
+                cliente.QuitarDireccion2 = DireccionFiscal.TeniaDireccion2 && string.IsNullOrEmpty(DireccionFiscal.TipoLugar);
+            }
+            else
             {
                 // Nesto#643 (NestoAPI#874): número propio (la API lo vuelve a comprobar) y «¿Qué es?» (compone la Dirección 2).
                 DireccionFiscal.RellenarNumeroYQueEs(cliente);
@@ -1047,6 +1058,7 @@ namespace Nesto.Modulos.Cliente
                 ClientePais = string.IsNullOrWhiteSpace(clienteCrear.Pais) ? "ES" : clienteCrear.Pais;
                 ClienteNombre = clienteCrear.Nombre;
                 ClienteDireccion = clienteCrear.Direccion;
+                DireccionFiscal.CargarQueEs(clienteCrear, clienteCrear.Direccion2); // NestoAPI#874 corte 2
                 ClienteCodigoPostal = clienteCrear.CodigoPostal;
                 ClienteTelefono = clienteCrear.Telefono;
                 ClienteVendedorEstetica = clienteCrear.VendedorEstetica;

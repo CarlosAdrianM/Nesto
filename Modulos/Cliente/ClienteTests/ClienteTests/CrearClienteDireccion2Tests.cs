@@ -4,10 +4,13 @@ using CommunityToolkit.Mvvm.Messaging;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 
 using Nesto.Modulos.Cliente;
 using Direccion2Cliente = Nesto.Modulos.Cliente.Models.Direccion2Cliente;
 using NumeroPortal = Nesto.Modulos.Cliente.Models.NumeroPortal;
+using ClienteCrear = Nesto.Modulos.Cliente.ClienteCrear;
+using PersonaContactoDTO = Nesto.Modulos.Cliente.PersonaContactoDTO;
 
 namespace ClienteTests
 {
@@ -59,6 +62,67 @@ namespace ClienteTests
             Assert.AreEqual(Direccion2Cliente.MOTIVO_NAVE, sinNave);
             Direccion2Cliente.Componer("Otro", null, null, null, null, null, null, out string sinTexto);
             Assert.AreEqual(Direccion2Cliente.MOTIVO_OTRO, sinTexto);
+        }
+
+        // ---------------------------------------------------------------- NestoAPI#874 corte 2: al modificar
+
+        private async Task<CrearClienteViewModel> Modificando(ClienteCrear guardado)
+        {
+            guardado.PersonasContacto = guardado.PersonasContacto ?? new List<PersonaContactoDTO>();
+            A.CallTo(() => servicio.LeerClienteCrear("1", "15191", "0")).Returns(guardado);
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>._)).Returns(new Nesto.Models.Nesto.Models.Clientes { Empresa = "1", Nº_Cliente = "15191", Contacto = "0" });
+            CrearClienteViewModel vm = Vm();
+            vm.AlLlegar(new ParametrosNavegacion { { "empresaParameter", "1" }, { "clienteParameter", "15191" }, { "contactoParameter", "0" } });
+            await Task.Delay(300);
+            return vm;
+        }
+
+        [TestMethod]
+        public async Task Modificar_CargaElQueEsGuardado_YSeCambiaElRotulo()
+        {
+            CrearClienteViewModel vm = await Modificando(new ClienteCrear
+            {
+                Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 3",
+                TipoLugar = "Local", Rotulo = "MARCO ALDANY", Direccion2 = "LOCAL · RÓTULO: MARCO ALDANY"
+            });
+
+            Assert.AreEqual("Local", vm.DireccionFiscal.TipoLugar);
+            Assert.AreEqual("MARCO ALDANY", vm.DireccionFiscal.Rotulo);
+            Assert.IsNull(vm.DireccionFiscal.AvisoDireccion2);
+
+            vm.DireccionFiscal.Rotulo = "Lohé";
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c =>
+                c.TipoLugar == "Local" && c.Rotulo == "Lohé" && c.Numero == null && !c.QuitarDireccion2 && c.Direccion == "CALLE MAYOR, 3"))).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Modificar_SinDireccion2_NoMandaNada_NiAvisa()
+        {
+            CrearClienteViewModel vm = await Modificando(new ClienteCrear { Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 3" });
+
+            Assert.IsNull(vm.DireccionFiscal.TipoLugar);
+            Assert.IsNull(vm.DireccionFiscal.AvisoDireccion2, "al modificar sin tipo no hay aviso rojo");
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.TipoLugar == null && !c.QuitarDireccion2))).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Modificar_TipoIncompleto_NoGuarda_YDiceQueFalta()
+        {
+            CrearClienteViewModel vm = await Modificando(new ClienteCrear { Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 3" });
+            vm.DireccionFiscal.TipoLugar = "Local";
+
+            Assert.AreEqual(Direccion2Cliente.MOTIVO_LOCAL, vm.DireccionFiscal.AvisoDireccion2);
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowError(Direccion2Cliente.MOTIVO_LOCAL)).MustHaveHappened();
         }
 
         // ---------------------------------------------------------------- «¿Qué es?»
