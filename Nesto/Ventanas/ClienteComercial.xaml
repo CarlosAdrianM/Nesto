@@ -29,7 +29,9 @@
                             <Border VerticalAlignment="Top" BorderBrush="{Binding colorEstado}" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
                                 <StackPanel>
                                     <TextBlock Text="{Binding nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding direccion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                    <!-- NestoAPI#879: con la Dirección 2 («LOCAL · RÓTULO: …»); con la API vieja, la de siempre -->
+                                    <TextBlock Text="{Binding DireccionMostrar, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding DireccionMostrar}"/>
                                     <WrapPanel>
                                         <TextBlock Text="{Binding codigoPostal, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Text=" "/>

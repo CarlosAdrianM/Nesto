@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -34,6 +35,11 @@ namespace ControlesUsuario.Models
         }
         public string nombre { get; set; }
         public string direccion { get; set; }
+        /// <summary>NestoAPI#879: Dirección + Dirección 2, para pantalla (la API la compone; con la API vieja no llega).</summary>
+        public string direccionCompleta { get; set; }
+        /// <summary>NestoAPI#879: lo que pinta el selector (y la cabecera del pedido): la completa o, si no llega, la de siempre.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public string DireccionMostrar => DireccionParaMostrar.Elegir(direccion, direccionCompleta);
         public string poblacion { get; set; }
         public string telefono { get; set; }
         public string codigoPostal { get; set; }
@@ -67,6 +73,7 @@ namespace ControlesUsuario.Models
         {
             return (nombre != null && nombre.ToLower().Contains(filtro)) ||
                    (direccion != null && direccion.ToLower().Contains(filtro)) ||
+                   (direccionCompleta != null && direccionCompleta.ToLower().Contains(filtro)) ||
                    (telefono != null && telefono.ToLower().Contains(filtro)) ||
                    (poblacion != null && poblacion.ToLower().Contains(filtro));
         }

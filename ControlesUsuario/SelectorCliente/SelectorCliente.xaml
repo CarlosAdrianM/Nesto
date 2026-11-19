@@ -85,7 +85,8 @@
                     <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"
                                TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"></TextBlock>
                 </DockPanel>
-                <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"
+                <!-- NestoAPI#879: la dirección completa (con la Dirección 2: «LOCAL · RÓTULO: …»); con la API vieja, la de siempre -->
+                <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.DireccionMostrar}" FontWeight="Light" FontSize="10"
                            TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"></TextBlock>
             </StackPanel>
             </Grid>
@@ -123,7 +124,7 @@
                             </Grid.ColumnDefinitions>
                             <DockPanel Name="pnlDatosCliente" Grid.Column="0" Margin="6">
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding nombre}" FontWeight="Black" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock DockPanel.Dock="Top" Text="{Binding direccion}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{Binding DireccionMostrar}" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding poblacionConCodigoPostal}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding cliente}" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
                                 <StackPanel DockPanel.Dock="Top" MaxWidth="{Binding ActualWidth, ElementName=pnlDatosCliente}">

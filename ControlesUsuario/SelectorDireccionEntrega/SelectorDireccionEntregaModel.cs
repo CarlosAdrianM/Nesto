@@ -15,6 +15,11 @@ namespace ControlesUsuario.Models
         public bool clientePrincipal { get; set; }
         public string nombre { get; set; }
         public string direccion { get; set; }
+        /// <summary>NestoAPI#879: Dirección + Dirección 2, para pantalla (la API la compone; con la API vieja no llega).</summary>
+        public string direccionCompleta { get; set; }
+        /// <summary>NestoAPI#879: lo que se pinta: la completa o, si no llega, la de siempre.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public string DireccionMostrar => DireccionParaMostrar.Elegir(direccion, direccionCompleta);
         public bool esDireccionPorDefecto { get; set; }
         public string poblacion { get; set; }
         public string comentarios { get; set; }
@@ -48,6 +53,7 @@ namespace ControlesUsuario.Models
         {
             return (nombre != null && nombre.ToLower().Contains(filtro)) ||
                    (direccion != null && direccion.ToLower().Contains(filtro)) ||
+                   (direccionCompleta != null && direccionCompleta.ToLower().Contains(filtro)) ||
                    (poblacion != null && poblacion.ToLower().Contains(filtro));
         }
     }

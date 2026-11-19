@@ -298,7 +298,8 @@
                                             </Style>
                                         </StackPanel.Style>
                                         <TextBlock Text="{Binding ClienteCompleto.nombre}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding ClienteCompleto.direccion}" FontSize="14" TextWrapping="Wrap"/>
+                                        <!-- NestoAPI#879: con la Dirección 2 («LOCAL · RÓTULO: …»); con la API vieja, la de siempre -->
+                                        <TextBlock Text="{Binding ClienteCompleto.DireccionMostrar}" FontSize="14" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <!-- Nesto#496 / NestoAPI#519: pasar el pedido a otro cliente mientras no tenga picking, albarán ni factura.
                                          Va en un selector aparte: el de arriba está enlazado al pedido y un «Guardar» mandaría el cliente por el PUT. -->

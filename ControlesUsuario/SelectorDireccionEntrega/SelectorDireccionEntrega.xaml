@@ -62,7 +62,9 @@
                         </Grid>
 
                         <DockPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
-                            <TextBlock DockPanel.Dock="Top" Text="{Binding direccion}" TextWrapping="NoWrap"/>
+                            <!-- NestoAPI#879: con la Dirección 2 («LOCAL · RÓTULO: …») si la tiene; con la API vieja, la de siempre -->
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding DireccionMostrar}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding DireccionMostrar}"/>
                             <TextBlock DockPanel.Dock="Top" Text="{Binding textoPoblacion}" MaxHeight="60"/>
                         </DockPanel>
 

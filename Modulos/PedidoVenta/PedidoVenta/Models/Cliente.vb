@@ -10,6 +10,15 @@ Public Class ClienteJson
     Public Property clientePrincipal() As Boolean
     Public Property nombre() As String
     Public Property direccion() As String
+    ''' <summary>NestoAPI#879: Dirección + Dirección 2, para pantalla (la API la compone; con la API vieja no llega). Nunca se guarda.</summary>
+    Public Property direccionCompleta() As String
+    ''' <summary>NestoAPI#879: lo que pinta la ficha: la completa o, si no llega, la de siempre.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property DireccionMostrar As String
+        Get
+            Return DireccionParaMostrar.Elegir(direccion, direccionCompleta)
+        End Get
+    End Property
     Public Property poblacion() As String
     Public Property telefono() As String
     Public Property vendedor() As String
@@ -108,6 +117,7 @@ Public Class ClienteJson
     Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
         Return (Not IsNothing(cliente) AndAlso cliente.ToLower.Trim = filtro.ToLower) OrElse
                 (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(direccionCompleta) AndAlso direccionCompleta.ToLower.Contains(filtro.ToLower)) OrElse
                 (Not IsNothing(nombre) AndAlso nombre.ToLower.Contains(filtro.ToLower)) OrElse
                 (Not IsNothing(telefono) AndAlso telefono.ToLower.Contains(filtro.ToLower)) OrElse
                 (Not IsNothing(cifNif) AndAlso cifNif.ToLower.Contains(filtro.ToLower)) OrElse
