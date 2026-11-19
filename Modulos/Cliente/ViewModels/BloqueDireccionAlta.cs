@@ -621,5 +621,25 @@ namespace Nesto.Modulos.Cliente
             }
         }
         #endregion
+
+        /// <summary>La dirección de entrega tal como viaja a la API (ClienteCrear.DireccionEntrega).</summary>
+        public DireccionEntregaCrear ParaEntrega()
+        {
+            NormalizarCodigoPostal(); // NestoAPI#596
+            var entrega = new DireccionEntregaCrear
+            {
+                Direccion = Direccion,
+                DireccionVerificada = DireccionVerificadaPorGoogle,
+                CodigoPostal = CodigoPostal,
+                Poblacion = Poblacion,
+                Provincia = Provincia,
+                Ruta = Ruta,
+                Telefono = Telefono,
+                ComentariosRuta = ComentariosRuta,
+                ComentariosPicking = ComentariosPicking
+            };
+            RellenarNumeroYQueEs(entrega);
+            return entrega;
+        }
     }
 }

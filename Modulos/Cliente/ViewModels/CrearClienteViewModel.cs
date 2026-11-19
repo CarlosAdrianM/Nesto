@@ -45,6 +45,11 @@ namespace Nesto.Modulos.Cliente
             DireccionFiscal = new BloqueDireccionAlta(servicio, () => !EsUnaModificacion);
             DireccionFiscal.PropertyChanged += AlCambiarDireccionFiscal;
             DireccionFiscal.FocoEnDireccionSolicitado += (s, e) => FocoEnDireccionSolicitado?.Invoke(this, e);
+            DireccionEntrega = new BloqueDireccionAlta(servicio, () => true, direccionObligatoria: true, prefijoMotivo: PREFIJO_ENTREGA)
+            {
+                MostrarComentarios = true
+            };
+            DireccionEntrega.PropertyChanged += AlCambiarDireccionEntrega;
 
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
             AbrirModelo347Command = new RelayCommand(OnAbrirModelo347);
@@ -221,6 +226,39 @@ namespace Nesto.Modulos.Cliente
         /// </summary>
         public BloqueDireccionAlta DireccionFiscal { get; }
 
+        /// <summary>
+        /// Alta con dirección de entrega distinta (19/11/26, Carlos): la segunda dirección, el mismo bloque que la fiscal («pedimos todo» en
+        /// las dos). Solo cuenta si <see cref="EntregaEnOtraDireccion"/>; la API crea con ella un contacto al que apunta la entrega por defecto.
+        /// </summary>
+        public BloqueDireccionAlta DireccionEntrega { get; }
+
+        public const string PREFIJO_ENTREGA = "Dirección de entrega: ";
+
+        /// <summary>Solo al crear un cliente nuevo (ni al crear un contacto de uno que ya existe ni al modificar).</summary>
+        public bool PuedeIndicarEntregaEnOtraDireccion => !EsUnaModificacion && !ClienteEsContacto;
+
+        private bool entregaEnOtraDireccion;
+        /// <summary>«La entrega es en otra dirección»: abre el segundo bloque de dirección.</summary>
+        public bool EntregaEnOtraDireccion
+        {
+            get => entregaEnOtraDireccion;
+            set
+            {
+                if (SetProperty(ref entregaEnOtraDireccion, value))
+                {
+                    if (value && string.IsNullOrWhiteSpace(DireccionEntrega.Telefono))
+                    {
+                        DireccionEntrega.Telefono = ClienteTelefono; // se propone el de la fiscal; se puede cambiar
+                    }
+                    OnPropertyChanged(nameof(HayDireccionEntrega));
+                    NotificarSePuedeCrearCliente();
+                }
+            }
+        }
+
+        /// <summary>La dirección de entrega cuenta (marcada y en un alta de cliente nuevo).</summary>
+        public bool HayDireccionEntrega => EntregaEnOtraDireccion && PuedeIndicarEntregaEnOtraDireccion;
+
         // Nombre en el bloque → nombre de siempre en este ViewModel (los que no están, se llaman igual).
         private static readonly Dictionary<string, string> NOMBRES_FISCAL = new Dictionary<string, string>
         {
@@ -248,6 +286,14 @@ namespace Nesto.Modulos.Cliente
         private void AlCambiarDireccionFiscal(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             OnPropertyChanged(NOMBRES_FISCAL.TryGetValue(e.PropertyName ?? string.Empty, out string nombre) ? nombre : e.PropertyName);
+            if (e.PropertyName == nameof(BloqueDireccionAlta.MotivoNoSePuedeCrear))
+            {
+                NotificarSePuedeCrearCliente();
+            }
+        }
+
+        private void AlCambiarDireccionEntrega(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
             if (e.PropertyName == nameof(BloqueDireccionAlta.MotivoNoSePuedeCrear))
             {
                 NotificarSePuedeCrearCliente();
@@ -310,7 +356,7 @@ namespace Nesto.Modulos.Cliente
 
         /// <summary>
         /// Nesto#480: sin una dirección elegida de Google no se crea el cliente. Espejo de lo que hace el servidor (NestoAPI#499 y #874):
-        /// solo en las altas, y solo si hay dirección.
+        /// solo en las altas, y solo si hay dirección. Con «La entrega es en otra dirección», también la de entrega (que entonces es obligatoria).
         /// </summary>
         public bool SePuedeCrearCliente => MotivoNoSePuedeCrearCliente == null;
 
@@ -324,7 +370,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     return null;
                 }
-                return DireccionFiscal.MotivoNoSePuedeCrear;
+                return DireccionFiscal.MotivoNoSePuedeCrear ?? (HayDireccionEntrega ? DireccionEntrega.MotivoNoSePuedeCrear : null);
             }
         }
 
@@ -384,6 +430,7 @@ namespace Nesto.Modulos.Cliente
             set { 
                 SetProperty(ref clienteEsContacto, value);
                 OnPropertyChanged(nameof(EsCreandoContacto));
+                NotificarEntregaEnOtraDireccion(); // 19/11/26: un contacto no lleva dirección de entrega aparte
             }
         }
         public short? ClienteEstado { get; set; }
@@ -544,8 +591,16 @@ namespace Nesto.Modulos.Cliente
                 OnPropertyChanged(nameof(EsAlta)); // Nesto#643
                 OnPropertyChanged(nameof(MostrarOrigenEnDatosGenerales)); // Nesto#523
                 DireccionFiscal.NotificarEsAlta(); // corte 1 del 19/11/26: la regla del CP depende de si es un alta
+                NotificarEntregaEnOtraDireccion();
                 NotificarSePuedeCrearCliente(); // Nesto#480
             }
+        }
+
+        private void NotificarEntregaEnOtraDireccion()
+        {
+            OnPropertyChanged(nameof(PuedeIndicarEntregaEnOtraDireccion));
+            OnPropertyChanged(nameof(HayDireccionEntrega));
+            NotificarSePuedeCrearCliente();
         }
         private bool formaPagoEfectivo;
         public bool FormaPagoEfectivo
@@ -866,6 +921,11 @@ namespace Nesto.Modulos.Cliente
             {
                 // Nesto#643 (NestoAPI#874): número propio (la API lo vuelve a comprobar) y «¿Qué es?» (compone la Dirección 2).
                 DireccionFiscal.RellenarNumeroYQueEs(cliente);
+                // 19/11/26: «La entrega es en otra dirección» → la API crea además el contacto de entrega.
+                if (HayDireccionEntrega)
+                {
+                    cliente.DireccionEntrega = DireccionEntrega.ParaEntrega();
+                }
             }
 
             try
@@ -885,7 +945,7 @@ namespace Nesto.Modulos.Cliente
                     Clientes clienteCreado = await Servicio.CrearCliente(cliente);
                     if (clienteCreado!=null)
                     {
-                        DialogService.ShowNotification("Cliente Creado", "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
+                        DialogService.ShowNotification("Cliente Creado", MensajeClienteCreado(clienteCreado, cliente.DireccionEntrega != null));
                         Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                         await OfrecerCopiarDatosDelPrincipal(clienteCreado);
                     }
@@ -896,6 +956,21 @@ namespace Nesto.Modulos.Cliente
             {
                 DialogService.ShowError(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// El aviso del alta. Con dirección de entrega, la API devuelve el principal con su ContactoDefecto apuntando al contacto de entrega.
+        /// </summary>
+        internal static string MensajeClienteCreado(Clientes creado, bool conDireccionEntrega)
+        {
+            string principal = creado.Nº_Cliente?.Trim() + "/" + creado.Contacto?.Trim();
+            string entrega = creado.ContactoDefecto?.Trim();
+            if (!conDireccionEntrega || string.IsNullOrEmpty(entrega) || entrega == creado.Contacto?.Trim())
+            {
+                return "Se ha creado correctamente el cliente " + principal;
+            }
+            return "Se ha creado correctamente el cliente " + principal + " (dirección fiscal) y su dirección de entrega, el contacto "
+                + creado.Nº_Cliente?.Trim() + "/" + entrega + ", que queda como entrega por defecto";
         }
 
         /// <summary>
@@ -1003,8 +1078,8 @@ namespace Nesto.Modulos.Cliente
         }
 
         /// <summary>
-        /// Al pasar de «Datos generales»: la dirección se valida con la API por su bloque (<see cref="BloqueDireccionAlta.ValidarAsync"/>).
-        /// Los vendedores salen de la respuesta.
+        /// Al pasar de «Datos generales»: las dos direcciones (la fiscal y, si se ha marcado, la de entrega) se validan con la API por el
+        /// mismo núcleo (<see cref="BloqueDireccionAlta.ValidarAsync"/>). Los vendedores salen solo de la fiscal.
         /// </summary>
         // Público para poder esperarlo en los tests (NestoAPI#596).
         public async Task GoToDatosComisiones()
@@ -1015,10 +1090,24 @@ namespace Nesto.Modulos.Cliente
                 ClienteVendedorEstetica = respuesta.VendedorEstetica;
                 ClienteVendedorPeluqueria = respuesta.VendedorPeluqueria;
             }
+            if (!ClienteDireccionValidada || !HayDireccionEntrega)
+            {
+                return;
+            }
+
+            DireccionEntrega.DireccionValidada = false;
+            if (!DireccionEntrega.HayDireccion)
+            {
+                DialogService.ShowError(DireccionEntrega.MotivoNoSePuedeCrear);
+                return;
+            }
+            // El teléfono de la fiscal ya se ha avisado si lo tiene otro cliente: no se repite.
+            bool mismoTelefono = string.Equals(DireccionEntrega.Telefono?.Trim(), ClienteTelefono?.Trim(), StringComparison.OrdinalIgnoreCase);
+            _ = await DireccionEntrega.ValidarAsync(DialogService, ClienteNumero, avisarMismoTelefono: !mismoTelefono);
         }
 
-        /// <summary>Se puede pasar de «Datos generales»: la dirección validada.</summary>
-        public bool DatosGeneralesValidados => ClienteDireccionValidada;
+        /// <summary>Se puede pasar de «Datos generales»: la fiscal validada y, si se ha marcado, también la de entrega.</summary>
+        public bool DatosGeneralesValidados => ClienteDireccionValidada && (!HayDireccionEntrega || DireccionEntrega.DireccionValidada);
         private async Task GoToDatosGenerales()
         {
             if (EsUnaModificacion && ClienteEsContacto)

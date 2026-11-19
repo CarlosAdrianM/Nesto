@@ -3,8 +3,8 @@
 namespace Nesto.Modulos.Cliente
 {
     /// <summary>
-    /// El número propio y «¿Qué es?» (Nesto#643, NestoAPI#874) de una dirección del alta (<see cref="ClienteCrear"/>); los rellena el
-    /// bloque de la dirección (BloqueDireccionAlta).
+    /// El número propio y «¿Qué es?» (Nesto#643, NestoAPI#874) de una dirección del alta: los tienen la fiscal (<see cref="ClienteCrear"/>)
+    /// y la de entrega (<see cref="DireccionEntregaCrear"/>), y los rellena el mismo bloque (BloqueDireccionAlta).
     /// </summary>
     public interface IDireccion2Alta
     {
@@ -19,8 +19,37 @@ namespace Nesto.Modulos.Cliente
         string OtroTexto { get; set; }
     }
 
+    /// <summary>
+    /// Alta con dirección de entrega distinta (19/11/26, gemela de NestoAPI ClienteCrear.DireccionEntrega): la API crea además un contacto
+    /// con esta dirección y deja la entrega por defecto en él. Lo comercial y las personas de contacto los hereda del principal.
+    /// </summary>
+    public class DireccionEntregaCrear : IDireccion2Alta
+    {
+        public string Direccion { get; set; }
+        public bool DireccionVerificada { get; set; }
+        public string Numero { get; set; }
+        public bool NumeroConfirmadoSinGoogle { get; set; }
+        public string TipoLugar { get; set; }
+        public string Piso { get; set; }
+        public string Puerta { get; set; }
+        public string NumeroLocal { get; set; }
+        public string Rotulo { get; set; }
+        public string NumeroNave { get; set; }
+        public string OtroTexto { get; set; }
+        public string CodigoPostal { get; set; }
+        public string Poblacion { get; set; }
+        public string Provincia { get; set; }
+        public string Ruta { get; set; }
+        public string Telefono { get; set; }
+        public string ComentariosRuta { get; set; }
+        public string ComentariosPicking { get; set; }
+    }
+
     public class ClienteCrear : IDireccion2Alta
     {
+        /// <summary>Alta con dirección de entrega distinta (19/11/26). Null = el alta de siempre (no se serializa).</summary>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public DireccionEntregaCrear DireccionEntrega { get; set; }
 
         public string Cliente { get; set; }
         public string CodigoPostal { get; set; }
