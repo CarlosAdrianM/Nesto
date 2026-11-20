@@ -29,7 +29,7 @@ namespace ClienteTests
             };
 
         [TestMethod]
-        public void Filas_SinAnuladas_YPorNombre()
+        public void Filas_SinAnuladasNiCaducadas_YPorNombre()
         {
             var lista = new[]
             {
@@ -37,12 +37,13 @@ namespace ClienteTests
                 Inscripcion(2, "álvarez"),
                 Inscripcion(3, "BELLEZA ANULADA", InscripcionEventoModel.ANULADA, "Anulada"),
                 Inscripcion(4, "Martín", InscripcionEventoModel.CADUCADA, "Caducada"),
+                Inscripcion(5, "Beatriz", InscripcionEventoModel.RESERVADA, "Reservada"),
                 null
             };
 
             List<InscripcionEventoModel> filas = ListaAsistenciaImprimible.Filas(lista);
 
-            CollectionAssert.AreEqual(new[] { 2, 4, 1 }, filas.Select(i => i.Id).ToArray());
+            CollectionAssert.AreEqual(new[] { 2, 5, 1 }, filas.Select(i => i.Id).ToArray());
         }
 
         [TestMethod]
@@ -149,6 +150,17 @@ namespace ClienteTests
             var (vm, _, _) = await Mantenimiento(Inscripcion(3, "X", InscripcionEventoModel.ANULADA, "Anulada"));
 
             Assert.IsFalse(vm.ImprimirListaCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task ImprimirLista_SoloCaducadas_Deshabilitado_YLaHojaNoLasCuenta()
+        {
+            InscripcionEventoModel caducada = Inscripcion(4, "Martín", InscripcionEventoModel.CADUCADA, "Caducada");
+            var (vm, _, _) = await Mantenimiento(caducada);
+
+            Assert.IsFalse(vm.ImprimirListaCommand.CanExecute(null));
+            Assert.AreEqual(1, ListaAsistenciaImprimible.Tabla(EVENTO, new[] { caducada, Inscripcion(1, "A") }).Count);
+            Assert.AreEqual("1 inscripción · 1 asistente", ListaAsistenciaImprimible.Resumen(new[] { caducada, Inscripcion(1, "A") }));
         }
 
         [TestMethod]

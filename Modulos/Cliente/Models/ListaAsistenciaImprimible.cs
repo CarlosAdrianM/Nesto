@@ -23,7 +23,7 @@ namespace Nesto.Modulos.Cliente.Models
     }
 
     /// <summary>
-    /// Sugerencia 1362 (Pilar, 19/11/26): la hoja para pasar lista el día de la formación. Una fila por inscripción NO anulada,
+    /// Sugerencia 1362 (Pilar, 19/11/26): la hoja para pasar lista el día de la formación. Una fila por inscripción NO anulada ni caducada,
     /// por nombre del cliente. Las columnas están en <see cref="COLUMNAS"/>: para quitar, añadir o reordenar, solo ahí (Pilar aún
     /// no ha dicho cuáles quiere). Lo que dibuja la hoja (FlowDocument + PrintDialog) es <c>ImpresoraListaAsistencia</c>.
     /// </summary>
@@ -55,7 +55,10 @@ namespace Nesto.Modulos.Cliente.Models
             return !string.IsNullOrWhiteSpace(persona) ? persona : inscripcion.Telefono?.Trim() ?? string.Empty;
         }
 
-        /// <summary>Las inscripciones que salen en la hoja: todas menos las anuladas, por nombre (y por número de cliente).</summary>
+        /// <summary>
+        /// Las inscripciones que salen en la hoja: todas menos las anuladas y las caducadas (no vienen: Carlos 20/11/26), por nombre
+        /// (y por número de cliente).
+        /// </summary>
         public static List<InscripcionEventoModel> Filas(IEnumerable<InscripcionEventoModel> inscripciones)
         {
             if (inscripciones == null)
@@ -63,7 +66,7 @@ namespace Nesto.Modulos.Cliente.Models
                 return new List<InscripcionEventoModel>();
             }
             return inscripciones
-                .Where(i => i != null && i.Estado != InscripcionEventoModel.ANULADA)
+                .Where(i => i != null && i.Estado != InscripcionEventoModel.ANULADA && i.Estado != InscripcionEventoModel.CADUCADA)
                 .OrderBy(i => (i.Nombre ?? string.Empty).Trim(), StringComparer.Create(ES, true))
                 .ThenBy(i => i.ClienteContacto, StringComparer.Ordinal)
                 .ToList();
