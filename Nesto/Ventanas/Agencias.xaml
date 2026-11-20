@@ -661,6 +661,12 @@
                                 Command="{Binding AbrirRecogidasNoRecogidasCommand}"
                                 Visibility="{Binding PuedeAnularRecogidas, Converter={StaticResource BoolToVisAvisos}}"
                                 ToolTip="Las recogidas que el repartidor marcó «No se ha recogido»: volver a mandarlas o cerrarlas del todo."/>
+                        <!-- Sugerencia 1277: lo que va de una sede a otra que no es una reposición (Almacén, Dirección e Informática) -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Envíos internos"
+                                Command="{Binding AbrirEnviosInternosCommand}"
+                                Visibility="{Binding PuedeUsarEnviosInternos, Converter={StaticResource BoolToVisAvisos}}"
+                                ToolTip="Material sin stock para las tiendas o aparatos de una sede a otra: alta con etiquetas y dónde está cada bulto."/>
                         <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Parar en vuelo"

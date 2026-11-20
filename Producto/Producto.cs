@@ -62,6 +62,11 @@ namespace Nesto.Modulos.Producto
             // Carlos 20/11/26: las no recogidas (volver a mandar o cerrar del todo) y «Anular recogida»
             registro.Singleton<ControlesUsuario.Services.IServicioRecogidasReparto, ControlesUsuario.Services.ServicioRecogidasReparto>();
 
+            // Sugerencia 1277 (Carlos 20/11/26): envíos internos entre sedes (material sin stock, aparatos), con etiqueta EI por bulto
+            registro.Vista<EnviosInternosView>(NotificacionBuzon.VISTA_ENVIOS_INTERNOS);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosInternosViewModel>();
+            registro.Singleton<IServicioEnviosInternos, ServicioEnviosInternos>();
+
             // Nesto#636 (NestoAPI#857, fase 3): los envíos de proveedor que la API no ha sabido asignar a un pedido de compra (la campana
             // con CompraSeguimientoPorAsignar abre aquí)
             registro.Vista<EnviosProveedorPorAsignarView>(NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR);

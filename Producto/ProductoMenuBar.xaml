@@ -39,6 +39,9 @@
                 <!-- Nesto#635 (NestoAPI#855): confirmar o rechazar las recogidas que piden los vendedores -->
                 <RibbonButton Label="Recogidas solicitadas" ToolTip="Las recogidas que piden los vendedores: confirmarlas (se crea la nota de recogida), rechazarlas o anularlas"
                               LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirRecogidasSolicitadasCommand}" />
+                <!-- Sugerencia 1277 (Carlos 20/11/26): lo que va de una sede a otra que no es una reposición, con etiqueta EI por bulto -->
+                <RibbonButton Label="Envíos internos" ToolTip="Material sin stock para las tiendas o aparatos de una sede a otra: alta con etiquetas y dónde está cada bulto"
+                              LargeImageSource="Images/EnviarReposicion.png" Command="{Binding AbrirEnviosInternosCommand}" />
             </RibbonGroup>
             <!-- Nesto#529 (NestoAPI#631): solo Compras y Dirección ven las propuestas de stock -->
             <!-- Nesto#636: el grupo también para Informática (los envíos por asignar); Propuestas solo para Dirección (17/11/26); Cambiar estado, Compras y Dirección -->

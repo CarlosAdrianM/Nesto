@@ -33,6 +33,7 @@ namespace Nesto.Modules.Producto
             AbrirRecorridoAlmacenCommand = new RelayCommand(OnAbrirRecorridoAlmacen);
             AbrirRecogidasSolicitadasCommand = new RelayCommand(OnAbrirRecogidasSolicitadas, CanAbrirRecogidasSolicitadas);
             AbrirEnviosProveedorPorAsignarCommand = new RelayCommand(OnAbrirEnviosProveedorPorAsignar, CanAbrirEnviosProveedorPorAsignar);
+            AbrirEnviosInternosCommand = new RelayCommand(OnAbrirEnviosInternos, CanAbrirEnviosInternos);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -71,6 +72,16 @@ namespace Nesto.Modules.Producto
         private void OnAbrirRecogidasSolicitadas()
         {
             Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
+        }
+
+        /// <summary>
+        /// Sugerencia 1277 (Carlos 20/11/26): los envíos internos entre sedes. Solo Almacén, Dirección e Informática (la API da 403 al resto).
+        /// </summary>
+        public ICommand AbrirEnviosInternosCommand { get; private set; }
+        internal bool CanAbrirEnviosInternos() => Nesto.Modules.Producto.ViewModels.EnviosInternosViewModel.PuedeUsarEnviosInternos(Configuracion);
+        private void OnAbrirEnviosInternos()
+        {
+            Navegacion.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_ENVIOS_INTERNOS);
         }
 
         /// <summary>

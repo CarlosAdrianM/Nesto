@@ -130,6 +130,7 @@ Public Class AgenciasViewModel
         AnadirNotaEnvioCommand = New RelayCommand(AddressOf OnAnadirNotaEnvio, AddressOf CanAnadirNotaEnvio) ' Carlos 20/11/26
         AnularRecogidaCommand = New RelayCommand(AddressOf OnAnularRecogida, AddressOf CanAnularRecogida) ' Carlos 20/11/26 (NR930553)
         AbrirRecogidasNoRecogidasCommand = New RelayCommand(AddressOf OnAbrirRecogidasNoRecogidas, Function() PuedeAnularRecogidas)
+        AbrirEnviosInternosCommand = New RelayCommand(AddressOf OnAbrirEnviosInternos, Function() PuedeUsarEnviosInternos) ' Sugerencia 1277
         ' Nesto#625 (NestoAPI#726): gestión en tránsito (CTT)
         PararEnVueloCommand = New RelayCommand(AddressOf OnPararEnVuelo, Function() PuedeGestionar(Function(g) g.PararEnVuelo))
         CrearRetornoCommand = New RelayCommand(AddressOf OnCrearRetorno, Function() PuedeGestionar(Function(g) g.Retorno))
@@ -4498,6 +4499,21 @@ Public Class AgenciasViewModel
     Private Sub OnAbrirRecogidasNoRecogidas()
         Dim parametros As New ParametrosNavegacion From {{NotificacionBuzon.PARAMETRO_RECOGIDAS_PESTANA, NotificacionBuzon.PESTANA_RECOGIDAS_NO_RECOGIDAS}}
         Navegar(NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS, parametros)
+    End Sub
+
+    ''' <summary>Sugerencia 1277 (Carlos 20/11/26): los envíos internos entre sedes. Solo Almacén, Dirección e Informática.</summary>
+    Public ReadOnly Property PuedeUsarEnviosInternos As Boolean
+        Get
+            Return _configuracion IsNot Nothing AndAlso
+                (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                 _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                 _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA))
+        End Get
+    End Property
+
+    Public Property AbrirEnviosInternosCommand As RelayCommand
+    Private Sub OnAbrirEnviosInternos()
+        Navegar(NotificacionBuzon.VISTA_ENVIOS_INTERNOS, Nothing)
     End Sub
 
     ''' <summary>Abre una vista de otro módulo en la región principal (la ventana de Agencias no tiene navegación propia).</summary>

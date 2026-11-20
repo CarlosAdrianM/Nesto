@@ -120,6 +120,8 @@ namespace Nesto.Infrastructure.Contracts
         public const string PARAMETRO_RECOGIDAS_PESTANA = "pestana";
         /// <summary>Carlos 20/11/26: las recogidas que el repartidor marcó «No se ha recogido» y decide Almacén.</summary>
         public const string PESTANA_RECOGIDAS_NO_RECOGIDAS = "NoRecogidas";
+        /// <summary>Carlos 20/11/26 (sugerencia 1277): la ventana (módulo Producto) «Envíos internos» entre sedes.</summary>
+        public const string VISTA_ENVIOS_INTERNOS = "EnviosInternosView";
 
         /// <summary>
         /// NestoAPI#688/#858: el picking se ha terminado con faltas. Trae Datos["empresa"] y Datos["pedido"] (abre el pedido, como
