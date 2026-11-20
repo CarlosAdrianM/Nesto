@@ -125,6 +125,140 @@ namespace ClienteTests
             A.CallTo(() => dialogos.ShowError(Direccion2Cliente.MOTIVO_LOCAL)).MustHaveHappened();
         }
 
+        // ---------------------------------------------------------------- Carlos 20/11/26: calle cambiada → revisar «¿Qué es?»
+
+        private Task<CrearClienteViewModel> ModificandoLocal() => Modificando(new ClienteCrear
+        {
+            Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 3",
+            TipoLugar = "Local", Rotulo = "MARCO ALDANY", Direccion2 = "LOCAL · RÓTULO: MARCO ALDANY"
+        });
+
+        [TestMethod]
+        public async Task CalleCambiada_SinRevisar_NoDejaGuardarYDicePorQue()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+
+            vm.ClienteDireccion = "CALLE NUEVA, 5";
+
+            string motivo = BloqueDireccionAlta.TextoRevisarDireccion2("LOCAL · RÓTULO: MARCO ALDANY");
+            Assert.IsTrue(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            Assert.IsFalse(vm.SePuedeCrearCliente);
+            Assert.AreEqual(motivo, vm.MotivoNoSePuedeCrearCliente);
+            Assert.AreEqual(motivo, vm.DireccionFiscal.AvisoDireccion2);
+            StringAssert.Contains(motivo, "Revíselo antes de guardar");
+            Assert.IsTrue(vm.DireccionFiscal.ConfirmarDireccion2Command.CanExecute(null));
+            Assert.IsTrue(vm.DireccionFiscal.PuedeQuitarDireccion2);
+
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>._)).MustNotHaveHappened();
+            A.CallTo(() => dialogos.ShowError(motivo)).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task CalleCambiada_Confirmada_GuardaConLaQueHabia()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+            vm.ClienteDireccion = "CALLE NUEVA, 5";
+
+            vm.DireccionFiscal.ConfirmarDireccion2Command.Execute(null);
+
+            Assert.IsFalse(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            Assert.IsNull(vm.DireccionFiscal.AvisoDireccion2);
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c =>
+                c.Direccion == "CALLE NUEVA, 5" && c.TipoLugar == "Local" && c.Rotulo == "MARCO ALDANY" && !c.QuitarDireccion2))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task CalleCambiada_Quitada_MandaQuitarDireccion2()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+            vm.ClienteDireccion = "CALLE NUEVA, 5";
+
+            vm.DireccionFiscal.QuitarDireccion2Command.Execute(null);
+
+            Assert.IsTrue(vm.DireccionFiscal.QuitarDireccion2Pedido);
+            Assert.IsNull(vm.DireccionFiscal.TipoLugar);
+            Assert.IsNull(vm.DireccionFiscal.Rotulo);
+            Assert.IsFalse(vm.DireccionFiscal.PuedeQuitarDireccion2);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c =>
+                c.QuitarDireccion2 && c.TipoLugar == null && c.Rotulo == null && c.Direccion == "CALLE NUEVA, 5"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task CalleCambiada_CambiarElQueEs_CuentaComoRevisado()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+            vm.ClienteDireccion = "CALLE NUEVA, 5";
+
+            vm.DireccionFiscal.TipoLugar = Direccion2Cliente.CASA;
+
+            Assert.IsFalse(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.TipoLugar == "Casa" && !c.QuitarDireccion2))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task CalleSinCambiar_NoPideNada()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+
+            vm.ClienteDireccion = " calle mayor, 3 "; // la misma
+
+            Assert.IsFalse(vm.DireccionFiscal.CalleCambiada);
+            Assert.IsFalse(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            Assert.IsNull(vm.DireccionFiscal.AvisoDireccion2);
+            vm.CrearClienteCommand.Execute(null);
+            await Task.Delay(300);
+
+            A.CallTo(() => servicio.ModificarCliente(A<ClienteCrear>.That.Matches(c => c.TipoLugar == "Local" && !c.QuitarDireccion2))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task SinQuitar_NoSeMandaQuitarDireccion2()
+        {
+            CrearClienteViewModel vm = await ModificandoLocal();
+
+            Assert.IsFalse(vm.DireccionFiscal.QuitarDireccion2Pedido);
+            Assert.IsTrue(vm.DireccionFiscal.PuedeQuitarDireccion2, "la opción de quitar está aunque no cambie la calle");
+            Assert.IsFalse(vm.DireccionFiscal.ConfirmarDireccion2Command.CanExecute(null), "sin calle nueva no hay nada que confirmar");
+        }
+
+        [TestMethod]
+        public async Task CalleCambiada_SinDireccion2Guardada_NoPideNada()
+        {
+            CrearClienteViewModel vm = await Modificando(new ClienteCrear { Empresa = "1", Cliente = "15191", Contacto = "0", Direccion = "CALLE MAYOR, 3" });
+
+            vm.ClienteDireccion = "CALLE NUEVA, 5";
+
+            Assert.IsTrue(vm.DireccionFiscal.CalleCambiada);
+            Assert.IsFalse(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            Assert.IsTrue(vm.SePuedeCrearCliente);
+            Assert.IsFalse(vm.DireccionFiscal.PuedeQuitarDireccion2);
+        }
+
+        [TestMethod]
+        public async Task EnElAlta_NoSePideRevisarNiHayQuitar()
+        {
+            CrearClienteViewModel vm = await ConCalleSinNumero();
+            vm.ClienteDireccion = "C/ SOR LIVIA ALCORTA, 13";
+
+            Assert.IsFalse(vm.DireccionFiscal.HayQueRevisarDireccion2);
+            Assert.IsFalse(vm.DireccionFiscal.PuedeQuitarDireccion2);
+        }
+
         // ---------------------------------------------------------------- «¿Qué es?»
 
         [TestMethod]

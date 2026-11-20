@@ -368,7 +368,8 @@ namespace Nesto.Modulos.Cliente
             {
                 if (EsUnaModificacion)
                 {
-                    return null;
+                    // Carlos 20/11/26: con la calle cambiada, revisar antes «¿Qué es?» (confirmar, cambiar o quitar)
+                    return DireccionFiscal.MotivoNoSePuedeCrear;
                 }
                 return DireccionFiscal.MotivoNoSePuedeCrear ?? (HayDireccionEntrega ? DireccionEntrega.MotivoNoSePuedeCrear : null);
             }
@@ -926,7 +927,9 @@ namespace Nesto.Modulos.Cliente
                     DialogService.ShowError(motivoQueEs);
                     return;
                 }
-                cliente.QuitarDireccion2 = DireccionFiscal.TeniaDireccion2 && string.IsNullOrEmpty(DireccionFiscal.TipoLugar);
+                // «Quitar» (Carlos 20/11/26): la API borra la guardada
+                cliente.QuitarDireccion2 = DireccionFiscal.QuitarDireccion2Pedido
+                    || (DireccionFiscal.TeniaDireccion2 && string.IsNullOrEmpty(DireccionFiscal.TipoLugar));
             }
             else
             {
@@ -1058,7 +1061,7 @@ namespace Nesto.Modulos.Cliente
                 ClientePais = string.IsNullOrWhiteSpace(clienteCrear.Pais) ? "ES" : clienteCrear.Pais;
                 ClienteNombre = clienteCrear.Nombre;
                 ClienteDireccion = clienteCrear.Direccion;
-                DireccionFiscal.CargarQueEs(clienteCrear, clienteCrear.Direccion2); // NestoAPI#874 corte 2
+                DireccionFiscal.CargarQueEs(clienteCrear, clienteCrear.Direccion2, clienteCrear.Direccion); // NestoAPI#874 corte 2
                 ClienteCodigoPostal = clienteCrear.CodigoPostal;
                 ClienteTelefono = clienteCrear.Telefono;
                 ClienteVendedorEstetica = clienteCrear.VendedorEstetica;

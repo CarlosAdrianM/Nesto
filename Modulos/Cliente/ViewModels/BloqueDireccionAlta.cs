@@ -51,7 +51,7 @@ namespace Nesto.Modulos.Cliente
             OnPropertyChanged(nameof(EsAlta));
             OnPropertyChanged(nameof(CodigoPostalIsEnabled));
             OnPropertyChanged(nameof(AyudaCodigoPostal));
-            NotificarMotivo();
+            NotificarRevision(); // incluye el motivo
         }
 
         #region Dirección elegida de Google
@@ -82,7 +82,7 @@ namespace Nesto.Modulos.Cliente
                 SetProperty(ref direccion, value);
                 OnPropertyChanged(nameof(TieneDireccion));
                 OnPropertyChanged(nameof(NoTieneDireccion));
-                NotificarMotivo();
+                NotificarRevision(); // Carlos 20/11/26: al modificar, cambiar la calle pide revisar «¿Qué es?» (incluye el motivo)
             }
         }
 
@@ -320,33 +320,153 @@ namespace Nesto.Modulos.Cliente
 
         private void NotificarDireccion2()
         {
+            if (!cargandoQueEs && !EsAlta)
+            {
+                // Tocar «¿Qué es?» al modificar es haberlo revisado (cambiarlo); elegir un tipo deja sin efecto el «Quitar»
+                Direccion2Revisada = true;
+                if (!string.IsNullOrEmpty(TipoLugar))
+                {
+                    QuitarDireccion2Pedido = false;
+                }
+            }
             OnPropertyChanged(nameof(Direccion2Compuesta));
             OnPropertyChanged(nameof(MotivoDireccion2));
-            OnPropertyChanged(nameof(AvisoDireccion2));
-            NotificarMotivo();
+            NotificarRevision(); // también AvisoDireccion2 y el motivo
         }
 
         /// <summary>
         /// NestoAPI#874 (corte 2): el aviso rojo de «¿Qué es?». En el alta, siempre; al modificar, solo si se ha elegido un tipo (sin
-        /// tipo no se toca lo guardado y no hay nada que avisar).
+        /// tipo no se toca lo guardado y no hay nada que avisar) o si hay que revisarlo porque ha cambiado la calle.
         /// </summary>
-        public string AvisoDireccion2 => EsAlta || !string.IsNullOrEmpty(TipoLugar) ? MotivoDireccion2 : null;
+        public string AvisoDireccion2 => MotivoRevisarDireccion2
+            ?? (EsAlta || !string.IsNullOrEmpty(TipoLugar) ? MotivoDireccion2 : null);
 
         /// <summary>NestoAPI#874 (corte 2): el contacto que se modifica ya tenía Dirección 2 (la que trae GetClienteCrear).</summary>
         public bool TeniaDireccion2 { get; private set; }
 
+        /// <summary>La Dirección 2 guardada tal cual («LOCAL · RÓTULO: EL EDÉN»), para decirla al pedir que se revise.</summary>
+        public string Direccion2Guardada { get; private set; }
+
+        private bool cargandoQueEs;
+        // La calle con la que se abrió la modificación (null: no se está modificando nada cargado).
+        private string direccionAlCargar;
+
         /// <summary>NestoAPI#874 (corte 2): al abrir la modificación, «¿Qué es?» y sus campos con lo guardado (ya descompuesto por la API).</summary>
-        public void CargarQueEs(IDireccion2Alta origen, string direccion2Guardada)
+        /// <param name="direccionGuardada">La calle guardada; sin ella, la que ya tenga el bloque (<see cref="Direccion"/>).</param>
+        public void CargarQueEs(IDireccion2Alta origen, string direccion2Guardada, string direccionGuardada = null)
         {
-            TeniaDireccion2 = !string.IsNullOrWhiteSpace(direccion2Guardada);
-            Piso = origen?.Piso;
-            Puerta = origen?.Puerta;
-            NumeroLocal = origen?.NumeroLocal;
-            Rotulo = origen?.Rotulo;
-            NumeroNave = origen?.NumeroNave;
-            OtroTexto = origen?.OtroTexto;
-            TipoLugar = origen?.TipoLugar;
+            cargandoQueEs = true;
+            try
+            {
+                TeniaDireccion2 = !string.IsNullOrWhiteSpace(direccion2Guardada);
+                Direccion2Guardada = direccion2Guardada?.Trim();
+                direccionAlCargar = direccionGuardada ?? Direccion ?? string.Empty;
+                Piso = origen?.Piso;
+                Puerta = origen?.Puerta;
+                NumeroLocal = origen?.NumeroLocal;
+                Rotulo = origen?.Rotulo;
+                NumeroNave = origen?.NumeroNave;
+                OtroTexto = origen?.OtroTexto;
+                TipoLugar = origen?.TipoLugar;
+                Direccion2Revisada = false;
+                QuitarDireccion2Pedido = false;
+            }
+            finally
+            {
+                cargandoQueEs = false;
+            }
+            NotificarRevision();
         }
+
+        #region Carlos 20/11/26: al cambiar la calle de un cliente que ya existe, revisar «¿Qué es?» (confirmar, cambiar o quitar)
+
+        public const string TITULO_REVISAR_DIRECCION2 = "Ha cambiado la dirección";
+
+        /// <summary>Lo que se le dice mientras no revise «¿Qué es?» tras cambiar la calle (de usted).</summary>
+        public static string TextoRevisarDireccion2(string direccion2Guardada)
+            => $"Ha cambiado la calle y este cliente tenía «¿Qué es?» = «{direccion2Guardada}». Revíselo antes de guardar: " +
+               "pulse «Sigue siendo así» si vale para la dirección nueva, cámbielo o pulse «Quitar».";
+
+        /// <summary>Al modificar, la calle ya no es la que tenía al abrir la ficha.</summary>
+        public bool CalleCambiada => !EsAlta && direccionAlCargar != null
+            && !string.Equals((Direccion ?? string.Empty).Trim(), direccionAlCargar.Trim(), StringComparison.OrdinalIgnoreCase);
+
+        private bool direccion2Revisada;
+        /// <summary>Se ha confirmado, cambiado o quitado «¿Qué es?» en esta modificación.</summary>
+        public bool Direccion2Revisada
+        {
+            get => direccion2Revisada;
+            private set
+            {
+                if (SetProperty(ref direccion2Revisada, value))
+                {
+                    NotificarRevision();
+                }
+            }
+        }
+
+        private bool quitarDireccion2Pedido;
+        /// <summary>Se ha pulsado «Quitar»: al guardar viaja QuitarDireccion2 (la API borra la guardada).</summary>
+        public bool QuitarDireccion2Pedido
+        {
+            get => quitarDireccion2Pedido;
+            private set
+            {
+                if (SetProperty(ref quitarDireccion2Pedido, value))
+                {
+                    OnPropertyChanged(nameof(PuedeQuitarDireccion2));
+                }
+            }
+        }
+
+        /// <summary>Hay que revisar «¿Qué es?» antes de guardar: ha cambiado la calle, tenía Dirección 2 y aún no se ha mirado.</summary>
+        public bool HayQueRevisarDireccion2 => CalleCambiada && TeniaDireccion2 && !Direccion2Revisada;
+
+        /// <summary>Por qué no se puede guardar todavía (de usted), o null.</summary>
+        public string MotivoRevisarDireccion2 => HayQueRevisarDireccion2 ? TextoRevisarDireccion2(Direccion2Guardada) : null;
+
+        /// <summary>El botón «Quitar»: al modificar, si hay algo que quitar (la guardada o un tipo elegido).</summary>
+        public bool PuedeQuitarDireccion2 => !EsAlta && direccionAlCargar != null && !QuitarDireccion2Pedido
+            && (TeniaDireccion2 || !string.IsNullOrEmpty(TipoLugar));
+
+        private RelayCommand confirmarDireccion2Command;
+        /// <summary>«Sigue siendo así»: la Dirección 2 que había vale para la calle nueva.</summary>
+        public RelayCommand ConfirmarDireccion2Command => confirmarDireccion2Command ??= new RelayCommand(
+            () => Direccion2Revisada = true, () => HayQueRevisarDireccion2);
+
+        private RelayCommand quitarDireccion2Command;
+        /// <summary>«Quitar»: el cliente se queda sin Dirección 2 (viaja QuitarDireccion2).</summary>
+        public RelayCommand QuitarDireccion2Command => quitarDireccion2Command ??= new RelayCommand(QuitarDireccion2, () => PuedeQuitarDireccion2);
+
+        private void QuitarDireccion2()
+        {
+            cargandoQueEs = true;
+            try
+            {
+                TipoLugar = null;
+                Piso = Puerta = NumeroLocal = Rotulo = NumeroNave = OtroTexto = null;
+            }
+            finally
+            {
+                cargandoQueEs = false;
+            }
+            QuitarDireccion2Pedido = TeniaDireccion2;
+            Direccion2Revisada = true;
+            NotificarRevision();
+        }
+
+        private void NotificarRevision()
+        {
+            OnPropertyChanged(nameof(CalleCambiada));
+            OnPropertyChanged(nameof(HayQueRevisarDireccion2));
+            OnPropertyChanged(nameof(MotivoRevisarDireccion2));
+            OnPropertyChanged(nameof(AvisoDireccion2));
+            OnPropertyChanged(nameof(PuedeQuitarDireccion2));
+            confirmarDireccion2Command?.NotifyCanExecuteChanged();
+            quitarDireccion2Command?.NotifyCanExecuteChanged();
+            NotificarMotivo();
+        }
+        #endregion
 
         /// <summary>
         /// NestoAPI#874 (corte 2): lo que viaja al MODIFICAR: solo «¿Qué es?» (el número propio es del alta). Sin tipo, nada (la API conserva
@@ -418,7 +538,8 @@ namespace Nesto.Modulos.Cliente
             {
                 if (!EsAlta)
                 {
-                    return null;
+                    // Al modificar solo se mira una cosa: tras cambiar la calle, haber revisado «¿Qué es?» (Carlos 20/11/26)
+                    return Prefijar(MotivoRevisarDireccion2);
                 }
                 if (!HayDireccion)
                 {

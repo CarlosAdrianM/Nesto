@@ -106,9 +106,23 @@
                    ToolTip="Lo que necesita el repartidor para encontrar la dirección">¿Qué es?</TextBlock>
         <!-- NestoAPI#874 corte 2: también al modificar (carga lo guardado; sin tipo elegido no se toca). -->
         <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Grid.Row="4">
-            <ComboBox ItemsSource="{Binding TiposLugar}" DisplayMemberPath="Nombre" SelectedValuePath="Codigo"
-                      SelectedValue="{Binding TipoLugar, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="160"
-                      ToolTip="Piso, local, casa o chalet, nave u otro: el repartidor lo necesita para encontrar la dirección"/>
+            <!-- Carlos 20/11/26: al modificar, si cambia la calle hay que revisar «¿Qué es?»: «Sigue siendo así», cambiarlo o «Quitar». -->
+            <StackPanel Orientation="Horizontal">
+                <ComboBox ItemsSource="{Binding TiposLugar}" DisplayMemberPath="Nombre" SelectedValuePath="Codigo"
+                          SelectedValue="{Binding TipoLugar, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="160"
+                          ToolTip="Piso, local, casa o chalet, nave u otro: el repartidor lo necesita para encontrar la dirección"/>
+                <Button Content="Sigue siendo así" Margin="6,0,0,0" Padding="8,0"
+                        Command="{Binding ConfirmarDireccion2Command}"
+                        ToolTip="Lo que pone en «¿Qué es?» también vale para la dirección nueva"
+                        Visibility="{Binding HayQueRevisarDireccion2, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Button Content="Quitar" Margin="6,0,0,0" Padding="8,0"
+                        Command="{Binding QuitarDireccion2Command}"
+                        ToolTip="El cliente se queda sin «¿Qué es?» (se borra al guardar)"
+                        Visibility="{Binding PuedeQuitarDireccion2, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            </StackPanel>
+            <TextBlock Margin="0,3,0,0" TextWrapping="Wrap" Foreground="DimGray"
+                       Text="Se quitará «¿Qué es?» al guardar."
+                       Visibility="{Binding QuitarDireccion2Pedido, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             <StackPanel Orientation="Horizontal" Margin="0,3,0,0" Visibility="{Binding EsPiso, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock VerticalAlignment="Center" Margin="0,0,3,0">Piso</TextBlock>
                 <TextBox Width="60" Text="{Binding Piso, UpdateSourceTrigger=PropertyChanged}" ToolTip="Por ejemplo, 1 o BAJO"/>
