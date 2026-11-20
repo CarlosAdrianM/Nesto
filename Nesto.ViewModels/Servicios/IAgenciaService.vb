@@ -91,6 +91,9 @@ Public Interface IAgenciaService
     ' NestoAPI#676: da por cerrado un envío incidentado que la agencia nunca cerró (POST api/EnviosAgencias/{id}/DarPorCerrado,
     ' motivo obligatorio). Lanza con el motivo del servidor si lo rechaza (ya no está incidentado, falta el motivo).
     Function DarPorCerradoEnvio(numeroEnvio As Integer, motivo As String) As Task
+    ' Carlos 20/11/26: una nota libre en la historia del envío (POST api/EnviosAgencias/{id}/Nota { Texto }). Lanza
+    ' ControlesUsuario.Services.ApiRepartoException con el mensaje para el usuario (403, 404, 503: servidor sin actualizar…).
+    Function AnadirNotaEnvio(numeroEnvio As Integer, texto As String) As Task(Of ControlesUsuario.Services.NotaEnvioModel)
     ' NestoAPI#699 (corte 2): los envíos devueltos e incidentados de los últimos 60 días con su decisión (GET api/EnviosAgencias/
     ' Devueltos). Lanza con el motivo del servidor (p. ej. falta el script de la tabla).
     Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel))

@@ -644,6 +644,11 @@
                                 Content="Anular (vuelve a Pendientes)"
                                 Command="{Binding AnularEnvioRepartoPropioCommand}"
                                 ToolTip="Devuelve el envío del reparto propio a etiqueta pendiente para corregirlo en Pendientes y volver a imprimir la etiqueta. No se puede si ya está cargado en la furgoneta."/>
+                        <!-- Carlos 20/11/26: una nota libre en la historia del envío (queda con el usuario y la hora) -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Añadir nota"
+                                Command="{Binding AnadirNotaEnvioCommand}"
+                                ToolTip="Añade una nota a la historia del envío seleccionado (por ejemplo, lo que le ha dicho el cliente o el repartidor)."/>
                         <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Parar en vuelo"
@@ -676,8 +681,10 @@
                         <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
                                 ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático"/>
                         <!-- NestoAPI#676: para los incidentados que la agencia nunca cerró. Pide el motivo. -->
-                        <Button Content="Dar por cerrado" MinWidth="120" Margin="3" Command="{Binding DarPorCerradoCommand}"
-                                ToolTip="Da por cerrado el envío seleccionado aunque la agencia no lo haya cerrado. Se le pedirá el motivo, que queda en la historia del envío."/>
+                        <!-- Carlos 20/11/26: un envío del reparto propio no se da por cerrado (el motivo, a la vista y en la ayuda) -->
+                        <TextBlock Text="{Binding MotivoNoDarPorCerrado}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="6,0" TextWrapping="Wrap" MaxWidth="320"/>
+                        <Button Content="Dar por cerrado" MinWidth="120" Margin="3" Command="{Binding DarPorCerradoCommand}" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="Da por cerrado el envío seleccionado aunque la agencia no lo haya cerrado. Se le pedirá el motivo, que queda en la historia del envío. Un envío del reparto propio no se da por cerrado."/>
                     </StackPanel>
                     <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3,0,3,0">

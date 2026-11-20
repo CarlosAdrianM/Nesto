@@ -127,6 +127,7 @@ Public Class AgenciasViewModel
         AbrirEnlaceSeguimientoCommand = New RelayCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         DarPorCerradoCommand = New RelayCommand(AddressOf OnDarPorCerrado, AddressOf CanDarPorCerrado)
+        AnadirNotaEnvioCommand = New RelayCommand(AddressOf OnAnadirNotaEnvio, AddressOf CanAnadirNotaEnvio) ' Carlos 20/11/26
         ' Nesto#625 (NestoAPI#726): gestión en tránsito (CTT)
         PararEnVueloCommand = New RelayCommand(AddressOf OnPararEnVuelo, Function() PuedeGestionar(Function(g) g.PararEnVuelo))
         CrearRetornoCommand = New RelayCommand(AddressOf OnCrearRetorno, Function() PuedeGestionar(Function(g) g.Retorno))
@@ -1274,6 +1275,8 @@ Public Class AgenciasViewModel
                     cmdActualizarSeguimiento.NotifyCanExecuteChanged()
                 End If
                 DarPorCerradoCommand?.NotifyCanExecuteChanged()
+                OnPropertyChanged(NameOf(MotivoNoDarPorCerrado)) ' Carlos 20/11/26
+                AnadirNotaEnvioCommand?.NotifyCanExecuteChanged() ' Carlos 20/11/26
                 VerPruebaEntregaCommand?.NotifyCanExecuteChanged() ' Nesto#571
                 AnularEnvioRepartoPropioCommand?.NotifyCanExecuteChanged() ' Novedades 1162
 
@@ -3603,6 +3606,14 @@ Public Class AgenciasViewModel
                 ' Nesto#564: no se ha guardado nada; la fila vuelve a lo que hay en la base de datos.
                 RecargarEnvioActual()
             End If
+        Catch ex As EnvioRepartoPropioBloqueadoException
+            ' Carlos 20/11/26: la API no ha tocado nada (lo lleva un repartidor…): su texto tal cual y la fila como está en la BD
+            _dialogService.ShowError(ex.Message)
+            Try
+                RecargarEnvioActual()
+            Catch
+                ' si no se puede recargar, al menos el usuario ya sabe que no se ha guardado
+            End Try
         Catch ex As Exception
             _dialogService.ShowError($"No se pudo modificar el envío: {ex.Message}")
         End Try
@@ -3863,8 +3874,10 @@ Public Class AgenciasViewModel
             Await MostrarLoQuePasoConLaAgencia(envio, resultado)
         Catch ex As Exception
             ' Nesto#448: detalle al usuario + ELMAH.
-            Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ModificarEnvioPorApi")
-            _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
+            If Not TypeOf ex Is EnvioRepartoPropioBloqueadoException Then
+                Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.ModificarEnvioPorApi")
+            End If
+            _dialogService.ShowError(MensajeErrorEnvio("Se ha producido un error y no se han grabado los datos:" + vbCr, ex))
         End Try
     End Function
 
@@ -4044,6 +4057,8 @@ Public Class AgenciasViewModel
             If avisoReembolso IsNot Nothing Then
                 _dialogService.ShowNotification("Reembolso de la etiqueta", avisoReembolso)
             End If
+        Catch ex As EnvioRepartoPropioBloqueadoException
+            _dialogService.ShowError(ex.Message) ' Carlos 20/11/26: no se ha guardado nada; sigue con sus cambios sin guardar
         Catch ex As Exception
             _dialogService.ShowError("Error al modificar envío:" + vbCr + If(ex.InnerException?.Message, ex.Message))
         End Try
@@ -4332,7 +4347,31 @@ Public Class AgenciasViewModel
     Public Const ESTADO_INCIDENTADO As Short = Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO
     Public Property DarPorCerradoCommand As RelayCommand
     Private Function CanDarPorCerrado() As Boolean
-        Return envioActual IsNot Nothing AndAlso envioActual.Estado = ESTADO_INCIDENTADO
+        Return envioActual IsNot Nothing AndAlso envioActual.Estado = ESTADO_INCIDENTADO AndAlso Not EsRepartoPropio(envioActual)
+    End Function
+
+    ''' <summary>
+    ''' Carlos 20/11/26 («en el reparto propio manda el bulto»): por qué no se ofrece «Dar por cerrado» al envío seleccionado. Hoy solo
+    ''' el reparto propio (14): la API lo rechaza igual (CIERRE_NO_PERMITIDO), pero aquí ni se ofrece y se dice qué hacer.
+    ''' </summary>
+    Friend Const MOTIVO_NO_CERRAR_REPARTO_PROPIO As String =
+        "Un envío del reparto propio no se da por cerrado: se entrega en Ariadna o se anula con sus bultos de vuelta en el almacén."
+
+    Public ReadOnly Property MotivoNoDarPorCerrado As String
+        Get
+            Return If(EsRepartoPropio(envioActual), MOTIVO_NO_CERRAR_REPARTO_PROPIO, String.Empty)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Carlos 20/11/26: el texto de un error de una acción sobre un envío. El 409 del reparto propio (EN_FURGONETA,
+    ''' CIERRE_NO_PERMITIDO) ya es un mensaje para el usuario y va tal cual; los demás, con su prefijo de siempre.
+    ''' </summary>
+    Friend Shared Function MensajeErrorEnvio(prefijo As String, ex As Exception) As String
+        If TypeOf ex Is EnvioRepartoPropioBloqueadoException Then
+            Return ex.Message
+        End If
+        Return prefijo & ex.Message
     End Function
     Private Async Sub OnDarPorCerrado()
         Await DarPorCerradoSeleccionado()
@@ -4344,6 +4383,10 @@ Public Class AgenciasViewModel
     Friend Async Function DarPorCerradoSeleccionado() As Task
         Dim envio As EnviosAgencia = envioActual
         If envio Is Nothing OrElse envio.Estado <> ESTADO_INCIDENTADO Then
+            Return
+        End If
+        If EsRepartoPropio(envio) Then
+            _dialogService.ShowError(MOTIVO_NO_CERRAR_REPARTO_PROPIO) ' Carlos 20/11/26: ni se pregunta el motivo
             Return
         End If
         Dim descripcion As String = If(envio.Pedido.HasValue, $"el envío del pedido {envio.Pedido}", $"el envío {envio.Numero}")
@@ -4368,9 +4411,39 @@ Public Class AgenciasViewModel
             _dialogService.ShowNotification("Dar por cerrado", $"Se ha dado por cerrado {descripcion}.")
         Catch ex As Exception
             Dim unused2 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.DarPorCerradoSeleccionado")
-            _dialogService.ShowError($"No se ha podido dar por cerrado {descripcion}:" & vbCr & ex.Message)
+            _dialogService.ShowError(MensajeErrorEnvio($"No se ha podido dar por cerrado {descripcion}:" & vbCr, ex))
         Finally
             EstaOcupado = False
+        End Try
+    End Function
+
+    ' ===== Carlos 20/11/26: «Añadir nota» a la historia de un envío (POST api/EnviosAgencias/{id}/Nota) =====
+
+    Public Property AnadirNotaEnvioCommand As RelayCommand
+    Private Function CanAnadirNotaEnvio() As Boolean
+        Return Not EstaOcupado AndAlso envioActual IsNot Nothing AndAlso envioActual.Numero > 0
+    End Function
+    Private Async Sub OnAnadirNotaEnvio()
+        Await AnadirNotaEnvioSeleccionado()
+    End Sub
+
+    ''' <summary>Pide el texto, lo guarda y, si el envío sigue a la vista, recarga su historia (donde aparece la nota).</summary>
+    Friend Async Function AnadirNotaEnvioSeleccionado() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If envio Is Nothing OrElse envio.Numero <= 0 Then
+            Return
+        End If
+        Dim anotador As New ControlesUsuario.Services.AnotadorEnvios(
+            Function(numero, texto) _servicio.AnadirNotaEnvio(numero, texto), _dialogService,
+            Sub(ex) RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AnadirNotaEnvio"))
+        Dim nota As ControlesUsuario.Services.NotaEnvioModel = Await anotador.AnadirNota(envio.Numero, envio.Pedido)
+        If nota Is Nothing OrElse envioActual Is Nothing OrElse envioActual.Numero <> envio.Numero Then
+            Return
+        End If
+        Try
+            listaHistoriaEnvio = _servicio.CargarListaHistoriaEnvio(envio.Numero)
+        Catch ex As Exception
+            ' La nota ya está guardada: la historia se verá al volver a seleccionar el envío
         End Try
     End Function
 

@@ -736,6 +736,17 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+                                    <!-- Carlos 20/11/26: una nota libre en la historia del envío, como en Agencias › Tramitados -->
+                                    <DataGridTemplateColumn Header="Nota" Width="Auto">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Añadir nota" Padding="6,0" Margin="1"
+                                                        ToolTip="Añade una nota a la historia de este envío (queda con su usuario y la hora)"
+                                                        Command="{Binding DataContext.AnadirNotaEnvioCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                             <controles:BultosPedidoView DataContext="{Binding BultosPedido}"/> <!-- Nesto#522: fotos del packing de cada bulto -->

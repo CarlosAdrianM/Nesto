@@ -137,6 +137,7 @@ Public Class DetallePedidoViewModel
         EsperarCompletoCommand = New AsyncRelayCommand(Function() DecidirRetencionPorFaltaAsync(ReglasRetencionPorFalta.DECISION_ESPERAR), Function() PuedeDecidirRetencionPorFalta) ' NestoAPI#858
         InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
         InicializarDevueltos(servicioAutenticacion) ' Sugerencia 1356
+        InicializarAccionesEnvio(servicioAutenticacion) ' Carlos 20/11/26: nota del envío
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido, Function() Not PedidoCambiadoPorOtro) ' Nesto#642
         InicializarVersionPedido(avisosEnTiempoReal) ' Nesto#642

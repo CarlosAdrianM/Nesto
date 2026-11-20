@@ -108,7 +108,8 @@ Public Class AgenciaRepartoPropioTests
         ' Su estado lo pone Ariadna (entrega o incidencia): no hay agencia a la que preguntar.
         viewModel.envioActual = Envio(14, CShort(Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO))
         Assert.IsFalse(viewModel.cmdActualizarSeguimiento.CanExecute(Nothing))
-        Assert.IsTrue(viewModel.DarPorCerradoCommand.CanExecute(Nothing), "Dar por cerrado vale como en las demás agencias")
+        ' Carlos 20/11/26: un envío del reparto propio ya no se da por cerrado (se entrega en Ariadna o se anula con sus bultos)
+        Assert.IsFalse(viewModel.DarPorCerradoCommand.CanExecute(Nothing), "Dar por cerrado no se ofrece en el reparto propio")
 
         viewModel.envioActual = Envio(13, CShort(Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO))
         Assert.IsTrue(viewModel.cmdActualizarSeguimiento.CanExecute(Nothing))

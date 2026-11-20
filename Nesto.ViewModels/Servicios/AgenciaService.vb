@@ -159,7 +159,9 @@ Public Class AgenciaService
             If repetido IsNot Nothing Then
                 Throw repetido
             End If
-            Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({codigoEstado}): {cuerpo}")
+            ' Carlos 20/11/26: cambiar el estado o la agencia de un envío del reparto propio que lleva un repartidor (o cerrarlo a mano)
+            LanzarSiRepartoPropioBloqueado(codigoEstado, cuerpo)
+            Throw New Exception(TextoErrorOperacion(codigoEstado, cuerpo, $"No se pudo modificar el envío {envio.Numero}"))
         End If
         Dim sinAvisos As IReadOnlyList(Of String) = New List(Of String)()
         If String.IsNullOrWhiteSpace(cuerpo) Then
@@ -201,7 +203,9 @@ Public Class AgenciaService
                     Dim response As HttpResponseMessage = Await client.DeleteAsync($"EnviosAgencias/{Id}?permitirEnCurso=true")
                     If Not response.IsSuccessStatusCode Then
                         Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                        Throw New Exception($"No se pudo borrar el envío {Id} ({CInt(response.StatusCode)}): {cuerpo}")
+                        ' Carlos 20/11/26: un envío del reparto propio con la etiqueta impresa o en una furgoneta no se borra
+                        LanzarSiRepartoPropioBloqueado(CInt(response.StatusCode), cuerpo)
+                        Throw New Exception(TextoErrorOperacion(CInt(response.StatusCode), cuerpo, $"No se pudo borrar el envío {Id}"))
                     End If
                 End Using
             End Function).GetAwaiter().GetResult()
@@ -1027,6 +1031,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
+                LanzarSiRepartoPropioBloqueado(CInt(response.StatusCode), cuerpo) ' Carlos 20/11/26
                 Throw New Exception(MensajeErrorAnulacion(CInt(response.StatusCode), cuerpo))
             End If
         End Using
@@ -1078,9 +1083,16 @@ Public Class AgenciaService
 
             If Not response.IsSuccessStatusCode Then
                 Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                Throw New Exception($"NestoAPI no ha dado por cerrado el envío ({CInt(response.StatusCode)}): {cuerpo}")
+                ' Carlos 20/11/26: un envío del reparto propio no se da por cerrado (CIERRE_NO_PERMITIDO / EN_FURGONETA)
+                LanzarSiRepartoPropioBloqueado(CInt(response.StatusCode), cuerpo)
+                Throw New Exception(TextoErrorOperacion(CInt(response.StatusCode), cuerpo, "NestoAPI no ha dado por cerrado el envío"))
             End If
         End Using
+    End Function
+
+    ''' <summary>Carlos 20/11/26: el mismo servicio que usa la pestaña «Entrega» del pedido (una sola forma de añadir la nota).</summary>
+    Public Function AnadirNotaEnvio(numeroEnvio As Integer, texto As String) As Task(Of ControlesUsuario.Services.NotaEnvioModel) Implements IAgenciaService.AnadirNotaEnvio
+        Return New ControlesUsuario.Services.ServicioNotasEnvio(_clienteApiFactory).Anadir(numeroEnvio, texto)
     End Function
 
     ' ===== NestoAPI#699 (corte 2): devueltos, «volver a enviar» y «abonar» =====
@@ -1479,6 +1491,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
+                LanzarSiRepartoPropioBloqueado(CInt(response.StatusCode), cuerpo) ' Carlos 20/11/26: el estado de un envío del reparto propio
                 Throw New Exception(MensajeErrorModificacion(CInt(response.StatusCode), cuerpo, "la modificación del envío"))
             End If
 
@@ -1502,6 +1515,7 @@ Public Class AgenciaService
             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
 
             If Not response.IsSuccessStatusCode Then
+                LanzarSiRepartoPropioBloqueado(CInt(response.StatusCode), cuerpo) ' Carlos 20/11/26
                 Throw New Exception(MensajeErrorModificacion(CInt(response.StatusCode), cuerpo, "la modificación"))
             End If
 
@@ -1600,8 +1614,48 @@ Public Class AgenciaService
     ''' <summary>«NestoAPI rechazó {operacion} ({código}): {cuerpo}», salvo que la agencia no responda (el mensaje de la API).</summary>
     Private Shared Function MensajeErrorOperacionAgencia(codigoHttp As Integer, cuerpo As String, operacion As String) As String
         Return If(MensajeDeLaApiConCodigo(cuerpo, CODIGO_AGENCIA_NO_RESPONDE),
-                  $"NestoAPI rechazó {operacion} ({codigoHttp}): {cuerpo}")
+                  TextoErrorOperacion(codigoHttp, cuerpo, $"NestoAPI rechazó {operacion}"))
     End Function
+
+    ''' <summary>
+    ''' Carlos 20/11/26: el punto común de los errores de las acciones sobre un envío. Un 400/403/404/409 que trae un JSON con
+    ''' «Message» es un texto pensado para el usuario y se enseña SOLO ese texto; lo demás (5xx, sin JSON, sin Message, una cadena
+    ''' JSON suelta) como siempre: «{prefijo} ({código}): {cuerpo}», para que no se pierda el detalle.
+    ''' </summary>
+    Friend Shared Function TextoErrorOperacion(codigoHttp As Integer, cuerpo As String, prefijo As String) As String
+        If codigoHttp = 400 OrElse codigoHttp = 403 OrElse codigoHttp = 404 OrElse codigoHttp = 409 Then
+            Dim mensaje As String = MensajeDeObjetoJson(cuerpo)
+            If Not String.IsNullOrWhiteSpace(mensaje) Then
+                Return mensaje
+            End If
+        End If
+        Return $"{prefijo} ({codigoHttp}): {cuerpo}"
+    End Function
+
+    ''' <summary>El «Message» de un cuerpo que es un objeto JSON; Nothing si no lo es o no lo trae.</summary>
+    Private Shared Function MensajeDeObjetoJson(cuerpo As String) As String
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim objeto = TryCast(Newtonsoft.Json.Linq.JToken.Parse(cuerpo), Newtonsoft.Json.Linq.JObject)
+            Dim mensaje = objeto?.GetValue("Message", StringComparison.OrdinalIgnoreCase)
+            If mensaje Is Nothing OrElse mensaje.Type <> Newtonsoft.Json.Linq.JTokenType.String Then
+                Return Nothing
+            End If
+            Return CStr(mensaje).Trim()
+        Catch ex As Newtonsoft.Json.JsonException
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>Carlos 20/11/26: lanza <see cref="EnvioRepartoPropioBloqueadoException"/> si la respuesta es el 409 del reparto propio.</summary>
+    Friend Shared Sub LanzarSiRepartoPropioBloqueado(codigoHttp As Integer, cuerpo As String)
+        Dim bloqueado = EnvioRepartoPropioBloqueadoException.DesdeRespuesta(codigoHttp, cuerpo)
+        If bloqueado IsNot Nothing Then
+            Throw bloqueado
+        End If
+    End Sub
 
     ''' <summary>
     ''' El «Message» de un error de la API cuando trae en «Codigo» el código indicado (avisos ya pensados para el usuario);
