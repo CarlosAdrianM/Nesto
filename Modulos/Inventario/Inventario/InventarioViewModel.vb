@@ -276,6 +276,17 @@ Public Class InventarioViewModel
             SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
+    ''' <summary>Tope de unidades en una sola lectura: por encima es casi seguro una referencia o un código leídos en «Cantidad».</summary>
+    Public Const CANTIDAD_MAXIMA_LECTURA As Integer = 9999
+
+    ''' <summary>LA REGLA (pura): por qué no vale esa cantidad en una lectura del inventario, o Nothing si vale (también negativas, para corregir).</summary>
+    Public Shared Function MotivoCantidadNoValida(cantidad As Integer) As String
+        If Math.Abs(CLng(cantidad)) > CANTIDAD_MAXIMA_LECTURA Then
+            Return $"La cantidad {cantidad} no es válida: parece una referencia o un código de barras leído en «Cantidad». Corrija la cantidad y vuelva a leer el producto."
+        End If
+        Return Nothing
+    End Function
+
     Private Async Function OnInsertarProducto(prod As String) As Task(Of Movimiento)
         ' Nesto#596: en la tienda no se cuenta nada sin haber rellenado antes el inventario con el stock actual.
         If Not Await AsegurarRellenado().ConfigureAwait(True) Then
@@ -286,6 +297,14 @@ Public Class InventarioViewModel
         Dim porHuecos = AlmacenConUbicaciones
         If porHuecos AndAlso Not PrepararHueco() Then
             dialogService.ShowError(MensajeFaltaHueco(almacen))
+            Return Nothing
+        End If
+
+        ' 20/11/26 (Reina, víspera del inventario): una referencia o un código de barras leídos en «Cantidad» (45929 unidades) desbordaba
+        ' sin avisar y la pantalla se quedaba sin contar nada. Una cantidad así no se manda: se dice y se corrige.
+        Dim motivoCantidad = MotivoCantidadNoValida(cantidad)
+        If motivoCantidad IsNot Nothing Then
+            dialogService.ShowError(motivoCantidad)
             Return Nothing
         End If
 

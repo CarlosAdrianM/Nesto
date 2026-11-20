@@ -10,14 +10,15 @@ Public Class InventarioModel
         <JsonProperty("Número")>
         Public Property Producto As String
         Public Property Fecha As System.DateTime
-        Public Property StockReal As Short
+        ' 20/11/26: Integer como en la base de datos. Con Short, sumar una cantidad disparatada (una referencia leída en «Cantidad») desbordaba.
+        Public Property StockReal As Integer
         Public Property Estado As Byte
         <JsonProperty("Descripción")>
         Public Property Descripcion As String
         Public Property Grupo As String
         Public Property Subgrupo As String
         Public Property Familia As String
-        Public Property StockCalculado As Short
+        Public Property StockCalculado As Integer
         Public Property Valor As Decimal
         <JsonProperty("NºTraspaso")>
         Public Property Traspaso As Nullable(Of Integer)
