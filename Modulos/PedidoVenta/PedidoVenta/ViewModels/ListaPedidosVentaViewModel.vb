@@ -46,6 +46,7 @@ Public Class ListaPedidosVentaViewModel
                                                        End Sub)
         messenger.Register(Of PedidoModificadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).ActualizarResumen(m.Value, m.EsCarga))
         messenger.Register(Of PedidoCreadoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).OnPedidoCreado(m.Value))
+        messenger.Register(Of PedidoBorradoMensaje)(Me, Sub(r, m) DirectCast(r, ListaPedidosVentaViewModel).OnPedidoBorrado(m)) ' Novedades 1283
 
         ListaPedidos = New ColeccionFiltrable With {
             .TieneDatosIniciales = True,
@@ -310,6 +311,35 @@ Public Class ListaPedidosVentaViewModel
             EstaUniendoPedidos = False
         End Try
     End Function
+
+    ''' <summary>
+    ''' Novedades 1283: el pedido se ha borrado desde su detalle. Sale de la lista (y de la lista sin filtrar) y, si era el elegido, se
+    ''' deja de elegir y se cierra el detalle.
+    ''' </summary>
+    Friend Sub OnPedidoBorrado(mensaje As PedidoBorradoMensaje)
+        If mensaje Is Nothing OrElse ListaPedidos Is Nothing Then
+            Return
+        End If
+        Dim esEse As Func(Of IFiltrableItem, Boolean) =
+            Function(item)
+                Dim resumen = TryCast(item, ResumenPedido)
+                Return resumen IsNot Nothing AndAlso resumen.numero = mensaje.Numero AndAlso
+                    String.Equals(resumen.empresa?.Trim(), mensaje.Empresa?.Trim(), StringComparison.OrdinalIgnoreCase)
+            End Function
+        Dim eraElElegido As Boolean = ListaPedidos.ElementoSeleccionado IsNot Nothing AndAlso esEse(ListaPedidos.ElementoSeleccionado)
+        For Each coleccion In {ListaPedidos.ListaOriginal, ListaPedidos.Lista}
+            If coleccion Is Nothing Then
+                Continue For
+            End If
+            For Each item In coleccion.Where(esEse).ToList()
+                Dim unused = coleccion.Remove(item)
+            Next
+        Next
+        If eraElElegido Then
+            ListaPedidos.ElementoSeleccionado = Nothing
+            NavegacionAmbito?.QuitarVistas("DetallePedidoRegion")
+        End If
+    End Sub
 
     Private _navegacionAmbito As IServicioNavegacion
     Public Property NavegacionAmbito As IServicioNavegacion Implements IConAmbitoNavegacion.NavegacionAmbito

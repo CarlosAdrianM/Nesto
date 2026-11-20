@@ -138,6 +138,7 @@ Public Class DetallePedidoViewModel
         InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
         InicializarDevueltos(servicioAutenticacion) ' Sugerencia 1356
         InicializarAccionesEnvio(servicioAutenticacion) ' Carlos 20/11/26: nota del envío
+        BorrarPedidoCommand = New AsyncRelayCommand(AddressOf BorrarPedidoAsync, Function() PuedeBorrarPedido) ' Novedades 1283
         cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido, Function() Not PedidoCambiadoPorOtro) ' Nesto#642
         InicializarVersionPedido(avisosEnTiempoReal) ' Nesto#642
@@ -817,6 +818,7 @@ Public Class DetallePedidoViewModel
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
             AceptarPresupuestoCommand.NotifyCanExecuteChanged()
             PasarAPresupuestoCommand.NotifyCanExecuteChanged()
+            BorrarPedidoCommand?.NotifyCanExecuteChanged() ' Novedades 1283
             DescargarPresupuestoCommand.NotifyCanExecuteChanged()
             EnviarPedidoPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
             EnviarPedidoPorWhatsAppCommand?.NotifyCanExecuteChanged() ' Nesto#570

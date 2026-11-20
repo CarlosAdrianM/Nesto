@@ -81,6 +81,10 @@
                                      ToolTip="Reunir y facturar los albaranes de fin de mes (los pedidos con P.O. no entran)"/>
                         <ui:MenuItem x:Name="BotonPasarAPresupuesto" Header="Pasar a presupuesto" Icon="{ui:SymbolIcon DocumentArrowLeft24}"
                                      Command="{Binding PasarAPresupuestoCommand}"/>
+                        <!-- Novedades 1283: borrar el pedido entero (como en Nesto viejo); pregunta antes con «No» por defecto -->
+                        <ui:MenuItem x:Name="BotonBorrarPedido" Header="Borrar pedido…" Icon="{ui:SymbolIcon Delete24}"
+                                     Command="{Binding BorrarPedidoCommand}"
+                                     ToolTip="Borrar el pedido entero con todas sus líneas. Si tiene picking, albarán, factura, un envío o un prepago, el servidor dirá por qué no se puede"/>
                         <Separator/>
                         <!-- Nesto#618 (NestoAPI#786) -->
                         <ui:MenuItem x:Name="BotonNuevaNotaCobro" Header="Nueva nota de cobro…" Icon="{ui:SymbolIcon Money24}"

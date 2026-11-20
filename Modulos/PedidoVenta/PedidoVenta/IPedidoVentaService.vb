@@ -189,4 +189,8 @@ Public Interface IPedidoVentaService
     ''' <summary>Nesto#642 (NestoAPI#873): la versión del pedido ahora y quién lo tocó el último (GET PedidosVenta/{empresa}/{numero}/Version).
     ''' Nothing si la API no contesta; nunca lanza.</summary>
     Function LeerVersionPedido(empresa As String, numero As Integer) As Task(Of VersionPedidoModel)
+    ''' <summary>Novedades 1283: borra el pedido entero (DELETE PedidosVenta?empresa=&amp;numero=[&amp;anularInscripcionesEventos=true]).
+    ''' Lanza <see cref="InscripcionesEventoAnularException"/> si justifica inscripciones gratuitas a eventos (se pregunta y se repite
+    ''' con anularInscripcionesEventos) y una excepción con el mensaje de la API tal cual si no lo deja borrar.</summary>
+    Function BorrarPedido(empresa As String, numero As Integer, anularInscripcionesEventos As Boolean) As Task
 End Interface

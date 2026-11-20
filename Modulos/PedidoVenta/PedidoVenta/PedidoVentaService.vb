@@ -440,6 +440,40 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ''' <summary>Novedades 1283: la ruta del DELETE del pedido.</summary>
+    Public Shared Function RutaBorrarPedido(empresa As String, numero As Integer, anularInscripcionesEventos As Boolean) As String
+        Return $"PedidosVenta?empresa={Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))}&numero={numero}" &
+            If(anularInscripcionesEventos, "&anularInscripcionesEventos=true", String.Empty)
+    End Function
+
+    ''' <summary>
+    ''' Novedades 1283: el texto, de usted, de un DELETE que no ha ido bien: 404 = ya no existe; si no, el mensaje de la API tal cual
+    ''' (sin JSON crudo) y, sin mensaje, el código.
+    ''' </summary>
+    Public Shared Function ErrorBorrarPedido(codigoHttp As Integer, cuerpo As String, numero As Integer) As Exception
+        If codigoHttp = 404 Then
+            Return New Exception($"El pedido {numero} ya no existe: puede que lo haya borrado otra persona.")
+        End If
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return New Exception($"No se ha podido borrar el pedido {numero} (el servidor ha contestado con el error {codigoHttp}).")
+        End If
+        Return InterpretarRespuestaError(cuerpo)
+    End Function
+
+    Public Async Function BorrarPedido(empresa As String, numero As Integer, anularInscripcionesEventos As Boolean) As Task Implements IPedidoVentaService.BorrarPedido
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim response As HttpResponseMessage = Await client.DeleteAsync(RutaBorrarPedido(empresa, numero, anularInscripcionesEventos))
+            If response.IsSuccessStatusCode Then
+                Return
+            End If
+            Dim cuerpo As String = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            Throw ErrorBorrarPedido(CInt(response.StatusCode), cuerpo, numero)
+        End Using
+    End Function
+
     ' Los BadRequest de Web API llegan como {"Message":"..."}: extraer el texto legible.
     Private Shared Function ExtraerMensajeError(body As String) As String
         Try

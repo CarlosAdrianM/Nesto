@@ -26,7 +26,8 @@ namespace PedidoVentaTests
             "CmdRetenerPedido", "CmdLiberarPedido", "AbrirFacturarRutasCommand", "CopiarFacturaCommand",
             "cmdAbrirPicking", "DescargarPresupuestoCommand", "AceptarPresupuestoCommand", "PasarAPresupuestoCommand",
             "EnviarPedidoPorCorreoCommand", "EnviarPedidoPorWhatsAppCommand", "AbrirFacturarFinDeMesCommand",
-            "NuevaNotaRecogidaCommand", "NuevaNotaCobroCommand", "LeerEtiquetaRecogidaCommand"
+            "NuevaNotaRecogidaCommand", "NuevaNotaCobroCommand", "LeerEtiquetaRecogidaCommand",
+            "BorrarPedidoCommand" // Novedades 1283
         };
 
         private static readonly Dictionary<string, string> VISIBILIDAD_DE_ANTES = new Dictionary<string, string>
@@ -65,7 +66,7 @@ namespace PedidoVentaTests
                 todos.AddRange(aLaVista);
                 todos.AddRange(enMas);
 
-                // 1) Los 14 comandos de antes, ni uno más ni uno menos, y todos existen en el ViewModel
+                // 1) Los 14 comandos de antes (y «Borrar pedido», Novedades 1283), ni uno más ni uno menos, y todos existen en el ViewModel
                 var comandos = todos.Select(b => RutaBinding(b, CommandDe(b))).ToList();
                 CollectionAssert.AreEquivalent(COMANDOS_DE_ANTES, comandos);
                 foreach (var ruta in comandos.Concat(VISIBILIDAD_DE_ANTES.Values))
@@ -93,7 +94,7 @@ namespace PedidoVentaTests
                 CollectionAssert.AreEqual(new[]
                 {
                     "Enviar por WhatsApp…", "Copiar factura", "|",
-                    "Facturar fin de mes", "Pasar a presupuesto", "|",
+                    "Facturar fin de mes", "Pasar a presupuesto", "Borrar pedido…", "|",
                     "Nueva nota de cobro…", "Nueva nota de recogida", "Leer etiqueta de recogida…"
                 }, secundarios);
                 Assert.IsTrue(enMas.All(m => m.Icon is Ui.SymbolIcon), "Todas las opciones de «Más» llevan icono");
