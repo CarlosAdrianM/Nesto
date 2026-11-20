@@ -116,6 +116,10 @@ namespace Nesto.Infrastructure.Contracts
         public const string PARAMETRO_RECOGIDA_CONTACTO = "contacto";
         /// <summary>Nesto#635: true si el aviso es de una anulada (ya no está entre las pendientes: se abre la pestaña del cliente).</summary>
         public const string PARAMETRO_RECOGIDA_ANULADA = "anulada";
+        /// <summary>Carlos 20/11/26: la pestaña con que se abre la ventana (hoy solo <see cref="PESTANA_RECOGIDAS_NO_RECOGIDAS"/>).</summary>
+        public const string PARAMETRO_RECOGIDAS_PESTANA = "pestana";
+        /// <summary>Carlos 20/11/26: las recogidas que el repartidor marcó «No se ha recogido» y decide Almacén.</summary>
+        public const string PESTANA_RECOGIDAS_NO_RECOGIDAS = "NoRecogidas";
 
         /// <summary>
         /// NestoAPI#688/#858: el picking se ha terminado con faltas. Trae Datos["empresa"] y Datos["pedido"] (abre el pedido, como

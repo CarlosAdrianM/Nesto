@@ -1095,6 +1095,11 @@ Public Class AgenciaService
         Return New ControlesUsuario.Services.ServicioNotasEnvio(_clienteApiFactory).Anadir(numeroEnvio, texto)
     End Function
 
+    ''' <summary>Carlos 20/11/26: el mismo servicio que usan la pestaña «Entrega» del pedido y las recogidas no recogidas.</summary>
+    Public Function AnularRecogida(pedido As Integer, motivo As String) As Task(Of ControlesUsuario.Services.AnulacionRecogidaModel) Implements IAgenciaService.AnularRecogida
+        Return New ControlesUsuario.Services.ServicioRecogidasReparto(_clienteApiFactory).Anular(pedido, motivo)
+    End Function
+
     ' ===== NestoAPI#699 (corte 2): devueltos, «volver a enviar» y «abonar» =====
 
     ' Sugerencia 1356: las llamadas viven en ControlesUsuario.Services.ServicioEnviosDevueltos (las usa también el detalle del

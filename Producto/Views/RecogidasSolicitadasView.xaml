@@ -179,6 +179,47 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+
+            <!-- Carlos 20/11/26: las que el repartidor marcó «No se ha recogido»; Almacén decide si se vuelven a mandar o se cierran del todo -->
+            <TabItem Header="{Binding NoRecogidas.Cabecera}">
+                <DockPanel Margin="8" DataContext="{Binding NoRecogidas}">
+                    <Border DockPanel.Dock="Top" Background="#FFF4E5" BorderBrush="#E0A040" BorderThickness="1" Padding="8,4" Margin="0,0,0,8" HorizontalAlignment="Left"
+                            Visibility="{Binding HayAviso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding Aviso}" TextWrapping="Wrap" MaxWidth="880" />
+                    </Border>
+                    <WrapPanel DockPanel.Dock="Top">
+                        <Button Content="Actualizar" Command="{Binding CargarCommand}" Style="{StaticResource Boton}" />
+                        <TextBlock Text="Volver a mandar el día (opcional):" VerticalAlignment="Center" Margin="24,0,6,6" />
+                        <DatePicker SelectedDate="{Binding FechaVolverAMandar}" Width="130" Margin="0,0,6,6"
+                                    ToolTip="Vacío: el siguiente día de reparto del cliente" />
+                        <Button Content="Volver a mandar" Command="{Binding VolverAMandarCommand}" Style="{StaticResource Boton}" FontWeight="SemiBold"
+                                ToolTip="La misma nota de recogida vuelve al reparto (el día elegido o, sin él, el siguiente día de reparto del cliente)" />
+                        <Button Content="Cerrar del todo…" Command="{Binding CerrarDelTodoCommand}" Style="{StaticResource Boton}"
+                                ToolTip="Ya no hace falta recogerla: se anula la recogida (se le pedirá el motivo)" />
+                        <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="10,0,0,6"
+                                   Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </WrapPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,4" FontWeight="SemiBold" />
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding TextoLista}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <DataGrid ItemsSource="{Binding Lista}" SelectedItem="{Binding Seleccionada}" AutoGenerateColumns="False"
+                              IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nota" Binding="{Binding Codigo}" Width="85" />
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteTexto}" Width="2*" />
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding DireccionTexto}" Width="2*" />
+                            <DataGridTextColumn Header="Motivo del repartidor" Binding="{Binding Motivo}" Width="2*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Setter Property="Foreground" Value="#B34700" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Quién y cuándo" Binding="{Binding QuienCuando}" Width="1.3*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

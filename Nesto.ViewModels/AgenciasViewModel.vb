@@ -128,6 +128,8 @@ Public Class AgenciasViewModel
         cmdActualizarSeguimiento = New RelayCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         DarPorCerradoCommand = New RelayCommand(AddressOf OnDarPorCerrado, AddressOf CanDarPorCerrado)
         AnadirNotaEnvioCommand = New RelayCommand(AddressOf OnAnadirNotaEnvio, AddressOf CanAnadirNotaEnvio) ' Carlos 20/11/26
+        AnularRecogidaCommand = New RelayCommand(AddressOf OnAnularRecogida, AddressOf CanAnularRecogida) ' Carlos 20/11/26 (NR930553)
+        AbrirRecogidasNoRecogidasCommand = New RelayCommand(AddressOf OnAbrirRecogidasNoRecogidas, Function() PuedeAnularRecogidas)
         ' Nesto#625 (NestoAPI#726): gestión en tránsito (CTT)
         PararEnVueloCommand = New RelayCommand(AddressOf OnPararEnVuelo, Function() PuedeGestionar(Function(g) g.PararEnVuelo))
         CrearRetornoCommand = New RelayCommand(AddressOf OnCrearRetorno, Function() PuedeGestionar(Function(g) g.Retorno))
@@ -1277,6 +1279,7 @@ Public Class AgenciasViewModel
                 DarPorCerradoCommand?.NotifyCanExecuteChanged()
                 OnPropertyChanged(NameOf(MotivoNoDarPorCerrado)) ' Carlos 20/11/26
                 AnadirNotaEnvioCommand?.NotifyCanExecuteChanged() ' Carlos 20/11/26
+                AnularRecogidaCommand?.NotifyCanExecuteChanged() ' Carlos 20/11/26
                 VerPruebaEntregaCommand?.NotifyCanExecuteChanged() ' Nesto#571
                 AnularEnvioRepartoPropioCommand?.NotifyCanExecuteChanged() ' Novedades 1162
 
@@ -4446,6 +4449,73 @@ Public Class AgenciasViewModel
             ' La nota ya está guardada: la historia se verá al volver a seleccionar el envío
         End Try
     End Function
+
+    ' ===== Carlos 20/11/26 (NR930553, parada 251104): «Anular recogida» de una nota de recogida ya en reparto =====
+    ' Se ofrece en un envío del reparto propio Tramitado o Incidentado con pedido; si ese pedido no es una nota de recogida, la API
+    ' lo dice (404) y no se toca nada. Solo Almacén, Administración, Dirección e Informática (la API también lo comprueba).
+
+    Public ReadOnly Property PuedeAnularRecogidas As Boolean
+        Get
+            Return ControlesUsuario.Services.AnuladorRecogidas.PuedeAnular(_configuracion)
+        End Get
+    End Property
+
+    Friend Shared Function EsParadaQueSePuedeAnular(envio As EnviosAgencia) As Boolean
+        Return EsRepartoPropio(envio) AndAlso envio.Pedido.HasValue AndAlso envio.Pedido.Value > 0 AndAlso
+            (envio.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO OrElse envio.Estado = ESTADO_INCIDENTADO)
+    End Function
+
+    Public Property AnularRecogidaCommand As RelayCommand
+    Private Function CanAnularRecogida() As Boolean
+        Return Not EstaOcupado AndAlso PuedeAnularRecogidas AndAlso EsParadaQueSePuedeAnular(envioActual)
+    End Function
+    Private Async Sub OnAnularRecogida()
+        Await AnularRecogidaSeleccionada()
+    End Sub
+
+    ''' <summary>Pide motivo y confirmación, anula y, si sale bien, quita la parada de Tramitados (ya no está en el reparto).</summary>
+    Friend Async Function AnularRecogidaSeleccionada() As Task
+        Dim envio As EnviosAgencia = envioActual
+        If Not EsParadaQueSePuedeAnular(envio) Then
+            Return
+        End If
+        Dim anulador As New ControlesUsuario.Services.AnuladorRecogidas(
+            Function(pedido, motivo) _servicio.AnularRecogida(pedido, motivo), _dialogService,
+            Sub(ex) RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AnularRecogida"))
+        Dim anulada As ControlesUsuario.Services.AnulacionRecogidaModel = Await anulador.Anular(envio.Pedido.Value, envio.Numero, envio.Nombre)
+        If anulada Is Nothing Then
+            Return
+        End If
+        Dim unused = listaEnviosTramitados?.Remove(envio)
+        Dim unused2 = listaEnviosPedido?.Remove(envio)
+        If envioActual Is envio Then
+            envioActual = listaEnviosTramitados?.FirstOrDefault()
+        End If
+    End Function
+
+    ''' <summary>Carlos 20/11/26: abre la ventana de recogidas solicitadas en la pestaña de las no recogidas (las decide Almacén).</summary>
+    Public Property AbrirRecogidasNoRecogidasCommand As RelayCommand
+    Private Sub OnAbrirRecogidasNoRecogidas()
+        Dim parametros As New ParametrosNavegacion From {{NotificacionBuzon.PARAMETRO_RECOGIDAS_PESTANA, NotificacionBuzon.PESTANA_RECOGIDAS_NO_RECOGIDAS}}
+        Navegar(NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS, parametros)
+    End Sub
+
+    ''' <summary>Abre una vista de otro módulo en la región principal (la ventana de Agencias no tiene navegación propia).</summary>
+    Private Sub Navegar(vista As String, parametros As ParametrosNavegacion)
+        Try
+            Dim navegacion = Nesto.Infrastructure.Contracts.Contenedor.Actual?.Resolver(Of IServicioNavegacion)()
+            If navegacion Is Nothing Then
+                Return
+            End If
+            If parametros Is Nothing Then
+                navegacion.RequestNavigate("MainRegion", vista)
+            Else
+                navegacion.RequestNavigate("MainRegion", vista, parametros)
+            End If
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido abrir la ventana: " & ex.Message)
+        End Try
+    End Sub
 
     ' ===== Nesto#625 (NestoAPI#726): gestión en tránsito de los envíos (hoy solo CTT) =====
     ' Parar en vuelo, crear el retorno (logística inversa), cambiar la fecha y cambiar la dirección de entrega de un envío que

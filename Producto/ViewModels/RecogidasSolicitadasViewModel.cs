@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using System;
@@ -28,6 +29,8 @@ namespace Nesto.Modules.Producto.ViewModels
     {
         public const int PESTANA_PENDIENTES = 0;
         public const int PESTANA_CLIENTE = 1;
+        /// <summary>Carlos 20/11/26: las que el repartidor marcó «No se ha recogido» (decide Almacén).</summary>
+        public const int PESTANA_NO_RECOGIDAS = 2;
         public const string MENSAJE_SIN_GRUPO = "Contestar las recogidas solicitadas es cosa de Almacén, Administración, Dirección e " +
             "Informática: usted puede verlas, pero no confirmarlas ni rechazarlas.";
         public const string MENSAJE_BULTOS = "Los bultos tienen que ser un número de 1 a 999.";
@@ -47,14 +50,15 @@ namespace Nesto.Modules.Producto.ViewModels
         private int? _idEnEdicion;
 
         public RecogidasSolicitadasViewModel(IServicioRecogidasSolicitadas servicio, IConfiguracion configuracion, IServicioDialogos dialogos,
-            IAvisosEnTiempoReal avisos)
-            : this(servicio, configuracion, dialogos, avisos as IGruposAlmacenTiempoReal)
+            IAvisosEnTiempoReal avisos, IServicioRecogidasReparto recogidasReparto)
+            : this(servicio, configuracion, dialogos, avisos as IGruposAlmacenTiempoReal, recogidasReparto)
         {
         }
 
         /// <param name="grupos">Los avisos de SignalR del grupo «RecogidasSolicitadas». Sin él no llegan (se lee al abrir y con «Volver a leer»).</param>
+        /// <param name="recogidasReparto">Carlos 20/11/26: las no recogidas (pestaña «No recogidas»). Sin él, la pestaña queda vacía.</param>
         internal RecogidasSolicitadasViewModel(IServicioRecogidasSolicitadas servicio, IConfiguracion configuracion, IServicioDialogos dialogos,
-            IGruposAlmacenTiempoReal grupos)
+            IGruposAlmacenTiempoReal grupos, IServicioRecogidasReparto recogidasReparto = null)
         {
             _servicio = servicio;
             _dialogos = dialogos;
@@ -71,7 +75,11 @@ namespace Nesto.Modules.Producto.ViewModels
             RechazarCommand = new AsyncRelayCommand(RechazarAsync, () => PuedeContestar);
             BuscarClienteCommand = new AsyncRelayCommand(BuscarClienteAsync, () => !EstaOcupado && Disponible);
             AnularCommand = new AsyncRelayCommand(AnularAsync, () => !EstaOcupado && Disponible && SeleccionadaDelCliente?.SePuedeAnular == true);
+            NoRecogidas = new RecogidasNoRecogidasViewModel(recogidasReparto, dialogos, PuedeGestionar);
         }
+
+        /// <summary>Carlos 20/11/26: la pestaña «No recogidas» (volver a mandar o cerrar del todo).</summary>
+        public RecogidasNoRecogidasViewModel NoRecogidas { get; }
 
         public string Titulo => "Recogidas solicitadas";
         public string Ayuda => "Las recogidas que piden los vendedores. Al confirmarla se crea la nota de recogida (NR…): si la recoge el reparto " +
@@ -288,6 +296,11 @@ namespace Nesto.Modules.Producto.ViewModels
             string empresa = LeerTexto(parametros, NotificacionBuzon.PARAMETRO_RECOGIDA_EMPRESA) ?? Empresa;
             bool anulada = parametros != null && parametros.ContainsKey(NotificacionBuzon.PARAMETRO_RECOGIDA_ANULADA)
                 && parametros.GetValue<object>(NotificacionBuzon.PARAMETRO_RECOGIDA_ANULADA) is bool b && b;
+            if (string.Equals(LeerTexto(parametros, NotificacionBuzon.PARAMETRO_RECOGIDAS_PESTANA), NotificacionBuzon.PESTANA_RECOGIDAS_NO_RECOGIDAS,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                PestanaSeleccionada = PESTANA_NO_RECOGIDAS; // Carlos 20/11/26: desde Agencias
+            }
             _ = LlegarAsync(empresa, cliente, contacto, anulada);
         }
 
@@ -304,6 +317,7 @@ namespace Nesto.Modules.Producto.ViewModels
             int? id = _idAElegir;
             await CargarTiposServicioTecnicoAsync().ConfigureAwait(true); // NestoAPI#881: una vez
             await CargarPendientesAsync().ConfigureAwait(true);
+            await NoRecogidas.CargarAsync().ConfigureAwait(true); // Carlos 20/11/26
             if (string.IsNullOrEmpty(cliente) || !Disponible)
             {
                 return;
@@ -358,6 +372,7 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             await CargarTiposServicioTecnicoAsync().ConfigureAwait(true); // NestoAPI#881: una vez
             await CargarPendientesAsync().ConfigureAwait(true);
+            await NoRecogidas.CargarAsync().ConfigureAwait(true); // Carlos 20/11/26
             if (_clienteCargado.HasValue && Disponible)
             {
                 await CargarDelClienteAsync(_clienteCargado.Value.Empresa, _clienteCargado.Value.Cliente, _clienteCargado.Value.Contacto, SeleccionadaDelCliente?.Id).ConfigureAwait(true);

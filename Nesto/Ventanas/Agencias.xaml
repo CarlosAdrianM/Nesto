@@ -649,6 +649,18 @@
                                 Content="Añadir nota"
                                 Command="{Binding AnadirNotaEnvioCommand}"
                                 ToolTip="Añade una nota a la historia del envío seleccionado (por ejemplo, lo que le ha dicho el cliente o el repartidor)."/>
+                        <!-- Carlos 20/11/26 (NR930553): anular la recogida de una nota de recogida que ya está en reparto (motivo obligatorio).
+                             Solo para Almacén, Administración, Dirección e Informática; si el envío no es la parada de una nota de recogida, la API lo dice. -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Anular recogida"
+                                Command="{Binding AnularRecogidaCommand}"
+                                Visibility="{Binding PuedeAnularRecogidas, Converter={StaticResource BoolToVisAvisos}}"
+                                ToolTip="Anula la recogida de la nota de recogida de esta parada del reparto propio (ya no hace falta): la parada sale del reparto. Se le pedirá el motivo."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Recogidas no recogidas"
+                                Command="{Binding AbrirRecogidasNoRecogidasCommand}"
+                                Visibility="{Binding PuedeAnularRecogidas, Converter={StaticResource BoolToVisAvisos}}"
+                                ToolTip="Las recogidas que el repartidor marcó «No se ha recogido»: volver a mandarlas o cerrarlas del todo."/>
                         <!-- Nesto#625 (NestoAPI#726): gestión en tránsito (CTT). Cada botón se activa según GET …/Gestiones. -->
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Parar en vuelo"

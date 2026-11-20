@@ -329,6 +329,7 @@ Partial Public Class DetallePedidoViewModel
         ImprimirNotaCommand?.NotifyCanExecuteChanged()
         VerNotaCommand?.NotifyCanExecuteChanged()
         EtiquetasRecogidaCommand?.NotifyCanExecuteChanged()
+        NotificarCambioAnularRecogida() ' Carlos 20/11/26
         If Not EsNotaRecogida AndAlso _mostrarSelectorFacturaOriginal Then
             MostrarSelectorFacturaOriginal = False
         End If

@@ -94,6 +94,9 @@ Public Interface IAgenciaService
     ' Carlos 20/11/26: una nota libre en la historia del envío (POST api/EnviosAgencias/{id}/Nota { Texto }). Lanza
     ' ControlesUsuario.Services.ApiRepartoException con el mensaje para el usuario (403, 404, 503: servidor sin actualizar…).
     Function AnadirNotaEnvio(numeroEnvio As Integer, texto As String) As Task(Of ControlesUsuario.Services.NotaEnvioModel)
+    ' Carlos 20/11/26 (NR930553): anula la recogida de una nota que ya está en reparto (POST api/RepartoPropio/Recogidas/{pedido}/Anular
+    ' { Motivo }). Lanza ControlesUsuario.Services.ApiRepartoException con el mensaje de la API (404 no es una recogida, 409 ya recogida…).
+    Function AnularRecogida(pedido As Integer, motivo As String) As Task(Of ControlesUsuario.Services.AnulacionRecogidaModel)
     ' NestoAPI#699 (corte 2): los envíos devueltos e incidentados de los últimos 60 días con su decisión (GET api/EnviosAgencias/
     ' Devueltos). Lanza con el motivo del servidor (p. ej. falta el script de la tabla).
     Function CargarListaDevueltos(empresa As String) As Task(Of List(Of EnvioDevueltoModel))

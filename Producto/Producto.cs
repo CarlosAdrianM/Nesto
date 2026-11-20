@@ -59,6 +59,8 @@ namespace Nesto.Modulos.Producto
             registro.Vista<RecogidasSolicitadasView>(NotificacionBuzon.VISTA_RECOGIDAS_SOLICITADAS);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.RecogidasSolicitadasViewModel>();
             registro.Singleton<IServicioRecogidasSolicitadas, ServicioRecogidasSolicitadas>();
+            // Carlos 20/11/26: las no recogidas (volver a mandar o cerrar del todo) y «Anular recogida»
+            registro.Singleton<ControlesUsuario.Services.IServicioRecogidasReparto, ControlesUsuario.Services.ServicioRecogidasReparto>();
 
             // Nesto#636 (NestoAPI#857, fase 3): los envíos de proveedor que la API no ha sabido asignar a un pedido de compra (la campana
             // con CompraSeguimientoPorAsignar abre aquí)

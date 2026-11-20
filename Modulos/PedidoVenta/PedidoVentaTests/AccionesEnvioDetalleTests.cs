@@ -39,6 +39,51 @@ namespace PedidoVentaTests
             A.CallTo(() => dialogos.ShowNotification(AnotadorEnvios.TITULO, A<string>.That.Contains("251104"))).MustHaveHappened();
         }
 
+        private static (DetallePedidoViewModel vm, IServicioRecogidasReparto recogidas, IServicioDialogos dialogos, IPedidoVentaService servicio) VmNotaRecogida(bool almacen = true)
+        {
+            var dialogos = A.Fake<IServicioDialogos>();
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ALMACEN)).Returns(almacen);
+            var servicio = A.Fake<IPedidoVentaService>();
+            var vm = new DetallePedidoViewModel(A.Fake<IServicioNavegacion>(), configuracion, servicio, new WeakReferenceMessenger(),
+                dialogos, A.Fake<IAbridorPedidos>(), A.Fake<IServicioAutenticacion>());
+            var recogidas = A.Fake<IServicioRecogidasReparto>();
+            vm.ServicioDeRecogidasReparto = recogidas;
+            vm.pedido = new PedidoVentaWrapper(new PedidoVentaDTO
+            {
+                empresa = "1", numero = 930553, cliente = "15191", contacto = "0", notaEntrega = true, tipoNotaEntrega = "Recogida"
+            });
+            vm.ListaEnlacesSeguimiento = new System.Collections.Generic.List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 251104, AgenciaId = 14, Estado = 1 }
+            };
+            return (vm, recogidas, dialogos, servicio);
+        }
+
+        [TestMethod]
+        public async Task AnularRecogida_NotaDeRecogida_ConMotivo_AnulaYReleeLosEnvios()
+        {
+            var (vm, recogidas, dialogos, servicio) = VmNotaRecogida();
+            Assert.IsTrue(vm.PuedeAnularRecogidaNota);
+            A.CallTo(() => dialogos.GetText(AnuladorRecogidas.TITULO, A<string>.That.Contains("NR930553 (parada 251104)"))).Returns("Ya no hace falta");
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(AnuladorRecogidas.TITULO, A<string>._, true)).Returns(true);
+
+            await vm.AnularRecogidaNotaAsync();
+
+            A.CallTo(() => recogidas.Anular(930553, "Ya no hace falta")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.CargarEnlacesSeguimiento("1", 930553)).MustHaveHappened();
+        }
+
+        [TestMethod]
+        public void AnularRecogida_SinGrupoOSinSerRecogida_NoSeOfrece()
+        {
+            var (sinGrupo, _, _, _) = VmNotaRecogida(almacen: false);
+            Assert.IsFalse(sinGrupo.PuedeAnularRecogidaNota);
+
+            var (vm, _, _) = Vm();
+            Assert.IsFalse(vm.PuedeAnularRecogidaNota, "un pedido normal");
+        }
+
         [TestMethod]
         public async Task AnadirNota_SinEnvio_NoPregunta()
         {
