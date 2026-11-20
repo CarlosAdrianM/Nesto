@@ -572,8 +572,22 @@
                             <Border BorderBrush="#E0A800" BorderThickness="1" Background="#FFF8E1" CornerRadius="3"
                                     Padding="5" Margin="0,0,0,5"
                                     Visibility="{Binding HayOfertasSugeridas, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <StackPanel>
-                                    <TextBlock Text="Ofertas que este pedido podria llevar:" FontWeight="Bold" Margin="0,0,0,3"/>
+                                <!-- Sugerencia 1369 (Sancho): crecía sin límite y tapaba las líneas. Alto máximo de unas 5 filas
+                                     (se desplaza dentro) y plegable a solo la cabecera «Ofertas (7)», como «Puede ofrecer»;
+                                     lo plegado se recuerda mientras la ventana siga abierta. -->
+                                <DockPanel LastChildFill="True">
+                                    <Button DockPanel.Dock="Top" HorizontalAlignment="Left" Padding="2,0"
+                                            Background="Transparent" BorderThickness="0"
+                                            Command="{Binding PlegarOfertasSugeridasCommand}"
+                                            ToolTip="Ofertas que este pedido podría llevar y no está aplicando. Pulse para plegar o desplegar.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding TextoPlegarOfertasSugeridas}" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding CabeceraOfertasSugeridas}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <ScrollViewer MaxHeight="115" Margin="0,3,0,0" Focusable="False"
+                                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                  Visibility="{Binding OfertasSugeridasDesplegadas, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <ItemsControl ItemsSource="{Binding OfertasSugeridas}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -587,7 +601,8 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                </StackPanel>
+                                    </ScrollViewer>
+                                </DockPanel>
                             </Border>
                             <!-- Nesto#562 (NestoAPI#723): si el cliente exige el P.O., la etiqueta lleva asterisco y, sin P.O., el campo sale en rojo -->
                             <DockPanel Margin="0,0,0,5" ToolTip="{Binding TooltipSuPedido}">

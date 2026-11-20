@@ -247,6 +247,64 @@ namespace PlantillaVentaTests
             Assert.IsFalse(vm.HayOfertasSugeridas);
         }
 
+        // ---- Sugerencia 1369 (Sancho): el panel de ofertas tiene alto máximo y se pliega ----
+
+        [TestMethod]
+        public void OfertasSugeridas_LaCabeceraDiceCuantasHay()
+        {
+            var vm = CrearViewModel();
+            var cambios = new List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            vm.AplicarOfertasSugeridas(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1), Ampliar("38094", 5, 6, 1), Ampliar("38095", 2, 3, 1) });
+
+            Assert.AreEqual("Ofertas (3)", vm.CabeceraOfertasSugeridas);
+            CollectionAssert.Contains(cambios, nameof(PlantillaVentaViewModel.CabeceraOfertasSugeridas));
+
+            vm.AplicarOfertasSugeridas(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
+
+            Assert.AreEqual("Ofertas (1)", vm.CabeceraOfertasSugeridas);
+        }
+
+        [TestMethod]
+        public void OfertasSugeridas_SeEnseñanDesplegadasYSePliegan()
+        {
+            var vm = CrearViewModel();
+            vm.AplicarOfertasSugeridas(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
+            Assert.IsFalse(vm.OfertasSugeridasPlegadas);
+            Assert.IsTrue(vm.OfertasSugeridasDesplegadas);
+            Assert.AreEqual("▾", vm.TextoPlegarOfertasSugeridas);
+            var cambios = new List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            vm.PlegarOfertasSugeridasCommand.Execute(null);
+
+            Assert.IsTrue(vm.OfertasSugeridasPlegadas);
+            Assert.IsFalse(vm.OfertasSugeridasDesplegadas);
+            Assert.AreEqual("▸", vm.TextoPlegarOfertasSugeridas);
+            CollectionAssert.Contains(cambios, nameof(PlantillaVentaViewModel.OfertasSugeridasDesplegadas));
+            CollectionAssert.Contains(cambios, nameof(PlantillaVentaViewModel.TextoPlegarOfertasSugeridas));
+
+            vm.PlegarOfertasSugeridasCommand.Execute(null);
+
+            Assert.IsTrue(vm.OfertasSugeridasDesplegadas);
+        }
+
+        [TestMethod]
+        public void OfertasSugeridas_PlegadasSiguenPlegadasAunqueLleguenOtras()
+        {
+            // Se recuerda mientras la ventana siga abierta: el recálculo de las ofertas no la vuelve a desplegar
+            var vm = CrearViewModel();
+            vm.AplicarOfertasSugeridas(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1) });
+            vm.PlegarOfertasSugeridasCommand.Execute(null);
+
+            vm.AplicarOfertasSugeridas(null);
+            vm.AplicarOfertasSugeridas(new List<SugerenciaOfertaDTO> { Ampliar("38093", 5, 6, 1), Ampliar("38094", 5, 6, 1) });
+
+            Assert.IsTrue(vm.OfertasSugeridasPlegadas);
+            Assert.AreEqual("Ofertas (2)", vm.CabeceraOfertasSugeridas);
+        }
+
         [TestMethod]
         public void AplicarOferta_SubeLaCantidadYPoneLasUnidadesDeRegalo()
         {

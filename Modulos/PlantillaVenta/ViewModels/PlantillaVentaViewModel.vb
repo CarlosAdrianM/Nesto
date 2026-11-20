@@ -1583,6 +1583,42 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ' Sugerencia 1369 (Sancho): el panel de ofertas crecía sin límite y tapaba las líneas. Ahora tiene un alto máximo (se
+    ' desplaza dentro) y se pliega a solo la cabecera «Ofertas (7)». Lo plegado se recuerda mientras la ventana siga abierta.
+    Private _ofertasSugeridasPlegadas As Boolean
+    Public Property OfertasSugeridasPlegadas As Boolean
+        Get
+            Return _ofertasSugeridasPlegadas
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_ofertasSugeridasPlegadas, value) Then
+                OnPropertyChanged(NameOf(OfertasSugeridasDesplegadas))
+                OnPropertyChanged(NameOf(TextoPlegarOfertasSugeridas))
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property OfertasSugeridasDesplegadas As Boolean
+        Get
+            Return Not _ofertasSugeridasPlegadas
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoPlegarOfertasSugeridas As String
+        Get
+            Return If(_ofertasSugeridasPlegadas, "▸", "▾")
+        End Get
+    End Property
+
+    ''' <summary>Sugerencia 1369: la cabecera del panel, con cuántas hay («Ofertas (7)»).</summary>
+    Public ReadOnly Property CabeceraOfertasSugeridas As String
+        Get
+            Return $"Ofertas ({_ofertasSugeridas.Count})"
+        End Get
+    End Property
+
+    Public ReadOnly Property PlegarOfertasSugeridasCommand As New RelayCommand(Sub() OfertasSugeridasPlegadas = Not OfertasSugeridasPlegadas)
+
     ''' <summary>
     ''' Nesto#483 (trampa 2 de NestoApp#184): el modo con el que arranca el selector al elegir dirección.
     ''' Una vez el servidor ha contestado, el «por defecto» del pedido ES esa respuesta: cambiar de
@@ -1768,6 +1804,7 @@ Public Class PlantillaVentaViewModel
         End If
         OnPropertyChanged(NameOf(OfertasSugeridas))
         OnPropertyChanged(NameOf(HayOfertasSugeridas))
+        OnPropertyChanged(NameOf(CabeceraOfertasSugeridas)) ' Sugerencia 1369
     End Sub
 
     ''' <summary>
