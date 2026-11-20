@@ -3179,7 +3179,8 @@ Public Class PlantillaVentaViewModel
             If lista Is Nothing Then
                 Return New List(Of LineaPlantillaVenta)
             End If
-            Return lista.Where(Function(l) Not l.EsCurso).ToList()
+            ' Carlos 20/11/26: la formación sin evento (EsFormacion) tampoco suma: va en su propio pedido CV, como los cursos.
+            Return lista.Where(Function(l) Not l.EsCurso AndAlso Not l.EsFormacion).ToList()
         End Get
     End Property
 
@@ -3225,8 +3226,8 @@ Public Class PlantillaVentaViewModel
 
     ''' <summary>
     ''' Incidencia 1398 (Pilar, 20/11/26): las líneas de formación sin evento (EsFormacion). Se meten como una línea normal; al guardar
-    ''' la API las separa en un pedido aparte de la serie CV. No cambia ningún cálculo de la plantilla (portes, Ganavisiones…): lo hace
-    ''' el servidor al separarlas.
+    ''' la API las separa en un pedido aparte de la serie CV. Como los cursos, NO suman para nada del pedido de productos (portes,
+    ''' Ganavisiones, regalos por importe, cupones, mínimos): ver LineasPedidoSinCursos (Carlos 20/11/26).
     ''' </summary>
     Friend ReadOnly Property LineasFormacionEnElPedido As List(Of LineaPlantillaVenta)
         Get

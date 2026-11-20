@@ -136,6 +136,19 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void Formacion_NoSumaParaLosTotalesDelPedidoDeProductos_ComoLosCursos()
+        {
+            // Carlos 20/11/26: la formación va en su pedido CV; no cuenta para portes, Ganavisiones, cupones ni mínimos.
+            var vm = CrearViewModel();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(Formacion());
+            Assert.IsFalse(vm.HayProductosQueNoSonCurso, "solo formación: no hay pedido de productos (ni portes ni reembolso)");
+            Assert.AreEqual(0M, vm.BaseImponibleBonificable, "la formación no genera Ganavisiones");
+
+            vm.ListaFiltrableProductos.ListaOriginal.Add(Producto());
+            Assert.IsTrue(vm.HayProductosQueNoSonCurso);
+        }
+
+        [TestMethod]
         public async Task Guardar_ConProductosYFormacion_AvisaYMandaLaFormacionComoLineaNormal()
         {
             var vm = CrearViewModel();
