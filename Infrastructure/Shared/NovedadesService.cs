@@ -191,7 +191,31 @@ namespace Nesto.Infrastructure.Shared
             return JsonConvert.DeserializeObject<List<Mencionable>>(json ?? "[]") ?? new List<Mencionable>();
         }
 
-        // Nesto#623: no hay GET por id sin ámbito en la API: se piden las listas de cada otra aplicación (las novedades
+        public async Task<NovedadUsuario> LeerPorId(int novedadId)
+        {
+            try
+            {
+                using (var client = _clienteApiFactory.Crear())
+                {
+                    HttpResponseMessage response = await client.GetAsync($"Novedades/{novedadId}").ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        // 404 = no existe o no se puede ver; una API anterior a NestoAPI#822 también da 404
+                        return null;
+                    }
+                    string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    NovedadUsuario novedad = JsonConvert.DeserializeObject<NovedadUsuario>(json ?? "null");
+                    return novedad != null && novedad.Id == novedadId ? novedad : null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[NovedadesService] Novedad {novedadId}: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Nesto#623: lo de antes de GET api/Novedades/{id} (NestoAPI#822), para una API anterior: se piden las listas de cada otra aplicación (las novedades
         // con todas=true, de todos los perfiles; las sugerencias con incluirCerradas=true, también las cerradas) y se
         // busca el id aquí. Las privadas siguen filtradas por la API.
         public async Task<NovedadUsuario> LeerDeOtraAplicacion(int novedadId)

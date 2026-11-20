@@ -420,10 +420,26 @@ namespace ControlesUsuario.Dialogs
             EnSugerencias = true;
             MostrarListaSugerencias();
             NotificarNavegacion();
-            if (_sugerencias == null && !CargandoSugerencias)
+            await AsegurarSugerencias();
+        }
+
+        // La lista de sugerencias ya ha llegado de la API (si falló, se reintenta al volver). _sugerencias puede tener
+        // ya alguna sin la lista: la del aviso de la campana, la recién enviada...
+        private bool _sugerenciasCargadas;
+        private Task _cargaSugerencias;
+
+        /// <summary>Pide la lista si aún no ha llegado; si ya se está pidiendo, espera a esa misma petición.</summary>
+        private Task AsegurarSugerencias()
+        {
+            if (_sugerenciasCargadas)
             {
-                await CargarSugerencias();
+                return Task.CompletedTask;
             }
+            if (_cargaSugerencias == null || _cargaSugerencias.IsCompleted)
+            {
+                _cargaSugerencias = CargarSugerencias();
+            }
+            return _cargaSugerencias;
         }
 
         private async Task CargarSugerencias()
@@ -433,7 +449,8 @@ namespace ControlesUsuario.Dialogs
             try
             {
                 List<NovedadUsuario> lista = await _servicio.LeerSugerencias() ?? new List<NovedadUsuario>();
-                _sugerencias = lista.Where(n => n != null).Select(CrearItem).ToList();
+                _sugerencias = Fusionar(lista.Where(n => n != null).ToList(), _sugerencias);
+                _sugerenciasCargadas = true;
             }
             catch (Exception ex)
             {
@@ -447,10 +464,77 @@ namespace ControlesUsuario.Dialogs
             {
                 MostrarListaSugerencias();
             }
-            // Las capturas, después de pintar la lista (no la retrasan).
-            foreach (NovedadItem sugerencia in _sugerencias ?? new List<NovedadItem>())
+            // Las capturas, después de pintar la lista: ni la retrasan ni hacen esperar a quien la pide (20/11/26).
+            if (_sugerenciasCargadas)
             {
-                await sugerencia.CargarImagenNovedad();
+                CapturasSugerencias = CargarCapturasSugerencias();
+            }
+        }
+
+        /// <summary>
+        /// La lista que llega de la API, conservando las que ya se enseñaban (la del aviso de la campana, con sus
+        /// comentarios abiertos, sigue siendo la misma); las que ya había y la lista no trae (cerradas, de otra
+        /// aplicación) se quedan delante.
+        /// </summary>
+        private List<NovedadItem> Fusionar(List<NovedadUsuario> llegadas, List<NovedadItem> previas)
+        {
+            Dictionary<int, NovedadItem> porId = (previas ?? new List<NovedadItem>())
+                .GroupBy(p => p.Id)
+                .ToDictionary(g => g.Key, g => g.First());
+            var idsLlegados = new HashSet<int>(llegadas.Select(n => n.Id));
+            List<NovedadItem> resultado = (previas ?? new List<NovedadItem>()).Where(p => !idsLlegados.Contains(p.Id)).Distinct().ToList();
+            resultado.AddRange(llegadas
+                .GroupBy(n => n.Id)
+                .Select(g => porId.TryGetValue(g.Key, out NovedadItem previa) ? previa : CrearItem(g.First())));
+            return resultado;
+        }
+
+        /// <summary>Cuántas capturas de sugerencias se piden a la vez.</summary>
+        internal const int CAPTURAS_A_LA_VEZ = 4;
+
+        /// <summary>Las capturas de todas las sugerencias que se están cargando (para quien quiera esperarlas). Nunca falla.</summary>
+        internal Task CapturasSugerencias { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// Las capturas de la abierta desde la campana y de sus comentarios, que van antes que las demás. Nunca falla.
+        /// </summary>
+        private Task _capturasPrioritarias = Task.CompletedTask;
+
+        /// <summary>
+        /// Primero las de la que se está mirando (y sus comentarios); luego la destacada, las de la página y el resto, unas
+        /// pocas a la vez. Cada una dice si no ha llegado: nunca lanza.
+        /// </summary>
+        private async Task CargarCapturasSugerencias()
+        {
+            try
+            {
+                await _capturasPrioritarias;
+            }
+            catch (Exception)
+            {
+                // Las prioritarias ya dicen cada una si no han llegado
+            }
+            List<NovedadItem> todas = _sugerencias?.ToList() ?? new List<NovedadItem>();
+            IEnumerable<NovedadItem> enOrden = todas
+                .OrderBy(s => s == NovedadDestacada ? 0 : (Novedades?.Contains(s) == true ? 1 : 2));
+            using (var turnos = new System.Threading.SemaphoreSlim(CAPTURAS_A_LA_VEZ))
+            {
+                await Task.WhenAll(enOrden.Select(async s =>
+                {
+                    await turnos.WaitAsync();
+                    try
+                    {
+                        await s.CargarImagenNovedad();
+                    }
+                    catch (Exception)
+                    {
+                        // Una captura que no llega no estropea las demás
+                    }
+                    finally
+                    {
+                        turnos.Release();
+                    }
+                }).ToList());
             }
         }
 
@@ -500,7 +584,7 @@ namespace ControlesUsuario.Dialogs
         {
             VersionActual = ListaDeIncidencias ? TITULO_INCIDENCIAS : TITULO_SUGERENCIAS;
             Novedades = _sugerencias?.Where(s => s.EsIncidencia == ListaDeIncidencias).ToList() ?? new List<NovedadItem>();
-            MensajeListaVacia = _sugerencias != null && Novedades.Count == 0
+            MensajeListaVacia = _sugerenciasCargadas && Novedades.Count == 0
                 ? (ListaDeIncidencias ? MENSAJE_SIN_INCIDENCIAS : MENSAJE_SIN_SUGERENCIAS)
                 : null;
         }
@@ -680,7 +764,7 @@ namespace ControlesUsuario.Dialogs
                 SugerenciaPrivada = false;
                 FormularioSugerenciaAbierto = false;
                 ListaDeIncidencias = incidencia;
-                if (!EnSugerencias || _sugerencias == null)
+                if (!EnSugerencias || !_sugerenciasCargadas)
                 {
                     // Si la lista aún no estaba cargada, al cargarla ya viene la nueva.
                     await IrASugerencias();
@@ -904,13 +988,151 @@ namespace ControlesUsuario.Dialogs
         /// luego en todas las publicadas, en las sugerencias y, si no está, en las de Ariadna y NestoApp (Nesto#623).
         /// Reutiliza el salto del buscador (#487).
         /// </summary>
+        /// <remarks>
+        /// Campana (20/11/26, «tarda mucho al abrir desde una notificación»): si no está entre las cargadas, se pide PRIMERO esa
+        /// novedad por su id (GET api/Novedades/{id}), se salta a ella y se abren sus comentarios sin esperar a las listas ni a
+        /// ninguna captura. Las listas (para navegar por el resto) y las capturas llegan después, en segundo plano
+        /// (<see cref="CargaEnSegundoPlano"/>): primero las de la abierta y sus comentarios, luego las demás. Con una API sin
+        /// ese GET (o si no la encuentra), se busca en las listas como antes. Nunca lanza.
+        /// </remarks>
         internal async Task IrANovedadComentario(int novedadId, int? comentarioId)
         {
-            NovedadItem item = await IrANovedad(novedadId);
-            if (item != null)
+            try
             {
-                await item.AbrirComentarios(comentarioId);
+                NovedadItem item = _items.FirstOrDefault(i => i.Id == novedadId);
+                bool porId = false;
+                if (item != null)
+                {
+                    MostrarConVersion(item);
+                }
+                else
+                {
+                    item = await SaltarPorId(novedadId);
+                    porId = item != null;
+                    if (item == null)
+                    {
+                        item = await IrANovedad(novedadId);
+                    }
+                }
+                if (item == null)
+                {
+                    return;
+                }
+
+                Task abrir = item.AbrirComentarios(comentarioId);
+                _capturasPrioritarias = CargarCapturasDe(item, abrir);
+                if (porId)
+                {
+                    CargaEnSegundoPlano = CargarRestoEnSegundoPlano(item);
+                }
+                await abrir;
             }
+            catch (Exception ex)
+            {
+                // La ventana se queda como esté: nunca a medias por un fallo de la API
+                MensajeSugerencias = ex.Message;
+            }
+        }
+
+        /// <summary>Lo que se carga detrás del salto por id (las listas y las capturas). Nunca falla.</summary>
+        internal Task CargaEnSegundoPlano { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// La novedad del aviso por su id: se enseña en su versión (o en Sugerencias, o en la lista de avisos si es una
+        /// incidencia) y se resalta. null si la API no la da (no existe, API anterior, falla).
+        /// </summary>
+        private async Task<NovedadItem> SaltarPorId(int novedadId)
+        {
+            NovedadUsuario encontrada = _servicio == null ? null : await _servicio.LeerPorId(novedadId);
+            if (encontrada == null || encontrada.Id != novedadId)
+            {
+                return null;
+            }
+            // Mientras se esperaba puede haber llegado otra cosa con ella (p. ej. la lista)
+            NovedadItem item = (encontrada.EsSugerencia ? _sugerencias : _items)?.FirstOrDefault(i => i.Id == novedadId)
+                ?? CrearItem(encontrada);
+            if (!encontrada.EsSugerencia)
+            {
+                if (!_items.Contains(item))
+                {
+                    _items.Add(item);
+                }
+                MostrarConVersion(item);
+                return item;
+            }
+
+            if (_sugerencias == null)
+            {
+                _sugerencias = new List<NovedadItem>();
+            }
+            if (!_sugerencias.Contains(item))
+            {
+                _sugerencias.Insert(0, item);
+            }
+            _indice = INDICE_SUGERENCIAS;
+            EnSugerencias = true;
+            ListaDeIncidencias = encontrada.EsIncidencia;
+            MostrarListaSugerencias();
+            NotificarNavegacion();
+            Destacar(item);
+            return item;
+        }
+
+        /// <summary>Las capturas de la novedad abierta y, en cuanto llegan los comentarios, las de ellos. Nunca falla.</summary>
+        private static async Task CargarCapturasDe(NovedadItem item, Task comentariosAbiertos)
+        {
+            try
+            {
+                Task propias = item.CargarImagenNovedad();
+                await comentariosAbiertos;
+                await Task.WhenAll(propias, item.CapturasComentarios);
+            }
+            catch (Exception)
+            {
+                // Cada captura dice si no ha llegado
+            }
+        }
+
+        /// <summary>
+        /// Tras el salto por id: las novedades publicadas y las sugerencias a la vez (para navegar por el resto), sin mover
+        /// de la página que se ve, y luego las capturas de las sugerencias. Nunca falla.
+        /// </summary>
+        private async Task CargarRestoEnSegundoPlano(NovedadItem abierta)
+        {
+            try
+            {
+                await Task.WhenAll(CargarNovedadesYRefrescar(), AsegurarSugerencias());
+                if (NovedadDestacada == abierta && Novedades.Contains(abierta))
+                {
+                    // La lista se ha vuelto a pintar: que la vista la vuelva a buscar (y su comentario)
+                    OnPropertyChanged(nameof(NovedadDestacada));
+                }
+            }
+            catch (Exception)
+            {
+                // Se sigue con lo que hay
+            }
+            try
+            {
+                await CapturasSugerencias;
+            }
+            catch (Exception)
+            {
+                // Cada captura dice si no ha llegado
+            }
+        }
+
+        private async Task CargarNovedadesYRefrescar()
+        {
+            try
+            {
+                await CargarTodasLasNovedades();
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            RefrescarVista();
         }
 
         private async Task<NovedadItem> IrANovedad(int novedadId)
@@ -970,7 +1192,7 @@ namespace ControlesUsuario.Dialogs
                 _sugerencias.Insert(0, item);
                 MostrarListaSugerencias();
                 Destacar(item);
-                await item.CargarImagenNovedad();
+                // Sus capturas, con las de sus comentarios (IrANovedadComentario): no retrasan el salto
                 return item;
             }
 

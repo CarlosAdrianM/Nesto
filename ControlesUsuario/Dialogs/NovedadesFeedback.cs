@@ -206,16 +206,19 @@ namespace ControlesUsuario.Dialogs
             {
                 destino.Add(item);
             }
-            foreach (var (item, leer) in pendientes)
+            // Todas a la vez: ninguna espera a la anterior (cada una dice si no ha llegado).
+            await Task.WhenAll(pendientes.Select(p => LeerUna(p.Item, p.Leer)));
+        }
+
+        private static async Task LeerUna(CapturaVistaItem item, Func<Task<byte[]>> leer)
+        {
+            try
             {
-                try
-                {
-                    item.Imagen = await leer();
-                }
-                catch (Exception)
-                {
-                    item.NoDisponible = true;
-                }
+                item.Imagen = await leer();
+            }
+            catch (Exception)
+            {
+                item.NoDisponible = true;
             }
         }
 
@@ -823,17 +826,39 @@ namespace ControlesUsuario.Dialogs
                     }
                     ComentarioDestacado = destacado;
                 }
-                // Las miniaturas se piden al desplegar, no antes (no cargar imágenes que nadie mira).
-                foreach (ComentarioItem c in Comentarios.ToList())
-                {
-                    int id = c.Id;
-                    await CargaCapturas.Cargar(c.Imagenes, c.Capturas, c.TieneImagen,
-                        _servicio.LeerCaptura, () => _servicio.LeerImagenComentario(id));
-                }
+                // Las miniaturas se piden al desplegar, no antes (no cargar imágenes que nadie mira). Campana (20/11/26):
+                // ya no se esperan: los comentarios (y el del aviso) se ven al momento y las capturas llegan después,
+                // todas a la vez (el comentario destacado, el primero).
+                CapturasComentarios = CargarCapturasComentarios(Comentarios.ToList(), ComentarioDestacado);
             }
             catch (Exception ex)
             {
                 Mensaje = ex.Message;
+            }
+        }
+
+        /// <summary>Las capturas de los comentarios que se están cargando (para quien quiera esperarlas). Nunca falla.</summary>
+        internal Task CapturasComentarios { get; private set; } = Task.CompletedTask;
+
+        private async Task CargarCapturasComentarios(List<ComentarioItem> comentarios, ComentarioItem primero)
+        {
+            IEnumerable<ComentarioItem> enOrden = primero == null || !comentarios.Contains(primero)
+                ? comentarios
+                : new[] { primero }.Concat(comentarios.Where(c => c != primero));
+            var cargas = new List<Task>();
+            foreach (ComentarioItem c in enOrden)
+            {
+                int id = c.Id;
+                cargas.Add(CargaCapturas.Cargar(c.Imagenes, c.Capturas, c.TieneImagen,
+                    _servicio.LeerCaptura, () => _servicio.LeerImagenComentario(id)));
+            }
+            try
+            {
+                await Task.WhenAll(cargas);
+            }
+            catch (Exception)
+            {
+                // Cada captura ya dice si no ha llegado
             }
         }
 

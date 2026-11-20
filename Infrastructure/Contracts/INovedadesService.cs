@@ -286,5 +286,12 @@ namespace Nesto.Infrastructure.Contracts
         /// y lo que pide Nesto viene sin ámbito (solo el escritorio). Nunca lanza.
         /// </summary>
         Task<NovedadUsuario> LeerDeOtraAplicacion(int novedadId);
+
+        /// <summary>
+        /// La novedad o sugerencia <paramref name="novedadId"/>, sea de la aplicación que sea (GET api/Novedades/{id},
+        /// NestoAPI#822): dice si es sugerencia (sin versión) o novedad con versión y su ámbito. Para saltar a ella desde la
+        /// campana sin descargar listas enteras. null si no existe, no se puede ver, la API es anterior o falla: nunca lanza.
+        /// </summary>
+        Task<NovedadUsuario> LeerPorId(int novedadId);
     }
 }

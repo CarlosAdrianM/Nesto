@@ -242,5 +242,49 @@ namespace Infrastructure.Tests
 
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => servicio.LeerMencionables());
         }
+
+        // ---- Campana: la novedad del aviso por su id (GET api/Novedades/{id}, NestoAPI#822) ----
+
+        [TestMethod]
+        public async Task LeerPorId_PideUnaSolaNovedadPorSuId()
+        {
+            handler.Respuesta = "{\"Id\":1053,\"Version\":null,\"Titulo\":\"Duplicar\",\"Ambito\":\"Ariadna\",\"EsIncidencia\":true}";
+
+            NovedadUsuario novedad = await servicio.LeerPorId(1053);
+
+            Assert.AreEqual(1, handler.Peticiones.Count);
+            Assert.AreEqual(HttpMethod.Get, handler.Peticiones[0].Metodo);
+            Assert.AreEqual("/api/Novedades/1053", handler.Peticiones[0].Url);
+            Assert.AreEqual(1053, novedad.Id);
+            Assert.IsTrue(novedad.EsSugerencia);
+            Assert.IsTrue(novedad.EsIncidencia);
+            Assert.AreEqual("Ariadna", novedad.Ambito);
+        }
+
+        [TestMethod]
+        public async Task LeerPorId_NoEncontradaOApiAnterior_DevuelveNullSinLanzar()
+        {
+            handler.Codigo = HttpStatusCode.NotFound;
+            handler.Respuesta = "{}";
+
+            Assert.IsNull(await servicio.LeerPorId(999));
+        }
+
+        [TestMethod]
+        public async Task LeerPorId_SiLaApiFalla_DevuelveNullSinLanzar()
+        {
+            handler.Codigo = HttpStatusCode.InternalServerError;
+            handler.Respuesta = "{}";
+
+            Assert.IsNull(await servicio.LeerPorId(1));
+        }
+
+        [TestMethod]
+        public async Task LeerPorId_OtroIdEnLaRespuesta_DevuelveNull()
+        {
+            handler.Respuesta = "{\"Id\":7,\"Version\":\"1.10.1.0\"}";
+
+            Assert.IsNull(await servicio.LeerPorId(1));
+        }
     }
 }
