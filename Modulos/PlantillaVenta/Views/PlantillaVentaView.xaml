@@ -376,6 +376,9 @@
                                 <!-- Nesto#543: los cursos van en un pedido aparte y no suman a este -->
                                 <TextBlock Text="{Binding TextoCursos}" Foreground="DarkBlue" TextWrapping="Wrap" MaxWidth="320"
                                            Visibility="{Binding HayCursosEnElPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <!-- Incidencia 1398: productos y formación juntos: la formación va en otro pedido -->
+                                <TextBlock Text="La formación irá en un pedido aparte (serie CV)." Foreground="DarkBlue" TextWrapping="Wrap" MaxWidth="320"
+                                           Visibility="{Binding HayProductosYFormacion, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 <TextBox Text="{Binding clienteSeleccionado.iva}" IsReadOnly="True" Background="Transparent" BorderThickness="0">
                                     <i:Interaction.Triggers>
                                         <i:EventTrigger EventName="MouseDoubleClick" >
@@ -458,7 +461,8 @@
                                     <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
                                     <!-- Nesto#543: el evento elegido para el curso (fecha, tienda, formato y modalidad) -->
-                                    <DataGridTextColumn Header="Evento" Binding="{Binding TextoEvento}" Width="2*" IsReadOnly="True"/>
+                                    <!-- Incidencia 1398: en una línea de formación sin evento, «Formación» (va en un pedido aparte, serie CV) -->
+                                    <DataGridTextColumn Header="Evento" Binding="{Binding TextoEventoOFormacion}" Width="2*" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
                                         <i:Interaction.Triggers>
                                             <i:EventTrigger EventName="CellEditEnded">

@@ -625,8 +625,40 @@ Public Class LineaPlantillaVenta
             Return _textoEvento
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_textoEvento, value)
+            If SetProperty(_textoEvento, value) Then
+                OnPropertyChanged(NameOf(TextoEventoOFormacion))
+            End If
         End Set
+    End Property
+
+    ''' <summary>
+    ''' Incidencia 1398 (Pilar, 20/11/26): el producto es una referencia de FORMACIÓN sin evento (p. ej. 90324). La marca la
+    ''' búsqueda de la plantilla (campo aditivo «EsFormacion» de la API; falso si no viene). A diferencia de los cursos (EsCurso),
+    ''' se mete como una línea normal (cantidad, precio y descuento, sin evento ni modalidad); al guardar, la API la separa sola en un
+    ''' pedido aparte de la serie CV.
+    ''' </summary>
+    Private _esFormacion As Boolean
+    Public Property EsFormacion As Boolean
+        Get
+            Return _esFormacion
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_esFormacion, value) Then
+                OnPropertyChanged(NameOf(TextoEventoOFormacion))
+            End If
+        End Set
+    End Property
+
+    Public Const ETIQUETA_FORMACION As String = "Formación"
+
+    ''' <summary>Incidencia 1398: la columna «Evento» de la línea: el evento del curso o, en una de formación, «Formación».</summary>
+    Public ReadOnly Property TextoEventoOFormacion As String
+        Get
+            If Not String.IsNullOrWhiteSpace(_textoEvento) Then
+                Return _textoEvento
+            End If
+            Return If(EsFormacion, ETIQUETA_FORMACION, _textoEvento)
+        End Get
     End Property
 
     ''' <summary>Nesto#543: el curso ya tiene evento y modalidad.</summary>

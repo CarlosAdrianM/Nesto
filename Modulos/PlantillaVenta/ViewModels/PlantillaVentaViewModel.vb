@@ -3223,6 +3223,35 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Incidencia 1398 (Pilar, 20/11/26): las líneas de formación sin evento (EsFormacion). Se meten como una línea normal; al guardar
+    ''' la API las separa en un pedido aparte de la serie CV. No cambia ningún cálculo de la plantilla (portes, Ganavisiones…): lo hace
+    ''' el servidor al separarlas.
+    ''' </summary>
+    Friend ReadOnly Property LineasFormacionEnElPedido As List(Of LineaPlantillaVenta)
+        Get
+            Dim lista = listaProductosPedido
+            If lista Is Nothing Then
+                Return New List(Of LineaPlantillaVenta)
+            End If
+            Return lista.Where(Function(l) l.EsFormacion AndAlso Not l.EsCurso AndAlso l.cantidad + l.cantidadOferta > 0).ToList()
+        End Get
+    End Property
+
+    ''' <summary>Incidencia 1398: en la plantilla hay a la vez productos (ni curso ni formación) y formación.</summary>
+    Public ReadOnly Property HayProductosYFormacion As Boolean
+        Get
+            Dim lista = listaProductosPedido
+            If lista Is Nothing OrElse LineasFormacionEnElPedido.Count = 0 Then
+                Return False
+            End If
+            Return lista.Any(Function(l) Not l.EsFormacion AndAlso Not l.EsCurso AndAlso l.cantidad + l.cantidadOferta > 0)
+        End Get
+    End Property
+
+    Public Const TITULO_FORMACION As String = "Formación"
+    Public Const MENSAJE_FORMACION_APARTE As String = "La formación irá en un pedido aparte (serie CV)."
+
     Public Const TITULO_CURSO As String = "Curso"
     Public Const MENSAJE_PREPAGO_FORZADO As String = "Los cursos se pagan por adelantado: se ha puesto el plazo de pago «Prepago». Compruebe la forma de pago, por favor."
     Public Const MENSAJE_PREPAGO_OBLIGATORIO As String = "El pedido lleva un curso y los cursos se pagan por adelantado. Elija el plazo de pago «Prepago» antes de guardar, por favor."
@@ -3419,9 +3448,22 @@ Public Class PlantillaVentaViewModel
         End If
         Dim cuantos As String = If(lista.Count = 1, "dos", (lista.Count + 1).ToString())
         Dim partes As New List(Of String) From {$"{numero?.Trim()} (productos)"}
-        partes.AddRange(lista.Select(Function(a) $"{a.Numero} (curso)"))
+        ' Incidencia 1398: la API dice en Motivo si el pedido aparte es de «Cursos» o de «Formación»
+        partes.AddRange(lista.Select(Function(a) $"{a.Numero} ({If(EsPedidoDeFormacion(a), "formación", "curso")})"))
         Dim enumeracion As String = String.Join(", ", partes.Take(partes.Count - 1)) & " y " & partes.Last()
-        Return $"Se han creado {cuantos} pedidos: {enumeracion}. Los cursos se facturan aparte."
+        Dim hayFormacion As Boolean = lista.Any(Function(a) EsPedidoDeFormacion(a))
+        Dim hayCursos As Boolean = lista.Any(Function(a) Not EsPedidoDeFormacion(a))
+        Dim cierre As String = If(hayFormacion AndAlso hayCursos, "Los cursos y la formación se facturan aparte.",
+                                  If(hayFormacion, "La formación se factura aparte.", "Los cursos se facturan aparte."))
+        Return $"Se han creado {cuantos} pedidos: {enumeracion}. {cierre}"
+    End Function
+
+    ''' <summary>Incidencia 1398: el pedido adicional es el de la formación (Motivo «Formación», sin mirar tildes ni mayúsculas).</summary>
+    Friend Shared Function EsPedidoDeFormacion(adicional As PedidoAdicionalDTO) As Boolean
+        Dim motivo As String = adicional?.Motivo?.Trim()
+        Return Not String.IsNullOrEmpty(motivo) AndAlso
+            String.Compare(motivo, TITULO_FORMACION, Globalization.CultureInfo.InvariantCulture,
+                           Globalization.CompareOptions.IgnoreCase Or Globalization.CompareOptions.IgnoreNonSpace) = 0
     End Function
 
     ''' <summary>Nesto#543: avisa de los pedidos adicionales (si los hay). True si ha avisado.</summary>
@@ -3962,6 +4004,7 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged(NameOf(HayCursosEnElPedido)) ' Nesto#543
         OnPropertyChanged(NameOf(BaseImponibleCursos))
         OnPropertyChanged(NameOf(TextoCursos))
+        OnPropertyChanged(NameOf(HayProductosYFormacion)) ' Incidencia 1398
         ActualizarEtiquetaPortes()
         OnPropertyChanged(NameOf(listaProductosPedidoConPortes))
         ' Nesto#483 / Nesto#465: han cambiado las lineas, asi que el modo de servicio y las ofertas que el
@@ -4940,6 +4983,11 @@ Public Class PlantillaVentaViewModel
         If errorCursos IsNot Nothing Then
             dialogService.ShowError(errorCursos)
             Return
+        End If
+
+        ' Incidencia 1398: productos y formación juntos: la API separa la formación en otro pedido (serie CV); se avisa antes
+        If HayProductosYFormacion Then
+            dialogService.ShowNotification(TITULO_FORMACION, MENSAJE_FORMACION_APARTE)
         End If
 
         ' Nesto#612: antes de grabar se vuelve a mirar el cheque regalo. Si la casilla cambia sola (cheque recién
