@@ -386,6 +386,59 @@ namespace ControlesUsuario.Tests
             Assert.IsFalse(vm.Notificaciones[0].Desplegada);
         }
 
+        private async Task PulsarAutorizacionPedido(Dictionary<string, string> datos)
+        {
+            await CargarCon(new NotificacionBuzon { Id = 31, Titulo = "Autorización de pedido", Cuerpo = "…", FechaCreacion = Ahora.AddMinutes(-2), Datos = datos });
+            vm.PanelAbierto = true;
+            await vm.AbrirNotificacion(vm.Notificaciones[0]);
+        }
+
+        [TestMethod]
+        public async Task PulsarAutorizacionPedidoPedida_AbreLaVentanaDeAutorizacionesEnEsaSolicitud()
+        {
+            // Novedades 1258
+            ParametrosNavegacion parametros = null;
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "AutorizacionesPedidoView", A<ParametrosNavegacion>._))
+                .Invokes((string _, string _, ParametrosNavegacion p) => parametros = p);
+
+            await PulsarAutorizacionPedido(new Dictionary<string, string> { ["tipo"] = "AutorizacionPedidoPedida", ["id"] = "7" });
+
+            Assert.IsFalse(vm.PanelAbierto);
+            Assert.AreEqual(7, parametros.GetValue<int>("id"));
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task PulsarAutorizacionPedidoAutorizada_OfreceAbrirElPedidoCreado()
+        {
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>.That.Contains("931200"))).Returns(true);
+
+            await PulsarAutorizacionPedido(new Dictionary<string, string> { ["tipo"] = "AutorizacionPedidoResuelta", ["id"] = "7", ["estado"] = "Autorizada", ["pedido"] = "931200" });
+
+            A.CallTo(() => abridorPedidos.Abrir("1", 931200)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => navegacion.RequestNavigate(A<string>._, "AutorizacionesPedidoView", A<ParametrosNavegacion>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task PulsarAutorizacionPedidoAutorizada_SiNoQuiereAbrirlo_AbreLaVentana()
+        {
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._)).Returns(false);
+
+            await PulsarAutorizacionPedido(new Dictionary<string, string> { ["tipo"] = "AutorizacionPedidoResuelta", ["id"] = "7", ["estado"] = "Autorizada", ["pedido"] = "931200" });
+
+            A.CallTo(() => abridorPedidos.Abrir(A<string>._, A<int>._)).MustNotHaveHappened();
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "AutorizacionesPedidoView", A<ParametrosNavegacion>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task PulsarAutorizacionPedidoDenegada_AbreLaVentanaQueEnsenaElMotivo_SinPreguntar()
+        {
+            await PulsarAutorizacionPedido(new Dictionary<string, string> { ["tipo"] = "AutorizacionPedidoResuelta", ["id"] = "8", ["estado"] = "Denegada" });
+
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(A<string>._, A<string>._)).MustNotHaveHappened();
+            A.CallTo(() => navegacion.RequestNavigate("MainRegion", "AutorizacionesPedidoView", A<ParametrosNavegacion>._)).MustHaveHappenedOnceExactly();
+        }
+
         [TestMethod]
         public async Task PulsarLaConsultaDeReembolso_AbreElDialogoParaContestar_EnEsePedido()
         {

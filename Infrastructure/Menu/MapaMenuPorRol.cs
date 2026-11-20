@@ -92,6 +92,8 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Clientes", "Ventas", "Pendientes de entregar"), new DestinoMenu(VENTAS, "Pedidos", 30)),
             // Nesto#546 (NestoAPI#693): los pedidos cuya fecha prometida al cliente ya no se cumple
             (Clave("Clientes", "Ventas", "Fecha en riesgo"), new DestinoMenu(VENTAS, "Pedidos", 35, "Pedidos con la fecha en riesgo")),
+            // Novedades 1258: pedidos que no pasan la validación de ofertas y descuentos y piden autorización
+            (Clave("Clientes", "Ventas", "Autorizaciones"), new DestinoMenu(VENTAS, "Pedidos", 37, "Autorizaciones de pedidos")),
             (Clave("Clientes", "Rapports", "Rapports"), new DestinoMenu(VENTAS, "Vendedores", 40)),
             (Clave("Vendedores", "Clientes", "Ficha"), new DestinoMenu(VENTAS, "Vendedores", 50, "Clientes del vendedor")),
             (Clave("Vendedores", "Clientes", "Planes de Ventajas"), new DestinoMenu(VENTAS, "Vendedores", 60)),
@@ -119,6 +121,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Clientes", "Mantenimiento", "Agencias"), new DestinoMenu(ALMACEN, "Envíos", 70)),
             (Clave("Clientes", "Mantenimiento", "Mant. agencias"), new DestinoMenu(ALMACEN, "Envíos", 80, "Mantenimiento de agencias")),
             (Clave("Productos", "Almacén", "Recogidas solicitadas"), new DestinoMenu(ALMACEN, "Envíos", 85)), // Nesto#635 (NestoAPI#855)
+            (Clave("Productos", "Almacén", "Envíos internos"), new DestinoMenu(ALMACEN, "Envíos", 87, "Envíos internos entre sedes")), // sugerencia 1277
 
             // ── Tiendas y reposición: lo que la tienda pide, recibe y manda a Algete, y lo facturado en ella
             (Clave("Productos", "Reposición", "Diarios"), new DestinoMenu(TIENDAS, "Reposición", 10, "Diarios de reposición")),

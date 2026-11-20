@@ -132,6 +132,23 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>NestoAPI#858: nadie decidió a tiempo y el pedido retenido espera a tenerlo completo. Datos["empresa"] y Datos["pedido"]: abre el pedido.</summary>
         public const string TIPO_PEDIDO_RETENIDO_POR_FALTA_ESPERAR = "PedidoRetenidoPorFaltaEsperar";
 
+        /// <summary>
+        /// Novedades 1258: alguien que no puede crear un pedido sin pasar la validación de ofertas y descuentos pide autorización (a quien
+        /// puede darla). Trae Datos["id"]; al pulsarlo se abre <see cref="VISTA_AUTORIZACIONES_PEDIDO"/> en esa solicitud.
+        /// </summary>
+        public const string TIPO_AUTORIZACION_PEDIDO_PEDIDA = "AutorizacionPedidoPedida";
+        /// <summary>
+        /// Novedades 1258: la solicitud se ha contestado (al solicitante). Datos["id"], Datos["estado"] («Autorizada», «Denegada»…) y,
+        /// si se autorizó, Datos["pedido"] con el pedido creado.
+        /// </summary>
+        public const string TIPO_AUTORIZACION_PEDIDO_RESUELTA = "AutorizacionPedidoResuelta";
+        public const string ESTADO_AUTORIZACION_PEDIDO_AUTORIZADA = "Autorizada";
+        public const string ESTADO_AUTORIZACION_PEDIDO_DENEGADA = "Denegada";
+        /// <summary>Novedades 1258: la ventana (módulo Cliente) «Autorizaciones de pedidos».</summary>
+        public const string VISTA_AUTORIZACIONES_PEDIDO = "AutorizacionesPedidoView";
+        /// <summary>Novedades 1258: parámetro de navegación con que la campana abre esa ventana en una solicitud.</summary>
+        public const string PARAMETRO_AUTORIZACION_PEDIDO_ID = "id";
+
         /// <summary>Nesto#635: si el tipo es uno de los avisos de recogidas solicitadas que abren la pantalla.</summary>
         public static bool EsAvisoRecogidaSolicitada(string tipo)
             => tipo == TIPO_RECOGIDA_SOLICITADA || tipo == TIPO_RECOGIDA_SOLICITADA_SIN_RESPUESTA || tipo == TIPO_RECOGIDA_SOLICITADA_ANULADA;

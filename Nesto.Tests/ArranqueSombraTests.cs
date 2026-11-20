@@ -611,6 +611,7 @@ namespace Nesto.Tests
             "    RibbonButton «Pedidos» [PedidoVentaViewModel]",
             "    RibbonButton «Pendientes de entregar» [PedidoVentaViewModel]", // Nesto#552, después de la referencia de Prism
             "    RibbonButton «Fecha en riesgo» [PedidoVentaViewModel]", // Nesto#546, después de la referencia de Prism
+            "    RibbonButton «Autorizaciones» [PedidoVentaViewModel]", // Novedades 1258, después de la referencia de Prism
             "  RibbonGroup «Rapports» [ListaRapportsViewModel]",
             "    RibbonButton «Rapports» [ListaRapportsViewModel]",
             "  RibbonGroup «Documentos» [CrearClienteViewModel]",
@@ -674,6 +675,7 @@ namespace Nesto.Tests
             "    RibbonButton «Etiquetas de hueco» [ProductoMenuBarViewModel]",
             "    RibbonButton «Recorrido» [ProductoMenuBarViewModel]", // Nesto#528, después de la referencia de Prism
             "    RibbonButton «Recogidas solicitadas» [ProductoMenuBarViewModel]", // Nesto#635, después de la referencia de Prism
+            "    RibbonButton «Envíos internos» [ProductoMenuBarViewModel]", // sugerencia 1277, después de la referencia de Prism
             "  RibbonGroup «Compras» [ProductoMenuBarViewModel]",
             "    RibbonButton «Propuestas de stock» [ProductoMenuBarViewModel]",
             "    RibbonButton «Cambiar estado» [ProductoMenuBarViewModel]", // Nesto#624, después de la referencia de Prism
@@ -727,6 +729,7 @@ namespace Nesto.Tests
             "CambiarEstadoProductosView | CambiarEstadoProductosView | CambiarEstadoProductosViewModel", // Nesto#624, después de la referencia de Prism
             "RecorridoAlmacenView | RecorridoAlmacenView | RecorridoAlmacenViewModel", // Nesto#528, después de la referencia de Prism
             "RecogidasSolicitadasView | RecogidasSolicitadasView | RecogidasSolicitadasViewModel", // Nesto#635, después de la referencia de Prism
+            "EnviosInternosView | EnviosInternosView | EnviosInternosViewModel", // sugerencia 1277, después de la referencia de Prism
             "EnviosProveedorPorAsignarView | EnviosProveedorPorAsignarView | EnviosProveedorPorAsignarViewModel", // Nesto#636, después de la referencia de Prism
             "CrearClienteView | CrearClienteView | CrearClienteViewModel",
             "Modelo347View | Modelo347View | Modelo347ViewModel",
@@ -736,6 +739,7 @@ namespace Nesto.Tests
             "MantenimientoEventosView | MantenimientoEventosView | MantenimientoEventosViewModel",
             "SenalesEventosView | SenalesEventosView | SenalesEventosViewModel",
             "PedidosPromesaRiesgoView | PedidosPromesaRiesgoView | PedidosPromesaRiesgoViewModel", // Nesto#546, después de la referencia de Prism
+            "AutorizacionesPedidoView | AutorizacionesPedidoView | AutorizacionesPedidoViewModel", // Novedades 1258, después de la referencia de Prism
             "HorariosPorRevisarView | HorariosPorRevisarView | HorariosPorRevisarViewModel", // Nesto#584, después de la referencia de Prism
             "ImportarLeadsMetaView | ImportarLeadsMetaView | ImportarLeadsMetaViewModel", // NestoAPI#623 corte 4, después de la referencia de Prism
             "PedidoCompraView | PedidoCompraView | PedidoCompraViewModel",

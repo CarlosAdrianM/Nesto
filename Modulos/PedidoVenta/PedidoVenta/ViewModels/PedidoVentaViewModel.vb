@@ -29,6 +29,7 @@ Public Class PedidoVentaViewModel
         cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdAbrirPendientesEntregar = New RelayCommand(AddressOf OnAbrirPendientesEntregar)
         cmdAbrirPromesaRiesgo = New RelayCommand(AddressOf OnAbrirPromesaRiesgo)
+        cmdAbrirAutorizaciones = New RelayCommand(AddressOf OnAbrirAutorizaciones)
 
         Titulo = "Lista de Pedidos"
     End Sub
@@ -82,6 +83,12 @@ Public Class PedidoVentaViewModel
     Public ReadOnly Property cmdAbrirPromesaRiesgo As RelayCommand
     Private Sub OnAbrirPromesaRiesgo()
         navegacion?.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO)
+    End Sub
+
+    ' Novedades 1258: «Autorizaciones de pedidos» (vista del módulo Cliente, por nombre; la misma que abre la campana)
+    Public ReadOnly Property cmdAbrirAutorizaciones As RelayCommand
+    Private Sub OnAbrirAutorizaciones()
+        navegacion?.RequestNavigate("MainRegion", NotificacionBuzon.VISTA_AUTORIZACIONES_PEDIDO)
     End Sub
 
 #End Region

@@ -34,6 +34,10 @@ namespace Nesto.Modulos.Cliente
             // Nesto#546 (NestoAPI#693): pedidos con la fecha prometida en riesgo (la abre la cinta y el aviso de la campana)
             registro.Vista<PedidosPromesaRiesgoView>(NotificacionBuzon.VISTA_PEDIDOS_PROMESA_RIESGO);
             registro.Transitorio<PedidosPromesaRiesgoViewModel>();
+            // Novedades 1258: autorizaciones de pedidos que no pasan la validación (la abren el menú de Pedidos y la campana; la plantilla las pide)
+            registro.Vista<AutorizacionesPedidoView>(NotificacionBuzon.VISTA_AUTORIZACIONES_PEDIDO);
+            registro.Transitorio<AutorizacionesPedidoViewModel>();
+            registro.Transitorio<IServicioAutorizacionesPedido, ServicioAutorizacionesPedido>();
             // Nesto#584 (NestoAPI#763): horario preferible (pestaña de la ficha y lista de propuestas por revisar)
             registro.Transitorio<IHorarioPreferibleService, HorarioPreferibleService>();
             registro.Vista<HorariosPorRevisarView>("HorariosPorRevisarView");

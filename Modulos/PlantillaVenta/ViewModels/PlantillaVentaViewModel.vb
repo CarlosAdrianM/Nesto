@@ -5164,7 +5164,18 @@ Public Class PlantillaVentaViewModel
                     ' NestoAPI#501: el permiso también puede venir del parámetro de usuario, y leerlo
                     ' es asíncrono, así que la comprobación se hace aquí, fuera del Catch.
                     If Not Await PuedeOmitirValidacion(pedido) Then
-                        Throw crearEx
+                        ' Novedades 1258: quien no puede crearlo «de todos modos» puede pedir autorización con el borrador tal cual.
+                        ' El aviso (con «Pedir autorización» y «Cerrar») sustituye al error de siempre; la plantilla se queda como estaba.
+                        Select Case Await OfrecerPedirAutorizacionAsync(pedido, crearEx.Message)
+                            Case Nesto.Modulos.Cliente.ResultadoOfrecerAutorizacion.NoOfrecida
+                                Throw crearEx
+                            Case Nesto.Modulos.Cliente.ResultadoOfrecerAutorizacion.Pedida, Nesto.Modulos.Cliente.ResultadoOfrecerAutorizacion.YaPedida
+                                Exit Try
+                            Case Else
+                                ' Ha cerrado o no se ha podido pedir: como antes, el borrador automático por si quiere recuperarlo
+                                GuardarBorradorAutomatico(crearEx.Message)
+                                Exit Try
+                        End Select
                     End If
 
                     ' Ahora sí estamos fuera del Catch y podemos Await el diálogo
@@ -5391,6 +5402,25 @@ Public Class PlantillaVentaViewModel
             End If
         End If
         Await SolicitudCambioModoAlmacen.OfrecerAsync(dialogService, servicioPedidosVenta, empresa, numero, modoDeseado, ex.Message)
+    End Function
+
+    ''' <summary>Novedades 1258: para las pruebas; sin él, el del contenedor (módulo Cliente).</summary>
+    Friend Property ServicioAutorizacionesPedido As Nesto.Modulos.Cliente.IServicioAutorizacionesPedido
+
+    ''' <summary>
+    ''' Novedades 1258: el aviso de validación con «Pedir autorización» (solo para quien no puede crearlo de todos modos). Sin servicio
+    ''' devuelve NoOfrecida y no enseña nada.
+    ''' </summary>
+    Friend Function OfrecerPedirAutorizacionAsync(pedido As PedidoVentaDTO, mensajeValidacion As String) As Task(Of Nesto.Modulos.Cliente.ResultadoOfrecerAutorizacion)
+        Dim servicioAutorizaciones As Nesto.Modulos.Cliente.IServicioAutorizacionesPedido = ServicioAutorizacionesPedido
+        If servicioAutorizaciones Is Nothing Then
+            Try
+                servicioAutorizaciones = Contenedor.Actual?.Resolver(Of Nesto.Modulos.Cliente.IServicioAutorizacionesPedido)()
+            Catch
+                servicioAutorizaciones = Nothing
+            End Try
+        End If
+        Return New Nesto.Modulos.Cliente.SolicitudAutorizacionPedido(servicioAutorizaciones, dialogService).OfrecerAsync(pedido, mensajeValidacion)
     End Function
 
     ''' <summary>

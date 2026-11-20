@@ -18,6 +18,9 @@
                 <!-- Nesto#546 (NestoAPI#693): pedidos cuya fecha de entrega prometida al cliente ya no se cumple (la pantalla vive en el módulo Cliente) -->
                 <RibbonButton Label="Fecha en riesgo" ToolTip="Pedidos con la fecha de entrega prometida al cliente en riesgo: se retrasan o se quedan sin fecha"
                               LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirPromesaRiesgo}" />
+                <!-- Novedades 1258: autorizaciones de pedidos que no pasan la validación de ofertas y descuentos (la pantalla vive en el módulo Cliente) -->
+                <RibbonButton Label="Autorizaciones" ToolTip="Autorizaciones de pedidos que no pasan la validación de ofertas y descuentos: contestarlas o ver las suyas"
+                              LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirAutorizaciones}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

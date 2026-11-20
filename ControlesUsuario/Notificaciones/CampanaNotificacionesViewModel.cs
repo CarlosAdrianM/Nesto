@@ -642,6 +642,26 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR, ParametrosCompraSeguimientoPorAsignar(item.Notificacion));
                 return;
             }
+            // Novedades 1258: autorizaciones de pedidos. La pedida (a quien autoriza) abre la ventana en esa solicitud; la resuelta (al
+            // solicitante), si se autorizó y trae el pedido creado, ofrece abrirlo; si no (o dice que no), la ventana, que enseña el motivo.
+            // Va antes del salto genérico al pedido porque la resuelta también trae Datos["pedido"].
+            if ((item.Notificacion.Tipo == NotificacionBuzon.TIPO_AUTORIZACION_PEDIDO_PEDIDA || item.Notificacion.Tipo == NotificacionBuzon.TIPO_AUTORIZACION_PEDIDO_RESUELTA)
+                && _navegacion != null)
+            {
+                PanelAbierto = false;
+                if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_AUTORIZACION_PEDIDO_RESUELTA
+                    && string.Equals(item.Notificacion.Dato("estado")?.Trim(), NotificacionBuzon.ESTADO_AUTORIZACION_PEDIDO_AUTORIZADA, StringComparison.OrdinalIgnoreCase)
+                    && item.Notificacion.DatoEntero("pedido") is int pedidoAutorizado && pedidoAutorizado > 0
+                    && _abridorPedidos != null && _dialogService != null
+                    && _dialogService.ShowConfirmationAnswer("Autorización de pedido", $"Le han autorizado el pedido: se ha creado el pedido {pedidoAutorizado}. ¿Desea abrirlo?"))
+                {
+                    string empresaAutorizada = item.Notificacion.Dato("empresa");
+                    _abridorPedidos.Abrir(string.IsNullOrWhiteSpace(empresaAutorizada) ? EMPRESA_POR_DEFECTO : empresaAutorizada.Trim(), pedidoAutorizado);
+                    return;
+                }
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_AUTORIZACIONES_PEDIDO, ParametrosAutorizacionPedido(item.Notificacion));
+                return;
+            }
             // NestoAPI#555: cualquier aviso que hable de un pedido (el picking con importe, el NIF incorrecto...)
             // abre ese pedido. Va detrás de los tipos con destino propio.
             int? pedido = item.Notificacion.DatoEntero("pedido");
@@ -677,6 +697,18 @@ namespace ControlesUsuario.Notificaciones
                 { "clienteParameter", cliente },
                 { "contactoParameter", string.IsNullOrEmpty(contacto) ? CONTACTO_POR_DEFECTO : contacto }
             };
+        }
+
+        /// <summary>Novedades 1258: la solicitud del aviso (Datos["id"]), para que la ventana la deje elegida. Sin id, vacío: solo se abre.</summary>
+        internal static ParametrosNavegacion ParametrosAutorizacionPedido(NotificacionBuzon notificacion)
+        {
+            var parametros = new ParametrosNavegacion();
+            int? id = notificacion?.DatoEntero("id");
+            if (id.HasValue && id.Value > 0)
+            {
+                parametros.Add(NotificacionBuzon.PARAMETRO_AUTORIZACION_PEDIDO_ID, id.Value);
+            }
+            return parametros;
         }
 
         /// <summary>Nesto#636: el correo del aviso, para que la pantalla elija su envío. Sin correo (o no numérico), vacío: solo se abre.</summary>
