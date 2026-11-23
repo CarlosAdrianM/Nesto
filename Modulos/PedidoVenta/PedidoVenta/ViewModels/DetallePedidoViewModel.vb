@@ -104,6 +104,7 @@ Public Class DetallePedidoViewModel
         ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)) ' Nesto#518
         AnadirCuponCommand = New RelayCommand(AddressOf AnadirCupon, Function() MostrarAvisoCupon) ' Nesto#518
         QuitarCuponCommand = New RelayCommand(AddressOf QuitarCupon, Function() SePuedeQuitarCupon) ' Nesto#518
+        AdelantarCuponCommand = New AsyncRelayCommand(AddressOf AdelantarCuponAsync, Function() MostrarAvisoCuponAdelantable) ' Nesto#648
         Facturador = New FacturadorPedido(New ServicioFacturacionRutas(configuracion, servicioAutenticacion), New ServicioImpresionDocumentos(), dialogService,
                                           New ResolutorReembolsosDesfasados(New ServicioReembolsoEnvios(configuracion, servicioAutenticacion), dialogService))
         cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
@@ -3345,6 +3346,7 @@ Public Class DetallePedidoViewModel
 
     Public Property AnadirCuponCommand As RelayCommand
     Public Property QuitarCuponCommand As RelayCommand
+    Public Property AdelantarCuponCommand As AsyncRelayCommand
 
     ''' <summary>
     ''' GET api/Clientes/{empresa}/{cliente}/Cupones?todos=true al abrir el pedido (o al ponerle cliente a uno nuevo) y después de
@@ -3508,6 +3510,37 @@ Public Class DetallePedidoViewModel
     End Property
 
     ''' <summary>
+    ''' Nesto#648 (NestoAPI#885): el cupón todavía no vale (Emitido), la API dice que se puede adelantar y el pedido no lleva
+    ''' ninguno: aviso con «Usar ya (excepción)». Sin SePuedeAdelantar no se ve nada (como antes).
+    ''' </summary>
+    Public ReadOnly Property MostrarAvisoCuponAdelantable As Boolean
+        Get
+            Return Cupon.SePuedeAdelantar AndAlso Not PedidoLlevaCupon
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' «Usar ya (excepción)»: pide el motivo, POST api/Cupones/{codigo}/Adelantar y, si va bien, pone el cupón ya activo en el
+    ''' aviso de siempre para que se añada con «Añadir el cupón» (no se añade solo). Si la API falla, se enseña su mensaje.
+    ''' </summary>
+    Friend Async Function AdelantarCuponAsync() As Task
+        If Not MostrarAvisoCuponAdelantable Then
+            Return
+        End If
+        Dim resultado = Await Nesto.Infrastructure.Services.AdelantoCupon.PedirMotivoYAdelantarAsync(ServicioCupones, dialogService, Cupon.Cupon)
+        If Not resultado.Adelantado Then
+            Return
+        End If
+        If resultado.Cupon Is Nothing Then
+            Await CargarCuponAsync()
+            Return
+        End If
+        _versionCupon += 1 ' lo que estuviera leyéndose ya no vale
+        Cupon.Aplicar(resultado.Cupon)
+        NotificarCupon()
+    End Function
+
+    ''' <summary>
     ''' La línea del cupón todavía se puede quitar: ni en albarán ni en factura ni con picking. Al guardar sin ella, el servidor
     ''' devuelve el cupón a Activo.
     ''' </summary>
@@ -3592,10 +3625,12 @@ Public Class DetallePedidoViewModel
         OnPropertyChanged(NameOf(Cupon))
         OnPropertyChanged(NameOf(PedidoLlevaCupon))
         OnPropertyChanged(NameOf(MostrarAvisoCupon))
+        OnPropertyChanged(NameOf(MostrarAvisoCuponAdelantable))
         OnPropertyChanged(NameOf(SePuedeQuitarCupon))
         OnPropertyChanged(NameOf(TextoCuponAplicado))
         AnadirCuponCommand?.NotifyCanExecuteChanged()
         QuitarCuponCommand?.NotifyCanExecuteChanged()
+        AdelantarCuponCommand?.NotifyCanExecuteChanged()
     End Sub
 
 #End Region

@@ -48,6 +48,11 @@
                               Foreground="{DynamicResource {x:Static SystemColors.InfoTextBrushKey}}"
                               ToolTip="Añade al pedido la línea del cupón (descuenta su importe con el IVA incluido). Para quitarlo, desmarque la casilla."
                               Visibility="{Binding PuedeUsarCupon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <!-- Nesto#648 (NestoAPI#885): todavía no vale, pero la API deja adelantarlo (con motivo). Después sale la casilla. -->
+                    <Button Content="Usar ya (excepción)" Command="{Binding AdelantarCuponCommand}" Margin="0,4,0,0" Padding="8,1"
+                            HorizontalAlignment="Left"
+                            ToolTip="Pide el motivo y deja el cupón listo para usarse ya, antes de la fecha en que empieza a valer. Después, marque «Usar el cupón»."
+                            Visibility="{Binding PuedeAdelantarCupon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                     <TextBlock Text="{Binding TextoFaltaCupon}" TextWrapping="Wrap" FontStyle="Italic" Margin="0,2,0,0"
                                Visibility="{Binding HayTextoFaltaCupon, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>

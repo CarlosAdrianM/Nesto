@@ -56,6 +56,17 @@ namespace Nesto.Infrastructure.Models
         public string PedidoCanal { get; set; }
         /// <summary>Nesto#547: lo que descontó la tienda, IVA incluido.</summary>
         public decimal? ImporteDescontado { get; set; }
+        /// <summary>
+        /// Nesto#648 (NestoAPI#885): el cupón todavía no vale (Emitido) y quien consulta puede adelantarlo, como excepción y con
+        /// motivo (<c>POST api/Cupones/{codigo}/Adelantar</c>). Con una API anterior no viene: false.
+        /// </summary>
+        public bool SePuedeAdelantar { get; set; }
+    }
+
+    /// <summary>Nesto#648 (NestoAPI#885): <c>POST api/Cupones/{codigo}/Adelantar</c>, motivo obligatorio (1..500).</summary>
+    public class AdelantarCuponDTO
+    {
+        public string Motivo { get; set; }
     }
 
     /// <summary>Nesto#518: <c>POST api/Cupones</c>, cupón sin evento (solo Dirección, con motivo obligatorio).</summary>
@@ -265,6 +276,14 @@ namespace Nesto.Infrastructure.Models
             return string.IsNullOrWhiteSpace(cupon.Mensaje) ? estado : cupon.Mensaje.Trim();
         }
 
+        /// <summary>
+        /// Nesto#648: se ofrece «Usar ya (excepción)» si el cupón todavía no se puede usar y la API dice que se puede adelantar.
+        /// </summary>
+        public static bool SePuedeAdelantar(CuponDTO cupon)
+        {
+            return cupon != null && !cupon.SePuedeUsar && cupon.SePuedeAdelantar && !string.IsNullOrWhiteSpace(cupon.Codigo);
+        }
+
         /// <summary>Solo se anula lo que no se ha usado: Emitido o Activo.</summary>
         public static bool SePuedeAnular(CuponDTO cupon)
         {
@@ -292,6 +311,7 @@ namespace Nesto.Infrastructure.Models
                     OnPropertyChanged(nameof(HayCupon));
                     OnPropertyChanged(nameof(SePuedeUsar));
                     OnPropertyChanged(nameof(NoSePuedeUsar));
+                    OnPropertyChanged(nameof(SePuedeAdelantar));
                     OnPropertyChanged(nameof(Mensaje));
                     OnPropertyChanged(nameof(TextoUsar));
                     OnPropertyChanged(nameof(TextoAnadir));
@@ -305,6 +325,8 @@ namespace Nesto.Infrastructure.Models
         public bool SePuedeUsar => Cupon?.SePuedeUsar == true;
         /// <summary>Hay cupón pero todavía no vale (Emitido) o ya está en un pedido: solo se informa.</summary>
         public bool NoSePuedeUsar => Cupon != null && !Cupon.SePuedeUsar;
+        /// <summary>Nesto#648: todavía no vale, pero se puede adelantar como excepción («Usar ya (excepción)»).</summary>
+        public bool SePuedeAdelantar => ReglasCupon.SePuedeAdelantar(Cupon);
         public string Mensaje => ReglasCupon.Mensaje(Cupon);
         public string TextoUsar => ReglasCupon.TextoUsar(Cupon);
         public string TextoAnadir => ReglasCupon.TextoAnadir(Cupon);

@@ -89,6 +89,7 @@ Public Class PlantillaVentaViewModel
             New Nesto.Infrastructure.Services.ServicioSustitucionesProducto(_clienteApiFactory)) ' NestoAPI#581
         ServicioChequesRegalo = New Nesto.Infrastructure.Services.ServicioChequesRegalo(_clienteApiFactory) ' NestoAPI#593
         ServicioCupones = New Nesto.Infrastructure.Services.ServicioCupones(_clienteApiFactory) ' Nesto#518
+        AdelantarCuponCommand = New AsyncRelayCommand(AddressOf AdelantarCuponAsync, Function() PuedeAdelantarCupon) ' Nesto#648
         ServicioSugerenciasProductos = New Nesto.Infrastructure.Services.ServicioSugerenciasProductos(_clienteApiFactory) ' Nesto#537
         InicializarPagoAPlazos(servicioAutenticacion) ' Nesto#640
 
@@ -6616,6 +6617,36 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ''' <summary>Nesto#648 (NestoAPI#885): el cupón todavía no vale pero la API deja adelantarlo: botón «Usar ya (excepción)».</summary>
+    Public ReadOnly Property PuedeAdelantarCupon As Boolean
+        Get
+            Return Cupon.SePuedeAdelantar AndAlso Not CuponEstaEnElPedidoEnEdicion
+        End Get
+    End Property
+
+    Public Property AdelantarCuponCommand As AsyncRelayCommand
+
+    ''' <summary>
+    ''' «Usar ya (excepción)»: pide el motivo y lo adelanta en la API; si va bien, sale la casilla «Usar el cupón» de siempre (sin
+    ''' marcarla). Si la API falla, se enseña su mensaje.
+    ''' </summary>
+    Friend Async Function AdelantarCuponAsync() As Task
+        If Not PuedeAdelantarCupon Then
+            Return
+        End If
+        Dim resultado = Await Nesto.Infrastructure.Services.AdelantoCupon.PedirMotivoYAdelantarAsync(ServicioCupones, dialogService, Cupon.Cupon)
+        If Not resultado.Adelantado Then
+            Return
+        End If
+        If resultado.Cupon Is Nothing Then
+            Await CargarCuponAsync(forzar:=True)
+            Return
+        End If
+        _versionCupon += 1 ' lo que estuviera leyéndose ya no vale
+        Cupon.Aplicar(resultado.Cupon)
+        NotificarCupon()
+    End Function
+
     Private _usarCupon As Boolean
     ''' <summary>
     ''' Casilla «Usar el cupón»: el pedido lleva la línea del cupón con su código (la completa el servidor) y el total de la
@@ -6730,7 +6761,9 @@ Public Class PlantillaVentaViewModel
     Private Sub NotificarCupon()
         OnPropertyChanged(NameOf(Cupon))
         OnPropertyChanged(NameOf(PuedeUsarCupon))
+        OnPropertyChanged(NameOf(PuedeAdelantarCupon))
         OnPropertyChanged(NameOf(UsarCupon))
+        AdelantarCuponCommand?.NotifyCanExecuteChanged()
         NotificarTotalesCupon()
     End Sub
 

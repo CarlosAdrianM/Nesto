@@ -34,6 +34,13 @@ namespace Nesto.Infrastructure.Services
         Task<CuponDTO> Anular(string codigo, string motivo);
 
         /// <summary>
+        /// Nesto#648 (NestoAPI#885): POST api/Cupones/{codigo}/Adelantar {Motivo}: un cupón que todavía no vale (Emitido) pasa a
+        /// Activo como excepción. Devuelve el cupón actualizado. Lanza con el motivo de la API (400 motivo, 403 sin permiso,
+        /// 404, 409 ya vale, usado, anulado o caducado).
+        /// </summary>
+        Task<CuponDTO> AdelantarCupon(string codigo, string motivo);
+
+        /// <summary>
         /// NestoAPI#614 (pendiente en la API): POST api/Cupones/{codigo}/Usar para decir a NestoAPI que el cupón se ha gastado en
         /// la tienda y que el pedido ha entrado sin él (ya estaba usado o anulado en Nesto): la API avisa a Administración.
         /// Nunca lanza. Devuelve false si la API no lo tiene todavía (404) o falla.
@@ -145,6 +152,29 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
+        public async Task<CuponDTO> AdelantarCupon(string codigo, string motivo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                throw new ArgumentException("Falta el código del cupón.", nameof(codigo));
+            }
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                throw new ArgumentException("Para usar ya el cupón hace falta un motivo.", nameof(motivo));
+            }
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                HttpResponseMessage response = await client.PostAsync($"Cupones/{Uri.EscapeDataString(codigo.Trim())}/Adelantar",
+                    Json(new AdelantarCuponDTO { Motivo = motivo.Trim() })).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(await NovedadesService.MensajeDeError(response, "adelantar el cupón").ConfigureAwait(false));
+                }
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return string.IsNullOrWhiteSpace(json) ? null : JsonConvert.DeserializeObject<CuponDTO>(json);
+            }
+        }
+
         public async Task<bool> AvisarUsoEnTienda(string codigo, UsoCuponTiendaDTO uso)
         {
             if (string.IsNullOrWhiteSpace(codigo) || uso == null)
@@ -166,5 +196,61 @@ namespace Nesto.Infrastructure.Services
         }
 
         private static StringContent Json(object objeto) => new(JsonConvert.SerializeObject(objeto), Encoding.UTF8, "application/json");
+    }
+
+    /// <summary>Nesto#648: lo que ha pasado al pulsar «Usar ya (excepción)».</summary>
+    public class ResultadoAdelantoCupon
+    {
+        public static readonly ResultadoAdelantoCupon NoSeHaHecho = new();
+
+        /// <summary>La API lo ha adelantado.</summary>
+        public bool Adelantado { get; init; }
+        /// <summary>El cupón como lo devuelve la API (null si no vino: entonces hay que volver a leerlo).</summary>
+        public CuponDTO Cupon { get; init; }
+    }
+
+    /// <summary>
+    /// Nesto#648 (NestoAPI#885): el «Usar ya (excepción)» del detalle del pedido y de la plantilla de venta: pide el motivo, llama a
+    /// la API y avisa. Con motivo vacío o cancelado no llama. Nunca lanza: el error de la API se enseña tal cual.
+    /// </summary>
+    public static class AdelantoCupon
+    {
+        public const string TITULO = "Usar ya el cupón (excepción)";
+        public const string TEXTO_ADELANTADO = "Cupón adelantado: ya se puede añadir al pedido.";
+        public const int LONGITUD_MAXIMA_MOTIVO = 500;
+
+        public static async Task<ResultadoAdelantoCupon> PedirMotivoYAdelantarAsync(IServicioCupones servicio, IServicioDialogos dialogos, CuponDTO cupon)
+        {
+            if (servicio == null || dialogos == null || !ReglasCupon.SePuedeAdelantar(cupon))
+            {
+                return ResultadoAdelantoCupon.NoSeHaHecho;
+            }
+            string codigo = cupon.Codigo.Trim();
+            string motivo = dialogos.GetText(TITULO,
+                $"El cupón {codigo} de {ReglasCupon.Euros(cupon.Importe)} vale desde el {ReglasCupon.Fecha(cupon.ValidoDesde)}. " +
+                "Para que se pueda usar ya, como excepción, escriba el motivo (obligatorio):");
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                return ResultadoAdelantoCupon.NoSeHaHecho; // canceló o lo dejó en blanco: no se toca nada
+            }
+            motivo = motivo.Trim();
+            if (motivo.Length > LONGITUD_MAXIMA_MOTIVO)
+            {
+                dialogos.ShowError($"El motivo no puede tener más de {LONGITUD_MAXIMA_MOTIVO} caracteres (tiene {motivo.Length}).");
+                return ResultadoAdelantoCupon.NoSeHaHecho;
+            }
+            CuponDTO actualizado;
+            try
+            {
+                actualizado = await servicio.AdelantarCupon(codigo, motivo);
+            }
+            catch (Exception ex)
+            {
+                dialogos.ShowError(ex.Message);
+                return ResultadoAdelantoCupon.NoSeHaHecho;
+            }
+            dialogos.ShowNotification(TITULO, TEXTO_ADELANTADO);
+            return new ResultadoAdelantoCupon { Adelantado = true, Cupon = string.IsNullOrWhiteSpace(actualizado?.Codigo) ? null : actualizado };
+        }
     }
 }

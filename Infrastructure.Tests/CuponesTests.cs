@@ -198,6 +198,41 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public async Task AdelantarCupon_PostAdelantarConElMotivo_YDevuelveElCuponActivo_YSePuedeAdelantarSeLee()
+        {
+            var handler = new HandlerFalso { Respuesta = ACTIVO };
+            var servicio = new ServicioCupones(new FactoriaFalsa(handler));
+
+            CuponDTO cupon = await servicio.AdelantarCupon(" EV-2610-7K3Q ", " La clienta viene hoy a la tienda. ");
+
+            Assert.AreEqual("POST /api/Cupones/EV-2610-7K3Q/Adelantar", handler.Urls[0]);
+            Assert.AreEqual("La clienta viene hoy a la tienda.", (string)JObject.Parse(handler.Cuerpos[0])["Motivo"]);
+            Assert.IsTrue(cupon.SePuedeUsar);
+            Assert.IsFalse(cupon.SePuedeAdelantar, "Sin la propiedad (API anterior): false");
+
+            handler.Respuesta = ACTIVO.Replace("\"Estado\":\"Activo\",\"SePuedeUsar\":true", "\"Estado\":\"Emitido\",\"SePuedeUsar\":false,\"SePuedeAdelantar\":true");
+            Assert.IsTrue((await servicio.LeerPorCodigo("EV-2610-7K3Q")).SePuedeAdelantar);
+        }
+
+        [TestMethod]
+        public async Task AdelantarCupon_ErrorDeLaApi_LanzaConSuMensaje_YSinMotivoNoLlama()
+        {
+            var handler = new HandlerFalso
+            {
+                Codigo = HttpStatusCode.Conflict,
+                Respuesta = "{\"error\":{\"message\":\"El cupón EV-2610-7K3Q ya se puede usar.\"}}"
+            };
+            var servicio = new ServicioCupones(new FactoriaFalsa(handler));
+
+            var ex = await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => servicio.AdelantarCupon("EV-2610-7K3Q", "motivo"));
+            StringAssert.Contains(ex.Message, "ya se puede usar");
+
+            handler.Urls.Clear();
+            _ = await Assert.ThrowsExceptionAsync<ArgumentException>(() => servicio.AdelantarCupon("EV-2610-7K3Q", "  "));
+            Assert.AreEqual(0, handler.Urls.Count);
+        }
+
+        [TestMethod]
         public async Task AvisarUsoEnTienda_PostUsar_Y404EsFalseSinLanzar()
         {
             var handler = new HandlerFalso { Respuesta = "{}" };
