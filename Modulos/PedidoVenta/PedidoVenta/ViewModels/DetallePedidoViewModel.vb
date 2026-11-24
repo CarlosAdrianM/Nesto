@@ -2553,10 +2553,11 @@ Public Class DetallePedidoViewModel
             textoBusyIndicator = "Guardando pedido..."
             estaBloqueado = True
 
+            Await PreguntarCampanasAntesDeGuardarAsync(EstaCreandoPedido) ' Feria online 11/26 (contado) y NestoAPI#889 (solo en stock)
             If EstaCreandoPedido Then
-                Await ProponerContadoPorCampanaAsync() ' Feria online 11/26
                 Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 pedido.numero = numeroPedidoCreado
+                AvisoPedidoModel.MostrarCursosVendidosAMano(AvisoPedidoModel.DelAlta(pedido.Model), Sub(tituloAviso, textoAviso) dialogService.ShowNotification(tituloAviso, textoAviso)) ' NestoAPI#889
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
                 OnPropertyChanged(NameOf(TextoBotonGuardar))
                 Titulo = $"Pedido Venta ({pedido.numero})"
@@ -2579,6 +2580,7 @@ Public Class DetallePedidoViewModel
                 ' Caso 931007: lo añadido se ha ido a otro pedido; en pantalla aún está: se dice, se ofrece abrirlo y se recarga este
                 Await ResolverPedidoNuevoAmpliacionAsync(pedidoNuevoAmpliacion.Value, mensajePedidoNuevoAmpliacion)
             End If
+            OlvidarCampanaSoloEnStock() ' NestoAPI#889: la elección valía para este guardado (y sus reintentos)
             Return True ' Guardado exitoso, continuar
 
         Catch ex As GuardadoCanceladoPorFechaEntregaException
@@ -2997,12 +2999,16 @@ Public Class DetallePedidoViewModel
         EmpezarGuardadoPedido() ' Nesto#642
         Dim recogeEnTiendaTocado As Boolean = pedido.Model.RecogeEnTiendaTocado ' Nesto#503: tras guardar se vuelve a leer
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
+        Dim quitoDescuentoSoloEnStock As Boolean = False ' NestoAPI#889
+        Dim adoptadoTrasGuardar As Boolean = False
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
             Dim crearModificarEx As Exception = Nothing
 
+            Await PreguntarCampanasAntesDeGuardarAsync(esPedidoNuevo) ' Feria online 11/26 (contado) y NestoAPI#889 (solo en stock)
+            quitoDescuentoSoloEnStock = pedido.Model.CampanaSoloEnStock = AvisoCampanaSoloEnStock.QUITAR_DESCUENTO
+
             If esPedidoNuevo Then
-                Await ProponerContadoPorCampanaAsync() ' Feria online 11/26
                 Try
                     Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                     pedido.numero = numeroPedidoCreado
@@ -3030,6 +3036,8 @@ Public Class DetallePedidoViewModel
                         Throw crearModificarEx
                     End If
                 End If
+                ' NestoAPI#889: avisos del alta («solo en stock», lo partido con QuitarDescuento, curso vendido a mano)
+                AvisoPedidoModel.MostrarCursosVendidosAMano(AvisoPedidoModel.DelAlta(pedido.Model), Sub(titulo, mensaje) dialogService.ShowNotification(titulo, mensaje))
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
                 OnPropertyChanged(NameOf(TextoBotonGuardar))
                 NotificarCambioNotaEntrega() ' Nesto#579: la casilla ya no se puede tocar
@@ -3058,7 +3066,7 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 _fotoAlCargar = FotoTrasGuardar() ' Nesto#642: recién creado, sus líneas no tienen Nº de orden: sin foto
-                AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): salvo que la API devuelva el pedido creado
+                adoptadoTrasGuardar = AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): salvo que la API devuelva el pedido creado
                 AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
@@ -3091,7 +3099,7 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
-                AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
+                adoptadoTrasGuardar = AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
                 messenger.Send(New PedidoModificadoMensaje(pedido.Model))
                 ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
                 Await ProcesarAvisosModificacion(avisosModificacion)
@@ -3102,6 +3110,7 @@ Public Class DetallePedidoViewModel
             ' Issue #135: Gestionar etiqueta de recogida
             Await GestionarEtiquetaRecogida()
             guardado = True
+            OlvidarCampanaSoloEnStock() ' NestoAPI#889: la elección valía para este guardado (y sus reintentos)
         Catch ex As GuardadoCanceladoPorFechaEntregaException
             ' NestoAPI#712: ha dicho que la fecha de entrega no es correcta; se vuelve a editar sin más mensajes
         Catch ex As ModoConPickingException
@@ -3158,7 +3167,8 @@ Public Class DetallePedidoViewModel
 
         ' Nesto#503: la API ha cambiado la ruta y ha quitado o puesto los portes y la comisión: se vuelve a leer el pedido
         ' (la carga ya pide la fecha de entrega, el cheque y el cupón)
-        If guardado AndAlso recogeEnTiendaTocado AndAlso pedido IsNot Nothing AndAlso pedido.numero > 0 Then
+        ' NestoAPI#889: con «QuitarDescuento» la API ha partido líneas; si no ha devuelto el pedido tal como ha quedado, se relee
+        If guardado AndAlso (recogeEnTiendaTocado OrElse (quitoDescuentoSoloEnStock AndAlso Not adoptadoTrasGuardar)) AndAlso pedido IsNot Nothing AndAlso pedido.numero > 0 Then
             Await CargarPedidoAsync(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
             Return
         End If
@@ -3186,6 +3196,50 @@ Public Class DetallePedidoViewModel
             pedido.plazosPago = pedido.Model.plazosPago ' para que la pantalla lo enseñe
         End If
     End Function
+
+    ''' <summary>
+    ''' NestoAPI#889 (Black Friday 2026, Carlos 24/11/26): por defecto lo que no hay en stock de una campaña «solo en stock» va sin su
+    ''' descuento; si la API lo dice, se pregunta (Sí → QuitarDescuento, No → MantenerDescuento). Si ya está puesto (reintento del
+    ''' mismo guardado) se respeta. Si la consulta falla, no se pregunta.
+    ''' </summary>
+    Friend Async Function PreguntarCampanaSoloEnStockAsync() As Task
+        If pedido?.Model Is Nothing Then
+            Return
+        End If
+        Await AvisoCampanaSoloEnStock.PreguntarYAplicar(pedido.Model,
+                Function() servicio.ConsultarAvisoCampanaSoloEnStock(pedido.Model),
+                Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje))
+    End Function
+
+    ''' <summary>
+    ''' Las preguntas de campaña antes de guardar (primero el contado, después «solo en stock»). Al crear, siempre; al modificar, solo
+    ''' si este guardado cambia algo que importa respecto a lo cargado o guardado la última vez (<see cref="ReglaPreguntasCampanaAlModificar"/>).
+    ''' </summary>
+    Friend Async Function PreguntarCampanasAntesDeGuardarAsync(esPedidoNuevo As Boolean) As Task
+        If pedido?.Model Is Nothing Then
+            Return
+        End If
+        If esPedidoNuevo Then
+            Await ProponerContadoPorCampanaAsync()
+            Await PreguntarCampanaSoloEnStockAsync()
+            Return
+        End If
+        Dim original As PedidoVentaDTO = _fotoAlCargar
+        Dim preguntarStock As Boolean = ReglaPreguntasCampanaAlModificar.HayQuePreguntarStock(original, pedido.Model)
+        If ReglaPreguntasCampanaAlModificar.HayQuePreguntarContado(original, pedido.Model) Then
+            Await ProponerContadoPorCampanaAsync()
+        End If
+        If preguntarStock Then
+            Await PreguntarCampanaSoloEnStockAsync()
+        End If
+    End Function
+
+    ''' <summary>NestoAPI#889: la elección vale para un guardado (con sus reintentos); el siguiente vuelve a decidir.</summary>
+    Private Sub OlvidarCampanaSoloEnStock()
+        If pedido?.Model IsNot Nothing Then
+            pedido.Model.CampanaSoloEnStock = Nothing
+        End If
+    End Sub
 
     ''' <summary>NestoAPI#712: «La fecha de entrega de las líneas es el miércoles 27/10/2027 (dentro de 365 días). ¿Es correcta?»</summary>
     Private Function PreguntarFechaEntregaLejana(titulo As String, mensaje As String) As Task(Of Boolean)

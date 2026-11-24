@@ -45,6 +45,8 @@ Public Class AvisoPedidoModel
     ''' </summary>
     Public Const TIPO_CAMPANA_SOLO_EN_STOCK As String = "CampanaSoloEnStock"
     Public Const TITULO_CAMPANA_SOLO_EN_STOCK As String = "Oferta solo para lo que hay en stock"
+    ''' <summary>NestoAPI#889: se guardó con «QuitarDescuento» y la API ha partido o ajustado las líneas; el mensaje dice lo hecho.</summary>
+    Public Const TIPO_CAMPANA_SOLO_EN_STOCK_APLICADO As String = "CampanaSoloEnStockAplicado"
 
     ''' <summary>19/11/26: enseña los avisos del curso vendido a mano (los demás tipos los trata cada pantalla).</summary>
     Public Shared Sub MostrarCursosVendidosAMano(avisos As IEnumerable(Of AvisoPedidoModel), mostrar As Action(Of String, String))
@@ -55,10 +57,20 @@ Public Class AvisoPedidoModel
             mostrar(TITULO_CURSO_VENDIDO_A_MANO, aviso.Mensaje)
         Next
         ' NestoAPI#889: va aquí porque esta llamada ya está en los tres guardados (detalle, plantilla al crear y al modificar)
-        For Each aviso In avisos.Where(Function(x) x?.Tipo = TIPO_CAMPANA_SOLO_EN_STOCK AndAlso Not String.IsNullOrWhiteSpace(x.Mensaje))
+        For Each aviso In avisos.Where(Function(x) (x?.Tipo = TIPO_CAMPANA_SOLO_EN_STOCK OrElse x?.Tipo = TIPO_CAMPANA_SOLO_EN_STOCK_APLICADO) AndAlso
+                                           Not String.IsNullOrWhiteSpace(x.Mensaje))
             mostrar(TITULO_CAMPANA_SOLO_EN_STOCK, aviso.Mensaje)
         Next
     End Sub
+
+    ''' <summary>NestoAPI#889: los «AvisosGrabacion» del alta que el servicio deja en el pedido (vacía si no hay o no se entienden).</summary>
+    Public Shared Function DelAlta(pedido As Nesto.Models.PedidoVentaDTO) As List(Of AvisoPedidoModel)
+        Try
+            Return If(pedido?.AvisosGrabacion?.ToObject(Of List(Of AvisoPedidoModel))(), New List(Of AvisoPedidoModel))
+        Catch
+            Return New List(Of AvisoPedidoModel)
+        End Try
+    End Function
 
     Public Property Tipo As String
     Public Property Mensaje As String

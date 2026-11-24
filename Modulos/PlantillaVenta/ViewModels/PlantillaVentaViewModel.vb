@@ -5061,6 +5061,9 @@ Public Class PlantillaVentaViewModel
 
         ' Sugerencia 899: con cursos, ¿se le manda el correo al cliente? (la API lo adapta a la forma de pago)
         Dim enviarCorreoCursos As Boolean? = PreguntarCorreoCursos()
+        If Not reintentoConModoDelPedido Then
+            _eleccionCampanaSoloEnStock = Nothing ' NestoAPI#889: cada guardado nuevo vuelve a decidir
+        End If
 
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()
@@ -5099,6 +5102,18 @@ Public Class PlantillaVentaViewModel
                 ' Incidencia 1328: las líneas con picking viajan con la fecha que tenían (si no, el servidor lo toma por un aplazamiento)
                 If FechaEntregaLineasConPicking.HayLineasConPicking(estadoFresco) Then
                     Await ConservarFechaLineasConPickingAsync(pedido, clienteSeleccionado.empresa, NumeroPedidoEnEdicion.Value)
+                End If
+
+                ' Black Friday 2026 (Carlos 24/11/26): al modificar, las preguntas de campaña solo si este guardado cambia algo que importa
+                Dim originalCampana As PedidoVentaDTO = PedidoOriginalParaPreguntasCampana(estadoFresco)
+                Dim preguntarStock As Boolean = ReglaPreguntasCampanaAlModificar.HayQuePreguntarStock(originalCampana, pedido)
+                If Not reintentoConModoDelPedido AndAlso ReglaPreguntasCampanaAlModificar.HayQuePreguntarContado(originalCampana, pedido) Then
+                    Await AvisoCondicionesCampana.PreguntarYAplicar(pedido,
+                        Function() servicio.ConsultarAvisoCondicionesCampana(pedido),
+                        Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje))
+                End If
+                If preguntarStock OrElse _eleccionCampanaSoloEnStock IsNot Nothing Then
+                    Await PreguntarCampanaSoloEnStockAsync(pedido) ' NestoAPI#889
                 End If
 
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
@@ -5153,6 +5168,7 @@ Public Class PlantillaVentaViewModel
                         Function() servicio.ConsultarAvisoCondicionesCampana(pedido),
                         Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje))
                 End If
+                Await PreguntarCampanaSoloEnStockAsync(pedido) ' NestoAPI#889 (en el reintento, la misma respuesta)
                 Dim crearEx As Exception = Nothing
                 Try
                     respuestaCrear = Await FechaEntregaLejanaException.GuardarPreguntando(pedido, Function() servicio.CrearPedido(pedido), AddressOf PreguntarFechaEntregaLejana) ' NestoAPI#712
@@ -5462,6 +5478,50 @@ Public Class PlantillaVentaViewModel
         Public Property Producto As String
         Public Property IdLinea As Integer
     End Class
+
+    ''' <summary>
+    ''' NestoAPI#889: el pedido tal como está guardado, en forma de PedidoVentaDTO, para <see cref="ReglaPreguntasCampanaAlModificar"/>
+    ''' (forma y plazos de pago y, por Nº de orden, la cantidad de la línea de pago, la de oferta y los regalos). Nothing si no se sabe.
+    ''' </summary>
+    Friend Shared Function PedidoOriginalParaPreguntasCampana(estadoFresco As PedidoParaPlantillaModel) As PedidoVentaDTO
+        If estadoFresco Is Nothing Then
+            Return Nothing
+        End If
+        Dim original As New PedidoVentaDTO With {
+            .formaPago = estadoFresco.FormaPago,
+            .plazosPago = estadoFresco.PlazosPago,
+            .Lineas = New List(Of LineaPedidoVentaDTO)
+        }
+        For Each linea In If(estadoFresco.Lineas, New List(Of LineaParaPlantillaModel))
+            If linea.IdLineaPago > 0 Then
+                original.Lineas.Add(New LineaPedidoVentaDTO With {.id = linea.IdLineaPago, .Producto = linea.Producto, .Cantidad = linea.Cantidad, .tipoLinea = 1})
+            End If
+            If linea.IdLineaOferta.HasValue AndAlso linea.IdLineaOferta.Value > 0 Then
+                original.Lineas.Add(New LineaPedidoVentaDTO With {.id = linea.IdLineaOferta.Value, .Producto = linea.Producto, .Cantidad = linea.CantidadOferta, .tipoLinea = 1})
+            End If
+        Next
+        For Each regalo In If(estadoFresco.Regalos, New List(Of RegaloParaPlantillaModel))
+            If regalo.IdLinea > 0 Then
+                original.Lineas.Add(New LineaPedidoVentaDTO With {.id = regalo.IdLinea, .Producto = regalo.Producto, .Cantidad = regalo.Cantidad, .tipoLinea = 1})
+            End If
+        Next
+        Return original
+    End Function
+
+    ''' <summary>NestoAPI#889: la respuesta a «solo en stock» de este guardado, para que el reintento (modo con picking) no pregunte otra vez.</summary>
+    Private _eleccionCampanaSoloEnStock As String
+
+    ''' <summary>
+    ''' NestoAPI#889 (Black Friday 2026, Carlos 24/11/26): pregunta «solo en stock» si la API lo pide (Sí → QuitarDescuento, No →
+    ''' MantenerDescuento). En un reintento del mismo guardado se reutiliza la respuesta. Si la consulta falla, no se pregunta.
+    ''' </summary>
+    Private Async Function PreguntarCampanaSoloEnStockAsync(pedido As PedidoVentaDTO) As Task
+        pedido.CampanaSoloEnStock = _eleccionCampanaSoloEnStock
+        Await AvisoCampanaSoloEnStock.PreguntarYAplicar(pedido,
+            Function() servicio.ConsultarAvisoCampanaSoloEnStock(pedido),
+            Function(titulo, mensaje) dialogService.ShowConfirmationAsync(titulo, mensaje))
+        _eleccionCampanaSoloEnStock = pedido.CampanaSoloEnStock
+    End Function
 
     Friend Shared Function PrimeraLineaConPickingAlterada(estadoFresco As PedidoParaPlantillaModel, pedido As PedidoVentaDTO) As LineaConPickingAlterada
         If estadoFresco Is Nothing OrElse pedido Is Nothing Then

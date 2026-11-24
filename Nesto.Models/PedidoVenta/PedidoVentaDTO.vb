@@ -134,6 +134,17 @@ Public Class PedidoVentaDTO
     ''' </summary>
     <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
     Public Property AmpliacionEnPreparacion As String
+    ''' <summary>
+    ''' NestoAPI#889 (Black Friday 2026): qué hacer al guardar con lo que no hay en stock de una campaña «solo en stock»
+    ''' («QuitarDescuento»: la API parte las líneas; «MantenerDescuento»: tal cual). Nothing = como hasta ahora. Lo pone la pregunta
+    ''' de <see cref="AvisoCampanaSoloEnStock"/> antes de guardar y se vacía al terminar el guardado. Solo viaja si tiene valor;
+    ''' no cuenta como cambio sin guardar (no está en Equals).
+    ''' </summary>
+    <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
+    Public Property CampanaSoloEnStock As String
+    ''' <summary>NestoAPI#889: los avisos que no bloquean del último alta («AvisosGrabacion» del POST). Lo pone el servicio; no viaja.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public Property AvisosGrabacion As Newtonsoft.Json.Linq.JArray
     ''' <summary>Caso 931007: solo de salida (UnirPedidos): el pedido nuevo que ha creado la API con lo añadido. No viaja.</summary>
     <Newtonsoft.Json.JsonProperty(NullValueHandling:=Newtonsoft.Json.NullValueHandling.Ignore)>
     Public Property PedidoNuevoAmpliacion As Integer?

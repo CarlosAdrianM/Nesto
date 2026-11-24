@@ -72,14 +72,14 @@ Partial Public Class DetallePedidoViewModel
     ''' conserva. Así «Recargar conservando mis cambios» funciona también después de guardar líneas nuevas. Sin él (API vieja), lo
     ''' de antes.
     ''' </summary>
-    Friend Sub AdoptarPedidoGuardadoSiLoHay()
+    Friend Function AdoptarPedidoGuardadoSiLoHay() As Boolean
         Dim guardado As PedidoVentaDTO = pedido?.Model?.GuardadoEnServidor
         If guardado Is Nothing Then
-            Return
+            Return False
         End If
         pedido.Model.GuardadoEnServidor = Nothing
         If guardado.numero <> pedido.numero Then
-            Return
+            Return False
         End If
         Dim idSeleccionada As Integer = If(lineaActual?.id, 0)
         Dim posicionSeleccionada As Integer = If(lineaActual Is Nothing, -1, pedido.Lineas.IndexOf(lineaActual))
@@ -93,7 +93,8 @@ Partial Public Class DetallePedidoViewModel
         ElseIf posicionSeleccionada >= 0 AndAlso posicionSeleccionada < pedido.Lineas.Count Then
             lineaActual = pedido.Lineas(posicionSeleccionada) ' una línea nueva: la de la misma posición
         End If
-    End Sub
+        Return True
+    End Function
 
     ''' <summary>Para los tests: hay foto con la que conservar los cambios.</summary>
     Friend ReadOnly Property TieneFotoAlCargar As Boolean

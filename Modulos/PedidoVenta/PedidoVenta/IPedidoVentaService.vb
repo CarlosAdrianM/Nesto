@@ -57,6 +57,8 @@ Public Interface IPedidoVentaService
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
     ''' <summary>Feria online 11/26: ¿hay que proponer pago al contado? (POST api/PedidosVenta/AvisoCondicionesCampana). Nothing si falla.</summary>
     Function ConsultarAvisoCondicionesCampana(pedido As PedidoVentaDTO) As Task(Of AvisoCondicionesCampanaRespuesta)
+    ''' <summary>NestoAPI#889 (Black Friday 2026): ¿hay algo de una campaña «solo en stock» sin stock? (POST api/PedidosVenta/AvisoCampanaSoloEnStock). Nothing si falla.</summary>
+    Function ConsultarAvisoCampanaSoloEnStock(pedido As PedidoVentaDTO) As Task(Of AvisoCampanaSoloEnStockRespuesta)
     ''' <summary>Nesto#484 / NestoAPI#518: modo sugerido y modos permitidos para el pedido tal cual está en pantalla.
     ''' Nothing si la API falla (el combo se queda con todas las opciones, como antes).</summary>
     Function ModoServicioSugerido(pedido As PedidoVentaDTO) As Task(Of ModoServicioSugeridoDTO)

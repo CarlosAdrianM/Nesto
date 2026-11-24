@@ -23,6 +23,8 @@ Public Interface IPlantillaVentaService
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of RespuestaCrearPedidoPlantilla)
     ''' <summary>Feria online 11/26: ¿hay que proponer pago al contado? (POST api/PedidosVenta/AvisoCondicionesCampana). Nothing si falla.</summary>
     Function ConsultarAvisoCondicionesCampana(pedido As PedidoVentaDTO) As Task(Of AvisoCondicionesCampanaRespuesta)
+    ''' <summary>NestoAPI#889 (Black Friday 2026): ¿hay algo de una campaña «solo en stock» sin stock? (POST api/PedidosVenta/AvisoCampanaSoloEnStock). Nothing si falla.</summary>
+    Function ConsultarAvisoCampanaSoloEnStock(pedido As PedidoVentaDTO) As Task(Of AvisoCampanaSoloEnStockRespuesta)
     ''' <summary>
     ''' Nesto#543 / NestoAPI#691: los eventos futuros de un curso, con sus modalidades
     ''' (GET api/Eventos/PorProducto). Lista vacía si no tiene ninguno; Nothing si no se ha podido consultar.

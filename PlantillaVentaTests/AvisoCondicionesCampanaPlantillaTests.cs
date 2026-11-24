@@ -134,22 +134,101 @@ namespace PlantillaVentaTests
             Assert.AreEqual(1, _creados.Count);
         }
 
-        [TestMethod]
-        public async Task Modificar_NoPregunta()
+        /// <summary>
+        /// Black Friday 2026 (Carlos 24/11/26): al modificar con la plantilla, las preguntas de campaña solo saltan si el guardado
+        /// cambia algo que importa respecto al pedido guardado (el que la plantilla relee antes del PUT).
+        /// </summary>
+        private PlantillaVentaViewModel ModificandoPedidoGuardadoCon(int cantidadGuardada, string plazosGuardados = "1/30")
         {
-            LaApiAvisa();
-            Responde(true);
             var vm = CrearViewModel();
+            foreach (LineaPlantillaVenta linea in vm.ListaFiltrableProductos.ListaOriginal)
+                linea.idLineaPedido = 11;
             vm.NumeroPedidoEnEdicion = 929678;
             A.CallTo(() => _servicio.CargarPedidoParaPlantilla("1", 929678)).Returns(Task.FromResult(new PedidoParaPlantillaModel
             {
-                Lineas = new List<LineaParaPlantillaModel>()
+                FormaPago = "RCB",
+                PlazosPago = plazosGuardados,
+                Lineas = new List<LineaParaPlantillaModel>
+                {
+                    new LineaParaPlantillaModel { IdLineaPago = 11, Producto = "45383", Cantidad = cantidadGuardada }
+                }
             }));
             A.CallTo(() => _pedidosVenta.modificarPedido(A<PedidoVentaDTO>._)).Returns(Task.FromResult(new List<AvisoPedidoModel>()));
+            return vm;
+        }
+
+        [TestMethod]
+        public async Task Modificar_SinCambiosQueImporten_NoPregunta()
+        {
+            LaApiAvisa();
+            Responde(true);
+            var vm = ModificandoPedidoGuardadoCon(cantidadGuardada: 1);
 
             await vm.CrearPedidoAsync();
 
             A.CallTo(() => _servicio.ConsultarAvisoCondicionesCampana(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.ConsultarAvisoCampanaSoloEnStock(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+            A.CallTo(() => _pedidosVenta.modificarPedido(A<PedidoVentaDTO>.That.Matches(p => p.CampanaSoloEnStock == null))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Modificar_CambiaLosPlazos_PreguntaElContado()
+        {
+            LaApiAvisa();
+            Responde(true);
+            var vm = ModificandoPedidoGuardadoCon(cantidadGuardada: 1, plazosGuardados: "CONTADO");
+
+            await vm.CrearPedidoAsync();
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(AvisoCondicionesCampana.TITULO, MENSAJE)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.ConsultarAvisoCampanaSoloEnStock(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Modificar_SubeLaCantidad_PreguntaStockYMandaLaRespuesta()
+        {
+            Responde(false);
+            A.CallTo(() => _servicio.ConsultarAvisoCampanaSoloEnStock(A<PedidoVentaDTO>._)).Returns(Task.FromResult(new AvisoCampanaSoloEnStockRespuesta
+            {
+                HayAviso = true, Mensaje = "Del 45383 hay 0 en stock."
+            }));
+            var vm = ModificandoPedidoGuardadoCon(cantidadGuardada: 0);
+
+            await vm.CrearPedidoAsync();
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(AvisoCampanaSoloEnStock.TITULO, AvisoCampanaSoloEnStock.TextoPregunta("Del 45383 hay 0 en stock."))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.ConsultarAvisoCondicionesCampana(A<PedidoVentaDTO>._)).MustNotHaveHappened();
+            A.CallTo(() => _pedidosVenta.modificarPedido(A<PedidoVentaDTO>.That.Matches(p => p.CampanaSoloEnStock == "MantenerDescuento"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Crear_ConAvisoDeStockYDiceQueSi_QuitaElDescuento()
+        {
+            Responde(true);
+            A.CallTo(() => _servicio.ConsultarAvisoCampanaSoloEnStock(A<PedidoVentaDTO>._)).Returns(Task.FromResult(new AvisoCampanaSoloEnStockRespuesta
+            {
+                HayAviso = true, Mensaje = "Del 45383 hay 0 en stock."
+            }));
+            var vm = CrearViewModel();
+
+            await vm.CrearPedidoAsync();
+
+            Assert.AreEqual(1, _creados.Count);
+            Assert.AreEqual("QuitarDescuento", _creados[0].CampanaSoloEnStock);
+        }
+
+        [TestMethod]
+        public async Task Crear_LaApiDeStockFalla_SeCreaSinPreguntar()
+        {
+            Responde(true);
+            A.CallTo(() => _servicio.ConsultarAvisoCampanaSoloEnStock(A<PedidoVentaDTO>._)).ThrowsAsync(new InvalidOperationException("404"));
+            var vm = CrearViewModel();
+
+            await vm.CrearPedidoAsync();
+
+            A.CallTo(() => _dialogos.ShowConfirmationAsync(AvisoCampanaSoloEnStock.TITULO, A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual(1, _creados.Count);
+            Assert.IsNull(_creados[0].CampanaSoloEnStock);
         }
 
         // ---------- El núcleo común (Nesto.Models) ----------

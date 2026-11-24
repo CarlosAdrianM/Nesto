@@ -1368,6 +1368,29 @@ Public Class PedidoVentaService
         End Try
     End Function
 
+    Public Async Function ConsultarAvisoCampanaSoloEnStock(pedido As PedidoVentaDTO) As Task(Of AvisoCampanaSoloEnStockRespuesta) Implements IPedidoVentaService.ConsultarAvisoCampanaSoloEnStock
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Return Nothing
+                End If
+                Return Await AvisoCampanaSoloEnStock.Consultar(client, pedido)
+            End Using
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>NestoAPI#889: «AvisosGrabacion» del cuerpo del POST, sin importar mayúsculas. Nothing si no hay o no se entiende.</summary>
+    Friend Shared Function LeerAvisosGrabacion(cuerpo As String) As JArray
+        Try
+            Dim raiz = TryCast(JToken.Parse(cuerpo), JObject)
+            Return TryCast(raiz?.GetValue("AvisosGrabacion", StringComparison.OrdinalIgnoreCase), JArray)
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer) Implements IPedidoVentaService.CrearPedido
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -1383,6 +1406,7 @@ Public Class PedidoVentaService
 
             Try
                 pedido.GuardadoEnServidor = Nothing
+                pedido.AvisosGrabacion = Nothing
                 Dim response As HttpResponseMessage = Await client.PostAsync(URL_PEDIDOS_DEVOLVIENDO_PEDIDO, content) ' Nesto#642 (ampliación)
 
                 If response.IsSuccessStatusCode Then
@@ -1394,6 +1418,7 @@ Public Class PedidoVentaService
                     Dim numeroPedidoStr = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
                     Dim numeroCreado As Integer = Integer.Parse(numeroPedidoStr)
                     pedido.GuardadoEnServidor = PedidoGuardadoValido(LeerPedidoGuardado(cuerpoCreado), numeroCreado) ' Nesto#642 (ampliación)
+                    pedido.AvisosGrabacion = LeerAvisosGrabacion(cuerpoCreado) ' NestoAPI#889
                     Return numeroCreado
                 Else
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
