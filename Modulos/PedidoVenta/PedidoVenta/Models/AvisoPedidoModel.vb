@@ -39,6 +39,12 @@ Public Class AvisoPedidoModel
     ''' </summary>
     Public Const TIPO_CURSO_VENDIDO_A_MANO As String = "CursoVendidoAMano"
     Public Const TITULO_CURSO_VENDIDO_A_MANO As String = "Curso de un evento"
+    ''' <summary>
+    ''' NestoAPI#889 (Black Friday 2026): una línea lleva el descuento de una campaña «solo en stock» y no hay bastante (no bloquea
+    ''' ni quita el descuento: decide quien pasa el pedido). El mensaje dice cuántas hay.
+    ''' </summary>
+    Public Const TIPO_CAMPANA_SOLO_EN_STOCK As String = "CampanaSoloEnStock"
+    Public Const TITULO_CAMPANA_SOLO_EN_STOCK As String = "Oferta solo para lo que hay en stock"
 
     ''' <summary>19/11/26: enseña los avisos del curso vendido a mano (los demás tipos los trata cada pantalla).</summary>
     Public Shared Sub MostrarCursosVendidosAMano(avisos As IEnumerable(Of AvisoPedidoModel), mostrar As Action(Of String, String))
@@ -47,6 +53,10 @@ Public Class AvisoPedidoModel
         End If
         For Each aviso In avisos.Where(Function(a) a?.Tipo = TIPO_CURSO_VENDIDO_A_MANO AndAlso Not String.IsNullOrWhiteSpace(a.Mensaje))
             mostrar(TITULO_CURSO_VENDIDO_A_MANO, aviso.Mensaje)
+        Next
+        ' NestoAPI#889: va aquí porque esta llamada ya está en los tres guardados (detalle, plantilla al crear y al modificar)
+        For Each aviso In avisos.Where(Function(x) x?.Tipo = TIPO_CAMPANA_SOLO_EN_STOCK AndAlso Not String.IsNullOrWhiteSpace(x.Mensaje))
+            mostrar(TITULO_CAMPANA_SOLO_EN_STOCK, aviso.Mensaje)
         Next
     End Sub
 
