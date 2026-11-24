@@ -249,7 +249,7 @@ namespace ControlesUsuario.Services
     /// </summary>
     public class ServicioEnviosDevueltos : IServicioEnviosDevueltos
     {
-        public const string MENSAJE_SIN_PERMISO = "No tiene permiso para decidir sobre los envíos devueltos. Pídaselo a Administración o a Almacén.";
+        public const string MENSAJE_SIN_PERMISO = "No tiene permiso para decidir sobre los envíos devueltos: lo deciden quien hizo el pedido, su vendedor, Almacén o Dirección. Pídaselo a alguno de ellos.";
 
         private readonly IClienteApiFactory _clienteApiFactory;
 
