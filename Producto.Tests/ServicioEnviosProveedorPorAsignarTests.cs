@@ -173,5 +173,27 @@ namespace Producto.Tests
 
             Assert.AreEqual(404, ex.Codigo);
         }
-    }
+    
+        [TestMethod]
+        public async Task LeerPorAsignar_LeeDePendientesBultosYKilos_YConLaApiDeAntesQuedanVacios()
+        {
+            const string json = @"{""Envios"":[{""Clave"":101,""Agencia"":""DHL"",""Codigos"":[""4313144450""],
+                ""Correos"":[{""Id"":101,""Bultos"":8,""Kilos"":123},{""Id"":102}],
+                ""Candidatos"":[{""Empresa"":""1"",""Pedido"":220975,""DePendientes"":true,""MotivoDePendientes"":""se envió el 20/08/2026, hace más de 30 días""},
+                {""Empresa"":""1"",""Pedido"":220983}]}],""PedidosEnAire"":[]}";
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, json));
+
+            EnviosProveedorPorAsignar leido = await Crear(handler).LeerPorAsignar(7);
+
+            EnvioProveedorPorAsignar envio = leido.Envios.Single();
+            Assert.AreEqual(8, envio.Correos[0].Bultos);
+            Assert.AreEqual(123M, envio.Correos[0].Kilos);
+            Assert.IsNull(envio.Correos[1].Bultos);
+            Assert.AreEqual("8 bultos · 123 kg", envio.BultosKilosTexto);
+            Assert.IsTrue(envio.Candidatos[0].DePendientes);
+            Assert.AreEqual("se envió el 20/08/2026, hace más de 30 días", envio.Candidatos[0].MotivoDePendientes);
+            Assert.IsFalse(envio.Candidatos[1].DePendientes);
+            Assert.IsNull(envio.Candidatos[1].MotivoDePendientes);
+        }
+}
 }

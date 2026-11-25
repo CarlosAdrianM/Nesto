@@ -483,5 +483,57 @@ namespace Producto.Tests
 
             A.CallTo(() => navegacion.RequestNavigate("MainRegion", "EnviosProveedorPorAsignarView")).MustHaveHappenedOnceExactly();
         }
-    }
+    
+        // ------------------------------------------------------------------ NestoAPI#897: de pendientes, bultos y kilos
+
+        [TestMethod]
+        public async Task ElCandidatoDePendientes_SeMarcaConSuMotivo_YSePuedeElegirYAsignar()
+        {
+            EnviosProveedorPorAsignar leido = Leido();
+            PedidoCompraPorAsignar dePendientes = leido.Envios[0].Candidatos[0];
+            dePendientes.DePendientes = true;
+            dePendientes.MotivoDePendientes = "se envió el 20/08/2026, hace más de 30 días";
+            A.CallTo(() => _servicio.LeerPorAsignar(A<int>._)).Returns(Task.FromResult(leido));
+            EnviosProveedorPorAsignarViewModel vm = Crear();
+            await Llegar(vm);
+
+            Assert.AreEqual("de pendientes: se envió el 20/08/2026, hace más de 30 días", vm.Candidatos[0].DePendientesTexto);
+            Assert.IsTrue(vm.Candidatos[0].HayDePendientesTexto);
+            Assert.AreEqual(string.Empty, vm.Candidatos[1].DePendientesTexto);
+            Assert.IsFalse(vm.Candidatos[1].HayDePendientesTexto);
+
+            vm.CandidatoSeleccionado = vm.Candidatos[0];
+            StringAssert.EndsWith(vm.TextoPedidoElegido, "Ojo: es un pedido de pendientes: se envió el 20/08/2026, hace más de 30 días.");
+            Assert.IsTrue(vm.AsignarCommand.CanExecute(null), "Se puede elegir igual");
+            await vm.AsignarAsync();
+
+            A.CallTo(() => _servicio.Asignar(101, "1", 912000, A<bool>._, A<bool>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task BultosYKilos_DelPrimerCorreoQueLosTrae_JuntoALaAgenciaYElCodigo()
+        {
+            EnviosProveedorPorAsignar leido = Leido();
+            leido.Envios[0].Correos[1].Bultos = 8;
+            leido.Envios[0].Correos[1].Kilos = 123M;
+            A.CallTo(() => _servicio.LeerPorAsignar(A<int>._)).Returns(Task.FromResult(leido));
+            EnviosProveedorPorAsignarViewModel vm = Crear();
+            await Llegar(vm);
+
+            Assert.AreEqual("8 bultos · 123 kg", vm.EnvioSeleccionado!.BultosKilosTexto);
+            Assert.AreEqual("  ·  8 bultos · 123 kg", vm.EnvioSeleccionado.BultosKilosSufijo);
+            Assert.IsNull(vm.Envios[1].BultosKilosTexto, "Sin datos (otra agencia o API de antes), nada");
+            Assert.AreEqual(string.Empty, vm.Envios[1].BultosKilosSufijo);
+        }
+
+        [TestMethod]
+        public void TextoBultosKilos_SingularDecimalesYSoloUnoDeLosDos()
+        {
+            Assert.AreEqual("1 bulto · 12,5 kg", CorreoEnvioProveedor.TextoBultosKilos(1, 12.5M));
+            Assert.AreEqual("3 bultos", CorreoEnvioProveedor.TextoBultosKilos(3, null));
+            Assert.AreEqual("7 kg", CorreoEnvioProveedor.TextoBultosKilos(null, 7M));
+            Assert.IsNull(CorreoEnvioProveedor.TextoBultosKilos(null, null));
+            Assert.IsNull(CorreoEnvioProveedor.TextoBultosKilos(0, 0M));
+        }
+}
 }

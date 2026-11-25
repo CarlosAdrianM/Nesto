@@ -82,6 +82,18 @@ namespace Nesto.Modules.Producto
             ? EntregaEstimadaDia.Value.ToString("dddd dd/MM/yy", CultureInfo.GetCultureInfo("es-ES"))
             : "El correo no la dice";
 
+        /// <summary>
+        /// NestoAPI#897: «8 bultos · 123 kg» del primer correo del envío que los trae (hoy solo los de DHL); null si ninguno. Solo se
+        /// enseñan: no deciden nada.
+        /// </summary>
+        [JsonIgnore]
+        public string BultosKilosTexto => (Correos ?? new List<CorreoEnvioProveedor>())
+            .Select(c => c?.BultosKilosTexto).FirstOrDefault(t => !string.IsNullOrEmpty(t));
+
+        /// <summary>Lo que va detrás de la agencia y el código en la cabecera del envío: «  ·  8 bultos · 123 kg» o nada.</summary>
+        [JsonIgnore]
+        public string BultosKilosSufijo => string.IsNullOrEmpty(BultosKilosTexto) ? string.Empty : "  ·  " + BultosKilosTexto;
+
         [JsonIgnore]
         public string FechaRecepcionPropuestaTexto => FechaRecepcionPropuesta.ToString("dddd dd/MM/yy", CultureInfo.GetCultureInfo("es-ES"));
 
@@ -115,6 +127,28 @@ namespace Nesto.Modules.Producto
         public string ProveedorPropuesto { get; set; }
         public DateTime? EntregaEstimadaDia { get; set; }
         public string RemitentePaquete { get; set; }
+        /// <summary>NestoAPI#897: los bultos del aviso (hoy solo DHL); null si el correo no los dice o la API es de antes.</summary>
+        public int? Bultos { get; set; }
+        /// <summary>NestoAPI#897: los kilos del aviso (hoy solo DHL); null si el correo no los dice o la API es de antes.</summary>
+        public decimal? Kilos { get; set; }
+
+        /// <summary>«8 bultos · 123 kg», «1 bulto», «12,5 kg»; null si no hay ninguno de los dos.</summary>
+        [JsonIgnore]
+        public string BultosKilosTexto => TextoBultosKilos(Bultos, Kilos);
+
+        public static string TextoBultosKilos(int? bultos, decimal? kilos)
+        {
+            var partes = new List<string>();
+            if (bultos.HasValue && bultos.Value > 0)
+            {
+                partes.Add(bultos.Value == 1 ? "1 bulto" : $"{bultos.Value} bultos");
+            }
+            if (kilos.HasValue && kilos.Value > 0)
+            {
+                partes.Add($"{kilos.Value.ToString("0.##", CultureInfo.GetCultureInfo("es-ES"))} kg");
+            }
+            return partes.Count == 0 ? null : string.Join(" · ", partes);
+        }
 
         [JsonIgnore]
         public string Remitente => string.IsNullOrWhiteSpace(RemitenteDireccion) ? RemitenteDominio?.Trim() : RemitenteDireccion.Trim();
@@ -141,6 +175,13 @@ namespace Nesto.Modules.Producto
         public int LineasYaRecibidas { get; set; }
         /// <summary>Solo en los candidatos: el que propone la API (como mucho uno por envío). No se elige solo en la API: aquí sale preseleccionado.</summary>
         public bool Sugerido { get; set; }
+        /// <summary>
+        /// NestoAPI#897, solo en los candidatos: es un pedido «de pendientes» de un proveedor con control de pendientes (alguna línea ya
+        /// recibida o enviado hace más de 30 días): la API nunca le pone la fecha sola, pero se puede elegir.
+        /// </summary>
+        public bool DePendientes { get; set; }
+        /// <summary>NestoAPI#897: por qué es de pendientes («se envió el 20/08/2026, hace más de 30 días»); null si no lo es.</summary>
+        public string MotivoDePendientes { get; set; }
         /// <summary>Solo en los pedidos en el aire: es candidato de algún envío de la lista.</summary>
         public bool EsCandidato { get; set; }
         /// <summary>Solo en los pedidos en el aire: las claves de los envíos de los que es candidato.</summary>
@@ -168,6 +209,15 @@ namespace Nesto.Modules.Producto
         public string LineasTexto => EsResto
             ? $"{LineasPendientes} pendientes y {LineasYaRecibidas} ya {(LineasYaRecibidas == 1 ? "recibida" : "recibidas")}: {RESTO}"
             : $"{LineasPendientes} pendientes";
+
+        /// <summary>«de pendientes: se envió el 20/08/2026, hace más de 30 días» (en gris en la pantalla); vacío si no lo es.</summary>
+        [JsonIgnore]
+        public string DePendientesTexto => !DePendientes
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(MotivoDePendientes) ? "de pendientes" : $"de pendientes: {MotivoDePendientes.Trim()}";
+
+        [JsonIgnore]
+        public bool HayDePendientesTexto => DePendientes;
 
         [JsonIgnore]
         public string SugeridoTexto => Sugerido ? "Sugerido" : string.Empty;

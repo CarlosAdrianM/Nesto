@@ -88,7 +88,7 @@
                                   Visibility="{Binding HayEnvioSeleccionado, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
                             <TextBlock FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap">
-                                <Run Text="{Binding EnvioSeleccionado.AgenciaTexto, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding EnvioSeleccionado.CodigosTexto, Mode=OneWay}" />
+                                <Run Text="{Binding EnvioSeleccionado.AgenciaTexto, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding EnvioSeleccionado.CodigosTexto, Mode=OneWay}" /><Run Text="{Binding EnvioSeleccionado.BultosKilosSufijo, Mode=OneWay}" />
                             </TextBlock>
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
@@ -149,7 +149,18 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Por qué" Binding="{Binding Motivo}" Width="*" />
+                                    <!-- NestoAPI#897: el de pendientes se marca en gris con su motivo; se puede elegir igual -->
+                                    <DataGridTemplateColumn Header="Por qué" Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Motivo}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding DePendientesTexto}" TextWrapping="Wrap" Foreground="Gray"
+                                                               Visibility="{Binding HayDePendientesTexto, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
 

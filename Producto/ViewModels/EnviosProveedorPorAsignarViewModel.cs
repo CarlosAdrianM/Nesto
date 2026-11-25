@@ -217,7 +217,9 @@ namespace Nesto.Modules.Producto.ViewModels
         public string TextoPedidoElegido => PedidoElegido == null
             ? MENSAJE_SIN_PEDIDO
             : $"Se asignará al pedido {PedidoElegido.Pedido} de {PedidoElegido.ProveedorTexto}" +
-              (PedidoElegido.EsResto ? $" ({PedidoCompraPorAsignar.RESTO})." : ".");
+              (PedidoElegido.EsResto ? $" ({PedidoCompraPorAsignar.RESTO})." : ".") +
+              // NestoAPI#897: se puede elegir, pero que se vea que es el de pendientes
+              (PedidoElegido.DePendientes ? $" Ojo: es un pedido {PedidoElegido.DePendientesTexto}." : string.Empty);
 
         private void PrepararEleccion(EnvioProveedorPorAsignar envio)
         {
