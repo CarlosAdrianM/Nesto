@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Globalization
 Imports CommunityToolkit.Mvvm.Input
+Imports ControlesUsuario.Dialogs
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports CommunityToolkit.Mvvm.ComponentModel
 Imports Nesto.Infrastructure.Contracts
@@ -37,6 +38,10 @@ Public Class InventarioViewModel
         cmdVerDiferencias = New RelayCommand(AddressOf OnVerDiferencias)
         ' Sugerencia 1185: dejar el producto a cero en todas sus ubicaciones (POST api/Inventarios/DejarACero).
         cmdDejarACero = New AsyncRelayCommand(AddressOf DejarACeroEnUbicaciones)
+        ' 25/11/26 (Paloma rellenó sin querer 3.032 filas de ALC): deshacer el rellenado de la tienda ese día.
+        cmdDeshacerRellenado = New AsyncRelayCommand(AddressOf DeshacerRellenado)
+        ' Novedad 1456 (Paloma): «Borrar» en la lista de las filas que la API marca como borrables.
+        cmdBorrarFila = New AsyncRelayCommand(Of InventarioDTO)(AddressOf BorrarFila, AddressOf EsFilaBorrable)
 
         Titulo = "Inventario Tienda"
 
@@ -905,11 +910,19 @@ Public Class InventarioViewModel
             End Try
         End If
         Dim clave = ClaveRelleno()
-        If Not EsAlmacenDeTienda(almacen) OrElse _preguntadosAlAbrir.Contains(clave) Then
+        If Not EsAlmacenDeTienda(almacen) Then
+            PonerDeshacer(Nothing)
             Return
         End If
-        _preguntadosAlAbrir.Add(clave)
-        Await AsegurarRellenado()
+        Dim lecturasAntes = _lecturasDeshacer
+        If Not _preguntadosAlAbrir.Contains(clave) Then
+            _preguntadosAlAbrir.Add(clave)
+            Await AsegurarRellenado()
+        End If
+        ' 25/11/26: si ese día hay un rellenado que se puede deshacer, se ofrece (si se acaba de rellenar, ya se ha mirado).
+        If _lecturasDeshacer = lecturasAntes Then
+            Await ActualizarDeshacerRellenado()
+        End If
     End Function
 
     ''' <summary>
@@ -937,8 +950,10 @@ Public Class InventarioViewModel
             Return False
         End Try
 
-        Dim mensaje = $"Antes de contar hay que rellenar el inventario con el stock actual de {almacenTienda}. ¿Rellenar ahora?"
-        If Not dialogService.ShowConfirmationAnswer("Rellenar inventario", mensaje) Then
+        ' 25/11/26 (Paloma rellenó sin querer 3.032 filas de ALC; no era la primera vez): ya no basta con un «Sí». Se dice
+        ' cuántas filas va a crear y hay que ESCRIBIR el nombre o el código del almacén.
+        Dim previa = Await LeerPreviaSinFallar(almacenTienda, fechaSeleccionada.Date)
+        If Not PedirConfirmacionRellenar(almacenTienda, fechaSeleccionada.Date, previa) Then
             Return False
         End If
 
@@ -946,7 +961,7 @@ Public Class InventarioViewModel
         Dim yaContabilizado As InventarioYaContabilizadoException = Nothing
         estaOcupado = True
         Try
-            Return RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, False))
+            Return Await RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, False, almacenTienda))
         Catch ex As InventarioYaContabilizadoException
             yaContabilizado = ex
         Catch ex As InventarioYaRellenadoException
@@ -966,7 +981,7 @@ Public Class InventarioViewModel
         End If
         estaOcupado = True
         Try
-            Return RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, True))
+            Return Await RellenadoAhora(clave, Await _servicio.Rellenar(EMPRESA_DEFECTO, almacenTienda, fechaSeleccionada.Date, True, almacenTienda))
         Catch ex As InventarioYaRellenadoException
             _rellenados.Add(clave)
             dialogService.ShowNotification("Inventario", ex.Message)
@@ -994,13 +1009,238 @@ Public Class InventarioViewModel
         Return dialogService.ShowConfirmationAnswer(TITULO_CONTAR_OTRA_VEZ, mensaje, True)
     End Function
 
-    Private Function RellenadoAhora(clave As String, respuesta As RellenarInventarioRespuestaDTO) As Boolean
+    Private Async Function RellenadoAhora(clave As String, respuesta As RellenarInventarioRespuestaDTO) As Task(Of Boolean)
         _rellenados.Add(clave)
         Dim filas = If(respuesta Is Nothing, 0, respuesta.Filas)
         Dim unidades = If(respuesta Is Nothing, 0, respuesta.Unidades)
         dialogService.ShowNotification("Inventario rellenado", $"Inventario rellenado: {filas} productos, {unidades} unidades.")
+        ' 25/11/26: si se ha rellenado sin querer, que se pueda deshacer en el acto.
+        Await ActualizarDeshacerRellenado()
         Return True
     End Function
+
+#Region "Confirmar y deshacer el rellenado (25/11/26)"
+    Public Const TITULO_RELLENAR As String = "Rellenar inventario"
+    Public Const TITULO_DESHACER_RELLENADO As String = "Deshacer el rellenado"
+    Public Const TEXTO_BOTON_RELLENAR As String = "Rellenar"
+
+    Private Shared ReadOnly CulturaEspanola As New CultureInfo("es-ES")
+
+    ''' <summary>La Previa de la API; Nothing si no la tiene (servidor antiguo) o si falla: entonces se pide igual escribir el nombre.</summary>
+    Private Async Function LeerPreviaSinFallar(almacenTienda As String, dia As Date) As Task(Of PreviaRellenarInventarioDTO)
+        Try
+            Return Await _servicio.PreviaRellenar(EMPRESA_DEFECTO, almacenTienda, dia)
+        Catch
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' LA REGLA (pura) de lo que vale escribir para confirmar el rellenado: el código del almacén, el nombre que dice la API y el
+    ''' nombre de la sede que conocemos («ALC», «Alcobendas»).
+    ''' </summary>
+    Public Shared Function TextosQueConfirmanRellenar(almacenTienda As String, previa As PreviaRellenarInventarioDTO) As List(Of String)
+        Dim codigo = If(almacenTienda, String.Empty).Trim()
+        Dim textos As New List(Of String)
+        If codigo.Length > 0 Then
+            textos.Add(codigo)
+        End If
+        If previa IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(previa.NombreAlmacen) Then
+            textos.Add(previa.NombreAlmacen.Trim())
+        End If
+        Dim sede = Constantes.Sedes.ListaSedes.FirstOrDefault(Function(s) String.Equals(s.Codigo, codigo, StringComparison.OrdinalIgnoreCase))
+        If sede IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(sede.Nombre) Then
+            textos.Add(sede.Nombre.Trim())
+        End If
+        Return textos.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+    End Function
+
+    ''' <summary>El nombre del almacén para los textos: el de la API, el de la sede o, si no, el código.</summary>
+    Private Shared Function NombreAlmacen(almacenTienda As String, previa As PreviaRellenarInventarioDTO) As String
+        Dim textos = TextosQueConfirmanRellenar(almacenTienda, previa)
+        Return If(textos.Count > 1, textos(1), If(almacenTienda, String.Empty).Trim())
+    End Function
+
+    ''' <summary>
+    ''' El mensaje del diálogo: el de la Previa («Va a crear 3.032 filas de inventario en Alcobendas con fecha 25/11/2026.») o, sin
+    ''' ella, sin la cifra.
+    ''' </summary>
+    Public Shared Function MensajeConfirmarRellenar(almacenTienda As String, dia As Date, previa As PreviaRellenarInventarioDTO) As String
+        If previa IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(previa.Mensaje) Then
+            Return previa.Mensaje.Trim()
+        End If
+        Return $"Va a rellenar el inventario de {NombreAlmacen(almacenTienda, previa)} con el stock actual, con fecha {dia.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}. Antes de contar hay que rellenarlo."
+    End Function
+
+    Private Function PedirConfirmacionRellenar(almacenTienda As String, dia As Date, previa As PreviaRellenarInventarioDTO) As Boolean
+        Dim aceptables = TextosQueConfirmanRellenar(almacenTienda, previa)
+        Dim instruccion = $"Si de verdad quiere rellenarlo, escriba el nombre o el código del almacén ({String.Join(" o ", aceptables)}) y pulse «{TEXTO_BOTON_RELLENAR}»."
+        Return ConfirmacionEscribiendo.Pedir(dialogService, TITULO_RELLENAR, MensajeConfirmarRellenar(almacenTienda, dia, previa),
+                                             instruccion, TEXTO_BOTON_RELLENAR, aceptables)
+    End Function
+
+    ' Veces que se ha mirado si se puede deshacer (ComprobarRellenoAlAbrir no repite la lectura si se acaba de hacer).
+    Private _lecturasDeshacer As Integer
+    Private _previaDeshacer As PreviaRellenarInventarioDTO
+
+    Private _puedeDeshacerRellenado As Boolean
+    ''' <summary>Hay un rellenado de este almacén y día que se puede deshacer (lo dice la Previa: PuedeDeshacer). Si no, no se ve el botón.</summary>
+    Public Property PuedeDeshacerRellenado As Boolean
+        Get
+            Return _puedeDeshacerRellenado
+        End Get
+        Private Set(value As Boolean)
+            SetProperty(_puedeDeshacerRellenado, value)
+        End Set
+    End Property
+
+    Private Sub PonerDeshacer(previa As PreviaRellenarInventarioDTO)
+        _previaDeshacer = If(previa IsNot Nothing AndAlso previa.PuedeDeshacer, previa, Nothing)
+        PuedeDeshacerRellenado = _previaDeshacer IsNot Nothing
+    End Sub
+
+    ''' <summary>Mira (Previa) si el rellenado de la tienda ese día se puede deshacer. Nunca falla: si no se sabe, no se ofrece.</summary>
+    Public Async Function ActualizarDeshacerRellenado() As Task
+        _lecturasDeshacer += 1
+        If Not EsAlmacenDeTienda(almacen) Then
+            PonerDeshacer(Nothing)
+            Return
+        End If
+        PonerDeshacer(Await LeerPreviaSinFallar(almacen.Trim(), fechaSeleccionada.Date))
+    End Function
+
+    Private _cmdDeshacerRellenado As AsyncRelayCommand
+    Public Property cmdDeshacerRellenado As AsyncRelayCommand
+        Get
+            Return _cmdDeshacerRellenado
+        End Get
+        Private Set(value As AsyncRelayCommand)
+            SetProperty(_cmdDeshacerRellenado, value)
+        End Set
+    End Property
+
+    ''' <summary>«Se han borrado 3.032 filas.» / «Se ha borrado 1 fila.» (y las contadas, si había).</summary>
+    Public Shared Function MensajeRellenadoDeshecho(respuesta As DeshacerRellenarInventarioRespuestaDTO) As String
+        Dim borradas = If(respuesta Is Nothing, 0, respuesta.FilasBorradas)
+        Dim texto = If(borradas = 1, "Se ha borrado 1 fila.", $"Se han borrado {borradas.ToString("N0", CulturaEspanola)} filas.")
+        Dim contadas = If(respuesta Is Nothing, 0, respuesta.FilasContadas)
+        If contadas > 0 Then
+            texto += If(contadas = 1, " 1 de ellas ya estaba contada.", $" {contadas.ToString("N0", CulturaEspanola)} de ellas ya estaban contadas.")
+        End If
+        Return texto
+    End Function
+
+    ''' <summary>
+    ''' 25/11/26: borra las filas pendientes del rellenado de la tienda ese día (DELETE api/Inventarios/Rellenar; la API decide quién
+    ''' puede: quien lo rellenó si todas son suyas y ninguna está contada). Con confirmación («No» por defecto); después recarga la lista.
+    ''' </summary>
+    Public Async Function DeshacerRellenado() As Task
+        If Not PuedeDeshacerRellenado OrElse Not EsAlmacenDeTienda(almacen) Then
+            Return
+        End If
+        Dim almacenTienda = almacen.Trim()
+        Dim dia = fechaSeleccionada.Date
+        Dim previa = _previaDeshacer
+        Dim filas = If(previa Is Nothing, 0, previa.FilasPendientesYa)
+        Dim cuantas = If(filas = 1, "la fila", If(filas > 1, $"las {filas.ToString("N0", CulturaEspanola)} filas", "las filas"))
+        Dim mensaje = $"Se van a borrar {cuantas} pendientes del inventario de {NombreAlmacen(almacenTienda, previa)} del {dia.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}. El stock no cambia. ¿Deshacer el rellenado?"
+        If Not dialogService.ShowConfirmationAnswer(TITULO_DESHACER_RELLENADO, mensaje, True) Then
+            Return
+        End If
+
+        Dim respuesta As DeshacerRellenarInventarioRespuestaDTO = Nothing
+        estaOcupado = True
+        Try
+            respuesta = Await _servicio.DeshacerRellenado(EMPRESA_DEFECTO, almacenTienda, dia)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaOcupado = False
+        End Try
+
+        If respuesta IsNot Nothing Then
+            ' Ya no está rellenado: al contar se volverá a preguntar.
+            _rellenados.Remove(ClaveRelleno())
+            Dim aviso = MensajeRellenadoDeshecho(respuesta)
+            Try
+                movimientosTotal = New ObservableCollection(Of InventarioDTO)(Await _servicio.LeerLineas(EMPRESA_DEFECTO, almacenTienda, dia))
+            Catch ex As Exception
+                ' Lo borrado, borrado está: si no se puede recargar la lista, se dice en el mismo aviso.
+                aviso += " No se ha podido recargar la lista: " + ex.Message
+            End Try
+            dialogService.ShowNotification(TITULO_DESHACER_RELLENADO, aviso)
+        End If
+        Await ActualizarDeshacerRellenado()
+    End Function
+#End Region
+
+#Region "Borrar una fila desde la lista (novedad 1456)"
+    Public Const MENSAJE_FILA_BORRADA As String = "Fila borrada. El stock no cambia."
+
+    Private _cmdBorrarFila As AsyncRelayCommand(Of InventarioDTO)
+    Public Property cmdBorrarFila As AsyncRelayCommand(Of InventarioDTO)
+        Get
+            Return _cmdBorrarFila
+        End Get
+        Private Set(value As AsyncRelayCommand(Of InventarioDTO))
+            SetProperty(_cmdBorrarFila, value)
+        End Set
+    End Property
+
+    ''' <summary>Lo decide la API (SePuedeBorrar): sin la marca, o sin Nº de orden, no hay botón.</summary>
+    Public Shared Function EsFilaBorrable(fila As InventarioDTO) As Boolean
+        Return fila IsNot Nothing AndAlso fila.SePuedeBorrar AndAlso fila.NumOrden > 0
+    End Function
+
+    ''' <summary>La fila de la lista como la de las comprobaciones, para la MISMA confirmación que «Borrar esta fila».</summary>
+    Public Shared Function ComoFilaComprobacion(fila As InventarioDTO) As FilaComprobacionInventarioDTO
+        Return New FilaComprobacionInventarioDTO With {
+            .NumOrden = fila.NumOrden, .Producto = fila.Producto, .Descripcion = fila.Descripcion,
+            .StockCalculado = fila.StockCalculado, .StockReal = fila.StockReal,
+            .Pasillo = fila.Pasillo, .Fila = fila.Fila, .Columna = fila.Columna,
+            .Usuario = fila.Usuario, .Fecha = fila.Fecha, .SePuedeBorrar = fila.SePuedeBorrar
+        }
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1456 (Paloma no encontró cómo borrar una fila pendiente suya de otro día): la misma confirmación (por defecto «No»)
+    ''' y la misma llamada que «Borrar esta fila» de las comprobaciones (DELETE api/Inventarios/Filas/{Nº orden}); después recarga la
+    ''' lista. Los errores de la API (409 contabilizada, 403…), con su mensaje.
+    ''' </summary>
+    Public Async Function BorrarFila(fila As InventarioDTO) As Task
+        If Not EsFilaBorrable(fila) OrElse estaOcupado Then
+            Return
+        End If
+        If Not dialogService.ShowConfirmationAnswer(ComprobacionesInventarioDialogViewModel.TITULO_BORRAR_FILA,
+                                                   ComprobacionesInventarioDialogViewModel.TextoConfirmarBorrado(ComoFilaComprobacion(fila)), True) Then
+            Return
+        End If
+        Dim borrada = False
+        estaOcupado = True
+        Try
+            Await _servicio.BorrarFila(fila.NumOrden)
+            borrada = True
+        Catch ex As FilaInventarioNoEncontradaException
+            ' Ya no está (la habrá borrado otro): se avisa y se recarga igual.
+            dialogService.ShowError(ex.Message)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+            Return
+        Finally
+            estaOcupado = False
+        End Try
+
+        Dim aviso = If(borrada, MENSAJE_FILA_BORRADA, Nothing)
+        Try
+            movimientosTotal = New ObservableCollection(Of InventarioDTO)(Await _servicio.LeerLineas(EMPRESA_DEFECTO, almacen, fechaSeleccionada))
+        Catch ex As Exception
+            aviso = If(aviso Is Nothing, String.Empty, aviso + " ") + "No se ha podido recargar la lista: " + ex.Message
+        End Try
+        If Not String.IsNullOrEmpty(aviso) Then
+            dialogService.ShowNotification(ComprobacionesInventarioDialogViewModel.TITULO_BORRAR_FILA, aviso)
+        End If
+    End Function
+#End Region
 
     Public Async Function InsertarProducto(producto As String) As Task(Of Movimiento)
         Return Await OnInsertarProducto(producto)

@@ -108,7 +108,7 @@ Public Class InventarioConflictosTests
             "{""Message"":""Ya hay 64 filas de ALC contadas y contabilizadas hoy (Paloma: 64, traspaso 77263). Si de verdad hay que volver a contar, pulse «Contar otra vez»."",""Codigo"":""YaContabilizado"",""PuedeContarOtraVez"":true," +
             """Pendientes"":[],""Contabilizadas"":[{""Usuario"":""NUEVAVISION\\Paloma"",""Filas"":64,""Traspaso"":77263}]}")
 
-        Dim ex = Await Assert.ThrowsExceptionAsync(Of InventarioYaContabilizadoException)(Function() servicio.Rellenar("1", "ALC", _dia, False))
+        Dim ex = Await Assert.ThrowsExceptionAsync(Of InventarioYaContabilizadoException)(Function() servicio.Rellenar("1", "ALC", _dia, False, "ALC"))
 
         Assert.IsTrue(ex.PuedeContarOtraVez)
         Assert.AreEqual(77263, ex.Contabilizadas.Single().Traspaso)
@@ -120,7 +120,7 @@ Public Class InventarioConflictosTests
         ' La API de antes de NestoAPI#784 no manda Codigo: ya había filas pendientes, se cuenta igual.
         Dim servicio = CrearServicio(HttpStatusCode.Conflict, "{""Message"":""Ya está rellenado"",""Pendientes"":[]}")
 
-        Dim ex = Await Assert.ThrowsExceptionAsync(Of InventarioYaRellenadoException)(Function() servicio.Rellenar("1", "ALC", _dia, False))
+        Dim ex = Await Assert.ThrowsExceptionAsync(Of InventarioYaRellenadoException)(Function() servicio.Rellenar("1", "ALC", _dia, False, "ALC"))
 
         Assert.AreEqual("Ya está rellenado", ex.Message)
     End Function
@@ -129,7 +129,7 @@ Public Class InventarioConflictosTests
     Public Async Function Servicio_Rellenar_OtraVez_LoMandaEnElCuerpo() As Task
         Dim servicio = CrearServicio(HttpStatusCode.OK, "{""Almacen"":""ALC"",""Filas"":3,""Unidades"":5}")
 
-        Dim respuesta = Await servicio.Rellenar("1", "ALC", _dia, True)
+        Dim respuesta = Await servicio.Rellenar("1", "ALC", _dia, True, "ALC")
 
         Assert.AreEqual(3, respuesta.Filas)
         StringAssert.Contains(_manejador.Cuerpos.Single(), """OtraVez"":true")
@@ -256,10 +256,10 @@ Public Class InventarioConflictosTests
     Private Sub SinPendientesYYaContabilizado()
         A.CallTo(Function() _servicio.LeerPendientes(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
             .Returns(Task.FromResult(New List(Of InventarioPendienteDTO)))
-        A.CallTo(Function() _dialogos.ShowConfirmationAnswer(A(Of String).Ignored, A(Of String).Ignored)).Returns(True)
-        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, False)) _
+        DialogosInventarioPrueba.ResponderConfirmacionEscribiendo(_dialogos, "Alcobendas")
+        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, False, "ALC")) _
             .ThrowsAsync(New InventarioYaContabilizadoException("Ya hay 64 filas de ALC contadas y contabilizadas hoy (Paloma: 64, traspaso 77263)."))
-        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True)) _
+        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True, "ALC")) _
             .Returns(Task.FromResult(New RellenarInventarioRespuestaDTO With {.Filas = 120, .Unidades = 345}))
         A.CallTo(Function() _servicio.BuscarLinea(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of String).Ignored)) _
             .Returns(Task.FromResult(New InventarioDTO With {.NumOrden = 7, .Producto = "42341"}))
@@ -276,7 +276,7 @@ Public Class InventarioConflictosTests
         A.CallTo(Function() _dialogos.ShowConfirmationAnswer(InventarioViewModel.TITULO_CONTAR_OTRA_VEZ,
             A(Of String).That.Matches(Function(m) m.StartsWith("Ya hay 64 filas de ALC") AndAlso m.EndsWith("¿Contar otra vez?")), True)) _
             .MustHaveHappenedOnceExactly()
-        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True)).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True, "ALC")).MustHaveHappenedOnceExactly()
         A.CallTo(Sub() _dialogos.ShowNotification(A(Of String).Ignored, "Inventario rellenado: 120 productos, 345 unidades.")).MustHaveHappenedOnceExactly()
         Assert.IsNotNull(movimiento)
     End Function
@@ -290,7 +290,7 @@ Public Class InventarioConflictosTests
         Dim movimiento = Await vm.InsertarProducto("42341")
 
         Assert.IsNull(movimiento)
-        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True)).MustNotHaveHappened()
+        A.CallTo(Function() _servicio.Rellenar("1", "ALC", _dia, True, "ALC")).MustNotHaveHappened()
         A.CallTo(Function() _servicio.BuscarLinea(A(Of String).Ignored, A(Of String).Ignored, A(Of Date).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
         NoSeHaCreadoNiSumado()
         A.CallTo(Sub() _dialogos.ShowError(A(Of String).Ignored)).MustNotHaveHappened()

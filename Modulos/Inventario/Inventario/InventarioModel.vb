@@ -29,6 +29,14 @@ Public Class InventarioModel
         Public Property Usuario As String
         ''' <summary>NestoAPI#788: True si se leyó por código de barras, False si se tecleó la referencia, Nothing si no consta.</summary>
         Public Property PorCodigoBarras As Boolean?
+        ''' <summary>
+        ''' Novedad 1456 (Paloma, 25/11/26): la API dice si quien pregunta puede borrar esta fila pendiente (la misma regla que
+        ''' «Borrar esta fila» de las comprobaciones). Ausente (API que aún no lo manda) o False: sin botón. Solo de lectura: no se manda.
+        ''' </summary>
+        Public Property SePuedeBorrar As Boolean
+        Public Function ShouldSerializeSePuedeBorrar() As Boolean
+            Return False
+        End Function
         ''' <summary>Nesto#596: «código» o «tecleado» para la rejilla.</summary>
         <JsonIgnore>
         Public ReadOnly Property Lectura As String
@@ -78,6 +86,31 @@ Public Class InventarioModel
         Public Property Filas As Integer
         Public Property Unidades As Integer
         Public Property Usuario As String
+    End Class
+
+    ''' <summary>
+    ''' 25/11/26 (Paloma rellenó sin querer 3.032 filas de Alcobendas): GET api/Inventarios/Rellenar/Previa. Lo que haría el
+    ''' rellenado (sin hacerlo) y si lo ya rellenado ese día se puede deshacer.
+    ''' </summary>
+    Public Class PreviaRellenarInventarioDTO
+        Public Property Almacen As String
+        Public Property NombreAlmacen As String
+        Public Property Fecha As Date?
+        Public Property FilasQueSeCrearian As Integer
+        Public Property FilasPendientesYa As Integer
+        ''' <summary>«Va a crear 3.032 filas de inventario en Alcobendas con fecha 25/11/2026.»</summary>
+        Public Property Mensaje As String
+        Public Property PuedeDeshacer As Boolean
+        Public Property MotivoNoPuedeDeshacer As String
+    End Class
+
+    ''' <summary>25/11/26: respuesta de DELETE api/Inventarios/Rellenar (deshacer el rellenado de un almacén y día).</summary>
+    Public Class DeshacerRellenarInventarioRespuestaDTO
+        Public Property Almacen As String
+        Public Property Fecha As Date?
+        Public Property FilasBorradas As Integer
+        Public Property FilasContadas As Integer
+        Public Property UnidadesContadas As Integer
     End Class
 
     ''' <summary>NestoAPI#784: el campo Codigo del 409 de Rellenar, RellenarParcial, RellenarUbicacion y GET/POST api/Inventarios.</summary>

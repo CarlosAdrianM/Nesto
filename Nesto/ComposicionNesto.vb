@@ -303,6 +303,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of InputAmountDialog, InputAmountDialogViewModel)
         registro.RegistrarDialogo(Of InputTextDialog, InputTextDialogViewModel)
         registro.RegistrarDialogo(Of InputDateDialog, InputDateDialogViewModel) ' NestoAPI#582
+        ' Inventario (25/11/26): confirmar escribiendo el nombre o el código (rellenar el inventario de una tienda)
+        registro.RegistrarDialogo(Of ConfirmacionEscribiendoDialog, ConfirmacionEscribiendoDialogViewModel)(ConfirmacionEscribiendoDialogViewModel.NOMBRE)
         registro.RegistrarDialogo(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
         registro.RegistrarDialogo(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
         ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)

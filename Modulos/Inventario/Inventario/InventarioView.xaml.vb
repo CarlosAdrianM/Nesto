@@ -102,6 +102,11 @@
     Private Sub txtFecha_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFecha.KeyUp
         If e.Key = Key.Return Then
             Dim vm = TryCast(DataContext, InventarioViewModel)
+            ' 25/11/26: con otra fecha, se mira si su rellenado se puede deshacer (el botón sale o no).
+            txtFecha?.GetBindingExpression(TextBox.TextProperty)?.UpdateSource()
+            If vm IsNot Nothing Then
+                Dim unused = vm.ActualizarDeshacerRellenado() ' nunca falla
+            End If
             If vm IsNot Nothing AndAlso vm.AlmacenConUbicaciones Then
                 txtPasillo?.Focus()
             Else

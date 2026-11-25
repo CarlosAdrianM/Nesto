@@ -19,7 +19,18 @@ Public Interface IServicioInventario
     ''' YaRellenado) y <see cref="InventarioYaContabilizadoException"/> si ese día ya se contabilizó (409 YaContabilizado,
     ''' NestoAPI#784): solo con <paramref name="otraVez"/> («Contar otra vez») se rellena de nuevo.
     ''' </summary>
-    Function Rellenar(empresa As String, almacen As String, fecha As Date, otraVez As Boolean) As Task(Of RellenarInventarioRespuestaDTO)
+    ''' <param name="confirmar">25/11/26: el código o el nombre del almacén que el usuario ha escrito para confirmarlo (sin él, la API da 400 CONFIRMACION_NECESARIA).</param>
+    Function Rellenar(empresa As String, almacen As String, fecha As Date, otraVez As Boolean, confirmar As String) As Task(Of RellenarInventarioRespuestaDTO)
+    ''' <summary>
+    ''' 25/11/26: GET api/Inventarios/Rellenar/Previa (lo que crearía el rellenado y si lo ya rellenado se puede deshacer).
+    ''' Nothing con un servidor que aún no la tiene (404 de ruta o 405). Los demás errores lanzan con el mensaje de la API.
+    ''' </summary>
+    Function PreviaRellenar(empresa As String, almacen As String, fecha As Date) As Task(Of PreviaRellenarInventarioDTO)
+    ''' <summary>
+    ''' 25/11/26: DELETE api/Inventarios/Rellenar (borra las filas pendientes de ese almacén y día). 403/409 y los demás errores
+    ''' lanzan con el mensaje de la API.
+    ''' </summary>
+    Function DeshacerRellenado(empresa As String, almacen As String, fecha As Date) As Task(Of DeshacerRellenarInventarioRespuestaDTO)
     ''' <summary>
     ''' La línea pendiente del día del producto leído; Nothing SOLO con el 404 de la API (aún no tiene fila, o lo leído no es
     ''' ningún producto: lo dirá el POST). NestoAPI#784: un 409 (FilasDuplicadas, VariasUbicaciones, código de barras ambiguo)
@@ -144,9 +155,11 @@ Public Class ServicioInventario
         End Using
     End Function
 
-    Public Async Function Rellenar(empresa As String, almacen As String, fecha As Date, otraVez As Boolean) As Task(Of RellenarInventarioRespuestaDTO) Implements IServicioInventario.Rellenar
+    Public Async Function Rellenar(empresa As String, almacen As String, fecha As Date, otraVez As Boolean, confirmar As String) As Task(Of RellenarInventarioRespuestaDTO) Implements IServicioInventario.Rellenar
         Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim peticion = New With {.Empresa = empresa, .Almacen = almacen, .Fecha = fecha.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), .OtraVez = otraVez}
+            ' 25/11/26: Confirmar va en el cuerpo, como el resto de la petición.
+            Dim peticion = New With {.Empresa = empresa, .Almacen = almacen, .Fecha = fecha.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), .OtraVez = otraVez,
+                .Confirmar = confirmar}
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
             Dim response = Await client.PostAsync("Inventarios/Rellenar", content)
             Dim cuerpo = Await response.Content.ReadAsStringAsync()
@@ -164,6 +177,45 @@ Public Class ServicioInventario
             End If
             Return JsonConvert.DeserializeObject(Of RellenarInventarioRespuestaDTO)(cuerpo)
         End Using
+    End Function
+
+    Public Async Function PreviaRellenar(empresa As String, almacen As String, fecha As Date) As Task(Of PreviaRellenarInventarioDTO) Implements IServicioInventario.PreviaRellenar
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response = Await client.GetAsync("Inventarios/Rellenar/Previa?" + ParametrosRellenar(empresa, almacen, fecha))
+            Dim cuerpo = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            If EsServidorSinLaRuta(response.StatusCode, cuerpo) Then
+                Return Nothing
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeConflicto(LeerConflicto(cuerpo), cuerpo))
+            End If
+            Return JsonConvert.DeserializeObject(Of PreviaRellenarInventarioDTO)(cuerpo)
+        End Using
+    End Function
+
+    Public Async Function DeshacerRellenado(empresa As String, almacen As String, fecha As Date) As Task(Of DeshacerRellenarInventarioRespuestaDTO) Implements IServicioInventario.DeshacerRellenado
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response = Await client.DeleteAsync("Inventarios/Rellenar?" + ParametrosRellenar(empresa, almacen, fecha))
+            Dim cuerpo = If(response.Content Is Nothing, String.Empty, Await response.Content.ReadAsStringAsync())
+            If EsServidorSinLaRuta(response.StatusCode, cuerpo) Then
+                Throw New Exception(MENSAJE_SERVIDOR_ANTIGUO)
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(MensajeConflicto(LeerConflicto(cuerpo), cuerpo))
+            End If
+            Return If(JsonConvert.DeserializeObject(Of DeshacerRellenarInventarioRespuestaDTO)(cuerpo),
+                New DeshacerRellenarInventarioRespuestaDTO With {.Almacen = almacen, .Fecha = fecha.Date})
+        End Using
+    End Function
+
+    ''' <summary>«almacen=ALC&amp;fecha=2026-11-25&amp;empresa=1» (los de la Previa y del DELETE de Rellenar).</summary>
+    Public Shared Function ParametrosRellenar(empresa As String, almacen As String, fecha As Date) As String
+        Return $"almacen={Uri.EscapeDataString(If(almacen, String.Empty).Trim())}&fecha={fecha.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" +
+            $"&empresa={Uri.EscapeDataString(If(empresa, String.Empty).Trim())}"
+    End Function
+
+    Private Shared Function EsServidorSinLaRuta(estado As HttpStatusCode, cuerpo As String) As Boolean
+        Return estado = HttpStatusCode.MethodNotAllowed OrElse (estado = HttpStatusCode.NotFound AndAlso EsNotFoundDeRuta(cuerpo))
     End Function
 
     Public Function BuscarLinea(empresa As String, almacen As String, fecha As Date, producto As String) As Task(Of InventarioDTO) Implements IServicioInventario.BuscarLinea

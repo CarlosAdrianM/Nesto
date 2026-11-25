@@ -95,6 +95,10 @@
                 <Button Content="Dejar a cero en todas sus ubicaciones" Command="{Binding cmdDejarACero}" FontSize="16" Padding="14,6"
                         Visibility="{Binding PuedeDejarACero, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTip="Pone a 0 el producto escrito en «Producto» en todas sus ubicaciones de este almacén (inventario de hoy). Después hay que contabilizar el inventario."/>
+                <!-- 25/11/26 (Paloma, 3.032 filas de ALC por error): borra el rellenado de la tienda de esa fecha; solo sale si la API dice que se puede. -->
+                <Button Content="Deshacer el rellenado" Command="{Binding cmdDeshacerRellenado}" FontSize="16" Padding="14,6" Margin="12,0,0,0"
+                        Visibility="{Binding PuedeDeshacerRellenado, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Borra las filas pendientes que se crearon al rellenar el inventario de este almacén en esta fecha. El stock no cambia."/>
             </StackPanel>
         </Grid>
         <TabControl Name="tclMovimientos" Grid.Column="1" TabStripPlacement="Bottom">
@@ -124,6 +128,19 @@
                                                     Visibility="{Binding Data.AlmacenConUbicaciones, Source={StaticResource ViewModelProxy}, Converter={StaticResource VisibleSiVerdadero}}"/>
                                 <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" Width="Auto"/>
                                 <DataGridTextColumn Header="Leído" Binding="{Binding Lectura}" Width="Auto"/>
+                                <!-- Novedad 1456 (Paloma): borrar una fila pendiente desde aquí; solo en las que la API marca (SePuedeBorrar). -->
+                                <DataGridTemplateColumn Header="" Width="Auto">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Borrar" Padding="6,1" Margin="1"
+                                                    Foreground="DarkRed" FontWeight="SemiBold"
+                                                    ToolTip="Borra esta fila del recuento. El stock no cambia."
+                                                    Command="{Binding Data.cmdBorrarFila, Source={StaticResource ViewModelProxy}}"
+                                                    CommandParameter="{Binding}"
+                                                    Visibility="{Binding SePuedeBorrar, Converter={StaticResource VisibleSiVerdadero}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
