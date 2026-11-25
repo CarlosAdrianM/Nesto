@@ -761,6 +761,7 @@ namespace Nesto.Tests
             "InputAmountDialog | InputAmountDialog | InputAmountDialogViewModel",
             "InputTextDialog | InputTextDialog | InputTextDialogViewModel",
             "InputDateDialog | InputDateDialog | InputDateDialogViewModel",
+            "ConfirmacionEscribiendoDialog | ConfirmacionEscribiendoDialog | ConfirmacionEscribiendoDialogViewModel", // Inventario (25/11/26)
             "CorreccionVideoProductoView | CorreccionVideoProductoView | CorreccionVideoProductoViewModel",
             "ActualizarControlesStockPopupView | ActualizarControlesStockPopupView | ActualizarControlesStockPopupViewModel",
             "SelectorProductoDuplicadoDialog | SelectorProductoDuplicadoDialog | SelectorProductoDuplicadoDialogViewModel",
@@ -773,6 +774,7 @@ namespace Nesto.Tests
             "ReenviarEnvioDialog | ReenviarEnvioDialog | ReenviarEnvioDialogViewModel", // NestoAPI#699 (Devueltos)
             "DireccionEntregaEnvioDialog | DireccionEntregaEnvioDialog | DireccionEntregaEnvioDialogViewModel", // Nesto#625 (NestoAPI#726)
             "EnviarPorCorreoDialog | EnviarPorCorreoDialog | EnviarPorCorreoDialogViewModel", // Nesto#563
+            "FacturaeDialog | FacturaeDialog | FacturaeDialogViewModel", // Nesto#652 (Facturae para FACe)
             "ElegirEventoCursoDialog | ElegirEventoCursoDialog | ElegirEventoCursoDialogViewModel",
             "ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialogViewModel",
             "ComprobacionesInventarioDialog | ComprobacionesInventarioDialog | ComprobacionesInventarioDialogViewModel", // Nesto#597

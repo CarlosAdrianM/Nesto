@@ -201,6 +201,10 @@ Public NotInheritable Class ComposicionNesto
         ' Nesto#534 (NestoAPI#654): la etiqueta de código de barras de producto, también por la ImpresoraCodBarras del usuario
         registro.Singleton(Of IServicioEtiquetasProducto)(Function(r) New ServicioEtiquetasProducto(r.Resolver(Of IClienteApiFactory)()))
 
+        ' Nesto#652 (NestoAPI#903): factura electrónica para organismos públicos (Facturae para B2Brouter/FACe y DIR3 del cliente)
+        registro.Singleton(Of IServicioFacturae)(Function(r) New ServicioFacturae(r.Resolver(Of IClienteApiFactory)()))
+        registro.Singleton(Of IGuardadorFicherosDescarga, GuardadorFicherosDescarga)()
+
         ' NestoAPI#553: la tienda recibe la reposición con la misma API que Ariadna (api/Almacen/Recepciones, REPO)
         registro.Singleton(Of IServicioRecepcionReposiciones)(Function(r) New ServicioRecepcionReposiciones(r.Resolver(Of IClienteApiFactory)()))
 
@@ -327,6 +331,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of DireccionEntregaEnvioDialog, DireccionEntregaEnvioDialogViewModel)(DireccionEntregaEnvioDialogViewModel.NOMBRE)
         ' Nesto#563 (NestoAPI#724): enviar por correo el pedido, el mandato SEPA o la factura sin descargarlos
         registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
+        ' Nesto#652 (NestoAPI#903): «Descargar para FACe (Facturae)» de una factura (detalle del pedido y ficha del cliente)
+        registro.RegistrarDialogo(Of FacturaeDialog, FacturaeDialogViewModel)(FacturaeDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar y se pide por su tipo concreto
         ' La campana de la ventana principal (la recibe MainWindow por constructor)

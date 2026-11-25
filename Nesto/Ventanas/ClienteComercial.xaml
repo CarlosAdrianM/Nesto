@@ -13,6 +13,7 @@
     <UserControl.Resources>
         <vm:StringTrimmingConverter x:Key="trimConverter" />
         <vm:datosBancoConverter x:Key="bancoConverter" />
+        <BooleanToVisibilityConverter x:Key="VisibleSiFacturae" />
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
@@ -208,6 +209,10 @@
                                     <TextBox Text="{Binding CorreoEnvioFacturas, UpdateSourceTrigger=PropertyChanged}" Width="280" VerticalContentAlignment="Center"
                                              ToolTip="Uno o varios correos, separados por punto y coma. Se propone el de facturas del cliente."/>
                                     <Button Command="{Binding EnviarFacturasPorCorreoCommand}" Padding="15,5" Margin="5,0,0,0">Enviar por correo</Button>
+                                    <!-- Nesto#652 (NestoAPI#903): Facturae sin firmar de UNA factura marcada, para B2Brouter (FACe) -->
+                                    <Button Command="{Binding DescargarFacturaeCommand}" Padding="15,5" Margin="15,0,0,0"
+                                            Visibility="{Binding PuedeDescargarFacturae, Converter={StaticResource VisibleSiFacturae}}"
+                                            ToolTip="Factura electrónica para organismos públicos (marque una sola factura): comprueba los códigos DIR3 y el P.O. y guarda el fichero para importarlo en B2Brouter">Descargar para FACe…</Button>
                                 </StackPanel>
                             </Grid>
                         </TabItem>
@@ -445,7 +450,12 @@
                         <!-- NestoAPI#879 (corte 3): las direcciones del cliente, con la de facturación (ficha principal) y la de entrega por
                              defecto marcadas; «Usar como entrega por defecto» la cambia al momento. Lee la API al enseñarse. -->
                         <TabItem Header="Direcciones">
-                            <cliente:DireccionesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"/>
+                            <DockPanel>
+                                <!-- Nesto#652 (NestoAPI#903): DIR3 del organismo (FACe) del contacto; solo Administración, Dirección e Informática -->
+                                <cliente:FacturaElectronicaClienteView DockPanel.Dock="Bottom" Empresa="{Binding clienteActivo.empresa}"
+                                                                       Cliente="{Binding clienteActivo.cliente}" Contacto="{Binding clienteActivo.contacto}"/>
+                                <cliente:DireccionesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"/>
+                            </DockPanel>
                         </TabItem>
                     </TabControl>
                 </Grid>

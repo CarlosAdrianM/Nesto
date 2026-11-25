@@ -1187,6 +1187,10 @@
                                 <MenuItem Header="Descargar PDF" Command="{Binding ImprimirFacturaCommand}"/>
                                 <MenuItem Header="Enviar por correo…" Command="{Binding EnviarFacturaPorCorreoCommand}"/> <!-- Nesto#563 -->
                                 <MenuItem Header="Enviar por WhatsApp…" Command="{Binding EnviarFacturaPorWhatsAppCommand}"/> <!-- Nesto#570 -->
+                                <!-- Nesto#652 (NestoAPI#903): el Facturae sin firmar para importarlo en B2Brouter (organismos públicos, FACe) -->
+                                <MenuItem Header="Descargar para FACe (Facturae)…" Command="{Binding DescargarFacturaeCommand}"
+                                          Visibility="{Binding PuedeDescargarFacturae, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                          ToolTip="Factura electrónica para organismos públicos: comprueba la factura, los códigos DIR3 y el P.O., y guarda el fichero para importarlo en B2Brouter"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>

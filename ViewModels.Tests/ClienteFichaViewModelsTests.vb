@@ -36,7 +36,8 @@ Public Class ClienteFichaViewModelsTests
         "MotorPagosSeleccionado", "EnlaceReclamarDeuda", "HistorialPagos", "PagoSeleccionado", "DeudaSeleccionada",
         "MotivoCambioEstado", "AbrirPedidoAction", "cmdGuardarVendedores", "CargarPedidoCommand", "GuardarEfectoDeudaCommand",
         "EnviarFacturasPorCorreoCommand", "EnviarEnlacePagoPedidoCommand", "DescargarFacturasCommand",
-        "CopiarDatosTransferenciaPedidoCommand", "ConfirmarReclamarDeudaCommand", "AbrirEnlaceReclamacionCommand", "Titulo"
+        "CopiarDatosTransferenciaPedidoCommand", "ConfirmarReclamarDeudaCommand", "AbrirEnlaceReclamacionCommand", "Titulo",
+        "DescargarFacturaeCommand", "PuedeDescargarFacturae"
     }
 
     Private _servicio As IClienteComercialService

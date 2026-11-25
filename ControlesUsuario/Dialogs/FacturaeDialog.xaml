@@ -1,0 +1,144 @@
+<UserControl x:Class="ControlesUsuario.Dialogs.FacturaeDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="560" MaxWidth="760" Background="White">
+    <!-- Nesto#652 (NestoAPI#903): una factura emitida en Facturae 3.2.2 sin firmar, para importarla en B2Brouter (que la firma y la
+         manda a FACe). Primero se comprueba; las faltas en rojo (no se puede descargar), los avisos en amarillo. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleSi"/>
+        <Style x:Key="Etiqueta" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#555555"/>
+            <Setter Property="Margin" Value="0,3,10,3"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="CharacterCasing" Value="Upper"/>
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="760">
+        <StackPanel Margin="15">
+            <TextBlock Text="{Binding Cabecera}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <TextBlock Text="Comprobando la factura…" Foreground="#555555" Margin="0,0,0,4"
+                       Visibility="{Binding Trabajando, Converter={StaticResource VisibleSi}}"/>
+
+            <!-- Faltas (rojo) y avisos (amarillo) -->
+            <Border Background="#FDECEA" BorderBrush="#E57373" BorderThickness="1" Padding="8" Margin="0,4"
+                    Visibility="{Binding HayFaltas, Converter={StaticResource VisibleSi}}">
+                <StackPanel>
+                    <TextBlock Text="Falta esto (con faltas no se puede descargar):" FontWeight="SemiBold" Foreground="#B71C1C"/>
+                    <ItemsControl ItemsSource="{Binding Faltas}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Foreground="#B71C1C"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            <Border Background="#FFF8E1" BorderBrush="#FFC107" BorderThickness="1" Padding="8" Margin="0,4"
+                    Visibility="{Binding HayAvisos, Converter={StaticResource VisibleSi}}">
+                <ItemsControl ItemsSource="{Binding Avisos}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Foreground="#6D4C00"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+            <TextBlock Text="{Binding Error}" Foreground="#B71C1C" TextWrapping="Wrap" Margin="0,4"
+                       Visibility="{Binding HayError, Converter={StaticResource VisibleSi}}"/>
+
+            <!-- Lo que irá en el fichero -->
+            <StackPanel Visibility="{Binding HayComprobacion, Converter={StaticResource VisibleSi}}" Margin="0,4,0,0">
+                <TextBlock TextWrapping="Wrap"><Run Text="Receptor: " Foreground="#555555"/><Run Text="{Binding Receptor, Mode=OneWay}"/></TextBlock>
+                <TextBlock Text="Centros DIR3:" Foreground="#555555" Margin="0,4,0,0"/>
+                <ItemsControl ItemsSource="{Binding Centros}" Margin="10,0,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding TextoOrigenDir3}" Foreground="#555555" FontStyle="Italic" TextWrapping="Wrap" Margin="10,0,0,0"/>
+                <TextBlock Text="{Binding TextoSuPedido}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding TextoExpedienteContrato}" TextWrapping="Wrap"/>
+                <TextBlock Margin="0,4,0,0"><Run Text="Base imponible: " Foreground="#555555"/><Run Text="{Binding BaseImponible, Mode=OneWay}"/></TextBlock>
+                <ItemsControl ItemsSource="{Binding Impuestos}" Margin="10,0,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock><Run Text="Impuestos: " Foreground="#555555"/><Run Text="{Binding TotalImpuestos, Mode=OneWay}"/></TextBlock>
+                <TextBlock FontWeight="Bold"><Run Text="Total: "/><Run Text="{Binding Total, Mode=OneWay}"/></TextBlock>
+                <TextBlock Text="Vencimientos:" Foreground="#555555" Margin="0,4,0,0"/>
+                <ItemsControl ItemsSource="{Binding Vencimientos}" Margin="10,0,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Lo que se puede escribir (gana sobre lo guardado) -->
+            <GroupBox Header="Datos del organismo (ganan sobre lo guardado)" Margin="0,10,0,0" Padding="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="150"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Oficina contable:" Style="{StaticResource Etiqueta}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding OficinaContable, UpdateSourceTrigger=PropertyChanged}" MaxLength="12"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Órgano gestor:" Style="{StaticResource Etiqueta}" Margin="12,3,10,3"/>
+                    <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding OrganoGestor, UpdateSourceTrigger=PropertyChanged}" MaxLength="12"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Unidad tramitadora:" Style="{StaticResource Etiqueta}"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding UnidadTramitadora, UpdateSourceTrigger=PropertyChanged}" MaxLength="12"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Órgano proponente:" Style="{StaticResource Etiqueta}" Margin="12,3,10,3"/>
+                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding OrganoProponente, UpdateSourceTrigger=PropertyChanged}" MaxLength="12"
+                             ToolTip="Opcional"/>
+                    <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" HorizontalAlignment="Left" Content="Guardar los DIR3 en la ficha del cliente"
+                            Command="{Binding GuardarDir3EnFichaCommand}" Padding="8,2" Margin="0,4,0,6"
+                            ToolTip="Para las próximas facturas de este cliente y contacto. Si no, solo valen para esta descarga."/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Su pedido (P.O.):" Style="{StaticResource Etiqueta}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SuPedido, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" CharacterCasing="Normal"
+                             ToolTip="Opcional. Sin él, va el P.O. de la factura o, si no tiene, nuestro número de pedido."/>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="Expediente:" Style="{StaticResource Etiqueta}" Margin="12,3,10,3"/>
+                    <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding Expediente, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" CharacterCasing="Normal"
+                             ToolTip="Opcional (máximo 20 caracteres)"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Contrato:" Style="{StaticResource Etiqueta}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Contrato, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" CharacterCasing="Normal"
+                             ToolTip="Opcional (máximo 20 caracteres)"/>
+                </Grid>
+            </GroupBox>
+            <TextBlock Text="Ha cambiado datos: pulse «Volver a comprobar» antes de descargar." Foreground="#6D4C00" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Visibility="{Binding HayCambiosSinComprobar, Converter={StaticResource VisibleSi}}"/>
+
+            <TextBlock Text="{Binding Mensaje}" Foreground="DarkGreen" TextWrapping="Wrap" Margin="0,6,0,0"
+                       Visibility="{Binding HayMensaje, Converter={StaticResource VisibleSi}}"/>
+
+            <Border Background="#F3F6FA" BorderBrush="#C5D3E3" BorderThickness="1" Padding="8" Margin="0,10,0,0">
+                <TextBlock Text="{Binding AyudaB2Brouter, Mode=OneTime}" TextWrapping="Wrap"/>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                <Button Content="Volver a comprobar" Command="{Binding ComprobarCommand}" MinWidth="130" Padding="8,3" Margin="0,0,10,0"/>
+                <Button Content="Descargar" Command="{Binding DescargarCommand}" MinWidth="110" Padding="8,3" Margin="0,0,10,0" IsDefault="True"
+                        ToolTip="Guarda el fichero Facturae (por defecto en su carpeta Descargas) y abre la carpeta"/>
+                <Button Content="Cerrar" Command="{Binding CerrarCommand}" MinWidth="90" Padding="8,3" IsCancel="True"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

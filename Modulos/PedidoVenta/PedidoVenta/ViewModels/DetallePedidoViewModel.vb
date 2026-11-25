@@ -164,6 +164,7 @@ Public Class DetallePedidoViewModel
         AbrirFacturarFinDeMesCommand = New RelayCommand(AddressOf OnAbrirFacturarFinDeMes, Function() PuedeFacturarFinDeMes) ' NestoAPI#727
         CopiarFacturaCommand = New RelayCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
         PonerSuPedidoFacturaCommand = New AsyncRelayCommand(AddressOf PonerSuPedidoFacturaAsync, AddressOf CanImprimirFactura) ' Nesto#562
+        DescargarFacturaeCommand = New AsyncRelayCommand(AddressOf DescargarFacturaeAsync, AddressOf CanDescargarFacturae) ' Nesto#652
 
         ' Carlos 01/10/26: Administración también crea albaranes y facturas de venta
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) OrElse
@@ -589,6 +590,7 @@ Public Class DetallePedidoViewModel
             ImprimirAlbaranCommand.NotifyCanExecuteChanged()
             ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
             PonerSuPedidoFacturaCommand?.NotifyCanExecuteChanged() ' Nesto#562
+            DescargarFacturaeCommand?.NotifyCanExecuteChanged() ' Nesto#652
         End Set
     End Property
 
