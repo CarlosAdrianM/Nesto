@@ -154,6 +154,8 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Contabilidad", "Verifactu", "Facturas Verifactu"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 80)),
             // Inmovilizados (Carlos 25/11/26): buscar inmovilizados e imprimir la etiqueta «INMOVILIZADO · NO ES STOCK»
             (Clave("Contabilidad", "Inmovilizados", "Inmovilizados"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 85, "Inmovilizados (etiquetas)")),
+            // Proyectos (gemela de NestoAPI#901): imputar ingresos y gastos a cada curso del SEPE, feria o evento y su cuenta de explotación
+            (Clave("Contabilidad", "Proyectos", "Proyectos"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 87, "Proyectos (cuenta de explotación)")),
             (Clave("Clientes", "Documentos", "Modelo 347"), new DestinoMenu(ADMINISTRACION, "Contabilidad", 90)),
             // Nesto#616 (NestoAPI#779): el calendario de festivos (Administración, Dirección e Informática; NestoAPI#841: también
             // Almacén, solo los días sin reparto propio)

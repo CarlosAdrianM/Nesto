@@ -700,6 +700,8 @@ namespace Nesto.Tests
             "    RibbonButton «Enlaces de pago» [CajasMenuBarViewModel]",
             "  RibbonGroup «Inmovilizados» [CajasMenuBarViewModel]", // 25/11/26, después de la referencia de Prism
             "    RibbonButton «Inmovilizados» [CajasMenuBarViewModel]", // 25/11/26, después de la referencia de Prism
+            "  RibbonGroup «Proyectos» [CajasMenuBarViewModel]", // NestoAPI#901, después de la referencia de Prism
+            "    RibbonButton «Proyectos» [CajasMenuBarViewModel]", // NestoAPI#901, después de la referencia de Prism
         };
 
         private static readonly string[] VistasConPrism =
@@ -755,6 +757,7 @@ namespace Nesto.Tests
             "FacturasPendientesVerifactuView | FacturasPendientesVerifactuView | FacturasPendientesVerifactuViewModel",
             "AuditoriaEnlacesPagoView | AuditoriaEnlacesPagoView | AuditoriaEnlacesPagoViewModel",
             "InmovilizadosView | InmovilizadosView | InmovilizadosViewModel", // 25/11/26, después de la referencia de Prism
+            "ProyectosView | ProyectosView | ProyectosViewModel", // NestoAPI#901, después de la referencia de Prism
             "GanavisionesView | GanavisionesView | GanavisionesViewModel",
             "OfertasCombinadasView | OfertasCombinadasView | OfertasCombinadasViewModel",
         };

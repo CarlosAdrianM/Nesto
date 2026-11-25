@@ -135,6 +135,21 @@ WPF control for customer selection with:
 - ClienteDTO contains customer information
 - Distinction between billing contact (contactoCobro) and delivery contact (contacto)
 
+### Proyectos: cuenta de explotación de cada curso del SEPE, feria o evento (gemela de NestoAPI#901, 25/11/26)
+- Contabilidad › Proyectos (cinta, grupo «Proyectos»; menú lateral Administración › Contabilidad, «Proyectos (cuenta de explotación)»), solo
+  Administración, Dirección e Informática, como la API. Módulo Cajas: `ProyectosView` + `ProyectosViewModel` (pestaña «Proyectos»), con
+  `ApuntesProyectosViewModel` («Apuntes por imputar») y `CuentaExplotacionProyectoViewModel` («Cuenta de explotación»); `IProyectosService`
+  (api/Proyectos; los errores { Message, Codigo } llegan como `ProyectosApiException` con su `Codigo`; sin las tablas, 503 SIN_TABLA →
+  «Los proyectos todavía no están activados en el servidor.» y debajo lo de la API).
+- LO QUE DECIDE LA PANTALLA (puro, con tests en CajasTests/ProyectosTests.cs): `CalculoRepartoApunte` (pendiente en vivo, partes iguales con el
+  céntimo de ajuste en la última, lo que no deja guardar: fila sin proyecto, importe ≤ 0 o con más de 2 decimales, proyecto repetido, suma > apunte
+  + 1 céntimo) y `ReglasPantallaProyectos` (tipos, faltas del alta, tabla de la comparativa con columnas P0, P1… y el código en Caption). Las reglas
+  de verdad siguen en la API.
+- Reparto: el PUT SUSTITUYE el reparto del apunte con el `ImporteApunte` leído; 409 APUNTE_CAMBIADO → se relee el apunte y se dice. Las partes de
+  proyectos cerrados se enseñan pero no se tocan («Todo» y «partes iguales» reparten lo demás). Los `Avisos` van en el panel, sin bloquear.
+  Varios apuntes elegidos → «Imputar los elegidos enteros» a un proyecto: un PUT por apunte, con confirmación y resumen de lo que no se ha podido.
+  Las filas de la rejilla (`FilaApunteProyecto`) se actualizan en su sitio para no perder la selección.
+
 ## Configuration
 
 - Connection strings and API endpoints configured in App.config

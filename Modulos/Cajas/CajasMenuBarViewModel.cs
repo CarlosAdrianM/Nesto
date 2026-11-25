@@ -20,6 +20,7 @@ namespace Nesto.Modulos.Cajas
             AbrirFacturasVerifactuCommand = new RelayCommand(OnAbrirFacturasVerifactu, CanAbrirFacturasVerifactu);
             AbrirAuditoriaEnlacesPagoCommand = new RelayCommand(OnAbrirAuditoriaEnlacesPago, CanAbrirAuditoriaEnlacesPago);
             AbrirInmovilizadosCommand = new RelayCommand(OnAbrirInmovilizados, CanAbrirInmovilizados);
+            AbrirProyectosCommand = new RelayCommand(OnAbrirProyectos, CanAbrirProyectos);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }
@@ -92,6 +93,19 @@ namespace Nesto.Modulos.Cajas
         private void OnAbrirInmovilizados()
         {
             Navegacion.RequestNavigate("MainRegion", Cajas.INMOVILIZADOS_VIEW);
+        }
+
+        // Proyectos (gemela de NestoAPI#901): Administración, Dirección e Informática, como la API (sus 403 se enseñan tal cual).
+        public ICommand AbrirProyectosCommand { get; private set; }
+        private bool CanAbrirProyectos()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA);
+        }
+        private void OnAbrirProyectos()
+        {
+            Navegacion.RequestNavigate("MainRegion", Cajas.PROYECTOS_VIEW);
         }
     }
 }

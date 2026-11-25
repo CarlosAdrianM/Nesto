@@ -15,6 +15,9 @@ namespace Nesto.Modulos.Cajas
         /// <summary>Inmovilizados (Carlos 25/11/26): consulta e impresión de la etiqueta de la máquina.</summary>
         public const string INMOVILIZADOS_VIEW = "InmovilizadosView";
 
+        /// <summary>Proyectos (gemela de NestoAPI#901): imputar apuntes a cada curso del SEPE, feria o evento y su cuenta de explotación.</summary>
+        public const string PROYECTOS_VIEW = "ProyectosView";
+
         public void Registrar(IRegistroNesto registro)
         {
             registro.Vista<CajasView>("CajasView");
@@ -29,6 +32,9 @@ namespace Nesto.Modulos.Cajas
             // Inmovilizados (25/11/26): buscar e imprimir la etiqueta «INMOVILIZADO · NO ES STOCK»
             registro.Vista<InmovilizadosView>(INMOVILIZADOS_VIEW);
             registro.Transitorio<Interfaces.IInmovilizadosService, Services.InmovilizadosService>();
+            // Proyectos (NestoAPI#901): cuenta de explotación de cada curso del SEPE, feria o evento
+            registro.Vista<ProyectosView>(PROYECTOS_VIEW);
+            registro.Transitorio<Interfaces.IProyectosService, Services.ProyectosService>();
             // Nesto#645: cobro en caja de la factura recién creada en la tienda (lo abre el detalle del pedido)
             registro.RegistrarDialogo<CobroCajaDialog, ViewModels.CobroCajaDialogViewModel>(ViewModels.CobroCajaDialogViewModel.NOMBRE);
             registro.Transitorio<ViewModels.CobroCajaDialogViewModel>();
@@ -43,6 +49,7 @@ namespace Nesto.Modulos.Cajas
             registro.Transitorio<ViewModels.FacturasPendientesVerifactuViewModel>();
             registro.Transitorio<ViewModels.AuditoriaEnlacesPagoViewModel>();
             registro.Transitorio<ViewModels.InmovilizadosViewModel>();
+            registro.Transitorio<ViewModels.ProyectosViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

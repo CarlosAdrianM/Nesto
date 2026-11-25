@@ -31,6 +31,11 @@
                             Header="Inmovilizados">
                 <RibbonButton Label="Inmovilizados" LargeImageSource="Images/Inmovilizados.png"  Command="{Binding AbrirInmovilizadosCommand}" />
             </RibbonGroup>
+            <!-- Proyectos (gemela de NestoAPI#901): imputar ingresos y gastos a cada curso del SEPE, feria o evento y su cuenta de explotación -->
+            <RibbonGroup x:Name="grpProyectos"
+                            Header="Proyectos">
+                <RibbonButton Label="Proyectos" LargeImageSource="Images/Proyectos.png"  Command="{Binding AbrirProyectosCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

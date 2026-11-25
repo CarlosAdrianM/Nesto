@@ -1,0 +1,438 @@
+<UserControl x:Class="Nesto.Modulos.Cajas.Views.ProyectosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:local="clr-namespace:Nesto.Modulos.Cajas.Views"
+             mc:Ignorable="d"
+             d:DesignHeight="650" d:DesignWidth="1200"
+             Background="White">
+
+    <!-- Proyectos (gemela de NestoAPI#901, Carlos 25/11/26): cuenta de explotación de cada curso del SEPE, feria, evento o campaña.
+         Tres pestañas: Proyectos, Apuntes por imputar y Cuenta de explotación. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible"/>
+        <Style x:Key="Etiqueta" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,6,0,1"/>
+        </Style>
+    </UserControl.Resources>
+
+    <xctk:BusyIndicator BusyContent="Un momento...">
+        <xctk:BusyIndicator.IsBusy>
+            <MultiBinding Converter="{x:Static local:ProyectosView.CualquieraOcupado}">
+                <Binding Path="EstaOcupado"/>
+                <Binding Path="Apuntes.EstaOcupado"/>
+                <Binding Path="Cuenta.EstaOcupado"/>
+            </MultiBinding>
+        </xctk:BusyIndicator.IsBusy>
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Proyectos" FontSize="20" FontWeight="Bold" Margin="0,0,0,8"/>
+
+            <TabControl Grid.Row="1" SelectedIndex="{Binding PestanaSeleccionada}">
+
+                <!-- ===================== PROYECTOS ===================== -->
+                <TabItem Header="Proyectos">
+                    <Grid Margin="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <WrapPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,6">
+                            <StackPanel Margin="0,0,12,4">
+                                <TextBlock Text="Buscar"/>
+                                <TextBox Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}" Width="240"
+                                         ToolTip="Código, nombre o producto. Intro para buscar.">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,12,4">
+                                <TextBlock Text="Tipo"/>
+                                <ComboBox ItemsSource="{Binding TiposFiltro}" SelectedItem="{Binding TipoFiltro}" DisplayMemberPath="Nombre" Width="140"/>
+                            </StackPanel>
+                            <CheckBox Content="Solo abiertos" IsChecked="{Binding SoloAbiertos}" VerticalAlignment="Bottom" Margin="0,0,12,6"/>
+                            <Button Content="Buscar" Command="{Binding BuscarCommand}" Padding="12,2" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        </WrapPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Resumen}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+                        <DataGrid Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Proyectos}" SelectedItem="{Binding ProyectoSeleccionado}"
+                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single"
+                                  MouseDoubleClick="grdProyectos_MouseDoubleClick"
+                                  ToolTip="Doble clic: su cuenta de explotación">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Código" Binding="{Binding Codigo}" FontWeight="Bold"/>
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding TipoParaMostrar}"/>
+                                <DataGridTextColumn Header="Desde" Binding="{Binding FechaDesde, StringFormat=dd/MM/yyyy}"/>
+                                <DataGridTextColumn Header="Hasta" Binding="{Binding FechaHasta, StringFormat=dd/MM/yyyy}"/>
+                                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}"/>
+                                <DataGridTextColumn Header="Ingresos" Binding="{Binding TotalIngresos, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Gastos" Binding="{Binding TotalGastos, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Resultado" Binding="{Binding Resultado, StringFormat={}{0:N2} €, ConverterCulture=es-ES}" FontWeight="Bold">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Apuntes" Binding="{Binding NumeroImputaciones}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <WrapPanel Grid.Row="3" Grid.Column="0" Margin="0,8,0,0">
+                            <Button Content="Nuevo" Command="{Binding NuevoCommand}" Padding="12,3" Margin="0,0,6,0"/>
+                            <Button Content="Editar" Command="{Binding EditarCommand}" Padding="12,3" Margin="0,0,6,0"/>
+                            <Button Content="Cuenta de explotación" Command="{Binding VerCuentaCommand}" Padding="12,3" Margin="0,0,18,0"/>
+                            <Button Content="Cerrar proyecto" Command="{Binding CerrarCommand}" Padding="12,3" Margin="0,0,6,0"
+                                    ToolTip="Cerrado no admite cambios ni imputaciones nuevas"/>
+                            <Button Content="Reabrir" Command="{Binding ReabrirCommand}" Padding="12,3" Margin="0,0,18,0"
+                                    ToolTip="Solo Dirección"/>
+                            <Button Content="Borrar" Command="{Binding BorrarCommand}" Padding="12,3"
+                                    ToolTip="Solo un proyecto abierto y sin imputaciones"/>
+                        </WrapPanel>
+
+                        <!-- Panel lateral de alta y edición -->
+                        <Border Grid.Row="0" Grid.RowSpan="4" Grid.Column="1" Width="320" Margin="10,0,0,0" Padding="10"
+                                BorderBrush="LightGray" BorderThickness="1" Background="White"
+                                Visibility="{Binding HayEdicion, Converter={StaticResource Visible}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel DataContext="{Binding Edicion}">
+                                    <TextBlock Text="{Binding TituloPanel}" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock Text="Código" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}" CharacterCasing="Upper" MaxLength="20"
+                                             ToolTip="Por ejemplo, IMPE0210-2026-1"/>
+                                    <TextBlock Text="Nombre" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding Nombre, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
+                                    <TextBlock Text="Tipo" Style="{StaticResource Etiqueta}"/>
+                                    <ComboBox ItemsSource="{Binding DataContext.Tipos, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              SelectedItem="{Binding Tipo}" DisplayMemberPath="Nombre"/>
+                                    <TextBlock Text="Desde" Style="{StaticResource Etiqueta}"/>
+                                    <DatePicker SelectedDate="{Binding FechaDesde}"/>
+                                    <TextBlock Text="Hasta (vacío: sin fecha de fin)" Style="{StaticResource Etiqueta}"/>
+                                    <DatePicker SelectedDate="{Binding FechaHasta}"/>
+                                    <TextBlock Text="Producto (referencia del curso, opcional)" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding Producto, UpdateSourceTrigger=PropertyChanged}" MaxLength="15"
+                                             ToolTip="Con producto se puede comparar con los demás proyectos del mismo curso"/>
+                                    <TextBlock Text="Presupuesto de ingresos (opcional)" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding PresupuestoIngresos, TargetNullValue='', ConverterCulture=es-ES}"/>
+                                    <TextBlock Text="Presupuesto de gastos (opcional)" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding PresupuestoGastos, TargetNullValue='', ConverterCulture=es-ES}"/>
+                                    <TextBlock Text="Comentarios" Style="{StaticResource Etiqueta}"/>
+                                    <TextBox Text="{Binding Comentarios, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap"
+                                             MinHeight="60" MaxLength="1000"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                                        <Button Content="Guardar" Command="{Binding DataContext.GuardarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Padding="14,3" FontWeight="Bold" Margin="0,0,6,0"/>
+                                        <Button Content="Cancelar" Command="{Binding DataContext.CancelarEdicionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Padding="14,3"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- ===================== APUNTES POR IMPUTAR ===================== -->
+                <TabItem Header="Apuntes por imputar">
+                    <Grid Margin="6" DataContext="{Binding Apuntes}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <WrapPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,6">
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Desde"/>
+                                <DatePicker SelectedDate="{Binding Desde}" Width="120"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Hasta"/>
+                                <DatePicker SelectedDate="{Binding Hasta}" Width="120"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Cuenta (empieza por)"/>
+                                <TextBox Text="{Binding Cuenta, UpdateSourceTrigger=PropertyChanged}" Width="110" ToolTip="Por ejemplo 623, o varias: 623,705">
+                                    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/></TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Proveedor o cliente"/>
+                                <TextBox Text="{Binding Tercero, UpdateSourceTrigger=PropertyChanged}" Width="110">
+                                    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/></TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Documento"/>
+                                <TextBox Text="{Binding Documento, UpdateSourceTrigger=PropertyChanged}" Width="110">
+                                    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/></TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,4">
+                                <TextBlock Text="Texto"/>
+                                <TextBox Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}" Width="160">
+                                    <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/></TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <CheckBox Content="Solo pendientes" IsChecked="{Binding SoloPendientes}" VerticalAlignment="Bottom" Margin="0,0,10,6"/>
+                            <Button Content="Buscar" Command="{Binding BuscarCommand}" Padding="12,2" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        </WrapPanel>
+
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Resumen}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+                        <DataGrid Grid.Row="2" Grid.Column="0" x:Name="grdApuntes" ItemsSource="{Binding Apuntes}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow"
+                                  SelectionChanged="grdApuntes_SelectionChanged">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding EsAbono}" Value="True">
+                                            <Setter Property="Foreground" Value="DarkRed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}"/>
+                                <DataGridTextColumn Header="Cuenta" Binding="{Binding CuentaYNombre}" Width="180"/>
+                                <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*"/>
+                                <DataGridTextColumn Header="Documento" Binding="{Binding Documento}"/>
+                                <DataGridTextColumn Header="Tercero" Binding="{Binding TerceroParaMostrar}" Width="150"/>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding NaturalezaParaMostrar}"/>
+                                <DataGridTextColumn Header="Importe" Binding="{Binding ImporteApunte, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Imputado" Binding="{Binding Imputado, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Pendiente" Binding="{Binding Pendiente, StringFormat={}{0:N2} €, ConverterCulture=es-ES}" FontWeight="Bold">
+                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Proyectos" Binding="{Binding ProyectosParaMostrar}" Width="180"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Reparto del apunte elegido -->
+                        <Border Grid.Row="2" Grid.Column="1" Width="430" Margin="10,0,0,0" Padding="10" BorderBrush="LightGray" BorderThickness="1"
+                                Background="White" Visibility="{Binding HayApunteEnReparto, Converter={StaticResource Visible}}">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
+                                    <TextBlock Text="Reparto del apunte" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,4,0,0">
+                                        <Run Text="{Binding ApunteEnReparto.Fecha, StringFormat=dd/MM/yyyy, Mode=OneWay}"/>
+                                        <Run Text=" · "/>
+                                        <Run Text="{Binding ApunteEnReparto.CuentaYNombre, Mode=OneWay}"/>
+                                        <LineBreak/>
+                                        <Run Text="{Binding ApunteEnReparto.Concepto, Mode=OneWay}"/>
+                                        <LineBreak/>
+                                        <Run Text="Importe: "/>
+                                        <Run Text="{Binding ApunteEnReparto.ImporteApunte, StringFormat={}{0:N2} €, ConverterCulture=es-ES, Mode=OneWay}" FontWeight="Bold"/>
+                                        <Run Text="  "/>
+                                        <Run Text="{Binding ApunteEnReparto.NaturalezaParaMostrar, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <Grid Margin="0,8,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Proyecto" FontWeight="SemiBold"/>
+                                        <TextBlock Grid.Column="1" Text="Importe" FontWeight="SemiBold" Margin="4,0,0,0"/>
+                                        <TextBlock Grid.Column="2" Text="Comentario" FontWeight="SemiBold" Margin="4,0,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel DockPanel.Dock="Bottom">
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Button Content="Añadir fila" Command="{Binding AnadirFilaCommand}" Padding="8,2" Margin="0,0,6,0"/>
+                                        <Button Content="Repartir a partes iguales" Command="{Binding RepartirAPartesIgualesCommand}" Padding="8,2"
+                                                ToolTip="Entre los proyectos elegidos en las filas; la última lleva el céntimo de ajuste"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding TextoPendiente}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                    <TextBlock Text="{Binding MotivosReparto}" Foreground="Firebrick" TextWrapping="Wrap" Margin="0,4,0,0"
+                                               Visibility="{Binding HayMotivosReparto, Converter={StaticResource Visible}}"/>
+                                    <Border Background="#FFF8E1" BorderBrush="#FFC107" BorderThickness="1" Padding="6" Margin="0,6,0,0"
+                                            Visibility="{Binding HayAvisosReparto, Converter={StaticResource Visible}}">
+                                        <TextBlock Text="{Binding AvisosReparto}" TextWrapping="Wrap"/>
+                                    </Border>
+                                    <Button Content="Guardar reparto" Command="{Binding GuardarRepartoCommand}" Padding="14,4" FontWeight="Bold"
+                                            HorizontalAlignment="Right" Margin="0,8,0,0"
+                                            ToolTip="Sustituye el reparto que tuviera el apunte. Sin ninguna fila, lo quita."/>
+                                </StackPanel>
+
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Filas}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="110"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <ComboBox Grid.Column="0"
+                                                              ItemsSource="{Binding DataContext.OpcionesProyecto, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              SelectedValuePath="Id" SelectedValue="{Binding ProyectoId}" DisplayMemberPath="CodigoYNombre"
+                                                              IsEnabled="{Binding ProyectoCerrado, Converter={x:Static local:ProyectosView.Negar}}"/>
+                                                    <TextBox Grid.Column="1" Margin="4,0,0,0" TextAlignment="Right"
+                                                             Text="{Binding Importe, UpdateSourceTrigger=PropertyChanged, TargetNullValue='', ConverterCulture=es-ES}"
+                                                             IsReadOnly="{Binding ProyectoCerrado}"/>
+                                                    <TextBox Grid.Column="2" Margin="4,0,0,0" Text="{Binding Comentario, UpdateSourceTrigger=PropertyChanged}"
+                                                             MaxLength="200" IsReadOnly="{Binding ProyectoCerrado}"/>
+                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="4,0,0,0">
+                                                        <Button Content="Todo" Padding="4,0" Margin="0,0,2,0"
+                                                                Command="{Binding DataContext.TodoAEsteProyectoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}" ToolTip="Todo el apunte a este proyecto"/>
+                                                        <Button Content="✕" Padding="4,0"
+                                                                Command="{Binding DataContext.QuitarFilaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}" ToolTip="Quitar esta fila"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+
+                        <DockPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" LastChildFill="True">
+                            <Button DockPanel.Dock="Left" Content="Cargar más" Command="{Binding CargarMasCommand}" Padding="10,3" Margin="0,0,16,0"
+                                    Visibility="{Binding HayMas, Converter={StaticResource Visible}}"/>
+                            <Button DockPanel.Dock="Right" Content="Imputar los elegidos enteros" Command="{Binding ImputarSeleccionadosCommand}"
+                                    Padding="12,3" FontWeight="Bold" ToolTip="Un reparto por apunte, cada uno entero al proyecto elegido (sustituye el que tuvieran)"/>
+                            <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding ProyectosAbiertos}" SelectedItem="{Binding ProyectoParaSeleccionados}"
+                                      DisplayMemberPath="CodigoYNombre" Width="260" Margin="6,0,6,0"/>
+                            <TextBlock DockPanel.Dock="Right" Text="a:" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding TextoSeleccion}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        </DockPanel>
+                    </Grid>
+                </TabItem>
+
+                <!-- ===================== CUENTA DE EXPLOTACIÓN ===================== -->
+                <TabItem Header="Cuenta de explotación">
+                    <Grid Margin="6" DataContext="{Binding Cuenta}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <WrapPanel Grid.Row="0" Margin="0,0,0,6">
+                            <StackPanel Margin="0,0,12,4">
+                                <TextBlock Text="Proyecto"/>
+                                <ComboBox ItemsSource="{Binding Proyectos}" SelectedItem="{Binding ProyectoElegido}" DisplayMemberPath="CodigoYNombre" Width="360"/>
+                            </StackPanel>
+                            <Button Content="Volver a leer" Command="{Binding RecargarCommand}" Padding="10,2" VerticalAlignment="Bottom" Margin="0,0,6,4"/>
+                            <Button Content="Excel" Command="{Binding ExcelCommand}" Padding="12,2" VerticalAlignment="Bottom" Margin="0,0,6,4"/>
+                            <Button Content="Comparar con los del mismo producto" Command="{Binding CompararCommand}" Padding="10,2" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        </WrapPanel>
+
+                        <StackPanel Grid.Row="1" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding TextoTotales}" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding TextoMargen}"/>
+                            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Foreground="DimGray"/>
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Grid Visibility="{Binding HayCuenta, Converter={StaticResource Visible}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Ingresos" FontWeight="Bold" Margin="0,0,0,2"/>
+                                        <DataGrid ItemsSource="{Binding Cuenta.Ingresos}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}"/>
+                                                <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCuenta}" Width="*"/>
+                                                <DataGridTextColumn Header="Apuntes" Binding="{Binding NumeroApuntes}"/>
+                                                <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Gastos" FontWeight="Bold" Margin="0,0,0,2"/>
+                                        <DataGrid ItemsSource="{Binding Cuenta.Gastos}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}"/>
+                                                <DataGridTextColumn Header="Nombre" Binding="{Binding NombreCuenta}" Width="*"/>
+                                                <DataGridTextColumn Header="Apuntes" Binding="{Binding NumeroApuntes}"/>
+                                                <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat={}{0:N2} €, ConverterCulture=es-ES}">
+                                                    <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style></DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Visibility="{Binding HayPresupuesto, Converter={StaticResource Visible}}" Margin="0,10,0,0">
+                                    <TextBlock Text="Presupuesto frente a real" FontWeight="Bold" Margin="0,0,0,2"/>
+                                    <DataGrid ItemsSource="{Binding LineasPresupuesto}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                                              HeadersVisibility="Column" HorizontalAlignment="Left">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="" Binding="{Binding Concepto}" FontWeight="Bold"/>
+                                            <DataGridTextColumn Header="Presupuesto" Binding="{Binding Presupuesto}"/>
+                                            <DataGridTextColumn Header="Real" Binding="{Binding Real}"/>
+                                            <DataGridTextColumn Header="Desviación" Binding="{Binding Desviacion}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+
+                                <StackPanel Visibility="{Binding HayComparativa, Converter={StaticResource Visible}}" Margin="0,10,0,0">
+                                    <TextBlock Text="Comparativa con los proyectos del mismo producto" FontWeight="Bold" Margin="0,0,0,2"/>
+                                    <DataGrid ItemsSource="{Binding Comparativa}" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
+                                              HeadersVisibility="Column" HorizontalAlignment="Left" AutoGeneratingColumn="grdComparativa_AutoGeneratingColumn"/>
+                                </StackPanel>
+
+                                <StackPanel Visibility="{Binding HayCuenta, Converter={StaticResource Visible}}" Margin="0,10,0,0">
+                                    <TextBlock Text="Detalle de lo imputado" FontWeight="Bold" Margin="0,0,0,2"/>
+                                    <DataGrid ItemsSource="{Binding Cuenta.Detalle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" MaxHeight="400">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=dd/MM/yyyy}"/>
+                                            <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}"/>
+                                            <DataGridTextColumn Header="Nombre cuenta" Binding="{Binding NombreCuenta}"/>
+                                            <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*"/>
+                                            <DataGridTextColumn Header="Documento" Binding="{Binding Documento}"/>
+                                            <DataGridTextColumn Header="Tercero" Binding="{Binding TerceroParaMostrar}"/>
+                                            <DataGridTextColumn Header="Apunte" Binding="{Binding ImporteApunte, StringFormat={}{0:N2} €, ConverterCulture=es-ES}"/>
+                                            <DataGridTextColumn Header="%" Binding="{Binding Porcentaje, StringFormat={}{0:N2}, ConverterCulture=es-ES}"/>
+                                            <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto, StringFormat={}{0:N2} €, ConverterCulture=es-ES}" FontWeight="Bold"/>
+                                            <DataGridTextColumn Header="Comentario" Binding="{Binding Comentario}"/>
+                                            <DataGridTextColumn Header="Imputó" Binding="{Binding Usuario}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
