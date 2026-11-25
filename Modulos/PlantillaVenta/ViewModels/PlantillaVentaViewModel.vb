@@ -130,6 +130,8 @@ Public Class PlantillaVentaViewModel
         CrearBorradorDesdeJsonCommand = New RelayCommand(AddressOf OnCrearBorradorDesdeJson)
         ' Cargar lista de borradores inmediatamente
         OnActualizarListaBorradores()
+        ' Nesto#654: la casilla «actualizar el borrador cargado» enseña el valor del usuario desde el principio
+        Dim leerPreferenciaBorrador As Task = CargarActualizarBorradorCargadoAsync()
         ' Issue #288: Comprobar si hay JSON válido en el portapapeles
         ComprobarPortapapeles()
 
@@ -7283,11 +7285,58 @@ Public Class PlantillaVentaViewModel
 
     ''' <summary>Lee el parámetro (al cargar un borrador). Nunca lanza: si no se puede leer, como siempre.</summary>
     Friend Async Function CargarActualizarBorradorCargadoAsync() As Task
+        Dim leido As Boolean
         Try
             Dim valor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaBorradorActualizarCargado)
-            _actualizarBorradorCargado = ActualizaElBorradorCargado(valor)
+            leido = ActualizaElBorradorCargado(valor)
         Catch ex As Exception
-            _actualizarBorradorCargado = False
+            leido = False
+        End Try
+        ' Mientras se guarda un cambio de la casilla, manda lo que ha elegido el usuario
+        If _guardandoPreferenciaBorrador Then
+            Return
+        End If
+        If _actualizarBorradorCargado <> leido Then
+            _actualizarBorradorCargado = leido
+            OnPropertyChanged(NameOf(ActualizarBorradorCargado))
+        End If
+    End Function
+
+    Private _guardandoPreferenciaBorrador As Boolean
+
+    ''' <summary>
+    ''' Nesto#654 (Carlos 25/11/26): la casilla del panel de borradores. Refleja el parámetro del usuario y, al cambiarla, lo guarda
+    ''' (PUT api/ParametrosUsuario, «1» o «0»); vale desde ese momento. Si no se puede guardar, vuelve a su valor y se enseña el porqué.
+    ''' </summary>
+    Public Property ActualizarBorradorCargado As Boolean
+        Get
+            Return _actualizarBorradorCargado
+        End Get
+        Set(value As Boolean)
+            If value = _actualizarBorradorCargado Then
+                Return
+            End If
+            GuardadoPreferenciaBorrador = CambiarActualizarBorradorCargadoAsync(value)
+        End Set
+    End Property
+
+    ''' <summary>El guardado en curso de la casilla (para los tests).</summary>
+    Friend Property GuardadoPreferenciaBorrador As Task = Task.CompletedTask
+
+    ''' <summary>Cambia la preferencia en el acto y la guarda como parámetro del usuario; si falla, la deja como estaba. Nunca lanza.</summary>
+    Friend Async Function CambiarActualizarBorradorCargadoAsync(valor As Boolean) As Task
+        Dim anterior As Boolean = _actualizarBorradorCargado
+        _actualizarBorradorCargado = valor
+        OnPropertyChanged(NameOf(ActualizarBorradorCargado))
+        _guardandoPreferenciaBorrador = True
+        Try
+            Await configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaBorradorActualizarCargado, If(valor, "1", "0"))
+        Catch ex As Exception
+            _actualizarBorradorCargado = anterior
+            OnPropertyChanged(NameOf(ActualizarBorradorCargado))
+            dialogService.ShowError("No se ha podido guardar su preferencia de los borradores: " & ex.Message)
+        Finally
+            _guardandoPreferenciaBorrador = False
         End Try
     End Function
 

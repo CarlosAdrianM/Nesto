@@ -130,6 +130,11 @@
                             </Expander.Header>
                             <Border BorderBrush="Orange" BorderThickness="1" CornerRadius="3" Padding="5" Background="#FFF9E6">
                                 <StackPanel>
+                                    <!-- Nesto#654: cada usuario elige si guardar un borrador cargado lo actualiza (se guarda en su parámetro al momento) -->
+                                    <CheckBox IsChecked="{Binding ActualizarBorradorCargado, Mode=TwoWay}" Margin="0,0,0,5"
+                                              ToolTip="Si lo marca, al cerrar la plantilla con un borrador cargado se le preguntará si guarda los cambios en ese mismo borrador. Se guarda para usted y vale desde ahora.">
+                                        <TextBlock Text="Al guardar un borrador que he cargado, actualizarlo en vez de crear otro" TextWrapping="Wrap"/>
+                                    </CheckBox>
                                     <!-- Mensaje cuando NO hay borradores -->
                                     <TextBlock Text="No hay borradores guardados. Los borradores se crean automáticamente cuando falla el envío de un pedido, o manualmente al cerrar la plantilla."
                                                FontStyle="Italic" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,5">

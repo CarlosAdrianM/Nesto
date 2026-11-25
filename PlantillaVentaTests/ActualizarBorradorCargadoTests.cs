@@ -168,5 +168,92 @@ namespace PlantillaVentaTests
             StringAssert.Contains(texto, "Sí: se actualiza ese borrador.");
             StringAssert.Contains(texto, "No: se guarda como un borrador nuevo");
         }
-    }
+    
+        // ---------------- La casilla del panel de borradores (Carlos 25/11/26) ----------------
+
+        [TestMethod]
+        public async Task LaCasilla_EnsenaElValorDelUsuarioDesdeElPrincipio()
+        {
+            Parametro("1");
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+
+            Assert.IsTrue(vm.ActualizarBorradorCargado);
+        }
+
+        [TestMethod]
+        public async Task LaCasilla_SinParametro_Desmarcada()
+        {
+            Parametro(null);
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+
+            Assert.IsFalse(vm.ActualizarBorradorCargado);
+        }
+
+        [TestMethod]
+        public async Task MarcarLaCasilla_GuardaUnoComoParametroDelUsuario_YValeYa()
+        {
+            Parametro("0");
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+            vm.BorradorCargado = BorradorEnDisco("borrador-1");
+            var cambios = new List<string>();
+            vm.PropertyChanged += (s, e) => cambios.Add(e.PropertyName);
+
+            vm.ActualizarBorradorCargado = true;
+            await vm.GuardadoPreferenciaBorrador;
+
+            A.CallTo(() => _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaBorradorActualizarCargado, "1"))
+                .MustHaveHappenedOnceExactly();
+            Assert.IsTrue(vm.ActualizarBorradorCargado);
+            CollectionAssert.Contains(cambios, nameof(PlantillaVentaViewModel.ActualizarBorradorCargado));
+            Assert.AreEqual("borrador-1", vm.BorradorCargadoParaActualizar()?.Id, "Sin esperar a cargar otro borrador");
+        }
+
+        [TestMethod]
+        public async Task DesmarcarLaCasilla_GuardaCero_YDejaDeActualizar()
+        {
+            Parametro("1");
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+            vm.BorradorCargado = BorradorEnDisco("borrador-1");
+
+            vm.ActualizarBorradorCargado = false;
+            await vm.GuardadoPreferenciaBorrador;
+
+            A.CallTo(() => _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaBorradorActualizarCargado, "0"))
+                .MustHaveHappenedOnceExactly();
+            Assert.IsNull(vm.BorradorCargadoParaActualizar());
+        }
+
+        [TestMethod]
+        public async Task SiNoSePuedeGuardar_LaCasillaVuelveASuValorYSeEnsenaElMensaje()
+        {
+            Parametro("0");
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, Parametros.Claves.PlantillaBorradorActualizarCargado, A<string>._))
+                .ThrowsAsync(new Exception("El servidor no responde"));
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+
+            vm.ActualizarBorradorCargado = true;
+            await vm.GuardadoPreferenciaBorrador;
+
+            Assert.IsFalse(vm.ActualizarBorradorCargado);
+            A.CallTo(() => _dialogService.ShowError(A<string>.That.Contains("El servidor no responde"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task PonerElMismoValor_NoGuardaNada()
+        {
+            Parametro("1");
+            var vm = CrearViewModel();
+            await vm.CargarActualizarBorradorCargadoAsync();
+
+            vm.ActualizarBorradorCargado = true;
+            await vm.GuardadoPreferenciaBorrador;
+
+            A.CallTo(() => _configuracion.GuardarParametro(A<string>._, A<string>._, A<string>._)).MustNotHaveHappened();
+        }
+}
 }
