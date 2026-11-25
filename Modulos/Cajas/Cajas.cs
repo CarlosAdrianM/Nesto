@@ -12,6 +12,9 @@ namespace Nesto.Modulos.Cajas
         /// <summary>Nesto#261: consulta de auditoría de enlaces de pago.</summary>
         public const string AUDITORIA_ENLACES_PAGO_VIEW = "AuditoriaEnlacesPagoView";
 
+        /// <summary>Inmovilizados (Carlos 25/11/26): consulta e impresión de la etiqueta de la máquina.</summary>
+        public const string INMOVILIZADOS_VIEW = "InmovilizadosView";
+
         public void Registrar(IRegistroNesto registro)
         {
             registro.Vista<CajasView>("CajasView");
@@ -23,6 +26,9 @@ namespace Nesto.Modulos.Cajas
             // Nesto#261: auditoría de enlaces de pago (solo lectura)
             registro.Vista<AuditoriaEnlacesPagoView>(AUDITORIA_ENLACES_PAGO_VIEW);
             registro.Transitorio<Interfaces.IAuditoriaEnlacesPagoService, Services.AuditoriaEnlacesPagoService>();
+            // Inmovilizados (25/11/26): buscar e imprimir la etiqueta «INMOVILIZADO · NO ES STOCK»
+            registro.Vista<InmovilizadosView>(INMOVILIZADOS_VIEW);
+            registro.Transitorio<Interfaces.IInmovilizadosService, Services.InmovilizadosService>();
             // Nesto#645: cobro en caja de la factura recién creada en la tienda (lo abre el detalle del pedido)
             registro.RegistrarDialogo<CobroCajaDialog, ViewModels.CobroCajaDialogViewModel>(ViewModels.CobroCajaDialogViewModel.NOMBRE);
             registro.Transitorio<ViewModels.CobroCajaDialogViewModel>();
@@ -36,6 +42,7 @@ namespace Nesto.Modulos.Cajas
             registro.Transitorio<ViewModels.MayorCuentaViewModel>();
             registro.Transitorio<ViewModels.FacturasPendientesVerifactuViewModel>();
             registro.Transitorio<ViewModels.AuditoriaEnlacesPagoViewModel>();
+            registro.Transitorio<ViewModels.InmovilizadosViewModel>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

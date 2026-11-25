@@ -19,6 +19,7 @@ namespace Nesto.Modulos.Cajas
             AbrirModuloMayorCuentaCommand = new RelayCommand(OnAbrirMayorCuentaModulo, CanAbrirModuloMayorCuenta);
             AbrirFacturasVerifactuCommand = new RelayCommand(OnAbrirFacturasVerifactu, CanAbrirFacturasVerifactu);
             AbrirAuditoriaEnlacesPagoCommand = new RelayCommand(OnAbrirAuditoriaEnlacesPago, CanAbrirAuditoriaEnlacesPago);
+            AbrirInmovilizadosCommand = new RelayCommand(OnAbrirInmovilizados, CanAbrirInmovilizados);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }
@@ -75,6 +76,22 @@ namespace Nesto.Modulos.Cajas
         private void OnAbrirAuditoriaEnlacesPago()
         {
             Navegacion.RequestNavigate("MainRegion", Cajas.AUDITORIA_ENLACES_PAGO_VIEW);
+        }
+
+        // Inmovilizados (25/11/26): la etiqueta se pega en la máquina en la delegación, así que la ven también Almacén y Tiendas.
+        // Quién puede imprimir lo decide la API (403 con su mensaje).
+        public ICommand AbrirInmovilizadosCommand { get; private set; }
+        private bool CanAbrirInmovilizados()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
+        }
+        private void OnAbrirInmovilizados()
+        {
+            Navegacion.RequestNavigate("MainRegion", Cajas.INMOVILIZADOS_VIEW);
         }
     }
 }

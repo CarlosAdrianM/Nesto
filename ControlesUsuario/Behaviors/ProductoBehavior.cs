@@ -374,6 +374,13 @@ namespace ControlesUsuario.Behaviors
                 return;
             }
 
+            // Inmovilizados (25/11/26): «I/1823» no es un producto; la línea pasa a tipo inmovilizado (LineaPedidoVentaWrapper).
+            if (Nesto.Infrastructure.Shared.CodigoInmovilizado.EsCodigo(texto))
+            {
+                RestaurarEstiloNormal();
+                return;
+            }
+
             // Obtener el servicio
             var servicio = Servicio ?? _servicio ?? ResolverServicio();
             if (servicio == null)

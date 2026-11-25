@@ -26,6 +26,11 @@
                             Header="Cobros">
                 <RibbonButton Label="Enlaces de pago" LargeImageSource="Images/EnlacesPago.png"  Command="{Binding AbrirAuditoriaEnlacesPagoCommand}" />
             </RibbonGroup>
+            <!-- Inmovilizados (Carlos 25/11/26): buscar inmovilizados e imprimir la etiqueta para pegar en la máquina -->
+            <RibbonGroup x:Name="grpInmovilizados"
+                            Header="Inmovilizados">
+                <RibbonButton Label="Inmovilizados" LargeImageSource="Images/Inmovilizados.png"  Command="{Binding AbrirInmovilizadosCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

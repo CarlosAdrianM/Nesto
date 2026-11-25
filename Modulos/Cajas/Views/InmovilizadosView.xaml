@@ -1,0 +1,68 @@
+<UserControl x:Class="Nesto.Modulos.Cajas.Views.InmovilizadosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="1000"
+             Background="White">
+
+    <!-- Inmovilizados (Carlos 25/11/26): buscar inmovilizados e imprimir la etiqueta para pegar en la máquina
+         («INMOVILIZADO · NO ES STOCK», «I/1823» y su código de barras). -->
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Un momento...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Inmovilizados" FontSize="20" FontWeight="Bold" Margin="0,0,0,8"/>
+
+            <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                <StackPanel Margin="0,0,12,4">
+                    <TextBlock Text="Buscar"/>
+                    <TextBox x:Name="txtFiltro" Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}" Width="260"
+                             ToolTip="Número (1823), código (I/1823) o parte de la descripción. Busca al pulsar Intro o al dejar de escribir.">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding BuscarCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </StackPanel>
+                <StackPanel Margin="0,0,12,4">
+                    <TextBlock Text="Delegación"/>
+                    <ComboBox ItemsSource="{Binding Delegaciones}" SelectedItem="{Binding Delegacion}" Width="90"/>
+                </StackPanel>
+                <CheckBox Content="Ver también los anulados" IsChecked="{Binding VerAnulados}" VerticalAlignment="Bottom" Margin="0,0,12,6"/>
+                <Button Content="Buscar" Command="{Binding BuscarCommand}" Padding="12,2" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+            </WrapPanel>
+
+            <TextBlock Grid.Row="2" Text="{Binding Resumen}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+            <DataGrid Grid.Row="3" x:Name="grdInmovilizados" ItemsSource="{Binding Inmovilizados}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Extended" SelectionUnit="FullRow"
+                      SelectionChanged="grdInmovilizados_SelectionChanged">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Código" Binding="{Binding CodigoParaMostrar}" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*"/>
+                    <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}"/>
+                    <DataGridTextColumn Header="Grupo" Binding="{Binding Grupo}"/>
+                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadoParaMostrar}"/>
+                    <DataGridTextColumn Header="Fecha" Binding="{Binding FechaCreacion, StringFormat=dd/MM/yyyy}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <DockPanel Grid.Row="4" Margin="0,10,0,0" LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="Imprimir etiqueta" Command="{Binding ImprimirCommand}" Padding="14,4" FontWeight="Bold"
+                        ToolTip="Imprime la etiqueta de los inmovilizados elegidos en la impresora de su delegación"/>
+                <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding OpcionesCopias}" SelectedItem="{Binding Copias}" Width="60" Margin="6,0,12,0"
+                          VerticalAlignment="Center"/>
+                <TextBlock DockPanel.Dock="Right" Text="Copias:" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TextoSeleccion}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

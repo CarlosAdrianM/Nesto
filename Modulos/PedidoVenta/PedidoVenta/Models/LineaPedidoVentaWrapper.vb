@@ -1,8 +1,11 @@
 ﻿Imports Nesto.Models
 Imports CommunityToolkit.Mvvm.ComponentModel
+Imports Nesto.Infrastructure.Shared
 
 Public Class LineaPedidoVentaWrapper
     Inherits ObservableObject
+    ''' <summary>TipoLinea de una línea de inmovilizado: en «Producto» va el número del inmovilizado («1823»).</summary>
+    Public Const TIPO_LINEA_INMOVILIZADO As Byte = 3
     Public Sub New()
         ' Este constructor solo permite la entrada desde el Datagrid
         Model = New LineaPedidoVentaDTO() With {
@@ -221,6 +224,17 @@ Public Class LineaPedidoVentaWrapper
             Return Model.Producto
         End Get
         Set(value As String)
+            ' Inmovilizados (Carlos 25/11/26): «I/1823» escrito o leído con el lector (la etiqueta de la máquina) es el
+            ' inmovilizado 1823: la línea pasa a tipo inmovilizado (3) y en «Producto» queda solo el número.
+            Dim numeroInmovilizado As String = Nothing
+            If CodigoInmovilizado.TryLeer(value, numeroInmovilizado) Then
+                If Not tipoLinea.HasValue OrElse tipoLinea.Value <> TIPO_LINEA_INMOVILIZADO Then
+                    tipoLinea = TIPO_LINEA_INMOVILIZADO ' AplicarReglasTipoLinea limpia lo que hubiera de un producto
+                End If
+                Model.Producto = numeroInmovilizado
+                OnPropertyChanged(NameOf(Producto))
+                Return
+            End If
             ' Issue #258: En líneas de texto (TipoLinea=0), Producto debe estar vacío
             If tipoLinea.HasValue AndAlso tipoLinea.Value = 0 Then
                 If Not String.IsNullOrEmpty(value) Then

@@ -1706,7 +1706,13 @@ Public Class DetallePedidoViewModel
 
         ' Issue #258: Solo buscar producto si TipoLinea=1 (producto) - las cuentas contables se manejan en CuentaContableBehavior
         If esTextBox AndAlso eventArgs.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso textoNuevo <> lineaActual.Producto Then
-            If lineaActual.tipoLinea.HasValue AndAlso lineaActual.tipoLinea.Value = 1 Then
+            ' Inmovilizados (25/11/26): «I/1823» no es un producto. El TextBox se queda con el número y, al confirmarse la
+            ' celda, LineaPedidoVentaWrapper.Producto pasa la línea a tipo inmovilizado (3); no se busca ningún producto.
+            Dim numeroInmovilizado As String = Nothing
+            If CodigoInmovilizado.TryLeer(textoNuevo, numeroInmovilizado) Then
+                lineaActual.Producto = textoNuevo
+                textBoxEncontrado.Text = numeroInmovilizado
+            ElseIf lineaActual.tipoLinea.HasValue AndAlso lineaActual.tipoLinea.Value = 1 Then
                 Await CargarDatosProducto(textoNuevo, lineaActual.Cantidad)
             End If
         End If

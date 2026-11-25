@@ -33,6 +33,7 @@
     <Resource Include="Images\EnlacesPago.png" />
     <Resource Include="Images\MayorCuenta.png" />
     <Resource Include="Images\FacturasVerifactu.png" />
+    <Resource Include="Images\Inmovilizados.png" />
   </ItemGroup>
 
 </Project>
