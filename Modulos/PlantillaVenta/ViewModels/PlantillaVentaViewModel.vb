@@ -7132,6 +7132,12 @@ Public Class PlantillaVentaViewModel
                     "Hay productos en la plantilla que no se han enviado." & vbCrLf & vbCrLf &
                     "¿Desea guardar un borrador para continuar más tarde?")
 
+                ' Nesto#654: con el parámetro encendido y un borrador cargado del disco, se pregunta si se actualiza ese
+                Dim cargado As BorradorPlantillaVenta = If(deseaGuardar, BorradorCargadoParaActualizar(), Nothing)
+                If cargado IsNot Nothing Then
+                    Return GuardarAlSalirConBorradorCargado(cargado)
+                End If
+
                 If deseaGuardar Then
                     Try
                         Dim borrador = CrearBorradorDesdeEstadoActual("Guardado manualmente al salir")
@@ -7255,10 +7261,95 @@ Public Class PlantillaVentaViewModel
         Return borrador
     End Function
 
+#Region "Actualizar el borrador cargado - Nesto#654"
+    ' Nesto#654 (sugerencia 1432, María José; Carlos 24/11/26): por parámetro de usuario, guardar un borrador CARGADO lo actualiza
+    ' en vez de crear otro. Sin el parámetro (o sin poder leerlo), como siempre: se crea otro.
+    Private _actualizarBorradorCargado As Boolean
+
+    ''' <summary>El borrador cargado (el que se está restaurando). Friend para los tests.</summary>
+    Friend Property BorradorCargado As BorradorPlantillaVenta
+        Get
+            Return _borradorEnRestauracion
+        End Get
+        Set(value As BorradorPlantillaVenta)
+            _borradorEnRestauracion = value
+        End Set
+    End Property
+
+    ''' <summary>LA REGLA (pura): solo «1» enciende; cualquier otro valor, vacío o sin fila = como siempre.</summary>
+    Friend Shared Function ActualizaElBorradorCargado(valorParametro As String) As Boolean
+        Return valorParametro?.Trim() = "1"
+    End Function
+
+    ''' <summary>Lee el parámetro (al cargar un borrador). Nunca lanza: si no se puede leer, como siempre.</summary>
+    Friend Async Function CargarActualizarBorradorCargadoAsync() As Task
+        Try
+            Dim valor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PlantillaBorradorActualizarCargado)
+            _actualizarBorradorCargado = ActualizaElBorradorCargado(valor)
+        Catch ex As Exception
+            _actualizarBorradorCargado = False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' El borrador cargado que hay que actualizar al guardar, o Nothing (parámetro apagado, ningún borrador cargado, o uno que no
+    ''' está en el disco: «modificar con plantilla», borrado mientras tanto…). Friend para los tests.
+    ''' </summary>
+    Friend Function BorradorCargadoParaActualizar() As BorradorPlantillaVenta
+        If Not _actualizarBorradorCargado OrElse _borradorEnRestauracion Is Nothing OrElse String.IsNullOrEmpty(_borradorEnRestauracion.Id) Then
+            Return Nothing
+        End If
+        Try
+            Return servicioBorradores.ObtenerBorradores()?.FirstOrDefault(Function(b) b.Id = _borradorEnRestauracion.Id)
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>Guarda el estado actual como borrador: encima del de <paramref name="idActualizar"/> o, sin él, uno nuevo.</summary>
+    Private Function GuardarBorradorActual(mensaje As String, idActualizar As String) As BorradorPlantillaVenta
+        Dim borrador = CrearBorradorDesdeEstadoActual(mensaje)
+        If Not String.IsNullOrEmpty(idActualizar) Then
+            borrador.Id = idActualizar ' mismo fichero: se sobrescribe
+        End If
+        borrador = servicioBorradores.GuardarBorrador(borrador)
+        If _borradorEnRestauracion IsNot Nothing AndAlso Not String.IsNullOrEmpty(idActualizar) Then
+            _borradorEnRestauracion.Id = idActualizar
+        End If
+        Return borrador
+    End Function
+
+    Friend Const TITULO_BORRADOR_CARGADO As String = "Guardar borrador"
+
+    Friend Shared Function TextoPreguntaBorradorCargado(cargado As BorradorPlantillaVenta) As String
+        Return $"Esta plantilla viene del borrador «{cargado?.Descripcion}».{vbCrLf}{vbCrLf}" &
+               $"¿Desea guardar los cambios en ese mismo borrador?{vbCrLf}{vbCrLf}" &
+               "Sí: se actualiza ese borrador." & vbCrLf &
+               "No: se guarda como un borrador nuevo y el anterior se queda como estaba."
+    End Function
+
+    ''' <summary>
+    ''' Al cerrar la plantilla, ya dicho que sí a guardar el borrador, con uno cargado: Sí = se actualiza, No = uno nuevo. Siempre
+    ''' cierra (True). Friend para los tests.
+    ''' </summary>
+    Friend Function GuardarAlSalirConBorradorCargado(cargado As BorradorPlantillaVenta) As Boolean
+        Dim actualizar As Boolean = dialogService.ShowConfirmationAnswer(TITULO_BORRADOR_CARGADO, TextoPreguntaBorradorCargado(cargado))
+        Try
+            Dim guardado = GuardarBorradorActual("Guardado manualmente al salir", If(actualizar, cargado.Id, Nothing))
+            dialogService.ShowNotification("Borrador guardado",
+                If(actualizar, "Borrador actualizado correctamente.", "Borrador nuevo guardado correctamente.") &
+                " Podrá recuperarlo la próxima vez que abra la Plantilla de Ventas.")
+        Catch ex As Exception
+            dialogService.ShowError($"Error al guardar el borrador: {ex.Message}")
+        End Try
+        Return True
+    End Function
+#End Region
+
     Private Sub OnGuardarBorrador()
         Try
-            Dim borrador = CrearBorradorDesdeEstadoActual()
-            borrador = servicioBorradores.GuardarBorrador(borrador)
+            ' Nesto#654: con el parámetro encendido, encima del borrador cargado
+            Dim borrador = GuardarBorradorActual(Nothing, BorradorCargadoParaActualizar()?.Id)
 
             dialogService.ShowNotification($"Borrador guardado correctamente ({borrador.NumeroLineas} líneas)")
 
@@ -7338,6 +7429,8 @@ Public Class PlantillaVentaViewModel
             _cargandoDesdeBorrador = True
             _borradorEnRestauracion = borrador
             _borradorRestauradoEnFormasVenta = False ' Resetear para que se apliquen los nuevos valores
+            ' Nesto#654: si este usuario actualiza el borrador cargado al guardarlo (sin esperar: solo hace falta al guardar)
+            Dim leerParametroBorrador As Task = CargarActualizarBorradorCargadoAsync()
 
             ' Issue #288: Establecer FechaEntrega tempranamente para que la lógica de
             ' fechaMinimaEntrega (que se ejecuta async durante la carga del cliente)

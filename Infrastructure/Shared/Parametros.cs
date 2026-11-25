@@ -84,6 +84,10 @@
             // pedido queda abierta una plantilla limpia para el siguiente cliente. Cualquier otro valor, sin fila o si no se
             // puede leer = como siempre (la plantilla se cierra). Empresa 1; la fila «(defecto)» va a '0'.
             public const string PlantillaMantenerAbierta = "PlantillaMantenerAbierta";
+            // Nesto#654 (sugerencia 1432, María José; Carlos 24/11/26): "1" = al guardar en la plantilla un borrador que se había
+            // CARGADO, se actualiza ese mismo borrador en vez de crear otro (y se puede elegir «guardarlo como uno nuevo»).
+            // Cualquier otro valor, sin fila o si no se puede leer = como siempre (se crea otro). Empresa 1; «(defecto)» a '0'.
+            public const string PlantillaBorradorActualizarCargado = "PlantillaBorradorActualizarCargado";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             // Nesto#388: "1" = el panel de contactos/direcciones del SelectorCliente aparece
             // desplegado al seleccionar un cliente; cualquier otro valor (o ausencia) = colapsado.
