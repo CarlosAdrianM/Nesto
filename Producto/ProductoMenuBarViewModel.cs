@@ -34,6 +34,7 @@ namespace Nesto.Modules.Producto
             AbrirRecogidasSolicitadasCommand = new RelayCommand(OnAbrirRecogidasSolicitadas, CanAbrirRecogidasSolicitadas);
             AbrirEnviosProveedorPorAsignarCommand = new RelayCommand(OnAbrirEnviosProveedorPorAsignar, CanAbrirEnviosProveedorPorAsignar);
             AbrirEnviosInternosCommand = new RelayCommand(OnAbrirEnviosInternos, CanAbrirEnviosInternos);
+            AbrirMuestrasCommand = new RelayCommand(OnAbrirMuestras, CanAbrirMuestras);
 
             if (Diferencias != null && CanAbrirRecibirReposicion())
             {
@@ -46,6 +47,18 @@ namespace Nesto.Modules.Producto
         public const string VISTA_FACTURACION_TIENDA = "FacturacionTiendaView";
         public const string VISTA_CAMBIAR_ESTADO_PRODUCTOS = "CambiarEstadoProductosView";
         public const string VISTA_RECORRIDO_ALMACEN = "RecorridoAlmacenView";
+        public const string VISTA_MUESTRAS = "MuestrasView";
+
+        /// <summary>
+        /// Nesto#650 (NestoAPI#884): las etiquetas de cajón o gaveta de las muestras, el código interno en bloque y la hoja por marca.
+        /// La abren los mismos que la etiqueta de producto (Almacén, Compras, Tiendas, Dirección e Informática); la API lo vuelve a comprobar.
+        /// </summary>
+        public ICommand AbrirMuestrasCommand { get; private set; }
+        internal bool CanAbrirMuestras() => Nesto.Modules.Producto.ViewModels.MuestrasViewModel.PuedeUsarMuestras(Configuracion);
+        private void OnAbrirMuestras()
+        {
+            Navegacion.RequestNavigate("MainRegion", VISTA_MUESTRAS);
+        }
 
         /// <summary>
         /// Nesto#528 (corte 4 de NestoAPI#639): las calles del recorrido de preparación del almacén. La abre cualquiera (leer solo pide

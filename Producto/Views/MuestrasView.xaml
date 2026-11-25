@@ -1,0 +1,115 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.MuestrasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:MuestrasViewModel}"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- Nesto#650 (NestoAPI#884): etiquetas de cajón o gaveta de las muestras, código interno en bloque y hoja por marca -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="{Binding Titulo}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="1" TextWrapping="Wrap" Foreground="DimGray" Margin="0,0,0,8"
+                   Text="Una etiqueta por referencia en el cajón del mostrador (Reina, Alcobendas) o en la gaveta / el hueco (Algete). A la muestra sin código se le da el interno del 29 al imprimir." />
+
+        <!-- Filtros -->
+        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                <TextBlock Text="Almacén" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox ItemsSource="{Binding Almacenes}" SelectedItem="{Binding Almacen}" DisplayMemberPath="Texto" Width="150" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,4">
+                <TextBlock Text="Marca" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBox Text="{Binding Familia, UpdateSourceTrigger=PropertyChanged}" Width="160"
+                         ToolTip="Código o nombre de la marca (familia). Vacío: todas." />
+            </StackPanel>
+            <CheckBox Content="Solo las que tienen stock" IsChecked="{Binding SoloConStock}" VerticalAlignment="Center" Margin="0,0,16,4" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,16,4"
+                        Visibility="{Binding PuedeElegirImpresora, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="Impresora" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox ItemsSource="{Binding Impresoras}" SelectedItem="{Binding Impresora}" DisplayMemberPath="Texto" MinWidth="220" />
+            </StackPanel>
+            <Button Content="Ver" Command="{Binding VerCommand}" Padding="16,4" Margin="0,0,0,4"
+                    ToolTip="Qué etiquetas saldrían con estos filtros (no imprime ni da códigos)" />
+        </WrapPanel>
+
+        <!-- Acciones -->
+        <WrapPanel Grid.Row="3" Margin="0,0,0,8">
+            <Button Content="Imprimir etiquetas" Command="{Binding ImprimirCommand}" Padding="16,4" Margin="0,0,8,4"
+                    ToolTip="Imprime las marcadas (o todas las de los filtros si no ha pulsado «Ver»); antes dice cuántas y en qué impresora" />
+            <Button Content="Marcar todas" Command="{Binding MarcarTodasCommand}" Padding="8,4" Margin="0,0,8,4" />
+            <Button Content="Desmarcar todas" Command="{Binding DesmarcarTodasCommand}" Padding="8,4" Margin="0,0,24,4" />
+            <Button Content="Dar código a las muestras sin código" Command="{Binding DarCodigoCommand}" Padding="16,4" Margin="0,0,24,4"
+                    Visibility="{Binding PuedeDarCodigo, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    ToolTip="Da el código interno del 29 a todas las muestras activas que no tienen ninguno (antes enseña cuáles)" />
+            <Button Content="Hoja en PDF" Command="{Binding HojaCommand}" Padding="16,4" Margin="0,0,8,4"
+                    ToolTip="La hoja de muestras por marca (con el almacén, la marca y «solo con stock» de arriba), para el mostrador" />
+            <CheckBox Content="Con fotos" IsChecked="{Binding ConFotos}" VerticalAlignment="Center" Margin="0,0,16,4"
+                      ToolTip="Sin fotos la hoja sale antes" />
+            <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="0,0,0,4"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </WrapPanel>
+
+        <TextBlock Grid.Row="4" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+        <DataGrid Grid.Row="5" ItemsSource="{Binding Etiquetas}" AutoGenerateColumns="False" CanUserAddRows="False"
+                  CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Extended" IsReadOnly="False">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Imprimir">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding Marcada, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Orden" Binding="{Binding Orden}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Referencia" Binding="{Binding Producto}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" IsReadOnly="True" Width="*" />
+                <DataGridTextColumn Header="Marca" Binding="{Binding Familia}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Hueco" Binding="{Binding Hueco}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" IsReadOnly="True" />
+                <DataGridTemplateColumn Header="Código" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding TextoCodigo}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SinCodigo}" Value="True">
+                                                <Setter Property="Foreground" Value="DarkOrange" />
+                                                <Setter Property="FontStyle" Value="Italic" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <ItemsControl Grid.Row="6" ItemsSource="{Binding Errores}" Margin="0,8,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" Foreground="Firebrick" TextWrapping="Wrap" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

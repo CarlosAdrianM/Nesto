@@ -72,6 +72,12 @@ namespace Nesto.Modulos.Producto
             registro.Vista<EnviosProveedorPorAsignarView>(NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR);
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosProveedorPorAsignarViewModel>();
             registro.Singleton<IServicioEnviosProveedorPorAsignar, ServicioEnviosProveedorPorAsignar>();
+
+            // Nesto#650 (NestoAPI#884): muestras sin código: etiquetas de cajón o gaveta, código interno en bloque y hoja por marca
+            // (IGuardadorFicherosDescarga lo registra ComposicionNesto, Nesto#652)
+            registro.Vista<MuestrasView>(ProductoMenuBarViewModel.VISTA_MUESTRAS);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.MuestrasViewModel>();
+            registro.Singleton<IServicioMuestras, ServicioMuestras>();
         }
 
         public void Inicializar(IResolutorNesto resolutor)

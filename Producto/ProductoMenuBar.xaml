@@ -33,6 +33,9 @@
             <RibbonGroup x:Name="grpAlmacen"
                                 Header="Almacén">
                 <RibbonButton Label="Etiquetas de hueco" LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirEtiquetasHuecoCommand}" />
+                <!-- Nesto#650 (NestoAPI#884): una etiqueta por muestra en el cajón o la gaveta, código interno en bloque y hoja por marca -->
+                <RibbonButton Label="Muestras" ToolTip="Etiquetas de cajón o gaveta de las muestras, dar código a las muestras sin código y la hoja de muestras por marca en PDF"
+                              LargeImageSource="Images/Imprimir.png" Command="{Binding AbrirMuestrasCommand}" />
                 <!-- Nesto#528 (NestoAPI#642): las calles del recorrido de preparación (solo lectura salvo Almacén y Dirección) -->
                 <RibbonButton Label="Recorrido" ToolTip="El orden de calles y pasillos del recorrido de preparación del almacén, con su sentido y la vista previa de los tramos"
                               LargeImageSource="Images/Diarios.png" Command="{Binding AbrirRecorridoAlmacenCommand}" />
