@@ -216,6 +216,111 @@ namespace PlantillaVentaTests
             Assert.AreEqual(0, _confirmaciones.Count + _errores.Count);
         }
 
+        // ---------- Sugerencia 1460 (Sancho, ALC, 25/11/26): en tienda no hay vuelta a «Todo junto» ----------
+
+        private PlantillaVentaViewModel CrearViewModelEnTienda(string almacen, params LineaPlantillaVenta[] lineas)
+        {
+            var vm = CrearViewModel(lineas);
+            vm.almacenSeleccionado = vm.listaAlmacenes.Single(a => a.Codigo == almacen);
+            return vm;
+        }
+
+        /// <summary>Lo que contesta la API en tienda: solo «Según vaya entrando» (MOTIVO_TIENDA en los demás).</summary>
+        private static ModoServicioSugeridoDTO SugerenciaDeTienda()
+        {
+            const string motivo = "En tienda el cliente se lleva lo que hay: el pedido se sirve según vaya entrando.";
+            return new ModoServicioSugeridoDTO
+            {
+                Modo = ModosServicio.SEGUN_VAYA_ENTRANDO,
+                ModosPermitidos = new List<byte> { ModosServicio.SEGUN_VAYA_ENTRANDO },
+                Modos = new List<ModoServicioPermitidoDTO>
+                {
+                    new ModoServicioPermitidoDTO { Modo = ModosServicio.TODO_JUNTO, Permitido = false, Motivo = motivo },
+                    new ModoServicioPermitidoDTO { Modo = ModosServicio.SEGUN_VAYA_ENTRANDO, Permitido = true },
+                    new ModoServicioPermitidoDTO { Modo = ModosServicio.TRAS_REPONER_DE_TIENDAS, Permitido = false, Motivo = motivo },
+                    new ModoServicioPermitidoDTO { Modo = ModosServicio.AHORA_LO_QUE_HAY_Y_EL_RESTO_DE_UNA_VEZ, Permitido = false, Motivo = motivo }
+                }
+            };
+        }
+
+        private static ValidarServirJuntoResponse DenegadaComoLaApi(string almacen, params string[] productos)
+        {
+            return new ValidarServirJuntoResponse
+            {
+                PuedeDesmarcar = false,
+                Mensaje = $"No se puede pasar el pedido a «Según vaya entrando»: no hay stock en {almacen} de estas muestras (material promocional) y no pueden quedarse pendientes. Bórrelas del pedido: "
+                    + string.Join(", ", productos.Select(p => p + " MUESTRA " + p)) + ". O elija otro modo de servicio («Todo junto», «Tras reponer de tiendas» o «Ahora lo que hay, el resto de una vez»).",
+                ProductosProblematicos = productos.Select(p => new ProductoSinStockDTO { ProductoId = p, ProductoNombre = "MUESTRA " + p }).ToList()
+            };
+        }
+
+        [TestMethod]
+        public void Tienda_MuestrasSinStock_SiNoLasQuita_NoVuelveATodoJuntoQueLaApiNoAceptaYDiceQueHacer()
+        {
+            // Lo que le pasaba a Sancho: el combo volvía a «Todo junto» (deshabilitado en tienda), al guardar la API lo pasaba a
+            // «Según vaya entrando» y lo rechazaba con «… O elija otro modo de servicio («Todo junto», …)». Siete intentos.
+            ElServidorResponde(DenegadaComoLaApi("ALC", "39918", "38201"));
+            _respuestas.Enqueue(false);
+            var muestra1 = Linea("39918", "BOLSA ANUBIS PAPEL");
+            var muestra2 = Linea("38201", "MUESTRA TOTAL HYDRATING BI-GEL 2ML");
+            var vm = CrearViewModelEnTienda("ALC", Linea("12345", "CHAMPU"), muestra1, muestra2);
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaDeTienda());
+
+            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio, "En tienda no se vuelve a «Todo junto»: la API no lo aceptaría");
+            Assert.IsFalse(vm.Estado.ServirJunto);
+            Assert.AreEqual(1, muestra1.cantidad, "Sin confirmación no se quita nada");
+            var oferta = _confirmaciones.Single();
+            StringAssert.Contains(oferta, "En ALC el pedido solo puede salir «Según vaya entrando»");
+            StringAssert.Contains(oferta, "· 39918 BOLSA ANUBIS PAPEL");
+            StringAssert.Contains(oferta, "cambie el almacén a ALG");
+            Assert.IsFalse(oferta.Contains("Todo junto"), "No se promete un «Todo junto» que no vale: " + oferta);
+            Assert.IsTrue(vm.HayAvisoModoServicio);
+            StringAssert.Contains(vm.AvisoModoServicio, "cambie el almacén a ALG");
+            Assert.IsFalse(vm.AvisoModoServicio.Contains("se queda en «Todo junto»"));
+        }
+
+        [TestMethod]
+        public void Tienda_MuestrasSinStock_SiLasQuita_SeQuedaEnSegunVayaEntrando()
+        {
+            ElServidorResponde(DenegadaComoLaApi("REI", "43831"), Permitida());
+            _respuestas.Enqueue(true);
+            var muestra = Linea("43831", "MUESTRA");
+            var vm = CrearViewModelEnTienda("REI", Linea("12345", "CHAMPU"), muestra);
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaDeTienda());
+
+            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio);
+            Assert.AreEqual(0, muestra.cantidad, "Aceptado: la muestra sale del pedido");
+            Assert.AreEqual(0, _errores.Count);
+        }
+
+        [TestMethod]
+        public void Tienda_ProblematicoQueNoEstaEnElPedido_ElErrorNoOfreceOtroModo()
+        {
+            ElServidorResponde(DenegadaComoLaApi("ALC", "42887", "99999"));
+            var vm = CrearViewModelEnTienda("ALC", Linea("12345", "CHAMPU"), Linea("42887", "DISPLAY TOTAL HIDRATING"));
+
+            vm.AplicarSugerenciaModoServicio(SugerenciaDeTienda());
+
+            Assert.AreEqual(ModosServicio.SEGUN_VAYA_ENTRANDO, vm.ModoServicio);
+            var error = _errores.Single();
+            StringAssert.StartsWith(error, "No se puede pasar el pedido a «Según vaya entrando»: no hay stock en ALC");
+            Assert.IsFalse(error.Contains("elija otro modo"), error);
+            Assert.IsFalse(error.Contains("se queda en «Todo junto»"), error);
+            StringAssert.EndsWith(error, "cambie el almacén a ALG para servirlo desde Algete.");
+        }
+
+        [TestMethod]
+        public void QuitarOtroModoDeServicio_QuitaLaSalidaDeLosDosValidadores()
+        {
+            Assert.AreEqual("No hay stock en ALC de esta muestra. Bórrela del pedido: 1 X.",
+                PlantillaVentaViewModel.QuitarOtroModoDeServicio("No hay stock en ALC de esta muestra. Bórrela del pedido: 1 X. O elija otro modo de servicio («Todo junto» o «Tras reponer de tiendas»)."));
+            Assert.AreEqual("Cambie los productos bonificados por otros con stock en REI.",
+                PlantillaVentaViewModel.QuitarOtroModoDeServicio("Cambie los productos bonificados por otros con stock en REI o elija otro modo de servicio («Todo junto»)."));
+            Assert.AreEqual(string.Empty, PlantillaVentaViewModel.QuitarOtroModoDeServicio(null));
+        }
+
         [TestMethod]
         public void AnadirVueltaATodoJunto_TerminaSiempreConLaFrase()
         {

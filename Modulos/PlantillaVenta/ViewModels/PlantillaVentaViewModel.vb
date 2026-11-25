@@ -1563,12 +1563,17 @@ Public Class PlantillaVentaViewModel
             Return
         End If
         _aplicandoSugerenciaModoServicio = True
+        _avisoPuestoAlValidar = False
         Try
             ModoServicio = modoValido
         Finally
             _aplicandoSugerenciaModoServicio = False
         End Try
         _ultimoModoSugeridoAplicado = modoValido
+        ' Sugerencia 1460: si al cambiar de modo la validación ya ha dejado dicho qué pasa (muestras sin stock en tienda), manda eso.
+        If _avisoPuestoAlValidar Then
+            Return
+        End If
         AvisoModoServicio = SelectorModosServicio.TextoAvisoCambio(anterior, modoValido, motivo)
     End Sub
 
@@ -1975,6 +1980,11 @@ Public Class PlantillaVentaViewModel
 
         Dim modoElegido As Byte = ModoServicio
         Dim modoJunto As Byte = ModoJuntoAlQueVolver ' Sugerencia 1340: 1 o 6
+        ' Sugerencia 1460 (Sancho, ALC, 25/11/26): si la API ya ha dicho que «Todo junto» no vale para este pedido (en tienda
+        ' solo «Según vaya entrando»), volver a él es un callejón sin salida: el combo enseña «Todo junto», pero al guardar la
+        ' API lo pasa a «Según vaya entrando» y rechaza el pedido con el mismo mensaje. Ahí no se vuelve: se dice qué hacer.
+        Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
+        Dim sinVueltaATodoJunto As Boolean = Not ModoPermitido(ModosServicio.TODO_JUNTO) AndAlso ModoPermitido(modoElegido)
         Try
             Dim lineas As List(Of LineaPlantillaVenta) = LineasPedidoSinCursos ' Nesto#543: sin cursos
             Dim respuesta = Await ValidarSalirDeTodoJunto(lineas, modoElegido).ConfigureAwait(True)
@@ -1987,20 +1997,37 @@ Public Class PlantillaVentaViewModel
             If Not respuesta.PuedeDesmarcar Then
                 lineasAQuitar = LineasQueImpidenSalirDeTodoJunto(lineas, respuesta.ProductosProblematicos)
                 If Not SePuedeOfrecerQuitarlas(lineasAQuitar, respuesta.ProductosProblematicos) Then
+                    If sinVueltaATodoJunto Then
+                        QuedarseSinModoQueValgaAvisando(modoElegido, almacen)
+                        dialogService.ShowError(TextoSinModoQueValga(respuesta.Mensaje, modoElegido, almacen))
+                        Return
+                    End If
                     VolverATodoJuntoAvisando(modoElegido)
                     dialogService.ShowError(AnadirVueltaATodoJunto(respuesta.Mensaje, modoJunto))
                     Return
                 End If
-                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", ConstruirOfertaQuitarYCambiarModo(lineasAQuitar, modoElegido, modoJunto)) Then
-                    VolverATodoJuntoAvisando(modoElegido)
+                Dim oferta As String = If(sinVueltaATodoJunto,
+                    ConstruirOfertaQuitarSinModoQueValga(lineasAQuitar, modoElegido, almacen),
+                    ConstruirOfertaQuitarYCambiarModo(lineasAQuitar, modoElegido, modoJunto))
+                If Not dialogService.ShowConfirmationAnswer("Modo de servicio", oferta) Then
+                    If sinVueltaATodoJunto Then
+                        QuedarseSinModoQueValgaAvisando(modoElegido, almacen)
+                    Else
+                        VolverATodoJuntoAvisando(modoElegido)
+                    End If
                     Return
                 End If
                 Dim lineasQueQuedan = lineas.Where(Function(l) Not lineasAQuitar.Contains(l)).ToList()
                 respuesta = Await ValidarSalirDeTodoJunto(lineasQueQuedan, modoElegido).ConfigureAwait(True)
                 If Not respuesta.PuedeDesmarcar Then
+                    Dim inicio As String = $"No se ha quitado ninguna línea: aunque se quitaran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}». "
+                    If sinVueltaATodoJunto Then
+                        QuedarseSinModoQueValgaAvisando(modoElegido, almacen)
+                        dialogService.ShowError(inicio & TextoSinModoQueValga(respuesta.Mensaje, modoElegido, almacen))
+                        Return
+                    End If
                     VolverATodoJuntoAvisando(modoElegido)
-                    dialogService.ShowError($"No se ha quitado ninguna línea: aunque se quitaran, el pedido seguiría sin poder pasar a «{ModosServicio.Nombre(modoElegido)}». " &
-                                            AnadirVueltaATodoJunto(respuesta.Mensaje, modoJunto))
+                    dialogService.ShowError(inicio & AnadirVueltaATodoJunto(respuesta.Mensaje, modoJunto))
                     Return
                 End If
             End If
@@ -2114,6 +2141,55 @@ Public Class PlantillaVentaViewModel
         RevertirAServirJunto()
         AvisoModoServicio = $"No se ha podido pasar a «{ModosServicio.Nombre(modoElegido)}»: el pedido se queda en «{ModosServicio.Nombre(modoJunto)}»."
     End Sub
+
+    ''' <summary>
+    ''' Sugerencia 1460: «Todo junto» no vale para este pedido (en tienda solo «Según vaya entrando»), así que no se vuelve a él:
+    ''' el modo elegido se queda y junto al selector queda dicho qué hay que hacer para poder guardarlo.
+    ''' </summary>
+    Private _avisoPuestoAlValidar As Boolean
+
+    Private Sub QuedarseSinModoQueValgaAvisando(modoElegido As Byte, almacen As String)
+        _avisoPuestoAlValidar = True
+        AvisoModoServicio = $"En {almacen} el pedido solo puede salir «{ModosServicio.Nombre(modoElegido)}» y lleva productos sin stock allí que no pueden " &
+            $"quedarse pendientes: quítelos del pedido o cambie el almacén a ALG."
+    End Sub
+
+    ''' <summary>
+    ''' Sugerencia 1460: el mensaje del servidor sin la salida de «elija otro modo de servicio» (en tienda no hay otro) y con lo que
+    ''' sí se puede hacer: quitar esos productos o servir el pedido desde Algete.
+    ''' </summary>
+    Friend Shared Function TextoSinModoQueValga(mensaje As String, modoElegido As Byte, almacen As String) As String
+        Dim texto As String = QuitarOtroModoDeServicio(mensaje)
+        Dim salida As String = $"En {almacen} el pedido solo puede salir «{ModosServicio.Nombre(modoElegido)}», así que no se podrá guardar mientras lleve " &
+            $"esos productos: quítelos del pedido o cambie el almacén a ALG para servirlo desde Algete."
+        If texto = String.Empty Then
+            Return salida
+        End If
+        Return texto & " " & salida
+    End Function
+
+    ''' <summary>Sugerencia 1460: quita «O elija otro modo de servicio (…).» / «o elija otro modo de servicio (…).» del mensaje de la API.</summary>
+    Friend Shared Function QuitarOtroModoDeServicio(mensaje As String) As String
+        Dim texto As String = System.Text.RegularExpressions.Regex.Replace(If(mensaje, String.Empty), "\s*\b[Oo] elija otro modo de servicio(\s*\([^)]*\))?\.?", String.Empty).Trim()
+        If texto <> String.Empty AndAlso Not (texto.EndsWith(".") OrElse texto.EndsWith("!") OrElse texto.EndsWith("?")) Then
+            texto &= "."
+        End If
+        Return texto
+    End Function
+
+    ''' <summary>Sugerencia 1460: la oferta de quitar las líneas cuando no hay vuelta a «Todo junto» (en tienda).</summary>
+    Friend Shared Function ConstruirOfertaQuitarSinModoQueValga(lineasAQuitar As IEnumerable(Of LineaPlantillaVenta), modoElegido As Byte, almacen As String) As String
+        Dim nombreModo As String = ModosServicio.Nombre(modoElegido)
+        Dim sb As New StringBuilder()
+        sb.AppendLine($"En {almacen} el pedido solo puede salir «{nombreModo}» y estas líneas no tienen stock allí y no pueden quedarse pendientes:")
+        For Each linea In lineasAQuitar
+            sb.AppendLine($" · {linea.producto?.Trim()} {linea.texto?.Trim()}".TrimEnd())
+        Next
+        sb.AppendLine()
+        sb.AppendLine("¿Quiere quitarlas del pedido?")
+        sb.Append($"Si no, no se podrá guardar con ellas: cambie el almacén a ALG para servirlo desde Algete.")
+        Return sb.ToString()
+    End Function
 
     ''' <summary>Nesto#527: el mensaje del servidor, terminado con que el pedido se queda en «Todo junto».</summary>
     Friend Shared Function AnadirVueltaATodoJunto(mensaje As String, Optional modoAlQueVuelve As Byte = ModosServicio.TODO_JUNTO) As String
