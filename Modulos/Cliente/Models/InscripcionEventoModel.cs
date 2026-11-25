@@ -584,6 +584,12 @@ namespace Nesto.Modulos.Cliente.Models
     public class AsistenciaEventoModel
     {
         public List<int> Asistentes { get; set; } = new List<int>();
+        /// <summary>
+        /// NestoAPI#908: guardar una lista sin nadie marcado (con inscritas pagadas) da 409 LISTA_SIN_ASISTENTES salvo con
+        /// esto a true. Solo se manda cuando es true (la API de antes no lo conoce).
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Confirmar { get; set; }
     }
 
     /// <summary>Nesto#517: lo que se enseña de la referencia del curso (ProductoPlantillaDTO de GET api/Productos).</summary>

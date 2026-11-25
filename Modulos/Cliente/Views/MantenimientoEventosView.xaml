@@ -424,7 +424,7 @@
                                         <CheckBox DockPanel.Dock="Left" Content="Vino" VerticalAlignment="Center" Margin="0,0,10,0"
                                                   IsChecked="{Binding Asistio, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEnabled="{Binding EntraEnListaAsistencia}"
-                                                  Visibility="{Binding DataContext.TieneAcceso, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolAVisibilidad}}"
+                                                  Visibility="{Binding DataContext.VeCasillaAsistencia, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolAVisibilidad}}"
                                                   ToolTip="Marque a los que han venido al evento (se guarda con «Guardar lista»)"/>
                                         <Border DockPanel.Dock="Right" Background="#ECEFF1" CornerRadius="3" Padding="6,1" Margin="8,0,0,0"
                                                 VerticalAlignment="Center">
@@ -620,8 +620,10 @@
 
                         <GroupBox Header="Lista de asistencia" Padding="6,3" Margin="0,6,0,0">
                             <DockPanel>
+                                <!-- NestoAPI#908: en un evento online no se pasa lista; en su lugar, el texto de la API -->
                                 <Button DockPanel.Dock="Right" Content="Guardar lista" Command="{Binding GuardarAsistenciaCommand}" Padding="10,1"
-                                        FontWeight="Bold" VerticalAlignment="Center"/>
+                                        FontWeight="Bold" VerticalAlignment="Center"
+                                        Visibility="{Binding SeOfreceListaAsistencia, Converter={StaticResource BoolAVisibilidad}}"/>
                                 <TextBlock Text="{Binding AvisoListaAsistencia}" TextWrapping="Wrap" Foreground="DimGray" VerticalAlignment="Center"
                                            Margin="0,0,10,0"/>
                             </DockPanel>

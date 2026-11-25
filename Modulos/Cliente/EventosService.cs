@@ -120,10 +120,16 @@ namespace Nesto.Modulos.Cliente
             return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
         }
 
-        public async Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes)
+        public Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes)
+            => PasarLista(eventoId, asistentes, confirmar: false);
+
+        public async Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes, bool confirmar)
         {
-            var peticion = new AsistenciaEventoModel { Asistentes = new List<int>(asistentes ?? Array.Empty<int>()) };
-            string body = await Enviar(c => c.PostAsync($"Eventos/{eventoId}/Asistencia", Json(peticion)), "No se pudo guardar la lista de asistencia");
+            var peticion = new AsistenciaEventoModel { Asistentes = new List<int>(asistentes ?? Array.Empty<int>()), Confirmar = confirmar };
+            // NestoAPI#908: el 409 LISTA_SIN_ASISTENTES es una pregunta (la hace el ViewModel); el 400 LISTA_EVENTO_ONLINE y lo
+            // demás, con el mensaje de la API tal cual (ya dice de usted qué pasa).
+            string body = await Enviar(c => c.PostAsync($"Eventos/{eventoId}/Asistencia", Json(peticion)), "No se pudo guardar la lista de asistencia",
+                mensajeTalCual: true, alFallar: (estado, cuerpo) => estado == 409 ? ListaSinAsistentesException.DesdeRespuesta(cuerpo) : null);
             return Lista<InscripcionEventoModel>(body);
         }
 
@@ -396,7 +402,8 @@ namespace Nesto.Modulos.Cliente
         /// <param name="vacioSiApiVieja">Nesto#517: con una API sin la ruta (el 404 de Web API) devuelve "" en vez de fallar.</param>
         /// <param name="vacioSiNoExiste">Cualquier 404 devuelve "" (lo que se busca no existe).</param>
         private async Task<string> Enviar(Func<HttpClient, Task<HttpResponseMessage>> llamada, string mensajeError,
-            bool vacioSiApiVieja = false, bool vacioSiNoExiste = false, bool mensajeTalCual = false)
+            bool vacioSiApiVieja = false, bool vacioSiNoExiste = false, bool mensajeTalCual = false,
+            Func<int, string, Exception> alFallar = null)
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(configuracion.servidorAPI);
@@ -409,6 +416,12 @@ namespace Nesto.Modulos.Cliente
             if (!response.IsSuccessStatusCode)
             {
                 int estado = (int)response.StatusCode;
+                // NestoAPI#908: una respuesta con código propio (p. ej. la pregunta de la lista sin nadie marcado)
+                Exception propia = alFallar?.Invoke(estado, body);
+                if (propia != null)
+                {
+                    throw propia;
+                }
                 bool apiVieja = EsApiSinLaRuta(estado, body);
                 if (estado == 404 && (vacioSiNoExiste || (vacioSiApiVieja && apiVieja)))
                 {

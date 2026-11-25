@@ -491,6 +491,8 @@ namespace Nesto.Modulos.Cliente
             OnPropertyChanged(nameof(HayFiltroMisClientes));
             OnPropertyChanged(nameof(AvisoFiltroMisClientes));
             OnPropertyChanged(nameof(SePuedePasarLista));
+            OnPropertyChanged(nameof(SeOfreceListaAsistencia));
+            OnPropertyChanged(nameof(VeCasillaAsistencia));
             OnPropertyChanged(nameof(AvisoListaAsistencia));
             GuardarAsistenciaCommand?.NotifyCanExecuteChanged();
         }
@@ -544,6 +546,8 @@ namespace Nesto.Modulos.Cliente
                     InscribirCommand.NotifyCanExecuteChanged();
                     RecargarInscripcionesCommand.NotifyCanExecuteChanged();
                     OnPropertyChanged(nameof(SePuedePasarLista));
+                    OnPropertyChanged(nameof(SeOfreceListaAsistencia));
+                    OnPropertyChanged(nameof(VeCasillaAsistencia));
                     OnPropertyChanged(nameof(AvisoListaAsistencia));
                     OnPropertyChanged(nameof(EventoEsMixto));
                     OnPropertyChanged(nameof(ResumenFormaAsistencia));
@@ -1944,6 +1948,8 @@ namespace Nesto.Modulos.Cliente
                     AplicarFiltroInscripciones();
                     OnPropertyChanged(nameof(ResumenInscripciones));
                     OnPropertyChanged(nameof(SePuedePasarLista));
+                    OnPropertyChanged(nameof(SeOfreceListaAsistencia));
+                    OnPropertyChanged(nameof(VeCasillaAsistencia));
                     OnPropertyChanged(nameof(AvisoListaAsistencia));
                     GuardarAsistenciaCommand.NotifyCanExecuteChanged();
                     ImprimirListaCommand?.NotifyCanExecuteChanged();
@@ -2490,8 +2496,18 @@ namespace Nesto.Modulos.Cliente
         // Lista de asistencia: desde el día del evento; las pagadas marcadas pasan a Asistió y el resto a No asistió (pierden el cupón).
 
         /// <summary>Nesto#619: quien mantiene eventos y con la lista entera (con «Solo mis clientes», los ocultos se quedarían sin marcar).</summary>
-        public bool SePuedePasarLista => TieneAcceso && !FiltroMisClientesActivo && Seleccionado != null && Seleccionado.Fecha.Date <= DateTime.Today
+        public bool SePuedePasarLista => TieneAcceso && SeOfreceListaAsistencia && !FiltroMisClientesActivo && Seleccionado != null
+            && Seleccionado.Fecha.Date <= DateTime.Today
             && (Inscripciones?.Any(i => i.EntraEnListaAsistencia) ?? false);
+
+        /// <summary>
+        /// NestoAPI#908: en un evento online no se pasa lista (ni casilla «Vino» ni «Guardar lista»): la API da por asistidas
+        /// a las pagadas. Sin el dato (API de antes), true.
+        /// </summary>
+        public bool SeOfreceListaAsistencia => Seleccionado?.SePasaLista != false;
+
+        /// <summary>La casilla «Vino» de cada inscrito: quien mantiene eventos y en un evento en el que se pasa lista.</summary>
+        public bool VeCasillaAsistencia => TieneAcceso && SeOfreceListaAsistencia;
 
         public string AvisoListaAsistencia
         {
@@ -2500,6 +2516,12 @@ namespace Nesto.Modulos.Cliente
                 if (Seleccionado == null)
                 {
                     return string.Empty;
+                }
+                if (!SeOfreceListaAsistencia)
+                {
+                    return string.IsNullOrWhiteSpace(Seleccionado.TextoListaAsistencia)
+                        ? "Evento online: no se pasa lista."
+                        : Seleccionado.TextoListaAsistencia.Trim();
                 }
                 if (!TieneAcceso)
                 {
@@ -2556,10 +2578,25 @@ namespace Nesto.Modulos.Cliente
             {
                 return;
             }
+            // NestoAPI#908: si ya ha dicho que sí a dejar sin marcar a todas las que pagaron, no se le vuelve a preguntar lo mismo
+            bool yaConfirmoNadieMarcado = mensaje != null && asistentes.Count == 0;
             try
             {
                 EstaOcupado = true;
-                List<InscripcionEventoModel> resultado = await _servicio.PasarLista(evento.Id, asistentes);
+                List<InscripcionEventoModel> resultado;
+                try
+                {
+                    resultado = await _servicio.PasarLista(evento.Id, asistentes);
+                }
+                catch (ListaSinAsistentesException pregunta)
+                {
+                    // NestoAPI#908: 409 LISTA_SIN_ASISTENTES: nadie marcado; con un «sí» expreso se reenvía con Confirmar
+                    if (!yaConfirmoNadieMarcado && !_dialogService.ShowConfirmationAnswer("Lista de asistencia", pregunta.Message, porDefectoNo: true))
+                    {
+                        return;
+                    }
+                    resultado = await _servicio.PasarLista(evento.Id, asistentes, true);
+                }
                 await CargarAsync(); // FechaListaAsistencia del evento y los inscritos al día
                 _dialogService.ShowNotification("Lista de asistencia", $"Guardada la lista de «{evento.Titulo}» ({resultado?.Count ?? 0} inscritos en la lista).");
             }

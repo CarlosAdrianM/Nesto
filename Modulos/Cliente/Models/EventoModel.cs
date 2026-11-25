@@ -41,6 +41,18 @@ namespace Nesto.Modulos.Cliente.Models
         public string DescripcionLarga { get; set; }
         /// <summary>Solo lectura: cuándo se pasó lista (null = todavía no).</summary>
         public DateTime? FechaListaAsistencia { get; set; }
+        /// <summary>
+        /// NestoAPI#908, solo lectura: false en un evento online (nadie «viene»: las inscritas pagadas se dan por asistidas y
+        /// no se pasa lista). La API de antes no lo manda: entonces true, como siempre. No se manda.
+        /// </summary>
+        public bool SePasaLista { get; set; } = true;
+        public bool ShouldSerializeSePasaLista() => false;
+        /// <summary>
+        /// NestoAPI#908, solo lectura: lo que se enseña en lugar de la lista cuando no se pasa («Evento online: todas las
+        /// inscritas pagadas se dan por asistidas.»); null si se pasa lista. No se manda.
+        /// </summary>
+        public string TextoListaAsistencia { get; set; }
+        public bool ShouldSerializeTextoListaAsistencia() => false;
 
         // NestoAPI#690 (corte 1b, Carlos 22/10/26): contrato del comentario del 22/10/26 en la issue. La API de antes no los
         // manda y los ignora al recibirlos.

@@ -27,6 +27,11 @@ namespace Nesto.Modulos.Cliente
         Task<InscripcionEventoModel> MarcarPagada(int id, MarcarPagoInscripcionModel peticion);
         /// <summary>Las pagadas que vienen en <paramref name="asistentes"/> pasan a Asistió y el resto a No asistió.</summary>
         Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes);
+        /// <summary>
+        /// NestoAPI#908: como <see cref="PasarLista(int, IEnumerable{int})"/>, con <paramref name="confirmar"/> para guardar una
+        /// lista sin nadie marcado. Sin confirmar, ese caso lanza <see cref="ListaSinAsistentesException"/> (409).
+        /// </summary>
+        Task<List<InscripcionEventoModel>> PasarLista(int eventoId, IEnumerable<int> asistentes, bool confirmar);
         /// <summary>NestoAPI#612: relanza la facturación del curso desde donde se quedó.</summary>
         Task<InscripcionEventoModel> FacturarCurso(int id);
         /// <summary>La referencia del curso (nombre e IVA de la ficha); null si no existe.</summary>
