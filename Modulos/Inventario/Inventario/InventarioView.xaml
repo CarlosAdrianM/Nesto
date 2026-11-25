@@ -119,8 +119,24 @@
                 <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
                     <DockPanel>
                         <Button DockPanel.Dock="Top" Command="{Binding cmdActualizarMovimientos}">Actualizar</Button>
+                        <!-- 25/11/26: las pendientes de días anteriores salen al final, con fondo y su día, para poder borrarlas -->
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding TextoPendientesDiasAnteriores}" TextWrapping="Wrap" Margin="2,3"
+                                   Foreground="#6D4C00" Background="#FFF8E1" Padding="4,2"
+                                   Visibility="{Binding HayPendientesDiasAnteriores, Converter={StaticResource VisibleSiVerdadero}}"/>
                         <DataGrid DockPanel.Dock="Bottom" Name="dgrCompleto" ItemsSource="{Binding movimientosTotal}" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PendienteDeDiaAnterior}" Value="True">
+                                            <Setter Property="Background" Value="#FFF8E1"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
                             <DataGrid.Columns>
+                                <DataGridTextColumn Header="Día" Binding="{Binding TextoDia}" Width="Auto"
+                                                    Visibility="{Binding Data.HayPendientesDiasAnteriores, Source={StaticResource ViewModelProxy}, Converter={StaticResource VisibleSiVerdadero}}"/>
                                 <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="Auto"/>
                                 <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
                                 <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>

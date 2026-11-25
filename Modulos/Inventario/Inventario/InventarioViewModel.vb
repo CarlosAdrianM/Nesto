@@ -183,9 +183,39 @@ Public Class InventarioViewModel
             Return _movimientosTotal
         End Get
         Set(ByVal value As ObservableCollection(Of InventarioDTO))
-            SetProperty(_movimientosTotal, value)
+            If SetProperty(_movimientosTotal, value) Then
+                OnPropertyChanged(NameOf(TextoPendientesDiasAnteriores))
+                OnPropertyChanged(NameOf(HayPendientesDiasAnteriores))
+            End If
         End Set
     End Property
+
+    ''' <summary>
+    ''' 25/11/26: en «Completo» salen al final las filas pendientes de días anteriores (para poder borrarlas). Este aviso dice
+    ''' cuántas son para que no se confundan con las del día elegido. Vacío si no hay (o con la API antigua).
+    ''' </summary>
+    Public ReadOnly Property TextoPendientesDiasAnteriores As String
+        Get
+            Return TextoPendientesAnteriores(movimientosTotal)
+        End Get
+    End Property
+
+    Public ReadOnly Property HayPendientesDiasAnteriores As Boolean
+        Get
+            Return Not String.IsNullOrEmpty(TextoPendientesDiasAnteriores)
+        End Get
+    End Property
+
+    ''' <summary>LA REGLA del texto (pura): cuántas filas pendientes de días anteriores trae la lista.</summary>
+    Public Shared Function TextoPendientesAnteriores(filas As IEnumerable(Of InventarioDTO)) As String
+        Dim anteriores As Integer = If(filas?.Count(Function(f) f IsNot Nothing AndAlso f.PendienteDeDiaAnterior), 0)
+        If anteriores = 0 Then
+            Return String.Empty
+        End If
+        Return If(anteriores = 1,
+            "Al final sale 1 fila pendiente de un día anterior (marcada con su día). Si sobra, puede borrarla.",
+            $"Al final salen {anteriores} filas pendientes de días anteriores (marcadas con su día). Si sobran, puede borrarlas.")
+    End Function
 
     Private _numeroProducto As String
     Public Property numeroProducto As String

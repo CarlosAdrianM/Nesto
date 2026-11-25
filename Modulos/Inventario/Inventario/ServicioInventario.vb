@@ -247,9 +247,17 @@ Public Class ServicioInventario
         End Using
     End Function
 
+    ''' <summary>
+    ''' La lista «Completo»: las filas del día y, al final, las pendientes de días ANTERIORES del mismo almacén (25/11/26,
+    ''' incluirPendientesAnteriores), para poder borrarlas. Una API que no lo conoce lo ignora y da solo las del día.
+    ''' </summary>
+    Public Shared Function UrlLeerLineas(empresa As String, almacen As String, fecha As Date) As String
+        Return $"Inventarios?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}&incluirPendientesAnteriores=true"
+    End Function
+
     Public Async Function LeerLineas(empresa As String, almacen As String, fecha As Date) As Task(Of List(Of InventarioDTO)) Implements IServicioInventario.LeerLineas
         Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim url = $"Inventarios?empresa={Uri.EscapeDataString(empresa)}&almacen={Uri.EscapeDataString(almacen)}&fecha={TextoFecha(fecha)}"
+            Dim url = UrlLeerLineas(empresa, almacen, fecha)
             Dim response = Await client.GetAsync(url)
             Dim cuerpo = Await response.Content.ReadAsStringAsync()
             If Not response.IsSuccessStatusCode Then

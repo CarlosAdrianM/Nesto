@@ -37,6 +37,21 @@ Public Class InventarioModel
         Public Function ShouldSerializeSePuedeBorrar() As Boolean
             Return False
         End Function
+        ''' <summary>
+        ''' 25/11/26: fila pendiente de un día ANTERIOR al elegido que la API añade al final de «Completo» (incluirPendientesAnteriores),
+        ''' para poder borrarla. Su día va en <see cref="Fecha"/>. Ausente (API antigua): False, como antes. Solo de lectura.
+        ''' </summary>
+        Public Property PendienteDeDiaAnterior As Boolean
+        Public Function ShouldSerializePendienteDeDiaAnterior() As Boolean
+            Return False
+        End Function
+        ''' <summary>«pendiente del 24/11» en las de un día anterior; vacío en las del día elegido.</summary>
+        <JsonIgnore>
+        Public ReadOnly Property TextoDia As String
+            Get
+                Return If(PendienteDeDiaAnterior, $"pendiente del {Fecha:dd/MM}", String.Empty)
+            End Get
+        End Property
         ''' <summary>Nesto#596: «código» o «tecleado» para la rejilla.</summary>
         <JsonIgnore>
         Public ReadOnly Property Lectura As String
