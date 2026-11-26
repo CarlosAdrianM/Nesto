@@ -289,6 +289,31 @@ Public Class ClienteFichaAuditoria644bTests
         Assert.IsTrue(String.IsNullOrEmpty(vm.mensajeError), "El aviso era del cliente anterior")
     End Function
 
+    ' Hallazgo 12: el filtro iba a la URL sin escapar y una búsqueda vieja que contestaba tarde pisaba la nueva.
+    <TestMethod()>
+    Public Async Function H12_ElFiltroVaEscapado_YUnaBusquedaViejaNoPisaLaNueva() As Task
+        Dim vm = Comercial()
+        vm.ListaClientesFiltrable = New Nesto.Infrastructure.Shared.ColeccionFiltrable()
+        Dim lenta As New TaskCompletionSource(Of HttpResponseMessage)()
+        _api.Respuesta = Function(r)
+                             If r.RequestUri.Query.Contains("filtro=garc&") OrElse r.RequestUri.Query.EndsWith("filtro=garc") Then
+                                 Return lenta.Task
+                             End If
+                             Return Task.FromResult(New HttpResponseMessage(HttpStatusCode.OK) With {
+                                 .Content = New StringContent("[{""empresa"":""1"",""cliente"":""2"",""contacto"":""0"",""nombre"":""GARCÍA & HIJOS""}]")})
+                         End Function
+
+        Dim vieja As Task = vm.BuscarClientesAsync("garc")
+        Await vm.BuscarClientesAsync("garcía & hijos")
+        lenta.SetResult(New HttpResponseMessage(HttpStatusCode.OK) With {
+            .Content = New StringContent("[{""empresa"":""1"",""cliente"":""1"",""contacto"":""0"",""nombre"":""GARCERÁN""}]")})
+        Await vieja
+
+        Assert.AreEqual("2", CType(vm.ListaClientesFiltrable.ListaOriginal.Single(), ClienteJson).cliente, "Se queda la última búsqueda")
+        Assert.IsFalse(vm.estaOcupado)
+        StringAssert.Contains(_api.Peticiones.Last().Url, "filtro=garc%C3%ADa%20%26%20hijos")
+    End Function
+
     ' Hallazgo 11: si la API no contesta (red caída), el fallo solo iba a mensajeError, que ClienteComercial.xaml no enseña.
     <TestMethod()>
     Public Async Function H11_SiNoSePuedeLlegarALaApi_AlGuardarSeAvisaEnUnaVentana() As Task

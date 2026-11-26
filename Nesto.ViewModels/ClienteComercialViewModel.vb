@@ -2028,50 +2028,69 @@ Public Class ClienteComercialViewModel
 
 #Region "Funciones"
     Private Async Sub inicializarListaClientesVendedor(filtro As String)
-        'If vendedor <> "" Then
-        '    If esVendedorDeFamilias Then
-        '        Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0 And listaCodigosPostalesVendedor.Contains(c.CodPostal) Order By c.CodPostal, c.Dirección)
-        '    Else
-        '        Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Vendedor = vendedor And c.Estado >= 0 Order By c.CodPostal, c.Dirección)
-        '    End If
-        'Else
-        '    Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
-        'End If
+        Await BuscarClientesAsync(filtro)
+    End Sub
+
+    ' Nesto#644 (12): cada búsqueda lleva su número; lo que contesta una búsqueda que ya no es la última se descarta.
+    Private _busquedaClientes As Integer
+
+    ''' <summary>
+    ''' El buscador de la izquierda (GET Clientes?filtro=). Nesto#644 (12): el filtro (y el vendedor) van escapados en la URL (antes
+    ''' «&amp;», «#», «+» o «/» rompían la búsqueda o la cambiaban) y, si mientras contesta la API se ha lanzado otra búsqueda, esta
+    ''' se descarta: una respuesta lenta de «garc» ya no pisa la de «garcia».
+    ''' </summary>
+    Friend Async Function BuscarClientesAsync(filtro As String) As Task
+        Dim busqueda As Integer = System.Threading.Interlocked.Increment(_busquedaClientes)
         If IsNothing(filtro) OrElse (filtro.Length < 4 AndAlso Not IsNumeric(filtro)) Then
-            'listaClientesVendedor = Nothing
             ListaClientesFiltrable.ListaOriginal = Nothing
             Return
         End If
 
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim response As HttpResponseMessage
-
-
-            Try
-                estaOcupado = True
-                If Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores) Then
-                    response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtro)
-                Else
-                    response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtro)
+        Try
+            estaOcupado = True
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                Dim url As String = "Clientes?empresa=1"
+                If Not EsSi(Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)) Then
+                    url += "&vendedor=" + Uri.EscapeDataString(If(vendedor, String.Empty))
                 End If
-
+                url += "&filtro=" + Uri.EscapeDataString(filtro)
+                Dim response As HttpResponseMessage = Await client.GetAsync(url)
+                If Not EsLaUltimaBusqueda(busqueda) Then
+                    Return
+                End If
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    Dim coleccionJson = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
+                    If Not EsLaUltimaBusqueda(busqueda) Then
+                        Return
+                    End If
+                    Dim coleccionJson = If(JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson), New ObservableCollection(Of ClienteJson)())
                     ListaClientesFiltrable.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(coleccionJson)
                 Else
-                    mensajeError = "Se ha producido un error al cargar los clientes"
+                    mensajeError = "No se han podido buscar los clientes: " & Await MotivoRespuestaAsync(response)
                 End If
-            Catch ex As Exception
-                mensajeError = ex.Message
-            Finally
+            End Using
+        Catch ex As Exception
+            If EsLaUltimaBusqueda(busqueda) Then
+                mensajeError = "No se han podido buscar los clientes: " & MotivoExcepcion(ex)
+            End If
+        Finally
+            ' La que acaba tarde no quita el «Espere» de la que sigue en marcha
+            If EsLaUltimaBusqueda(busqueda) Then
                 estaOcupado = False
-            End Try
+            End If
+        End Try
+    End Function
 
-        End Using
+    Private Function EsLaUltimaBusqueda(busqueda As Integer) As Boolean
+        Return busqueda = System.Threading.Volatile.Read(_busquedaClientes)
+    End Function
 
-    End Sub
+    ''' <summary>Un parámetro de sí/no: «1» o «true». Antes el texto se convertía a Boolean y una cadena vacía daba error.</summary>
+    Private Shared Function EsSi(valor As String) As Boolean
+        Dim texto As String = If(valor, String.Empty).Trim()
+        Return texto = "1" OrElse String.Equals(texto, "true", StringComparison.OrdinalIgnoreCase)
+    End Function
 
     ' Nesto#646: lo que esta ficha hacía dentro de cargarDatos y del setter de clienteActivo.
     Protected Overrides Async Function CargarDatosAntesDeElegirClienteAsync(mainViewModel As MainViewModel, empresaDefecto As String) As Task
