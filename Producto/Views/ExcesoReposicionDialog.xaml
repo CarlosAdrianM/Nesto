@@ -29,9 +29,10 @@
 
         <TextBlock Text="{Binding Cabecera}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4" />
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,8"
-                   Text="Indique la familia, el grupo o el subgrupo (al menos uno). Exceso = lo que pasa del stock máximo de la tienda sin dejar sin servir sus pedidos pendientes. Sin máximo puesto, se devuelve entero." />
+                   Text="Indique la familia, el grupo, el subgrupo o lo que contiene el nombre (al menos uno); los demás filtros son opcionales y se suman. Exceso = lo que pasa del stock máximo de la tienda (o de lo que indique en «Dejar en la tienda») sin dejar sin servir sus pedidos pendientes. Sin máximo puesto, se devuelve entero." />
 
-        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+        <StackPanel Grid.Row="2" Margin="0,0,0,8">
+        <WrapPanel Margin="0,0,0,6">
             <TextBlock Text="Familia:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Text="{Binding Familia, UpdateSourceTrigger=PropertyChanged}" Width="160" Margin="0,0,14,0"
                      ToolTip="Código o nombre de la familia (por ejemplo, la marca)" />
@@ -39,9 +40,30 @@
             <TextBox Text="{Binding Grupo, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,14,0" />
             <TextBlock Text="Subgrupo:" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Text="{Binding Subgrupo, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,14,0" />
+            <TextBlock Text="El nombre contiene:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding TextoNombre, UpdateSourceTrigger=PropertyChanged}" Width="140" Margin="0,0,14,0"
+                     ToolTip="Sin mayúsculas ni orden: con varias palabras, tiene que llevarlas todas (por ejemplo, ESMALTE)" />
+            <TextBlock Text="El nombre no contiene:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding TextoNombreExcluir, UpdateSourceTrigger=PropertyChanged}" Width="140"
+                     ToolTip="Fuera los que lleven alguna de estas palabras (por ejemplo, PERMANENTE)" />
+        </WrapPanel>
+        <WrapPanel>
+            <TextBlock Text="Solo con más de" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding StockMinimo, UpdateSourceTrigger=PropertyChanged}" Width="45" Margin="0,0,6,0"
+                     ToolTip="Solo los productos con más unidades que este número en la tienda. Vacío: todos" />
+            <TextBlock Text="unidades" VerticalAlignment="Center" Margin="0,0,14,0" />
+            <TextBlock Text="Sin ventas en los últimos" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding SinVentasEnMeses, UpdateSourceTrigger=PropertyChanged}" Width="45" Margin="0,0,6,0"
+                     ToolTip="De 1 a 60: solo los que no se han vendido en la tienda en esos meses. Vacío: da igual cuándo se vendió" />
+            <TextBlock Text="meses" VerticalAlignment="Center" Margin="0,0,14,0" />
+            <TextBlock Text="Dejar en la tienda" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding DejarEnTienda, UpdateSourceTrigger=PropertyChanged}" Width="45" Margin="0,0,6,0"
+                     ToolTip="Cuántas se quedan en la tienda de cada uno; el resto vuelve (sin dejar sin servir sus pedidos pendientes)" />
+            <TextBlock Text="de cada uno (vacío = el máximo de la ficha)" VerticalAlignment="Center" Margin="0,0,14,0" />
             <Button Content="_Calcular" Command="{Binding CalcularCommand}" Padding="14,2" IsDefault="True"
                     ToolTip="Solo calcula lo que se mandaría: no crea nada" />
         </WrapPanel>
+        </StackPanel>
 
         <DataGrid Grid.Row="3" ItemsSource="{Binding Lineas}" AutoGenerateColumns="False" IsReadOnly="True"
                   CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single"
@@ -63,6 +85,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Última venta" Binding="{Binding UltimaVenta, StringFormat=dd/MM/yyyy, TargetNullValue=—}" Width="85" />
                 <DataGridTextColumn Header="Exceso" Binding="{Binding Exceso}" Width="65" FontWeight="SemiBold" ElementStyle="{StaticResource Numero}" />
             </DataGrid.Columns>
         </DataGrid>
@@ -77,6 +100,7 @@
         </WrapPanel>
 
         <StackPanel Grid.Row="5" Margin="0,6,0,0">
+            <TextBlock Text="{Binding Filtros}" TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,2" />
             <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="Firebrick" FontWeight="SemiBold" Margin="0,4,0,0"
                        Visibility="{Binding HayError, Converter={StaticResource BooleanToVisibilityConverter}}" />

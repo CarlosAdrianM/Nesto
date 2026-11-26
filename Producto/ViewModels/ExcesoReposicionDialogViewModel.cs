@@ -58,6 +58,36 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _subgrupo;
         public string Subgrupo { get => _subgrupo; set { if (SetProperty(ref _subgrupo, value)) { FiltroCambiado(); } } }
 
+        // Sugerencia 1429 (Manuel): filtros flexibles. Los números se escriben como texto y se comprueban al calcular.
+        private string _textoNombre;
+        /// <summary>El nombre contiene (varias palabras = todas). Vale también como filtro obligatorio.</summary>
+        public string TextoNombre { get => _textoNombre; set { if (SetProperty(ref _textoNombre, value)) { FiltroCambiado(); } } }
+
+        private string _textoNombreExcluir;
+        /// <summary>El nombre no contiene (varias palabras = fuera si tiene cualquiera).</summary>
+        public string TextoNombreExcluir { get => _textoNombreExcluir; set { if (SetProperty(ref _textoNombreExcluir, value)) { FiltroCambiado(); } } }
+
+        private string _stockMinimo;
+        /// <summary>Solo los de más de estas unidades en la tienda. Vacío = sin este filtro.</summary>
+        public string StockMinimo { get => _stockMinimo; set { if (SetProperty(ref _stockMinimo, value)) { FiltroCambiado(); } } }
+
+        private string _sinVentasEnMeses;
+        /// <summary>Solo los que no se han vendido en la tienda en estos meses (1 a 60). Vacío = sin este filtro.</summary>
+        public string SinVentasEnMeses { get => _sinVentasEnMeses; set { if (SetProperty(ref _sinVentasEnMeses, value)) { FiltroCambiado(); } } }
+
+        private string _dejarEnTienda;
+        /// <summary>Cuántas dejar de cada uno en la tienda. Vacío = el máximo de la ficha.</summary>
+        public string DejarEnTienda { get => _dejarEnTienda; set { if (SetProperty(ref _dejarEnTienda, value)) { FiltroCambiado(); } } }
+
+        public const int MAXIMO_MESES_SIN_VENTAS = 60;
+        public const string MOTIVO_STOCK_MINIMO = "En «Solo con más de … unidades» escriba un número entero (0 o más), o déjelo vacío.";
+        public const string MOTIVO_SIN_VENTAS = "En «Sin ventas en los últimos … meses» escriba un número del 1 al 60, o déjelo vacío.";
+        public const string MOTIVO_DEJAR = "En «Dejar en la tienda … de cada uno» escriba un número entero (0 o más), o déjelo vacío para usar el máximo de la ficha.";
+
+        private string _filtros;
+        /// <summary>Los filtros que ha aplicado la API, en una línea.</summary>
+        public string Filtros { get => _filtros; private set => SetProperty(ref _filtros, value); }
+
         public ObservableCollection<LineaExcesoReposicion> Lineas { get; } = new ObservableCollection<LineaExcesoReposicion>();
 
         private int _numeroLineas;
@@ -106,7 +136,45 @@ namespace Nesto.Modules.Producto.ViewModels
         public bool HayCalculo => _calculado;
 
         /// <summary>Algún filtro: la API nunca calcula «todo el almacén».</summary>
-        public bool HayFiltro => !string.IsNullOrWhiteSpace(Familia) || !string.IsNullOrWhiteSpace(Grupo) || !string.IsNullOrWhiteSpace(Subgrupo);
+        public bool HayFiltro => !string.IsNullOrWhiteSpace(Familia) || !string.IsNullOrWhiteSpace(Grupo) || !string.IsNullOrWhiteSpace(Subgrupo)
+            || !string.IsNullOrWhiteSpace(TextoNombre);
+
+        /// <summary>Lo que no vale de los números (de usted); null si todo vale.</summary>
+        public string MotivoFiltrosNoValidos
+        {
+            get
+            {
+                if (!Numero(StockMinimo, out int? stock) || stock < 0)
+                {
+                    return MOTIVO_STOCK_MINIMO;
+                }
+                if (!Numero(SinVentasEnMeses, out int? meses) || meses < 1 || meses > MAXIMO_MESES_SIN_VENTAS)
+                {
+                    return MOTIVO_SIN_VENTAS;
+                }
+                if (!Numero(DejarEnTienda, out int? dejar) || dejar < 0)
+                {
+                    return MOTIVO_DEJAR;
+                }
+                return null;
+            }
+        }
+
+        /// <summary>Vacío = null (vale); un entero = ese; otra cosa = no vale.</summary>
+        private static bool Numero(string texto, out int? valor)
+        {
+            valor = null;
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return true;
+            }
+            if (int.TryParse(texto.Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int n))
+            {
+                valor = n;
+                return true;
+            }
+            return false;
+        }
         public bool PuedeCalcular => HayFiltro && !EstaOcupado && !string.IsNullOrWhiteSpace(Origen);
         public bool PuedeCrear => _calculado && NumeroLineas > 0 && !EstaOcupado;
 
@@ -135,7 +203,12 @@ namespace Nesto.Modules.Producto.ViewModels
             Destino = Destino,
             Familia = Limpio(Familia),
             Grupo = Limpio(Grupo),
-            Subgrupo = Limpio(Subgrupo)
+            Subgrupo = Limpio(Subgrupo),
+            TextoNombre = Limpio(TextoNombre),
+            TextoNombreExcluir = Limpio(TextoNombreExcluir),
+            StockMinimo = Numero(StockMinimo, out int? stock) ? stock : null,
+            SinVentasEnMeses = Numero(SinVentasEnMeses, out int? meses) ? meses : null,
+            DejarEnTienda = Numero(DejarEnTienda, out int? dejar) ? dejar : null
         };
 
         /// <summary>El ensayo: no crea nada.</summary>
@@ -143,6 +216,13 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             if (!PuedeCalcular)
             {
+                return;
+            }
+            string motivo = MotivoFiltrosNoValidos;
+            if (motivo != null)
+            {
+                Limpiar();
+                Error = motivo;
                 return;
             }
             Error = null;
@@ -232,6 +312,7 @@ namespace Nesto.Modules.Producto.ViewModels
             TotalUnidades = resultado?.TotalUnidades ?? 0;
             LineasSinMaximo = resultado?.LineasSinMaximo ?? 0;
             Mensaje = resultado?.Mensaje;
+            Filtros = resultado?.Filtros;
         }
 
         private void Limpiar()
@@ -241,6 +322,7 @@ namespace Nesto.Modules.Producto.ViewModels
             TotalUnidades = 0;
             LineasSinMaximo = 0;
             Mensaje = null;
+            Filtros = null;
         }
 
         private void FiltroCambiado()

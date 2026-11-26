@@ -303,6 +303,16 @@ namespace Nesto.Infrastructure.Models
         public string Grupo { get; set; }
         public string Subgrupo { get; set; }
         public List<string> Productos { get; set; }
+        /// <summary>Sugerencia 1429 (Manuel): el nombre contiene (varias palabras = todas). También vale como filtro de selección.</summary>
+        public string TextoNombre { get; set; }
+        /// <summary>El nombre NO contiene (varias palabras = fuera si tiene cualquiera).</summary>
+        public string TextoNombreExcluir { get; set; }
+        /// <summary>Solo los de stock MAYOR que este número.</summary>
+        public int? StockMinimo { get; set; }
+        /// <summary>1..60: solo los que no se han vendido en la tienda en esos meses.</summary>
+        public int? SinVentasEnMeses { get; set; }
+        /// <summary>Cuántas dejar de cada uno en vez del máximo de la ficha (null = el máximo de la ficha).</summary>
+        public int? DejarEnTienda { get; set; }
     }
 
     public class LineaExcesoReposicion
@@ -318,6 +328,8 @@ namespace Nesto.Infrastructure.Models
         /// <summary>Sin máximo puesto en la tienda: se devuelve entero.</summary>
         public bool SinMaximo { get; set; }
         public int Exceso { get; set; }
+        /// <summary>Sugerencia 1429: la última venta en la tienda de origen (null si no se ha vendido nunca o la API no la trae).</summary>
+        public DateTime? UltimaVenta { get; set; }
     }
 
     public class ResultadoExcesoReposicion
@@ -332,6 +344,8 @@ namespace Nesto.Infrastructure.Models
         /// <summary>De verdad: la reposición creada (en preparación en la tienda). Null en el ensayo o sin exceso.</summary>
         public ReposicionEnPreparacion Reposicion { get; set; }
         public string Mensaje { get; set; }
+        /// <summary>Sugerencia 1429: los filtros aplicados en una línea («Filtros: familia FABY; el nombre lleva «ESMALTE»; …»).</summary>
+        public string Filtros { get; set; }
     }
 
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>
