@@ -42,6 +42,59 @@ Public NotInheritable Class CambioClientePedido
         Return True
     End Function
 
+    ''' <summary>
+    ''' Carlos 26/11/26: el botón ya no desaparece; si <see cref="PuedeCambiarse"/> dice que no, se enseña deshabilitado
+    ''' con este motivo (de usted). Devuelve Nothing si se puede cambiar. Mira lo MISMO que <see cref="PuedeCambiarse"/>,
+    ''' en el mismo orden, y solo añade el porqué.
+    ''' </summary>
+    Public Shared Function MotivoNoSePuedeCambiar(pedido As PedidoVentaDTO) As String
+        If PuedeCambiarse(pedido) Then
+            Return Nothing
+        End If
+        Const PREFIJO As String = "No se puede cambiar el cliente: "
+        If pedido Is Nothing OrElse pedido.numero = 0 OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
+            Return PREFIJO & "guarde antes el pedido."
+        End If
+        Dim lineas As IEnumerable(Of LineaPedidoVentaDTO) = If(pedido.Lineas, New List(Of LineaPedidoVentaDTO))
+
+        Dim facturas As List(Of String) = lineas.Where(Function(l) Not String.IsNullOrWhiteSpace(l.Factura)).
+            Select(Function(l) l.Factura.Trim()).Distinct().OrderBy(Function(f) f).ToList()
+        ' En una nota de entrega yaFacturado es lo normal y no cuenta (NestoAPI#582)
+        If facturas.Any() Then
+            Return PREFIJO & $"el pedido tiene {Enumerar(facturas, "la factura", "las facturas")}."
+        End If
+        If Not pedido.notaEntrega AndAlso lineas.Any(Function(l) l.yaFacturado) Then
+            Return PREFIJO & "el pedido tiene líneas ya facturadas."
+        End If
+
+        Dim albaranes As List(Of String) = lineas.Where(Function(l) l.Albaran.HasValue).
+            Select(Function(l) l.Albaran.Value).Distinct().OrderBy(Function(a) a).Select(Function(a) a.ToString()).ToList()
+        If albaranes.Any() Then
+            Return PREFIJO & $"el pedido tiene {Enumerar(albaranes, "el albarán", "los albaranes")}."
+        End If
+        If lineas.Any(Function(l) l.estado > ESTADO_EN_CURSO) Then
+            Return PREFIJO & "el pedido tiene líneas ya en albarán."
+        End If
+
+        Dim pickings As List(Of String) = lineas.Where(Function(l) l.picking <> 0).
+            Select(Function(l) l.picking).Distinct().OrderBy(Function(p) p).Select(Function(p) p.ToString()).ToList()
+        If pickings.Any() Then
+            Return PREFIJO & $"el pedido tiene {Enumerar(pickings, "el picking", "los pickings")}. Quite el picking antes."
+        End If
+
+        If pedido.CrearEfectosManualmente AndAlso pedido.Efectos IsNot Nothing AndAlso pedido.Efectos.Any() Then
+            Return PREFIJO & "el pedido tiene efectos creados a mano. Quítelos antes."
+        End If
+        Return PREFIJO & "el pedido ya no está pendiente."
+    End Function
+
+    Private Shared Function Enumerar(valores As List(Of String), singular As String, plural As String) As String
+        If valores.Count = 1 Then
+            Return $"{singular} {valores(0)}"
+        End If
+        Return $"{plural} {String.Join(", ", valores.Take(valores.Count - 1))} y {valores.Last()}"
+    End Function
+
     Public Shared Function TextoConfirmacion(numero As Integer, clienteActual As String, contactoActual As String,
                                              clienteNuevo As String, contactoNuevo As String, nombreNuevo As String,
                                              hayCambiosSinGuardar As Boolean) As String

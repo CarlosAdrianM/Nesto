@@ -837,6 +837,8 @@ Public Class DetallePedidoViewModel
             ' Nesto#496: otro pedido en pantalla, el panel de cambio de cliente empieza cerrado
             MostrarCambioCliente = False
             OnPropertyChanged(NameOf(PuedeCambiarCliente))
+            OnPropertyChanged(NameOf(HayPedidoParaCambiarCliente))
+            OnPropertyChanged(NameOf(ToolTipCambiarCliente))
             AbrirCambioClienteCommand?.NotifyCanExecuteChanged()
             NotificarCambioRetencion() ' NestoAPI#698
             NotificarCambioDatosTransferencia() ' Sugerencia 396
@@ -4611,6 +4613,23 @@ Public Class DetallePedidoViewModel
     Public ReadOnly Property PuedeCambiarCliente As Boolean
         Get
             Return pedido IsNot Nothing AndAlso CambioClientePedido.PuedeCambiarse(pedido.Model)
+        End Get
+    End Property
+
+    ''' <summary>Carlos 26/11/26: el botón se enseña siempre que hay pedido; si no se puede, deshabilitado con el motivo.</summary>
+    Public ReadOnly Property HayPedidoParaCambiarCliente As Boolean
+        Get
+            Return pedido IsNot Nothing
+        End Get
+    End Property
+
+    Public Const TOOLTIP_CAMBIAR_CLIENTE As String = "Pasa el pedido a otro cliente y lo recalcula (condiciones de pago, IVA, precios, portes…). Solo si ninguna línea tiene picking, albarán ni factura."
+
+    ''' <summary>Lo que explica el botón: qué hace o, si está deshabilitado, por qué.</summary>
+    Public ReadOnly Property ToolTipCambiarCliente As String
+        Get
+            Dim motivo As String = If(pedido Is Nothing, Nothing, CambioClientePedido.MotivoNoSePuedeCambiar(pedido.Model))
+            Return If(motivo, TOOLTIP_CAMBIAR_CLIENTE)
         End Get
     End Property
 

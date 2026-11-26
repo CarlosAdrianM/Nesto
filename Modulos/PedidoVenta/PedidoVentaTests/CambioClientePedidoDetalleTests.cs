@@ -211,5 +211,100 @@ namespace PedidoVentaTests
         }
 
         #endregion
+
+        #region Por qué no se puede (Carlos 26/11/26: el botón ya no desaparece)
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_SiSePuede_Nothing()
+        {
+            Assert.IsNull(CambioClientePedido.MotivoNoSePuedeCambiar(Pedido()));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_ConPicking_DiceElPickingYQueLoQuite()
+        {
+            Assert.AreEqual("No se puede cambiar el cliente: el pedido tiene el picking 100198. Quite el picking antes.",
+                CambioClientePedido.MotivoNoSePuedeCambiar(Pedido(picking: 100198)));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_VariosPickings_LosEnumera()
+        {
+            PedidoVentaDTO pedido = Pedido(picking: 100200);
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 2, Producto = "1", Cantidad = 1, estado = 1, picking = 100198 });
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 3, Producto = "2", Cantidad = 1, estado = 1, picking = 100200 });
+
+            Assert.AreEqual("No se puede cambiar el cliente: el pedido tiene los pickings 100198 y 100200. Quite el picking antes.",
+                CambioClientePedido.MotivoNoSePuedeCambiar(pedido));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_ConAlbaran_DiceElAlbaran()
+        {
+            PedidoVentaDTO pedido = Pedido(picking: 7, estado: 2);
+            pedido.Lineas.Single().Albaran = 734001;
+
+            Assert.AreEqual("No se puede cambiar el cliente: el pedido tiene el albarán 734001.", CambioClientePedido.MotivoNoSePuedeCambiar(pedido));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_ConFactura_DiceLaFactura()
+        {
+            PedidoVentaDTO pedido = Pedido(picking: 7, estado: 4);
+            pedido.Lineas.Single().Albaran = 734001;
+            pedido.Lineas.Single().Factura = "NV26012345";
+
+            Assert.AreEqual("No se puede cambiar el cliente: el pedido tiene la factura NV26012345.", CambioClientePedido.MotivoNoSePuedeCambiar(pedido));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_PedidoSinGuardar_PideGuardar()
+        {
+            PedidoVentaDTO nuevo = Pedido();
+            nuevo.numero = 0;
+
+            Assert.AreEqual("No se puede cambiar el cliente: guarde antes el pedido.", CambioClientePedido.MotivoNoSePuedeCambiar(nuevo));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_NotaYaFacturadaSinPicking_Nothing()
+        {
+            PedidoVentaDTO nota = Pedido();
+            nota.notaEntrega = true;
+            nota.Lineas.Single().yaFacturado = true;
+
+            Assert.IsNull(CambioClientePedido.MotivoNoSePuedeCambiar(nota));
+        }
+
+        [TestMethod]
+        public void MotivoNoSePuedeCambiar_EfectosAMano_DiceLosEfectos()
+        {
+            PedidoVentaDTO pedido = Pedido();
+            pedido.CrearEfectosManualmente = true;
+            pedido.Efectos = new ListaEfectos { new Efecto { Importe = 10 } };
+
+            StringAssert.Contains(CambioClientePedido.MotivoNoSePuedeCambiar(pedido), "efectos creados a mano");
+        }
+
+        [TestMethod]
+        public void Detalle_ConPicking_BotonVisibleYDeshabilitadoConElMotivo()
+        {
+            DetallePedidoViewModel vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>(), Pedido(picking: 100198));
+
+            Assert.IsTrue(vm.HayPedidoParaCambiarCliente);
+            Assert.IsFalse(vm.AbrirCambioClienteCommand.CanExecute(null));
+            Assert.AreEqual("No se puede cambiar el cliente: el pedido tiene el picking 100198. Quite el picking antes.", vm.ToolTipCambiarCliente);
+        }
+
+        [TestMethod]
+        public void Detalle_SePuede_ToolTipExplicaQueHace()
+        {
+            DetallePedidoViewModel vm = Vm(A.Fake<IPedidoVentaService>(), A.Fake<IServicioDialogos>());
+
+            Assert.IsTrue(vm.AbrirCambioClienteCommand.CanExecute(null));
+            Assert.AreEqual(DetallePedidoViewModel.TOOLTIP_CAMBIAR_CLIENTE, vm.ToolTipCambiarCliente);
+        }
+
+        #endregion
     }
 }

@@ -317,8 +317,9 @@
                                          Va en un selector aparte: el de arriba está enlazado al pedido y un «Guardar» mandaría el cliente por el PUT. -->
                                     <Button Content="Cambiar cliente…" HorizontalAlignment="Left" Margin="0,2,0,2" Padding="6,1"
                                             Command="{Binding AbrirCambioClienteCommand}"
-                                            ToolTip="Pasa el pedido a otro cliente y lo recalcula (condiciones de pago, IVA, precios, portes…). Solo si ninguna línea tiene picking, albarán ni factura."
-                                            Visibility="{Binding PuedeCambiarCliente, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                            ToolTip="{Binding ToolTipCambiarCliente}"
+                                            ToolTipService.ShowOnDisabled="True"
+                                            Visibility="{Binding HayPedidoParaCambiarCliente, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                     <Border BorderBrush="SteelBlue" BorderThickness="1" Padding="4" Margin="0,2,0,4"
                                             Visibility="{Binding MostrarCambioCliente, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <StackPanel>
