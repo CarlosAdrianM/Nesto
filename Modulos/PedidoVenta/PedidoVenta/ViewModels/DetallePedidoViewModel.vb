@@ -1808,6 +1808,10 @@ Public Class DetallePedidoViewModel
         Dim producto As Producto
         Try
             producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
+        Catch ex As ControlesUsuario.Services.CodigoBarrasDuplicadoException
+            ' Nesto#647: el código de barras lo llevan varios productos. Pregunta cuál es el selector de la casilla
+            ' (ProductoBehavior, el núcleo común) y es él quien pone el elegido en la línea: aquí ni error ni se vacía.
+            Return
         Catch ex As Exception
             ' Nesto#379: un error del API (p.ej. descuentos duplicados del cliente) debe mostrarse
             ' al usuario, no tirar la aplicación (esta cadena es Async Sub) ni confundirse con

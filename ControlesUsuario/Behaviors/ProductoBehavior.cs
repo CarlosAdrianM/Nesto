@@ -545,17 +545,8 @@ namespace ControlesUsuario.Behaviors
                 return null;
             }
 
-            var parameters = new ParametrosDialogo
-            {
-                { "candidatos", candidatos }
-            };
-
-            var resultado = await dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", parameters);
-            if (resultado != null && resultado.Result == ResultadoBoton.OK)
-            {
-                return resultado.Parameters.GetValue<string>("producto");
-            }
-            return null;
+            // Nesto#647: el núcleo común de todas las pantallas.
+            return await ElectorProductoCodigoBarras.ElegirAsync(dialogService, candidatos, AssociatedObject?.Text);
         }
 
         private IServicioDialogos ResolverDialogService()

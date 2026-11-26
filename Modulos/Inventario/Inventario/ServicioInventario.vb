@@ -99,7 +99,18 @@ Public Class ConflictoInventarioException
         PuedeContarOtraVez = conflicto IsNot Nothing AndAlso conflicto.PuedeContarOtraVez
         Lineas = If(conflicto?.Lineas, New List(Of LineaInventarioContadaDTO))
         Contabilizadas = If(conflicto?.Contabilizadas, New List(Of ContabilizadasInventarioUsuarioDTO))
+        Candidatos = If(conflicto?.Productos, New List(Of ControlesUsuario.Models.ProductoCodigoBarrasDuplicado))
     End Sub
+
+    ''' <summary>Nesto#647: los productos que llevan el código leído (409 del código de barras de varios productos).</summary>
+    Public ReadOnly Property Candidatos As List(Of ControlesUsuario.Models.ProductoCodigoBarrasDuplicado)
+
+    ''' <summary>Nesto#647: lo leído es un código de barras de varios productos: hay que preguntar cuál es.</summary>
+    Public ReadOnly Property EsCodigoDeVariosProductos As Boolean
+        Get
+            Return ControlesUsuario.Services.ElectorProductoCodigoBarras.HayQuePreguntar(Candidatos)
+        End Get
+    End Property
 
     ''' <summary>Nothing en el 409 del código de barras ambiguo (Message y Productos).</summary>
     Public ReadOnly Property Codigo As String

@@ -1503,23 +1503,11 @@ namespace Nesto.Modulos.Cliente
                 return;
             }
             string nombre = null;
+            List<ProductoCursoModel> encontrados = null;
             try
             {
                 EstaOcupado = true;
-                List<ProductoCursoModel> encontrados = await _servicio.BuscarProductoRequerido(referencia) ?? new List<ProductoCursoModel>();
-                if (encontrados.Count == 0)
-                {
-                    _dialogService.ShowError($"No existe el producto {referencia}: revise la referencia o el código de barras.");
-                    return;
-                }
-                if (encontrados.Count > 1)
-                {
-                    _dialogService.ShowError($"El código {referencia} está en varios productos ({string.Join(", ", encontrados.Select(p => p.Producto?.Trim()))}): escriba la referencia del que quiera.");
-                    return;
-                }
-                ProductoCursoModel producto = encontrados[0];
-                nombre = producto.Nombre?.Trim();
-                referencia = string.IsNullOrWhiteSpace(producto.Producto) ? referencia : producto.Producto.Trim();
+                encontrados = await _servicio.BuscarProductoRequerido(referencia) ?? new List<ProductoCursoModel>();
             }
             catch
             {
@@ -1528,6 +1516,31 @@ namespace Nesto.Modulos.Cliente
             finally
             {
                 EstaOcupado = false;
+            }
+            if (encontrados != null)
+            {
+                if (encontrados.Count == 0)
+                {
+                    _dialogService.ShowError($"No existe el producto {referencia}: revise la referencia o el código de barras.");
+                    return;
+                }
+                ProductoCursoModel producto = encontrados[0];
+                if (encontrados.Count > 1)
+                {
+                    // Nesto#647: el código lo llevan varios productos: se pregunta cuál es (el selector común)
+                    string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogService,
+                        encontrados.Select(p => new ControlesUsuario.Models.ProductoCodigoBarrasDuplicado { Producto = p.Producto?.Trim(), Nombre = p.Nombre?.Trim() }),
+                        referencia);
+                    producto = string.IsNullOrEmpty(elegido)
+                        ? null
+                        : encontrados.FirstOrDefault(p => string.Equals(p.Producto?.Trim(), elegido, StringComparison.OrdinalIgnoreCase));
+                    if (producto == null)
+                    {
+                        return;
+                    }
+                }
+                nombre = producto.Nombre?.Trim();
+                referencia = string.IsNullOrWhiteSpace(producto.Producto) ? referencia : producto.Producto.Trim();
             }
             if (!EstaEnProductosRequeridos(referencia))
             {

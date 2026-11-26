@@ -135,19 +135,40 @@ namespace ClienteTests
         }
 
         [TestMethod]
-        public async Task AnadirProducto_CodigoDeBarrasEnVariosProductos_PideLaReferenciaYNoAnade()
+        public async Task AnadirProducto_CodigoDeBarrasEnVariosProductos_SiCancelaNoAnade()
         {
+            // Nesto#647: se pregunta cuál es (el selector común)
             A.CallTo(() => eventos.BuscarProductoRequerido("8435431594729")).Returns(new List<ProductoCursoModel>
             {
                 new() { Producto = "45363", Nombre = "LIFTING COREANO" }, new() { Producto = "45364", Nombre = "SERUM COREANO" }
             });
+            A.CallTo(() => dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>.Ignored))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
             var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel>()));
 
             vm.ProductoRequeridoNuevo = "8435431594729";
             await vm.AnadirProductoRequeridoAsync();
 
             Assert.AreEqual(0, vm.ProductosRequeridosEdicion.Count);
-            StringAssert.Contains(errores.Single(), "varios productos (45363, 45364)");
+            Assert.AreEqual(0, errores.Count);
+        }
+
+        [TestMethod]
+        public async Task AnadirProducto_CodigoDeBarrasEnVariosProductos_PreguntaYAnadeElElegido()
+        {
+            A.CallTo(() => eventos.BuscarProductoRequerido("8435431594729")).Returns(new List<ProductoCursoModel>
+            {
+                new() { Producto = "45363", Nombre = "LIFTING COREANO" }, new() { Producto = "45364", Nombre = "SERUM COREANO" }
+            });
+            A.CallTo(() => dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>.Ignored))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "45364" } }));
+            var vm = await Mantenimiento(Evento(new List<ProductoRequeridoEventoModel>()));
+
+            vm.ProductoRequeridoNuevo = "8435431594729";
+            await vm.AnadirProductoRequeridoAsync();
+
+            Assert.AreEqual("45364 - SERUM COREANO", vm.ProductosRequeridosEdicion.Single().Texto);
+            Assert.AreEqual(0, errores.Count);
         }
 
         [TestMethod]

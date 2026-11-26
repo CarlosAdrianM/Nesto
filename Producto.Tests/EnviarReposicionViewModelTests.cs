@@ -668,18 +668,42 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Leer_UnCodigoDeVariosProductos_SuenaElError()
+        public async Task Leer_UnCodigoDeVariosProductos_SiCancelaNoLeeNada()
         {
+            // Nesto#647: se pregunta cuál es; con «Cancelar», nada
             ReposicionEnPreparacion reposicion = Reposicion();
             reposicion.Lineas[1].CodigoBarras = "8411";
             A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(reposicion);
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
             await _vm.CargarAsync();
 
             _vm.LeerCommand.Execute("8411");
+            await _vm.LecturaCodigoCompartidoEnCurso;
 
-            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._)).MustHaveHappenedOnceExactly();
             Assert.AreEqual(1, _focosEnLector);
             Assert.IsNull(_vm.Seleccionada);
+            Assert.IsTrue(_vm.Lineas.All(l => l.Leidas == 0));
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeVariosProductos_PreguntaYLeeEnElElegido()
+        {
+            // Nesto#647
+            ReposicionEnPreparacion reposicion = Reposicion();
+            reposicion.Lineas[1].CodigoBarras = "8411";
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).Returns(reposicion);
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", reposicion.Lineas[1].Producto } }));
+            await _vm.CargarAsync();
+
+            _vm.LeerCommand.Execute("8411");
+            await _vm.LecturaCodigoCompartidoEnCurso;
+
+            Assert.AreEqual(reposicion.Lineas[1].Producto, _vm.Seleccionada?.Producto);
+            Assert.AreEqual(1, _vm.Seleccionada!.Leidas);
+            A.CallTo(() => _sonidos.Correcto()).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
@@ -845,17 +869,32 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Puntual_CodigoCompartido_PideLaReferencia()
+        public async Task Puntual_CodigoCompartido_SiCancelaNoAnadeNada()
         {
+            // Nesto#647: se pregunta cuál es
             await EmpezarPuntualSinReposicionAsync();
             A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._))
                 .Returns(new List<ProductoReposicionPuntual> { Guantes(), new() { Producto = "41981", Nombre = "Guantes L", StockOrigen = 3 } });
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
 
             await _vm.LeerPuntualAsync("8437");
 
             Assert.AreEqual(0, _vm.LineasPuntual.Count);
-            StringAssert.Contains(_vm.Mensaje, "41980, 41981");
-            StringAssert.Contains(_vm.Mensaje, "referencia");
+        }
+
+        [TestMethod]
+        public async Task Puntual_CodigoCompartido_PreguntaYAnadeElElegido()
+        {
+            await EmpezarPuntualSinReposicionAsync();
+            A.CallTo(() => _servicio.BuscarProductoPuntual(A<string>._, A<string>._, A<string>._))
+                .Returns(new List<ProductoReposicionPuntual> { Guantes(), new() { Producto = "41981", Nombre = "Guantes L", StockOrigen = 3 } });
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "41981" } }));
+
+            await _vm.LeerPuntualAsync("8437");
+
+            Assert.AreEqual("41981", _vm.LineasPuntual.Single().Producto);
         }
 
         [TestMethod]

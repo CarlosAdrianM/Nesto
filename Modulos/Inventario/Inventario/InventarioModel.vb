@@ -185,6 +185,8 @@ Public Class InventarioModel
         Public Property PuedeContarOtraVez As Boolean
         Public Property Lineas As New List(Of LineaInventarioContadaDTO)
         Public Property Contabilizadas As New List(Of ContabilizadasInventarioUsuarioDTO)
+        ''' <summary>Nesto#647: en el 409 del código de barras de varios productos, los candidatos para preguntar cuál es.</summary>
+        Public Property Productos As New List(Of ControlesUsuario.Models.ProductoCodigoBarrasDuplicado)
     End Class
 
     ''' <summary>NestoAPI#784: una fila del inventario en el cuerpo de un 409 (Traspaso solo en las ya contabilizadas).</summary>

@@ -344,17 +344,31 @@ Public Class InventarioViewModel
         End If
 
         Dim leido As String = If(prod, String.Empty).Trim()
-        Dim linea As InventarioDTO
+        Dim leidoOriginal As String = leido
+        Dim linea As InventarioDTO = Nothing
+        Dim varios As ConflictoInventarioException = Nothing
         Try
-            If porHuecos Then
-                linea = Await _servicio.BuscarLineaEnHueco(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido, Pasillo, Fila, Columna).ConfigureAwait(True)
-            Else
-                linea = Await _servicio.BuscarLinea(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido).ConfigureAwait(True)
-            End If
+            linea = Await BuscarLineaLeida(leido, porHuecos).ConfigureAwait(True)
+        Catch ex As ConflictoInventarioException When ex.EsCodigoDeVariosProductos
+            varios = ex
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing
         End Try
+        If varios IsNot Nothing Then
+            ' Nesto#647: el código lo llevan varios productos: se pregunta cuál es (el selector común) y se sigue con su referencia.
+            Dim elegido = Await ControlesUsuario.Services.ElectorProductoCodigoBarras.ElegirAsync(dialogService, varios.Candidatos, leido).ConfigureAwait(True)
+            If String.IsNullOrEmpty(elegido) Then
+                Return Nothing
+            End If
+            leido = elegido
+            Try
+                linea = Await BuscarLineaLeida(leido, porHuecos).ConfigureAwait(True)
+            Catch ex As Exception
+                dialogService.ShowError(ex.Message)
+                Return Nothing
+            End Try
+        End If
 
         Dim movimientoModificado As Movimiento
 
@@ -376,10 +390,18 @@ Public Class InventarioViewModel
             movimientoModificado = Await OnCrearLineaInventario(linea) ' AWAIT
         Else
             linea.StockReal += cantidad
-            movimientoModificado = Await ActualizarLinea(linea, EsLecturaPorCodigo(leido, linea.Producto)) ' AWAIT
+            ' Nesto#647: elegido en el selector tras leer el código, cuenta como lectura por código.
+            movimientoModificado = Await ActualizarLinea(linea, EsLecturaPorCodigo(leidoOriginal, linea.Producto)) ' AWAIT
         End If
         OnPropertyChanged(NameOf(movimientosDia))
         Return movimientoModificado
+    End Function
+
+    Private Function BuscarLineaLeida(leido As String, porHuecos As Boolean) As Task(Of InventarioDTO)
+        If porHuecos Then
+            Return _servicio.BuscarLineaEnHueco(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido, Pasillo, Fila, Columna)
+        End If
+        Return _servicio.BuscarLinea(EMPRESA_DEFECTO, almacen, fechaSeleccionada, leido)
     End Function
 
     Private _cmdCrearLineaInventario As RelayCommand(Of InventarioDTO)
@@ -748,12 +770,16 @@ Public Class InventarioViewModel
 
         Dim plan As DejarACeroInventarioRespuestaDTO = Nothing
         ' Como mucho, un «Contar otra vez» y un «borrar las filas sin ubicación»: tres vueltas bastan.
-        For vuelta = 1 To 3
+        Dim yaElegido As Boolean = False
+        For vuelta = 1 To 4
             Dim conflicto As ConflictoInventarioException = Nothing
+            Dim varios As ConflictoInventarioException = Nothing
             plan = Nothing
             estaOcupado = True
             Try
                 plan = Await _servicio.DejarACero(EMPRESA_DEFECTO, almacenInventario, producto, otraVez, quitarSinUbicacion, True)
+            Catch ex As ConflictoInventarioException When ex.EsCodigoDeVariosProductos AndAlso Not yaElegido
+                varios = ex
             Catch ex As ConflictoInventarioException When (ex.EsCodigo(CodigosConflictoInventario.YA_CONTABILIZADO) AndAlso Not otraVez) OrElse
                                                           (ex.EsCodigo(CodigosConflictoInventario.FILAS_SIN_UBICACION) AndAlso Not quitarSinUbicacion)
                 conflicto = ex
@@ -763,6 +789,16 @@ Public Class InventarioViewModel
             Finally
                 estaOcupado = False
             End Try
+            If varios IsNot Nothing Then
+                ' Nesto#647: el código lo llevan varios productos: se pregunta cuál es (el selector común).
+                Dim elegido = Await ControlesUsuario.Services.ElectorProductoCodigoBarras.ElegirAsync(dialogService, varios.Candidatos, producto).ConfigureAwait(True)
+                If String.IsNullOrEmpty(elegido) Then
+                    Return
+                End If
+                producto = elegido
+                yaElegido = True
+                Continue For
+            End If
             If conflicto Is Nothing Then
                 Exit For
             End If

@@ -114,5 +114,26 @@ namespace PedidoVentaTests
 
             A.CallTo(() => sustituciones.LeerVigente(A<string>._, A<string>._, A<int>._)).MustNotHaveHappened();
         }
+
+        [TestMethod]
+        public async Task CodigoDeBarrasDeVariosProductos_NiErrorNiSeVaciaLaLinea()
+        {
+            // Nesto#647: antes salía el JSON del 409 como error y se vaciaba la línea mientras el selector de la casilla
+            // (ProductoBehavior) preguntaba cuál era. Ahora solo pregunta el selector.
+            var (vm, dialogos, servicio, _) = Vm(true, null);
+            A.CallTo(() => servicio.cargarProducto("1", "8437017506362", A<string>._, A<string>._, A<short>._))
+                .ThrowsAsync(new ControlesUsuario.Services.CodigoBarrasDuplicadoException(new List<ControlesUsuario.Models.ProductoCodigoBarrasDuplicado>
+                {
+                    new ControlesUsuario.Models.ProductoCodigoBarrasDuplicado { Producto = "41000" },
+                    new ControlesUsuario.Models.ProductoCodigoBarrasDuplicado { Producto = "41001" }
+                }));
+            LineaPedidoVentaWrapper linea = new LineaPedidoVentaWrapper { tipoLinea = 1, Producto = "8437017506362", Cantidad = 1, texto = "X" };
+
+            await vm.CargarDatosProductoEnLinea(linea, "8437017506362", 1, true);
+
+            A.CallTo(() => dialogos.ShowError(A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual("8437017506362", linea.Producto);
+            Assert.AreEqual("X", linea.texto);
+        }
     }
 }

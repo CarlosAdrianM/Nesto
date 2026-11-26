@@ -128,6 +128,13 @@ Public Class PedidoVentaService
             End If
 
             Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            ' Nesto#647: un código de barras de varios productos (409 con la lista) no es un error: se pregunta cuál es.
+            If response.StatusCode = System.Net.HttpStatusCode.Conflict Then
+                Dim candidatos = ControlesUsuario.Services.ElectorProductoCodigoBarras.LeerCandidatos(respuesta)
+                If ControlesUsuario.Services.ElectorProductoCodigoBarras.HayQuePreguntar(candidatos) Then
+                    Throw New ControlesUsuario.Services.CodigoBarrasDuplicadoException(candidatos)
+                End If
+            End If
             If Not response.IsSuccessStatusCode Then
                 Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
             End If

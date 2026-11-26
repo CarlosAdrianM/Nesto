@@ -80,5 +80,48 @@ namespace CanalesExternosTests
             A.CallTo(() => _dialogService.ShowError("API caída")).MustHaveHappenedOnceExactly();
             Assert.IsNull(vm.ProductoSeleccionado);
         }
+
+        // Nesto#647: con Intro, un código de barras de varios productos también pregunta cuál es.
+        [TestMethod]
+        public async Task BuscarProducto_CodigoDeVariosProductos_PreguntaYCargaElElegido()
+        {
+            const string ean = "8437017506362";
+            var vm = CrearVm();
+            vm.ProductoBuscar = ean;
+            var elegido = new ProductoCanalExterno { ProductoId = "41001" };
+            A.CallTo(() => _servicio.GetProductoAsync(ean)).Returns(Task.FromResult<ProductoCanalExterno>(null));
+            A.CallTo(() => _servicio.GetProductoAsync("41001")).Returns(Task.FromResult(elegido));
+            A.CallTo(() => _servicioProducto.BuscarProductosPorCodigoBarras(ean)).Returns(new System.Collections.Generic.List<ControlesUsuario.Models.ProductoCodigoBarrasDuplicado>
+            {
+                new() { Producto = "41000" }, new() { Producto = "41001" }
+            });
+            A.CallTo(() => _dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "41001" } }));
+
+            await vm.BuscarProductoAsync();
+
+            Assert.AreSame(elegido, vm.ProductoSeleccionado);
+            Assert.AreEqual("41001", vm.ProductoBuscar);
+        }
+
+        [TestMethod]
+        public async Task BuscarProducto_CodigoDeVariosProductos_SiCancelaNoCargaNada()
+        {
+            const string ean = "8437017506362";
+            var vm = CrearVm();
+            vm.ProductoBuscar = ean;
+            A.CallTo(() => _servicio.GetProductoAsync(A<string>._)).Returns(Task.FromResult<ProductoCanalExterno>(null));
+            A.CallTo(() => _servicioProducto.BuscarProductosPorCodigoBarras(ean)).Returns(new System.Collections.Generic.List<ControlesUsuario.Models.ProductoCodigoBarrasDuplicado>
+            {
+                new() { Producto = "41000" }, new() { Producto = "41001" }
+            });
+            A.CallTo(() => _dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
+
+            await vm.BuscarProductoAsync();
+
+            Assert.IsNull(vm.ProductoSeleccionado);
+            A.CallTo(() => _servicio.GetProductoAsync(A<string>._)).MustHaveHappenedOnceExactly();
+        }
     }
 }

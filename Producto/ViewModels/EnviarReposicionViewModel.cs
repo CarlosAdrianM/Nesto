@@ -1,4 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
@@ -925,13 +927,26 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida($"No hay ningún producto con el código o la referencia {codigo}.");
                 return;
             }
+            ProductoReposicionPuntual producto = encontrados[0];
             if (encontrados.Count > 1)
             {
-                LecturaFallida($"El código {codigo} lo comparten varios productos ({string.Join(", ", encontrados.Select(p => p.Producto?.Trim()))}): " +
-                    "escribe la referencia del que es.");
-                return;
+                // Nesto#647: se pregunta cuál es (el selector común); si se cancela, no se añade nada
+                string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogos,
+                    encontrados.Select(p => new ProductoCodigoBarrasDuplicado { Producto = p.Producto?.Trim(), Nombre = p.Nombre?.Trim() }),
+                    codigo).ConfigureAwait(true);
+                if (version != _versionPuntual || !EnModoPuntual)
+                {
+                    return;
+                }
+                producto = string.IsNullOrEmpty(elegido)
+                    ? null
+                    : encontrados.FirstOrDefault(p => string.Equals(p.Producto?.Trim(), elegido, StringComparison.OrdinalIgnoreCase));
+                if (producto == null)
+                {
+                    PedirFocoEnLector?.Invoke();
+                    return;
+                }
             }
-            ProductoReposicionPuntual producto = encontrados[0];
             int porLectura = Math.Max(1, producto.UnidadesPorLectura);
             LineaPuntualReposicion existente = LineasPuntual.FirstOrDefault(l => string.Equals(l.Producto, producto.Producto?.Trim(), StringComparison.OrdinalIgnoreCase));
             if (existente != null)
@@ -1398,10 +1413,35 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             if (candidatas.Count > 1)
             {
-                LecturaFallida($"El código {codigo} lo comparten varios productos: elige en la lista el que es.");
+                // Nesto#647: el código lo llevan varias líneas: se pregunta cuál es (el selector común) y se lee en esa
+                LecturaCodigoCompartidoEnCurso = ElegirLineaDelCodigoCompartidoAsync(codigo, candidatas);
                 return;
             }
-            LineaEnviarReposicion linea = candidatas[0];
+            LeerEnLinea(candidatas[0], codigo);
+        }
+
+        /// <summary>Nesto#647: la lectura de un código compartido por varias líneas (los tests la esperan).</summary>
+        internal Task LecturaCodigoCompartidoEnCurso { get; private set; } = Task.CompletedTask;
+
+        private async Task ElegirLineaDelCodigoCompartidoAsync(string codigo, List<LineaEnviarReposicion> candidatas)
+        {
+            string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogos,
+                candidatas.Select(l => new ProductoCodigoBarrasDuplicado { Producto = l.Producto?.Trim(), Nombre = l.Nombre?.Trim() }),
+                codigo).ConfigureAwait(true);
+            LineaEnviarReposicion linea = string.IsNullOrEmpty(elegido)
+                ? null
+                : candidatas.FirstOrDefault(l => string.Equals(l.Producto?.Trim(), elegido, StringComparison.OrdinalIgnoreCase));
+            if (linea == null || !Lineas.Contains(linea))
+            {
+                // Cancelado (o la lista ha cambiado mientras se elegía): no se lee nada
+                PedirFocoEnLector?.Invoke();
+                return;
+            }
+            LeerEnLinea(linea, codigo);
+        }
+
+        private void LeerEnLinea(LineaEnviarReposicion linea, string codigo)
+        {
             Seleccionada = linea;
             if (!linea.SeLee)
             {

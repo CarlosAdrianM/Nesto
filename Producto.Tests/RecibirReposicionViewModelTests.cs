@@ -259,16 +259,36 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Leer_UnCodigoDeVariosProductosQueNoVenian_PideTeclearloYNoLoApunta()
+        public async Task Leer_UnCodigoDeVariosProductosQueNoVenian_SiCancelaNoLoApunta()
         {
+            // Nesto#647: se pregunta cuál es; con «Cancelar» no se apunta nada
             A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8400"))
                 .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "50001" }, new() { Producto = "50002" } });
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
             await AbiertaAsync();
 
             await LeerAsync("8400");
 
             Assert.AreEqual(3, _vm.Lineas.Count);
-            StringAssert.Contains(_vm.Mensaje, "varios productos");
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoDeVariosProductosQueNoVenian_PreguntaYApuntaElElegido()
+        {
+            // Nesto#647
+            A.CallTo(() => _servicio.BuscarProductosPorCodigo(A<string>._, "8400"))
+                .Returns(new List<ProductoCodigoRecepcion> { new() { Producto = "50001", Nombre = "Uno" }, new() { Producto = "50002", Nombre = "Dos" } });
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "50002" } }));
+            await AbiertaAsync();
+
+            await LeerAsync("8400");
+
+            LineaRecibirReposicion ajena = _vm.Lineas.Single(l => l.NoVenia);
+            Assert.AreEqual("50002", ajena.Producto);
+            Assert.AreEqual(1, ajena.Leido);
         }
 
         [TestMethod]
@@ -667,8 +687,33 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Leer_UnCodigoAlternativoDeDosProductos_PideTeclearlo()
+        public async Task Leer_UnCodigoAlternativoDeDosProductos_PreguntaCualEsYCuentaEnEse()
         {
+            // Nesto#647: antes pedía teclear la cantidad; ahora se pregunta y cuenta en la línea elegida
+            A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
+            {
+                Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
+                Lineas = new List<LineaRecepcionReposicion>
+                {
+                    new() { Producto = "17404", CodigoBarras = "8411", CodigosBarras = new() { "8411", "8400" }, Cantidad = 2 },
+                    new() { Producto = "40057", CodigoBarras = "8422", CodigosBarras = new() { "8422", "8400" }, Cantidad = 1 }
+                }
+            });
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "40057" } }));
+            await AbiertaAsync();
+
+            await LeerAsync("8400");
+
+            Assert.AreEqual(1, _vm.Lineas.Single(l => l.Producto == "40057").Leido);
+            Assert.AreEqual(0, _vm.Lineas.Single(l => l.Producto == "17404").Leido);
+        }
+
+        [TestMethod]
+        public async Task Leer_UnCodigoAlternativoDeDosProductos_SiCancelaNoCuentaNada()
+        {
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
             A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
             {
                 Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
@@ -680,10 +725,9 @@ namespace Producto.Tests
             });
             await AbiertaAsync();
 
-            _vm.LeerCommand.Execute("8400");
+            await LeerAsync("8400");
 
             Assert.IsTrue(_vm.Lineas.All(l => l.Leido == 0));
-            StringAssert.Contains(_vm.Mensaje, "varios productos");
         }
 
         [TestMethod]
@@ -786,8 +830,11 @@ namespace Producto.Tests
         }
 
         [TestMethod]
-        public async Task Leer_UnCodigoDeVariosProductos_SuenaElErrorYNoSuma()
+        public async Task Leer_UnCodigoDeVariosProductos_SiNoElige_NoSumaYVuelveAlLector()
         {
+            // Nesto#647: ya no es un error: se pregunta cuál es; sin elegir, no suma nada
+            A.CallTo(() => _dialogos.ShowDialogAsync("SelectorProductoDuplicadoDialog", A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
             A.CallTo(() => _servicio.LeerRecepcion(A<string>._, "ALC", "80878")).Returns(new RecepcionReposicion
             {
                 Documento = "80878", PuedeTerminar = true, SeTerminaDesdeAqui = true,
@@ -800,8 +847,9 @@ namespace Producto.Tests
             await AbiertaAsync();
 
             _vm.LeerCommand.Execute("8411");
+            await _vm.LecturaProductoEnCurso;
 
-            A.CallTo(() => _sonidos.Error()).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _sonidos.Correcto()).MustNotHaveHappened();
             Assert.IsTrue(_vm.Lineas.All(l => l.Leido == 0));
             Assert.AreEqual(1, _focosEnLector);
         }

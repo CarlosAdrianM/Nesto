@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Models;
@@ -678,7 +680,8 @@ namespace Nesto.Modules.Producto.ViewModels
             List<LineaRecibirReposicion> candidatas = Lineas.Where(l => !l.NoVenia && l.TieneCodigo(codigo)).ToList();
             if (candidatas.Count > 1)
             {
-                LecturaFallida(TextoCodigoCompartido(codigo));
+                // Nesto#647: el código lo llevan varias líneas: se pregunta cuál es (el selector común) y cuenta en esa
+                LecturaProductoEnCurso = ElegirLineaDelCodigoCompartidoAsync(codigo, candidatas);
                 return;
             }
             // Nesto#538: lo que no venía y ya está apuntado (por su referencia o por un código ya leído) suma sin preguntar
@@ -691,10 +694,30 @@ namespace Nesto.Modules.Producto.ViewModels
             LecturaProductoEnCurso = LeerCodigoQueNoEstaAsync(codigo);
         }
 
-        private string TextoCodigoCompartido(string codigo)
-            => SoloEscaneando
-                ? $"El código {codigo} lo comparten varios productos: apunte la unidad con «Sin etiqueta» en la línea del que es (motivo «Otro»)."
-                : $"El código {codigo} lo comparten varios productos: escriba la cantidad en la columna «Leído» del que es.";
+        /// <summary>
+        /// Nesto#647: un código que llevan varias líneas de la reposición. Se pregunta de cuál es y cuenta una unidad en esa
+        /// (es una lectura del código, también con «solo escaneando»). Si se cancela, no se apunta nada.
+        /// </summary>
+        private async Task ElegirLineaDelCodigoCompartidoAsync(string codigo, List<LineaRecibirReposicion> candidatas)
+        {
+            RecepcionPendiente abierta = Seleccionada;
+            string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogos,
+                candidatas.Select(l => new ProductoCodigoBarrasDuplicado { Producto = l.Producto?.Trim(), Nombre = l.Descripcion?.Trim() }),
+                codigo).ConfigureAwait(true);
+            if (Seleccionada != abierta)
+            {
+                return;
+            }
+            LineaRecibirReposicion linea = string.IsNullOrEmpty(elegido)
+                ? null
+                : candidatas.FirstOrDefault(l => string.Equals(l.Producto?.Trim(), elegido, StringComparison.OrdinalIgnoreCase));
+            if (linea == null)
+            {
+                PedirFocoEnLector?.Invoke();
+                return;
+            }
+            SumarUnaUnidad(linea, codigo, null);
+        }
 
         /// <summary>La búsqueda en la API del último código que no estaba en la reposición (los tests la esperan).</summary>
         internal Task LecturaProductoEnCurso { get; private set; } = Task.CompletedTask;
@@ -737,12 +760,27 @@ namespace Nesto.Modules.Producto.ViewModels
                 LecturaFallida($"El código {codigo} no es de ningún producto.");
                 return;
             }
+            ProductoCodigoRecepcion elegidoProducto = distintos[0];
             if (distintos.Count > 1)
             {
-                LecturaFallida(TextoCodigoCompartido(codigo));
-                return;
+                // Nesto#647: se pregunta cuál es (el selector común); si se cancela, no se apunta nada
+                string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogos,
+                    distintos.Select(p => new ProductoCodigoBarrasDuplicado { Producto = p.Producto?.Trim(), Nombre = p.Nombre?.Trim() }),
+                    codigo).ConfigureAwait(true);
+                if (Seleccionada != abierta)
+                {
+                    return;
+                }
+                elegidoProducto = string.IsNullOrEmpty(elegido)
+                    ? null
+                    : distintos.FirstOrDefault(p => string.Equals(p.Producto.Trim(), elegido, StringComparison.OrdinalIgnoreCase));
+                if (elegidoProducto == null)
+                {
+                    PedirFocoEnLector?.Invoke();
+                    return;
+                }
             }
-            string referencia = distintos[0].Producto.Trim();
+            string referencia = elegidoProducto.Producto.Trim();
             if (SoloEscaneando && string.Equals(referencia, codigo, StringComparison.OrdinalIgnoreCase))
             {
                 // NestoAPI#762: es una referencia tecleada, no una lectura: no cuenta
@@ -752,13 +790,13 @@ namespace Nesto.Modules.Producto.ViewModels
             // Se busca otra vez: mientras se preguntaba, otra lectura del mismo producto ha podido apuntarlo
             LineaRecibirReposicion linea = Lineas.FirstOrDefault(l => !l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase))
                 ?? Lineas.FirstOrDefault(l => l.NoVenia && string.Equals(l.Producto?.Trim(), referencia, StringComparison.OrdinalIgnoreCase));
-            if (linea != null && !linea.TieneCodigo(codigo))
+            if (linea != null && !linea.TieneCodigo(codigo) && distintos.Count == 1)
             {
-                // Las siguientes lecturas de este código ya no preguntan
+                // Las siguientes lecturas de este código ya no preguntan (un código de varios productos, sí: Nesto#647)
                 linea.CodigosBarras ??= new List<string>();
                 linea.CodigosBarras.Add(codigo);
             }
-            SumarUnaUnidad(linea, referencia, distintos[0].Nombre, codigo);
+            SumarUnaUnidad(linea, referencia, elegidoProducto.Nombre, codigo);
         }
 
         /// <summary>

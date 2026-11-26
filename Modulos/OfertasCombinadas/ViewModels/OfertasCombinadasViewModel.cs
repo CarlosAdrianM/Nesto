@@ -57,7 +57,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             NuevaOfertaEscalonadaCommand = new RelayCommand(OnNuevaOfertaEscalonada);
             GuardarOfertaEscalonadaCommand = new RelayCommand<object>(async (o) => await OnGuardarOfertaEscalonada(o as OfertaEscalonadaWrapper));
             EliminarOfertaEscalonadaCommand = new RelayCommand<object>(async (o) => await OnEliminarOfertaEscalonada(o as OfertaEscalonadaWrapper));
-            AnadirReferenciasCommand = new RelayCommand(async () => await OnAnadirReferencias(), () => OfertaEscalonadaSeleccionada != null);
+            AnadirReferenciasCommand = new RelayCommand(async () => await AnadirReferenciasAsync(), () => OfertaEscalonadaSeleccionada != null);
             NuevoProductoEscalonadoCommand = new RelayCommand(OnNuevoProductoEscalonado, () => OfertaEscalonadaSeleccionada != null);
             EliminarProductoEscalonadoCommand = new RelayCommand<object>(OnEliminarProductoEscalonado);
             NuevoTramoCommand = new RelayCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
@@ -856,7 +856,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 .ToList();
         }
 
-        private async Task OnAnadirReferencias()
+        /// <summary>«Añadir referencias» de la oferta escalonada (público para los tests, Nesto#647).</summary>
+        public async Task AnadirReferenciasAsync()
         {
             if (OfertaEscalonadaSeleccionada == null) return;
 
@@ -878,7 +879,22 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     {
                         // Sin cliente/contacto devuelve el precio de tarifa, que es el precio base
                         // de la oferta (editable). Las referencias que no existan se marcan en rojo.
-                        var producto = await _servicioProducto.BuscarProducto(Empresa, referencia, null, null, 1);
+                        ControlesUsuario.Models.ProductoDTO producto;
+                        try
+                        {
+                            producto = await _servicioProducto.BuscarProducto(Empresa, referencia, null, null, 1);
+                        }
+                        catch (CodigoBarrasDuplicadoException duplicado)
+                        {
+                            // Nesto#647: antes se tragaba y se añadía como «NO EXISTE». Se pregunta cuál es (el selector
+                            // común); si se cancela, esa referencia no se añade.
+                            string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogService, duplicado.Candidatos, referencia);
+                            if (string.IsNullOrEmpty(elegido) || yaExistentes.Contains(elegido))
+                            {
+                                continue;
+                            }
+                            producto = await _servicioProducto.BuscarProducto(Empresa, elegido, null, null, 1);
+                        }
                         if (producto != null)
                         {
                             wrapper.Producto = producto.Producto?.Trim() ?? referencia;

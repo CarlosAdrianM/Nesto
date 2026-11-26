@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Contracts;
+﻿using ControlesUsuario.Services;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modulos.CanalesExternos.Interfaces;
@@ -193,7 +194,35 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         public RelayCommand BuscarProductoCommand { get; private set; }
         private async void OnBuscarProducto()
         {
-            ProductoSeleccionado = await _servicio.GetProductoAsync(ProductoBuscar);
+            try
+            {
+                await BuscarProductoAsync();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Intro en «Buscar»: por la referencia exacta y, si no es ninguna, como código de barras (Nesto#647): uno → ese;
+        /// varios → se pregunta cuál es (el selector común); si se cancela, no se carga nada.
+        /// </summary>
+        public async Task BuscarProductoAsync()
+        {
+            string texto = ProductoBuscar?.Trim();
+            ProductoCanalExterno producto = await _servicio.GetProductoAsync(ProductoBuscar);
+            if (producto == null && !string.IsNullOrEmpty(texto) && _servicioProducto != null)
+            {
+                var candidatos = await _servicioProducto.BuscarProductosPorCodigoBarras(texto);
+                string elegido = await ElectorProductoCodigoBarras.ElegirAsync(_dialogService, candidatos, texto);
+                if (!string.IsNullOrEmpty(elegido) && !string.Equals(elegido, texto, StringComparison.OrdinalIgnoreCase))
+                {
+                    ProductoBuscar = elegido;
+                    producto = await _servicio.GetProductoAsync(elegido);
+                }
+            }
+            ProductoSeleccionado = producto;
         }
 
         public RelayCommand<ProductoCanalExterno> GuardarCambiosCommand { get; private set; }

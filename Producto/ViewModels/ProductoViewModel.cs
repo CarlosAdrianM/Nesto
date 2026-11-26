@@ -1,4 +1,5 @@
 ﻿using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Models;
@@ -445,21 +446,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 throw errorReferencia;
             }
-            if (candidatos.Count == 1)
-            {
-                return candidatos[0].Producto?.Trim();
-            }
-            ResultadoDialogo resultado = await _dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", new ParametrosDialogo
-            {
-                { "title", $"El código de barras {codigo} es de varios productos" },
-                { "candidatos", candidatos }
-            });
-            if (resultado is null || resultado.Result != ResultadoBoton.OK)
-            {
-                return null;
-            }
-            string elegido = resultado.Parameters.GetValue<string>("producto")?.Trim();
-            return string.IsNullOrEmpty(elegido) ? null : elegido;
+            // Nesto#647: uno → ese; varios → el selector común de todas las pantallas.
+            return await ElectorProductoCodigoBarras.ElegirAsync(_dialogService, candidatos, codigo);
         }
 
         /// <summary>Solo cifras y al menos 8 (EAN-8, UPC, EAN-13, GTIN-14): para no llamar «código de barras» a una referencia mal tecleada.</summary>
