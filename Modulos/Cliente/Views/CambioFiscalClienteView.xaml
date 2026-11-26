@@ -1,0 +1,70 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.CambioFiscalClienteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
+             Background="White">
+    <!-- NestoAPI#876 (corte nuevo): en la ficha de un cliente que cambió de forma fiscal, copiar las condiciones del cliente anterior
+         (por bloques, viendo antes lo que cambiaría) y pasar sus pedidos pendientes. Lee la API solo al pulsar. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
+    <ScrollViewer x:Name="Raiz" VerticalScrollBarVisibility="Auto"
+                  Visibility="{Binding Visible, Converter={StaticResource BoolAVisibilidad}}">
+        <StackPanel Margin="6">
+            <TextBlock TextWrapping="Wrap" Foreground="#555555" Margin="0,0,0,6">
+                <Run Text="Este cliente cambió de forma fiscal: antes era el cliente"/>
+                <Run Text="{Binding ClienteAnterior, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=". Comercialmente es el mismo; lo fiscal (facturas, deuda, 347) no se hereda."/>
+            </TextBlock>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="Copiar del cliente anterior…" Command="{Binding VerCopiaCommand}" Padding="10,3" Margin="0,0,6,0"
+                        ToolTip="Enseña, por bloques, lo que tiene cada cliente y lo que se copiaría; después copia los bloques marcados."/>
+                <Button Content="Pasar pedidos pendientes…" Command="{Binding VerPedidosCommand}" Padding="10,3"
+                        ToolTip="Los pedidos pendientes del cliente anterior: se comprueba qué cambiaría en cada uno y se pasan los marcados."/>
+            </StackPanel>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+
+            <GroupBox Header="Copiar del cliente anterior" Padding="6" Margin="0,0,0,6"
+                      Visibility="{Binding MostrandoCopia, Converter={StaticResource BoolAVisibilidad}}">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Bloques}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="0,3">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="2*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding Marcado}" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Descripcion}" Foreground="DimGray" FontSize="11" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                            <TextBlock Text="Anterior:" Foreground="DimGray" FontSize="11"/>
+                                            <TextBlock Text="{Binding Anterior}" TextWrapping="Wrap" FontSize="11"/>
+                                            <TextBlock Text="Nuevo:" Foreground="DimGray" FontSize="11" Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding Nuevo}" TextWrapping="Wrap" FontSize="11"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="3">
+                                            <TextBlock Text="{Binding Cambios}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Avisos}" TextWrapping="Wrap" Foreground="DarkOrange"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Copiar los bloques marcados" Command="{Binding CopiarCommand}" HorizontalAlignment="Right" Padding="10,3" Margin="0,6,0,0"/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Pedidos pendientes del cliente anterior" Padding="6"
+                      Visibility="{Binding MostrandoPedidos, Converter={StaticResource BoolAVisibilidad}}">
+                <local:PedidosCambioFiscalPanel DataContext="{Binding Pedidos}"/>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

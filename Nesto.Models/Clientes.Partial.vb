@@ -6,6 +6,10 @@ Namespace Nesto.Models
         Public Property ClienteAnterior As String
         ''' <summary>NestoAPI#876: aviso del alta sobre el cliente anterior (p. ej. tiene el mismo NIF). Nothing si no lo hay.</summary>
         Public Property AvisoClienteAnterior As String
+        ''' <summary>NestoAPI#876 (corte nuevo): con CopiarDelAnterior, lo que se ha copiado del cliente anterior («Contacto 0: IVA G21 → R52»…).</summary>
+        Public Property CopiadoDelAnterior As List(Of String)
+        ''' <summary>NestoAPI#876 (corte nuevo): por qué no se ha copiado, o los avisos de la copia (la cuenta bancaria…). Nothing si no hay.</summary>
+        Public Property AvisoCopiaClienteAnterior As String
     End Class
 
 End Namespace

@@ -1,0 +1,37 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.PedidosCambioFiscalPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <!-- NestoAPI#876 (corte nuevo): los pedidos pendientes del cliente anterior, con su casilla (DataContext = PasoPedidosCambioFiscal).
+         Los que no se pueden pasar (p. ej. con picking y cambiarían al recalcular) salen sin casilla, con el porqué. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+            <TextBlock Text="Comprobando…" Foreground="DimGray" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Visibility="{Binding EstaOcupado, Converter={StaticResource BoolAVisibilidad}}"/>
+            <Button Content="Pasar los marcados al cliente nuevo" Command="{Binding PasarCommand}" Padding="10,3"
+                    ToolTip="Pasa los pedidos marcados al cliente nuevo por el «cambiar cliente» de siempre (se recalculan con sus condiciones)."/>
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+        <ItemsControl ItemsSource="{Binding Filas}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding Marcado}" VerticalAlignment="Top" Margin="0,2,0,0"
+                                  Visibility="{Binding SePuedeMarcar, Converter={StaticResource BoolAVisibilidad}}"/>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Texto}"/>
+                            <TextBlock Text="{Binding Motivo}" Foreground="DimGray" FontSize="11" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</UserControl>

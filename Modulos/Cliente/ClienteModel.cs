@@ -119,6 +119,12 @@ namespace Nesto.Modulos.Cliente
         /// </summary>
         [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string ClienteAnterior { get; set; }
+        /// <summary>
+        /// NestoAPI#876 (corte nuevo): qué bloques copiar del cliente anterior tras el alta (Comercial, Fiscalidad, CondicionesPago,
+        /// Descuentos, Ofertas, Ficha). Null = no copiar nada (no viaja). OJO: en la API una lista vacía es «todos».
+        /// </summary>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public List<string> CopiarDelAnterior { get; set; }
 
         public string Usuario { get; set; }
 

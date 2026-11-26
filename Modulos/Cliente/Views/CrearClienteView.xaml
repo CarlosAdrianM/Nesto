@@ -53,6 +53,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="2*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
@@ -62,6 +64,25 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="2*"/>
                             </Grid.ColumnDefinitions>
+                            <!-- NestoAPI#876 (corte nuevo): con el número del anterior, qué se copia de su ficha tras el alta (todo marcado). -->
+                            <StackPanel Grid.Column="1" Grid.ColumnSpan="4" Grid.Row="11"
+                                        Visibility="{Binding MostrarBloquesCopiarDelAnterior, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock FontWeight="SemiBold" Margin="0,0,0,2">Copiar del cliente anterior al crear el nuevo:</TextBlock>
+                                <ItemsControl ItemsSource="{Binding BloquesCopiarDelAnterior}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding Marcado}" Margin="0,1" ToolTip="{Binding Descripcion}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Nombre}"/>
+                                                    <TextBlock Text="{Binding Descripcion}" Foreground="DimGray" FontSize="11" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Foreground="DimGray" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"
+                                           Text="Lo fiscal (NIF, nombre, facturas, deuda) nunca se copia. Si el cliente anterior tiene pedidos pendientes, al terminar se le preguntará si se pasan al nuevo."/>
+                            </StackPanel>
                             <!-- NestoAPI#876: con el origen «Cambio de forma fiscal», el número de cliente que tenía antes (obligatorio; la API
                                  comprueba que existe). Fiscalmente es otro cliente; comercialmente, el mismo. -->
                             <TextBlock Grid.Column="1" Grid.Row="9" TextAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"

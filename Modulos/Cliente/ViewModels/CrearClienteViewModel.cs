@@ -32,10 +32,12 @@ namespace Nesto.Modulos.Cliente
         private IServicioDialogos DialogService { get; }
 
         public CrearClienteViewModel(IServicioNavegacion navegacion, IConfiguracion configuracion, IClienteService servicio, IMessenger messenger, IServicioDialogos dialogService,
-            IOrigenesClienteService servicioOrigenes = null)
+            IOrigenesClienteService servicioOrigenes = null, IServicioCambioFiscal servicioCambioFiscal = null)
         {
             Navegacion = navegacion;
             ServicioOrigenes = servicioOrigenes; // Nesto#523
+            ServicioCambioFiscal = servicioCambioFiscal; // NestoAPI#876 (corte nuevo)
+            BloquesCopiarDelAnterior = new ObservableCollection<FilaBloqueCambioFiscal>(BloquesCambioFiscal.TODOS.Select(b => new FilaBloqueCambioFiscal(b)));
             Configuracion = configuracion;
             Servicio = servicio;
             Messenger = messenger;
@@ -104,6 +106,7 @@ namespace Nesto.Modulos.Cliente
                     AsegurarOrigenEnLista(nuevo, null);
                     OnPropertyChanged(nameof(OrigenSeleccionado));
                     OnPropertyChanged(nameof(PideClienteAnterior)); // NestoAPI#876
+                    OnPropertyChanged(nameof(MostrarBloquesCopiarDelAnterior));
                     OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
                     NotificarSePuedeCrearCliente();
                 }
@@ -128,6 +131,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref clienteAnterior, string.IsNullOrWhiteSpace(value) ? null : value.Trim()))
                 {
+                    OnPropertyChanged(nameof(MostrarBloquesCopiarDelAnterior)); // NestoAPI#876 (corte nuevo)
                     OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
                     NotificarSePuedeCrearCliente();
                 }
@@ -136,6 +140,21 @@ namespace Nesto.Modulos.Cliente
 
         /// <summary>NestoAPI#876: lo que se manda en el POST (null si el origen no es «Cambio de forma fiscal» o es una modificación).</summary>
         internal string ClienteAnteriorParaAlta => PideClienteAnterior ? ClienteAnterior : null;
+
+        /// <summary>NestoAPI#876 (corte nuevo): copiar las condiciones del anterior y pasar sus pedidos (sin él, solo el número, como antes).</summary>
+        private IServicioCambioFiscal ServicioCambioFiscal { get; }
+
+        /// <summary>
+        /// NestoAPI#876 (corte nuevo): con el cliente anterior, una casilla por bloque (todas marcadas) de lo que se copia tras el alta.
+        /// Caso del 26/11/26: al dar de alta el cliente nuevo de un distribuidor no se copió nada y hubo que arreglarlo con scripts.
+        /// </summary>
+        public ObservableCollection<FilaBloqueCambioFiscal> BloquesCopiarDelAnterior { get; }
+
+        /// <summary>Las casillas se ven con el número de cliente anterior puesto.</summary>
+        public bool MostrarBloquesCopiarDelAnterior => PideClienteAnterior && ClienteAnterior != null;
+
+        /// <summary>Lo que viaja en el POST: los bloques marcados; sin cliente anterior o sin ninguno marcado, null (no se copia nada).</summary>
+        internal List<string> CopiarDelAnteriorParaAlta => ClienteAnteriorParaAlta == null ? null : ReglasPantallaCambioFiscal.CopiarDelAnterior(BloquesCopiarDelAnterior);
 
         internal const string MOTIVO_FALTA_CLIENTE_ANTERIOR =
             "Con el origen «Cambio de forma fiscal» indique el número de cliente que tenía antes (en «Datos fiscales», debajo del origen).";
@@ -956,7 +975,8 @@ namespace Nesto.Modulos.Cliente
                 VendedorPeluqueria = vendedorPeluqueria,
                 Usuario = Configuracion.usuario,
                 Origen = ClienteOrigen, // Nesto#523
-                ClienteAnterior = ClienteAnteriorParaAlta // NestoAPI#876
+                ClienteAnterior = ClienteAnteriorParaAlta, // NestoAPI#876
+                CopiarDelAnterior = EsUnaModificacion ? null : CopiarDelAnteriorParaAlta // NestoAPI#876 (corte nuevo)
             };
 
             if (EsUnaModificacion)
@@ -1001,9 +1021,12 @@ namespace Nesto.Modulos.Cliente
                     if (clienteCreado!=null)
                     {
                         DialogService.ShowNotification("Cliente Creado", MensajeClienteCreado(clienteCreado, cliente.DireccionEntrega != null)
-                            + TextoClienteAnteriorCreado(clienteCreado)); // NestoAPI#876
+                            + TextoClienteAnteriorCreado(clienteCreado) // NestoAPI#876
+                            + ReglasPantallaCambioFiscal.TextoCopiaEnElAlta(clienteCreado.CopiadoDelAnterior, clienteCreado.AvisoCopiaClienteAnterior));
+                        await ReleerFichaTrasCopiarAsync(clienteCreado, cliente.CopiarDelAnterior != null); // NestoAPI#876 (corte nuevo)
                         Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                         await OfrecerCopiarDatosDelPrincipal(clienteCreado);
+                        await OfrecerPasarPedidosDelAnteriorAsync(clienteCreado, cliente.ClienteAnterior); // NestoAPI#876 (corte nuevo)
                     }
                 }
                 
@@ -1026,6 +1049,75 @@ namespace Nesto.Modulos.Cliente
                 texto += "\n\n" + creado.AvisoClienteAnterior.Trim();
             }
             return texto;
+        }
+
+        /// <summary>
+        /// NestoAPI#876 (corte nuevo): la ficha que devuelve el alta es la de ANTES de copiar; si se ha copiado algo, se vuelve a leer y se
+        /// ponen en el cliente creado el estado, la ruta y los comentarios de ahora (lo que reciben las demás pantallas). Nunca rompe.
+        /// </summary>
+        internal async Task ReleerFichaTrasCopiarAsync(Clientes clienteCreado, bool seHaPedidoCopiar)
+        {
+            if (!seHaPedidoCopiar || clienteCreado?.CopiadoDelAnterior == null || !clienteCreado.CopiadoDelAnterior.Any())
+            {
+                return;
+            }
+            try
+            {
+                ClienteCrear releida = await Servicio.LeerClienteCrear(clienteCreado.Empresa?.Trim(), clienteCreado.Nº_Cliente?.Trim(), clienteCreado.Contacto?.Trim());
+                if (releida == null)
+                {
+                    return;
+                }
+                if (releida.Estado.HasValue)
+                {
+                    clienteCreado.Estado = releida.Estado;
+                }
+                if (!string.IsNullOrWhiteSpace(releida.Ruta))
+                {
+                    clienteCreado.Ruta = releida.Ruta;
+                }
+                if (releida.Comentarios != null)
+                {
+                    clienteCreado.Comentarios = releida.Comentarios;
+                }
+            }
+            catch
+            {
+                // Es para que las demás pantallas tengan lo copiado; si no se puede leer, se quedan con lo del alta
+            }
+        }
+
+        /// <summary>
+        /// NestoAPI#876 (corte nuevo): si el cliente anterior tiene pedidos pendientes, se pregunta si se pasan al nuevo (diálogo con
+        /// casillas; antes, el ensayo dice qué cambiaría). Nunca rompe el alta.
+        /// </summary>
+        internal async Task OfrecerPasarPedidosDelAnteriorAsync(Clientes clienteCreado, string clienteAnteriorEnviado)
+        {
+            string anterior = string.IsNullOrWhiteSpace(clienteCreado?.ClienteAnterior) ? clienteAnteriorEnviado?.Trim() : clienteCreado.ClienteAnterior.Trim();
+            if (ServicioCambioFiscal == null || string.IsNullOrWhiteSpace(anterior) || string.IsNullOrWhiteSpace(clienteCreado?.Nº_Cliente))
+            {
+                return;
+            }
+            try
+            {
+                CopiaCambioFiscalModel previa = await ServicioCambioFiscal.Previa(clienteCreado.Empresa?.Trim(), anterior, clienteCreado.Nº_Cliente.Trim());
+                List<PedidoPendienteCambioFiscalModel> pendientes = previa?.PedidosPendientes ?? new List<PedidoPendienteCambioFiscalModel>();
+                if (!pendientes.Any())
+                {
+                    return;
+                }
+                _ = await DialogService.ShowDialogAsync(CambioFiscalPedidosDialogViewModel.NOMBRE, new ParametrosDialogo
+                {
+                    { "empresa", clienteCreado.Empresa?.Trim() },
+                    { "clienteAnterior", anterior },
+                    { "clienteNuevo", clienteCreado.Nº_Cliente.Trim() },
+                    { "pedidos", pendientes }
+                });
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError($"El cliente se ha creado, pero no se han podido mirar los pedidos pendientes del cliente {anterior}: {ex.Message}");
+            }
         }
 
         /// <summary>

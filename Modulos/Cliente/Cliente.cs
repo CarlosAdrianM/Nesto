@@ -55,6 +55,9 @@ namespace Nesto.Modulos.Cliente
             // Nesto#618 (NestoAPI#786): «Nueva nota de cobro» (desde la ficha del cliente y desde el detalle del pedido)
             registro.Transitorio<INotaCobroService, NotaCobroService>();
             registro.RegistrarDialogo<NotaCobroDialog, NotaCobroDialogViewModel>(NotaCobroDialogViewModel.NOMBRE);
+            // NestoAPI#876 (corte nuevo): cambio de forma fiscal (copiar del cliente anterior y pasar sus pedidos; alta y ficha)
+            registro.Transitorio<IServicioCambioFiscal, ServicioCambioFiscal>();
+            registro.RegistrarDialogo<CambioFiscalPedidosDialog, CambioFiscalPedidosDialogViewModel>(CambioFiscalPedidosDialogViewModel.NOMBRE);
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ClienteMenuBar>();

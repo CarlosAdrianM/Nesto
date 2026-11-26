@@ -806,6 +806,7 @@ namespace Nesto.Tests
             "AnunciarEventoDialog | AnunciarEventoDialog | AnunciarEventoDialogViewModel",
             "NotificacionTelefonoView | NotificacionTelefonoView | NotificacionTelefonoViewModel",
             "NotaCobroDialog | NotaCobroDialog | NotaCobroDialogViewModel", // NestoAPI#786 (nota de cobro)
+            "CambioFiscalPedidosDialog | CambioFiscalPedidosDialog | CambioFiscalPedidosDialogViewModel", // NestoAPI#876 (cambio de forma fiscal)
             "CobroCajaDialog | CobroCajaDialog | CobroCajaDialogViewModel", // Nesto#645 (cobro en caja de la factura)
         };
 

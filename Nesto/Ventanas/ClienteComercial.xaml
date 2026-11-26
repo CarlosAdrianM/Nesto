@@ -492,6 +492,21 @@
                                 <cliente:DireccionesClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"/>
                             </DockPanel>
                         </TabItem>
+                        <!-- NestoAPI#876 (corte nuevo): cliente que cambió de forma fiscal: copiar del anterior y pasar sus pedidos. Solo con
+                             «Cliente anterior»; no lee la API hasta que se pulsa un botón. -->
+                        <TabItem Header="Cliente anterior">
+                            <TabItem.Style>
+                                <Style TargetType="TabItem">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding clienteActivo.TextoClienteAnterior}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TabItem.Style>
+                            <cliente:CambioFiscalClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
+                                                             ClienteAnterior="{Binding clienteActivo.clienteAnterior}"/>
+                        </TabItem>
                     </TabControl>
                 </Grid>
             </Grid>
