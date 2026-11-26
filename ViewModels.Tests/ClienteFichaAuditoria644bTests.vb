@@ -88,6 +88,100 @@ Public Class ClienteFichaAuditoria644bTests
         Return vm
     End Function
 
+    ' Hallazgo 5: Guardar mandaba estado, vendedor, país y vendedores por grupo tal como se cargaron, y pisaba lo que otro
+    ' usuario hubiera cambiado entre medias. Ahora solo va lo cambiado (null = la API no lo toca).
+    <TestMethod()>
+    Public Async Function H5_AlGuardar_SoloVaLoQueHaCambiadoElUsuario() As Task
+        Dim vm = Await ConFicha(Ficha())
+        vm.clienteActivo.estado = 5 ' solo el estado
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim put As JObject = _api.Puts().Single()
+        Assert.AreEqual(5, CInt(put("estado")))
+        Assert.AreEqual(JTokenType.Null, put("vendedor").Type, "El vendedor no se ha tocado: no se manda")
+        Assert.AreEqual(JTokenType.Null, put("pais").Type)
+        Assert.AreEqual(JTokenType.Null, put("VendedoresGrupoProducto").Type, "Peluquería no se ha tocado: la API no la toca")
+        Assert.IsNull(put("PersonasContacto"))
+    End Function
+
+    <TestMethod()>
+    Public Async Function H5_SoloElVendedor_NoMandaElEstadoCargado_YTrasGuardarSeMideDesdeLoGuardado() As Task
+        Dim vm = Await ConFicha(Ficha())
+        vm.clienteServidor.vendedor = "PA"
+
+        Await vm.GuardarFichaComercialAsync()
+        vm.clienteServidor.pais = "pt"
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim puts = _api.Puts()
+        Assert.AreEqual(2, puts.Count)
+        Assert.AreEqual(JTokenType.Null, puts(0)("estado").Type, "El estado cargado no viaja: si otro lo ha cambiado, no se le pisa")
+        Assert.AreEqual("PA", puts(0)("vendedor").ToString())
+        Assert.AreEqual(JTokenType.Null, puts(1)("vendedor").Type, "El vendedor ya guardado no se vuelve a mandar")
+        Assert.AreEqual("pt", puts(1)("pais").ToString())
+    End Function
+
+    <TestMethod()>
+    Public Async Function H5_SinCambios_NoSeLlamaALaApi() As Task
+        Dim vm = Await ConFicha(Ficha())
+        vm.clienteServidor.vendedor = "je " ' el mismo, con relleno y en minúsculas
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Assert.AreEqual(0, _api.Peticiones.Count)
+        A.CallTo(Sub() _dialogos.ShowNotification("Guardar", "No ha cambiado nada de la ficha: no hay nada que guardar.")).MustHaveHappenedOnceExactly()
+    End Function
+
+    ' Hallazgo 6: el estado de peluquería de un cliente sin fila se perdía (la API no crea la fila sin vendedor) con
+    ' «guardado correctamente».
+    <TestMethod()>
+    Public Async Function H6_EstadoDePeluqueriaSinVendedor_NoSeGuardaYSeDice() As Task
+        Dim vm = Await ConFicha(Ficha(conPeluqueria:=False))
+        vm.estadoPeluqueria = 3
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Assert.AreEqual(0, _api.Peticiones.Count)
+        A.CallTo(Sub() _dialogos.ShowError(GuardadoFichaComercial.MOTIVO_ESTADO_PELUQUERIA_SIN_VENDEDOR)).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() _dialogos.ShowDialog("NotificationDialog", A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
+    End Function
+
+    ' Hallazgo 6: con vendedor, la API crea la fila con el estado 0 sin mirar el elegido: un segundo PUT, ya con la fila, lo pone.
+    <TestMethod()>
+    Public Async Function H6_FilaNuevaDePeluqueriaConEstado_SeGuardaElEstadoElegido() As Task
+        Dim vm = Await ConFicha(Ficha(conPeluqueria:=False))
+        vm.vendedorPorGrupo = "JE"
+        vm.estadoPeluqueria = 3
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim puts = _api.Puts()
+        Assert.AreEqual(2, puts.Count)
+        Dim fila As JObject = CType(puts(0)("VendedoresGrupoProducto")(0), JObject)
+        Assert.AreEqual("PEL", fila("grupoProducto").ToString())
+        Assert.AreEqual("JE", fila("vendedor").ToString())
+        Dim segunda As JObject = CType(puts(1)("VendedoresGrupoProducto")(0), JObject)
+        Assert.AreEqual(3, CInt(segunda("estado")))
+        Assert.AreEqual(JTokenType.Null, puts(1)("estado").Type, "El segundo solo lleva peluquería")
+        A.CallTo(Sub() _dialogos.ShowDialog("NotificationDialog", A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
+    End Function
+
+    ' Hallazgo 6: si la ficha no traía la lista de vendedores por grupo, el estado tecleado no llegaba a ningún sitio.
+    <TestMethod()>
+    Public Async Function H6_FichaSinListaDeGrupos_ElEstadoDePeluqueriaTambienViaja() As Task
+        Dim sinLista As ClienteJson = Ficha(conPeluqueria:=False)
+        sinLista.VendedoresGrupoProducto = Nothing
+        Dim vm = Await ConFicha(sinLista)
+        vm.vendedorPorGrupo = "JE"
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim fila As JObject = CType(_api.Puts().First()("VendedoresGrupoProducto")(0), JObject)
+        Assert.AreEqual("JE", fila("vendedor").ToString())
+        Assert.AreEqual(1, _api.Puts().Count, "Con el estado 0 basta el primero")
+    End Function
+
     ' Hallazgo 11: si la API no contesta (red caída), el fallo solo iba a mensajeError, que ClienteComercial.xaml no enseña.
     <TestMethod()>
     Public Async Function H11_SiNoSePuedeLlegarALaApi_AlGuardarSeAvisaEnUnaVentana() As Task

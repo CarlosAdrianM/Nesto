@@ -102,6 +102,8 @@ Public Class ClienteComercialViewModel
         End Get
         Set(value As ClienteJson)
             _clienteServidor = value
+            ' Nesto#644 (5): cómo llegó la ficha, para mandar al guardar solo lo que cambie el usuario
+            _comercialCargado = ValoresComercialesFicha.DeLaFicha(value)
             OnPropertyChanged("clienteServidor")
             ' Nesto#458: el permiso depende de quién lleva el cliente que se está mirando
             OnPropertyChanged(NameOf(PuedeEditarComercial))
@@ -109,6 +111,8 @@ Public Class ClienteComercialViewModel
             OnPropertyChanged(NameOf(ExigeSuPedido)) ' Nesto#562
         End Set
     End Property
+
+    Private _comercialCargado As ValoresComercialesFicha
 
     Private _esJefeDeVentas As Boolean
     Public Property EsJefeDeVentas As Boolean
@@ -885,6 +889,28 @@ Public Class ClienteComercialViewModel
     ''' mensajeError, que esta ficha no enseña).
     ''' </summary>
     Friend Async Function GuardarFichaComercialAsync() As Task
+        If clienteServidor Is Nothing OrElse clienteActivo Is Nothing Then
+            dialogService.ShowError("Elija un cliente en la lista antes de guardar.")
+            Return
+        End If
+        If ClaveCliente(clienteServidor) <> ClaveCliente(clienteActivo) Then
+            dialogService.ShowError("Lo que se iba a guardar no es del cliente que está en pantalla: vuelva a elegirlo en la lista.")
+            Return
+        End If
+        clienteServidor.estado = clienteActivo.estado
+        clienteServidor.usuario = configuracion.usuario
+        ' Nesto#644 (5 y 6): solo lo que ha cambiado el usuario; y nada si el guardado no haría lo que se ve en pantalla
+        Dim previa As PeticionGuardadoFichaComercial = GuardadoFichaComercial.Preparar(clienteServidor, _comercialCargado,
+            vendedorPorGrupo, estadoPeluqueria, configuracion.usuario)
+        If previa.MotivoNoSePuede IsNot Nothing Then
+            dialogService.ShowError(previa.MotivoNoSePuede)
+            Return
+        End If
+        If Not previa.HayCambios Then
+            dialogService.ShowNotification("Guardar", "No ha cambiado nada de la ficha: no hay nada que guardar.")
+            Return
+        End If
+
         Dim continuar As Boolean = False
         Dim p As New ParametrosDialogo From {
             {"message", "¿Desea guardar los cambios (vendedores, estado y país fiscal)?"}
@@ -897,36 +923,32 @@ Public Class ClienteComercialViewModel
         If Not continuar Then
             Return
         End If
-        If clienteServidor Is Nothing OrElse clienteActivo Is Nothing Then
-            dialogService.ShowError("Elija un cliente en la lista antes de guardar.")
-            Return
-        End If
 
         Dim numeroCliente As String = clienteServidor.cliente?.Trim()
+        ' Nesto#558: si el estado pasa a una baja (o sale de ella), motivo y comentario opcionales en el PUT
+        PedirMotivoCambioEstadoSiHaceFalta()
+        Dim peticion As PeticionGuardadoFichaComercial = GuardadoFichaComercial.Preparar(clienteServidor, _comercialCargado,
+            vendedorPorGrupo, estadoPeluqueria, configuracion.usuario)
         Dim motivoNoGuardado As String = Nothing
+        Dim motivoEstadoPeluqueria As String = Nothing
+        Dim primerPutHecho As Boolean = False
         Try
-            ' PUT de clienteServidor
             Using client As HttpClient = _clienteApiFactory.Crear()
-                Dim urlConsulta As String = "Clientes/ClienteComercial"
-                clienteServidor.estado = clienteActivo.estado
-                clienteServidor.usuario = configuracion.usuario
-                ' Nesto#558: si el estado pasa a una baja (o sale de ella), motivo y comentario opcionales en el PUT
-                PedirMotivoCambioEstadoSiHaceFalta()
-                ' Nesto#340 (1C.8, slice 4): el PUT solo gestiona vendedores; quitamos
-                ' PersonasContacto del payload para que el [EmailAddress] del DTO del servidor no
-                ' devuelva 400 por correos mal grabados en fichas antiguas.
-                Dim payload As Newtonsoft.Json.Linq.JObject = Newtonsoft.Json.Linq.JObject.FromObject(clienteServidor)
-                Dim unused = payload.Remove("PersonasContacto")
-                Dim content As HttpContent = New StringContent(payload.ToString(), Encoding.UTF8, "application/json")
-
-                Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
-                If Not response.IsSuccessStatusCode Then
-                    motivoNoGuardado = HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync())
+                motivoNoGuardado = Await PonerFichaComercialAsync(client, peticion.Payload)
+                primerPutHecho = motivoNoGuardado Is Nothing
+                ' Nesto#644 (6): la API crea la fila de peluquería con el estado 0; con la fila ya creada, el estado elegido
+                If primerPutHecho AndAlso peticion.PayloadEstadoPeluqueria IsNot Nothing Then
+                    motivoEstadoPeluqueria = Await PonerFichaComercialAsync(client, peticion.PayloadEstadoPeluqueria)
                 End If
             End Using
         Catch ex As Exception
             ' Nesto#644 (11): la red caída (HttpRequestException con el motivo dentro) también se dice
-            motivoNoGuardado = If(ex.InnerException?.Message, ex.Message)
+            Dim motivo As String = If(ex.InnerException?.Message, ex.Message)
+            If primerPutHecho Then
+                motivoEstadoPeluqueria = motivo
+            Else
+                motivoNoGuardado = motivo
+            End If
         End Try
 
         If motivoNoGuardado IsNot Nothing Then
@@ -935,13 +957,21 @@ Public Class ClienteComercialViewModel
             Return
         End If
 
-        mensajeError = Nothing
+        Dim estadoPeluqueriaGuardado As Short = If(motivoEstadoPeluqueria Is Nothing, estadoPeluqueria, GuardadoFichaComercial.ESTADO_PELUQUERIA_AL_CREAR)
+        _comercialCargado = ValoresComercialesFicha.Guardados(clienteServidor, _comercialCargado, vendedorPorGrupo, estadoPeluqueriaGuardado)
         ' Nesto#558: desde ahora, el estado guardado es el de partida para el siguiente cambio
         _estadoCargado = clienteActivo?.estado
         If clienteServidor IsNot Nothing Then
             clienteServidor.motivoCambioEstado = Nothing
             clienteServidor.comentarioCambioEstado = Nothing
         End If
+        If motivoEstadoPeluqueria IsNot Nothing Then
+            mensajeError = $"Se ha guardado el cliente {numeroCliente}, pero el estado de peluquería ha quedado en {GuardadoFichaComercial.ESTADO_PELUQUERIA_AL_CREAR} (no en {estadoPeluqueria}): {motivoEstadoPeluqueria} Vuelva a ponerlo y guarde otra vez."
+            estadoPeluqueria = GuardadoFichaComercial.ESTADO_PELUQUERIA_AL_CREAR
+            dialogService.ShowError(mensajeError)
+            Return
+        End If
+        mensajeError = Nothing
 
         Dim c As New ParametrosDialogo From {
             {"message", "Se han guardado correctamente los cambios"}
@@ -949,6 +979,16 @@ Public Class ClienteComercialViewModel
         dialogService.ShowDialog("NotificationDialog", c, Sub(r)
 
                                                           End Sub)
+    End Function
+
+    ''' <summary>Un PUT de Clientes/ClienteComercial: Nothing si se ha guardado; si no, el motivo que da la API, legible.</summary>
+    Private Shared Async Function PonerFichaComercialAsync(client As HttpClient, payload As Newtonsoft.Json.Linq.JObject) As Task(Of String)
+        Dim content As HttpContent = New StringContent(payload.ToString(), Encoding.UTF8, "application/json")
+        Dim response As HttpResponseMessage = Await client.PutAsync("Clientes/ClienteComercial", content)
+        If response.IsSuccessStatusCode Then
+            Return Nothing
+        End If
+        Return HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync())
     End Function
 
     ''' <summary>Nesto#644 (11): el aviso de que la ficha comercial NO se ha guardado, con el motivo.</summary>
