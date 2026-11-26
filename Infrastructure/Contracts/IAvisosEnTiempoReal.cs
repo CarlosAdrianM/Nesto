@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Nesto.Infrastructure.Contracts
 {
@@ -62,6 +63,15 @@ namespace Nesto.Infrastructure.Contracts
         public DateTime Fecha { get; set; }
         /// <summary>La versión del pedido tras guardarlo; null si la API no la ha podido calcular.</summary>
         public string Version { get; set; }
+        /// <summary>Carlos 26/11/26: los pickings de las líneas (≠ 0, ordenados, sin repetir). Null con la API antigua.</summary>
+        public List<int> Pickings { get; set; }
+        /// <summary>
+        /// Carlos 26/11/26: la huella del contenido del pedido (sin nada del picking ni quién/cuándo). Si es la misma que la que se
+        /// tenía, lo que ha cambiado no es el contenido. Null con la API antigua.
+        /// </summary>
+        public string HuellaContenido { get; set; }
+        /// <summary>Carlos 26/11/26: null | «PickingSacado» | «PickingQuitado».</summary>
+        public string Motivo { get; set; }
     }
 
     /// <summary>Ariadna#51: los nombres de los grupos del almacén, en un solo sitio (los mismos en la API y en Ariadna).</summary>

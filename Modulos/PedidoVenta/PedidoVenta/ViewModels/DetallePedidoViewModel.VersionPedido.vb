@@ -281,7 +281,9 @@ Partial Public Class DetallePedidoViewModel
         TextoPedidoCambiadoPorOtro = Nothing
         _avisoDuranteGuardado = Nothing
         _usuarioQueLoCambio = Nothing
+        OlvidarHuella() ' Carlos 26/11/26: la huella es la de la versión que se acaba de poner
         EntrarEnGrupoDelPedido()
+        RecordarHuellaEnCurso = RecordarHuellaContenidoAsync()
     End Sub
 
     Private Sub EnLaUI(accion As Action)
@@ -316,17 +318,172 @@ Partial Public Class DetallePedidoViewModel
             Return
         End If
         If EsCambioDeOtro(aviso, pedido.empresa, pedido.numero, pedido.Model.Version) Then
-            MostrarPedidoCambiadoPorOtro(aviso.Usuario, aviso.Fecha)
+            MostrarPedidoCambiadoPorOtro(aviso.Usuario, aviso.Fecha, aviso.HuellaContenido, aviso.Pickings, aviso.Motivo)
+        ElseIf Not String.IsNullOrWhiteSpace(aviso.Version) AndAlso MismaVersion(aviso.Version, pedido.Model.Version) AndAlso
+            Not PedidoCambiadoPorOtro Then
+            RecordarHuella(aviso.HuellaContenido, aviso.Pickings) ' el aviso del propio guardado trae la huella de la versión nueva
         End If
     End Sub
 
-    Private Sub MostrarPedidoCambiadoPorOtro(usuario As String, fecha As Date?)
-        TextoPedidoCambiadoPorOtro = TextoBandaPedidoCambiado(usuario, fecha, Date.Today)
+    Private Sub MostrarPedidoCambiadoPorOtro(usuario As String, fecha As Date?, Optional huellaNueva As String = Nothing,
+                                             Optional pickingsNuevos As IEnumerable(Of Integer) = Nothing, Optional motivo As String = Nothing)
+        TextoPedidoCambiadoPorOtro = TextoBandaSegunCambio(_huellaContenido, PickingsConocidos(), usuario, fecha, huellaNueva, pickingsNuevos, motivo, Date.Today)
         If Not String.IsNullOrWhiteSpace(usuario) Then
             _usuarioQueLoCambio = usuario.Trim()
+        ElseIf EsCambioSoloDePicking(_huellaContenido, huellaNueva) Then
+            _usuarioQueLoCambio = QUIEN_SACA_EL_PICKING_POR_DEFECTO
         End If
         PedidoCambiadoPorOtro = True
     End Sub
+
+#Region "Lo que ha cambiado es el picking (Carlos 26/11/26)"
+    ' Sacar o quitar el picking cambia la versión del pedido, pero no lo que edita un usuario: la banda decía «Carlos ha modificado
+    ' este pedido a las 10:58» cuando había sido Almacén. La API manda, en GET …/Version, en el 409 y en «pedidoCambiado», la huella
+    ' del contenido (sin el picking ni quién/cuándo) y los pickings: con la misma huella, la banda dice lo que de verdad ha pasado.
+    ' Con la API antigua (sin huella), todo como antes.
+
+    Public Const MOTIVO_PICKING_SACADO As String = "PickingSacado"
+    Public Const MOTIVO_PICKING_QUITADO As String = "PickingQuitado"
+    Public Const QUIEN_SACA_EL_PICKING_POR_DEFECTO As String = "Almacén"
+
+    ''' <summary>La huella del contenido del pedido en pantalla (la de su versión); Nothing si no se sabe.</summary>
+    Private _huellaContenido As String
+    ''' <summary>Los pickings del pedido en pantalla según la API (Nothing: se sacan de las líneas).</summary>
+    Private _pickingsConocidos As List(Of Integer)
+    ''' <summary>La versión para la que ya se ha pedido la huella (para no pedirla dos veces).</summary>
+    Private _versionHuellaPedida As String
+
+    ''' <summary>Para los tests: la huella que se tiene.</summary>
+    Friend ReadOnly Property HuellaContenidoConocida As String
+        Get
+            Return _huellaContenido
+        End Get
+    End Property
+
+    ''' <summary>Para los tests: la última lectura de la huella lanzada.</summary>
+    Friend Property RecordarHuellaEnCurso As Task = Task.CompletedTask
+
+    Private Function PickingsConocidos() As IEnumerable(Of Integer)
+        If _pickingsConocidos IsNot Nothing Then
+            Return _pickingsConocidos
+        End If
+        Return PickingsDeLineas(pedido?.Model?.Lineas)
+    End Function
+
+    ''' <summary>Los pickings ≠ 0 de las líneas, ordenados y sin repetir (lo mismo que calcula la API).</summary>
+    Friend Shared Function PickingsDeLineas(lineas As IEnumerable(Of LineaPedidoVentaDTO)) As List(Of Integer)
+        If lineas Is Nothing Then
+            Return New List(Of Integer)
+        End If
+        Return lineas.Where(Function(l) l IsNot Nothing AndAlso l.picking <> 0).
+            Select(Function(l) l.picking).Distinct().OrderBy(Function(p) p).ToList()
+    End Function
+
+    ''' <summary>Con las dos huellas y la misma, lo que ha cambiado no es el contenido. Sin alguna (API antigua), no se sabe: False.</summary>
+    Friend Shared Function EsCambioSoloDePicking(huellaPropia As String, huellaNueva As String) As Boolean
+        Return Not String.IsNullOrWhiteSpace(huellaPropia) AndAlso Not String.IsNullOrWhiteSpace(huellaNueva) AndAlso
+            String.Equals(huellaPropia.Trim(), huellaNueva.Trim(), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    ''' <summary>
+    ''' El texto de la banda. Con la misma huella: «Almacén ha sacado el picking 100123 de este pedido. Recárguelo antes de guardar.»
+    ''' («… ha quitado el picking …»). El motivo lo dice la API; sin él, se deduce de los pickings. Si no se puede decir qué ha
+    ''' pasado con el picking, o la huella es otra (o no se sabe), el texto de siempre.
+    ''' </summary>
+    Friend Shared Function TextoBandaSegunCambio(huellaPropia As String, pickingsPropios As IEnumerable(Of Integer), usuario As String, fecha As Date?,
+                                                  huellaNueva As String, pickingsNuevos As IEnumerable(Of Integer), motivo As String, hoy As Date) As String
+        If Not EsCambioSoloDePicking(huellaPropia, huellaNueva) Then
+            Return TextoBandaPedidoCambiado(usuario, fecha, hoy)
+        End If
+        Dim propios As List(Of Integer) = If(pickingsPropios, Enumerable.Empty(Of Integer)()).Where(Function(p) p <> 0).Distinct().ToList()
+        Dim nuevos As List(Of Integer) = If(pickingsNuevos, Enumerable.Empty(Of Integer)()).Where(Function(p) p <> 0).Distinct().ToList()
+        Dim sacados As List(Of Integer) = nuevos.Except(propios).OrderBy(Function(p) p).ToList()
+        Dim quitados As List(Of Integer) = propios.Except(nuevos).OrderBy(Function(p) p).ToList()
+        Dim accion As String
+        Dim numeros As List(Of Integer)
+        If String.Equals(motivo, MOTIVO_PICKING_SACADO, StringComparison.OrdinalIgnoreCase) Then
+            accion = "ha sacado"
+            numeros = If(sacados.Any(), sacados, nuevos)
+        ElseIf String.Equals(motivo, MOTIVO_PICKING_QUITADO, StringComparison.OrdinalIgnoreCase) Then
+            accion = "ha quitado"
+            numeros = quitados
+        ElseIf sacados.Any() Then
+            accion = "ha sacado"
+            numeros = sacados
+        ElseIf quitados.Any() Then
+            accion = "ha quitado"
+            numeros = quitados
+        Else
+            Return TextoBandaPedidoCambiado(usuario, fecha, hoy)
+        End If
+        Dim quien As String = If(String.IsNullOrWhiteSpace(usuario), QUIEN_SACA_EL_PICKING_POR_DEFECTO, usuario.Trim())
+        Return $"{quien} {accion} {TextoPickings(numeros)} de este pedido. Recárguelo antes de guardar."
+    End Function
+
+    Private Shared Function TextoPickings(numeros As List(Of Integer)) As String
+        If numeros Is Nothing OrElse numeros.Count = 0 Then
+            Return "el picking"
+        End If
+        If numeros.Count = 1 Then
+            Return $"el picking {numeros(0)}"
+        End If
+        Return $"los pickings {String.Join(", ", numeros.Take(numeros.Count - 1))} y {numeros.Last()}"
+    End Function
+
+    ''' <summary>La huella y los pickings de la versión que tiene la pantalla.</summary>
+    Private Sub RecordarHuella(huella As String, pickings As List(Of Integer))
+        If String.IsNullOrWhiteSpace(huella) Then
+            Return ' API antigua: se queda como estaba
+        End If
+        _huellaContenido = huella.Trim()
+        _pickingsConocidos = If(pickings Is Nothing, Nothing, New List(Of Integer)(pickings))
+        _versionHuellaPedida = pedido?.Model?.Version
+    End Sub
+
+    ''' <summary>Tras un guardado propio: si la versión ya no es la de la huella (y el aviso del propio guardado no la ha traído), se pide.</summary>
+    Friend Sub ActualizarHuellaTrasGuardar()
+        If pedido?.Model Is Nothing OrElse MismaVersion(_versionHuellaPedida, pedido.Model.Version) Then
+            Return
+        End If
+        OlvidarHuella()
+        RecordarHuellaEnCurso = RecordarHuellaContenidoAsync()
+    End Sub
+
+    ''' <summary>El pedido en pantalla es otro (o tiene otra versión): la huella que había ya no vale.</summary>
+    Private Sub OlvidarHuella()
+        _huellaContenido = Nothing
+        _pickingsConocidos = Nothing
+        _versionHuellaPedida = Nothing
+    End Sub
+
+    ''' <summary>
+    ''' Pide una vez la huella de la versión que tiene la pantalla (GET …/Version; el GET del pedido no la trae). Si la versión ya no es
+    ''' la de la pantalla, lo ha cambiado alguien: la banda. Nunca lanza; sin temporizadores (al cargar y al guardar).
+    ''' </summary>
+    Friend Async Function RecordarHuellaContenidoAsync() As Task
+        Try
+            Dim version As String = pedido?.Model?.Version
+            If pedido Is Nothing OrElse pedido.numero <= 0 OrElse String.IsNullOrWhiteSpace(version) OrElse
+                MismaVersion(_versionHuellaPedida, version) Then
+                Return
+            End If
+            _versionHuellaPedida = version
+            Dim empresa As String = pedido.empresa
+            Dim numero As Integer = pedido.numero
+            Dim actual As VersionPedidoModel = Await servicio.LeerVersionPedido(empresa, numero)
+            If actual Is Nothing OrElse String.IsNullOrWhiteSpace(actual.Version) OrElse pedido?.Model Is Nothing OrElse pedido.numero <> numero Then
+                Return
+            End If
+            If MismaVersion(actual.Version, pedido.Model.Version) Then
+                RecordarHuella(actual.HuellaContenido, actual.Pickings)
+            ElseIf Not _guardandoPedido AndAlso Not PedidoCambiadoPorOtro Then
+                MostrarPedidoCambiadoPorOtro(actual.Usuario, actual.Fecha, actual.HuellaContenido, actual.Pickings)
+            End If
+        Catch
+            ' Es una ayuda: sin huella, la banda de siempre
+        End Try
+    End Function
+#End Region
 
     ''' <summary>Para los tests: la última comprobación de la versión lanzada.</summary>
     Friend Property ComprobacionVersionEnCurso As Task = Task.CompletedTask
@@ -345,7 +502,7 @@ Partial Public Class DetallePedidoViewModel
                 Return
             End If
             If Not String.Equals(actual.Version.Trim(), If(pedido.Model.Version, String.Empty).Trim(), StringComparison.OrdinalIgnoreCase) Then
-                MostrarPedidoCambiadoPorOtro(actual.Usuario, actual.Fecha)
+                MostrarPedidoCambiadoPorOtro(actual.Usuario, actual.Fecha, actual.HuellaContenido, actual.Pickings)
             End If
         Catch
             ' Es una ayuda: si falla, el 409 del servidor lo para al guardar
@@ -382,10 +539,12 @@ Partial Public Class DetallePedidoViewModel
     ''' El 409 PEDIDO_CAMBIADO (o Guardar con la banda puesta): el mensaje de la API y «¿Desea recargarlo ahora?». No se ha guardado nada.
     ''' </summary>
     Friend Async Function ResolverPedidoCambiadoAsync(ex As PedidoCambiadoException) As Task
+        Dim mensaje As String = TextoPedidoCambiadoPorOtro
         If ex IsNot Nothing Then
-            MostrarPedidoCambiadoPorOtro(ex.Usuario, ex.Fecha)
+            MostrarPedidoCambiadoPorOtro(ex.Usuario, ex.Fecha, ex.HuellaContenido, ex.Pickings)
+            ' Carlos 26/11/26: si solo ha cambiado el picking, el texto de la banda dice la verdad («ha sacado el picking…»)
+            mensaje = If(EsCambioSoloDePicking(_huellaContenido, ex.HuellaContenido), TextoPedidoCambiadoPorOtro, ex.Message)
         End If
-        Dim mensaje As String = If(ex?.Message, TextoPedidoCambiadoPorOtro)
         ' Nesto#642 (ampliación): lo normal es conservar lo suyo; descartarlo es una opción aparte (y se vuelve a confirmar)
         Dim respuesta As ResultadoBoton = ConfirmacionConBotones.PreguntarTres(dialogService, "Pedido modificado",
             mensaje & vbCrLf & vbCrLf & "No se ha guardado nada. Puede recargarlo conservando sus cambios: solo se le preguntará por " &
@@ -437,7 +596,7 @@ Partial Public Class DetallePedidoViewModel
             If antes IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(antes.Version) Then
                 alDia = MismaVersion(antes.Version, versionPantalla)
                 If Not alDia Then
-                    MostrarPedidoCambiadoPorOtro(antes.Usuario, antes.Fecha)
+                    MostrarPedidoCambiadoPorOtro(antes.Usuario, antes.Fecha, antes.HuellaContenido, antes.Pickings)
                 End If
             End If
         End If
@@ -449,6 +608,7 @@ Partial Public Class DetallePedidoViewModel
                 Dim despues As VersionPedidoModel = Await LeerVersionSinFallarAsync(empresa, numero)
                 If despues IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(despues.Version) Then
                     pedido.Model.Version = despues.Version
+                    RecordarHuella(despues.HuellaContenido, despues.Pickings) ' Carlos 26/11/26
                 End If
             End If
             Return resultado

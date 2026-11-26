@@ -19,6 +19,10 @@ Public Class VersionPedidoModel
     Public Property Version As String
     Public Property Usuario As String
     Public Property Fecha As Date?
+    ''' <summary>Carlos 26/11/26: los pickings de las líneas (Nothing con la API antigua).</summary>
+    Public Property Pickings As List(Of Integer)
+    ''' <summary>Carlos 26/11/26: la huella del contenido, sin el picking ni quién/cuándo (Nothing con la API antigua).</summary>
+    Public Property HuellaContenido As String
 End Class
 
 ''' <summary>

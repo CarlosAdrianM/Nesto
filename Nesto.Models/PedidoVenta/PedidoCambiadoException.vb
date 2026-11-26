@@ -11,11 +11,19 @@ Public Class PedidoCambiadoException
 
     Public Const CODIGO_ERROR As String = "PEDIDO_CAMBIADO"
 
-    Public Sub New(mensaje As String, Optional usuario As String = Nothing, Optional fecha As Date? = Nothing)
+    Public Sub New(mensaje As String, Optional usuario As String = Nothing, Optional fecha As Date? = Nothing,
+                   Optional pickings As List(Of Integer) = Nothing, Optional huellaContenido As String = Nothing)
         MyBase.New(mensaje)
         Me.Usuario = usuario
         Me.Fecha = fecha
+        Me.Pickings = pickings
+        Me.HuellaContenido = huellaContenido
     End Sub
+
+    ''' <summary>Carlos 26/11/26: los pickings del pedido de ahora (Nothing con la API antigua).</summary>
+    Public ReadOnly Property Pickings As List(Of Integer)
+    ''' <summary>Carlos 26/11/26: la huella del contenido de ahora (Nothing con la API antigua). Igual a la que se tenía = solo ha cambiado el picking.</summary>
+    Public ReadOnly Property HuellaContenido As String
 
     ''' <summary>Quién lo tocó el último (sin dominio), si la API lo sabe.</summary>
     Public ReadOnly Property Usuario As String
@@ -37,6 +45,18 @@ Public Class PedidoCambiadoException
         If fechaToken IsNot Nothing AndAlso fechaToken.Type = JTokenType.Date Then
             fecha = fechaToken.Value(Of Date)()
         End If
-        Return New PedidoCambiadoException(If(String.IsNullOrWhiteSpace(mensaje), mensajeLegible, mensaje), usuario, fecha)
+        Dim pickings As List(Of Integer) = Nothing
+        Dim pickingsToken As JArray = TryCast(detalles?("Pickings"), JArray)
+        If pickingsToken IsNot Nothing Then
+            pickings = New List(Of Integer)
+            For Each p As JToken In pickingsToken
+                If p.Type = JTokenType.Integer Then
+                    pickings.Add(p.Value(Of Integer)())
+                End If
+            Next
+        End If
+        Dim huella As String = detalles?("HuellaContenido")?.ToString()
+        Return New PedidoCambiadoException(If(String.IsNullOrWhiteSpace(mensaje), mensajeLegible, mensaje), usuario, fecha, pickings,
+                                           If(String.IsNullOrWhiteSpace(huella), Nothing, huella))
     End Function
 End Class

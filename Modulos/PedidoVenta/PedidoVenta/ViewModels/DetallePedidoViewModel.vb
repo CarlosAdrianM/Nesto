@@ -2608,6 +2608,7 @@ Public Class DetallePedidoViewModel
             _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
             AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
+            ActualizarHuellaTrasGuardar() ' Carlos 26/11/26
             If pedidoNuevoAmpliacion.HasValue Then
                 ' Caso 931007: lo añadido se ha ido a otro pedido; en pantalla aún está: se dice, se ofrece abrirlo y se recarga este
                 Await ResolverPedidoNuevoAmpliacionAsync(pedidoNuevoAmpliacion.Value, mensajePedidoNuevoAmpliacion)
@@ -3248,6 +3249,7 @@ Public Class DetallePedidoViewModel
 
         ' NestoAPI#606: guardar puede cambiar el día (líneas, modo...). Ya sin bloquear la pantalla.
         If guardado Then
+            ActualizarHuellaTrasGuardar() ' Carlos 26/11/26: la huella de la versión que acaba de quedar
             Await CargarFechaEntregaAgenciaAsync()
             Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
             Await CargarCuponAsync() ' Nesto#518: el cupón puede haber pasado a este pedido o haberse soltado
