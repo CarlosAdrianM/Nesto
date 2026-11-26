@@ -11,6 +11,8 @@ namespace Nesto.Modulos.CanalesExternos
         public int PedidoNestoId { get; set; }
         public string Nombre { get; set; }
         public string Direccion { get; set; }
+        /// <summary>NestoAPI#878: piso, local, rótulo… (solo la tienda online). Va al envío con <see cref="DireccionEnvioPedidoExterno"/>.</summary>
+        public string Direccion2 { get; set; }
         public string CodigoPostal { get; set; }
         public string Poblacion { get; set; }
         public string Provincia { get; set; }

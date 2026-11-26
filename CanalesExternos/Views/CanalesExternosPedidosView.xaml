@@ -153,6 +153,10 @@
                     <TextBlock>Dirección:</TextBlock>
                     <TextBox Name="txtDireccion" Text="{Binding PedidoSeleccionadoDireccion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                     <TextBlock/>
+                    <TextBlock>Dirección 2 (piso, local, rótulo…):</TextBlock>
+                    <TextBox Name="txtDireccion2" Text="{Binding PedidoSeleccionadoDireccion2, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Va a la etiqueta detrás de la dirección si cabe en 80 caracteres; si no, delante de las observaciones."></TextBox>
+                    <TextBlock/>
                     <TextBlock>Teléfono Fijo:</TextBlock>
                     <TextBox Name="txtTelefonoFijo" Text="{Binding PedidoSeleccionadoTelefonoFijo, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                     <TextBlock/>

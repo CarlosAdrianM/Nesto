@@ -103,6 +103,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 }
             }
             OnPropertyChanged(nameof(PedidoSeleccionadoDireccion));
+            OnPropertyChanged(nameof(PedidoSeleccionadoDireccion2));
             OnPropertyChanged(nameof(PedidoSeleccionadoNombre));
             OnPropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
             OnPropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
@@ -214,6 +215,18 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Direccion = value;
                     CrearPedidoCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+        /// <summary>NestoAPI#878: la Dirección 2 de la tienda online (address2 + company), editable antes de crear la etiqueta.</summary>
+        public string PedidoSeleccionadoDireccion2
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Direccion2; }
+            set
+            {
+                if (ListaPedidos.ElementoSeleccionado is PedidoCanalExterno pedido)
+                {
+                    pedido.Direccion2 = value;
                 }
             }
         }
@@ -402,6 +415,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
 
 
+        /// <summary>
+        /// NestoAPI#878: la calle del pedido (que el usuario puede haber corregido en pantalla) con la Dirección 2 de la tienda online,
+        /// por la regla del envío de la API (dirección si cabe en 80; si no, delante de las observaciones).
+        /// </summary>
+        internal static DireccionEnvioCompuesta DireccionEnvioEtiqueta(PedidoCanalExterno pedido)
+            => DireccionEnvioPedidoExterno.Componer(pedido.Direccion, pedido.Direccion2, pedido.Observaciones);
+
         public RelayCommand<PedidoCanalExterno> CrearEtiquetaCommand { get; private set; }
         private bool CanCrearEtiqueta(PedidoCanalExterno pedido)
         {
@@ -413,11 +433,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 EstaOcupado = true;
 
+                DireccionEnvioCompuesta direccionEnvio = DireccionEnvioEtiqueta(pedido);
                 EnvioAgenciaWrapper etiqueta = new EnvioAgenciaWrapper
                 {
                     Pedido = pedido.PedidoNestoId,
                     Nombre = pedido.Nombre,
-                    Direccion = pedido.Direccion,
+                    Direccion = direccionEnvio.Direccion,
                     Poblacion = pedido.Poblacion,
                     Provincia = pedido.Provincia,
                     CodPostal = pedido.CodigoPostal,
@@ -425,7 +446,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     Telefono = pedido.TelefonoFijo,
                     Movil = pedido.TelefonoMovil,
                     PaisISO = pedido.PaisISO, 
-                    Observaciones = pedido.Observaciones
+                    Observaciones = direccionEnvio.Observaciones
                 };
                 
                 if (pedido.Pedido.formaPago == Constantes.FormasPago.EFECTIVO)
@@ -442,7 +463,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = false;
                 if (etiquetaCreada)
                 {
-                    DialogService.ShowNotification("Crear Etiqueta", "Etiqueta creada");
+                    DialogService.ShowNotification("Crear Etiqueta", direccionEnvio.Aviso == null
+                        ? "Etiqueta creada"
+                        : "Etiqueta creada. " + direccionEnvio.Aviso);
                 }
                 else
                 {

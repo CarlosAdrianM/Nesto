@@ -168,7 +168,11 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += pedidoEntrada.Cliente.Element("email")?.Value.ToString() + "\r\n";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper() + "\r\n";
-            pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("address2")?.Value != "" ? pedidoEntrada.Direccion.Element("address2")?.Value.ToString().ToUpper() + "\r\n" : "";
+            // NestoAPI#878: address2 y company, compuestos como en la API, en UNA línea «DIRECCIÓN 2: …» (la API la lee de forma tolerante)
+            Direccion2PedidoTiendaResultado direccion2 = Direccion2PedidoTienda.Componer(
+                pedidoEntrada.Direccion.Element("address2")?.Value, pedidoEntrada.Direccion.Element("company")?.Value);
+            string lineaDireccion2 = Direccion2PedidoTienda.LineaComentario(direccion2.Direccion2);
+            pedidoSalida.comentarios += lineaDireccion2 != null ? lineaDireccion2 + "\r\n" : "";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("postcode")?.Value.ToString().ToUpper() + " ";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("city")?.Value.ToString().ToUpper() + "\r\n";
 
@@ -215,7 +219,8 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.Nombre = pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
             pedidoExterno.Nombre += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper();
             pedidoExterno.Direccion = pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper();
-            pedidoExterno.Direccion += pedidoEntrada.Direccion.Element("address2")?.Value != "" ? " " + pedidoEntrada.Direccion.Element("address2")?.Value.ToString().ToUpper() : "";
+            // NestoAPI#878: la calle va sola; la Dirección 2 se añade al crear la etiqueta (DireccionEnvioPedidoExterno.Componer)
+            pedidoExterno.Direccion2 = direccion2.Direccion2;
             pedidoExterno.CodigoPostal = pedidoEntrada.Direccion.Element("postcode")?.Value.ToString().ToUpper();
             pedidoExterno.Poblacion = pedidoEntrada.Direccion.Element("city")?.Value.ToString().ToUpper();
             pedidoExterno.TelefonoFijo = pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper();
