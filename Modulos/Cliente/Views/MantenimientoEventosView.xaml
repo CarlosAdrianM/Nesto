@@ -232,11 +232,11 @@
                                     <Button Content="Quitar" Command="{Binding QuitarImagenCommand}" Padding="8,1" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </StackPanel>
-                            <!-- Sugerencia 1332 (Reina): el dosier en PDF, que sale solo por correo a las inscritas 2 horas antes -->
+                            <!-- Sugerencia 1332 (Reina): el dosier en PDF; NestoAPI#895: sale dos días antes, con el recordatorio -->
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
                                         Visibility="{Binding TieneAcceso, Converter={StaticResource BoolAVisibilidad}}">
                                 <TextBlock Text="Dosier:" VerticalAlignment="Top" Width="110"
-                                           ToolTip="Un PDF por evento. Sale solo por correo a todas las inscritas unas 2 horas antes de empezar (y al momento a quien se inscriba después)"/>
+                                           ToolTip="Un PDF por evento. Sale dos días antes, con el recordatorio, a todas las inscritas (y al momento a quien se inscriba después)"/>
                                 <StackPanel>
                                     <TextBlock Text="{Binding TextoDosier}" TextWrapping="Wrap" MaxWidth="320" HorizontalAlignment="Left" Foreground="DimGray"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">

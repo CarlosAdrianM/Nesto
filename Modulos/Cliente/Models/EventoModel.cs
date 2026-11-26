@@ -209,7 +209,7 @@ namespace Nesto.Modulos.Cliente.Models
 
     /// <summary>
     /// Sugerencia 1332 (Reina; Carlos 18/11/26): el dosier (PDF) del evento (DosierEventoDTO de la API). Sale solo por correo a las
-    /// inscritas con la plaza formalizada (pagada o gratuita) unas 2 horas antes de empezar, una vez cada una.
+    /// inscritas con la plaza formalizada (pagada o gratuita) dos días antes, con el recordatorio (NestoAPI#895), una vez cada una.
     /// </summary>
     public class DosierEventoModel
     {

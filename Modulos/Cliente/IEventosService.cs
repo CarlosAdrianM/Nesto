@@ -57,7 +57,7 @@ namespace Nesto.Modulos.Cliente
         Task<EventoModel> SubirImagen(int eventoId, string ruta);
         Task BorrarImagen(int eventoId);
 
-        // Sugerencia 1332 (Reina): el dosier (PDF) del evento, que sale solo por correo 2 horas antes
+        // Sugerencia 1332 (Reina): el dosier (PDF) del evento, que sale dos días antes con el recordatorio (NestoAPI#895)
         /// <summary>
         /// Sube (o sustituye) el PDF. Devuelve cómo queda. Con <paramref name="reenviar"/> (Carlos 18/11/26), si ya había salido, la
         /// API se lo vuelve a mandar, como versión actualizada, a las que ya tenían el anterior.

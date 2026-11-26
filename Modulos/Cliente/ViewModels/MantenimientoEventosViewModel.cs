@@ -887,7 +887,8 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public const string SIN_DOSIER = "Sin dosier. Si sube un PDF, sale solo por correo a las inscritas con la plaza pagada (o gratuita) unas 2 horas antes de empezar.";
+        // NestoAPI#895: ya no sale 2 horas antes en un correo aparte, sino dos días antes en el mismo correo del recordatorio
+        public const string SIN_DOSIER = "Sin dosier. Si sube un PDF, sale dos días antes, con el recordatorio, a las inscritas con la plaza pagada (o gratuita).";
 
         /// <summary>El mismo texto que la API (ReglasHoraInicioEvento.MENSAJE_FALTA).</summary>
         public const string FALTA_HORA_INICIO = "Falta la hora de inicio del evento: indique a qué hora vienen (o se conectan) las alumnas.";

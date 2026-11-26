@@ -69,6 +69,9 @@ namespace Nesto.Modulos.Producto
 
             // NestoAPI#913 (corte 1): historia y descuadres de los aparatos, en dos pestañas de la ventana de Alquileres (Nesto)
             registro.Singleton<IServicioAparatos, ServicioAparatos>();
+
+            // NestoAPI#906: «Ver fotos de los bultos» en Diferencias de reposición y Recibir reposición
+            registro.Singleton<IServicioFotosBultosReposicion, ServicioFotosBultosReposicion>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.HistoriaAparatoViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.DescuadresAparatosViewModel>();
 

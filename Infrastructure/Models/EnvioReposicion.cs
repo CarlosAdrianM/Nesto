@@ -210,6 +210,8 @@ namespace Nesto.Infrastructure.Models
         public int Total { get; set; }
         public string Estado { get; set; }
         public List<EventoSeguimiento> Eventos { get; set; } = new List<EventoSeguimiento>();
+        /// <summary>NestoAPI#906: se le hizo una foto al enviarlo (GET …/Bultos/{bulto}/Foto).</summary>
+        public bool TieneFoto { get; set; }
     }
 
     /// <summary>NestoAPI#772: GET api/Reposiciones/{traspaso}/Seguimiento, la historia de una reposición por traspaso y por bulto.</summary>

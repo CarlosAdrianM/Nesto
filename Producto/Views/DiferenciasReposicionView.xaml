@@ -106,6 +106,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Text="Qué pasó:" FontWeight="SemiBold" Margin="0,0,8,4" />
@@ -148,6 +149,14 @@
                            Visibility="{Binding Seleccionada.MostrarComentarioResuelto, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
                 <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Seleccionada.Comentario}" TextWrapping="Wrap" Margin="0,4,0,0"
                            Visibility="{Binding Seleccionada.MostrarComentarioResuelto, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+
+                <!-- NestoAPI#906: las fotos que se hicieron a los bultos al enviar la reposición -->
+                <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0"
+                            Visibility="{Binding FotosBultos.HayFotos, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                    <Button Content="Ver fotos de los bultos" Command="{Binding FotosBultos.VerCommand}" Padding="12,2"
+                            ToolTip="Abre en el navegador la foto que se hizo a cada bulto al enviar la reposición" />
+                    <TextBlock Text="{Binding FotosBultos.Mensaje}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                </StackPanel>
             </Grid>
         </Border>
 

@@ -109,6 +109,12 @@
             <!-- Sugerencia 564: lo que llega en papel, para comprobarlo a mano -->
             <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0"
                     ToolTip="Abre un PDF con lo que llega para comprobarlo a mano: ubicación (si la hay), referencia, código de barras, descripción, cantidad y una casilla para marcar" />
+            <!-- NestoAPI#906: las fotos que se hicieron a los bultos al enviar la reposición -->
+            <Button Content="Ver fotos de los bultos" Command="{Binding FotosBultos.VerCommand}" Padding="12,2" Margin="12,0,0,0"
+                    Visibility="{Binding FotosBultos.HayFotos, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"
+                    ToolTip="Abre en el navegador la foto que se hizo a cada bulto al enviar la reposición" />
+            <TextBlock Text="{Binding FotosBultos.Mensaje}" VerticalAlignment="Center" Margin="6,0,0,0" MaxWidth="320" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding FotosBultos.Mensaje}" />
             <!-- Nesto#534: cuántas etiquetas de producto saca el botón «Imprimir» de cada línea -->
             <TextBlock Text="Etiquetas por línea:" VerticalAlignment="Center" Margin="24,2,6,2" />
             <TextBox Width="40" Text="{Binding CopiasEtiqueta, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"

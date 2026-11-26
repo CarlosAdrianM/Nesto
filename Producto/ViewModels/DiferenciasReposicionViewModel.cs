@@ -90,10 +90,12 @@ namespace Nesto.Modules.Producto.ViewModels
         private bool _filtrosListos;
 
         /// <param name="navegacion">Sugerencia 790 (Paloma): para abrir la ficha del producto con doble clic. Sin él, el doble clic no hace nada.</param>
+        /// <param name="fotos">NestoAPI#906: para «Ver fotos de los bultos». Sin él, el botón no sale.</param>
         public DiferenciasReposicionViewModel(IServicioDiferenciasReposicion servicio, IConfiguracion configuracion, IServicioDialogos dialogos,
-            IServicioNavegacion navegacion)
+            IServicioNavegacion navegacion, IServicioFotosBultosReposicion fotos = null)
         {
             _servicio = servicio;
+            FotosBultos = new VisorFotosBultosReposicion(fotos);
             _dialogos = dialogos;
             _navegacion = navegacion;
             PuedeElegirAlmacen = configuracion != null
@@ -171,11 +173,16 @@ namespace Nesto.Modules.Producto.ViewModels
                     Comentario = null;
                     OnPropertyChanged(nameof(HaySeleccionada));
                     ResolverCommand.NotifyCanExecuteChanged();
+                    // NestoAPI#906: ¿tiene fotos algún bulto de esa reposición?
+                    _ = FotosBultos.ComprobarAsync(value?.Diferencia?.Empresa, value?.Traspaso);
                 }
             }
         }
 
         public bool HaySeleccionada => Seleccionada != null;
+
+        /// <summary>NestoAPI#906: «Ver fotos de los bultos» de la reposición de la diferencia elegida.</summary>
+        public VisorFotosBultosReposicion FotosBultos { get; }
 
         private string _comentario;
         public string Comentario { get => _comentario; set => SetProperty(ref _comentario, value); }

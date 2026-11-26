@@ -14,7 +14,7 @@ namespace ClienteTests
 {
     /// <summary>
     /// Sugerencia 1332 (Reina; Carlos 18/11/26): en la ficha del evento se sube, se abre y se quita el dosier (PDF), que la API manda
-    /// sola por correo a las inscritas 2 horas antes. Solo quien mantiene el evento.
+    /// dos días antes, con el recordatorio (NestoAPI#895). Solo quien mantiene el evento.
     /// </summary>
     [TestClass]
     public class EventosDosierTests
@@ -67,6 +67,7 @@ namespace ClienteTests
             var vm = await Mantenimiento(Constantes.GruposSeguridad.TIENDAS, null);
 
             Assert.AreEqual(MantenimientoEventosViewModel.SIN_DOSIER, vm.TextoDosier);
+            StringAssert.Contains(vm.TextoDosier, "sale dos días antes, con el recordatorio", "NestoAPI#895: ya no sale 2 horas antes");
             Assert.IsTrue(vm.SubirDosierCommand.CanExecute(null));
             Assert.IsFalse(vm.AbrirDosierCommand.CanExecute(null));
             Assert.IsFalse(vm.QuitarDosierCommand.CanExecute(null));

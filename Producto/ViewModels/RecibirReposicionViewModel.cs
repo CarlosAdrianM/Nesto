@@ -193,8 +193,9 @@ namespace Nesto.Modules.Producto.ViewModels
         public string TextoOtrosEquipos { get => _textoOtrosEquipos; private set => SetProperty(ref _textoOtrosEquipos, value); }
 
         public RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
-            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas, IAvisosEnTiempoReal avisos)
-            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas, avisos as IGruposAlmacenTiempoReal)
+            ISonidosLector sonidos, IServicioNavegacion navegacion, IServicioEtiquetasProducto etiquetas, IAvisosEnTiempoReal avisos,
+            IServicioFotosBultosReposicion fotos = null)
+            : this(servicio, dialogos, configuracion, sonidos, navegacion, null, etiquetas, avisos as IGruposAlmacenTiempoReal, fotos)
         {
         }
 
@@ -203,9 +204,10 @@ namespace Nesto.Modules.Producto.ViewModels
         /// <param name="grupos">Ariadna#51: los avisos de SignalR de la recepción. Sin él, no llegan (se recarga al abrir y al volver).</param>
         internal RecibirReposicionViewModel(IServicioRecepcionReposiciones servicio, IServicioDialogos dialogos, IConfiguracion configuracion,
             ISonidosLector sonidos, IServicioNavegacion navegacion, Action<string> abrirFichero, IServicioEtiquetasProducto etiquetas = null,
-            IGruposAlmacenTiempoReal grupos = null)
+            IGruposAlmacenTiempoReal grupos = null, IServicioFotosBultosReposicion fotos = null)
         {
             _grupos = grupos;
+            FotosBultos = new VisorFotosBultosReposicion(fotos);
             _contextoUI = SynchronizationContext.Current;
             Lineas.CollectionChanged += AlCambiarLineas;
             _etiquetas = etiquetas;
@@ -303,9 +305,14 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     ImprimirCommand.NotifyCanExecuteChanged();
                     RefrescarBultos();
+                    // NestoAPI#906: ¿tiene fotos algún bulto de esta reposición?
+                    _ = FotosBultos.ComprobarAsync(Empresa, value?.Documento);
                 }
             }
         }
+
+        /// <summary>NestoAPI#906: «Ver fotos de los bultos» de la reposición abierta.</summary>
+        public VisorFotosBultosReposicion FotosBultos { get; }
 
         /// <summary>La vista vuelve a poner el foco en el cuadro del lector tras cada lectura.</summary>
         public event Action PedirFocoEnLector;
