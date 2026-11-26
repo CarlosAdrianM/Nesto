@@ -136,6 +136,8 @@ Public Interface IPedidoVentaService
     ''' <param name="request">Parámetros de la copia</param>
     ''' <returns>Resultado con los números de documentos creados</returns>
     Function CopiarFactura(request As CopiarFacturaRequestDTO) As Task(Of CopiarFacturaResponseDTO)
+    ''' <summary>NestoAPI#899/#863 (Nesto#638): las líneas de una factura con lo ya abonado, para elegir qué se copia.</summary>
+    Function LeerLineasCopiarFactura(empresa As String, factura As String) As Task(Of Models.Rectificativas.LineasFacturaParaCopiarDTO)
 
     ''' <summary>
     ''' Obtiene el cliente y empresa asociados a una factura.

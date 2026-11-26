@@ -1932,7 +1932,8 @@ Public Class PedidoVentaService
 
                 If Not response.IsSuccessStatusCode Then
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
-                    Throw New Exception($"Error al copiar factura: {respuestaError}")
+                    ' Nesto#638: los 400 de la selección (albarán o línea que no es, cantidad de más…) se leen sin el JSON
+                    Throw New Exception($"Error al copiar factura: {HttpErrorHelper.ParsearErrorHttp(respuestaError)}")
                 End If
 
                 Dim respuesta = Await response.Content.ReadAsStringAsync()
@@ -1941,6 +1942,25 @@ Public Class PedidoVentaService
             Catch ex As Exception
                 Throw New Exception($"Error al copiar factura {request.NumeroFactura}: {ex.Message}", ex)
             End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' NestoAPI#899/#863 (Nesto#638): GET PedidosVenta/CopiarFactura/Lineas. Si la API lo rechaza (404 sin factura, 400…),
+    ''' una excepción con su mensaje.
+    ''' </summary>
+    Public Async Function LeerLineasCopiarFactura(empresa As String, factura As String) As Task(Of Models.Rectificativas.LineasFacturaParaCopiarDTO) Implements IPedidoVentaService.LeerLineasCopiarFactura
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim url As String = $"PedidosVenta/CopiarFactura/Lineas?empresa={Uri.EscapeDataString(If(empresa, String.Empty).Trim())}&factura={Uri.EscapeDataString(If(factura, String.Empty).Trim())}"
+            Dim response As HttpResponseMessage = Await client.GetAsync(url)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+            End If
+            Return JsonConvert.DeserializeObject(Of Models.Rectificativas.LineasFacturaParaCopiarDTO)(cuerpo)
         End Using
     End Function
 

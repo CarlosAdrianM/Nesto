@@ -64,8 +64,13 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As String)
             If SetProperty(_numeroFactura, value) Then
+                ' Nesto#638: las líneas cargadas eran de otra factura
+                If SoloUnaParte AndAlso Not String.Equals(value?.Trim(), _facturaDeLasLineas, StringComparison.OrdinalIgnoreCase) Then
+                    VaciarLineas("Pulse «Cargar líneas» para ver las de esta factura.")
+                End If
                 EjecutarCommand.NotifyCanExecuteChanged()
                 BuscarClienteCommand?.NotifyCanExecuteChanged()
+                CargarLineasCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -76,7 +81,9 @@ Public Class CopiarFacturaViewModel
             Return _invertirCantidades
         End Get
         Set(value As Boolean)
-            SetProperty(_invertirCantidades, value)
+            If SetProperty(_invertirCantidades, value) Then
+                AjustarTopesLineas()
+            End If
         End Set
     End Property
 
@@ -120,9 +127,12 @@ Public Class CopiarFacturaViewModel
             Return _crearAbonoYCargo
         End Get
         Set(value As Boolean)
-            If SetProperty(_crearAbonoYCargo, value) AndAlso value Then
-                ' NestoAPI#699: abono y cargo (a otro cliente) y rehacer el pedido (mismo cliente) se excluyen
-                RehacerPedido = False
+            If SetProperty(_crearAbonoYCargo, value) Then
+                If value Then
+                    ' NestoAPI#699: abono y cargo (a otro cliente) y rehacer el pedido (mismo cliente) se excluyen
+                    RehacerPedido = False
+                End If
+                AjustarTopesLineas()
             End If
         End Set
     End Property
@@ -137,10 +147,13 @@ Public Class CopiarFacturaViewModel
             Return _rehacerPedido
         End Get
         Set(value As Boolean)
-            If SetProperty(_rehacerPedido, value) AndAlso value Then
-                CrearAbonoYCargo = False
-                InvertirCantidades = True ' el primer paso es el abono
-                AnadirAPedidoOriginal = False
+            If SetProperty(_rehacerPedido, value) Then
+                If value Then
+                    CrearAbonoYCargo = False
+                    InvertirCantidades = True ' el primer paso es el abono
+                    AnadirAPedidoOriginal = False
+                End If
+                AjustarTopesLineas()
             End If
         End Set
     End Property
@@ -242,6 +255,7 @@ Public Class CopiarFacturaViewModel
             SetProperty(_estaProcesando, value)
             EjecutarCommand.NotifyCanExecuteChanged()
             CancelarCommand.NotifyCanExecuteChanged()
+            CargarLineasCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -317,6 +331,7 @@ Public Class CopiarFacturaViewModel
             If SetProperty(_facturasSeleccionadas, value) Then
                 OnPropertyChanged(NameOf(TieneMultiplesFacturasSeleccionadas))
                 EjecutarCommand?.NotifyCanExecuteChanged()
+                CargarLineasCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -334,6 +349,10 @@ Public Class CopiarFacturaViewModel
                 ' Actualizar NumeroFactura con el documento de la factura seleccionada
                 If value IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(value.Documento) Then
                     NumeroFactura = value.Documento.Trim()
+                    ' Nesto#638: al elegirla en la lista, sus líneas se cargan solas
+                    If SoloUnaParte AndAlso Not String.Equals(FacturaParaElegir, _facturaDeLasLineas, StringComparison.OrdinalIgnoreCase) Then
+                        CargarLineasEnSegundoPlano()
+                    End If
                 End If
             End If
         End Set
@@ -361,6 +380,218 @@ Public Class CopiarFacturaViewModel
             Return FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Count > 1
         End Get
     End Property
+
+#End Region
+
+#Region "Solo unas líneas o albaranes (Nesto#638)"
+
+    Private _soloUnaParte As Boolean
+    ''' <summary>
+    ''' Nesto#638 (NestoAPI#899/#863): copiar o abonar solo unos albaranes o unas líneas, con su cantidad. Sin marcar, todo
+    ''' como siempre (la factura entera).
+    ''' </summary>
+    Public Property SoloUnaParte As Boolean
+        Get
+            Return _soloUnaParte
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_soloUnaParte, value) Then
+                If value Then
+                    CargarLineasEnSegundoPlano()
+                Else
+                    VaciarLineas(Nothing)
+                End If
+                EjecutarCommand.NotifyCanExecuteChanged()
+                CargarLineasCommand.NotifyCanExecuteChanged()
+            End If
+        End Set
+    End Property
+
+    Private _lineasParaElegir As New ObservableCollection(Of LineaCopiaElegible)
+    Public Property LineasParaElegir As ObservableCollection(Of LineaCopiaElegible)
+        Get
+            Return _lineasParaElegir
+        End Get
+        Private Set(value As ObservableCollection(Of LineaCopiaElegible))
+            Dim unused = SetProperty(_lineasParaElegir, value)
+        End Set
+    End Property
+
+    Private _albaranesParaElegir As New ObservableCollection(Of AlbaranCopiaElegible)
+    Public Property AlbaranesParaElegir As ObservableCollection(Of AlbaranCopiaElegible)
+        Get
+            Return _albaranesParaElegir
+        End Get
+        Private Set(value As ObservableCollection(Of AlbaranCopiaElegible))
+            Dim unused = SetProperty(_albaranesParaElegir, value)
+        End Set
+    End Property
+
+    Private _resumenSeleccion As String
+    ''' <summary>El total de lo marcado, o por qué no hay líneas.</summary>
+    Public Property ResumenSeleccion As String
+        Get
+            Return _resumenSeleccion
+        End Get
+        Private Set(value As String)
+            Dim unused = SetProperty(_resumenSeleccion, value)
+        End Set
+    End Property
+
+    ''' <summary>Qué factura se mira: la elegida en la lista si es una sola; si hay varias, ninguna; si no, la tecleada.</summary>
+    Public ReadOnly Property FacturaParaElegir As String
+        Get
+            If FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Count > 1 Then
+                Return Nothing
+            End If
+            If FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Count = 1 AndAlso
+                Not String.IsNullOrWhiteSpace(FacturasSeleccionadas(0).Documento) Then
+                Return FacturasSeleccionadas(0).Documento.Trim()
+            End If
+            Return NumeroFactura?.Trim()
+        End Get
+    End Property
+
+    ''' <summary>Abonar (también abono y cargo, y rehacer): el tope de cada línea es lo que queda por abonar.</summary>
+    Public ReadOnly Property EsAbono As Boolean
+        Get
+            Return InvertirCantidades OrElse CrearAbonoYCargo OrElse RehacerPedido
+        End Get
+    End Property
+
+    Private _facturaDeLasLineas As String
+    Private _lineasLeidas As LineasFacturaParaCopiarDTO
+    Private _testigoLineas As Integer
+
+    Private _cargarLineasCommand As RelayCommand
+    Public ReadOnly Property CargarLineasCommand As RelayCommand
+        Get
+            If _cargarLineasCommand Is Nothing Then
+                _cargarLineasCommand = New RelayCommand(AddressOf CargarLineasEnSegundoPlano, Function() Not EstaProcesando AndAlso SoloUnaParte)
+            End If
+            Return _cargarLineasCommand
+        End Get
+    End Property
+
+    Private Async Sub CargarLineasEnSegundoPlano()
+        Await CargarLineasAsync()
+    End Sub
+
+    ''' <summary>Nesto#638: GET PedidosVenta/CopiarFactura/Lineas de la factura que se mira. Nunca lanza.</summary>
+    Public Async Function CargarLineasAsync() As Task
+        Dim factura As String = FacturaParaElegir
+        _testigoLineas += 1
+        Dim testigo As Integer = _testigoLineas
+        If FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Count > 1 Then
+            VaciarLineas("Para elegir líneas o albaranes, deje elegida una sola factura.")
+            Return
+        End If
+        If String.IsNullOrWhiteSpace(factura) Then
+            VaciarLineas("Escriba o elija la factura para ver sus líneas.")
+            Return
+        End If
+        VaciarLineas("Cargando las líneas de la factura...")
+        Dim leidas As LineasFacturaParaCopiarDTO = Nothing
+        Dim motivo As String = Nothing
+        Try
+            leidas = Await _servicio.LeerLineasCopiarFactura(Empresa, factura)
+        Catch ex As Exception
+            motivo = ex.Message
+        End Try
+        If testigo <> _testigoLineas OrElse Not SoloUnaParte Then
+            Return ' ya se ha pedido otra cosa
+        End If
+        If leidas Is Nothing OrElse leidas.Lineas Is Nothing OrElse Not leidas.Lineas.Any() Then
+            VaciarLineas($"No se han podido cargar las líneas de {factura}: {If(motivo, "la factura no tiene líneas.")}")
+            Return
+        End If
+        _lineasLeidas = leidas
+        _facturaDeLasLineas = factura
+        ConstruirLineas(Nothing)
+    End Function
+
+    Private Sub VaciarLineas(motivo As String)
+        _lineasLeidas = Nothing
+        _facturaDeLasLineas = Nothing
+        LineasParaElegir = New ObservableCollection(Of LineaCopiaElegible)
+        AlbaranesParaElegir = New ObservableCollection(Of AlbaranCopiaElegible)
+        ResumenSeleccion = motivo
+        EjecutarCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>Las filas de la pantalla con lo leído; si se dan las anteriores, se conserva lo marcado (dentro del tope nuevo).</summary>
+    Private Sub ConstruirLineas(anteriores As IEnumerable(Of LineaCopiaElegible))
+        If _lineasLeidas Is Nothing Then
+            Return
+        End If
+        Dim previas As New Dictionary(Of String, LineaCopiaElegible)
+        For Each previa In If(anteriores, Enumerable.Empty(Of LineaCopiaElegible)())
+            previas($"{previa.Pedido}|{previa.NumeroOrden}") = previa
+        Next
+        Dim filas As New ObservableCollection(Of LineaCopiaElegible)
+        For Each dto In _lineasLeidas.Lineas
+            Dim fila As New LineaCopiaElegible(dto, ReglasSeleccionCopiaFactura.Tope(dto, EsAbono), AddressOf AlCambiarSeleccion)
+            Dim previa As LineaCopiaElegible = Nothing
+            If previas.TryGetValue($"{dto.Pedido}|{dto.NumeroOrden}", previa) AndAlso previa.Marcada Then
+                fila.Cantidad = previa.Cantidad
+                fila.Marcada = fila.Cantidad > 0
+                fila.NoVendible = previa.NoVendible
+            End If
+            filas.Add(fila)
+        Next
+        LineasParaElegir = filas
+
+        Dim numeros As IEnumerable(Of Integer) = If(_lineasLeidas.Albaranes, New List(Of Integer)).
+            Union(_lineasLeidas.Lineas.Where(Function(l) l.Albaran.HasValue).Select(Function(l) l.Albaran.Value)).
+            Distinct().OrderBy(Function(a) a)
+        Dim albaranes As New ObservableCollection(Of AlbaranCopiaElegible)
+        For Each numero In numeros
+            Dim n As Integer = numero
+            Dim fecha As Date? = _lineasLeidas.Lineas.Where(Function(l) l.Albaran.HasValue AndAlso l.Albaran.Value = n).Select(Function(l) l.FechaAlbaran).FirstOrDefault()
+            albaranes.Add(New AlbaranCopiaElegible(n, fecha, AddressOf AlMarcarAlbaran))
+        Next
+        AlbaranesParaElegir = albaranes
+        AlCambiarSeleccion()
+    End Sub
+
+    ''' <summary>Nesto#638: al pasar de copia a abono (o al revés) cambia el tope de cada línea.</summary>
+    Private Sub AjustarTopesLineas()
+        OnPropertyChanged(NameOf(EsAbono))
+        If _lineasLeidas IsNot Nothing Then
+            ConstruirLineas(LineasParaElegir.ToList())
+        End If
+    End Sub
+
+    ''' <summary>Marcar un albarán marca sus líneas (sin las de cuenta contable) con todo lo que se puede; desmarcarlo, las desmarca.</summary>
+    Private Sub AlMarcarAlbaran(albaran As AlbaranCopiaElegible)
+        For Each linea In LineasParaElegir.Where(Function(l) l.Albaran.HasValue AndAlso l.Albaran.Value = albaran.Albaran AndAlso Not l.EsCuentaContable)
+            If albaran.Marcado Then
+                If linea.SePuedeMarcar Then
+                    linea.Cantidad = linea.Tope
+                    linea.Marcada = True
+                End If
+            Else
+                linea.Marcada = False
+                linea.Cantidad = 0
+            End If
+        Next
+        AlCambiarSeleccion()
+    End Sub
+
+    Private Sub AlCambiarSeleccion()
+        If _lineasLeidas IsNot Nothing Then
+            ResumenSeleccion = ReglasSeleccionCopiaFactura.Resumen(LineasParaElegir)
+        End If
+        EjecutarCommand?.NotifyCanExecuteChanged()
+    End Sub
+
+    ''' <summary>Lo que hay que mandar: con «Solo unas líneas…», lo marcado de la factura cargada; si no, Nothing (toda).</summary>
+    Private Function SeleccionActual() As SeleccionParaCopiar
+        If Not SoloUnaParte OrElse _lineasLeidas Is Nothing Then
+            Return Nothing
+        End If
+        Return ReglasSeleccionCopiaFactura.Construir(LineasParaElegir)
+    End Function
 
 #End Region
 
@@ -459,6 +690,12 @@ Public Class CopiarFacturaViewModel
         ' Puede ejecutar si no esta procesando Y (tiene numero de factura O tiene facturas seleccionadas)
         Dim tieneFacturaManual = Not String.IsNullOrWhiteSpace(NumeroFactura)
         Dim tieneFacturasSeleccionadas = FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Any()
+        If SoloUnaParte Then
+            ' Nesto#638: con las líneas de la factura que se mira y algo marcado
+            Dim seleccion As SeleccionParaCopiar = SeleccionActual()
+            Return Not EstaProcesando AndAlso seleccion IsNot Nothing AndAlso seleccion.HayAlgo AndAlso
+                String.Equals(FacturaParaElegir, _facturaDeLasLineas, StringComparison.OrdinalIgnoreCase)
+        End If
         Return Not EstaProcesando AndAlso (tieneFacturaManual OrElse tieneFacturasSeleccionadas)
     End Function
 
@@ -492,6 +729,16 @@ Public Class CopiarFacturaViewModel
                 .IncluirPortes = RehacerPedido AndAlso IncluirPortes
             }
 
+            ' Nesto#638: solo lo marcado, de la factura cuyas líneas se han cargado
+            Dim seleccion As SeleccionParaCopiar = SeleccionActual()
+            If seleccion IsNot Nothing Then
+                request.NumeroFactura = _facturaDeLasLineas
+                request.NumerosFactura = Nothing
+                request.Albaranes = If(seleccion.Albaranes.Any(), seleccion.Albaranes, Nothing)
+                request.Lineas = If(seleccion.Lineas.Any(), seleccion.Lineas, Nothing)
+                request.LineasNoVendibles = If(seleccion.LineasNoVendibles.Any(), seleccion.LineasNoVendibles, Nothing)
+            End If
+
             Resultado = Await _servicio.CopiarFactura(request)
 
             If Resultado.Exitoso AndAlso RehacerPedido AndAlso Resultado.PedidoRehecho Is Nothing Then
@@ -501,6 +748,9 @@ Public Class CopiarFacturaViewModel
                 AbrirPedidoCommand.NotifyCanExecuteChanged()
             ElseIf Resultado.Exitoso Then
                 Mensaje = Resultado.Mensaje
+                If seleccion IsNot Nothing AndAlso Resultado.UnidadesCopiadas.HasValue Then
+                    Mensaje &= $"{Environment.NewLine}Copiadas {Resultado.UnidadesCopiadas.Value:0.##} unidades ({If(Resultado.ImporteCopiado, 0D).ToString("N2", Globalization.CultureInfo.GetCultureInfo("es-ES"))} € de base imponible)."
+                End If
                 AbrirPedidoCommand.NotifyCanExecuteChanged()
             Else
                 Mensaje = $"Error: {Resultado.Mensaje}"

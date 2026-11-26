@@ -1,4 +1,4 @@
-Imports System.Collections.Generic
+﻿Imports System.Collections.Generic
 
 Public Class CopiarFacturaResponseDTO
     Public Sub New()
@@ -52,6 +52,12 @@ Public Class CopiarFacturaResponseDTO
     ''' Solo se rellena cuando RehacerPedido=true. Es el que abre «Abrir pedido».
     ''' </summary>
     Public Property PedidoRehecho As OperacionFacturaDTO
+
+    ''' <summary>NestoAPI#899: unidades copiadas (en positivo). Nothing con una API anterior.</summary>
+    Public Property UnidadesCopiadas As Decimal?
+
+    ''' <summary>NestoAPI#899: base imponible de lo copiado. Nothing con una API anterior.</summary>
+    Public Property ImporteCopiado As Decimal?
 End Class
 
 ''' &lt;summary&gt;

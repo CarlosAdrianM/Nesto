@@ -1,4 +1,4 @@
-Public Class CopiarFacturaRequestDTO
+﻿Public Class CopiarFacturaRequestDTO
     ''' <summary>
     ''' Empresa de la factura origen
     ''' </summary>
@@ -94,4 +94,19 @@ Public Class CopiarFacturaRequestDTO
     ''' no se cobran: la linea de portes pasa al pedido nuevo con un 100% de descuento.
     ''' </summary>
     Public Property IncluirPortes As Boolean
+
+    ''' <summary>
+    ''' NestoAPI#899 / Nesto#638: solo estos albaranes de la factura (Nº Albarán), enteros y sin las líneas de cuenta contable
+    ''' (portes y comisión van solo si se piden en Lineas). Nothing = toda la factura. Solo con UNA factura.
+    ''' </summary>
+    Public Property Albaranes As List(Of Integer)
+
+    ''' <summary>
+    ''' NestoAPI#899/#863 / Nesto#638: solo estas líneas de la factura, con sus unidades. Se suman a las de Albaranes.
+    ''' Nothing = toda la factura (o solo los albaranes). Con Albaranes o Lineas la copia es fiel (mismos precios y descuentos).
+    ''' </summary>
+    Public Property Lineas As List(Of Models.Rectificativas.LineaACopiarDTO)
+
+    ''' <summary>NestoAPI#863 / Nesto#638: Nº Orden de las líneas que vuelven estropeadas (comentario en el abono).</summary>
+    Public Property LineasNoVendibles As List(Of Integer)
 End Class
