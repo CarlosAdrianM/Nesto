@@ -358,6 +358,9 @@
                                 ToolTip="Relanza la facturación del curso (pedido, factura exenta y liquidación) desde donde se quedó"/>
                         <Button Content="Copiar enlace" Command="{Binding CopiarEnlaceCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Copia el enlace de pago de la inscripción seleccionada para reenviárselo al cliente"/>
+                        <!-- Nesto#649 (NestoAPI#887): IBAN, beneficiario, concepto e importe de la señal, listos para pegar -->
+                        <Button Content="Copiar datos de transferencia" Command="{Binding CopiarDatosTransferenciaCommand}" Margin="0,2,6,2" Padding="10,1"
+                                ToolTip="Copia los datos para que el cliente pague la señal por transferencia (IBAN, beneficiario, concepto e importe), listos para pegar en WhatsApp o en el correo. Solo en inscripciones reservadas de pago"/>
                         <!-- Sugerencia 1362: la hoja para pasar lista el día de la formación -->
                         <Button Content="Imprimir lista" Command="{Binding ImprimirListaCommand}" Margin="0,2,6,2" Padding="10,1"
                                 ToolTip="Imprime la lista de inscritos (sin las anuladas), por nombre, con una casilla «Asiste» y hueco para firmar"/>
@@ -373,6 +376,7 @@
                         <ListBox.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Copiar enlace de pago" Command="{Binding CopiarEnlaceCommand}"/>
+                                <MenuItem Header="Copiar datos de transferencia" Command="{Binding CopiarDatosTransferenciaCommand}"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                         <ListBox.ItemContainerStyle>

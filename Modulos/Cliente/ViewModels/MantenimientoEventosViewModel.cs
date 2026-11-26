@@ -94,6 +94,8 @@ namespace Nesto.Modulos.Cliente
             AnunciarOtraVezCommand = new AsyncRelayCommand(AnunciarOtraVezAsync, () => PuedeAnunciarOtraVez);
             CopiarEnlaceCommand = new RelayCommand<InscripcionEventoModel>(CopiarEnlace,
                 i => (i ?? InscripcionSeleccionada)?.TieneEnlacePago == true);
+            CopiarDatosTransferenciaCommand = new AsyncRelayCommand<InscripcionEventoModel>(CopiarDatosTransferenciaAsync,
+                i => (i ?? InscripcionSeleccionada)?.SePuedenCopiarDatosTransferencia == true);
             CambiarAsistentesCommand = new AsyncRelayCommand<InscripcionEventoModel>(i => CambiarAsistentesAsync(i ?? InscripcionSeleccionada),
                 i => TieneAcceso && (i ?? InscripcionSeleccionada)?.SePuedenCambiarAsistentes == true);
         }
@@ -130,6 +132,53 @@ namespace Nesto.Modulos.Cliente
                 AvisoEnlace = null;
                 _dialogService.ShowError(InscripcionEventoModel.ERROR_COPIAR_ENLACE);
             }
+        }
+
+        // ---------------- Nesto#649 (NestoAPI#887): los datos para pagar la señal por transferencia ----------------
+
+        /// <summary>Con la fila, o la seleccionada (botón y menú contextual). Solo inscripciones reservadas de pago.</summary>
+        public AsyncRelayCommand<InscripcionEventoModel> CopiarDatosTransferenciaCommand { get; }
+
+        /// <summary>
+        /// Pide a la API los datos de la transferencia (IBAN, beneficiario, concepto e importe de la señal) y copia su texto, listo
+        /// para pegar en WhatsApp o en el correo. Lo que se copia lo decide la API. Devuelve lo copiado (null si no).
+        /// </summary>
+        public async Task<string> CopiarDatosTransferenciaAsync(InscripcionEventoModel inscripcion)
+        {
+            inscripcion ??= InscripcionSeleccionada;
+            if (inscripcion?.SePuedenCopiarDatosTransferencia != true)
+            {
+                return null;
+            }
+            AvisoEnlace = null;
+            DatosTransferenciaInscripcionModel datos;
+            try
+            {
+                datos = await _servicio.LeerDatosTransferencia(inscripcion.Id);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+                return null;
+            }
+            if (datos == null)
+            {
+                _dialogService.ShowError(DatosTransferenciaInscripcionModel.API_SIN_DATOS);
+                return null;
+            }
+            string texto = DatosTransferenciaInscripcionModel.TextoParaCopiar(datos);
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                _dialogService.ShowError(DatosTransferenciaInscripcionModel.SIN_DATOS);
+                return null;
+            }
+            if (!_portapapeles.Copiar(texto))
+            {
+                _dialogService.ShowError(DatosTransferenciaInscripcionModel.ERROR_COPIAR);
+                return null;
+            }
+            AvisoEnlace = DatosTransferenciaInscripcionModel.TextoCopiados(inscripcion.Nombre);
+            return texto;
         }
 
         public IConfiguracion Configuracion { get; }
@@ -2284,6 +2333,7 @@ namespace Nesto.Modulos.Cliente
             MarcarPagadaCommand.NotifyCanExecuteChanged();
             FacturarCommand.NotifyCanExecuteChanged();
             CopiarEnlaceCommand.NotifyCanExecuteChanged();
+            CopiarDatosTransferenciaCommand?.NotifyCanExecuteChanged();
             CambiarAsistentesCommand.NotifyCanExecuteChanged();
         }
 

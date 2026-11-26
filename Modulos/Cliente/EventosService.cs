@@ -396,6 +396,14 @@ namespace Nesto.Modulos.Cliente
             return JsonConvert.DeserializeObject<InscripcionEventoModel>(body);
         }
 
+        public async Task<DatosTransferenciaInscripcionModel> LeerDatosTransferencia(int id)
+        {
+            // Nesto#649: con una API sin la ruta (aún sin NestoAPI#887), null; los demás errores, con el mensaje de la API tal cual
+            string body = await Enviar(c => c.GetAsync($"Eventos/Inscripciones/{id}/DatosTransferencia"),
+                "No se pudieron leer los datos de transferencia", vacioSiApiVieja: true, mensajeTalCual: true);
+            return string.IsNullOrWhiteSpace(body) ? null : JsonConvert.DeserializeObject<DatosTransferenciaInscripcionModel>(body);
+        }
+
         private static List<T> Lista<T>(string body) =>
             string.IsNullOrWhiteSpace(body) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(body) ?? new List<T>();
 

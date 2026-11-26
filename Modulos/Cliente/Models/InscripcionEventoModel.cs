@@ -355,6 +355,10 @@ namespace Nesto.Modulos.Cliente.Models
         [JsonIgnore]
         public bool EstaReservada => Estado == RESERVADA;
 
+        /// <summary>Nesto#649 (NestoAPI#887): «Copiar datos de transferencia», solo en las reservadas de pago (no las gratuitas).</summary>
+        [JsonIgnore]
+        public bool SePuedenCopiarDatosTransferencia => Id > 0 && EstaReservada && !EsGratuita;
+
         /// <summary>Se anula como una Reservada; NestoAPI#690: también la Inscrita (gratuita).</summary>
         [JsonIgnore]
         public bool SePuedeAnular => Estado == RESERVADA || Estado == INSCRITA;

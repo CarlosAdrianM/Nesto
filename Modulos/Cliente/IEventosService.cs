@@ -110,5 +110,11 @@ namespace Nesto.Modulos.Cliente
         /// «Online» o null/«» (sin indicar). Devuelve la inscripción; si no lo acepta, la excepción lleva el mensaje de la API.
         /// </summary>
         Task<InscripcionEventoModel> CambiarFormaAsistencia(int id, string formaAsistencia);
+
+        /// <summary>
+        /// Nesto#649 (NestoAPI#887): GET api/Eventos/Inscripciones/{id}/DatosTransferencia, los datos para que el cliente pague la
+        /// señal por transferencia. Null si la API todavía no tiene la ruta.
+        /// </summary>
+        Task<DatosTransferenciaInscripcionModel> LeerDatosTransferencia(int id);
     }
 }
