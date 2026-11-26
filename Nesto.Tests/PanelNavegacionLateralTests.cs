@@ -105,6 +105,7 @@ namespace Nesto.Tests
             public TabControl Pestanas;
             public TextBox CajaPestana1;
             public TextBox CajaPestana2;
+            public ConmutadorNavegacionLateral Conmutador;
         }
 
         private static Montaje Montar(string compactaGuardada = null, string fijaGuardada = null)
@@ -117,6 +118,7 @@ namespace Nesto.Tests
             var conmutador = new ConmutadorNavegacionLateral(() => "1", () => compactaGuardada, m.Guardados.Add,
                 (ex, contexto) => m.Errores.Add(contexto + " | " + ex), () => fijaGuardada, m.GuardadosFija.Add);
 
+            m.Conmutador = conmutador;
             m.Panel = new PanelNavegacionLateral(catalogo, conmutador);
             m.BotonFuera = new Button { Content = "Fuera del panel" };
             m.TextoFuera = new TextBlock { Text = "Una vista de Nesto" };
@@ -411,6 +413,78 @@ namespace Nesto.Tests
                     Assert.AreEqual(0, m.Guardados.Count, "Plegarse solo no cambia lo recordado de abierto/compacto");
                     Assert.AreEqual(Visibility.Collapsed, m.Panel.Chincheta.Visibility, "Compacto, sin chincheta");
                     Assert.AreEqual(0, m.Errores.Count, string.Join(Environment.NewLine, m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        // Nesto#655 (26/11/26): también por tiempo, a los 4 segundos de salir el ratón (con un reloj falso)
+        private sealed class TemporizadorFalso : ITemporizadorUnDisparo
+        {
+            private Action _alVencer;
+            public bool Programado => _alVencer != null;
+            public void Programar(TimeSpan espera, Action alVencer) => _alVencer = alVencer;
+            public void Cancelar() => _alVencer = null;
+            public void Vencer()
+            {
+                Action accion = _alVencer;
+                _alVencer = null;
+                accion?.Invoke();
+            }
+        }
+
+        [TestMethod]
+        public void Nesto655_SalirElRaton_ALosSegundosSePliega_SinRecordarlo()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0");
+                try
+                {
+                    var reloj = new TemporizadorFalso();
+                    m.Conmutador.Plegado.Temporizador = reloj;
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen);
+
+                    m.Panel.AlSalirElRaton();
+                    Assert.IsTrue(reloj.Programado, "Al salir el ratón se programa");
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen, "Hasta que venza, sigue abierto");
+                    reloj.Vencer();
+                    Bombear();
+
+                    Assert.IsFalse(m.Panel.Navegacion.IsPaneOpen, "A los segundos, compacto");
+                    Assert.AreEqual(0, m.Guardados.Count, "Plegarse solo no cambia lo recordado");
+                    Assert.AreEqual(0, m.Errores.Count, string.Join(Environment.NewLine, m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void Nesto655_SalirElRaton_ConLaChinchetaOCtrlK_NoSePliega()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0");
+                try
+                {
+                    var reloj = new TemporizadorFalso();
+                    m.Conmutador.Plegado.Temporizador = reloj;
+
+                    m.Panel.AlSalirElRaton();
+                    m.Panel.ActivarBusqueda(); // Ctrl+K recién pulsado
+                    Assert.IsFalse(reloj.Programado, "Ctrl+K cancela el plegado por tiempo");
+
+                    m.Panel.Chincheta.IsChecked = true;
+                    Bombear();
+                    m.Panel.AlSalirElRaton();
+                    Assert.IsFalse(reloj.Programado, "Con la chincheta no se programa");
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen);
                 }
                 finally
                 {

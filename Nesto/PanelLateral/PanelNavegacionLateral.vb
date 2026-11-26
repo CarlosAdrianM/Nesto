@@ -98,6 +98,12 @@ Public NotInheritable Class PanelNavegacionLateral
         ' Nesto#655 (paso 0): se pliega solo al trabajar fuera de él (lo dicen el ratón y el teclado de la ventana)
         AddHandler Loaded, Sub(s, e) EngancharVentana()
         AddHandler Unloaded, Sub(s, e) SoltarVentana()
+        ' Nesto#655 (26/11/26): y también por tiempo, a los segundos de que el ratón salga de él
+        If _conmutador.Plegado.Temporizador Is Nothing Then
+            _conmutador.Plegado.Temporizador = New TemporizadorUnDisparoDispatcher(Dispatcher)
+        End If
+        AddHandler MouseLeave, Sub(s, e) AlSalirElRaton()
+        AddHandler MouseEnter, Sub(s, e) _conmutador.Plegado.CancelarPlegadoPorTiempo()
 
         Child = Navegacion
     End Sub
@@ -427,7 +433,30 @@ Public NotInheritable Class PanelNavegacionLateral
         End Try
     End Sub
 
+    ''' <summary>Nesto#655 (26/11/26): el ratón sale del panel: a los segundos, se pliega si entonces sigue tocando. Public para las pruebas.</summary>
+    Public Sub AlSalirElRaton()
+        Try
+            _conmutador.Plegado.AlSalirElRaton(Navegacion.IsPaneOpen, AddressOf PuedePlegarsePorTiempo, AddressOf PlegarPorTiempo)
+        Catch ex As Exception
+            _conmutador.Registrar(ex, "NavegacionLateral: programar el plegado por tiempo")
+        End Try
+    End Sub
+
+    ''' <summary>Al vencer: no con el ratón encima, escribiendo en el buscador, abierto por Ctrl+K ni con el popup de informes abierto.</summary>
+    Private Function PuedePlegarsePorTiempo() As Boolean
+        If _abiertoParaBuscar OrElse (PopupOpcionesInformes IsNot Nothing AndAlso PopupOpcionesInformes.IsOpen) Then
+            Return False
+        End If
+        Return _conmutador.Plegado.DebePlegarse(Navegacion.IsPaneOpen, IsMouseOver, BusquedaTieneElFoco)
+    End Function
+
+    Private Sub PlegarPorTiempo()
+        _abiertoParaUnaSeccion = False
+        CambiarPorCodigo(False)
+    End Sub
+
     Private Sub SoltarVentana()
+        _conmutador?.Plegado?.CancelarPlegadoPorTiempo() ' Nesto#655: descargado, nada pendiente
         Try
             If _ventana IsNot Nothing Then
                 RemoveHandler _ventana.PreviewMouseDown, AddressOf AlPulsarRatonEnLaVentana
@@ -490,6 +519,7 @@ Public NotInheritable Class PanelNavegacionLateral
     ''' se busca (no se recuerda) y, al abrir una pantalla o con Esc, vuelve a compacto.
     ''' </summary>
     Public Sub ActivarBusqueda()
+        _conmutador.Plegado.CancelarPlegadoPorTiempo() ' Nesto#655: con Ctrl+K recién pulsado no se pliega por tiempo
         Try
             Dim actual = TryCast(Keyboard.FocusedElement, DependencyObject)
             If actual IsNot Nothing AndAlso Not EstaEnElPanel(actual) Then
