@@ -196,6 +196,14 @@
                                 <Button Content="No es una compra…" Command="{Binding DescartarCommand}" Style="{StaticResource Boton}"
                                         ToolTip="Descarta el envío (todos sus correos): no se toca ningún pedido" />
                             </WrapPanel>
+                            <!-- NestoAPI#857e: al descartar, que los correos de este remitente no se vuelvan a mirar (boletines y demás) -->
+                            <CheckBox IsChecked="{Binding IgnorarRemitente}" Margin="0,6,0,0"
+                                      Visibility="{Binding HayRemitenteDelCorreo, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                      ToolTip="Al pulsar «No es una compra…», sus correos dejan de guardarse, reenviarse y avisar (antes se le pregunta)">
+                                <TextBlock TextWrapping="Wrap">
+                                    <Run Text="Al descartar, no volver a mirar este remitente (" /><Run Text="{Binding RemitenteDelCorreo, Mode=OneWay}" /><Run Text=")" />
+                                </TextBlock>
+                            </CheckBox>
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>

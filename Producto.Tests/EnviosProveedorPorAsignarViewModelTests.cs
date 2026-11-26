@@ -29,7 +29,7 @@ namespace Producto.Tests
             }));
             A.CallTo(() => _servicio.Asignar(A<int>._, A<string>._, A<int>._, A<bool>._, A<bool>._))
                 .Returns(Task.FromResult(new RespuestaAsignacionEnvioProveedor { Mensaje = "Puesta la fecha 14/11/26 en 3 líneas del pedido 912001." }));
-            A.CallTo(() => _servicio.Descartar(A<int>._))
+            A.CallTo(() => _servicio.Descartar(A<int>._, A<bool>._))
                 .Returns(Task.FromResult(new RespuestaDescarteEnvioProveedor { Mensaje = "Descartados 3 correos del envío." }));
             A.CallTo(() => _dialogos.ShowConfirmationAnswer(A<string>._, A<string>._, A<bool>._)).Returns(true);
         }
@@ -353,7 +353,7 @@ namespace Producto.Tests
             await vm.DescartarAsync();
 
             A.CallTo(() => _dialogos.ShowConfirmationAnswer("No es una compra", A<string>.That.Contains("sus 2 correos"), true)).MustHaveHappenedOnceExactly();
-            A.CallTo(() => _servicio.Descartar(101)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.Descartar(101, false)).MustHaveHappenedOnceExactly();
             Assert.AreEqual("Descartados 3 correos del envío.", vm.Mensaje);
             A.CallTo(() => _servicio.LeerPorAsignar(A<int>._)).MustHaveHappenedTwiceExactly();
         }
@@ -367,13 +367,13 @@ namespace Producto.Tests
 
             await vm.DescartarAsync();
 
-            A.CallTo(() => _servicio.Descartar(A<int>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.Descartar(A<int>._, A<bool>._)).MustNotHaveHappened();
         }
 
         [TestMethod]
         public async Task Descartar_Con409_EnsenaElMensaje_YRelee()
         {
-            A.CallTo(() => _servicio.Descartar(A<int>._))
+            A.CallTo(() => _servicio.Descartar(A<int>._, A<bool>._))
                 .Throws(new EnvioProveedorPorAsignarException("El correo ya está aplicado a un pedido: no se puede descartar.", 409));
             EnviosProveedorPorAsignarViewModel vm = Crear();
             await Llegar(vm);
@@ -382,6 +382,41 @@ namespace Producto.Tests
 
             Assert.AreEqual("El correo ya está aplicado a un pedido: no se puede descartar.", vm.Mensaje);
             A.CallTo(() => _servicio.LeerPorAsignar(A<int>._)).MustHaveHappenedTwiceExactly();
+        }
+
+        [TestMethod]
+        public async Task Descartar_IgnorandoElRemitente_LoPreguntaYLoPide()
+        {
+            // NestoAPI#857e: «No volver a mirar este remitente»
+            A.CallTo(() => _servicio.Descartar(101, true)).Returns(Task.FromResult(new RespuestaDescarteEnvioProveedor
+            {
+                Mensaje = "Descartados 2 correos del envío.",
+                RemitenteIgnorado = "pkginfo@ups.com"
+            }));
+            EnviosProveedorPorAsignarViewModel vm = Crear();
+            await Llegar(vm);
+            Assert.AreEqual("pkginfo@ups.com", vm.RemitenteDelCorreo);
+            Assert.IsTrue(vm.HayRemitenteDelCorreo);
+            vm.IgnorarRemitente = true;
+
+            await vm.DescartarAsync();
+
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer("No es una compra",
+                A<string>.That.Contains("no se volverá a mirar el remitente pkginfo@ups.com"), true)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.Descartar(101, true)).MustHaveHappenedOnceExactly();
+            StringAssert.Contains(vm.Mensaje, "pkginfo@ups.com ya no se mirará");
+        }
+
+        [TestMethod]
+        public async Task Descartar_SinMarcarIgnorar_NoLoPideNiLoPregunta()
+        {
+            EnviosProveedorPorAsignarViewModel vm = Crear();
+            await Llegar(vm);
+
+            await vm.DescartarAsync();
+
+            A.CallTo(() => _dialogos.ShowConfirmationAnswer(A<string>._, A<string>.That.Contains("no se volverá a mirar"), A<bool>._)).MustNotHaveHappened();
+            A.CallTo(() => _servicio.Descartar(101, false)).MustHaveHappenedOnceExactly();
         }
 
         // ------------------------------------------------------------------ remitentes recordados

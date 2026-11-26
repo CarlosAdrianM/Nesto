@@ -138,12 +138,23 @@ namespace Producto.Tests
         {
             var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"CorreoId\":101,\"CorreosDelMismoEnvio\":2,\"Mensaje\":\"Descartado.\"}"));
 
-            RespuestaDescarteEnvioProveedor respuesta = await Crear(handler).Descartar(101);
+            RespuestaDescarteEnvioProveedor respuesta = await Crear(handler).Descartar(101, false);
 
             Assert.AreEqual("POST", handler.Metodos.Single());
             Assert.AreEqual("/api/Compras/AgenciasEntrada/Correos/101/Descartar", handler.Urls.Single());
             Assert.AreEqual("Descartado.", respuesta.Mensaje);
             Assert.AreEqual(2, respuesta.CorreosDelMismoEnvio);
+        }
+
+        [TestMethod]
+        public async Task Descartar_IgnorandoElRemitente_LoPideEnLaUrl()
+        {
+            var handler = new HandlerFalso(_ => Json(HttpStatusCode.OK, "{\"CorreoId\":101,\"Mensaje\":\"Descartado.\",\"RemitenteIgnorado\":\"comunicaciones@perfectbeauty.es\"}"));
+
+            RespuestaDescarteEnvioProveedor respuesta = await Crear(handler).Descartar(101, true);
+
+            Assert.AreEqual("/api/Compras/AgenciasEntrada/Correos/101/Descartar?ignorarRemitente=true", handler.Urls.Single());
+            Assert.AreEqual("comunicaciones@perfectbeauty.es", respuesta.RemitenteIgnorado);
         }
 
         [TestMethod]

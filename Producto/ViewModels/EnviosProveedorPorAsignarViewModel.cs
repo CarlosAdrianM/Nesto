@@ -163,6 +163,25 @@ namespace Nesto.Modules.Producto.ViewModels
         private bool _recordarRemitente = true;
         public bool RecordarRemitente { get => _recordarRemitente; set => SetProperty(ref _recordarRemitente, value); }
 
+        /// <summary>
+        /// NestoAPI#857e: la dirección de quien manda el correo del envío (el de su Clave, que es el que se descarta). Con ella se
+        /// puede pedir «No volver a mirar este remitente» al descartar.
+        /// </summary>
+        public string RemitenteDelCorreo => RemitenteDeCorreo(EnvioSeleccionado);
+        public bool HayRemitenteDelCorreo => !string.IsNullOrWhiteSpace(RemitenteDelCorreo);
+
+        internal static string RemitenteDeCorreo(EnvioProveedorPorAsignar envio)
+        {
+            List<CorreoEnvioProveedor> correos = envio?.Correos ?? new List<CorreoEnvioProveedor>();
+            CorreoEnvioProveedor correo = correos.FirstOrDefault(c => c.Id == envio.Clave) ?? correos.FirstOrDefault();
+            string direccion = correo?.RemitenteDireccion?.Trim();
+            return string.IsNullOrEmpty(direccion) ? null : direccion;
+        }
+
+        private bool _ignorarRemitente;
+        /// <summary>Al descartar, además, el remitente queda como «Ignorar» (?ignorarRemitente=true). Se desmarca al cambiar de envío.</summary>
+        public bool IgnorarRemitente { get => _ignorarRemitente; set => SetProperty(ref _ignorarRemitente, value); }
+
         /// <summary>Los candidatos del envío elegido (el Sugerido, preseleccionado).</summary>
         public ObservableCollection<PedidoCompraPorAsignar> Candidatos { get; } = new ObservableCollection<PedidoCompraPorAsignar>();
 
@@ -239,6 +258,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }
             RecordarRemitente = true;
+            IgnorarRemitente = false;
+            OnPropertyChanged(nameof(RemitenteDelCorreo));
+            OnPropertyChanged(nameof(HayRemitenteDelCorreo));
             OtrosDesplegados = envio != null && Candidatos.Count == 0;
             OnPropertyChanged(nameof(CandidatoSeleccionado));
             OnPropertyChanged(nameof(OtroPedidoSeleccionado));
@@ -488,16 +510,18 @@ namespace Nesto.Modules.Producto.ViewModels
                 return;
             }
             Mensaje = null;
-            if (_dialogos != null && !_dialogos.ShowConfirmationAnswer("No es una compra", PreguntaDescartar(envio), true))
+            string remitente = IgnorarRemitente ? RemitenteDeCorreo(envio) : null;
+            bool ignorar = remitente != null;
+            if (_dialogos != null && !_dialogos.ShowConfirmationAnswer("No es una compra", PreguntaDescartar(envio, remitente), true))
             {
                 return;
             }
             EstaOcupado = true;
             try
             {
-                RespuestaDescarteEnvioProveedor respuesta = await _servicio.Descartar(envio.Clave).ConfigureAwait(true);
+                RespuestaDescarteEnvioProveedor respuesta = await _servicio.Descartar(envio.Clave, ignorar).ConfigureAwait(true);
                 EstaOcupado = false;
-                Mensaje = string.IsNullOrWhiteSpace(respuesta?.Mensaje) ? "Envío descartado." : respuesta.Mensaje.Trim();
+                Mensaje = TextoDescartado(respuesta, ignorar);
             }
             catch (Exception ex)
             {
@@ -510,13 +534,31 @@ namespace Nesto.Modules.Producto.ViewModels
             await RecargarTodoAsync().ConfigureAwait(true);
         }
 
-        internal static string PreguntaDescartar(EnvioProveedorPorAsignar envio)
+        internal static string PreguntaDescartar(EnvioProveedorPorAsignar envio, string remitenteIgnorado = null)
         {
             int correos = envio?.Correos?.Count ?? 0;
             string cuales = correos > 1 ? $"sus {correos} correos" : "su correo";
             string codigos = string.IsNullOrWhiteSpace(envio?.CodigosTexto) ? string.Empty : $" ({envio.CodigosTexto})";
+            string ignorar = string.IsNullOrWhiteSpace(remitenteIgnorado)
+                ? string.Empty
+                : $"\n\nAdemás, no se volverá a mirar el remitente {remitenteIgnorado.Trim()}: sus correos ya no se guardarán, ni se reenviarán, ni avisarán.";
             return $"El envío de {envio?.AgenciaTexto}{codigos} no es de ninguna compra: se descartan {cuales} y deja de salir aquí. " +
-                "No se toca ningún pedido.\n\n¿Lo descarta?";
+                $"No se toca ningún pedido.{ignorar}\n\n¿Lo descarta?";
+        }
+
+        internal static string TextoDescartado(RespuestaDescarteEnvioProveedor respuesta, bool seIgnoraba)
+        {
+            string texto = string.IsNullOrWhiteSpace(respuesta?.Mensaje) ? "Envío descartado." : respuesta.Mensaje.Trim();
+            if (seIgnoraba && string.IsNullOrWhiteSpace(respuesta?.RemitenteIgnorado))
+            {
+                // La API lo dice en el Mensaje; si no trae la dirección, que no parezca que se ha ignorado
+                return texto;
+            }
+            if (seIgnoraba && texto.IndexOf(respuesta.RemitenteIgnorado.Trim(), StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                texto += $" El remitente {respuesta.RemitenteIgnorado.Trim()} ya no se mirará.";
+            }
+            return texto;
         }
 
         internal async Task BorrarRemitenteAsync()

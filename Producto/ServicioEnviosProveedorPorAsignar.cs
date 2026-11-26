@@ -30,8 +30,12 @@ namespace Nesto.Modules.Producto
         /// </summary>
         Task<RespuestaAsignacionEnvioProveedor> Asignar(int correo, string empresa, int pedido, bool recordarRemitente, bool reasignar);
 
-        /// <summary>POST api/Compras/AgenciasEntrada/Correos/{correo}/Descartar: no es de ninguna compra (409 si ya está aplicado).</summary>
-        Task<RespuestaDescarteEnvioProveedor> Descartar(int correo);
+        /// <summary>
+        /// POST api/Compras/AgenciasEntrada/Correos/{correo}/Descartar: no es de ninguna compra (409 si ya está aplicado). Con
+        /// <paramref name="ignorarRemitente"/> (?ignorarRemitente=true), además el remitente de ese correo queda como «Ignorar»: sus correos
+        /// ni se guardan, ni se reenvían, ni avisan (RemitenteIgnorado en la respuesta).
+        /// </summary>
+        Task<RespuestaDescarteEnvioProveedor> Descartar(int correo, bool ignorarRemitente);
 
         /// <summary>GET api/Compras/AgenciasEntrada/RemitentesPaquete: quién expide el paquete → de qué proveedor es.</summary>
         Task<List<RemitentePaqueteRecordado>> LeerRemitentesPaquete();
@@ -254,6 +258,8 @@ namespace Nesto.Modules.Producto
         public int CorreoId { get; set; }
         public int CorreosDelMismoEnvio { get; set; }
         public string Mensaje { get; set; }
+        /// <summary>Con ?ignorarRemitente=true, la dirección que ha quedado como «Ignorar» (null si no se ha podido o no se pidió).</summary>
+        public string RemitenteIgnorado { get; set; }
     }
 
     /// <summary>NestoAPI#857 (RemitentePaqueteRecordado): quién expide el paquete → de qué proveedor es.</summary>
@@ -299,7 +305,8 @@ namespace Nesto.Modules.Producto
         internal static string UrlAsignar(int correo, bool reasignar)
             => $"{URL}/Correos/{correo.ToString(CultureInfo.InvariantCulture)}/Asignar?reasignar={(reasignar ? "true" : "false")}";
 
-        internal static string UrlDescartar(int correo) => $"{URL}/Correos/{correo.ToString(CultureInfo.InvariantCulture)}/Descartar";
+        internal static string UrlDescartar(int correo, bool ignorarRemitente = false)
+            => $"{URL}/Correos/{correo.ToString(CultureInfo.InvariantCulture)}/Descartar" + (ignorarRemitente ? "?ignorarRemitente=true" : string.Empty);
 
         internal static string UrlRemitentesPaquete() => $"{URL}/RemitentesPaquete";
 
@@ -329,12 +336,12 @@ namespace Nesto.Modules.Producto
             }
         }
 
-        public async Task<RespuestaDescarteEnvioProveedor> Descartar(int correo)
+        public async Task<RespuestaDescarteEnvioProveedor> Descartar(int correo, bool ignorarRemitente)
         {
             using (HttpClient client = _clienteApiFactory.Crear())
             {
                 var contenido = new StringContent(string.Empty, Encoding.UTF8, "application/json");
-                HttpResponseMessage response = await client.PostAsync(UrlDescartar(correo), contenido).ConfigureAwait(false);
+                HttpResponseMessage response = await client.PostAsync(UrlDescartar(correo, ignorarRemitente), contenido).ConfigureAwait(false);
                 return await LeerRespuesta<RespuestaDescarteEnvioProveedor>(response).ConfigureAwait(false);
             }
         }
