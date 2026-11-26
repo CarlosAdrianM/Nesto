@@ -25,6 +25,19 @@ namespace Nesto.Modulos.PedidoCompra
             _servicioAutenticacion = servicioAutenticacion;
         }
 
+        public async Task<List<ControlesUsuario.Models.ProductoCodigoBarrasDuplicado>> BuscarProductosPorCodigoBarras(string empresa, string codigo)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    return null;
+                }
+                return await ControlesUsuario.Services.ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, codigo, empresa);
+            }
+        }
+
         public async Task<PedidoCompraDTO> AmpliarHastaStockMaximo(PedidoCompraDTO pedido)
         {
             PedidoCompraDTO pedidoAmpliado;

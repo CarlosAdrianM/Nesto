@@ -277,19 +277,9 @@ namespace Nesto.Modules.Producto
             }
             try
             {
+                // Nesto#647: la llamada del núcleo común (la misma en el pedido de compra y la plantilla)
                 using HttpClient client = _clienteApiFactory.Crear();
-                HttpResponseMessage response = await client.GetAsync(
-                    $"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(codigo.Trim())}&empresa={EmpresaDefecto}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    return null;
-                }
-                string resultado = await response.Content.ReadAsStringAsync();
-                return (JsonConvert.DeserializeObject<List<ProductoCodigoBarrasDuplicado>>(resultado) ?? new List<ProductoCodigoBarrasDuplicado>())
-                    .Where(p => !string.IsNullOrWhiteSpace(p.Producto))
-                    .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .Select(g => new ProductoCodigoBarrasDuplicado { Producto = g.Key, Nombre = g.First().Nombre?.Trim() })
-                    .ToList();
+                return await ControlesUsuario.Services.ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, codigo, EmpresaDefecto);
             }
             catch (Exception ex)
             {

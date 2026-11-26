@@ -79,5 +79,94 @@ namespace ControlesUsuario.Tests
             Assert.AreEqual("41000", elegido);
             A.CallTo(() => dialogos.ShowDialogAsync(A<string>._, A<ParametrosDialogo>._)).MustNotHaveHappened();
         }
+
+        // ---------- Lo tecleado en una casilla que no recibe 409 (pedido de compra, plantilla; Carlos 26/11/26) ----------
+
+        [DataTestMethod]
+        [DataRow("8436538394380", true)]
+        [DataRow(" 2900000174047 ", true)]
+        [DataRow("12345678", true)]
+        [DataRow("17404", false)]
+        [DataRow("1234567", false)]
+        [DataRow("843653839438012", false)]
+        [DataRow("ESMALTE", false)]
+        [DataRow("8436A38394380", false)]
+        [DataRow(null, false)]
+        public void PareceCodigoBarras(string texto, bool esperado)
+        {
+            Assert.AreEqual(esperado, ElectorProductoCodigoBarras.PareceCodigoBarras(texto));
+        }
+
+        [TestMethod]
+        public async Task LoTecleado_NoEsCodigo_TalCualSinPreguntarNiBuscar()
+        {
+            bool buscado = false;
+
+            string r = await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(A.Fake<IServicioDialogos>(), "17404",
+                _ => { buscado = true; return Task.FromResult(Dos()); });
+
+            Assert.AreEqual("17404", r);
+            Assert.IsFalse(buscado);
+        }
+
+        [TestMethod]
+        public async Task LoTecleado_CodigoSinProductos_TalCual()
+        {
+            Assert.AreEqual("8436538394380", await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(A.Fake<IServicioDialogos>(),
+                "8436538394380", _ => Task.FromResult(new List<ProductoCodigoBarrasDuplicado>())));
+            Assert.AreEqual("8436538394380", await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(A.Fake<IServicioDialogos>(),
+                "8436538394380", _ => Task.FromResult<List<ProductoCodigoBarrasDuplicado>>(null)), "la API no contesta: como si no fuera un código");
+        }
+
+        [TestMethod]
+        public async Task LoTecleado_CodigoDeVarios_PreguntaYDaElElegido_OCancelaNull()
+        {
+            var dialogos = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogos.ShowDialogAsync(ElectorProductoCodigoBarras.NOMBRE_DIALOGO, A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "41001" } })).Once()
+                .Then.Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
+
+            Assert.AreEqual("41001", await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(dialogos, "8436538394380", _ => Task.FromResult(Dos())));
+            Assert.IsNull(await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(dialogos, "8436538394380", _ => Task.FromResult(Dos())));
+        }
+
+        private sealed class Transporte : System.Net.Http.HttpMessageHandler
+        {
+            public System.Net.HttpStatusCode Estado { get; set; } = System.Net.HttpStatusCode.OK;
+            public string Cuerpo { get; set; } = "[]";
+            public System.Uri Pedida { get; private set; }
+
+            protected override Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+            {
+                Pedida = request.RequestUri;
+                return Task.FromResult(new System.Net.Http.HttpResponseMessage(Estado) { Content = new System.Net.Http.StringContent(Cuerpo) });
+            }
+        }
+
+        [TestMethod]
+        public async Task BuscarCandidatos_PorCodigoBarras_UnoPorProducto()
+        {
+            var transporte = new Transporte
+            {
+                Cuerpo = "[{\"Producto\":\"41000\",\"Nombre\":\"GUANTES M\",\"Cantidad\":1},{\"Producto\":\"41000\",\"Cantidad\":6},{\"Producto\":\"41001\",\"Nombre\":\"GUANTES P\"}]"
+            };
+            using var client = new System.Net.Http.HttpClient(transporte) { BaseAddress = new System.Uri("http://api.prueba/api/") };
+
+            List<ProductoCodigoBarrasDuplicado> candidatos = await ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, " 8436538394380 ", "1");
+
+            Assert.AreEqual("/api/Productos/PorCodigoBarras?codigo=8436538394380&empresa=1", transporte.Pedida.PathAndQuery);
+            CollectionAssert.AreEqual(new[] { "41000", "41001" }, candidatos.Select(c => c.Producto).ToArray());
+        }
+
+        [TestMethod]
+        public async Task BuscarCandidatos_ErrorDeLaApi_Null()
+        {
+            using var client = new System.Net.Http.HttpClient(new Transporte { Estado = System.Net.HttpStatusCode.InternalServerError })
+            {
+                BaseAddress = new System.Uri("http://api.prueba/api/")
+            };
+
+            Assert.IsNull(await ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, "8436538394380", "1"));
+        }
     }
 }

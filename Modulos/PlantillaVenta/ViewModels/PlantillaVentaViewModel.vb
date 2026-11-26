@@ -4435,19 +4435,67 @@ Public Class PlantillaVentaViewModel
     Private Function CanBuscarEnTodosLosProductos(filtro As String) As Boolean
         Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Filtro) AndAlso ListaFiltrableProductos.Filtro.Length >= 3
     End Function
+    ''' <summary>
+    ''' Nesto#647 (Carlos 26/11/26: «la problemática es la misma y debería ir igual»): la búsqueda de la plantilla
+    ''' (PlantillaVentas/BuscarProducto) solo mira el código de barras PRINCIPAL de la ficha y no avisa de un código compartido. Si lo
+    ''' tecleado o leído es un código de barras, se pregunta antes con la llamada del núcleo común (Productos/PorCodigoBarras: todos
+    ''' los códigos activos): de uno, esa referencia; de varios, la que se elija en el selector; Nothing si se cancela.
+    ''' </summary>
+    Friend Async Function FiltroParaBuscarAsync(filtro As String) As Task(Of String)
+        Dim buscar As Func(Of String, Task(Of List(Of ProductoCodigoBarrasDuplicado))) = BuscarCandidatosCodigoBarras
+        If buscar Is Nothing Then
+            buscar = AddressOf BuscarCandidatosEnLaApiAsync
+        End If
+        Return Await ControlesUsuario.Services.ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(dialogService, filtro, buscar)
+    End Function
+
+    ''' <summary>Nesto#647: para las pruebas (por defecto, la API).</summary>
+    Friend Property BuscarCandidatosCodigoBarras As Func(Of String, Task(Of List(Of ProductoCodigoBarrasDuplicado)))
+
+    Private Async Function BuscarCandidatosEnLaApiAsync(codigo As String) As Task(Of List(Of ProductoCodigoBarrasDuplicado))
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim empresa As String = If(clienteSeleccionado?.empresa, Constantes.Empresas.EMPRESA_DEFECTO)
+            Return Await ControlesUsuario.Services.ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, codigo, empresa)
+        End Using
+    End Function
+
+    ''' <summary>Nesto#647: buscado por un código de barras, solo la línea del producto elegido (si viene en la búsqueda).</summary>
+    Friend Shared Function SoloElElegido(lineas As ObservableCollection(Of LineaPlantillaVenta), referencia As String) As ObservableCollection(Of LineaPlantillaVenta)
+        If lineas Is Nothing OrElse String.IsNullOrWhiteSpace(referencia) Then
+            Return lineas
+        End If
+        Dim suyas = lineas.Where(Function(l) String.Equals(l.producto?.Trim(), referencia.Trim(), StringComparison.OrdinalIgnoreCase)).ToList()
+        Return If(suyas.Any(), New ObservableCollection(Of LineaPlantillaVenta)(suyas), lineas)
+    End Function
+
     Private Async Sub OnBuscarEnTodosLosProductos(filtro As String)
+        Dim referencia As String
+        Try
+            referencia = Await FiltroParaBuscarAsync(filtro)
+        Catch ex As Exception
+            referencia = filtro
+        End Try
+        If referencia Is Nothing Then
+            Return ' Nesto#647: código de varios productos y se ha cancelado el selector: no se busca nada
+        End If
+        Dim porCodigoBarras As Boolean = Not String.Equals(referencia, filtro, StringComparison.Ordinal)
+
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             estaOcupado = True
 
             Try
-                Dim url As String = "PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtro
+                Dim url As String = "PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + referencia
                 response = Await client.GetAsync(url)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson))
+                    Dim encontradas = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson)
+                    If porCodigoBarras Then
+                        encontradas = SoloElElegido(encontradas, referencia)
+                    End If
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(encontradas)
                     Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)()
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)

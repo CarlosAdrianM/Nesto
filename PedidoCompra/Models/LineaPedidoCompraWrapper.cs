@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.Generic;
@@ -24,9 +25,10 @@ namespace Nesto.Modulos.PedidoCompra.Models
             _cantidadOriginal = Model.StockMaximo - Model.Stock + Model.PendienteEntregar - Model.PendienteRecibir;
         }
         
-        public LineaPedidoCompraWrapper(LineaPedidoCompraDTO linea, IPedidoCompraService servicio)
+        public LineaPedidoCompraWrapper(LineaPedidoCompraDTO linea, IPedidoCompraService servicio, IServicioDialogos dialogos = null)
         {
             Servicio = servicio;
+            _dialogos = dialogos;
             Model = linea;
             _cantidadOriginal = Model.StockMaximo - Model.Stock + Model.PendienteEntregar - Model.PendienteRecibir;
         }
@@ -117,9 +119,33 @@ namespace Nesto.Modulos.PedidoCompra.Models
             {
                 Model.Producto = value;
                 OnPropertyChanged(nameof(Producto));
-                CargarProducto(value);
+                UltimaCarga = CargarProducto(value);
             }
         }
+
+        private IServicioDialogos _dialogos;
+        /// <summary>Nesto#647: para preguntar cuál es si el código de barras es de varios productos (del contenedor si no se da).</summary>
+        private IServicioDialogos Dialogos
+        {
+            get
+            {
+                if (_dialogos == null)
+                {
+                    try
+                    {
+                        _dialogos = Contenedor.Actual?.Resolver<IServicioDialogos>();
+                    }
+                    catch
+                    {
+                        // sin selector: un código de varios productos no se carga
+                    }
+                }
+                return _dialogos;
+            }
+        }
+
+        /// <summary>La última carga del producto lanzada por la casilla (para esperarla en las pruebas).</summary>
+        internal Task UltimaCarga { get; private set; } = Task.CompletedTask;
 
         private async Task CargarProducto(string value)
         {
@@ -128,6 +154,15 @@ namespace Nesto.Modulos.PedidoCompra.Models
                 var lineaProducto = await Servicio.LeerProducto(Pedido.Model.Empresa, Producto, Pedido.Model.Proveedor, Pedido.Model.CodigoIvaProveedor);
                 if (lineaProducto == null)
                 {
+                    // Nesto#647 (Carlos 26/11/26): lo tecleado o leído no es una referencia: si es un código de barras, su producto;
+                    // si es de varios, se pregunta cuál (el núcleo común); cancelar = la línea se queda como estaba
+                    string elegido = await ElectorProductoCodigoBarras.ReferenciaDeLoTecleadoAsync(Dialogos, value,
+                        codigo => Servicio.BuscarProductosPorCodigoBarras(Pedido.Model.Empresa, codigo));
+                    if (!string.IsNullOrWhiteSpace(elegido) && !string.Equals(elegido.Trim(), value?.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        Producto = elegido.Trim();
+                        await UltimaCarga;
+                    }
                     return;
                 }
                 lineaProducto.Id = -2; // para diferenciar de las que crean en la API que son -1
