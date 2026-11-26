@@ -48,10 +48,27 @@
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0">
+                <!-- Nesto#644 (10 y 11): lo que no se ha podido cargar o guardar (antes mensajeError no se veía en esta ficha y un
+                     error parecía «no tiene facturas», «no debe nada»…). Solo ocupa sitio cuando hay algo que decir. -->
+                <TextBlock Grid.Row="0" Text="{Binding mensajeError}" TextWrapping="Wrap" Foreground="DarkRed" Margin="3">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Grid Grid.Row="1">
                     <!-- Datos generales, personas de contacto y comentarios -->
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -142,7 +159,7 @@
 
                     <TextBlock Grid.Column="5" Grid.RowSpan="6" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
                 </Grid>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                <DataGrid Grid.Row="2" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                     <!-- Seguimientos -->
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="2*" />
@@ -158,7 +175,7 @@
                         <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="4*"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <Grid Grid.Row="2">
+                <Grid Grid.Row="3">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>

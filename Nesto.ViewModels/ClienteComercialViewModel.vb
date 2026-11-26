@@ -309,16 +309,19 @@ Public Class ClienteComercialViewModel
                     If Not EsFichaActual(testigo) Then
                         Return
                     End If
-                    Dim seguimientos = JsonConvert.DeserializeObject(Of List(Of SeguimientoResumen))(respuesta)
+                    Dim seguimientos = If(JsonConvert.DeserializeObject(Of List(Of SeguimientoResumen))(respuesta), New List(Of SeguimientoResumen))
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)(
                         seguimientos.OrderByDescending(Function(s) s.Fecha).Take(20))
                 Else
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+                    ' Nesto#644 (10): una lista vacía por un error parecía «no tiene seguimientos»
+                    AvisarErrorCarga("No se han podido cargar los seguimientos", Await MotivoRespuestaAsync(response))
                 End If
             End Using
         Catch ex As Exception
             If EsFichaActual(testigo) Then
                 seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+                AvisarErrorCarga("No se han podido cargar los seguimientos", MotivoExcepcion(ex))
             End If
         End Try
     End Sub
@@ -326,7 +329,12 @@ Public Class ClienteComercialViewModel
     ' Nesto#340 (1C.8, slice 2): la deuda vencida se lee de la API (ExtractosCliente/DeudaVencida,
     ' misma consulta: empresas 1 y 3, FechaVto pasada, ImportePdte <> 0) en vez de sumar
     ' ExtractoCliente con EF.
-    Private Async Sub CargarDeudaVencida()
+    Private Sub CargarDeudaVencida()
+        Dim unused = CargarDeudaVencidaAsync()
+    End Sub
+
+    ''' <summary>Nesto#644 (10): si no se puede leer, Nothing (en blanco) y el motivo en mensajeError; antes, 0 € en rojo.</summary>
+    Friend Async Function CargarDeudaVencidaAsync() As Task
         If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.cliente) Then
             deudaVencida = 0
             Return
@@ -348,15 +356,18 @@ Public Class ClienteComercialViewModel
                     End If
                     deudaVencida = JsonConvert.DeserializeObject(Of Decimal)(respuesta)
                 Else
-                    deudaVencida = 0
+                    ' Nesto#644 (10): antes 0 € en rojo, como si no debiera nada
+                    deudaVencida = Nothing
+                    AvisarErrorCarga("No se ha podido leer la deuda vencida", Await MotivoRespuestaAsync(response))
                 End If
             End Using
         Catch ex As Exception
             If EsFichaActual(testigo) Then
-                deudaVencida = 0
+                deudaVencida = Nothing
+                AvisarErrorCarga("No se ha podido leer la deuda vencida", MotivoExcepcion(ex))
             End If
         End Try
-    End Sub
+    End Function
 
     ' Nesto#340 (1C.8): el grid de ventas agrupadas por producto se lee de la API
     ' (ventascliente/productos) en vez de consultar LinPedidoVta con EF. La API replica la
@@ -386,14 +397,16 @@ Public Class ClienteComercialViewModel
                     If Not EsFichaActual(testigo) Then
                         Return
                     End If
-                    listaVentas = JsonConvert.DeserializeObject(Of ObservableCollection(Of lineaVentaAgrupada))(respuesta)
+                    listaVentas = If(JsonConvert.DeserializeObject(Of ObservableCollection(Of lineaVentaAgrupada))(respuesta), New ObservableCollection(Of lineaVentaAgrupada)())
                 Else
                     listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+                    AvisarErrorCarga("No se han podido cargar las ventas", Await MotivoRespuestaAsync(response)) ' Nesto#644 (10)
                 End If
             End Using
         Catch ex As Exception
             If EsFichaActual(testigo) Then
                 listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+                AvisarErrorCarga("No se han podido cargar las ventas", MotivoExcepcion(ex))
             End If
         End Try
     End Sub
@@ -1689,21 +1702,26 @@ Public Class ClienteComercialViewModel
 
     End Function
 
-    Private Async Sub CargarFacturas()
+    Private Sub CargarFacturas()
+        Dim unused = CargarFacturasAsync()
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#644 (10): si la API falla (403, 500, red), la lista se queda vacía (Nothing) y se dice por qué en mensajeError; antes
+    ''' parecía que el cliente no tenía facturas, o reventaba (Throw en un Async Sub) perdiendo el motivo.
+    ''' </summary>
+    Friend Async Function CargarFacturasAsync() As Task
         If IsNothing(clienteActivo) OrElse (ListaFacturas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaFacturas.FirstOrDefault()?.Cliente) Then
             Return
         End If
         Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
-
-
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
-
-            Try
+        Dim respuesta As String = Nothing
+        Dim motivo As String = Nothing
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ExtractosCliente"
-                urlConsulta += "?empresa=" + clienteActivo.empresa
-                urlConsulta += "&cliente=" + clienteActivo.cliente
+                urlConsulta += "?empresa=" + Uri.EscapeDataString(If(clienteActivo.empresa?.Trim(), String.Empty))
+                urlConsulta += "&cliente=" + Uri.EscapeDataString(If(clienteActivo.cliente?.Trim(), String.Empty))
                 urlConsulta += "&tipoApunte=1"
                 If EsUsuarioAdministracion Then
                     urlConsulta += "&fechaDesde=" + Date.Today.AddMonths(-72).ToString("s")
@@ -1712,119 +1730,154 @@ Public Class ClienteComercialViewModel
                 End If
                 urlConsulta += "&fechaHasta=" + Date.Today.ToString("s")
 
-                response = Await client.GetAsync(urlConsulta)
-
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
                 Else
-                    respuesta = ""
+                    motivo = Await MotivoRespuestaAsync(response)
                 End If
+            End Using
+        Catch ex As Exception
+            motivo = MotivoExcepcion(ex)
+        End Try
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
-            Finally
+        If Not EsFichaActual(testigo) Then
+            Return ' Nesto#644 (2): ya es otro cliente
+        End If
+        If motivo IsNot Nothing Then
+            ListaFacturas = Nothing
+            AvisarErrorCarga("No se han podido cargar las facturas", motivo)
+            Return
+        End If
+        ListaFacturas = If(JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta), New ObservableCollection(Of ExtractoClienteDTO)())
+    End Function
 
-            End Try
-
-            If Not EsFichaActual(testigo) Then
-                Return ' Nesto#644 (2): ya es otro cliente
-            End If
-            ListaFacturas = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
-        End Using
-
-
+    Private Sub CargarPedidos()
+        Dim unused = CargarPedidosAsync()
     End Sub
 
-    Private Async Sub CargarPedidos()
+    ''' <summary>Nesto#644 (10): como <see cref="CargarFacturasAsync"/>.</summary>
+    Friend Async Function CargarPedidosAsync() As Task
         If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
             Return
         End If
         Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
-
-
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
-
-            Try
+        Dim respuesta As String = Nothing
+        Dim motivo As String = Nothing
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "PedidosVenta"
-                Dim mainViewModel As New MainViewModel
                 Dim permitirTodosClientes As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
-                If permitirTodosClientes.Trim <> "1" Then
-                    urlConsulta += "?vendedor=" + Await mainViewModel.leerParametro(empresaActual, "Vendedor")
+                If If(permitirTodosClientes, String.Empty).Trim <> "1" Then
+                    Dim mainViewModel As New MainViewModel
+                    urlConsulta += "?vendedor=" + Uri.EscapeDataString(If(Await mainViewModel.leerParametro(empresaActual, "Vendedor"), String.Empty).Trim())
                 Else
                     urlConsulta += "?vendedor="
                 End If
-                urlConsulta += "&cliente=" + clienteActivo.cliente
+                urlConsulta += "&cliente=" + Uri.EscapeDataString(If(clienteActivo.cliente?.Trim(), String.Empty))
 
-                response = Await client.GetAsync(urlConsulta)
-
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
                 Else
-                    respuesta = String.Empty
+                    motivo = Await MotivoRespuestaAsync(response)
                 End If
+            End Using
+        Catch ex As Exception
+            motivo = MotivoExcepcion(ex)
+        End Try
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de pedidos desde el servidor")
-            Finally
+        If Not EsFichaActual(testigo) Then
+            Return ' Nesto#644 (2): ya es otro cliente
+        End If
+        If motivo IsNot Nothing Then
+            ListaPedidos = Nothing
+            AvisarErrorCarga("No se han podido cargar los pedidos", motivo)
+            Return
+        End If
+        ListaPedidos = If(JsonConvert.DeserializeObject(Of ObservableCollection(Of ResumenPedido))(respuesta), New ObservableCollection(Of ResumenPedido)())
+    End Function
 
-            End Try
-
-            If Not EsFichaActual(testigo) Then
-                Return ' Nesto#644 (2): ya es otro cliente
-            End If
-            ListaPedidos = JsonConvert.DeserializeObject(Of ObservableCollection(Of ResumenPedido))(respuesta)
-        End Using
-
-
+    Private Sub CargarDeudas()
+        Dim unused = CargarDeudasAsync()
     End Sub
 
-    Private Async Sub CargarDeudas()
+    ''' <summary>
+    ''' Nesto#644 (10): como <see cref="CargarFacturasAsync"/>; además, una respuesta vacía ya no revienta (NRE al recorrer la lista).
+    ''' </summary>
+    Friend Async Function CargarDeudasAsync() As Task
         If IsNothing(clienteActivo) OrElse (ListaDeudas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaDeudas.FirstOrDefault()?.Cliente) Then
             Return
         End If
         Dim testigo As Integer = TestigoFicha() ' Nesto#644 (2)
-
-        Using client As HttpClient = _clienteApiFactory.Crear()
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = String.Empty
-
-            Try
+        Dim respuesta As String = Nothing
+        Dim motivo As String = Nothing
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ExtractosCliente"
-                urlConsulta += "?cliente=" + clienteActivo.cliente
+                urlConsulta += "?cliente=" + Uri.EscapeDataString(If(clienteActivo.cliente?.Trim(), String.Empty))
 
-                response = Await client.GetAsync(urlConsulta)
-
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
                 Else
-                    respuesta = String.Empty
+                    motivo = Await MotivoRespuestaAsync(response)
                 End If
+            End Using
+        Catch ex As Exception
+            motivo = MotivoExcepcion(ex)
+        End Try
+        If Not EsFichaActual(testigo) Then
+            Return ' Nesto#644 (2): ya es otro cliente; sus efectos no pueden acabar en la reclamación del nuevo
+        End If
+        If motivo IsNot Nothing Then
+            ListaDeudas = Nothing
+            AvisarErrorCarga("No se han podido cargar las deudas", motivo)
+            Return
+        End If
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de deudas desde el servidor")
-            Finally
-
-            End Try
-            If Not EsFichaActual(testigo) Then
-                Return ' Nesto#644 (2): ya es otro cliente; sus efectos no pueden acabar en la reclamación del nuevo
-            End If
-            Dim lista = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
-            For Each l In lista
-                l.Seleccionada = l.Vencimiento < Date.Today OrElse IsNothing(l.Vencimiento)
-                AddHandler l.PropertyChanged, New PropertyChangedEventHandler(AddressOf LineaDeudaPropertyChangedEventHandler)
-            Next
-            ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
-            ImporteReclamarDeuda = SumaDeudasSeleccionadas
-            ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
-        End Using
+        Dim lista = If(JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta), New ObservableCollection(Of ExtractoClienteDTO)())
+        For Each l In lista
+            l.Seleccionada = l.Vencimiento < Date.Today OrElse IsNothing(l.Vencimiento)
+            AddHandler l.PropertyChanged, New PropertyChangedEventHandler(AddressOf LineaDeudaPropertyChangedEventHandler)
+        Next
+        ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
+        ImporteReclamarDeuda = SumaDeudasSeleccionadas
+        ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
 
         RellenarContactoReclamacion(clienteActivo)
 
         CargarHistorialPagos()
+    End Function
 
+    ''' <summary>
+    ''' Nesto#644 (10): un error al cargar algo de la ficha se dice en mensajeError (que la ficha enseña arriba); si ya había otro,
+    ''' se añaden los dos. Se vacía al cambiar de cliente.
+    ''' </summary>
+    Private Sub AvisarErrorCarga(prefijo As String, motivo As String)
+        Dim texto As String = $"{prefijo} del cliente {clienteActivo?.cliente?.Trim()}: {If(String.IsNullOrWhiteSpace(motivo), "error desconocido.", motivo.Trim())}"
+        If String.IsNullOrWhiteSpace(mensajeError) Then
+            mensajeError = texto
+        ElseIf Not mensajeError.Contains(texto) Then
+            mensajeError = mensajeError & vbCrLf & texto
+        End If
+        _ultimoAvisoCarga = mensajeError
     End Sub
+
+    Private _ultimoAvisoCarga As String
+
+    ''' <summary>Nesto#644 (10): por qué ha fallado una petición a la API, legible (sin el JSON).</summary>
+    Friend Shared Async Function MotivoRespuestaAsync(response As HttpResponseMessage) As Task(Of String)
+        Dim cuerpo As String = If(response.Content Is Nothing, Nothing, Await response.Content.ReadAsStringAsync())
+        If String.IsNullOrWhiteSpace(cuerpo) Then
+            Return $"el servidor ha contestado {CInt(response.StatusCode)} ({response.ReasonPhrase})."
+        End If
+        Return HttpErrorHelper.ParsearErrorHttp(cuerpo)
+    End Function
+
+    Private Shared Function MotivoExcepcion(ex As Exception) As String
+        Return If(ex.InnerException?.Message, ex.Message)
+    End Function
 
     ''' <summary>
     ''' El correo y el móvil a los que se manda la reclamación de deuda o el enlace de pago de un pedido: los del cliente
@@ -2059,6 +2112,11 @@ Public Class ClienteComercialViewModel
         NombreReclamarDeuda = Nothing
         MotivoCambioEstado = Nothing
         HistorialPagos = Nothing
+        ' Nesto#644 (10): los errores al cargar lo del cliente anterior no son de este
+        If Not String.IsNullOrEmpty(_ultimoAvisoCarga) AndAlso mensajeError = _ultimoAvisoCarga Then
+            mensajeError = Nothing
+        End If
+        _ultimoAvisoCarga = Nothing
         If cliente Is Nothing Then
             seguimientosOrdenados = Nothing
             listaVentas = Nothing

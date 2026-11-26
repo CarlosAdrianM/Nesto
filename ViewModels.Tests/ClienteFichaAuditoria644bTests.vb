@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Net
 Imports System.Net.Http
 Imports System.Threading
@@ -44,12 +44,17 @@ Public Class ClienteFichaAuditoria644bTests
     Private _factoria As IClienteApiFactory
     Private _autenticacion As IServicioAutenticacion
     Private _rapports As IRapportService
+    Private _configuracion As IConfiguracion
 
     <TestInitialize()>
     Public Sub Initialize()
         _servicio = A.Fake(Of IClienteComercialService)()
         _dialogos = A.Fake(Of IServicioDialogos)()
         _rapports = A.Fake(Of IRapportService)()
+        _configuracion = A.Fake(Of IConfiguracion)()
+        A.CallTo(Function() _configuracion.usuario).Returns("NUEVAVISION\Carlos")
+        ' Sin esto, los pedidos piden el vendedor a MainViewModel (que en los tests no tiene API)
+        A.CallTo(Function() _configuracion.leerParametro(A(Of String).Ignored, Nesto.Infrastructure.Shared.Parametros.Claves.PermitirVerClientesTodosLosVendedores)).Returns(Task.FromResult("1"))
         _api = New ApiFalsa()
         _factoria = A.Fake(Of IClienteApiFactory)()
         A.CallTo(Function() _factoria.Crear()).ReturnsLazily(Function() New HttpClient(_api, False) With {
@@ -63,7 +68,7 @@ Public Class ClienteFichaAuditoria644bTests
     End Sub
 
     Private Function Comercial() As ClienteComercialViewModel
-        Return New ClienteComercialViewModel(A.Fake(Of IConfiguracion)(), _dialogos, _servicio, _rapports, _autenticacion) With {
+        Return New ClienteComercialViewModel(_configuracion, _dialogos, _servicio, _rapports, _autenticacion) With {
             .ClienteApiFactory = _factoria
         }
     End Function
@@ -180,6 +185,58 @@ Public Class ClienteFichaAuditoria644bTests
         Dim fila As JObject = CType(_api.Puts().First()("VendedoresGrupoProducto")(0), JObject)
         Assert.AreEqual("JE", fila("vendedor").ToString())
         Assert.AreEqual(1, _api.Puts().Count, "Con el estado 0 basta el primero")
+    End Function
+
+    ' Hallazgo 10: ante un 403/500 la lista quedaba a Nothing sin decir nada (parecía «no tiene facturas») o reventaba.
+    <TestMethod()>
+    Public Async Function H10_SiLasFacturasNoSePuedenCargar_SeDicePorQue() As Task
+        Dim vm = Await ConFicha(Ficha())
+        _api.Respuesta = Function(r) Task.FromResult(New HttpResponseMessage(HttpStatusCode.Forbidden) With {
+            .Content = New StringContent("{""Message"":""No tiene permiso para ver las facturas de este cliente.""}")
+        })
+
+        Await vm.CargarFacturasAsync()
+
+        Assert.IsNull(vm.ListaFacturas)
+        Assert.AreEqual("No se han podido cargar las facturas del cliente 15191: No tiene permiso para ver las facturas de este cliente.", vm.mensajeError)
+    End Function
+
+    <TestMethod()>
+    Public Async Function H10_SiLaRedFallaAlCargarPedidos_NoRevientaYSeDice() As Task
+        Dim vm = Await ConFicha(Ficha())
+        _api.Respuesta = Function(r) Task.FromException(Of HttpResponseMessage)(New HttpRequestException("No se puede conectar con el servidor remoto"))
+
+        Await vm.CargarPedidosAsync()
+
+        Assert.IsNull(vm.ListaPedidos)
+        StringAssert.Contains(vm.mensajeError, "No se han podido cargar los pedidos del cliente 15191: No se puede conectar con el servidor remoto")
+    End Function
+
+    <TestMethod()>
+    Public Async Function H10_DeudasConRespuestaVacia_NoRevientan() As Task
+        Dim vm = Await ConFicha(Ficha())
+        _api.Respuesta = Function(r) Task.FromResult(New HttpResponseMessage(HttpStatusCode.OK) With {.Content = New StringContent("")})
+
+        Await vm.CargarDeudasAsync()
+
+        Assert.IsNotNull(vm.ListaDeudas)
+        Assert.AreEqual(0, vm.ListaDeudas.Count)
+    End Function
+
+    <TestMethod()>
+    Public Async Function H10_DeudaVencidaQueNoSePuedeLeer_NoSaleComoCeroEuros_YElAvisoSeVaConOtroCliente() As Task
+        Dim vm = Await ConFicha(Ficha())
+        _api.Respuesta = Function(r) Task.FromResult(New HttpResponseMessage(HttpStatusCode.InternalServerError) With {.Content = New StringContent("")})
+
+        Await vm.CargarDeudaVencidaAsync()
+
+        Assert.IsFalse(vm.deudaVencida.HasValue, "Ni 0 € ni nada: no se sabe")
+        Assert.AreEqual("No se ha podido leer la deuda vencida del cliente 15191: el servidor ha contestado 500 (Internal Server Error).", vm.mensajeError)
+
+        Dim otro As ClienteJson = Ficha()
+        otro.cliente = "30676"
+        vm.clienteActivo = otro
+        Assert.IsTrue(String.IsNullOrEmpty(vm.mensajeError), "El aviso era del cliente anterior")
     End Function
 
     ' Hallazgo 11: si la API no contesta (red caída), el fallo solo iba a mensajeError, que ClienteComercial.xaml no enseña.
