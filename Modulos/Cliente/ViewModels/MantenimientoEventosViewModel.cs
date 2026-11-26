@@ -177,7 +177,8 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowError(DatosTransferenciaInscripcionModel.ERROR_COPIAR);
                 return null;
             }
-            AvisoEnlace = DatosTransferenciaInscripcionModel.TextoCopiados(inscripcion.Nombre);
+            // NestoAPI#887: el Recordatorio es para quien copia (quién apunta el cobro): se enseña, no se copia
+            AvisoEnlace = DatosTransferenciaInscripcionModel.TextoCopiados(inscripcion.Nombre, datos.Recordatorio);
             return texto;
         }
 

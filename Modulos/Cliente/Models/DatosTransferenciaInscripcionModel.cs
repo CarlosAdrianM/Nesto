@@ -10,15 +10,25 @@ namespace Nesto.Modulos.Cliente.Models
     /// </summary>
     public class DatosTransferenciaInscripcionModel
     {
+        // Contrato real de NestoAPI#887 (DatosTransferenciaInscripcionDTO): InscripcionId (no «Inscripcion»), EventoId, Evento, Empresa,
+        // Cliente, Contacto, Iban, Titular, Concepto, Importe, Texto y Recordatorio.
+        public int InscripcionId { get; set; }
+        public int EventoId { get; set; }
+        public string Evento { get; set; }
         public string Empresa { get; set; }
-        public int Inscripcion { get; set; }
         public string Cliente { get; set; }
+        public string Contacto { get; set; }
         public string Iban { get; set; }
         public string Titular { get; set; }
         public string Concepto { get; set; }
         public decimal Importe { get; set; }
         /// <summary>Los datos listos para pegar, una línea por dato (lo decide la API).</summary>
         public string Texto { get; set; }
+        /// <summary>
+        /// Para quien copia, NO para el cliente («Cuando llegue la transferencia, Administración apunta el cobro en Cajas › Cobros
+        /// (documento INS123).»): se enseña en el aviso y nunca se copia.
+        /// </summary>
+        public string Recordatorio { get; set; }
 
         public const string ERROR_COPIAR = "Windows no ha dejado copiar los datos de transferencia (puede que otro programa esté usando el portapapeles). Vuelva a intentarlo.";
         public const string SIN_DATOS = "No se han podido leer los datos de transferencia de la inscripción.";
@@ -58,8 +68,13 @@ namespace Nesto.Modulos.Cliente.Models
             return string.Join("\n", lineas);
         }
 
-        public static string TextoCopiados(string nombre) => string.IsNullOrWhiteSpace(nombre)
-            ? "Datos de transferencia copiados: péguelos en WhatsApp o en el correo."
-            : $"Datos de transferencia de {nombre.Trim()} copiados: péguelos en WhatsApp o en el correo.";
+        /// <summary>El aviso tras copiar y, detrás, el recordatorio de la API para quien copia (si lo trae).</summary>
+        public static string TextoCopiados(string nombre, string recordatorio = null)
+        {
+            string texto = string.IsNullOrWhiteSpace(nombre)
+                ? "Datos de transferencia copiados: péguelos en WhatsApp o en el correo."
+                : $"Datos de transferencia de {nombre.Trim()} copiados: péguelos en WhatsApp o en el correo.";
+            return string.IsNullOrWhiteSpace(recordatorio) ? texto : texto + " " + recordatorio.Trim();
+        }
     }
 }
