@@ -117,12 +117,12 @@ Public Class DetallePedidoViewModel
         EnvioPorCorreo = New ControlesUsuario.Services.EnvioDocumentoPorCorreo(New ControlesUsuario.Services.ServicioEnvioCorreoDocumentos(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
         EnviarPedidoPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarPedidoPorCorreoAsync, AddressOf CanDescargarPresupuesto)
-        EnviarFacturaPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorCorreoAsync, AddressOf CanImprimirFactura)
+        EnviarFacturaPorCorreoCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorCorreoAsync, AddressOf CanDescargarFactura)
         ' Nesto#570 (NestoAPI#737): el pedido y la factura por WhatsApp Web, con un enlace de descarga (sugerencias 866/867)
         EnvioPorWhatsApp = New ControlesUsuario.Services.EnvioDocumentoPorWhatsApp(New ControlesUsuario.Services.ServicioEnlacesDescarga(
             New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)), dialogService)
         EnviarPedidoPorWhatsAppCommand = New AsyncRelayCommand(AddressOf EnviarPedidoPorWhatsAppAsync, AddressOf CanDescargarPresupuesto)
-        EnviarFacturaPorWhatsAppCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorWhatsAppAsync, AddressOf CanImprimirFactura)
+        EnviarFacturaPorWhatsAppCommand = New AsyncRelayCommand(AddressOf EnviarFacturaPorWhatsAppAsync, AddressOf CanDescargarFactura)
         cmdActualizarTotales = New RelayCommand(AddressOf OnActualizarTotales)
         cmdCambiarFechaEntrega = New RelayCommand(AddressOf OnCambiarFechaEntrega)
         cmdCambiarIva = New RelayCommand(AddressOf OnCambiarIva)
@@ -155,9 +155,9 @@ Public Class DetallePedidoViewModel
         CrearAlbaranVentaCommand = New RelayCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
         CrearFacturaVentaCommand = New RelayCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
         CrearAlbaranYFacturaVentaCommand = New RelayCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
-        ImprimirFacturaCommand = New RelayCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
+        ImprimirFacturaCommand = New RelayCommand(AddressOf OnImprimirFactura, AddressOf CanDescargarFactura) ' 25/11/26: sin IVA no se descarga
         ImprimirFacturaDirectoCommand = New RelayCommand(AddressOf OnImprimirFacturaDirecto, AddressOf CanImprimirFactura)
-        ImprimirAlbaranCommand = New RelayCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
+        ImprimirAlbaranCommand = New RelayCommand(AddressOf OnImprimirAlbaran, AddressOf CanDescargarAlbaran) ' 25/11/26: sin IVA no se descarga
         ImprimirAlbaranDirectoCommand = New RelayCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New RelayCommand(Of String)(AddressOf OnCopiarEnlace)
         AbrirFacturarRutasCommand = New RelayCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
@@ -583,11 +583,11 @@ Public Class DetallePedidoViewModel
         Set(value As LineaPedidoVentaWrapper)
             Dim unused = SetProperty(_lineaActual, value)
             OnPropertyChanged(NameOf(pedido))
-            ImprimirFacturaCommand.NotifyCanExecuteChanged()
+            ImprimirFacturaCommand?.NotifyCanExecuteChanged()
             ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
             EnviarFacturaPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
             EnviarFacturaPorWhatsAppCommand?.NotifyCanExecuteChanged() ' Nesto#570
-            ImprimirAlbaranCommand.NotifyCanExecuteChanged()
+            ImprimirAlbaranCommand?.NotifyCanExecuteChanged()
             ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
             PonerSuPedidoFacturaCommand?.NotifyCanExecuteChanged() ' Nesto#562
             DescargarFacturaeCommand?.NotifyCanExecuteChanged() ' Nesto#652
@@ -823,6 +823,11 @@ Public Class DetallePedidoViewModel
             PasarAPresupuestoCommand.NotifyCanExecuteChanged()
             BorrarPedidoCommand?.NotifyCanExecuteChanged() ' Novedades 1283
             DescargarPresupuestoCommand.NotifyCanExecuteChanged()
+            OnPropertyChanged(NameOf(TieneDocumentosDescargables)) ' 25/11/26: pedidos sin IVA
+            ImprimirFacturaCommand?.NotifyCanExecuteChanged()
+            ImprimirAlbaranCommand?.NotifyCanExecuteChanged()
+            EnviarFacturaPorCorreoCommand?.NotifyCanExecuteChanged()
+            EnviarFacturaPorWhatsAppCommand?.NotifyCanExecuteChanged()
             EnviarPedidoPorCorreoCommand?.NotifyCanExecuteChanged() ' Nesto#563
             EnviarPedidoPorWhatsAppCommand?.NotifyCanExecuteChanged() ' Nesto#570
             CopiarAlPortapapelesCommand.NotifyCanExecuteChanged() ' Nesto#385
@@ -2741,8 +2746,32 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanDescargarPresupuesto() As Boolean
-        Return Not IsNothing(pedido) 'AndAlso pedido.EsPresupuesto
+        Return Not IsNothing(pedido) AndAlso TieneDocumentosDescargables 'AndAlso pedido.EsPresupuesto
     End Function
+
+    ''' <summary>
+    ''' Carlos 25/11/26: un pedido con el IVA de la cabecera vacío no tiene documentos que salgan hacia fuera (la API da 403 «El
+    ''' documento N no se puede descargar.»). Sin él no se ven descargar el PDF, enviarlo por correo ni por WhatsApp. A propósito,
+    ''' sin ningún texto que explique por qué: no se anuncia.
+    ''' </summary>
+    Public Shared Function TieneDocumentosDescargablesConIva(iva As String) As Boolean
+        Return Not String.IsNullOrWhiteSpace(iva)
+    End Function
+
+    Public ReadOnly Property TieneDocumentosDescargables As Boolean
+        Get
+            Return pedido IsNot Nothing AndAlso TieneDocumentosDescargablesConIva(pedido.iva)
+        End Get
+    End Property
+
+    Private Function CanDescargarFactura() As Boolean
+        Return CanImprimirFactura() AndAlso TieneDocumentosDescargables
+    End Function
+
+    Private Function CanDescargarAlbaran() As Boolean
+        Return CanImprimirAlbaran() AndAlso TieneDocumentosDescargables
+    End Function
+
     Private Async Sub OnDescargarPresupuesto()
         textoBusyIndicator = "Generando proforma..."
         estaBloqueado = True

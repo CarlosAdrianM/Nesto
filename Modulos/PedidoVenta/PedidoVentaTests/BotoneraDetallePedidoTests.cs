@@ -39,7 +39,11 @@ namespace PedidoVentaTests
             ["AbrirFacturarFinDeMesCommand"] = "PuedeFacturarFinDeMes",
             ["NuevaNotaRecogidaCommand"] = "EsGrupoQuePuedeCrearNotas",
             ["NuevaNotaCobroCommand"] = "EsGrupoQuePuedeCrearNotas",
-            ["LeerEtiquetaRecogidaCommand"] = "PuedeLeerEtiquetaRecogida"
+            ["LeerEtiquetaRecogidaCommand"] = "PuedeLeerEtiquetaRecogida",
+            // Carlos 25/11/26: un pedido sin IVA no tiene documentos descargables
+            ["DescargarPresupuestoCommand"] = "TieneDocumentosDescargables",
+            ["EnviarPedidoPorCorreoCommand"] = "TieneDocumentosDescargables",
+            ["EnviarPedidoPorWhatsAppCommand"] = "TieneDocumentosDescargables"
         };
 
         [TestMethod]

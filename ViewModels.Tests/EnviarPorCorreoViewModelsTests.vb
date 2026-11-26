@@ -39,7 +39,8 @@ Public Class EnviarPorCorreoViewModelsTests
         Dim vm = New DetallePedidoViewModel(A.Fake(Of IServicioNavegacion), A.Fake(Of IConfiguracion), A.Fake(Of IPedidoVentaService),
                                             New WeakReferenceMessenger(), _dialogos, A.Fake(Of IAbridorPedidos), A.Fake(Of IServicioAutenticacion))
         vm.EnvioPorCorreo = New EnvioDocumentoPorCorreo(_servicioCorreo, _dialogos)
-        vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1  ", .numero = 929498, .cliente = "15191 ", .contacto = "0  "})
+        ' Con IVA: sin él no hay documentos que descargar ni enviar (25/11/26)
+        vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1  ", .numero = 929498, .cliente = "15191 ", .contacto = "0  ", .iva = "G21"})
         Return vm
     End Function
 

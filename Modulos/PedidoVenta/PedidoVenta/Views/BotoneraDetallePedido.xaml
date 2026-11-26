@@ -42,11 +42,13 @@
             <ui:Button x:Name="BotonDescargarPdf" Content="Descargar PDF" Style="{StaticResource BotonBarra}"
                        Icon="{ui:SymbolIcon ArrowDownload24}"
                        Command="{Binding DescargarPresupuestoCommand}"
+                       Visibility="{Binding TieneDocumentosDescargables, Converter={StaticResource VisibleSi}}"
                        ToolTip="Descargar el PDF del pedido (Ctrl+Mayús+D)"/>
             <!-- Nesto#563 (NestoAPI#724) -->
             <ui:Button x:Name="BotonEnviarCorreo" Content="Enviar por correo…" Style="{StaticResource BotonBarra}"
                        Icon="{ui:SymbolIcon Mail24}"
                        Command="{Binding EnviarPedidoPorCorreoCommand}"
+                       Visibility="{Binding TieneDocumentosDescargables, Converter={StaticResource VisibleSi}}"
                        ToolTip="Mandar el PDF del pedido por correo al cliente (se proponen sus personas de contacto). Ctrl+Mayús+E"/>
             <ui:Button x:Name="BotonFacturarRutas" Content="Facturar rutas" Style="{StaticResource BotonBarra}"
                        Icon="{ui:SymbolIcon VehicleTruckProfile24}"
@@ -68,6 +70,7 @@
                         <!-- Nesto#570 (NestoAPI#737) -->
                         <ui:MenuItem x:Name="BotonEnviarWhatsApp" Header="Enviar por WhatsApp…" Icon="{ui:SymbolIcon Chat24}"
                                      Command="{Binding EnviarPedidoPorWhatsAppCommand}"
+                                     Visibility="{Binding TieneDocumentosDescargables, Converter={StaticResource VisibleSi}}"
                                      ToolTip="Abrir WhatsApp Web con el mensaje para el cliente y el enlace de descarga del PDF del pedido; solo tiene que pulsar «Enviar»"/>
                         <ui:MenuItem x:Name="BotonCopiarFactura" Header="Copiar factura" Icon="{ui:SymbolIcon Copy24}"
                                      Command="{Binding CopiarFacturaCommand}"
