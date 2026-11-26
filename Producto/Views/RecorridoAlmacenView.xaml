@@ -47,6 +47,10 @@
                 <TextBox Width="50" Margin="0,0,0,6" VerticalContentAlignment="Center" IsReadOnly="{Binding NoEditable}"
                          Text="{Binding FilaAMano, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Desde qué fila se llega con la mano: las de arriba (de la 1 a la anterior) son de escalera" />
+                <!-- NestoAPI#888 (sugerencia 1418): por almacén -->
+                <CheckBox Content="Primero las filas de escalera" VerticalAlignment="Center" Margin="16,0,0,6"
+                          IsChecked="{Binding PrimeroEscalera, Mode=TwoWay}" IsEnabled="{Binding Editable}"
+                          ToolTip="{Binding AyudaPrimeroEscalera}" ToolTipService.ShowOnDisabled="True" />
                 <TextBlock Text="Hay cambios sin guardar" Foreground="DarkOrange" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,6"
                            Visibility="{Binding HayCambios, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock Text="Un momento…" VerticalAlignment="Center" Margin="16,0,0,6"

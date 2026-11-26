@@ -36,6 +36,11 @@ namespace Nesto.Modules.Producto
         public bool TablasCreadas { get; set; }
         /// <summary>Desde qué fila se llega con la mano (las de arriba son de escalera).</summary>
         public int FilaAMano { get; set; }
+        /// <summary>
+        /// NestoAPI#888 (sugerencia 1418): dentro de cada columna de una calle, primero la escalera (de arriba abajo) y después lo de a mano.
+        /// False si no se ha marcado o si en el servidor falta el dato (el orden de siempre).
+        /// </summary>
+        public bool PrimeroEscalera { get; set; }
         public List<CalleRecorrido> Calles { get; set; } = new List<CalleRecorrido>();
         public List<PasilloRecorrido> PasillosSinCalle { get; set; } = new List<PasilloRecorrido>();
         public List<TramoRecorrido> Tramos { get; set; } = new List<TramoRecorrido>();
@@ -86,6 +91,9 @@ namespace Nesto.Modules.Producto
     {
         /// <summary>Null: no se toca.</summary>
         public int? FilaAMano { get; set; }
+        /// <summary>NestoAPI#888: null = no se toca. True sin el dato en el servidor → 503 con el motivo.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? PrimeroEscalera { get; set; }
         public List<PeticionCalleRecorrido> Calles { get; set; } = new List<PeticionCalleRecorrido>();
         public List<PeticionPasilloRecorrido> PasillosSinCalle { get; set; } = new List<PeticionPasilloRecorrido>();
     }

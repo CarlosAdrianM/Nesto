@@ -284,6 +284,33 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        private bool _primeroEscalera;
+        private bool _primeroEscaleraCargado;
+        /// <summary>
+        /// NestoAPI#888 (sugerencia 1418): dentro de cada columna de una calle, primero las filas de escalera (de arriba abajo) y después lo de
+        /// a mano. Solo viaja en el PUT si se ha cambiado (sin cambiar, la API no lo toca).
+        /// </summary>
+        public bool PrimeroEscalera
+        {
+            get => _primeroEscalera;
+            set
+            {
+                if (SetProperty(ref _primeroEscalera, value))
+                {
+                    ActualizarCambios();
+                }
+            }
+        }
+
+        public const string AYUDA_PRIMERO_ESCALERA = "Marcado: en cada columna de una calle el mozo coge primero lo de las filas de escalera, " +
+            "de arriba abajo (1, 2, 3…), y después baja a lo que se coge a mano, que va como siempre; así sube a la escalera una vez por " +
+            "columna. Sin marcar: el orden de siempre. Vale para picking, reposiciones, pendiente de ubicar y huecos alternativos; los " +
+            "pasillos sin calle no cambian. Pruebe con «Vista previa» antes de guardar.";
+
+        public string AyudaPrimeroEscalera => AYUDA_PRIMERO_ESCALERA;
+
+        public const string MENSAJE_SIN_PRIMERO_ESCALERA = " Desmarque «Primero las filas de escalera» para guardar lo demás.";
+
         private IReadOnlyList<TramoRecorridoFila> _tramos = Array.Empty<TramoRecorridoFila>();
         public IReadOnlyList<TramoRecorridoFila> Tramos { get => _tramos; private set => SetProperty(ref _tramos, value); }
 
@@ -411,6 +438,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 _filaAMano = recorrido.FilaAMano > 0 ? recorrido.FilaAMano.ToString(CultureInfo.InvariantCulture) : null;
                 OnPropertyChanged(nameof(FilaAMano));
+                _primeroEscalera = recorrido.PrimeroEscalera; // NestoAPI#888
+                _primeroEscaleraCargado = recorrido.PrimeroEscalera;
+                OnPropertyChanged(nameof(PrimeroEscalera));
                 CalleSeleccionada = Calles.FirstOrDefault(c => c.Calle == calleSeleccionada) ?? Calles.FirstOrDefault();
                 CalleDestino = null;
                 PasilloSinCalleSeleccionado = null;
@@ -510,6 +540,7 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             var texto = new StringBuilder();
             texto.Append("F:").Append(FilaAMano?.Trim()).Append('|');
+            texto.Append("E:").Append(PrimeroEscalera ? '1' : '0').Append('|'); // NestoAPI#888
             foreach (CalleRecorridoEditable calle in Calles)
             {
                 texto.Append("C:").Append(calle.Calle?.Trim()).Append('/').Append(calle.Sentido).Append('/').Append(calle.Descripcion?.Trim()).Append('[');
@@ -780,6 +811,7 @@ namespace Nesto.Modules.Producto.ViewModels
             return new PeticionRecorridoAlmacen
             {
                 FilaAMano = filaAMano,
+                PrimeroEscalera = PrimeroEscalera == _primeroEscaleraCargado ? (bool?)null : PrimeroEscalera, // NestoAPI#888: sin cambiar, no se toca
                 Calles = Calles.Select(c => new PeticionCalleRecorrido
                 {
                     Calle = c.Calle?.Trim(),
@@ -820,7 +852,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (Exception ex)
             {
-                TratarError(ex, "No se ha podido hacer la vista previa: ");
+                TratarError(ex, "No se ha podido hacer la vista previa: ", peticion);
             }
             finally
             {
@@ -857,7 +889,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             catch (Exception ex)
             {
-                TratarError(ex, "No se ha podido guardar el recorrido: ");
+                TratarError(ex, "No se ha podido guardar el recorrido: ", peticion);
             }
             finally
             {
@@ -865,13 +897,20 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        /// <summary>400: el motivo de la API tal cual. 403: además, solo lectura. 503: sin servicio, nada editable.</summary>
-        private void TratarError(Exception ex, string prefijo)
+        /// <summary>
+        /// 400: el motivo de la API tal cual. 403: además, solo lectura. 503: sin servicio, nada editable; salvo si se pedía «primero la
+        /// escalera» (NestoAPI#888: falta ese dato en el servidor): su motivo y lo demás sigue editable.
+        /// </summary>
+        private void TratarError(Exception ex, string prefijo, PeticionRecorridoAlmacen peticion = null)
         {
             if (ex is RecorridoAlmacenException api)
             {
                 Mensaje = api.Message;
-                if (api.Codigo == 403)
+                if (api.Codigo == 503 && peticion?.PrimeroEscalera == true)
+                {
+                    Mensaje = api.Message.Trim() + MENSAJE_SIN_PRIMERO_ESCALERA;
+                }
+                else if (api.Codigo == 403)
                 {
                     _sinPermisoEnLaApi = true;
                     Aviso = api.Message;
