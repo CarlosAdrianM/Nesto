@@ -1304,13 +1304,17 @@ Public Class ClienteComercialViewModel
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
+            ' Nesto#644 (14): con Paygold, el enlace al cliente lo manda ReclamacionDeuda (correo y SMS). POST Pagos le mandaba
+            ' además por correo el de nuestra página: dos enlaces distintos para la misma deuda (y se podía pagar dos veces).
+            ' Con Paygold el PagoTPV se sigue creando (efectos y auditoría), pero sin correo, y no le llega.
+            Dim conPaygold As Boolean = MotorPagosSeleccionado <> "NestoPago"
             Dim solicitud = New With {
                 .Empresa = clienteActivo?.empresa.Trim(),
                 .Cliente = clienteActivo?.cliente.Trim(),
                 .Contacto = clienteActivo?.contacto?.Trim(),
                 .Importe = ImporteReclamarDeuda,
                 .Descripcion = AsuntoReclamarDeuda,
-                .Correo = CorreoReclamarDeuda,
+                .Correo = If(conPaygold, Nothing, CorreoReclamarDeuda),
                 .Movil = MovilReclamarDeuda,
                 .Efectos = efectos
             }
@@ -1324,7 +1328,7 @@ Public Class ClienteComercialViewModel
                     Dim respuesta = Await response.Content.ReadAsStringAsync()
                     Dim resultado = JsonConvert.DeserializeObject(Of Dictionary(Of String, Object))(respuesta)
 
-                    If MotorPagosSeleccionado = "NestoPago" Then
+                    If Not conPaygold Then
                         ' Mostrar URL de la página propia
                         If resultado.ContainsKey("UrlPaginaPago") Then
                             EnlaceReclamarDeuda = resultado("UrlPaginaPago").ToString()
@@ -1345,12 +1349,25 @@ Public Class ClienteComercialViewModel
                         Dim contentP2F As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
                         Dim responseP2F = Await client.PostAsync("ReclamacionDeuda", contentP2F)
 
+                        Dim motivoP2F As String = Nothing
                         If responseP2F.IsSuccessStatusCode Then
                             Dim respuestaP2F = Await responseP2F.Content.ReadAsStringAsync()
                             reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuestaP2F)
-                            If reclamacion.TramitadoOK Then
+                            If reclamacion IsNot Nothing AndAlso reclamacion.TramitadoOK Then
                                 EnlaceReclamarDeuda = reclamacion.Enlace
+                            Else
+                                motivoP2F = "Paygold no lo ha tramitado"
                             End If
+                        Else
+                            motivoP2F = Await MotivoRespuestaAsync(responseP2F)
+                        End If
+                        If motivoP2F IsNot Nothing Then
+                            ' Nesto#644 (14): antes, en silencio (el cliente tenía al menos el correo de POST Pagos); ahora no le ha
+                            ' llegado nada y hay que decirlo, con el enlace de nuestra página (es el mismo cobro) por si se lo quiere mandar.
+                            Dim urlPropia As String = If(resultado.ContainsKey("UrlPaginaPago"), resultado("UrlPaginaPago")?.ToString(), Nothing)
+                            EnlaceReclamarDeuda = urlPropia
+                            Throw New Exception($"Paygold no ha enviado el enlace al cliente ({motivoP2F}): no le ha llegado nada." &
+                                If(String.IsNullOrWhiteSpace(urlPropia), String.Empty, $" Si quiere, mándele este enlace de pago, que es el mismo cobro: {urlPropia}"))
                         End If
                     End If
                 Else

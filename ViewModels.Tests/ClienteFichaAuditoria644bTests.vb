@@ -314,6 +314,64 @@ Public Class ClienteFichaAuditoria644bTests
         StringAssert.Contains(_api.Peticiones.Last().Url, "filtro=garc%C3%ADa%20%26%20hijos")
     End Function
 
+    ''' <summary>La reclamación de deuda con el motor Paygold, lista para mandar.</summary>
+    Private Function ConReclamacionPaygold(respuestaP2F As String) As ClienteComercialViewModel
+        Dim vm = Comercial()
+        vm.clienteActivo = Ficha()
+        vm.MotorPagosSeleccionado = "Paygold"
+        vm.ImporteReclamarDeuda = 25D
+        vm.AsuntoReclamarDeuda = "Pago pedido 123456"
+        vm.CorreoReclamarDeuda = "cliente@example.com"
+        vm.RevisorConceptoPago = A.Fake(Of ControlesUsuario.Services.IRevisorConceptoPago)()
+        A.CallTo(Function() vm.RevisorConceptoPago.ElegirConcepto(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)) _
+            .ReturnsLazily(Function(concepto As String, empresa As String, cliente As String) Task.FromResult(concepto))
+        _api.Respuesta = Function(r)
+                             Dim cuerpo As String = If(r.RequestUri.AbsolutePath.EndsWith("/Pagos"),
+                                 "{""UrlPaginaPago"":""https://api.nuevavision.es/pago/abc""}", respuestaP2F)
+                             Return Task.FromResult(New HttpResponseMessage(HttpStatusCode.OK) With {.Content = New StringContent(cuerpo)})
+                         End Function
+        Return vm
+    End Function
+
+    ' Hallazgo 14: con Paygold, POST Pagos mandaba por correo el enlace de nuestra página y ReclamacionDeuda otro de Paygold:
+    ' dos enlaces distintos para la misma deuda.
+    <TestMethod()>
+    Public Async Function H14_ConPaygold_AlClienteSoloLeLlegaElEnlaceDePaygold() As Task
+        Dim vm = ConReclamacionPaygold("{""TramitadoOK"":true,""Enlace"":""https://paygold.example/x""}")
+
+        Await vm.ReclamarDeudaAsync()
+
+        Dim pagos As JObject = JObject.Parse(_api.Peticiones.First(Function(p) p.Url.EndsWith("/Pagos")).Cuerpo)
+        Assert.AreEqual(JTokenType.Null, pagos("Correo").Type, "POST Pagos no manda su correo: el enlace lo manda Paygold")
+        Dim p2f As JObject = JObject.Parse(_api.Peticiones.First(Function(p) p.Url.EndsWith("/ReclamacionDeuda")).Cuerpo)
+        Assert.AreEqual("cliente@example.com", p2f("Correo").ToString())
+        Assert.AreEqual("https://paygold.example/x", vm.EnlaceReclamarDeuda)
+    End Function
+
+    <TestMethod()>
+    Public Async Function H14_SiPaygoldNoLoTramita_SeDiceQueNoLeHaLlegadoNada() As Task
+        Dim vm = ConReclamacionPaygold("{""TramitadoOK"":false}")
+        Dim mensaje As String = Nothing
+        A.CallTo(Sub() _dialogos.ShowDialog("NotificationDialog", A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)) _
+            .Invokes(Sub(nombre As String, parametros As ParametrosDialogo, callback As Action(Of ResultadoDialogo)) mensaje = parametros.GetValue(Of String)("message"))
+
+        Await vm.ReclamarDeudaAsync()
+
+        StringAssert.Contains(mensaje, "Paygold no ha enviado el enlace al cliente (Paygold no lo ha tramitado): no le ha llegado nada.")
+        StringAssert.Contains(mensaje, "https://api.nuevavision.es/pago/abc")
+        Assert.AreEqual("https://api.nuevavision.es/pago/abc", vm.EnlaceReclamarDeuda)
+    End Function
+
+    <TestMethod()>
+    Public Async Function H14_ConNestoPago_ElCorreoSigueYendoEnPagos() As Task
+        Dim vm = ConReclamacionPaygold("{}")
+        vm.MotorPagosSeleccionado = "NestoPago"
+
+        Await vm.ReclamarDeudaAsync()
+
+        Assert.AreEqual("cliente@example.com", JObject.Parse(_api.Peticiones.Single().Cuerpo)("Correo").ToString())
+    End Function
+
     ' Hallazgo 11: si la API no contesta (red caída), el fallo solo iba a mensajeError, que ClienteComercial.xaml no enseña.
     <TestMethod()>
     Public Async Function H11_SiNoSePuedeLlegarALaApi_AlGuardarSeAvisaEnUnaVentana() As Task
