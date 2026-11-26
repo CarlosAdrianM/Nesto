@@ -501,6 +501,10 @@
                             Seleccionada="{Binding pedido.contacto, Mode=TwoWay}">
                         </controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
+                            <!-- NestoAPI#880 (corte 2): bultos que faltaron en una entrega incompleta de este pedido (solo si hay alguno) -->
+                            <bp:BultosPendientesPanel xmlns:bp="clr-namespace:ControlesUsuario.BultosPendientes;assembly=ControlesUsuario"
+                                                      Empresa="{Binding pedido.empresa}" Pedido="{Binding pedido.numero}" MaxHeight="260"
+                                                      Encabezado="Bultos que faltaron en la entrega" Margin="0,0,0,6"/>
                             <!-- Sugerencia 1356: un envío del pedido devuelto o incidentado que espera decisión. Las mismas acciones
                                  que Agencias › Devueltos (DecisorEnviosDevueltos); si no hay ninguno, no se ve nada. -->
                             <Border Background="#FFF4E5" BorderBrush="DarkOrange" BorderThickness="1" CornerRadius="4"

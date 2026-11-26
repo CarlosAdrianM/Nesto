@@ -86,6 +86,12 @@ namespace Nesto.Modulos.Producto
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosProveedorPorAsignarViewModel>();
             registro.Singleton<IServicioEnviosProveedorPorAsignar, ServicioEnviosProveedorPorAsignar>();
 
+            // NestoAPI#880 (corte 2): los bultos que faltaron en una entrega incompleta (la campana con BultosPendientesReparto abre aquí;
+            // también una pestaña de Agencias y la pestaña «Entrega» del pedido, con BultosPendientesPanel)
+            registro.Vista<ControlesUsuario.BultosPendientes.BultosPendientesView>(NotificacionBuzon.VISTA_BULTOS_PENDIENTES_REPARTO);
+            registro.Transitorio<ControlesUsuario.BultosPendientes.BultosPendientesViewModel>();
+            registro.Singleton<ControlesUsuario.BultosPendientes.IServicioBultosPendientes, ControlesUsuario.BultosPendientes.ServicioBultosPendientes>();
+
             // Nesto#650 (NestoAPI#884): muestras sin código: etiquetas de cajón o gaveta, código interno en bloque y hoja por marca
             // (IGuardadorFicherosDescarga lo registra ComposicionNesto, Nesto#652)
             registro.Vista<MuestrasView>(ProductoMenuBarViewModel.VISTA_MUESTRAS);

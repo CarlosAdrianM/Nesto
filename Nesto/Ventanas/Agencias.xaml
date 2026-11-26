@@ -879,6 +879,10 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+            <!-- NestoAPI#880 (corte 2): los bultos que faltaron en una entrega incompleta del reparto propio, con «Cerrar…» -->
+            <TabItem Name="tabBultosPendientes" Header="Bultos pendientes">
+                <bp:BultosPendientesPanel xmlns:bp="clr-namespace:ControlesUsuario.BultosPendientes;assembly=ControlesUsuario"/>
+            </TabItem>
             <!-- Nesto#468: envíos que salieron hace días y la agencia no ha dado por entregados (NestoAPI#173).
                  Selección → envioActual, así valen "Abrir seguimiento", "Actualizar estado" y el menú de copiar. -->
             <TabItem Name="tabRetrasados" Header="Retrasados">

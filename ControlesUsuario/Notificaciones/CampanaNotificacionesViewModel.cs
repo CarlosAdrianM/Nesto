@@ -642,6 +642,13 @@ namespace ControlesUsuario.Notificaciones
                 _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR, ParametrosCompraSeguimientoPorAsignar(item.Notificacion));
                 return;
             }
+            // NestoAPI#880 (corte 2): el aviso de bultos pendientes de entregas incompletas abre su lista
+            if (item.Notificacion.Tipo == NotificacionBuzon.TIPO_BULTOS_PENDIENTES_REPARTO && _navegacion != null)
+            {
+                PanelAbierto = false;
+                _navegacion.RequestNavigate(REGION_PRINCIPAL, NotificacionBuzon.VISTA_BULTOS_PENDIENTES_REPARTO);
+                return;
+            }
             // Novedades 1258: autorizaciones de pedidos. La pedida (a quien autoriza) abre la ventana en esa solicitud; la resuelta (al
             // solicitante), si se autorizó y trae el pedido creado, ofrece abrirlo; si no (o dice que no), la ventana, que enseña el motivo.
             // Va antes del salto genérico al pedido porque la resuelta también trae Datos["pedido"].

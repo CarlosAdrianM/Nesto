@@ -1,0 +1,52 @@
+<UserControl x:Class="ControlesUsuario.BultosPendientes.BultosPendientesContenido"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <!-- NestoAPI#880 (corte 2): la lista de bultos pendientes y «Cerrar…» (DataContext = BultosPendientesViewModel). -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
+    <DockPanel>
+        <WrapPanel DockPanel.Dock="Top" Margin="3">
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" MinWidth="90" Margin="0,0,6,0"/>
+            <CheckBox Content="Solo los pendientes" IsChecked="{Binding SoloPendientes}" VerticalAlignment="Center" Margin="0,0,12,0"
+                      ToolTip="Sin marcar, también los cerrados de los últimos 30 días."/>
+            <Button Content="Cerrar…" Command="{Binding AbrirCierreCommand}" MinWidth="90"
+                    ToolTip="Cerrar el bulto elegido: entregado en mano, perdido o abonado (Almacén, Dirección e Informática)."/>
+        </WrapPanel>
+        <Border DockPanel.Dock="Top" BorderBrush="DarkOrange" BorderThickness="1" Background="#FFF4E5" Padding="6" Margin="3"
+                Visibility="{Binding MostrandoCierre, Converter={StaticResource BoolAVisibilidad}}">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="{Binding Seleccionado.Texto, StringFormat=Cerrar: {0}}" TextWrapping="Wrap"/>
+                <WrapPanel Margin="0,4,0,0">
+                    <TextBlock Text="Cómo se cierra:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox ItemsSource="{Binding Cierres}" DisplayMemberPath="Value" SelectedValuePath="Key"
+                              SelectedValue="{Binding CierreElegido}" MinWidth="160"/>
+                </WrapPanel>
+                <TextBlock Text="Motivo:" Margin="0,4,0,0"/>
+                <TextBox Text="{Binding MotivoCierre, UpdateSourceTrigger=PropertyChanged}" MaxLength="500" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="40"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                    <Button Content="Cerrar el bulto" Command="{Binding CerrarBultoCommand}" MinWidth="110" Margin="0,0,6,0"/>
+                    <Button Content="Cancelar" Command="{Binding CancelarCierreCommand}" MinWidth="80"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="3"/>
+        <DataGrid ItemsSource="{Binding Bultos}" SelectedItem="{Binding Seleccionado}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" HeadersVisibility="Column" Margin="3">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Bulto" Binding="{Binding Codigo}"/>
+                <DataGridTextColumn Header="Nº" Binding="{Binding TextoBulto}"/>
+                <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}"/>
+                <DataGridTextColumn Header="Envío" Binding="{Binding EnvioId}"/>
+                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                <DataGridTextColumn Header="Entrega" Binding="{Binding FechaEntrega, StringFormat=dd/MM/yyyy HH:mm}"/>
+                <DataGridTextColumn Header="Repartidor" Binding="{Binding Repartidor}"/>
+                <DataGridTextColumn Header="Por qué falta" Binding="{Binding MotivoFalta}" Width="*"/>
+                <DataGridTextColumn Header="Dónde está" Binding="{Binding DondeEsta}" Width="*"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding TextoEstado}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

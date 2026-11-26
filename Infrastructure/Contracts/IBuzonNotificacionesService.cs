@@ -164,6 +164,11 @@ namespace Nesto.Infrastructure.Contracts
         /// <summary>Nesto#636: el parámetro de navegación con el Id del correo del aviso (int).</summary>
         public const string PARAMETRO_CORREO_COMPRA = "correo";
 
+        /// <summary>NestoAPI#880 (corte 2): aviso diario a Almacén de los bultos que faltaron en entregas incompletas y siguen pendientes.</summary>
+        public const string TIPO_BULTOS_PENDIENTES_REPARTO = "BultosPendientesReparto";
+        /// <summary>NestoAPI#880: la ventana «Bultos pendientes del reparto» (la registra el módulo Producto).</summary>
+        public const string VISTA_BULTOS_PENDIENTES_REPARTO = "BultosPendientesView";
+
         public int Id { get; set; }
         public string Titulo { get; set; }
         public string Cuerpo { get; set; }
