@@ -103,9 +103,42 @@ namespace Nesto.Modulos.Cliente
                 {
                     AsegurarOrigenEnLista(nuevo, null);
                     OnPropertyChanged(nameof(OrigenSeleccionado));
+                    OnPropertyChanged(nameof(PideClienteAnterior)); // NestoAPI#876
+                    OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+                    NotificarSePuedeCrearCliente();
                 }
             }
         }
+
+        /// <summary>NestoAPI#876: origen de un cliente que ya lo era y factura con otra razón social o NIF (número nuevo).</summary>
+        public const string ORIGEN_CAMBIO_FISCAL = "CAMBIO-FISCAL";
+
+        /// <summary>NestoAPI#876: en un alta con origen «Cambio de forma fiscal» hay que indicar el número de cliente que tenía antes.</summary>
+        public bool PideClienteAnterior => !EsUnaModificacion && EsCambioFiscal(ClienteOrigen);
+
+        internal static bool EsCambioFiscal(string origen)
+            => string.Equals(origen?.Trim(), ORIGEN_CAMBIO_FISCAL, StringComparison.OrdinalIgnoreCase);
+
+        private string clienteAnterior;
+        /// <summary>NestoAPI#876: el número de cliente anterior (solo viaja en el alta con origen CAMBIO-FISCAL). La API comprueba que existe.</summary>
+        public string ClienteAnterior
+        {
+            get => clienteAnterior;
+            set
+            {
+                if (SetProperty(ref clienteAnterior, string.IsNullOrWhiteSpace(value) ? null : value.Trim()))
+                {
+                    OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+                    NotificarSePuedeCrearCliente();
+                }
+            }
+        }
+
+        /// <summary>NestoAPI#876: lo que se manda en el POST (null si el origen no es «Cambio de forma fiscal» o es una modificación).</summary>
+        internal string ClienteAnteriorParaAlta => PideClienteAnterior ? ClienteAnterior : null;
+
+        internal const string MOTIVO_FALTA_CLIENTE_ANTERIOR =
+            "Con el origen «Cambio de forma fiscal» indique el número de cliente que tenía antes (en «Datos fiscales», debajo del origen).";
 
         public OrigenClienteModel OrigenSeleccionado
         {
@@ -371,7 +404,8 @@ namespace Nesto.Modulos.Cliente
                     // Carlos 20/11/26: con la calle cambiada, revisar antes «¿Qué es?» (confirmar, cambiar o quitar)
                     return DireccionFiscal.MotivoNoSePuedeCrear;
                 }
-                return DireccionFiscal.MotivoNoSePuedeCrear ?? (HayDireccionEntrega ? DireccionEntrega.MotivoNoSePuedeCrear : null);
+                return DireccionFiscal.MotivoNoSePuedeCrear ?? (HayDireccionEntrega ? DireccionEntrega.MotivoNoSePuedeCrear : null)
+                    ?? (PideClienteAnterior && ClienteAnterior == null ? MOTIVO_FALTA_CLIENTE_ANTERIOR : null); // NestoAPI#876
             }
         }
 
@@ -591,6 +625,7 @@ namespace Nesto.Modulos.Cliente
                 OnPropertyChanged(nameof(EsCreandoContacto));
                 OnPropertyChanged(nameof(EsAlta)); // Nesto#643
                 OnPropertyChanged(nameof(MostrarOrigenEnDatosGenerales)); // Nesto#523
+                OnPropertyChanged(nameof(PideClienteAnterior)); // NestoAPI#876
                 DireccionFiscal.NotificarEsAlta(); // corte 1 del 19/11/26: la regla del CP depende de si es un alta
                 NotificarEntregaEnOtraDireccion();
                 NotificarSePuedeCrearCliente(); // Nesto#480
@@ -719,6 +754,11 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
+                // NestoAPI#876: con «Cambio de forma fiscal», sin el número de cliente anterior no se sigue (la API lo exige)
+                if (PideClienteAnterior && ClienteAnterior == null)
+                {
+                    return false;
+                }
                 // NestoAPI#355: cliente extranjero → basta con el nombre (no se valida el NIF contra la AEAT).
                 if (EsPaisExtranjero)
                 {
@@ -915,7 +955,8 @@ namespace Nesto.Modulos.Cliente
                 VendedorEstetica = vendedorEstetica,
                 VendedorPeluqueria = vendedorPeluqueria,
                 Usuario = Configuracion.usuario,
-                Origen = ClienteOrigen // Nesto#523
+                Origen = ClienteOrigen, // Nesto#523
+                ClienteAnterior = ClienteAnteriorParaAlta // NestoAPI#876
             };
 
             if (EsUnaModificacion)
@@ -959,7 +1000,8 @@ namespace Nesto.Modulos.Cliente
                     Clientes clienteCreado = await Servicio.CrearCliente(cliente);
                     if (clienteCreado!=null)
                     {
-                        DialogService.ShowNotification("Cliente Creado", MensajeClienteCreado(clienteCreado, cliente.DireccionEntrega != null));
+                        DialogService.ShowNotification("Cliente Creado", MensajeClienteCreado(clienteCreado, cliente.DireccionEntrega != null)
+                            + TextoClienteAnteriorCreado(clienteCreado)); // NestoAPI#876
                         Messenger.Send(new ClienteCreadoMensaje(clienteCreado));
                         await OfrecerCopiarDatosDelPrincipal(clienteCreado);
                     }
@@ -970,6 +1012,20 @@ namespace Nesto.Modulos.Cliente
             {
                 DialogService.ShowError(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// NestoAPI#876: lo que la respuesta del alta dice del cliente anterior («. Cliente anterior: 12345» y el aviso, p. ej. el mismo NIF);
+        /// vacío si no trae nada (sin ese origen o con la API vieja).
+        /// </summary>
+        internal static string TextoClienteAnteriorCreado(Clientes creado)
+        {
+            string texto = string.IsNullOrWhiteSpace(creado?.ClienteAnterior) ? string.Empty : ". Cliente anterior: " + creado.ClienteAnterior.Trim();
+            if (!string.IsNullOrWhiteSpace(creado?.AvisoClienteAnterior))
+            {
+                texto += "\n\n" + creado.AvisoClienteAnterior.Trim();
+            }
+            return texto;
         }
 
         /// <summary>

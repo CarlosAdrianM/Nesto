@@ -47,6 +47,21 @@ Public Class ClienteJson
     ''' (GET Clientes?empresa=&amp;cliente=&amp;contacto=), no las listas; se cambia con PUT Clientes/{empresa}/{cliente}/SuPedidoObligatorio.
     ''' </summary>
     Public Property suPedidoObligatorio() As Boolean
+    ''' <summary>
+    ''' NestoAPI#876: el número de cliente que tenía antes (alta con origen «Cambio de forma fiscal»). Solo lo trae la ficha
+    ''' (GET Clientes?empresa=&amp;cliente=&amp;contacto=); con la API vieja o sin cliente anterior, Nothing. Nunca se manda de vuelta.
+    ''' </summary>
+    Public Property clienteAnterior() As String
+    Public Function ShouldSerializeclienteAnterior() As Boolean
+        Return False
+    End Function
+    ''' <summary>NestoAPI#876: «Cliente anterior: 12345» para la ficha; Nothing si no tiene.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property TextoClienteAnterior As String
+        Get
+            Return If(String.IsNullOrWhiteSpace(clienteAnterior), Nothing, "Cliente anterior: " & clienteAnterior.Trim())
+        End Get
+    End Property
     Public ReadOnly Property poblacionConCodigoPostal As String
         Get
             Return String.Format("{0} {1} ({2})", codigoPostal?.Trim(), poblacion?.Trim(), provincia?.Trim())

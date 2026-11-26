@@ -51,6 +51,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="12"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="2*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
@@ -60,6 +62,15 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="2*"/>
                             </Grid.ColumnDefinitions>
+                            <!-- NestoAPI#876: con el origen «Cambio de forma fiscal», el número de cliente que tenía antes (obligatorio; la API
+                                 comprueba que existe). Fiscalmente es otro cliente; comercialmente, el mismo. -->
+                            <TextBlock Grid.Column="1" Grid.Row="9" TextAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                                       Visibility="{Binding PideClienteAnterior, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                       ToolTip="Obligatorio con el origen «Cambio de forma fiscal»: el número de cliente con el que compraba antes (con la otra razón social o NIF).">Nº de cliente anterior</TextBlock>
+                            <TextBox Name="txtClienteAnterior" Grid.Column="3" Grid.Row="9"
+                                     Text="{Binding ClienteAnterior, UpdateSourceTrigger=PropertyChanged}"
+                                     Visibility="{Binding PideClienteAnterior, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                     ToolTip="Obligatorio con el origen «Cambio de forma fiscal»: el número de cliente con el que compraba antes (con la otra razón social o NIF). Sin él no se puede seguir."/>
                             <!-- NestoAPI#355: país del cliente. Si no es ES, el NIF es un NIF-IVA
                                  extranjero y NO se valida contra la AEAT. -->
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right" VerticalAlignment="Center">País</TextBlock>

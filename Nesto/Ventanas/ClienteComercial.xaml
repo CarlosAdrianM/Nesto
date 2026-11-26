@@ -87,14 +87,32 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0">Nº Cliente:</TextBlock>
-                    <TextBlock Grid.Row="0" Grid.Column="1">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0}/{1}">
-                                <Binding Path="clienteActivo.cliente" />
-                                <Binding Path="clienteActivo.contacto" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
+                    <StackPanel Grid.Row="0" Grid.Column="1">
+                        <TextBlock>
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0}/{1}">
+                                    <Binding Path="clienteActivo.cliente" />
+                                    <Binding Path="clienteActivo.contacto" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                        <!-- NestoAPI#876: cliente que cambió de forma fiscal; solo se ve si tiene cliente anterior -->
+                        <TextBlock Text="{Binding clienteActivo.TextoClienteAnterior}" Foreground="DimGray" FontSize="11"
+                                   ToolTip="El cliente cambió de forma fiscal (otra razón social o NIF): comercialmente es el mismo que este número anterior; lo fiscal no se hereda.">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                     <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding clienteActivo.estado}" ToolTip="Estado en ficha" IsEnabled="{Binding PuedeEditarComercial}"></TextBox>
                     <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.telefono}" />

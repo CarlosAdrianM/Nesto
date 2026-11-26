@@ -113,6 +113,12 @@ namespace Nesto.Modulos.Cliente
         /// Nesto#523 (NestoAPI#623): código del origen del cliente (campaña), p. ej. «META-HARMONIA-0926». Opcional; null = sin origen.
         /// </summary>
         public string Origen { get; set; }
+        /// <summary>
+        /// NestoAPI#876: con origen CAMBIO-FISCAL, el número de cliente que tenía antes (obligatorio en el alta; la API comprueba que existe
+        /// y no es él mismo). El PUT no lo toca; GetClienteCrear lo trae. No viaja si es null.
+        /// </summary>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ClienteAnterior { get; set; }
 
         public string Usuario { get; set; }
 
