@@ -20,7 +20,7 @@
             </TextBox>
             <TextBlock Text="Almacén:" VerticalAlignment="Center" Margin="12,0,4,0"/>
             <ComboBox ItemsSource="{Binding AlmacenesPropuestos}" Text="{Binding Almacen, UpdateSourceTrigger=LostFocus}" IsEditable="True" Width="80"
-                      ToolTip="Vacío = todos los almacenes"/>
+                      IsEnabled="{Binding PuedeCambiarAlmacen}" ToolTip="Vacío = todos los almacenes"/>
             <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="12,0,4,0"/>
             <DatePicker SelectedDate="{Binding Desde}" Width="120"/>
             <TextBlock Text="Hasta:" VerticalAlignment="Center" Margin="8,0,4,0"/>
@@ -34,6 +34,9 @@
             <TextBlock Text="{Binding SaldoFinal, StringFormat={}{0:N0}}" Margin="0,0,16,0"/>
             <TextBlock Text="{Binding TextoCuantos}" Foreground="DimGray"/>
         </WrapPanel>
+        <!-- Quien solo es de Tiendas: la API le devuelve siempre su almacén -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding TextoAlmacenFijado}" FontSize="11" Foreground="DimGray" Margin="3,0,3,3"
+                   Visibility="{Binding AlmacenFijadoPorLaApi, Converter={StaticResource BoolAVisibilidad}}"/>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="3">
             <Button Content="Cargar más" Command="{Binding CargarMasCommand}" MinWidth="100"
                     Visibility="{Binding HayMas, Converter={StaticResource BoolAVisibilidad}}"/>

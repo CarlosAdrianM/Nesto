@@ -128,6 +128,59 @@ namespace Producto.Tests
                 ServicioExtractoProducto.UrlExtracto(null, "17404", "ALG", new DateTime(2025, 11, 27), HOY, 2, 200));
         }
 
+        // ---------- Quien solo es de Tiendas: la API manda su almacén (Carlos 26/11/26) ----------
+
+        [TestMethod]
+        public async Task SiLaApiDevuelveOtroAlmacen_ElFiltroSePoneAEseYSeBloquea()
+        {
+            ExtractoProducto extracto = Extracto(1, Mov(1));
+            extracto.Almacen = "REI";
+            A.CallTo(() => servicio.LeerExtracto("1", "17404", null, A<DateTime?>._, A<DateTime?>._, 1, 200)).Returns(extracto);
+            var vm = new ExtractoProductoViewModel(servicio, () => HOY) { Producto = "17404" };
+
+            await vm.CargarAsync();
+
+            Assert.AreEqual("REI", vm.Almacen);
+            Assert.IsTrue(vm.AlmacenFijadoPorLaApi);
+            Assert.IsFalse(vm.PuedeCambiarAlmacen);
+            Assert.AreEqual("Solo se muestran los movimientos de su almacén (REI).", vm.TextoAlmacenFijado);
+        }
+
+        [TestMethod]
+        public async Task SiSePideUnAlmacenYLaApiDevuelveOtro_TambienSeBloquea()
+        {
+            ExtractoProducto extracto = Extracto(1, Mov(1));
+            extracto.Almacen = "ALC";
+            A.CallTo(() => servicio.LeerExtracto("1", "17404", "ALG", A<DateTime?>._, A<DateTime?>._, 1, 200)).Returns(extracto);
+            var vm = new ExtractoProductoViewModel(servicio, () => HOY) { Producto = "17404", Almacen = "ALG" };
+
+            await vm.CargarAsync();
+
+            Assert.AreEqual("ALC", vm.Almacen);
+            Assert.IsFalse(vm.PuedeCambiarAlmacen);
+        }
+
+        [TestMethod]
+        public async Task SiLaApiDevuelveElAlmacenPedidoOTodos_ElFiltroSigueLibre()
+        {
+            ExtractoProducto todos = Extracto(1, Mov(1)); // Almacen null = todos
+            ExtractoProducto alg = Extracto(1, Mov(1));
+            alg.Almacen = "ALG";
+            A.CallTo(() => servicio.LeerExtracto("1", "17404", null, A<DateTime?>._, A<DateTime?>._, 1, 200)).Returns(todos);
+            A.CallTo(() => servicio.LeerExtracto("1", "17404", "ALG", A<DateTime?>._, A<DateTime?>._, 1, 200)).Returns(alg);
+            var vm = new ExtractoProductoViewModel(servicio, () => HOY) { Producto = "17404" };
+
+            await vm.CargarAsync();
+            Assert.IsNull(vm.Almacen);
+            Assert.IsTrue(vm.PuedeCambiarAlmacen);
+            Assert.IsNull(vm.TextoAlmacenFijado);
+
+            vm.Almacen = "alg";
+            await vm.CargarAsync();
+            Assert.AreEqual("ALG", vm.Almacen);
+            Assert.IsTrue(vm.PuedeCambiarAlmacen);
+        }
+
         // ---------- Referencia del proveedor en la ficha ----------
 
         [TestMethod]

@@ -66,6 +66,28 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _almacen;
         public string Almacen { get => _almacen; set => SetProperty(ref _almacen, string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant()); }
 
+        private bool _almacenFijadoPorLaApi;
+        /// <summary>
+        /// NestoAPI (Carlos 26/11/26): a quien solo es de Tiendas la API le devuelve SIEMPRE los movimientos de su almacén, pida el que pida.
+        /// Cuando el almacén de la respuesta no es el que se pidió, el filtro se pone a ese y queda deshabilitado (no se puede cambiar).
+        /// </summary>
+        public bool AlmacenFijadoPorLaApi
+        {
+            get => _almacenFijadoPorLaApi;
+            private set
+            {
+                if (SetProperty(ref _almacenFijadoPorLaApi, value))
+                {
+                    OnPropertyChanged(nameof(PuedeCambiarAlmacen));
+                    OnPropertyChanged(nameof(TextoAlmacenFijado));
+                }
+            }
+        }
+
+        public bool PuedeCambiarAlmacen => !AlmacenFijadoPorLaApi;
+
+        public string TextoAlmacenFijado => AlmacenFijadoPorLaApi ? $"Solo se muestran los movimientos de su almacén ({Almacen})." : null;
+
         private DateTime? _desde;
         public DateTime? Desde { get => _desde; set => SetProperty(ref _desde, value); }
 
@@ -173,7 +195,9 @@ namespace Nesto.Modules.Producto.ViewModels
             Mensaje = null;
             try
             {
-                ExtractoProducto extracto = await _servicio.LeerExtracto(EMPRESA, Producto, Almacen, Desde, Hasta, pagina, TAMANO_PAGINA);
+                string almacenPedido = Almacen;
+                ExtractoProducto extracto = await _servicio.LeerExtracto(EMPRESA, Producto, almacenPedido, Desde, Hasta, pagina, TAMANO_PAGINA);
+                AplicarAlmacenDeLaRespuesta(almacenPedido, extracto?.Almacen);
                 if (pagina == 1)
                 {
                     Nombre = extracto?.Nombre?.Trim();
@@ -200,6 +224,19 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaOcupado = false;
                 NotificarPaginas();
             }
+        }
+
+        /// <summary>Si la API devuelve un almacén concreto distinto del pedido (vacío u otro), manda el de la API y el filtro se bloquea.</summary>
+        private void AplicarAlmacenDeLaRespuesta(string almacenPedido, string almacenRespuesta)
+        {
+            string devuelto = string.IsNullOrWhiteSpace(almacenRespuesta) ? null : almacenRespuesta.Trim().ToUpperInvariant();
+            if (devuelto == null || string.Equals(devuelto, almacenPedido, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            Almacen = devuelto;
+            AlmacenFijadoPorLaApi = true;
+            OnPropertyChanged(nameof(TextoAlmacenFijado));
         }
 
         private void NotificarPaginas()
