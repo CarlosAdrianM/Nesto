@@ -180,7 +180,7 @@ namespace Producto.Tests
         [TestMethod]
         public void ServicioVecinos_Url()
         {
-            Assert.AreEqual("Productos/Vecinos?producto=45957&empresa=1", ServicioVecinosProducto.Url(null, " 45957 "));
+            Assert.AreEqual("Productos/Vecinos?producto=45957&empresa=1&saltarAnuladas=true", ServicioVecinosProducto.Url(null, " 45957 "));
         }
     }
 }

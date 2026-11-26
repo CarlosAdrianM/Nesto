@@ -35,7 +35,9 @@ namespace Nesto.Modules.Producto
 
         internal static string Url(string empresa, string producto) =>
             $"Productos/Vecinos?producto={Uri.EscapeDataString(producto?.Trim() ?? string.Empty)}" +
-            $"&empresa={Uri.EscapeDataString(string.IsNullOrWhiteSpace(empresa) ? "1" : empresa.Trim())}";
+            $"&empresa={Uri.EscapeDataString(string.IsNullOrWhiteSpace(empresa) ? "1" : empresa.Trim())}" +
+            // Sugerencia 1478: las flechas saltan las referencias anuladas (una API que no lo conoce lo ignora)
+            "&saltarAnuladas=true";
 
         public async Task<VecinosProducto> Leer(string empresa, string producto)
         {
