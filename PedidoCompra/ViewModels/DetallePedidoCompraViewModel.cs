@@ -148,6 +148,14 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             Navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
+        /// <summary>
+        /// Carlos 26/11/26: que el proveedor dé a la agencia nuestro correo de Compras como correo de aviso del destinatario, para que
+        /// el seguimiento nos llegue directamente (la API lo lee de ese buzón y pone sola la fecha de recepción, NestoAPI#857).
+        /// </summary>
+        internal const string TEXTO_SEGUIMIENTO_AGENCIA =
+            "\n\nIMPORTANTE: al tramitar el envío, indiquen SIN FALTA a la agencia de transportes el correo " + Constantes.CorreosEmpresa.COMPRAS +
+            " como correo de aviso del destinatario, para que la propia agencia nos envíe el seguimiento del envío a esa dirección.";
+
         public ICommand EnviarPedidoCommand { get; private set; }
         private bool CanEnviarPedido(PedidoCompraWrapper pedido)
         {
@@ -180,7 +188,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 cuerpoCorreo = string.Empty;
             }
             cuerpoCorreo += "Adjuntamos nueva orden de compra en formato PDF y formato Excel (son el mismo pedido, para que ustedes puedan elegir entre ambas opciones a la hora de gestionar el pedido).";
-            cuerpoCorreo += "\n\nRogamos nos informen a la mayor brevedad de la fecha estimada de recepción en nuestros almacenes y nos envíen el enlace de seguimiento de la agencia de transportes tan pronto como obre en su poder.";            
+            cuerpoCorreo += "\n\nRogamos nos informen a la mayor brevedad de la fecha estimada de recepción en nuestros almacenes y nos envíen el enlace de seguimiento de la agencia de transportes tan pronto como obre en su poder.";
+            cuerpoCorreo += TEXTO_SEGUIMIENTO_AGENCIA;
             cuerpoCorreo += "\n\nMuchas gracias.";
             var message = new Message
             {
