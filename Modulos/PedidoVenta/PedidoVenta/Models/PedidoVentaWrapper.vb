@@ -19,13 +19,32 @@ Public Class PedidoVentaWrapper
         AddHandler Lineas.CollectionChanged, AddressOf ContentCollectionChanged
         AddHandler Prepagos.CollectionChanged, AddressOf PrepagosCollectionChanged
 
-        For Each linea In Model.Lineas
-            Dim lineaNueva As New LineaPedidoVentaWrapper(linea) With {
-                .Pedido = Me
-            }
-            Lineas.Add(lineaNueva)
-        Next
+        ' Novedad 1453 (pedido 931726, 26/11/26): las líneas YA están en el modelo. Antes, envolver una línea sin Nº de orden
+        ' (id 0) la volvía a insertar en Model.Lineas desde ContentCollectionChanged mientras se recorría esa misma colección:
+        ' «Collection was modified; enumeration operation may not execute» y la línea quedaba dos veces en el modelo. Se
+        ' recorre una copia y ContentCollectionChanged no inserta lo que el modelo ya tiene.
+        If Model.Lineas IsNot Nothing Then
+            For Each linea In Model.Lineas.ToList()
+                Dim lineaNueva As New LineaPedidoVentaWrapper(linea) With {
+                    .Pedido = Me
+                }
+                Lineas.Add(lineaNueva)
+            Next
+        End If
     End Sub
+
+    ''' <summary>Novedad 1453: si el modelo ya tiene esa misma línea (la misma instancia).</summary>
+    Private Function ModeloTieneLinea(linea As LineaPedidoVentaDTO) As Boolean
+        If Model?.Lineas Is Nothing OrElse linea Is Nothing Then
+            Return False
+        End If
+        For Each existente In Model.Lineas
+            If ReferenceEquals(existente, linea) Then
+                Return True
+            End If
+        Next
+        Return False
+    End Function
 
     Public Property Model As PedidoVentaDTO
 
@@ -475,9 +494,11 @@ Public Class PedidoVentaWrapper
                     AddHandler item.PropertyChanged, AddressOf LineaOnPropertyChanged
                     If item.id = 0 Then
                         item.Pedido = Me
-                        Dim posicion As Integer = Lineas.IndexOf(item)
-                        Dim lista = DirectCast(Model.Lineas, IList(Of LineaPedidoVentaDTO))
-                        lista.Insert(posicion, item.Model)
+                        If Not ModeloTieneLinea(item.Model) Then ' novedad 1453: no duplicar la que ya está
+                            Dim lista = DirectCast(Model.Lineas, IList(Of LineaPedidoVentaDTO))
+                            Dim posicion As Integer = Math.Min(Math.Max(Lineas.IndexOf(item), 0), lista.Count)
+                            lista.Insert(posicion, item.Model)
+                        End If
                     End If
                 End If
             Next

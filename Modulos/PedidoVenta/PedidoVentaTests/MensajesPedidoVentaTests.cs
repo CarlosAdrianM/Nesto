@@ -59,15 +59,37 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public void PedidoCreado_LlegaAlDetalle_YSustituyeElPedidoNuevo()
+        public void PedidoCreado_DeOtroDetalle_NoSustituyeElPedidoNuevoDeEste()
         {
+            // Novedad 1453 (pedido 931726): antes el pedido nuevo de OTRO detalle se quedaba con el creado (y, con líneas sin
+            // Nº de orden, saltaba «Collection was modified» dentro del alta del que lo creaba)
             var vm = CrearDetalle();
-            vm.pedido = new PedidoVentaWrapper(new PedidoVentaDTO { empresa = "1", numero = 0 });
-            var creado = new PedidoVentaDTO { empresa = "1", numero = 987654 };
+            var nuevoDeEste = new PedidoVentaDTO { empresa = "1", numero = 0 };
+            vm.pedido = new PedidoVentaWrapper(nuevoDeEste);
+            var creado = new PedidoVentaDTO
+            {
+                empresa = "1",
+                numero = 987654,
+                Lineas = new List<LineaPedidoVentaDTO> { new LineaPedidoVentaDTO { id = 0, tipoLinea = 2, Producto = "70500009", Cantidad = 1 } }
+            };
 
             _messenger.Send(new PedidoCreadoMensaje(new PedidoCreadoEventArgs { Pedido = creado }));
 
-            Assert.AreEqual(987654, vm.pedido.numero);
+            Assert.AreSame(nuevoDeEste, vm.pedido.Model);
+            Assert.AreEqual(0, vm.pedido.numero);
+            Assert.AreEqual(1, creado.Lineas.Count, "La línea del pedido creado no se duplica");
+        }
+
+        [TestMethod]
+        public void PedidoCreado_DelPropioDetalle_PoneElTitulo()
+        {
+            var vm = CrearDetalle();
+            var pedido = new PedidoVentaDTO { empresa = "1", numero = 987654 };
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            _messenger.Send(new PedidoCreadoMensaje(new PedidoCreadoEventArgs { Pedido = pedido }));
+
+            Assert.AreSame(pedido, vm.pedido.Model);
             Assert.AreEqual("Pedido Venta (987654)", vm.Titulo);
         }
 

@@ -2567,6 +2567,7 @@ Public Class DetallePedidoViewModel
         PrepararServirPendienteParaGuardar() ' NestoAPI#688
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Dim rechazoPedidoCambiado As PedidoCambiadoException = Nothing ' Nesto#642
+        Dim falloTrasCrear As Exception = Nothing ' novedad 1453
         EmpezarGuardadoPedido() ' Nesto#642
         Try
             textoBusyIndicator = "Guardando pedido..."
@@ -2576,11 +2577,23 @@ Public Class DetallePedidoViewModel
             If EstaCreandoPedido Then
                 Dim numeroPedidoCreado As Integer = Await FechaEntregaLejanaException.GuardarPreguntando(pedido.Model, Function() servicio.CrearPedido(pedido.Model), AddressOf PreguntarFechaEntregaLejana)
                 pedido.numero = numeroPedidoCreado
-                AvisoPedidoModel.MostrarCursosVendidosAMano(AvisoPedidoModel.DelAlta(pedido.Model), Sub(tituloAviso, textoAviso) dialogService.ShowNotification(tituloAviso, textoAviso)) ' NestoAPI#889
-                OnPropertyChanged(NameOf(EstaCreandoPedido))
-                OnPropertyChanged(NameOf(TextoBotonGuardar))
-                Titulo = $"Pedido Venta ({pedido.numero})"
-                AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
+                Try ' novedad 1453: el pedido YA está creado; lo que falle a partir de aquí es de la pantalla
+                    AvisoPedidoModel.MostrarCursosVendidosAMano(AvisoPedidoModel.DelAlta(pedido.Model), Sub(tituloAviso, textoAviso) dialogService.ShowNotification(tituloAviso, textoAviso)) ' NestoAPI#889
+                    OnPropertyChanged(NameOf(EstaCreandoPedido))
+                    OnPropertyChanged(NameOf(TextoBotonGuardar))
+                    Titulo = $"Pedido Venta ({pedido.numero})"
+                    AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
+                    _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+                    _fotoAlCargar = FotoTrasGuardar() ' Nesto#642
+                    AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): el pedido tal como ha quedado
+                Catch ex As Exception
+                    falloTrasCrear = ex
+                End Try
+                If falloTrasCrear IsNot Nothing Then
+                    Exit Try ' se relee después del Finally y no se sigue con albarán/factura
+                End If
+                OlvidarCampanaSoloEnStock() ' NestoAPI#889
+                Return True ' Guardado exitoso, continuar
             Else
                 ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
                 ' al guardar cambios pendientes antes de crear albarán/factura).
@@ -2623,6 +2636,11 @@ Public Class DetallePedidoViewModel
             estaBloqueado = False
             TerminarGuardadoPedido() ' Nesto#642
         End Try
+
+        If falloTrasCrear IsNot Nothing Then
+            Await ReleerTrasFalloAlTerminarDeCrearAsync(falloTrasCrear) ' novedad 1453
+            Return False
+        End If
 
         ' Nesto#642: PEDIDO_CAMBIADO: no se ha guardado nada; se ofrece recargar y no se sigue con albarán/factura.
         If rechazoPedidoCambiado IsNot Nothing Then
@@ -3044,6 +3062,7 @@ Public Class DetallePedidoViewModel
         pedido.Model.ConfirmarFechaEntregaLejana = False ' NestoAPI#712: cada guardado vuelve a preguntar si hace falta
         Dim quitoDescuentoSoloEnStock As Boolean = False ' NestoAPI#889
         Dim adoptadoTrasGuardar As Boolean = False
+        Dim falloTrasCrear As Exception = Nothing ' novedad 1453
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
             Dim crearModificarEx As Exception = Nothing
@@ -3079,6 +3098,7 @@ Public Class DetallePedidoViewModel
                         Throw crearModificarEx
                     End If
                 End If
+                Try ' novedad 1453: el pedido YA está creado; lo que falle a partir de aquí es de la pantalla
                 ' NestoAPI#889: avisos del alta («solo en stock», lo partido con QuitarDescuento, curso vendido a mano)
                 AvisoPedidoModel.MostrarCursosVendidosAMano(AvisoPedidoModel.DelAlta(pedido.Model), Sub(titulo, mensaje) dialogService.ShowNotification(titulo, mensaje))
                 OnPropertyChanged(NameOf(EstaCreandoPedido))
@@ -3111,6 +3131,9 @@ Public Class DetallePedidoViewModel
                 _fotoAlCargar = FotoTrasGuardar() ' Nesto#642: recién creado, sus líneas no tienen Nº de orden: sin foto
                 adoptadoTrasGuardar = AdoptarPedidoGuardadoSiLoHay() ' Nesto#642 (ampliación): salvo que la API devuelva el pedido creado
                 AlCambiarElPedidoEnPantalla() ' Nesto#642: ya tiene número: al grupo de SignalR del pedido nuevo
+                Catch ex As Exception
+                    falloTrasCrear = ex
+                End Try
             Else
                 Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
@@ -3151,7 +3174,9 @@ Public Class DetallePedidoViewModel
             End If
 
             ' Issue #135: Gestionar etiqueta de recogida
-            Await GestionarEtiquetaRecogida()
+            If falloTrasCrear Is Nothing Then
+                Await GestionarEtiquetaRecogida()
+            End If
             guardado = True
             OlvidarCampanaSoloEnStock() ' NestoAPI#889: la elección valía para este guardado (y sus reintentos)
         Catch ex As GuardadoCanceladoPorFechaEntregaException
@@ -3189,6 +3214,11 @@ Public Class DetallePedidoViewModel
             TerminarGuardadoPedido() ' Nesto#642: el «pedidoCambiado» que llegó mientras, ya con la versión nueva
         End Try
 
+        If falloTrasCrear IsNot Nothing Then
+            Await ReleerTrasFalloAlTerminarDeCrearAsync(falloTrasCrear) ' novedad 1453
+            Return
+        End If
+
         If rechazoPedidoCambiado IsNot Nothing Then
             Await ResolverPedidoCambiadoAsync(rechazoPedidoCambiado) ' Nesto#642
             Return
@@ -3222,6 +3252,30 @@ Public Class DetallePedidoViewModel
             Await CargarChequeRegaloAsync() ' NestoAPI#593 (c5): el cheque puede haber pasado a este pedido o haberse soltado
             Await CargarCuponAsync() ' Nesto#518: el cupón puede haber pasado a este pedido o haberse soltado
         End If
+    End Function
+
+    ''' <summary>
+    ''' Novedad 1453 (pedido 931726): el pedido se ha creado en el servidor, pero lo que la pantalla hace después (adoptar el
+    ''' pedido guardado, la foto, el aviso a la lista…) ha fallado. Sin esto la pantalla se quedaba con las líneas sin Nº de
+    ''' orden y la versión de antes, y el siguiente guardado mandaba un PUT sin las líneas guardadas que la API tomó por
+    ''' «pasar a presupuesto» (la línea quedó en -3). Se dice y se vuelve a leer el pedido tal como ha quedado.
+    ''' </summary>
+    Friend Async Function ReleerTrasFalloAlTerminarDeCrearAsync(fallo As Exception) As Task
+        If pedido Is Nothing OrElse pedido.numero <= 0 Then
+            Return
+        End If
+        Dim numero As Integer = pedido.numero
+        dialogService.ShowError(TextoFalloAlTerminarDeCrear(numero, fallo?.Message))
+        Await CargarPedidoAsync(New ResumenPedido With {.empresa = pedido.empresa, .numero = numero})
+    End Function
+
+    Friend Shared Function TextoFalloAlTerminarDeCrear(numero As Integer, detalle As String) As String
+        Dim texto As String = $"El pedido {numero} se ha creado, pero la pantalla no ha podido terminar de ponerse al día. " &
+            "Se vuelve a leer del servidor tal como ha quedado; revíselo antes de seguir."
+        If Not String.IsNullOrWhiteSpace(detalle) Then
+            texto &= vbCrLf & vbCrLf & "Detalle: " & detalle.Trim()
+        End If
+        Return texto
     End Function
 
     ''' <summary>
@@ -5119,12 +5173,22 @@ Public Class DetallePedidoViewModel
     End Sub
 #End Region
 
+    ''' <summary>
+    ''' Novedad 1453 (pedido 931726, 26/11/26): desde Nesto#490 cada pedido tiene su propio detalle y el único que manda este
+    ''' mensaje es el detalle que acaba de crear el pedido (y ya se ha puesto el número). Antes, cualquier OTRO detalle con un
+    ''' pedido nuevo de la misma empresa se quedaba con el pedido recién creado (el mismo objeto, compartido entre los dos) y,
+    ''' al envolverlo, saltaba «Collection was modified» dentro del alta: el pedido ya estaba creado, pero la pantalla que lo
+    ''' creó se quedaba a medias. Ahora solo cuenta si el pedido del mensaje es el de este detalle.
+    ''' </summary>
+    Friend Shared Function EsElPedidoDeEsteDetalle(enPantalla As PedidoVentaDTO, creado As PedidoVentaDTO) As Boolean
+        Return enPantalla IsNot Nothing AndAlso creado IsNot Nothing AndAlso ReferenceEquals(enPantalla, creado)
+    End Function
+
     Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)
-        ' Actualizar el pedido actual si coincide
-        If Not IsNothing(pedido) AndAlso pedido.numero = 0 AndAlso eventArgs.Pedido.empresa = pedido.empresa Then
-            pedido = New PedidoVentaWrapper(eventArgs.Pedido)
-            Titulo = $"Pedido Venta ({eventArgs.Pedido.numero})"
+        If IsNothing(pedido) OrElse Not EsElPedidoDeEsteDetalle(pedido.Model, eventArgs?.Pedido) Then
+            Return ' es el pedido de otro detalle: el nuevo de esta pantalla sigue siendo suyo
         End If
+        Titulo = $"Pedido Venta ({eventArgs.Pedido.numero})"
     End Sub
 #End Region
 
