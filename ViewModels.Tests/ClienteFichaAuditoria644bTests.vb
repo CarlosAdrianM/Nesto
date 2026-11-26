@@ -187,6 +187,56 @@ Public Class ClienteFichaAuditoria644bTests
         Assert.AreEqual(1, _api.Puts().Count, "Con el estado 0 basta el primero")
     End Function
 
+    ''' <summary>La pestaña Deudas cargada con un efecto (nº orden 4711) sin estado, y elegido para editarlo.</summary>
+    Private Async Function ConEfectoElegido() As Task(Of ClienteComercialViewModel)
+        Dim vm = Await ConFicha(Ficha())
+        _api.Respuesta = Function(r) Task.FromResult(New HttpResponseMessage(HttpStatusCode.OK) With {
+            .Content = New StringContent("[{""Id"":4711,""Empresa"":""1"",""Cliente"":""15191"",""Contacto"":""0"",""Estado"":null,""FormaPago"":""RCB"",""Vencimiento"":""2026-12-01T00:00:00"",""ImportePendiente"":10.0}]")
+        })
+        Await vm.CargarDeudasAsync()
+        vm.DeudaSeleccionada = vm.ListaDeudas.Single()
+        vm.MotivoCambioEstado = "Lo pide el cliente"
+        Return vm
+    End Function
+
+    ' Hallazgo 9: el seguimiento se creaba ANTES del PUT; si el PUT fallaba, quedaba apuntado un cambio que no se hizo.
+    <TestMethod()>
+    Public Async Function H9_SiElEfectoNoSeGuarda_NoSeApuntaElSeguimiento() As Task
+        Dim vm = Await ConEfectoElegido()
+        vm.DeudaSeleccionada.Estado = "RETENIDO"
+        A.CallTo(Function() _servicio.ModificarExtractoCliente(A(Of ExtractoClienteDTO).Ignored)).Throws(New Exception("Solo Administración, Dirección o Informática pueden modificar los efectos del extracto del cliente."))
+
+        Await vm.GuardarEfectoDeudaAsync()
+
+        A.CallTo(Function() _rapports.crearRapport(A(Of SeguimientoClienteDTO).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() _dialogos.ShowError("No se ha modificado el efecto 4711: Solo Administración, Dirección o Informática pueden modificar los efectos del extracto del cliente.")).MustHaveHappenedOnceExactly()
+    End Function
+
+    ' Hallazgo 9: el texto decía siempre «cambió el estado»; ahora dice lo que ha cambiado, y va después del PUT.
+    <TestMethod()>
+    Public Async Function H9_ElSeguimientoVaDespuesDelPut_YDiceLoQueHaCambiado() As Task
+        Dim vm = Await ConEfectoElegido()
+        vm.DeudaSeleccionada.Vencimiento = New Date(2026, 12, 15)
+        Dim comentario As String = Nothing
+        A.CallTo(Function() _rapports.crearRapport(A(Of SeguimientoClienteDTO).Ignored)) _
+            .Invokes(Sub(s As SeguimientoClienteDTO) comentario = s.Comentarios).Returns(Task.FromResult("ok"))
+
+        Await vm.GuardarEfectoDeudaAsync()
+
+        A.CallTo(Function() _servicio.ModificarExtractoCliente(vm.DeudaSeleccionada)).MustHaveHappenedOnceExactly() _
+            .Then(A.CallTo(Function() _rapports.crearRapport(A(Of SeguimientoClienteDTO).Ignored)).MustHaveHappenedOnceExactly())
+        Assert.AreEqual("Carlos modificó el extracto de cliente con nº orden 4711 (vencimiento del 01/12/2026 al 15/12/2026) dando como motivo: Lo pide el cliente", comentario)
+    End Function
+
+    <TestMethod()>
+    Public Sub H9_TextoDelSeguimiento_ComparaComoLaApi()
+        Dim antes As New ExtractoClienteDTO With {.Id = 1, .Estado = Nothing, .CCC = "1  ", .FormaPago = "rcb", .Vencimiento = New Date(2026, 12, 1)}
+        Dim despues As New ExtractoClienteDTO With {.Id = 1, .Estado = "retenido", .CCC = "1", .FormaPago = "RCB", .Vencimiento = New Date(2026, 12, 1)}
+
+        Assert.AreEqual("Ana modificó el extracto de cliente con nº orden 1 (estado de «en blanco» a «RETENIDO») dando como motivo: x",
+                        ClienteComercialViewModel.TextoSeguimientoCambioEfecto("Ana", antes, despues, " x "))
+    End Sub
+
     ' Hallazgo 10: ante un 403/500 la lista quedaba a Nothing sin decir nada (parecía «no tiene facturas») o reventaba.
     <TestMethod()>
     Public Async Function H10_SiLasFacturasNoSePuedenCargar_SeDicePorQue() As Task

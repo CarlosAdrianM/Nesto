@@ -32,23 +32,16 @@ Public Class ClienteComercialService
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
-
             Dim urlConsulta As String = "ExtractosCliente"
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(extracto), Encoding.UTF8, "application/json")
 
-            response = client.PutAsync(urlConsulta, content).Result
-
-
-            If response.IsSuccessStatusCode Then
-                respuesta = response.Content.ReadAsStringAsync().Result
-            Else
-                Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+            ' Nesto#644 (9 y 13): sin .Result (bloqueaba la pantalla), y el motivo de un 403 o un 400 de texto («No hay ningún
+            ' cambio que guardar…») llega legible: antes el cuerpo se forzaba a JObject y daba un error de conversión.
+            Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
+            If Not response.IsSuccessStatusCode Then
+                Dim respuestaError As String = Await response.Content.ReadAsStringAsync()
                 ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
-                Throw New Exception(contenido)
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuestaError))
             End If
         End Using
 

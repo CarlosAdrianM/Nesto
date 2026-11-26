@@ -1622,6 +1622,19 @@ Public Class ClienteComercialViewModel
         Return Not IsNothing(DeudaSeleccionada) AndAlso EsUsuarioAdministracion AndAlso Not String.IsNullOrWhiteSpace(MotivoCambioEstado)
     End Function
     Private Async Sub OnGuardarEfectoDeuda()
+        Await GuardarEfectoDeudaAsync()
+    End Sub
+
+    ''' <summary>
+    ''' «Guardar cambios» de un efecto de Deudas. Nesto#644 (9): primero el PUT y, solo si se ha guardado, el seguimiento (antes
+    ''' el seguimiento se creaba ANTES y, si el PUT fallaba, quedaba apuntado un cambio que no se había hecho); y el seguimiento
+    ''' dice lo que ha cambiado de verdad (antes, siempre «cambió el estado»).
+    ''' </summary>
+    Friend Async Function GuardarEfectoDeudaAsync() As Task
+        Dim efecto As ExtractoClienteDTO = DeudaSeleccionada
+        If efecto Is Nothing OrElse String.IsNullOrWhiteSpace(MotivoCambioEstado) Then
+            Return
+        End If
         Dim p As New ParametrosDialogo
         Dim confirmacion As Boolean
         p.Add("message", "¿Desea guardar los cambios?")
@@ -1632,26 +1645,83 @@ Public Class ClienteComercialViewModel
             Return
         End If
 
+        Dim usuario As String = If(configuracion.usuario, String.Empty)
+        Dim original As ExtractoClienteDTO = Nothing
+        Dim unused = _efectosCargados.TryGetValue(efecto.Id, original)
+        Dim seguimientoMotivo As New SeguimientoClienteDTO With {
+            .Empresa = efecto.Empresa,
+            .Cliente = efecto.Cliente,
+            .Contacto = efecto.Contacto,
+            .Tipo = Constantes.Rapports.Tipos.TIPO_VISITA_TELEFONICA,
+            .Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA,
+            .Comentarios = TextoSeguimientoCambioEfecto(usuario.Substring(usuario.IndexOf("\") + 1).Trim(), original, efecto, MotivoCambioEstado),
+            .Fecha = Date.Now,
+            .NumOrdenExtracto = efecto.Id,
+            .Usuario = usuario
+        }
+
         Try
-            Dim seguimientoMotivo As New SeguimientoClienteDTO With {
-                .Empresa = DeudaSeleccionada.Empresa,
-                .Cliente = DeudaSeleccionada.Cliente,
-                .Contacto = DeudaSeleccionada.Contacto,
-                .Tipo = Constantes.Rapports.Tipos.TIPO_VISITA_TELEFONICA,
-                .Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA,
-                .Comentarios = $"{configuracion.usuario.Substring(configuracion.usuario.IndexOf("\") + 1).Trim()} cambió el estado del extracto de cliente con nº orden {DeudaSeleccionada.Id} a estado {If(String.IsNullOrEmpty(DeudaSeleccionada.Estado), "en blanco", DeudaSeleccionada.Estado.ToUpper)} dando como motivo: {MotivoCambioEstado.Trim()}",
-                .Fecha = Date.Now,
-                .NumOrdenExtracto = DeudaSeleccionada.Id,
-                .Usuario = configuracion.usuario
-            }
-            Dim unused = Await servicioRapports.crearRapport(seguimientoMotivo)
-            DeudaSeleccionada.Usuario = configuracion.usuario
-            Await servicio.ModificarExtractoCliente(DeudaSeleccionada)
-            dialogService.ShowNotification("Efecto modificado correctamente")
+            efecto.Usuario = usuario
+            Await servicio.ModificarExtractoCliente(efecto)
         Catch ex As Exception
-            dialogService.ShowError(ex.Message)
+            dialogService.ShowError($"No se ha modificado el efecto {efecto.Id}: {MotivoExcepcion(ex)}")
+            Return
         End Try
-    End Sub
+        _efectosCargados(efecto.Id) = CopiaEditable(efecto)
+
+        Dim errorSeguimiento As String = Nothing
+        Try
+            Dim unusedRapport = Await servicioRapports.crearRapport(seguimientoMotivo)
+        Catch ex As Exception
+            errorSeguimiento = MotivoExcepcion(ex)
+        End Try
+        If errorSeguimiento IsNot Nothing Then
+            dialogService.ShowError($"El efecto {efecto.Id} se ha modificado, pero no se ha podido apuntar el seguimiento: {errorSeguimiento}")
+        Else
+            dialogService.ShowNotification("Efecto modificado correctamente")
+        End If
+    End Function
+
+    ''' <summary>Nesto#644 (9): cómo llegó cada efecto de Deudas (por Nº de orden), para decir en el seguimiento qué ha cambiado.</summary>
+    Private _efectosCargados As New Dictionary(Of Integer, ExtractoClienteDTO)
+
+    Private Shared Function CopiaEditable(efecto As ExtractoClienteDTO) As ExtractoClienteDTO
+        Return New ExtractoClienteDTO With {
+            .Id = efecto.Id, .Vencimiento = efecto.Vencimiento, .CCC = efecto.CCC, .Estado = efecto.Estado, .FormaPago = efecto.FormaPago
+        }
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (9): el comentario del seguimiento de «Guardar cambios» de un efecto, con lo que ha cambiado (estado, vencimiento,
+    ''' CCC, forma de pago) comparado como la API (sin relleno ni mayúsculas). Sin lo cargado, el estado en que queda.
+    ''' </summary>
+    Friend Shared Function TextoSeguimientoCambioEfecto(usuario As String, original As ExtractoClienteDTO, actual As ExtractoClienteDTO, motivo As String) As String
+        Dim cambios As New List(Of String)
+        If original IsNot Nothing Then
+            If Not MismoTextoEfecto(original.Estado, actual.Estado) Then
+                cambios.Add($"estado de {TextoEfecto(original.Estado)} a {TextoEfecto(actual.Estado)}")
+            End If
+            If original.Vencimiento.Date <> actual.Vencimiento.Date Then
+                cambios.Add($"vencimiento del {original.Vencimiento:dd/MM/yyyy} al {actual.Vencimiento:dd/MM/yyyy}")
+            End If
+            If Not MismoTextoEfecto(original.CCC, actual.CCC) Then
+                cambios.Add($"CCC de {TextoEfecto(original.CCC)} a {TextoEfecto(actual.CCC)}")
+            End If
+            If Not MismoTextoEfecto(original.FormaPago, actual.FormaPago) Then
+                cambios.Add($"forma de pago de {TextoEfecto(original.FormaPago)} a {TextoEfecto(actual.FormaPago)}")
+            End If
+        End If
+        Dim que As String = If(cambios.Any(), String.Join(", ", cambios), $"queda en estado {TextoEfecto(actual.Estado)}")
+        Return $"{usuario} modificó el extracto de cliente con nº orden {actual.Id} ({que}) dando como motivo: {motivo?.Trim()}"
+    End Function
+
+    Private Shared Function MismoTextoEfecto(a As String, b As String) As Boolean
+        Return String.Equals(If(a, String.Empty).Trim(), If(b, String.Empty).Trim(), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Shared Function TextoEfecto(valor As String) As String
+        Return If(String.IsNullOrWhiteSpace(valor), "«en blanco»", $"«{valor.Trim().ToUpper()}»")
+    End Function
 
 
     Private Async Function CargarFactura(empresa As String, numeroFactura As String, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
@@ -1842,6 +1912,7 @@ Public Class ClienteComercialViewModel
             AddHandler l.PropertyChanged, New PropertyChangedEventHandler(AddressOf LineaDeudaPropertyChangedEventHandler)
         Next
         ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
+        _efectosCargados = lista.GroupBy(Function(l) l.Id).ToDictionary(Function(g) g.Key, Function(g) CopiaEditable(g.First())) ' Nesto#644 (9)
         ImporteReclamarDeuda = SumaDeudasSeleccionadas
         ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
 
