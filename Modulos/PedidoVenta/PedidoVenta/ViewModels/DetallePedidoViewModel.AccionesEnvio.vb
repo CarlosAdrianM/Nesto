@@ -73,6 +73,18 @@ Partial Public Class DetallePedidoViewModel
                                           (e.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO OrElse e.Estado = Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO))
     End Function
 
+    ''' <summary>
+    ''' Caso 930553 (Carlos 26/11/26): sin parada en reparto, la parada Entregada de la nota (el repartidor la marcó «Recogido»,
+    ''' quizá por error); o Nothing.
+    ''' </summary>
+    Friend Shared Function ParadaRecogidaMarcada(envios As IEnumerable(Of EnvioAgenciaDTO)) As EnvioAgenciaDTO
+        If ParadaDeLaNota(envios) IsNot Nothing Then
+            Return Nothing
+        End If
+        Return envios?.FirstOrDefault(Function(e) e IsNot Nothing AndAlso e.AgenciaId = Constantes.Agencias.AGENCIA_REPARTO_PROPIO AndAlso
+                                          e.Estado = Constantes.Agencias.ESTADO_ENTREGADO_ENVIO)
+    End Function
+
     ''' <summary>Pide motivo y confirmación, anula y vuelve a leer los envíos del pedido. Friend para los tests.</summary>
     Friend Async Function AnularRecogidaNotaAsync() As Task
         Dim servicioRecogidas As IServicioRecogidasReparto = ServicioRecogidasReparto()
@@ -81,8 +93,10 @@ Partial Public Class DetallePedidoViewModel
         End If
         Dim numeroPedido As Integer = pedido.numero
         Dim parada As EnvioAgenciaDTO = ParadaDeLaNota(ListaEnlacesSeguimiento)
+        Dim marcada As EnvioAgenciaDTO = ParadaRecogidaMarcada(ListaEnlacesSeguimiento)
         Dim anulador As New AnuladorRecogidas(servicioRecogidas, dialogService)
-        Dim anulada As AnulacionRecogidaModel = Await anulador.Anular(numeroPedido, parada?.Numero, ClienteCompleto?.nombre)
+        Dim anulada As AnulacionRecogidaModel = Await anulador.Anular(numeroPedido, If(parada, marcada)?.Numero, ClienteCompleto?.nombre,
+                                                                       marcada IsNot Nothing)
         If anulada Is Nothing OrElse pedido Is Nothing OrElse pedido.numero <> numeroPedido Then
             Return
         End If

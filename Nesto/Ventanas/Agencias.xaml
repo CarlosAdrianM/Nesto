@@ -655,7 +655,7 @@
                                 Content="Anular recogida"
                                 Command="{Binding AnularRecogidaCommand}"
                                 Visibility="{Binding PuedeAnularRecogidas, Converter={StaticResource BoolToVisAvisos}}"
-                                ToolTip="Anula la recogida de la nota de recogida de esta parada del reparto propio (ya no hace falta): la parada sale del reparto. Se le pedirá el motivo."/>
+                                ToolTip="Anula la recogida de la nota de recogida de esta parada del reparto propio (ya no hace falta): la parada sale del reparto. Si ya figura como recogida porque se marcó «Recogido» por error, también se puede anular (solo Almacén y Dirección). Se le pedirá el motivo."/>
                         <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
                                 Content="Recogidas no recogidas"
                                 Command="{Binding AbrirRecogidasNoRecogidasCommand}"

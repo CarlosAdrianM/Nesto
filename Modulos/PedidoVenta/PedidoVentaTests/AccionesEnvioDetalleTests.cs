@@ -74,6 +74,57 @@ namespace PedidoVentaTests
             A.CallTo(() => servicio.CargarEnlacesSeguimiento("1", 930553)).MustHaveHappened();
         }
 
+        // Caso 930553 (Carlos 26/11/26): la parada ya está Entregada porque el repartidor la marcó «Recogido» por error
+        [TestMethod]
+        public async Task AnularRecogida_ParadaEntregada_DiceQueFiguraComoRecogidaYAnulaPorError()
+        {
+            var (vm, recogidas, dialogos, _) = VmNotaRecogida();
+            vm.ListaEnlacesSeguimiento = new System.Collections.Generic.List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 251104, AgenciaId = 14, Estado = 2 }
+            };
+            A.CallTo(() => dialogos.GetText(AnuladorRecogidas.TITULO, A<string>._)).Returns("Se marcó sin ir");
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(AnuladorRecogidas.TITULO, A<string>._, true)).Returns(true);
+
+            await vm.AnularRecogidaNotaAsync();
+
+            A.CallTo(() => dialogos.GetText(AnuladorRecogidas.TITULO, A<string>.That.Contains("NR930553 (parada 251104)"))).MustHaveHappened();
+            A.CallTo(() => dialogos.GetText(AnuladorRecogidas.TITULO, A<string>.That.Contains("figura como recogida"))).MustHaveHappened();
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(AnuladorRecogidas.TITULO, A<string>.That.Contains("por haberse marcado «Recogido» por error"), true)).MustHaveHappened();
+            A.CallTo(() => recogidas.Anular(930553, "Se marcó sin ir")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task AnularRecogida_ParadaEntregadaYYaAbonada_EnsenaEl409DeLaApi()
+        {
+            var (vm, recogidas, dialogos, _) = VmNotaRecogida();
+            vm.ListaEnlacesSeguimiento = new System.Collections.Generic.List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 251104, AgenciaId = 14, Estado = 2 }
+            };
+            A.CallTo(() => dialogos.GetText(AnuladorRecogidas.TITULO, A<string>._)).Returns("error");
+            A.CallTo(() => dialogos.ShowConfirmationAnswer(AnuladorRecogidas.TITULO, A<string>._, true)).Returns(true);
+            A.CallTo(() => recogidas.Anular(930553, "error")).ThrowsAsync(ErroresApiReparto.Excepcion(409,
+                "{\"Message\":\"La recogida NR930553 ya está abonada (abono 931000): no se puede anular.\",\"Codigo\":\"RECOGIDA_ABONADA\"}", null));
+
+            await vm.AnularRecogidaNotaAsync();
+
+            A.CallTo(() => dialogos.ShowError("La recogida NR930553 ya está abonada (abono 931000): no se puede anular.")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void ParadaRecogidaMarcada_SoloSiNoHayParadaEnReparto()
+        {
+            var enReparto = new PedidoVentaModel.EnvioAgenciaDTO { Numero = 2, AgenciaId = 14, Estado = 1 };
+            var entregada = new PedidoVentaModel.EnvioAgenciaDTO { Numero = 1, AgenciaId = 14, Estado = 2 };
+            var otraAgencia = new PedidoVentaModel.EnvioAgenciaDTO { Numero = 3, AgenciaId = 1, Estado = 2 };
+
+            Assert.AreSame(entregada, DetallePedidoViewModel.ParadaRecogidaMarcada(new[] { otraAgencia, entregada }));
+            Assert.IsNull(DetallePedidoViewModel.ParadaRecogidaMarcada(new[] { entregada, enReparto }));
+            Assert.IsNull(DetallePedidoViewModel.ParadaRecogidaMarcada(new[] { otraAgencia }));
+            Assert.IsNull(DetallePedidoViewModel.ParadaRecogidaMarcada(null));
+        }
+
         [TestMethod]
         public void AnularRecogida_SinGrupoOSinSerRecogida_NoSeOfrece()
         {

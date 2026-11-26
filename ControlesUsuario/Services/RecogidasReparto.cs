@@ -81,7 +81,8 @@ namespace ControlesUsuario.Services
     }
 
     /// <summary>
-    /// Carlos 20/11/26: anular la recogida de una nota que ya está en reparto, y las «no recogidas» que decide Almacén. Lanza
+    /// Carlos 20/11/26: anular la recogida de una nota que ya está en reparto (y, desde el 26/11/26, la que figura como recogida por
+    /// error: misma llamada, solo Almacén o Dirección, 409 RECOGIDA_ABONADA si ya tiene abono), y las «no recogidas» que decide Almacén. Lanza
     /// <see cref="ApiRepartoException"/> con el mensaje para el usuario (400, 403, 404, 409; 503 o ruta que no existe: servidor sin actualizar).
     /// </summary>
     public interface IServicioRecogidasReparto
@@ -205,16 +206,52 @@ namespace ControlesUsuario.Services
         public static string Descripcion(int pedido, int? envio)
             => envio.HasValue && envio.Value > 0 ? $"la recogida NR{pedido} (parada {envio})" : $"la recogida NR{pedido}";
 
-        public async Task<AnulacionRecogidaModel> Anular(int pedido, int? envio, string nombreCliente = null)
+        /// <summary>PURA. «La recogida NR930553 (parada 251104)».</summary>
+        public static string DescripcionMayuscula(int pedido, int? envio)
+        {
+            string descripcion = Descripcion(pedido, envio);
+            return char.ToUpperInvariant(descripcion[0]) + descripcion.Substring(1);
+        }
+
+        /// <summary>
+        /// PURA. Lo que se pregunta para pedir el motivo. Con <paramref name="figuraRecogida"/> (caso 930553, Carlos 26/11/26: la parada
+        /// ya está Entregada porque el repartidor la marcó «Recogido» por error) se dice que figura como recogida y que se anula por error.
+        /// </summary>
+        public static string TextoPreguntaMotivo(int pedido, int? envio, string nombreCliente, bool figuraRecogida)
+        {
+            string descripcion = Descripcion(pedido, envio);
+            string deQuien = string.IsNullOrWhiteSpace(nombreCliente) ? string.Empty : $" de {nombreCliente.Trim()}";
+            if (!figuraRecogida)
+            {
+                return $"¿Por qué anula {descripcion}{deQuien}? La parada sale del reparto y la nota queda cerrada. El motivo queda en la historia del envío.";
+            }
+            return $"{DescripcionMayuscula(pedido, envio)}{deQuien} figura como recogida. Si el repartidor la marcó «Recogido» por error, " +
+                   "se va a anular: la parada queda cerrada como «Recogida anulada (marcada por error)» y, si algún bulto de esa recogida sigue " +
+                   "en una furgoneta, se da por descargado. Solo pueden hacerlo Almacén y Dirección, y no si ya tiene abono.\n\n" +
+                   "¿Por qué la anula? El motivo queda en la historia del envío.";
+        }
+
+        /// <summary>PURA. La confirmación (por defecto «No»).</summary>
+        public static string TextoConfirmacion(int pedido, int? envio, string nombreCliente, string motivo, bool figuraRecogida)
+        {
+            string descripcion = Descripcion(pedido, envio);
+            string deQuien = string.IsNullOrWhiteSpace(nombreCliente) ? string.Empty : $" de {nombreCliente.Trim()}";
+            string pregunta = figuraRecogida
+                ? $"{DescripcionMayuscula(pedido, envio)}{deQuien} figura como recogida. ¿Confirma que la anula por haberse marcado «Recogido» por error?"
+                : $"¿Confirma que anula {descripcion}{deQuien}?";
+            return $"{pregunta}\n\nMotivo: {motivo?.Trim()}";
+        }
+
+        /// <param name="figuraRecogida">Caso 930553 (Carlos 26/11/26): la parada de la nota ya está Entregada (marcada «Recogido» por
+        /// error). La llamada es la misma; la API exige Almacén o Dirección (403 de usted) y que no tenga abono (409 RECOGIDA_ABONADA).</param>
+        public async Task<AnulacionRecogidaModel> Anular(int pedido, int? envio, string nombreCliente = null, bool figuraRecogida = false)
         {
             if (pedido <= 0)
             {
                 return null;
             }
             string descripcion = Descripcion(pedido, envio);
-            string deQuien = string.IsNullOrWhiteSpace(nombreCliente) ? string.Empty : $" de {nombreCliente.Trim()}";
-            string motivo = _dialogos.GetText(TITULO,
-                $"¿Por qué anula {descripcion}{deQuien}? La parada sale del reparto y la nota queda cerrada. El motivo queda en la historia del envío.");
+            string motivo = _dialogos.GetText(TITULO, TextoPreguntaMotivo(pedido, envio, nombreCliente, figuraRecogida));
             if (motivo == null)
             {
                 return null; // cancelado
@@ -225,7 +262,7 @@ namespace ControlesUsuario.Services
                 _dialogos.ShowError(noValido);
                 return null;
             }
-            if (!_dialogos.ShowConfirmationAnswer(TITULO, $"¿Confirma que anula {descripcion}{deQuien}?\n\nMotivo: {motivo.Trim()}", true))
+            if (!_dialogos.ShowConfirmationAnswer(TITULO, TextoConfirmacion(pedido, envio, nombreCliente, motivo, figuraRecogida), true))
             {
                 return null;
             }
@@ -233,7 +270,7 @@ namespace ControlesUsuario.Services
             {
                 AnulacionRecogidaModel anulada = await _anular(pedido, motivo.Trim());
                 _dialogos.ShowNotification(TITULO, string.IsNullOrWhiteSpace(anulada?.Mensaje)
-                    ? $"Se ha anulado {descripcion}."
+                    ? (figuraRecogida ? $"Se ha anulado {descripcion} (marcada «Recogido» por error)." : $"Se ha anulado {descripcion}.")
                     : anulada.Mensaje.Trim());
                 return anulada ?? new AnulacionRecogidaModel { Pedido = pedido, EnvioId = envio, Estado = "Anulada" };
             }

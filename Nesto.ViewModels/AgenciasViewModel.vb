@@ -4461,9 +4461,16 @@ Public Class AgenciasViewModel
         End Get
     End Property
 
+    ' Caso 930553 (Carlos 26/11/26): también una parada ya Entregada (la recogida que el repartidor marcó «Recogido» por error). La
+    ' pregunta dice que figura como recogida; la API solo lo deja a Almacén y Dirección (403) y sin abono (409 RECOGIDA_ABONADA).
     Friend Shared Function EsParadaQueSePuedeAnular(envio As EnviosAgencia) As Boolean
         Return EsRepartoPropio(envio) AndAlso envio.Pedido.HasValue AndAlso envio.Pedido.Value > 0 AndAlso
-            (envio.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO OrElse envio.Estado = ESTADO_INCIDENTADO)
+            (envio.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO OrElse envio.Estado = ESTADO_INCIDENTADO OrElse
+             FiguraRecogida(envio))
+    End Function
+
+    Friend Shared Function FiguraRecogida(envio As EnviosAgencia) As Boolean
+        Return envio IsNot Nothing AndAlso envio.Estado = Constantes.Agencias.ESTADO_ENTREGADO_ENVIO
     End Function
 
     Public Property AnularRecogidaCommand As RelayCommand
@@ -4483,7 +4490,7 @@ Public Class AgenciasViewModel
         Dim anulador As New ControlesUsuario.Services.AnuladorRecogidas(
             Function(pedido, motivo) _servicio.AnularRecogida(pedido, motivo), _dialogService,
             Sub(ex) RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.AnularRecogida"))
-        Dim anulada As ControlesUsuario.Services.AnulacionRecogidaModel = Await anulador.Anular(envio.Pedido.Value, envio.Numero, envio.Nombre)
+        Dim anulada As ControlesUsuario.Services.AnulacionRecogidaModel = Await anulador.Anular(envio.Pedido.Value, envio.Numero, envio.Nombre, FiguraRecogida(envio))
         If anulada Is Nothing Then
             Return
         End If
