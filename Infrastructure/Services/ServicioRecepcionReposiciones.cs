@@ -154,17 +154,15 @@ namespace Nesto.Infrastructure.Services
                     throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
                 }
 
-                response = await client.GetAsync($"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(limpio)}&empresa={empresaLimpia}")
-                    .ConfigureAwait(false);
+                // Nesto#647: la llamada y la lectura comunes (ConsultaPorCodigoBarras); el error, el de esta pantalla
+                response = await client.GetAsync(Shared.ConsultaPorCodigoBarras.Ruta(limpio, empresa)).ConfigureAwait(false);
                 json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new RecepcionReposicionException(ServicioEtiquetasHueco.Motivo(json, (int)response.StatusCode));
                 }
-                return (JsonConvert.DeserializeObject<List<ProductoCodigoRecepcion>>(json) ?? new List<ProductoCodigoRecepcion>())
-                    .Where(p => !string.IsNullOrWhiteSpace(p?.Producto))
-                    .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .Select(g => new ProductoCodigoRecepcion { Producto = g.Key, Nombre = g.First().Nombre?.Trim() })
+                return Shared.ConsultaPorCodigoBarras.LeerFilas(json)
+                    .Select(f => new ProductoCodigoRecepcion { Producto = f.Producto, Nombre = f.Nombre })
                     .ToList();
             }
         }

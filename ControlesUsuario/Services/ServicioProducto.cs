@@ -87,8 +87,9 @@ namespace ControlesUsuario.Services
                 return directo;
             }
 
-            List<ProductoPorCodigoBarras> porCodigo = await BuscarPorCodigoBarras(empresa, texto);
-            if (porCodigo == null || porCodigo.Count == 0)
+            // Nesto#647: la llamada y la lectura son las del núcleo común (ya sin repetir referencia)
+            List<ProductoCodigoBarrasDuplicado> distintos = await BuscarPorCodigoBarras(empresa, texto);
+            if (distintos == null || distintos.Count == 0)
             {
                 // TODO NestoAPI#605: con la API nueva en producción, el null (404) desaparece.
                 if (duplicado != null)
@@ -98,20 +99,9 @@ namespace ControlesUsuario.Services
                 return directo;
             }
 
-            List<ProductoPorCodigoBarras> distintos = porCodigo
-                .Where(p => !string.IsNullOrWhiteSpace(p.Producto))
-                .GroupBy(p => p.Producto.Trim(), StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
             if (distintos.Count > 1)
             {
-                throw new CodigoBarrasDuplicadoException(distintos
-                    .Select(p => new ProductoCodigoBarrasDuplicado { Producto = p.Producto.Trim(), Nombre = p.Nombre?.Trim() })
-                    .ToList());
-            }
-            if (distintos.Count == 0)
-            {
-                return directo;
+                throw new CodigoBarrasDuplicadoException(distintos);
             }
 
             string unico = distintos[0].Producto.Trim();
@@ -126,20 +116,13 @@ namespace ControlesUsuario.Services
         /// NestoAPI#605: productos que tienen ese código entre sus códigos de barras activos. Null si la API
         /// no tiene el endpoint (404) o falla: entonces manda la búsqueda de siempre.
         /// </summary>
-        internal async Task<List<ProductoPorCodigoBarras>> BuscarPorCodigoBarras(string empresa, string codigo)
+        internal async Task<List<ProductoCodigoBarrasDuplicado>> BuscarPorCodigoBarras(string empresa, string codigo)
         {
             try
             {
                 using (var client = await CrearClienteAsync())
                 {
-                    var response = await client.GetAsync($"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(codigo)}&empresa={Uri.EscapeDataString(empresa ?? "1")}");
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[ServicioProducto] PorCodigoBarras: {response.StatusCode}");
-                        return null;
-                    }
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<ProductoPorCodigoBarras>>(json) ?? new List<ProductoPorCodigoBarras>();
+                    return await ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, codigo, empresa ?? "1");
                 }
             }
             catch (Exception ex)
@@ -147,15 +130,6 @@ namespace ControlesUsuario.Services
                 System.Diagnostics.Debug.WriteLine($"[ServicioProducto] PorCodigoBarras excepción: {ex.Message}");
                 return null;
             }
-        }
-
-        /// <summary>NestoAPI#605: una fila de GET api/Productos/PorCodigoBarras.</summary>
-        internal class ProductoPorCodigoBarras
-        {
-            public string Producto { get; set; }
-            public string Nombre { get; set; }
-            public int Cantidad { get; set; }
-            public bool Principal { get; set; }
         }
 
         private async Task<ProductoDTO> BuscarProductoDirecto(string empresa, string producto, string cliente, string contacto, short cantidad)

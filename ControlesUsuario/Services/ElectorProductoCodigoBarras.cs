@@ -1,5 +1,6 @@
 using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -112,20 +113,54 @@ namespace ControlesUsuario.Services
             }
             try
             {
-                System.Net.Http.HttpResponseMessage response = await client.GetAsync(
-                    $"Productos/PorCodigoBarras?codigo={Uri.EscapeDataString(codigo.Trim())}&empresa={Uri.EscapeDataString(empresa?.Trim() ?? string.Empty)}");
+                System.Net.Http.HttpResponseMessage response = await client.GetAsync(RutaPorCodigoBarras(codigo, empresa));
                 if (!response.IsSuccessStatusCode)
                 {
                     return null;
                 }
                 string cuerpo = await response.Content.ReadAsStringAsync();
-                return SinRepetir(JsonConvert.DeserializeObject<List<ProductoCodigoBarrasDuplicado>>(cuerpo));
+                return LeerCandidatosPorCodigoBarras(cuerpo);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[ElectorProductoCodigoBarras] PorCodigoBarras: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// PURA. La ruta de GET api/Productos/PorCodigoBarras (la misma para todos: <see cref="ConsultaPorCodigoBarras.Ruta"/>), para
+        /// los servicios que hacen la llamada con su propio tratamiento de errores.
+        /// </summary>
+        public static string RutaPorCodigoBarras(string codigo, string empresa) => ConsultaPorCodigoBarras.Ruta(codigo, empresa);
+
+        /// <summary>
+        /// PURA. Los productos de la respuesta de GET api/Productos/PorCodigoBarras, uno por referencia. Lista vacía si el cuerpo está
+        /// vacío; lanza <see cref="JsonException"/> si no es una lista JSON.
+        /// </summary>
+        public static List<ProductoCodigoBarrasDuplicado> LeerCandidatosPorCodigoBarras(string cuerpo)
+            => ConsultaPorCodigoBarras.LeerFilas(cuerpo)
+                .Select(f => new ProductoCodigoBarrasDuplicado { Producto = f.Producto, Nombre = f.Nombre })
+                .ToList();
+
+        /// <summary>
+        /// Nesto#647 (cola, búsqueda contextual de la plantilla): como <see cref="ReferenciaDeLoTecleadoAsync"/>, pero SOLO cambia lo
+        /// tecleado si el código es de varios productos (la referencia elegida; null si se cancela). Si no lo parece, no es de ninguno o
+        /// es de uno solo, el texto tal cual: así esa búsqueda no cambia salvo por la pregunta.
+        /// </summary>
+        public static async Task<string> ReferenciaSiEsDeVariosAsync(IServicioDialogos dialogos, string texto,
+            Func<string, Task<List<ProductoCodigoBarrasDuplicado>>> buscarCandidatos)
+        {
+            if (!PareceCodigoBarras(texto) || buscarCandidatos == null)
+            {
+                return texto;
+            }
+            List<ProductoCodigoBarrasDuplicado> candidatos = SinRepetir(await buscarCandidatos(texto.Trim()));
+            if (!HayQuePreguntar(candidatos))
+            {
+                return texto;
+            }
+            return await ElegirAsync(dialogos, candidatos, texto);
         }
 
         /// <summary>

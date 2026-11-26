@@ -81,6 +81,39 @@ namespace PlantillaVentaTests
             Assert.AreEqual(0, buscados.Count);
         }
 
+        // Nesto#647 (cola): la búsqueda contextual (PlantillaVentas/Buscar) solo cambia si el código es de varios productos
+        [TestMethod]
+        public async Task Contextual_CodigoDeVarios_PreguntaYBuscaElElegido_OCancela()
+        {
+            var (vm, dialogos, _) = CrearViewModel("44967", "45931");
+            A.CallTo(() => dialogos.ShowDialogAsync(ElectorProductoCodigoBarras.NOMBRE_DIALOGO, A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "45931" } })).Once()
+                .Then.Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
+
+            Assert.AreEqual("45931", await vm.FiltroParaBuscarContextualAsync(EAN));
+            Assert.IsNull(await vm.FiltroParaBuscarContextualAsync(EAN), "cancelar = no se busca nada");
+        }
+
+        [TestMethod]
+        public async Task Contextual_CodigoDeUnoONinguno_LoTecleadoTalCual()
+        {
+            var (deUno, dialogos, _) = CrearViewModel("44967");
+            var (deNinguno, _, _) = CrearViewModel();
+
+            Assert.AreEqual(EAN, await deUno.FiltroParaBuscarContextualAsync(EAN), "como siempre: no cambia la búsqueda");
+            Assert.AreEqual(EAN, await deNinguno.FiltroParaBuscarContextualAsync(EAN));
+            A.CallTo(() => dialogos.ShowDialogAsync(A<string>._, A<ParametrosDialogo>._)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task Contextual_TextoNormal_SinMirarCodigos()
+        {
+            var (vm, _, buscados) = CrearViewModel("44967", "45931");
+
+            Assert.AreEqual("champú sin sal", await vm.FiltroParaBuscarContextualAsync("champú sin sal"));
+            Assert.AreEqual(0, buscados.Count);
+        }
+
         [TestMethod]
         public void BuscadoPorCodigo_SoloLaLineaDelElegido()
         {

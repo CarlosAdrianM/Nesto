@@ -4368,18 +4368,46 @@ Public Class PlantillaVentaViewModel
     Private Function CanBuscarContextual(filtro As String) As Boolean
         Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Filtro) AndAlso ListaFiltrableProductos.Filtro.Length >= 1
     End Function
+    ''' <summary>
+    ''' Nesto#647 (cola, Carlos 26/11/26): la búsqueda contextual (PlantillaVentas/Buscar) tampoco sabe de códigos compartidos. Si lo
+    ''' tecleado o leído es un código de barras de VARIOS productos, se pregunta cuál es y se busca esa referencia; si no, lo tecleado
+    ''' tal cual (como siempre); Nothing si se cancela el selector.
+    ''' </summary>
+    Friend Async Function FiltroParaBuscarContextualAsync(filtro As String) As Task(Of String)
+        Dim buscar As Func(Of String, Task(Of List(Of ProductoCodigoBarrasDuplicado))) = BuscarCandidatosCodigoBarras
+        If buscar Is Nothing Then
+            buscar = AddressOf BuscarCandidatosEnLaApiAsync
+        End If
+        Return Await ControlesUsuario.Services.ElectorProductoCodigoBarras.ReferenciaSiEsDeVariosAsync(dialogService, filtro, buscar)
+    End Function
+
     Private Async Sub OnBuscarContextual(filtro As String)
+        Dim referencia As String
+        Try
+            referencia = Await FiltroParaBuscarContextualAsync(filtro)
+        Catch ex As Exception
+            referencia = filtro
+        End Try
+        If referencia Is Nothing Then
+            Return ' Nesto#647: código de varios productos y se ha cancelado el selector: no se busca nada
+        End If
+        Dim porCodigoBarras As Boolean = Not String.Equals(referencia, filtro, StringComparison.Ordinal)
+
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             estaOcupado = True
             Try
-                Dim url As String = $"PlantillaVentas/Buscar?&q={filtro}&usarBusquedaConAND={EsBusquedaConAND}"
+                Dim url As String = $"PlantillaVentas/Buscar?&q={referencia}&usarBusquedaConAND={EsBusquedaConAND}"
                 response = Await client.GetAsync(url)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson))
+                    Dim encontradas = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson)
+                    If porCodigoBarras Then
+                        encontradas = SoloElElegido(encontradas, referencia)
+                    End If
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(encontradas)
                     Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)()
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)

@@ -168,5 +168,34 @@ namespace ControlesUsuario.Tests
 
             Assert.IsNull(await ElectorProductoCodigoBarras.BuscarCandidatosAsync(client, "8436538394380", "1"));
         }
+
+        // Nesto#647 (cola): la ruta y la lectura comunes, para los servicios con su propio tratamiento de errores
+        [TestMethod]
+        public void RutaYLectura_Comunes()
+        {
+            Assert.AreEqual("Productos/PorCodigoBarras?codigo=8436538394380&empresa=1",
+                ElectorProductoCodigoBarras.RutaPorCodigoBarras(" 8436538394380 ", " 1 "));
+            List<ProductoCodigoBarrasDuplicado> candidatos = ElectorProductoCodigoBarras.LeerCandidatosPorCodigoBarras(
+                "[{\"Producto\":\"41000 \",\"Nombre\":\"GUANTES M \"},{\"Producto\":\"41000\",\"Cantidad\":6},{\"Producto\":\" \"},{\"Producto\":\"41001\"}]");
+            CollectionAssert.AreEqual(new[] { "41000", "41001" }, candidatos.Select(c => c.Producto).ToArray());
+            Assert.AreEqual("GUANTES M", candidatos[0].Nombre);
+            Assert.AreEqual(0, ElectorProductoCodigoBarras.LeerCandidatosPorCodigoBarras("").Count, "un 404 tratado como vacío");
+        }
+
+        [TestMethod]
+        public async Task SiEsDeVarios_SoloCambiaConVarios()
+        {
+            IServicioDialogos dialogos = A.Fake<IServicioDialogos>();
+            A.CallTo(() => dialogos.ShowDialogAsync(ElectorProductoCodigoBarras.NOMBRE_DIALOGO, A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { "producto", "41001" } }));
+
+            Assert.AreEqual("41001", await ElectorProductoCodigoBarras.ReferenciaSiEsDeVariosAsync(dialogos, "8436538394380", _ => Task.FromResult(Dos())));
+            Assert.AreEqual("8436538394380", await ElectorProductoCodigoBarras.ReferenciaSiEsDeVariosAsync(dialogos, "8436538394380",
+                _ => Task.FromResult(Dos().Take(1).ToList())), "de uno: tal cual");
+            Assert.AreEqual("8436538394380", await ElectorProductoCodigoBarras.ReferenciaSiEsDeVariosAsync(dialogos, "8436538394380",
+                _ => Task.FromResult<List<ProductoCodigoBarrasDuplicado>>(null)), "la API no contesta: tal cual");
+            Assert.AreEqual("guantes", await ElectorProductoCodigoBarras.ReferenciaSiEsDeVariosAsync(dialogos, "guantes", _ => Task.FromResult(Dos())));
+            A.CallTo(() => dialogos.ShowDialogAsync(A<string>._, A<ParametrosDialogo>._)).MustHaveHappenedOnceExactly();
+        }
     }
 }
