@@ -944,14 +944,17 @@ Public Class ClienteComercialViewModel
             vendedorPorGrupo, estadoPeluqueria, configuracion.usuario)
         Dim motivoNoGuardado As String = Nothing
         Dim motivoEstadoPeluqueria As String = Nothing
+        Dim camposEnConflicto As List(Of String) = Nothing
         Dim primerPutHecho As Boolean = False
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
-                motivoNoGuardado = Await PonerFichaComercialAsync(client, peticion.Payload)
+                Dim primero As ResultadoPutFichaComercial = Await PonerFichaComercialAsync(client, peticion.Payload)
+                motivoNoGuardado = primero.Motivo
+                camposEnConflicto = primero.CamposEnConflicto
                 primerPutHecho = motivoNoGuardado Is Nothing
-                ' Nesto#644 (6): la API crea la fila de peluquería con el estado 0; con la fila ya creada, el estado elegido
+                ' Nesto#644 (6): una API anterior crea la fila de peluquería con el estado 0; con la fila ya creada, el elegido
                 If primerPutHecho AndAlso peticion.PayloadEstadoPeluqueria IsNot Nothing Then
-                    motivoEstadoPeluqueria = Await PonerFichaComercialAsync(client, peticion.PayloadEstadoPeluqueria)
+                    motivoEstadoPeluqueria = (Await PonerFichaComercialAsync(client, peticion.PayloadEstadoPeluqueria)).Motivo
                 End If
             End Using
         Catch ex As Exception
@@ -964,6 +967,11 @@ Public Class ClienteComercialViewModel
             End If
         End Try
 
+        If camposEnConflicto IsNot Nothing Then
+            ' Nesto#644 (5): otro usuario ha cambiado lo que este guardado cambia; la API no ha escrito nada
+            Await OfrecerRecargarTrasConflictoAsync(motivoNoGuardado, camposEnConflicto)
+            Return
+        End If
         If motivoNoGuardado IsNot Nothing Then
             mensajeError = MensajeFichaComercialNoGuardada(numeroCliente, motivoNoGuardado)
             dialogService.ShowError(mensajeError)
@@ -994,14 +1002,88 @@ Public Class ClienteComercialViewModel
                                                           End Sub)
     End Function
 
-    ''' <summary>Un PUT de Clientes/ClienteComercial: Nothing si se ha guardado; si no, el motivo que da la API, legible.</summary>
-    Private Shared Async Function PonerFichaComercialAsync(client As HttpClient, payload As Newtonsoft.Json.Linq.JObject) As Task(Of String)
+    ''' <summary>Lo que contesta un PUT de Clientes/ClienteComercial.</summary>
+    Private Class ResultadoPutFichaComercial
+        ''' <summary>Nothing si se ha guardado; si no, el motivo que da la API, legible.</summary>
+        Public Property Motivo As String
+        ''' <summary>Nesto#644 (5): con el 409 CLIENTE_CAMBIADO, los campos que chocan; si no, Nothing.</summary>
+        Public Property CamposEnConflicto As List(Of String)
+    End Class
+
+    Private Shared Async Function PonerFichaComercialAsync(client As HttpClient, payload As Newtonsoft.Json.Linq.JObject) As Task(Of ResultadoPutFichaComercial)
         Dim content As HttpContent = New StringContent(payload.ToString(), Encoding.UTF8, "application/json")
         Dim response As HttpResponseMessage = Await client.PutAsync("Clientes/ClienteComercial", content)
         If response.IsSuccessStatusCode Then
-            Return Nothing
+            Return New ResultadoPutFichaComercial()
         End If
-        Return HttpErrorHelper.ParsearErrorHttp(Await response.Content.ReadAsStringAsync())
+        Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+        Return New ResultadoPutFichaComercial With {
+            .Motivo = HttpErrorHelper.ParsearErrorHttp(cuerpo),
+            .CamposEnConflicto = GuardadoFichaComercial.CamposEnConflicto(response.StatusCode, cuerpo)
+        }
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (5): el 409 CLIENTE_CAMBIADO. Se enseña el mensaje de la API y se ofrece recargar la ficha; al recargar, lo que
+    ''' el usuario había cambiado y no choca se vuelve a poner encima (<see cref="GuardadoFichaComercial.CamposAReaplicar"/>) y
+    ''' en lo que choca se queda lo del otro usuario. No se guarda nada solo: el usuario revisa y vuelve a pulsar Guardar.
+    ''' </summary>
+    Private Async Function OfrecerRecargarTrasConflictoAsync(mensajeApi As String, camposEnConflicto As List(Of String)) As Task
+        mensajeError = If(String.IsNullOrWhiteSpace(mensajeApi), "Otro usuario ha cambiado esta ficha desde que usted la abrió.", mensajeApi.Trim())
+        Dim recargar As Boolean = False
+        Dim p As New ParametrosDialogo From {
+            {"message", mensajeError & Environment.NewLine & Environment.NewLine &
+                "¿Quiere recargar la ficha ahora? Se conservan sus cambios en lo que no choca."}
+        }
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              If r.Result = ResultadoBoton.OK Then
+                                                                  recargar = True
+                                                              End If
+                                                          End Sub)
+        If Not recargar Then
+            Return
+        End If
+
+        Dim cargadoAntes As ValoresComercialesFicha = _comercialCargado
+        Dim pantalla As ValoresComercialesFicha = ValoresComercialesFicha.DeLaPantalla(clienteServidor, vendedorPorGrupo, estadoPeluqueria)
+        Dim cambiados As List(Of String) = GuardadoFichaComercial.CamposCambiados(cargadoAntes, pantalla)
+        Dim reaplicar As List(Of String) = GuardadoFichaComercial.CamposAReaplicar(cambiados, camposEnConflicto)
+        Dim perdidos As List(Of String) = cambiados.Except(reaplicar).ToList()
+
+        Dim empresa As String = clienteServidor?.empresa
+        Dim numero As String = clienteServidor?.cliente
+        Dim contacto As String = clienteServidor?.contacto
+        Await ActualizarClienteAsync(empresa, numero, contacto)
+        If clienteActivo Is Nothing OrElse ClaveCliente(clienteActivo) <> ClaveCliente(New ClienteJson With {.empresa = empresa, .cliente = numero, .contacto = contacto}) Then
+            dialogService.ShowError("No se ha podido recargar la ficha. Vuelva a elegir el cliente en la lista y repita los cambios.")
+            Return
+        End If
+        ' En pantalla AlCambiarClienteActivo ya lo ha hecho; no dos veces (el setter de peluquería añade una fila vacía)
+        If clienteServidor IsNot clienteActivo Then
+            cargarVendedoresPorGrupo()
+        End If
+
+        If pantalla IsNot Nothing Then
+            If reaplicar.Contains(GuardadoFichaComercial.CAMPO_ESTADO) Then
+                clienteActivo.estado = pantalla.Estado
+                OnPropertyChanged(NameOf(clienteActivo))
+            End If
+            If reaplicar.Contains(GuardadoFichaComercial.CAMPO_VENDEDOR) Then
+                clienteServidor.vendedor = pantalla.Vendedor
+            End If
+            If reaplicar.Contains(GuardadoFichaComercial.CAMPO_PAIS) Then
+                clienteServidor.pais = pantalla.Pais
+            End If
+            If reaplicar.Contains(GuardadoFichaComercial.CAMPO_VENDEDOR_PELUQUERIA) Then
+                vendedorPorGrupo = pantalla.VendedorPeluqueria
+            End If
+            If reaplicar.Contains(GuardadoFichaComercial.CAMPO_ESTADO_PELUQUERIA) Then
+                estadoPeluqueria = pantalla.EstadoPeluqueria
+            End If
+            OnPropertyChanged(NameOf(clienteServidor))
+        End If
+        mensajeError = Nothing
+        dialogService.ShowNotification("Ficha recargada", GuardadoFichaComercial.MensajeTrasRecargar(reaplicar, perdidos))
     End Function
 
     ''' <summary>Nesto#644 (11): el aviso de que la ficha comercial NO se ha guardado, con el motivo.</summary>

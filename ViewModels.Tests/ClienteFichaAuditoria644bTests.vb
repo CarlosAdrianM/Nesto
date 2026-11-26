@@ -400,6 +400,91 @@ Public Class ClienteFichaAuditoria644bTests
         A.CallTo(Sub() _dialogos.ShowError("No se ha guardado el cliente 15191: El cliente lo lleva PA, que no es de tu equipo: no puedes cambiarlo")).MustHaveHappenedOnceExactly()
     End Function
 
+    ' Hallazgo 5 (parte de Nesto, contrato de NestoAPI-901): con el PUT va el «original», lo que se cargó.
+    <TestMethod()>
+    Public Async Function H5_ElPutLlevaElOriginalConLoCargado() As Task
+        Dim vm = Await ConFicha(Ficha())
+        vm.clienteServidor.vendedor = "PA"
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim original As JObject = CType(_api.Puts().Single()("original"), JObject)
+        Assert.AreEqual(0, CInt(original("estado")))
+        Assert.AreEqual("JE", original("vendedor").ToString(), "El vendedor cargado, no el tecleado")
+        Assert.AreEqual("ES", original("pais").ToString())
+        Assert.AreEqual("JE", original("vendedorPeluqueria").ToString())
+        Assert.AreEqual(0, CInt(original("estadoPeluqueria")))
+    End Function
+
+    <TestMethod()>
+    Public Async Function H5_SinFilaDePeluqueria_ElOriginalVaSinVendedorDePeluqueria_YElSegundoPutSinOriginal() As Task
+        Dim vm = Await ConFicha(Ficha(conPeluqueria:=False))
+        vm.vendedorPorGrupo = "JE"
+        vm.estadoPeluqueria = 3
+
+        Await vm.GuardarFichaComercialAsync()
+
+        Dim puts = _api.Puts()
+        Assert.AreEqual(JTokenType.Null, puts(0)("original")("vendedorPeluqueria").Type, "Sin fila: la API lo compara con «sin vendedor»")
+        Assert.IsNull(puts(1)("original"), "La fila la acaba de crear el primer PUT: el segundo no puede chocar consigo mismo")
+    End Function
+
+    Private Shared Function RespuestaClienteCambiado(ParamArray campos As String()) As HttpResponseMessage
+        Dim cuerpo As New JObject(
+            New JProperty("Message", "La ficha del cliente 15191 la ha cambiado Aida a las 15:14 desde que usted la abrió (estado). Recárguela y vuelva a hacer los cambios."),
+            New JProperty("Codigo", "CLIENTE_CAMBIADO"),
+            New JProperty("details", New JObject(New JProperty("campos", New JArray(campos)), New JProperty("usuario", "Aida"))))
+        Return New HttpResponseMessage(HttpStatusCode.Conflict) With {.Content = New StringContent(cuerpo.ToString())}
+    End Function
+
+    ' Hallazgo 5: el 409 CLIENTE_CAMBIADO enseña el mensaje y, al recargar, lo que no choca se conserva y lo que choca no.
+    <TestMethod()>
+    Public Async Function H5_ConflictoAlGuardar_SeRecarga_YSeConservaLoQueNoChoca() As Task
+        Dim nueva As ClienteJson = Ficha()
+        nueva.estado = 7 ' lo que guardó Aida
+        A.CallTo(Function() _servicio.LeerCliente("1", "15191", "0")).ReturnsNextFromSequence(Ficha(), nueva)
+        Dim vm = Comercial()
+        Await vm.ActualizarClienteAsync("1", "15191", "0")
+        vm.cargarVendedoresPorGrupo()
+        vm.clienteActivo.estado = 5
+        vm.clienteServidor.pais = "PT"
+        _api.Respuesta = Function(r) Task.FromResult(RespuestaClienteCambiado("estado"))
+
+        Await vm.GuardarFichaComercialAsync()
+
+        A.CallTo(Sub() _dialogos.ShowDialog("ConfirmationDialog",
+            A(Of ParametrosDialogo).That.Matches(Function(p) p.GetValue(Of String)("message").StartsWith("La ficha del cliente 15191 la ha cambiado Aida")),
+            A(Of Action(Of ResultadoDialogo)).Ignored)).MustHaveHappenedOnceExactly()
+        Assert.AreEqual(7, vm.clienteActivo.estado, "En lo que choca se queda lo del otro usuario")
+        Assert.AreEqual("PT", vm.clienteServidor.pais, "Lo que no choca se vuelve a poner encima")
+        A.CallTo(Sub() _dialogos.ShowNotification("Ficha recargada", A(Of String).That.Contains("Se mantienen sus cambios en: país."))).MustHaveHappenedOnceExactly()
+        A.CallTo(Sub() _dialogos.ShowDialog("NotificationDialog", A(Of ParametrosDialogo).Ignored, A(Of Action(Of ResultadoDialogo)).Ignored)).MustNotHaveHappened()
+        A.CallTo(Sub() _dialogos.ShowError(A(Of String).Ignored)).MustNotHaveHappened()
+
+        ' Y el siguiente guardado se mide desde lo recargado: solo el país, con el original nuevo
+        _api.Respuesta = Function(r) Task.FromResult(New HttpResponseMessage(HttpStatusCode.NoContent))
+        Await vm.GuardarFichaComercialAsync()
+        Dim ultimo As JObject = _api.Puts().Last()
+        Assert.AreEqual(JTokenType.Null, ultimo("estado").Type)
+        Assert.AreEqual("PT", ultimo("pais").ToString())
+        Assert.AreEqual(7, CInt(ultimo("original")("estado")))
+    End Function
+
+    <TestMethod()>
+    Public Sub H5_CamposEnConflicto_SoloConElCodigoDeLaApi()
+        Assert.IsNull(GuardadoFichaComercial.CamposEnConflicto(HttpStatusCode.Conflict, "{""Message"":""otro 409""}"))
+        Assert.IsNull(GuardadoFichaComercial.CamposEnConflicto(HttpStatusCode.BadRequest, "{""Codigo"":""CLIENTE_CAMBIADO""}"))
+        Assert.IsNull(GuardadoFichaComercial.CamposEnConflicto(HttpStatusCode.Conflict, "no es json"))
+        CollectionAssert.AreEqual({"estado", "pais"}, GuardadoFichaComercial.CamposEnConflicto(HttpStatusCode.Conflict,
+            "{""Codigo"":""CLIENTE_CAMBIADO"",""details"":{""campos"":[""estado"",""pais""]}}").ToArray())
+    End Sub
+
+    <TestMethod()>
+    Public Sub H5_CamposAReaplicar_LaPeluqueriaVaJunta()
+        Dim reaplicar = GuardadoFichaComercial.CamposAReaplicar({"vendedor", "vendedorPeluqueria", "estadoPeluqueria"}, {"estadoPeluqueria"})
+        CollectionAssert.AreEqual({"vendedor"}, reaplicar.ToArray())
+    End Sub
+
     ' Hallazgo 13: guardar hacía .Result en el hilo de la pantalla; ahora espera sin bloquear.
     <TestMethod()>
     Public Async Function H13_GuardarNoBloqueaMientrasLaApiContesta() As Task

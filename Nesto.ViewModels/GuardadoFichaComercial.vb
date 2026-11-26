@@ -47,6 +47,20 @@ Friend Class ValoresComercialesFicha
         }
     End Function
 
+    ''' <summary>Nesto#644 (5): lo que hay ahora en pantalla (la ficha con lo tecleado y la peluquería elegida).</summary>
+    Public Shared Function DeLaPantalla(ficha As ClienteJson, vendedorPeluqueria As String, estadoPeluqueria As Short) As ValoresComercialesFicha
+        If ficha Is Nothing Then
+            Return Nothing
+        End If
+        Return New ValoresComercialesFicha With {
+            .Estado = ficha.estado,
+            .Vendedor = ficha.vendedor?.Trim(),
+            .Pais = ficha.pais?.Trim(),
+            .VendedorPeluqueria = vendedorPeluqueria?.Trim(),
+            .EstadoPeluqueria = estadoPeluqueria
+        }
+    End Function
+
     Public Const GRUPO_PELUQUERIA As String = "PEL"
 End Class
 
@@ -68,8 +82,8 @@ End Class
 ''' GestorComisiones.ActualizarVendedorClienteGrupoProducto) solo toca lo que llega: estado, vendedor o país a null y los
 ''' vendedores por grupo sin ninguna fila = no tocar. Antes se mandaba todo tal como se cargó y, si otro usuario había cambiado
 ''' algo entre medias, se le pisaba. Ahora va solo lo que el usuario ha cambiado respecto a lo cargado.
-''' Lo que NO se puede sin la API: rechazar el guardado si lo que se cambia ya lo había cambiado otro (haría falta una versión
-''' o el valor original, como NestoAPI#873 en los pedidos), ni cambiar solo el vendedor o solo el estado de peluquería (la API
+''' Además va el «original» (lo cargado): si lo que se cambia ya lo había cambiado otro, la API contesta 409 CLIENTE_CAMBIADO
+''' y la pantalla ofrece recargar. Lo que sigue sin poderse: cambiar solo el vendedor o solo el estado de peluquería (la API
 ''' escribe los dos).
 ''' </summary>
 Friend Module GuardadoFichaComercial
@@ -100,6 +114,10 @@ Friend Module GuardadoFichaComercial
         Dim cambiaPeluqueria As Boolean = Not MismoTexto(vendedorPeluqueria, cargado.VendedorPeluqueria) OrElse
             estadoPeluqueria <> cargado.EstadoPeluqueria
 
+        ' Nesto#644 (5, parte de Nesto): lo que había al abrir la ficha. Si otro usuario ha cambiado entre medias lo que este
+        ' guardado cambia, la API contesta 409 CLIENTE_CAMBIADO sin escribir nada (una API anterior lo ignora).
+        payload("original") = Original(cargado)
+
         If Not cambiaEstado Then
             payload("estado") = JValue.CreateNull()
         End If
@@ -124,6 +142,10 @@ Friend Module GuardadoFichaComercial
                 segundo("pais") = JValue.CreateNull()
                 segundo("motivoCambioEstado") = JValue.CreateNull()
                 segundo("comentarioCambioEstado") = JValue.CreateNull()
+                ' La fila la acaba de crear el primer PUT: su «original» ya no vale (sería un 409 contra uno mismo). Con la API
+                ' nueva (NestoAPI-901) este segundo PUT sobra, porque crea la fila con el estado que llega, pero es inofensivo y
+                ' hace falta mientras quede publicada una API que la crea siempre con el 0.
+                Dim unusedOriginal = segundo.Remove("original")
                 peticion.PayloadEstadoPeluqueria = segundo
             End If
         Else
@@ -132,6 +154,102 @@ Friend Module GuardadoFichaComercial
 
         peticion.HayCambios = cambiaEstado OrElse cambiaVendedor OrElse cambiaPais OrElse cambiaPeluqueria
         Return peticion
+    End Function
+
+    ''' <summary>Nesto#644 (5): el «original» del PUT (OriginalClienteComercialDTO de la API) con lo que se cargó.</summary>
+    Public Function Original(cargado As ValoresComercialesFicha) As JObject
+        Return New JObject(
+            New JProperty("estado", CShort(cargado.Estado)),
+            New JProperty("vendedor", cargado.Vendedor),
+            New JProperty("pais", cargado.Pais),
+            New JProperty("vendedorPeluqueria", If(cargado.TieneFilaPeluqueria, cargado.VendedorPeluqueria, Nothing)),
+            New JProperty("estadoPeluqueria", cargado.EstadoPeluqueria))
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (5): qué ha cambiado el usuario respecto a lo cargado, con los nombres de campo de la API (estado, vendedor,
+    ''' pais, vendedorPeluqueria, estadoPeluqueria). Mismo criterio que <see cref="Preparar"/>.
+    ''' </summary>
+    Public Function CamposCambiados(cargado As ValoresComercialesFicha, pantalla As ValoresComercialesFicha) As List(Of String)
+        Dim campos As New List(Of String)
+        If cargado Is Nothing OrElse pantalla Is Nothing Then
+            Return campos
+        End If
+        If pantalla.Estado <> cargado.Estado Then campos.Add(CAMPO_ESTADO)
+        If Not MismoTexto(pantalla.Vendedor, cargado.Vendedor) Then campos.Add(CAMPO_VENDEDOR)
+        If Not MismoTexto(pantalla.Pais, cargado.Pais) Then campos.Add(CAMPO_PAIS)
+        If Not MismoTexto(pantalla.VendedorPeluqueria, cargado.VendedorPeluqueria) Then campos.Add(CAMPO_VENDEDOR_PELUQUERIA)
+        If pantalla.EstadoPeluqueria <> cargado.EstadoPeluqueria Then campos.Add(CAMPO_ESTADO_PELUQUERIA)
+        Return campos
+    End Function
+
+    ''' <summary>
+    ''' Nesto#644 (5): al recargar la ficha tras el 409, lo que el usuario había cambiado se vuelve a poner encima de lo nuevo
+    ''' SOLO en los campos que no chocan; en los que chocan se queda lo que guardó el otro y decide el usuario si lo vuelve a
+    ''' cambiar. La peluquería va junta (la API escribe los dos): si choca el vendedor o el estado, no se reaplica ninguno.
+    ''' </summary>
+    Public Function CamposAReaplicar(cambiados As IEnumerable(Of String), enConflicto As IEnumerable(Of String)) As List(Of String)
+        Dim conflicto As New HashSet(Of String)(If(enConflicto, Enumerable.Empty(Of String)()), StringComparer.OrdinalIgnoreCase)
+        Dim peluqueriaChoca As Boolean = conflicto.Contains(CAMPO_VENDEDOR_PELUQUERIA) OrElse conflicto.Contains(CAMPO_ESTADO_PELUQUERIA)
+        Return If(cambiados, Enumerable.Empty(Of String)()).
+            Where(Function(c) Not conflicto.Contains(c)).
+            Where(Function(c) Not (peluqueriaChoca AndAlso (c = CAMPO_VENDEDOR_PELUQUERIA OrElse c = CAMPO_ESTADO_PELUQUERIA))).
+            ToList()
+    End Function
+
+    ''' <summary>Nesto#644 (5): cómo se llama cada campo en los mensajes (como la API).</summary>
+    Public Function NombreCampo(campo As String) As String
+        Select Case campo
+            Case CAMPO_PAIS : Return "país"
+            Case CAMPO_VENDEDOR_PELUQUERIA : Return "vendedor de peluquería"
+            Case CAMPO_ESTADO_PELUQUERIA : Return "estado de peluquería"
+            Case Else : Return campo
+        End Select
+    End Function
+
+    ''' <summary>Nesto#644 (5): el aviso tras recargar: qué se ha conservado y qué hay que volver a hacer.</summary>
+    Public Function MensajeTrasRecargar(reaplicados As IEnumerable(Of String), perdidos As IEnumerable(Of String)) As String
+        Dim siguen As List(Of String) = If(reaplicados, Enumerable.Empty(Of String)()).Select(Function(c) NombreCampo(c)).ToList()
+        Dim fuera As List(Of String) = If(perdidos, Enumerable.Empty(Of String)()).Select(Function(c) NombreCampo(c)).ToList()
+        Dim texto As String = "Se ha recargado la ficha con lo que hay guardado ahora."
+        If siguen.Any() Then
+            texto &= $" Se mantienen sus cambios en: {String.Join(", ", siguen)}."
+        End If
+        If fuera.Any() Then
+            texto &= $" En {String.Join(", ", fuera)} se ha quedado lo que guardó el otro usuario: si quiere cambiarlo, vuelva a hacerlo."
+        End If
+        If siguen.Any() OrElse fuera.Any() Then
+            texto &= " Revise la ficha y pulse Guardar."
+        End If
+        Return texto
+    End Function
+
+    Public Const CAMPO_ESTADO As String = "estado"
+    Public Const CAMPO_VENDEDOR As String = "vendedor"
+    Public Const CAMPO_PAIS As String = "pais"
+    Public Const CAMPO_VENDEDOR_PELUQUERIA As String = "vendedorPeluqueria"
+    Public Const CAMPO_ESTADO_PELUQUERIA As String = "estadoPeluqueria"
+    ''' <summary>Nesto#644 (5): el Codigo del 409 de la API (ReglaClienteComercialCambiado.CODIGO).</summary>
+    Public Const CODIGO_CLIENTE_CAMBIADO As String = "CLIENTE_CAMBIADO"
+
+    ''' <summary>
+    ''' Nesto#644 (5): si la respuesta es el 409 CLIENTE_CAMBIADO de la API, los campos que chocan (details.campos; lista vacía
+    ''' si no los trae). Nothing si es cualquier otra cosa.
+    ''' </summary>
+    Public Function CamposEnConflicto(status As Net.HttpStatusCode, cuerpo As String) As List(Of String)
+        If status <> Net.HttpStatusCode.Conflict OrElse String.IsNullOrWhiteSpace(cuerpo) Then
+            Return Nothing
+        End If
+        Try
+            Dim json As JObject = JObject.Parse(cuerpo)
+            If Not String.Equals(json("Codigo")?.ToString(), CODIGO_CLIENTE_CAMBIADO, StringComparison.OrdinalIgnoreCase) Then
+                Return Nothing
+            End If
+            Dim campos As JArray = TryCast(json("details")?("campos"), JArray)
+            Return If(campos Is Nothing, New List(Of String), campos.Select(Function(c) c.ToString()).ToList())
+        Catch
+            Return Nothing
+        End Try
     End Function
 
     Private Function FilaPeluqueria(grupo As String, vendedor As String, estado As Short, usuario As String) As JArray
