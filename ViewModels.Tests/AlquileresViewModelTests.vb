@@ -307,4 +307,53 @@ Public Class AlquileresViewModelTests
         CollectionAssert.AreEqual(New String() {"CALLE MAYOR, 3", "1º D", "28001 MADRID"}, mismaProvincia)
     End Sub
 
+    ' NestoAPI#913 (corte 1): doble clic en un descuadre = ir a su registro.
+    Private Async Function ConProductos() As Task(Of AlquileresViewModel)
+        A.CallTo(Function() _servicio.LeerProductosAlquiler()).Returns(Task.FromResult(New List(Of ProductoAlquilerModel) From {
+            New ProductoAlquilerModel With {.Empresa = "1", .Numero = "26780", .Nombre = "Aparato X"},
+            New ProductoAlquilerModel With {.Empresa = "1", .Numero = "26781", .Nombre = "Aparato Y"}
+        }))
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26781")).Returns(Task.FromResult(New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Producto = "26781", .NumeroSerie = "SHE-1"},
+            New AlquilerModel With {.Empresa = "1", .Producto = "26781", .NumeroSerie = "SHE-2"}
+        }))
+        Dim vm = CrearViewModel()
+        Await vm.CargarProductosAlquilerAsync(seleccionarUltimo:=False)
+        Return vm
+    End Function
+
+    <TestMethod()>
+    Public Async Function IrAlRegistro_EligeElProductoYLaFilaDeEsaSerie() As Task
+        Dim vm = Await ConProductos()
+
+        Dim llegado As Boolean = Await vm.IrAlRegistroAsync("26781 ", "she-2")
+
+        Assert.IsTrue(llegado)
+        Assert.AreEqual("26781", vm.ProductoSeleccionado.Numero)
+        Assert.AreEqual("SHE-2", vm.LineaSeleccionada.NumeroSerie)
+    End Function
+
+    <TestMethod()>
+    Public Async Function IrAlRegistro_SinEseRegistro_LoDiceYNoSeMueveLaFila() As Task
+        Dim vm = Await ConProductos()
+
+        Assert.IsFalse(Await vm.IrAlRegistroAsync("26781", "NO-EXISTE"))
+        Assert.AreEqual("El 26781 con nº de serie NO-EXISTE no tiene registro en la relación.", vm.mensajeError)
+        Assert.IsNull(vm.LineaSeleccionada)
+
+        Assert.IsFalse(Await vm.IrAlRegistroAsync("99999", "X"))
+        StringAssert.Contains(vm.mensajeError, "no está en la lista de productos de alquiler")
+    End Function
+
+    <TestMethod()>
+    Public Async Function IrAlRegistro_ConCambiosSinGuardar_NoSeMueve() As Task
+        Dim vm = Await ConProductos()
+        Await vm.IrAlRegistroAsync("26781", "SHE-1")
+        vm.LineaSeleccionada.NumeroSerie = "SHE-1B" ' un cambio sin guardar
+
+        Assert.IsFalse(Await vm.IrAlRegistroAsync("26780", "X"))
+        Assert.AreEqual("26781", vm.ProductoSeleccionado.Numero)
+        StringAssert.Contains(vm.mensajeError, "cambios sin guardar")
+    End Function
+
 End Class

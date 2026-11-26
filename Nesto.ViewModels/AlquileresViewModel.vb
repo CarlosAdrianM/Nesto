@@ -188,6 +188,41 @@ Public Class AlquileresViewModel
         _hayCambios = True
     End Sub
 
+    Private _cargaCabeceras As Task = Task.CompletedTask
+
+    ''' <summary>
+    ''' NestoAPI#913 (corte 1): desde la pestaña «Descuadres», ir al registro de ese producto y nº de serie: se elige el producto en la
+    ''' lista (si no lo estaba), se espera a que cargue la relación y se elige la fila. No se mueve si hay cambios sin guardar. Devuelve
+    ''' si ha llegado; si no, lo dice en mensajeError.
+    ''' </summary>
+    Public Async Function IrAlRegistroAsync(producto As String, numeroSerie As String) As Task(Of Boolean)
+        If _hayCambios Then
+            mensajeError = "Hay cambios sin guardar en la relación: guárdelos antes de ir a otro aparato."
+            Return False
+        End If
+        Dim referencia As String = producto?.Trim()
+        Dim serie As String = numeroSerie?.Trim()
+        Dim elegido As ProductoAlquilerModel = colProductosAlquilerLista?.FirstOrDefault(
+            Function(p) String.Equals(p.Numero?.Trim(), referencia, StringComparison.OrdinalIgnoreCase))
+        If elegido Is Nothing Then
+            mensajeError = $"El {referencia} no está en la lista de productos de alquiler: su registro no se puede abrir aquí."
+            Return False
+        End If
+        If ProductoSeleccionado IsNot elegido OrElse ModoPorCliente Then
+            ProductoSeleccionado = elegido
+        End If
+        Await _cargaCabeceras
+        Dim fila As AlquilerModel = AlquileresCollection?.FirstOrDefault(
+            Function(a) String.Equals(a.NumeroSerie?.Trim(), serie, StringComparison.OrdinalIgnoreCase))
+        If fila Is Nothing Then
+            mensajeError = $"El {referencia} con nº de serie {serie} no tiene registro en la relación."
+            Return False
+        End If
+        LineaSeleccionada = fila
+        mensajeError = ""
+        Return True
+    End Function
+
     ' Empresa/producto del grid actual (todas las filas comparten producto = el seleccionado).
     Private Function EmpresaActual() As String
         Return If(ProductoSeleccionado?.Empresa, If(LineaSeleccionada?.Empresa, "1"))
@@ -309,7 +344,8 @@ Public Class AlquileresViewModel
                 ModoPorCliente = False
                 AvisoBusquedaCliente = ""
                 ' Nesto#340 Fase 1C.3: el grid se carga del API (carga asíncrona) en vez de EF.
-                CargarCabecerasAsync(ProductoSeleccionado.Empresa, ProductoSeleccionado.Numero)
+                ' NestoAPI#913: se guarda la carga para que «ir al registro» pueda esperarla.
+                _cargaCabeceras = CargarCabecerasAsync(ProductoSeleccionado.Empresa, ProductoSeleccionado.Numero)
             End If
 
             colExtractoInmovilizado = Nothing

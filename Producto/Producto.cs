@@ -67,6 +67,11 @@ namespace Nesto.Modulos.Producto
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosInternosViewModel>();
             registro.Singleton<IServicioEnviosInternos, ServicioEnviosInternos>();
 
+            // NestoAPI#913 (corte 1): historia y descuadres de los aparatos, en dos pestañas de la ventana de Alquileres (Nesto)
+            registro.Singleton<IServicioAparatos, ServicioAparatos>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.HistoriaAparatoViewModel>();
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.DescuadresAparatosViewModel>();
+
             // Nesto#636 (NestoAPI#857, fase 3): los envíos de proveedor que la API no ha sabido asignar a un pedido de compra (la campana
             // con CompraSeguimientoPorAsignar abre aquí)
             registro.Vista<EnviosProveedorPorAsignarView>(NotificacionBuzon.VISTA_ENVIOS_PROVEEDOR_POR_ASIGNAR);

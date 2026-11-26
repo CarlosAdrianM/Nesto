@@ -1,0 +1,69 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.DescuadresAparatosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:DescuadresAparatosViewModel}"
+             mc:Ignorable="d" d:DesignHeight="350" d:DesignWidth="1100"
+             Background="White">
+    <!-- NestoAPI#913 (corte 1): los aparatos cuyo registro no coincide con los movimientos, por nº de serie. Solo lectura. -->
+    <Grid Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="2*"/>
+        </Grid.ColumnDefinitions>
+        <DockPanel Grid.Column="0">
+            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                <TextBlock Text="Producto:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBox Text="{Binding FiltroProducto, UpdateSourceTrigger=PropertyChanged}" Width="140" Margin="0,0,10,0"
+                         ToolTip="Referencia o parte del nombre"/>
+                <TextBlock Text="Motivo:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <ComboBox ItemsSource="{Binding Motivos}" SelectedItem="{Binding MotivoElegido}" DisplayMemberPath="Texto" MinWidth="220" Margin="0,0,10,0"/>
+                <CheckBox Content="Solo la lista de alquileres" IsChecked="{Binding SoloListaAlquileres}" VerticalAlignment="Center" Margin="0,0,10,0"
+                          ToolTip="Solo los productos de la lista de alquileres; si no, también los que llevan número de serie"/>
+                <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="10,2"/>
+            </WrapPanel>
+            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,4">
+                <Run Text="{Binding Resumen, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text="{Binding Aviso, Mode=OneWay}" Foreground="DarkRed"/>
+            </TextBlock>
+            <TextBlock DockPanel.Dock="Bottom" Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Doble clic en un descuadre con registro para ir a él en la relación. Nada se corrige solo: compruebe cuál es la buena."/>
+            <DataGrid x:Name="dgrDescuadres" ItemsSource="{Binding Descuadres}" SelectedItem="{Binding Seleccionado}" AutoGenerateColumns="False"
+                      IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column"
+                      Background="White" RowBackground="White" AlternatingRowBackground="#F7F7F7">
+                <DataGrid.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" Command="{Binding IrAlRegistroCommand}"
+                                  CommandParameter="{Binding SelectedItem, ElementName=dgrDescuadres}"/>
+                </DataGrid.InputBindings>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="160"/>
+                    <DataGridTextColumn Header="Nº de serie" Binding="{Binding NumeroSerie}"/>
+                    <DataGridTextColumn Header="Motivo" Binding="{Binding TextoMotivo}" Width="220"/>
+                    <DataGridTextColumn Header="Según el registro" Binding="{Binding SituacionSegunRegistro}"/>
+                    <DataGridTextColumn Header="Calculada" Binding="{Binding SituacionCalculada}"/>
+                    <DataGridTextColumn Header="Otras formas de la serie" Binding="{Binding OtrasFormas}"/>
+                    <DataGridTextColumn Header="Detalle" Binding="{Binding TextoSituacion}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
+        <DockPanel Grid.Column="2">
+            <TextBlock DockPanel.Dock="Top" Text="Resumen por producto" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <DataGrid ItemsSource="{Binding Productos}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                      HeadersVisibility="Column" Background="White" RowBackground="White" AlternatingRowBackground="#F7F7F7">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                    <DataGridTextColumn Header="Stock contable" Binding="{Binding StockContableTotal}"/>
+                    <DataGridTextColumn Header="En stock (registro)" Binding="{Binding EnStockSegunRegistro}"/>
+                    <DataGridTextColumn Header="En stock (movimientos)" Binding="{Binding EnStockSegunMovimientos}"/>
+                    <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+    </Grid>
+</UserControl>
