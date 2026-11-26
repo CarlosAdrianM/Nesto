@@ -40,9 +40,34 @@ Public Class Configuracion
         End Get
     End Property
 
+    ''' <summary>
+    ''' Nesto#639 (para poder cerrar PUT api/ParametrosUsuario): leer y guardar parámetros va con el token, por la fábrica común
+    ''' (IClienteApiFactory: token, reintentos de los GET y avisos de bloqueo), como MainViewModel.leerParametro. No se inyecta por el
+    ''' constructor porque la fábrica se construye con esta misma configuración (servidorAPI): se pide al contenedor en cada llamada.
+    ''' Sin contenedor (diseñador, tests) o si no se puede resolver, un HttpClient sin token, como antes.
+    ''' </summary>
+    Friend Function CrearClienteApi() As HttpClient
+        Try
+            Dim fabrica As IClienteApiFactory = Contenedor.Actual?.Resolver(Of IClienteApiFactory)()
+            If fabrica IsNot Nothing Then
+                Return fabrica.Crear()
+            End If
+        Catch
+            ' sin fábrica: como antes
+        End Try
+        Return New HttpClient With {.BaseAddress = New Uri(servidorAPI)}
+    End Function
+
+    ''' <summary>
+    ''' Las versiones síncronas esperan en otro hilo: el token puede tener que pedirse (ServicioAutenticacion espera sin
+    ''' ConfigureAwait(False)) y bloquear el hilo de la interfaz con .Result lo dejaría esperándose a sí mismo.
+    ''' </summary>
+    Private Shared Function EsperarFuera(Of T)(trabajo As Func(Of Task(Of T))) As T
+        Return Task.Run(trabajo).GetAwaiter().GetResult()
+    End Function
+
     Public Async Function GuardarParametro(empresa As String, clave As String, valor As String) As Task Implements IConfiguracion.GuardarParametro
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(servidorAPI)
+        Using client As HttpClient = CrearClienteApi()
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
             Dim urlConsulta As String = "ParametrosUsuario"
@@ -78,8 +103,7 @@ Public Class Configuracion
         End Using
     End Function
     Public Sub GuardarParametroSync(empresa As String, clave As String, valor As String) Implements IConfiguracion.GuardarParametroSync
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(servidorAPI)
+        Using client As HttpClient = CrearClienteApi()
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
             Dim urlConsulta As String = "ParametrosUsuario"
@@ -94,7 +118,7 @@ Public Class Configuracion
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
 
-            response = client.PutAsync(urlConsulta, content).Result
+            response = EsperarFuera(Function() client.PutAsync(urlConsulta, content))
 
             If response.IsSuccessStatusCode Then
                 respuesta = response.Content.ReadAsStringAsync().Result
@@ -117,8 +141,7 @@ Public Class Configuracion
 
     Public Async Function leerParametro(empresa As String, clave As String) As Task(Of String) Implements IConfiguracion.leerParametro
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(servidorAPI)
+        Using client As HttpClient = CrearClienteApi()
             Dim response As HttpResponseMessage
 
             Try
@@ -144,12 +167,12 @@ Public Class Configuracion
 
     Public Function LeerParametroSync(empresa As String, clave As String) As String Implements IConfiguracion.LeerParametroSync
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(servidorAPI)
+        Using client As HttpClient = CrearClienteApi()
             Dim response As HttpResponseMessage
 
             Try
-                response = client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + UsuarioSinDominio + "&clave=" + clave).Result
+                Dim url As String = "ParametrosUsuario?empresa=" + empresa + "&usuario=" + UsuarioSinDominio + "&clave=" + clave
+                response = EsperarFuera(Function() client.GetAsync(url))
 
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = response.Content.ReadAsStringAsync().Result
