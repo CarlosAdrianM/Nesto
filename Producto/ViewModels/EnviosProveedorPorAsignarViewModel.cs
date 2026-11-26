@@ -327,6 +327,73 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 await CargarRemitentesAsync().ConfigureAwait(true);
             }
+            await CargarCorreosSinReconocerAsync().ConfigureAwait(true); // NestoAPI#857j
+        }
+
+        // ------------------------------------------------------------------ NestoAPI#857j: correos de agencia sin reconocer
+
+        public const int DIAS_SIN_RECONOCER = 30;
+
+        /// <summary>Solo lectura: los correos de agencia que la API no ha sabido leer (para pasarlos a Informática).</summary>
+        public ObservableCollection<CorreoAgenciaSinReconocer> CorreosSinReconocer { get; } = new ObservableCollection<CorreoAgenciaSinReconocer>();
+
+        /// <summary>Con 503, 403 o lista vacía, la sección no se pinta.</summary>
+        public bool HayCorreosSinReconocer => CorreosSinReconocer.Any();
+
+        public string TextoCorreosSinReconocer => CorreosSinReconocer.Count == 1
+            ? "1 correo de agencia que no se ha sabido leer en los últimos 30 días. Cópielo y páselo a Informática."
+            : $"{CorreosSinReconocer.Count} correos de agencia que no se han sabido leer en los últimos 30 días. Cópielos y páselos a Informática.";
+
+        private CorreoAgenciaSinReconocer _correoSinReconocerSeleccionado;
+        public CorreoAgenciaSinReconocer CorreoSinReconocerSeleccionado
+        {
+            get => _correoSinReconocerSeleccionado;
+            set
+            {
+                if (SetProperty(ref _correoSinReconocerSeleccionado, value))
+                {
+                    CopiarCorreoSinReconocerCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private RelayCommand _copiarCorreoSinReconocerCommand;
+        /// <summary>Copia asunto, remitente y extracto del elegido al portapapeles.</summary>
+        public RelayCommand CopiarCorreoSinReconocerCommand => _copiarCorreoSinReconocerCommand ??= new RelayCommand(
+            () => CopiarAlPortapapeles?.Invoke(CorreoSinReconocerSeleccionado?.TextoParaCopiar), () => CorreoSinReconocerSeleccionado != null);
+
+        /// <summary>El portapapeles (sustituible en los tests).</summary>
+        internal Action<string> CopiarAlPortapapeles { get; set; } = texto =>
+        {
+            try
+            {
+                System.Windows.Clipboard.SetText(texto ?? string.Empty);
+            }
+            catch
+            {
+                // El portapapeles puede estar ocupado por otra aplicación: no se rompe nada
+            }
+        };
+
+        internal async Task CargarCorreosSinReconocerAsync()
+        {
+            List<CorreoAgenciaSinReconocer> leidos = null;
+            try
+            {
+                leidos = await _servicio.LeerCorreosSinReconocer(DIAS_SIN_RECONOCER).ConfigureAwait(true);
+            }
+            catch
+            {
+                // Es una ayuda: sin ella, la sección no se pinta
+            }
+            CorreosSinReconocer.Clear();
+            foreach (CorreoAgenciaSinReconocer c in (leidos ?? new List<CorreoAgenciaSinReconocer>()).OrderByDescending(c => c.Recibido))
+            {
+                CorreosSinReconocer.Add(c);
+            }
+            CorreoSinReconocerSeleccionado = CorreosSinReconocer.FirstOrDefault();
+            OnPropertyChanged(nameof(HayCorreosSinReconocer));
+            OnPropertyChanged(nameof(TextoCorreosSinReconocer));
         }
 
         internal async Task CargarEnviosAsync()

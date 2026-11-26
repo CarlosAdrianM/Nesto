@@ -42,6 +42,51 @@ namespace Nesto.Modules.Producto
 
         /// <summary>DELETE api/Compras/AgenciasEntrada/RemitentesPaquete/{id} (404 si ya no está).</summary>
         Task BorrarRemitentePaquete(int id);
+
+        /// <summary>
+        /// NestoAPI#857j: GET api/Compras/AgenciasEntrada/Correos/SinReconocer?dias=: correos de agencia que la API no ha sabido leer (solo
+        /// lectura, para pasarlos a Informática). Null con 403, 503 (falta el script) o cualquier error: la sección no se pinta.
+        /// </summary>
+        Task<List<CorreoAgenciaSinReconocer>> LeerCorreosSinReconocer(int dias);
+    }
+
+    /// <summary>NestoAPI#857j: un correo de una agencia que la API no ha reconocido.</summary>
+    public class CorreoAgenciaSinReconocer
+    {
+        public int Id { get; set; }
+        public string MensajeId { get; set; }
+        public DateTime? Recibido { get; set; }
+        public string Remitente { get; set; }
+        public string Agencia { get; set; }
+        public string Asunto { get; set; }
+        public string Extracto { get; set; }
+        public DateTime? FechaAlta { get; set; }
+        public DateTime? ReconocidoEl { get; set; }
+        public int? CorreoId { get; set; }
+
+        public string FechaTexto => Recibido.HasValue ? Recibido.Value.ToString("dd/MM/yyyy HH:mm", CultureInfo.GetCultureInfo("es-ES")) : null;
+
+        /// <summary>Lo que se copia para Informática: asunto, remitente y extracto.</summary>
+        public string TextoParaCopiar
+        {
+            get
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Asunto: " + Asunto?.Trim());
+                sb.AppendLine("Remitente: " + Remitente?.Trim());
+                if (!string.IsNullOrWhiteSpace(Agencia))
+                {
+                    sb.AppendLine("Agencia: " + Agencia.Trim());
+                }
+                if (Recibido.HasValue)
+                {
+                    sb.AppendLine("Recibido: " + FechaTexto);
+                }
+                sb.AppendLine();
+                sb.Append(Extracto?.Trim());
+                return sb.ToString();
+            }
+        }
     }
 
     /// <summary>NestoAPI#857 (PorAsignarCorreosCompraDTO).</summary>
@@ -309,6 +354,29 @@ namespace Nesto.Modules.Producto
             => $"{URL}/Correos/{correo.ToString(CultureInfo.InvariantCulture)}/Descartar" + (ignorarRemitente ? "?ignorarRemitente=true" : string.Empty);
 
         internal static string UrlRemitentesPaquete() => $"{URL}/RemitentesPaquete";
+
+        internal static string UrlCorreosSinReconocer(int dias) => $"{URL}/Correos/SinReconocer?dias={dias.ToString(CultureInfo.InvariantCulture)}";
+
+        public async Task<List<CorreoAgenciaSinReconocer>> LeerCorreosSinReconocer(int dias)
+        {
+            try
+            {
+                using (HttpClient client = _clienteApiFactory.Crear())
+                {
+                    HttpResponseMessage response = await client.GetAsync(UrlCorreosSinReconocer(dias)).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return null; // 403, 503 sin el script: la sección no se pinta
+                    }
+                    string cuerpo = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return string.IsNullOrWhiteSpace(cuerpo) ? null : JsonConvert.DeserializeObject<List<CorreoAgenciaSinReconocer>>(cuerpo);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         internal static string UrlBorrarRemitentePaquete(int id) => $"{URL}/RemitentesPaquete/{id.ToString(CultureInfo.InvariantCulture)}";
 

@@ -229,6 +229,30 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+
+            <!-- NestoAPI#857j: correos de agencia que la API no ha sabido leer (solo lectura; «Copiar» para pasarlos a Informática).
+                 Con 403, 503 o ninguno, la pestaña no se ve. -->
+            <TabItem Header="Correos de agencia sin reconocer"
+                     Visibility="{Binding HayCorreosSinReconocer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <DockPanel Margin="8">
+                    <WrapPanel DockPanel.Dock="Top">
+                        <TextBlock Text="{Binding TextoCorreosSinReconocer}" VerticalAlignment="Center" Margin="0,0,12,6" />
+                        <Button Content="Copiar" Command="{Binding CopiarCorreoSinReconocerCommand}" Style="{StaticResource Boton}"
+                                ToolTip="Copia el asunto, el remitente y el extracto del correo elegido para pasárselo a Informática" />
+                    </WrapPanel>
+                    <TextBox DockPanel.Dock="Bottom" Text="{Binding CorreoSinReconocerSeleccionado.Extracto, Mode=OneWay}" IsReadOnly="True"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="140" Margin="0,6,0,0" />
+                    <DataGrid ItemsSource="{Binding CorreosSinReconocer}" SelectedItem="{Binding CorreoSinReconocerSeleccionado}" AutoGenerateColumns="False"
+                              IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding FechaTexto}" Width="120" />
+                            <DataGridTextColumn Header="Agencia" Binding="{Binding Agencia}" Width="100" />
+                            <DataGridTextColumn Header="Remitente" Binding="{Binding Remitente}" Width="*" />
+                            <DataGridTextColumn Header="Asunto" Binding="{Binding Asunto}" Width="2*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>
