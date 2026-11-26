@@ -95,6 +95,9 @@ Public NotInheritable Class PanelNavegacionLateral
         AddHandler Navegacion.Loaded, Sub(s, e) OcultarZonaDeContenido()
         AddHandler Navegacion.PaneOpened, Sub(s, e) AlCambiarPanel()
         AddHandler Navegacion.PaneClosed, Sub(s, e) AlCambiarPanel()
+        ' Nesto#655 (paso 0): se pliega solo al trabajar fuera de él (lo dicen el ratón y el teclado de la ventana)
+        AddHandler Loaded, Sub(s, e) EngancharVentana()
+        AddHandler Unloaded, Sub(s, e) SoltarVentana()
 
         Child = Navegacion
     End Sub
@@ -343,9 +346,17 @@ Public NotInheritable Class PanelNavegacionLateral
         AddHandler _buscador.Terminada, AddressOf AlTerminarBusqueda
         AddHandler _buscador.ErrorAlEjecutar, Sub(s, mensaje) AvisarError(mensaje)
 
+        ' Nesto#655 (paso 0): la chincheta, a la derecha de la caja (solo con el panel abierto)
+        _chincheta = CrearChincheta()
+        _cajaBusqueda.Margin = New Thickness(4, 4, 2, 0)
+        Dim filaBusqueda As New DockPanel With {.LastChildFill = True}
+        DockPanel.SetDock(_chincheta, Dock.Right)
+        filaBusqueda.Children.Add(_chincheta)
+        filaBusqueda.Children.Add(_cajaBusqueda)
+
         Dim cabecera As New StackPanel()
         cabecera.Children.Add(_botonBuscar)
-        cabecera.Children.Add(_cajaBusqueda)
+        cabecera.Children.Add(filaBusqueda)
         cabecera.Children.Add(_listaResultados)
         cabecera.Children.Add(sinResultados)
         Return cabecera
@@ -356,6 +367,112 @@ Public NotInheritable Class PanelNavegacionLateral
         enlace.Bindings.Add(New Binding(propiedadDelBuscador) With {.Source = _buscador})
         enlace.Bindings.Add(New Binding(NameOf(Ui.NavigationView.IsPaneOpen)) With {.Source = Navegacion})
         Return enlace
+    End Function
+
+    ' ── Nesto#655 (paso 0): el panel se pliega solo; la chincheta lo deja fijo ─────────────────────────────────────────
+    ' Sin temporizadores: abierto y sin la chincheta, un clic o una tecla FUERA del panel (en la pantalla de la pestaña) lo
+    ' devuelve a compacto, salvo con el ratón encima o escribiendo en su buscador (PlegadoMenuLateral.DebePlegarse). No
+    ' cambia lo recordado de abierto/compacto: eso sigue siendo el botón del panel.
+
+    Private _chincheta As ToggleButton
+    Private _ventana As Window
+
+    ''' <summary>La chincheta (para las pruebas).</summary>
+    Public ReadOnly Property Chincheta As ToggleButton
+        Get
+            Return _chincheta
+        End Get
+    End Property
+
+    Private Function CrearChincheta() As ToggleButton
+        Dim plegado = _conmutador.Plegado
+        Dim icono As New Ui.SymbolIcon With {.Symbol = Ui.SymbolRegular.Pin24}
+        icono.SetBinding(Ui.SymbolIcon.FilledProperty, New Binding(NameOf(PlegadoMenuLateral.Fija)) With {.Source = plegado})
+        Dim boton As New ToggleButton With {
+            .Content = icono,
+            .Focusable = False,
+            .IsTabStop = False,
+            .Width = 32,
+            .Height = 32,
+            .Padding = New Thickness(0),
+            .Margin = New Thickness(0, 4, 4, 0),
+            .VerticalAlignment = VerticalAlignment.Top
+        }
+        boton.SetBinding(ToggleButton.IsCheckedProperty, New Binding(NameOf(PlegadoMenuLateral.Fija)) With {
+            .Source = plegado,
+            .Mode = BindingMode.TwoWay
+        })
+        boton.SetBinding(ToolTipProperty, New Binding(NameOf(PlegadoMenuLateral.TextoChincheta)) With {.Source = plegado})
+        boton.SetBinding(VisibilityProperty, New Binding(NameOf(Ui.NavigationView.IsPaneOpen)) With {
+            .Source = Navegacion,
+            .Converter = New BooleanToVisibilityConverter()
+        })
+        Return boton
+    End Function
+
+    Private Sub EngancharVentana()
+        Try
+            Dim ventana = Window.GetWindow(Me)
+            If ventana Is _ventana Then
+                Return
+            End If
+            SoltarVentana()
+            _ventana = ventana
+            If _ventana IsNot Nothing Then
+                AddHandler _ventana.PreviewMouseDown, AddressOf AlPulsarRatonEnLaVentana
+                AddHandler _ventana.PreviewKeyDown, AddressOf AlPulsarTeclaEnLaVentana
+            End If
+        Catch ex As Exception
+            _conmutador.Registrar(ex, "NavegacionLateral: enganchar el plegado solo a la ventana")
+        End Try
+    End Sub
+
+    Private Sub SoltarVentana()
+        Try
+            If _ventana IsNot Nothing Then
+                RemoveHandler _ventana.PreviewMouseDown, AddressOf AlPulsarRatonEnLaVentana
+                RemoveHandler _ventana.PreviewKeyDown, AddressOf AlPulsarTeclaEnLaVentana
+            End If
+        Catch
+            ' Al desmontar nunca se rompe nada
+        Finally
+            _ventana = Nothing
+        End Try
+    End Sub
+
+    Private Sub AlPulsarRatonEnLaVentana(sender As Object, e As MouseButtonEventArgs)
+        PlegarSiTrabajaFuera(TryCast(e?.OriginalSource, DependencyObject))
+    End Sub
+
+    Private Sub AlPulsarTeclaEnLaVentana(sender As Object, e As KeyEventArgs)
+        If e Is Nothing OrElse (e.Key = Key.K AndAlso (Keyboard.Modifiers And ModifierKeys.Control) = ModifierKeys.Control) Then
+            Return ' Ctrl+K es para el panel
+        End If
+        PlegarSiTrabajaFuera(TryCast(e.OriginalSource, DependencyObject))
+    End Sub
+
+    ''' <summary>
+    ''' El usuario ha pulsado el ratón o una tecla en <paramref name="origen"/>: si es fuera del panel y toca, el panel vuelve a
+    ''' compacto (sin recordarlo). Devuelve si se ha plegado. Public para las pruebas.
+    ''' </summary>
+    Public Function PlegarSiTrabajaFuera(origen As DependencyObject) As Boolean
+        Try
+            If origen Is Nothing OrElse EstaEnElPanel(origen) Then
+                Return False
+            End If
+            If _abiertoParaBuscar OrElse (PopupOpcionesInformes IsNot Nothing AndAlso PopupOpcionesInformes.IsOpen) Then
+                Return False ' tienen su propio camino de vuelta a compacto
+            End If
+            If Not _conmutador.Plegado.DebePlegarse(Navegacion.IsPaneOpen, IsMouseOver, BusquedaTieneElFoco) Then
+                Return False
+            End If
+            _abiertoParaUnaSeccion = False
+            CambiarPorCodigo(False)
+            Return True
+        Catch ex As Exception
+            _conmutador.Registrar(ex, "NavegacionLateral: plegar el panel solo")
+            Return False
+        End Try
     End Function
 
     Private Shared Function PlantillaResultado() As DataTemplate

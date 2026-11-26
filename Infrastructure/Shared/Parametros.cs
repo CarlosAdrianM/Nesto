@@ -67,6 +67,9 @@
             // Nesto#490 (panel lateral): "0" = el menú lateral sale abierto; cualquier otro valor o sin fila = compacto
             // (solo iconos). Lo guarda el propio panel cuando el usuario lo abre o lo cierra con su botón.
             public const string NavegacionLateralCompacta = "NavegacionLateralCompacta";
+            // Nesto#655 (paso 0): "1" = la chincheta del menú lateral puesta (no se pliega solo); cualquier otro valor o sin
+            // fila = se pliega solo al trabajar fuera de él. Lo guarda el propio panel; necesita la fila «(defecto)» = "0".
+            public const string NavegacionLateralFija = "NavegacionLateralFija";
             // Nesto#340 (Agencias A4.3/A4.4, 23/09/26): PagarReembolsosPorApi y ModificarEnvioPorApi se
             // retiraron: validados en vivo, el camino de Entity Framework se borró y ya siempre va por la API.
             public const string PathNorma19 = "PathNorma19";

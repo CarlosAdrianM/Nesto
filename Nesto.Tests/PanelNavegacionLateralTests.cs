@@ -100,13 +100,14 @@ namespace Nesto.Tests
             public Comando ComandoPlantilla;
             public Comando ComandoPedidos;
             public List<string> Guardados = new List<string>();
+            public List<string> GuardadosFija = new List<string>();
             public List<string> Errores = new List<string>();
             public TabControl Pestanas;
             public TextBox CajaPestana1;
             public TextBox CajaPestana2;
         }
 
-        private static Montaje Montar(string compactaGuardada = null)
+        private static Montaje Montar(string compactaGuardada = null, string fijaGuardada = null)
         {
             var m = new Montaje { ComandoPlantilla = new Comando(), ComandoPedidos = new Comando() };
             m.Plantilla = new ElementoMenu(MapaMenuPorRol.Clave("Clientes", "Ventas", "Plantilla")) { Titulo = "Plantilla", Comando = m.ComandoPlantilla };
@@ -114,7 +115,7 @@ namespace Nesto.Tests
             var parametros = new ElementoMenu(MapaMenuPorRol.Clave("Menú de aplicación", "", "Parámetros")) { Titulo = "Parámetros", Comando = new Comando() };
             CatalogoMenu catalogo = CatalogoMenu.Construir(new ElementoMenuBase[] { m.Plantilla, m.Pedidos }, new[] { parametros });
             var conmutador = new ConmutadorNavegacionLateral(() => "1", () => compactaGuardada, m.Guardados.Add,
-                (ex, contexto) => m.Errores.Add(contexto + " | " + ex));
+                (ex, contexto) => m.Errores.Add(contexto + " | " + ex), () => fijaGuardada, m.GuardadosFija.Add);
 
             m.Panel = new PanelNavegacionLateral(catalogo, conmutador);
             m.BotonFuera = new Button { Content = "Fuera del panel" };
@@ -374,6 +375,90 @@ namespace Nesto.Tests
 
                     m.ComandoPedidos.Cambiar(true);
                     Assert.AreEqual(Visibility.Visible, seccion.Visibility);
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        // Nesto#655 (paso 0): abierto y sin la chincheta, un clic o una tecla en la pantalla lo pliega (sin recordarlo)
+        private static void PulsarRaton(UIElement donde)
+        {
+            donde.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+        }
+
+        [TestMethod]
+        public void Nesto655_AbiertoSinChincheta_UnClicEnLaPantallaLoPliega_SinRecordarlo()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0");
+                try
+                {
+                    Ui.NavigationView navegacion = m.Panel.Navegacion;
+                    Assert.IsTrue(navegacion.IsPaneOpen, "El usuario lo dejó abierto");
+                    Assert.AreEqual(Visibility.Visible, m.Panel.Chincheta.Visibility, "Con el panel abierto se ve la chincheta");
+
+                    PulsarRaton(m.Panel.ItemsDeSecciones.Values.Single());
+                    Bombear();
+                    Assert.IsTrue(navegacion.IsPaneOpen, "Un clic DENTRO del panel no lo pliega");
+
+                    PulsarRaton(m.CajaPestana1);
+                    Bombear();
+                    Assert.IsFalse(navegacion.IsPaneOpen, "Un clic en la pantalla lo pliega");
+                    Assert.AreEqual(0, m.Guardados.Count, "Plegarse solo no cambia lo recordado de abierto/compacto");
+                    Assert.AreEqual(Visibility.Collapsed, m.Panel.Chincheta.Visibility, "Compacto, sin chincheta");
+                    Assert.AreEqual(0, m.Errores.Count, string.Join(Environment.NewLine, m.Errores));
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void Nesto655_ConLaChincheta_NoSePliega_YSeRecuerda()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0");
+                try
+                {
+                    Ui.NavigationView navegacion = m.Panel.Navegacion;
+                    Assert.IsFalse(m.Panel.Chincheta.IsChecked == true, "Sin fila: se pliega solo");
+
+                    m.Panel.Chincheta.IsChecked = true; // el clic en la chincheta
+                    Bombear();
+                    CollectionAssert.AreEqual(new[] { "1" }, m.GuardadosFija, "La chincheta se recuerda");
+
+                    PulsarRaton(m.CajaPestana1);
+                    Assert.IsFalse(m.Panel.PlegarSiTrabajaFuera(m.CajaPestana2), "Fijo: una tecla tampoco");
+                    Bombear();
+                    Assert.IsTrue(navegacion.IsPaneOpen, "Con la chincheta, no se pliega");
+                }
+                finally
+                {
+                    m.Ventana.Close();
+                }
+            });
+        }
+
+        [TestMethod]
+        public void Nesto655_LaChinchetaGuardada_SaleFija()
+        {
+            EnSta(() =>
+            {
+                Montaje m = Montar("0", "1");
+                try
+                {
+                    Assert.IsTrue(m.Panel.Chincheta.IsChecked == true);
+                    PulsarRaton(m.CajaPestana1);
+                    Bombear();
+                    Assert.IsTrue(m.Panel.Navegacion.IsPaneOpen);
+                    Assert.AreEqual(0, m.GuardadosFija.Count, "Leerla no la guarda");
                 }
                 finally
                 {

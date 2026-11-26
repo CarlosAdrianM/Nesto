@@ -34,8 +34,11 @@ namespace Nesto.Infrastructure.Menu
         /// <param name="leerCompacta">Lee <c>NavegacionLateralCompacta</c> (si es null, compacto).</param>
         /// <param name="guardarCompacta">Guarda <c>NavegacionLateralCompacta</c> ("0" abierto, "1" compacto).</param>
         /// <param name="registrarError">Error y contexto de un fallo no fatal (en Nesto, a ELMAH).</param>
+        /// <param name="leerFija">Nesto#655: lee <c>NavegacionLateralFija</c> (la chincheta; si es null, se pliega solo).</param>
+        /// <param name="guardarFija">Nesto#655: guarda <c>NavegacionLateralFija</c> ("1" fija, "0" se pliega sola).</param>
         public ConmutadorNavegacionLateral(Func<string> leerParametro, Func<string> leerCompacta = null,
-            Action<string> guardarCompacta = null, Action<Exception, string> registrarError = null)
+            Action<string> guardarCompacta = null, Action<Exception, string> registrarError = null,
+            Func<string> leerFija = null, Action<string> guardarFija = null)
         {
             if (leerParametro == null)
             {
@@ -43,6 +46,7 @@ namespace Nesto.Infrastructure.Menu
             }
             _guardarCompacta = guardarCompacta;
             _registrarError = registrarError;
+            Plegado = new PlegadoMenuLateral(leerFija, guardarFija, registrarError);
             _activa = new Lazy<bool>(() =>
             {
                 try
@@ -69,6 +73,9 @@ namespace Nesto.Infrastructure.Menu
 
         /// <summary>true si este usuario va con el menú lateral (se lee el parámetro la primera vez).</summary>
         public bool Activa => _activa.Value;
+
+        /// <summary>Nesto#655 (paso 0): el plegado solo y la chincheta del panel.</summary>
+        public PlegadoMenuLateral Plegado { get; }
 
         /// <summary>Si el panel sale compacto al arrancar (se lee la primera vez; por defecto, sí).</summary>
         public bool CompactaAlArrancar => _compactaAlArrancar.Value;

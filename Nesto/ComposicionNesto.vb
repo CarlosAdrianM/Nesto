@@ -97,7 +97,9 @@ Public NotInheritable Class ComposicionNesto
                     Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.NavegacionLateral),
                     Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.NavegacionLateralCompacta),
                     Sub(valor) GuardarSinEsperar(cfg, Parametros.Claves.NavegacionLateralCompacta, valor, registrarError),
-                    registrarError)
+                    registrarError,
+                    Function() cfg.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.NavegacionLateralFija),
+                    Sub(valor) GuardarSinEsperar(cfg, Parametros.Claves.NavegacionLateralFija, valor, registrarError))
             End Function)
         registro.Singleton(GetType(IConfiguracion), GetType(Configuracion))
         ' Nesto#490 (4C.1): mensajería entre pantallas con CommunityToolkit en vez del IEventAggregator
