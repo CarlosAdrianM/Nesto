@@ -68,6 +68,9 @@ namespace Nesto.Modules.Producto.ViewModels
             ServicioEtiquetasProducto = new ServicioEtiquetasProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#534
             ServicioEstadoProductos = new ServicioEstadoProductos(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#624
             ServicioProximaEntrada = new ServicioProximaEntradaProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#869
+            ServicioVecinos = new ServicioVecinosProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Sugerencia 1478
+            IrAReferenciaAnteriorCommand = new RelayCommand(() => ReferenciaBuscar = ReferenciaAnterior, () => !string.IsNullOrWhiteSpace(ReferenciaAnterior));
+            IrAReferenciaSiguienteCommand = new RelayCommand(() => ReferenciaBuscar = ReferenciaSiguiente, () => !string.IsNullOrWhiteSpace(ReferenciaSiguiente));
 
             AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
@@ -137,6 +140,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaCargandoControlesStock = true;
                 ControlStock = null;
                 ProximaEntrada = null;
+                PonerVecinos(null, null); // Sugerencia 1478: las flechas del producto anterior no valen para el que se está cargando
                 ProductoModel producto;
                 try
                 {
@@ -173,6 +177,8 @@ namespace Nesto.Modules.Producto.ViewModels
                     Titulo = "Producto";
                     return;
                 }
+                // Sugerencia 1478: los vecinos, en segundo plano (no retrasan la ficha); se descartan si llegan con otro producto en pantalla
+                _ = CargarVecinosAsync();
                 await SincronizarEstadoProductoAsync(); // Nesto#624: el desplegable del estado, con el de la ficha
                 if (!EsCargaVigente(carga))
                 {
@@ -1728,6 +1734,91 @@ namespace Nesto.Modules.Producto.ViewModels
             catch (Exception)
             {
                 // Información de apoyo: sin ella, la ficha se abre igual
+            }
+        }
+
+        // Sugerencia 1478 (Manuel, Compras): flechas para pasar a la referencia anterior o a la siguiente que exista sin teclearla.
+        // Qué referencia va antes o después lo dice la API (GET api/Productos/Vecinos); aquí solo se guarda y se navega.
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioVecinosProducto ServicioVecinos { get; set; }
+
+        private string _referenciaAnterior;
+        /// <summary>Null si no hay (primera referencia) o la API no lo ha dicho: la flecha queda deshabilitada.</summary>
+        public string ReferenciaAnterior
+        {
+            get => _referenciaAnterior;
+            private set
+            {
+                if (SetProperty(ref _referenciaAnterior, value))
+                {
+                    OnPropertyChanged(nameof(AyudaReferenciaAnterior));
+                    IrAReferenciaAnteriorCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _referenciaSiguiente;
+        /// <summary>Null si no hay (última referencia) o la API no lo ha dicho: la flecha queda deshabilitada.</summary>
+        public string ReferenciaSiguiente
+        {
+            get => _referenciaSiguiente;
+            private set
+            {
+                if (SetProperty(ref _referenciaSiguiente, value))
+                {
+                    OnPropertyChanged(nameof(AyudaReferenciaSiguiente));
+                    IrAReferenciaSiguienteCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        public string AyudaReferenciaAnterior => string.IsNullOrWhiteSpace(ReferenciaAnterior)
+            ? "No hay referencia anterior"
+            : $"Referencia anterior ({ReferenciaAnterior}) · Alt+Izquierda";
+
+        public string AyudaReferenciaSiguiente => string.IsNullOrWhiteSpace(ReferenciaSiguiente)
+            ? "No hay referencia siguiente"
+            : $"Referencia siguiente ({ReferenciaSiguiente}) · Alt+Derecha";
+
+        public RelayCommand IrAReferenciaAnteriorCommand { get; }
+
+        public RelayCommand IrAReferenciaSiguienteCommand { get; }
+
+        private void PonerVecinos(string anterior, string siguiente)
+        {
+            ReferenciaAnterior = string.IsNullOrWhiteSpace(anterior) ? null : anterior.Trim();
+            ReferenciaSiguiente = string.IsNullOrWhiteSpace(siguiente) ? null : siguiente.Trim();
+        }
+
+        internal async Task CargarVecinosAsync()
+        {
+            // En su propio try: que esto falle no puede impedir abrir la ficha (sin respuesta, sin flechas)
+            int carga = _cargaProductoActual;
+            try
+            {
+                string producto = ProductoActual?.Producto?.Trim();
+                if (string.IsNullOrEmpty(producto) || ServicioVecinos == null)
+                {
+                    return;
+                }
+                VecinosProducto leidos = await ServicioVecinos.Leer(Constantes.Empresas.EMPRESA_DEFECTO, producto);
+                if (leidos == null)
+                {
+                    return;
+                }
+                // Si mientras tanto se ha cargado otro producto, o la respuesta dice ser de otro, no se pinta
+                bool sigueEnPantalla = EsCargaVigente(carga) && string.Equals(ProductoActual?.Producto?.Trim(), producto, StringComparison.OrdinalIgnoreCase);
+                bool esDeEste = string.IsNullOrWhiteSpace(leidos.Producto)
+                    || string.Equals(leidos.Producto.Trim(), producto, StringComparison.OrdinalIgnoreCase);
+                if (sigueEnPantalla && esDeEste)
+                {
+                    PonerVecinos(leidos.Anterior, leidos.Siguiente);
+                }
+            }
+            catch (Exception)
+            {
+                // Ayuda para moverse: sin ella, la ficha se abre igual
             }
         }
 
