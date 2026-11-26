@@ -26,9 +26,12 @@
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
                 <TextBlock Text="Cliente:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <!-- Un nombre largo empujaba los botones fuera de la pantalla: como mucho 450 de ancho; el nombre se recorta con «…» y su
+                     ToolTip lo enseña entero (los pone SelectorCliente) -->
                 <controles:SelectorCliente Name="txtSelectorCliente"
                                            Empresa="1"
                                            MinWidth="300"
+                                           MaxWidth="450"
                                            Cliente="{Binding Path=DataContext.ClienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <Button Content="Cargar pendientes" Command="{Binding CargarCommand}" Margin="10,0,0,0" Padding="10,2"/>
                 <Button Content="Liquidar seleccionados" Command="{Binding LiquidarCommand}" Margin="10,0,0,0" Padding="10,2" FontWeight="Bold"/>
