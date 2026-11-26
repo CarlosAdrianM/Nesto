@@ -112,6 +112,7 @@ namespace Nesto.Infrastructure.Menu
 
             // ── Almacén y envíos: producto, preparación (picking/packing), inventarios, huecos y agencias
             (Clave("Productos", "Mantenimiento", "Ficha"), new DestinoMenu(ALMACEN, "Almacén", 10, "Ficha de producto")),
+            (Clave("Productos", "Mantenimiento", "Extracto"), new DestinoMenu(ALMACEN, "Almacén", 12, "Extracto de producto")), // sugerencia 1482
             (Clave("Informes", "Almacén", "Picking"), new DestinoMenu(ALMACEN, "Almacén", 20)),
             (Clave("Informes", "Almacén", "Packing"), new DestinoMenu(ALMACEN, "Almacén", 30)),
             (Clave("Informes", "Inventario", "Inventario"), new DestinoMenu(ALMACEN, "Almacén", 40, "Inventario de ubicaciones")),

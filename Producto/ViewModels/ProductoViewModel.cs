@@ -70,6 +70,8 @@ namespace Nesto.Modules.Producto.ViewModels
             ServicioEstadoProductos = new ServicioEstadoProductos(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Nesto#624
             ServicioProximaEntrada = new ServicioProximaEntradaProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // NestoAPI#869
             ServicioVecinos = new ServicioVecinosProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Sugerencia 1478
+            ServicioExtracto = new ServicioExtractoProducto(new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)); // Sugerencia 1482
+            AbrirExtractoProductoCommand = new RelayCommand(OnAbrirExtractoProducto, () => !string.IsNullOrWhiteSpace(ProductoActual?.Producto)); // Sugerencia 1482
             IrAReferenciaAnteriorCommand = new RelayCommand(() => ReferenciaBuscar = ReferenciaAnterior, () => !string.IsNullOrWhiteSpace(ReferenciaAnterior));
             IrAReferenciaSiguienteCommand = new RelayCommand(() => ReferenciaBuscar = ReferenciaSiguiente, () => !string.IsNullOrWhiteSpace(ReferenciaSiguiente));
 
@@ -141,6 +143,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaCargandoControlesStock = true;
                 ControlStock = null;
                 ProximaEntrada = null;
+                ReferenciasProveedor = null; // Sugerencia 1482
                 PonerVecinos(null, null); // Sugerencia 1478: las flechas del producto anterior no valen para el que se está cargando
                 ProductoModel producto;
                 try
@@ -257,6 +260,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     return;
                 }
                 await CargarProximaEntradaAsync();
+                ReferenciasProveedorEnCurso = CargarReferenciasProveedorAsync(); // Sugerencia 1482: sin esperar, no bloquea la ficha
                 if (!EsCargaVigente(carga))
                 {
                     return;
@@ -413,6 +417,7 @@ namespace Nesto.Modules.Producto.ViewModels
                         BuscarClientesCommand.Execute(null);
                     }
                     AbrirProductoWebCommand.NotifyCanExecuteChanged();
+                    AbrirExtractoProductoCommand?.NotifyCanExecuteChanged(); // Sugerencia 1482
                     ImprimirEtiquetaCodigoBarrasCommand?.NotifyCanExecuteChanged();
                     MensajeEtiquetaCodigoBarras = null; // sugerencia 1359: el aviso es de la ficha anterior
                     AbrirPendientesEntregarCommand?.NotifyCanExecuteChanged();
@@ -639,6 +644,70 @@ namespace Nesto.Modules.Producto.ViewModels
                 };
                 _navegacion.RequestNavigate("MainRegion", "ProductoView", parameters);
             }
+        }
+
+        // ── Sugerencia 1482 (Manuel, Compras; OK de Carlos 26/11/26): la referencia del proveedor y el extracto del producto ──────────
+
+        /// <summary>El cliente de la API (sustituible en los tests).</summary>
+        internal IServicioExtractoProducto ServicioExtracto { get; set; }
+
+        /// <summary>Para los tests: la lectura de las referencias lanzada al cargar el producto.</summary>
+        internal System.Threading.Tasks.Task ReferenciasProveedorEnCurso { get; private set; } = System.Threading.Tasks.Task.CompletedTask;
+
+        private List<ReferenciaProveedorProducto> _referenciasProveedor;
+        /// <summary>Las de la API (solo Compras, Dirección e Informática; a los demás, 403: null y no se pinta nada).</summary>
+        public List<ReferenciaProveedorProducto> ReferenciasProveedor
+        {
+            get => _referenciasProveedor;
+            private set
+            {
+                if (SetProperty(ref _referenciasProveedor, value))
+                {
+                    OnPropertyChanged(nameof(TextoReferenciaProveedor));
+                    OnPropertyChanged(nameof(AyudaReferenciaProveedor));
+                    OnPropertyChanged(nameof(HayReferenciaProveedor));
+                }
+            }
+        }
+
+        /// <summary>«Ref. proveedor: ABC-123» del proveedor habitual (bajo la familia).</summary>
+        public string TextoReferenciaProveedor => ReglasReferenciaProveedor.Texto(ReferenciasProveedor);
+        /// <summary>El nombre del proveedor y, si hay más de uno, los demás.</summary>
+        public string AyudaReferenciaProveedor => ReglasReferenciaProveedor.Ayuda(ReferenciasProveedor);
+        public bool HayReferenciaProveedor => TextoReferenciaProveedor != null;
+
+        internal async System.Threading.Tasks.Task CargarReferenciasProveedorAsync()
+        {
+            try
+            {
+                string producto = ProductoActual?.Producto?.Trim();
+                if (string.IsNullOrEmpty(producto) || ServicioExtracto == null)
+                {
+                    return;
+                }
+                List<ReferenciaProveedorProducto> leidas = await ServicioExtracto.LeerReferenciasProveedor(Constantes.Empresas.EMPRESA_DEFECTO, producto);
+                if (string.Equals(ProductoActual?.Producto?.Trim(), producto, StringComparison.OrdinalIgnoreCase))
+                {
+                    ReferenciasProveedor = leidas;
+                }
+            }
+            catch (Exception)
+            {
+                // Con 403, error o sin referencias, la línea no se pinta (sin avisos)
+            }
+        }
+
+        /// <summary>«Extracto»: la ventana aparte del extracto de este producto (como el extracto de cliente).</summary>
+        public RelayCommand AbrirExtractoProductoCommand { get; private set; }
+        private void OnAbrirExtractoProducto()
+        {
+            string producto = ProductoActual?.Producto?.Trim();
+            if (string.IsNullOrEmpty(producto))
+            {
+                return;
+            }
+            _navegacion.RequestNavigate("MainRegion", ExtractoProductoViewModel.NOMBRE_VISTA,
+                new ParametrosNavegacion { { ExtractoProductoViewModel.PARAMETRO_PRODUCTO, producto } });
         }
 
         /// <summary>

@@ -86,6 +86,11 @@ namespace Nesto.Modulos.Producto
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.EnviosProveedorPorAsignarViewModel>();
             registro.Singleton<IServicioEnviosProveedorPorAsignar, ServicioEnviosProveedorPorAsignar>();
 
+            // Sugerencia 1482 (Manuel, Compras): el extracto del producto en una ventana aparte (botón «Extracto» de la ficha y la cinta)
+            registro.Vista<ExtractoProductoView>(Nesto.Modules.Producto.ViewModels.ExtractoProductoViewModel.NOMBRE_VISTA);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.ExtractoProductoViewModel>();
+            registro.Singleton<IServicioExtractoProducto, ServicioExtractoProducto>();
+
             // NestoAPI#880 (corte 2): los bultos que faltaron en una entrega incompleta (la campana con BultosPendientesReparto abre aquí;
             // también una pestaña de Agencias y la pestaña «Entrega» del pedido, con BultosPendientesPanel)
             registro.Vista<ControlesUsuario.BultosPendientes.BultosPendientesView>(NotificacionBuzon.VISTA_BULTOS_PENDIENTES_REPARTO);

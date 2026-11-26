@@ -21,6 +21,7 @@ namespace Nesto.Modules.Producto
             Diferencias = diferencias;
 
             AbrirModuloFichaCommand = new RelayCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
+            AbrirExtractoProductoCommand = new RelayCommand(() => Navegacion.RequestNavigate("MainRegion", Nesto.Modules.Producto.ViewModels.ExtractoProductoViewModel.NOMBRE_VISTA)); // Sugerencia 1482
             AbrirModuloReposicionCommand = new RelayCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
             AbrirEtiquetasHuecoCommand = new RelayCommand(OnAbrirEtiquetasHueco, CanAbrirEtiquetasHueco);
             AbrirRecibirReposicionCommand = new RelayCommand(OnAbrirRecibirReposicion, CanAbrirRecibirReposicion);
@@ -270,6 +271,8 @@ namespace Nesto.Modules.Producto
         }
 
         public ICommand AbrirModuloFichaCommand { get; private set; }
+        /// <summary>Sugerencia 1482: el extracto del producto, sin ficha (se teclea la referencia). Quién lo ve lo decide la API.</summary>
+        public ICommand AbrirExtractoProductoCommand { get; private set; }
         private bool CanAbrirModuloFicha()
         {
             return true;

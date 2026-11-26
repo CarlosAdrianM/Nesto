@@ -15,6 +15,9 @@
             <RibbonGroup x:Name="grpMantenimiento"
                                 Header="Mantenimiento">
                 <RibbonButton Label="Ficha" LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirModuloFichaCommand}" />
+                <!-- Sugerencia 1482: el extracto del producto (también desde el botón «Extracto» de la ficha) -->
+                <RibbonButton Label="Extracto" ToolTip="Los movimientos de stock de un producto con su saldo (entradas, salidas, inventarios, reposiciones)"
+                              LargeImageSource="Images/Diarios.png" Command="{Binding AbrirExtractoProductoCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpReposicion"
                                 Header="Reposición">
