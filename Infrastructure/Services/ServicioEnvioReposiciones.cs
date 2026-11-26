@@ -90,6 +90,13 @@ namespace Nesto.Infrastructure.Services
         /// </summary>
         /// <exception cref="EnvioReposicionException">Ya no está pendiente de recibir (404) o la API no lo ha generado.</exception>
         Task<byte[]> DescargarImpresoEnviada(string empresa, string origen, int traspaso);
+        /// <summary>
+        /// Sugerencia 1429: lo que la tienda tiene de más de una familia, grupo o subgrupo (POST api/Reposiciones/Exceso). Con
+        /// <paramref name="ensayo"/> solo calcula; sin él crea la reposición (en preparación en la tienda).
+        /// </summary>
+        /// <exception cref="EnvioReposicionException">400 sin filtro o con demasiadas líneas, 403 sin permiso, 409 otra en
+        /// preparación o inventario en curso: con el motivo de la API.</exception>
+        Task<ResultadoExcesoReposicion> CalcularExceso(PeticionExcesoReposicion peticion, bool ensayo);
     }
 
     public class ServicioEnvioReposiciones : IServicioEnvioReposiciones
@@ -265,6 +272,11 @@ namespace Nesto.Infrastructure.Services
 
         private static string ConsultaEmpresa(string empresa)
             => "?empresa=" + Uri.EscapeDataString(empresa?.Trim() ?? string.Empty);
+
+        public Task<ResultadoExcesoReposicion> CalcularExceso(PeticionExcesoReposicion peticion, bool ensayo)
+            => Enviar<ResultadoExcesoReposicion>(HttpMethod.Post, UrlExceso(ensayo), peticion);
+
+        public static string UrlExceso(bool ensayo) => "Reposiciones/Exceso?ensayo=" + (ensayo ? "true" : "false");
 
         private async Task<T> Enviar<T>(HttpMethod metodo, string url, object cuerpo) where T : class, new()
         {

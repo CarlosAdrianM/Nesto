@@ -1,0 +1,91 @@
+<UserControl x:Class="Nesto.Modulos.Producto.Views.ExcesoReposicionDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             Background="White"
+             d:DesignHeight="520" d:DesignWidth="860"
+             MinWidth="820" MinHeight="480">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="Numero" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Sugerencia 1429: lo que la tienda tiene de más de una familia, grupo o subgrupo vuelve a Algete en una reposición -->
+    <Grid Margin="12" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="{Binding Cabecera}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="1" TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,8"
+                   Text="Indique la familia, el grupo o el subgrupo (al menos uno). Exceso = lo que pasa del stock máximo de la tienda sin dejar sin servir sus pedidos pendientes. Sin máximo puesto, se devuelve entero." />
+
+        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="Familia:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding Familia, UpdateSourceTrigger=PropertyChanged}" Width="160" Margin="0,0,14,0"
+                     ToolTip="Código o nombre de la familia (por ejemplo, la marca)" />
+            <TextBlock Text="Grupo:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding Grupo, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,14,0" />
+            <TextBlock Text="Subgrupo:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding Subgrupo, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,14,0" />
+            <Button Content="_Calcular" Command="{Binding CalcularCommand}" Padding="14,2" IsDefault="True"
+                    ToolTip="Solo calcula lo que se mandaría: no crea nada" />
+        </WrapPanel>
+
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Lineas}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single"
+                  GridLinesVisibility="Horizontal" AlternatingRowBackground="#F7F7F7" Background="White"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="80" />
+                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*" />
+                <DataGridTextColumn Header="Familia" Binding="{Binding NombreFamilia}" Width="110" />
+                <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" Width="60" ElementStyle="{StaticResource Numero}" />
+                <DataGridTextColumn Header="Pendiente" Binding="{Binding Pendiente}" Width="70" ElementStyle="{StaticResource Numero}" />
+                <DataGridTextColumn Header="Máximo" Binding="{Binding StockMaximo}" Width="65" ElementStyle="{StaticResource Numero}" />
+                <DataGridTemplateColumn Header="Sin máximo" Width="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="sin máximo" Foreground="DarkOrange" HorizontalAlignment="Center"
+                                       ToolTip="La tienda no tiene stock máximo puesto para este producto: se devuelve entero"
+                                       Visibility="{Binding SinMaximo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Exceso" Binding="{Binding Exceso}" Width="65" FontWeight="SemiBold" ElementStyle="{StaticResource Numero}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <WrapPanel Grid.Row="4" Margin="0,8,0,0" Visibility="{Binding HayCalculo, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="Referencias: " />
+            <TextBlock Text="{Binding NumeroLineas}" FontWeight="Bold" Margin="0,0,16,0" />
+            <TextBlock Text="Unidades: " />
+            <TextBlock Text="{Binding TotalUnidades}" FontWeight="Bold" Margin="0,0,16,0" />
+            <TextBlock Text="Sin máximo: " />
+            <TextBlock Text="{Binding LineasSinMaximo}" FontWeight="Bold" Foreground="DarkOrange" />
+        </WrapPanel>
+
+        <StackPanel Grid.Row="5" Margin="0,6,0,0">
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="Firebrick" FontWeight="SemiBold" Margin="0,4,0,0"
+                       Visibility="{Binding HayError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Crear _reposición" Command="{Binding CrearCommand}" Padding="14,2" Margin="0,0,10,0"
+                    ToolTip="Crea la reposición con lo calculado (antes pregunta). Queda en preparación en la tienda hasta que la termine." />
+            <Button Content="Cerrar" Command="{Binding CancelarCommand}" Padding="14,2" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</UserControl>

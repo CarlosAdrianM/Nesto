@@ -1497,5 +1497,52 @@ namespace Producto.Tests
 
             A.CallTo(() => _navegacion.RequestNavigate(A<string>._, A<string>._, A<ParametrosNavegacion>._)).MustNotHaveHappened();
         }
+
+        // ---- Sugerencia 1429: devolver el exceso a Algete ----
+
+        [TestMethod]
+        public async Task DevolverExceso_SoloLoVeQuienPuedePrepararAMano()
+        {
+            await _vm.CargarAsync();
+            Assert.IsTrue(_vm.MostrarDevolverExceso);
+            Assert.IsTrue(_vm.DevolverExcesoCommand.CanExecute(null));
+
+            SinPermisoYSinReposicion();
+            await _vm.CargarAsync();
+
+            Assert.IsFalse(_vm.MostrarDevolverExceso);
+            Assert.IsFalse(_vm.DevolverExcesoCommand.CanExecute(null));
+        }
+
+        [TestMethod]
+        public async Task DevolverExceso_AbreElDialogoConLaTiendaYAlCrearRecarga()
+        {
+            await _vm.CargarAsync();
+            A.CallTo(() => _dialogos.ShowDialogAsync(ExcesoReposicionDialogViewModel.NOMBRE, A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.OK, new ParametrosDialogo { { ExcesoReposicionDialogViewModel.PARAMETRO_MENSAJE, "Reposición del exceso creada" } }));
+            Fake.ClearRecordedCalls(_servicio);
+
+            await _vm.DevolverExcesoCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _dialogos.ShowDialogAsync(ExcesoReposicionDialogViewModel.NOMBRE,
+                A<ParametrosDialogo>.That.Matches(p => p.GetValue<string>(ExcesoReposicionDialogViewModel.PARAMETRO_ORIGEN) == "ALC"
+                    && p.GetValue<string>(ExcesoReposicionDialogViewModel.PARAMETRO_DESTINO) == "ALG")))
+                .MustHaveHappenedOnceExactly();
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, "ALC")).MustHaveHappened();
+            Assert.AreEqual("Reposición del exceso creada", _vm.Mensaje);
+        }
+
+        [TestMethod]
+        public async Task DevolverExceso_SiSeCierraSinCrear_NoRecarga()
+        {
+            await _vm.CargarAsync();
+            A.CallTo(() => _dialogos.ShowDialogAsync(ExcesoReposicionDialogViewModel.NOMBRE, A<ParametrosDialogo>._))
+                .Returns(new ResultadoDialogo(ResultadoBoton.Cancel));
+            Fake.ClearRecordedCalls(_servicio);
+
+            await _vm.DevolverExcesoCommand.ExecuteAsync(null);
+
+            A.CallTo(() => _servicio.LeerEnPreparacion(A<string>._, A<string>._)).MustNotHaveHappened();
+        }
     }
 }

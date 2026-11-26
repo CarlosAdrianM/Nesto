@@ -290,6 +290,50 @@ namespace Nesto.Infrastructure.Models
                 : $"Entregada a {laLleva.Trim()}" + (fecha.HasValue ? $" a las {fecha.Value:H:mm}" : string.Empty);
     }
 
+    /// <summary>
+    /// Sugerencia 1429: POST api/Reposiciones/Exceso (lo que una tienda tiene de más de una familia, grupo o subgrupo, para
+    /// devolverlo a Algete). Espejo de PeticionExcesoReposicionDTO de NestoAPI.
+    /// </summary>
+    public class PeticionExcesoReposicion
+    {
+        public string Empresa { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public string Familia { get; set; }
+        public string Grupo { get; set; }
+        public string Subgrupo { get; set; }
+        public List<string> Productos { get; set; }
+    }
+
+    public class LineaExcesoReposicion
+    {
+        public string Producto { get; set; }
+        public string Nombre { get; set; }
+        public string Familia { get; set; }
+        public string NombreFamilia { get; set; }
+        public int Stock { get; set; }
+        public int EnOtraReposicion { get; set; }
+        public int Pendiente { get; set; }
+        public int StockMaximo { get; set; }
+        /// <summary>Sin máximo puesto en la tienda: se devuelve entero.</summary>
+        public bool SinMaximo { get; set; }
+        public int Exceso { get; set; }
+    }
+
+    public class ResultadoExcesoReposicion
+    {
+        public bool Ensayo { get; set; }
+        public string Origen { get; set; }
+        public string Destino { get; set; }
+        public List<LineaExcesoReposicion> Lineas { get; set; } = new List<LineaExcesoReposicion>();
+        public int NumeroLineas { get; set; }
+        public int TotalUnidades { get; set; }
+        public int LineasSinMaximo { get; set; }
+        /// <summary>De verdad: la reposición creada (en preparación en la tienda). Null en el ensayo o sin exceso.</summary>
+        public ReposicionEnPreparacion Reposicion { get; set; }
+        public string Mensaje { get; set; }
+    }
+
     /// <summary>La API no ha aceptado la petición: el motivo que da (inventario en curso, stock negativo, sin permiso…).</summary>
     public class EnvioReposicionException : Exception
     {

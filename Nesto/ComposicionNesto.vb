@@ -333,6 +333,8 @@ Public NotInheritable Class ComposicionNesto
         registro.RegistrarDialogo(Of EnviarPorCorreoDialog, EnviarPorCorreoDialogViewModel)(EnviarPorCorreoDialogViewModel.NOMBRE)
         ' Nesto#652 (NestoAPI#903): «Descargar para FACe (Facturae)» de una factura (detalle del pedido y ficha del cliente)
         registro.RegistrarDialogo(Of FacturaeDialog, FacturaeDialogViewModel)(FacturaeDialogViewModel.NOMBRE)
+        ' Sugerencia 1429: «Devolver exceso a Algete» desde «Enviar reposición» (POST api/Reposiciones/Exceso)
+        registro.RegistrarDialogo(Of ExcesoReposicionDialog, ExcesoReposicionDialogViewModel)(ExcesoReposicionDialogViewModel.NOMBRE)
 
         ' Nesto#490 (4C.5): lo que Unity construía sin registrar y se pide por su tipo concreto
         ' La campana de la ventana principal (la recibe MainWindow por constructor)

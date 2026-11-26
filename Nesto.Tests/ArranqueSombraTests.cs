@@ -783,6 +783,7 @@ namespace Nesto.Tests
             "DireccionEntregaEnvioDialog | DireccionEntregaEnvioDialog | DireccionEntregaEnvioDialogViewModel", // Nesto#625 (NestoAPI#726)
             "EnviarPorCorreoDialog | EnviarPorCorreoDialog | EnviarPorCorreoDialogViewModel", // Nesto#563
             "FacturaeDialog | FacturaeDialog | FacturaeDialogViewModel", // Nesto#652 (Facturae para FACe)
+            "ExcesoReposicionDialog | ExcesoReposicionDialog | ExcesoReposicionDialogViewModel", // Sugerencia 1429 (devolver exceso a Algete)
             "ElegirEventoCursoDialog | ElegirEventoCursoDialog | ElegirEventoCursoDialogViewModel",
             "ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialog | ElegirPedidoPendienteDialogViewModel",
             "ComprobacionesInventarioDialog | ComprobacionesInventarioDialog | ComprobacionesInventarioDialogViewModel", // Nesto#597

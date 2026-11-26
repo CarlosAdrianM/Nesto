@@ -36,6 +36,10 @@
                 <Button Content="Preparar reposición" Command="{Binding PrepararCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                         Visibility="{Binding PuedePreparar, Converter={StaticResource BooleanToVisibilityConverter}}"
                         ToolTip="El servidor propone lo que hay que mandar a Algete (stock máximo, pendientes y stock de los dos almacenes)" />
+                <!-- Sugerencia 1429: lo que la tienda tiene de más de una familia, grupo o subgrupo vuelve a Algete -->
+                <Button Content="Devolver exceso a Algete…" Command="{Binding DevolverExcesoCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding MostrarDevolverExceso, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        ToolTip="Calcula lo que la tienda tiene de más de una familia, grupo o subgrupo y crea una reposición para devolverlo a Algete" />
                 <!-- Sugerencia 564: la lista en papel para prepararla a mano -->
                 <Button Content="Imprimir" Command="{Binding ImprimirCommand}" Padding="12,2" Margin="12,0,0,0" VerticalAlignment="Center"
                         Visibility="{Binding HayReposicion, Converter={StaticResource BooleanToVisibilityConverter}}"

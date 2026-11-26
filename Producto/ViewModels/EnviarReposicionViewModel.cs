@@ -294,6 +294,7 @@ namespace Nesto.Modules.Producto.ViewModels
             AbrirFichaProductoCommand = new RelayCommand<string>(AbrirFichaProducto);
             CargarCommand = new AsyncRelayCommand(CargarAsync);
             PrepararCommand = new AsyncRelayCommand(PrepararAsync, () => PuedePreparar);
+            DevolverExcesoCommand = new AsyncRelayCommand(DevolverExcesoAsync, () => PuedeDevolverExceso);
             CambiarCantidadCommand = new AsyncRelayCommand<LineaEnviarReposicion>(CambiarCantidadAsync, AsyncRelayCommandOptions.AllowConcurrentExecutions);
             LeerCommand = new RelayCommand<string>(Leer);
             LeerLecturaCommand = new RelayCommand(() =>
@@ -395,6 +396,13 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
         public bool PuedePreparar => _origenValido && _puedeRellenarManual && !HayReposicion && !EnModoPuntual && !EstaOcupado;
+
+        /// <summary>
+        /// Sugerencia 1429: «Devolver exceso a Algete…» se ve a quien puede preparar reposiciones a mano (los mismos permisos que
+        /// POST api/Reposiciones; la API lo vuelve a comprobar) en una tienda.
+        /// </summary>
+        public bool MostrarDevolverExceso => _origenValido && _puedeRellenarManual;
+        public bool PuedeDevolverExceso => MostrarDevolverExceso && !EnModoPuntual && !EstaOcupado;
 
         // ---------------------------------------------------------------- Sugerencia 581: reposición puntual
 
@@ -1162,6 +1170,8 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public IAsyncRelayCommand CargarCommand { get; }
         public IAsyncRelayCommand PrepararCommand { get; }
+        /// <summary>Sugerencia 1429: «Devolver exceso a Algete…» (lo que la tienda tiene de más de una familia, grupo o subgrupo).</summary>
+        public IAsyncRelayCommand DevolverExcesoCommand { get; }
         /// <summary>Se lanza solo al cambiar la cantidad de una línea (Intro o salir del campo en la rejilla).</summary>
         public IAsyncRelayCommand<LineaEnviarReposicion> CambiarCantidadCommand { get; }
         public IRelayCommand<string> LeerCommand { get; }
@@ -1297,6 +1307,30 @@ namespace Nesto.Modules.Producto.ViewModels
                 : cierre.Date == ahora.Date.AddDays(1) ? "mañana"
                 : "el " + cierre.ToString("dddd d/M", CultureInfo.GetCultureInfo("es-ES"));
             return $"{inicio} Se rellena sola {dia} a las {cierre:HH:mm}.";
+        }
+
+        /// <summary>
+        /// Sugerencia 1429: abre «Devolver exceso a Algete» (calcula y crea la reposición con lo que sobra de una familia, grupo o
+        /// subgrupo). Si se ha creado, se vuelve a leer la pantalla para enseñarla en preparación.
+        /// </summary>
+        private async Task DevolverExcesoAsync()
+        {
+            ResultadoDialogo resultado = await _dialogos.ShowDialogAsync(ExcesoReposicionDialogViewModel.NOMBRE, new ParametrosDialogo
+            {
+                { ExcesoReposicionDialogViewModel.PARAMETRO_EMPRESA, Empresa },
+                { ExcesoReposicionDialogViewModel.PARAMETRO_ORIGEN, Almacen },
+                { ExcesoReposicionDialogViewModel.PARAMETRO_DESTINO, Destino }
+            }).ConfigureAwait(true);
+            if (resultado == null || resultado.Result != ResultadoBoton.OK)
+            {
+                return;
+            }
+            await CargarCommand.ExecuteAsync(null).ConfigureAwait(true);
+            string mensaje = resultado.Parameters?.GetValue<string>(ExcesoReposicionDialogViewModel.PARAMETRO_MENSAJE);
+            if (!string.IsNullOrWhiteSpace(mensaje))
+            {
+                Mensaje = mensaje;
+            }
         }
 
         private async Task PrepararAsync()
@@ -2219,6 +2253,8 @@ namespace Nesto.Modules.Producto.ViewModels
             OnPropertyChanged(nameof(MostrarEstadoRecogida));
             OnPropertyChanged(nameof(MostrarLector));
             PrepararCommand?.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(MostrarDevolverExceso));
+            DevolverExcesoCommand?.NotifyCanExecuteChanged();
             TerminarCommand?.NotifyCanExecuteChanged();
             ImprimirCommand?.NotifyCanExecuteChanged();
             EmpezarPuntualCommand?.NotifyCanExecuteChanged();
