@@ -1,0 +1,87 @@
+<UserControl x:Class="Nesto.Modules.Producto.Views.FechasInventarioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:FechasInventarioViewModel}"
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="1000"
+             Background="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    <!-- NestoAPI#883 (corte 1): la fecha del inventario de cada almacén y las reposiciones que lo tocan -->
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{Binding Titulo}" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Ayuda}" TextWrapping="Wrap" Foreground="Gray" Margin="0,4,0,8" />
+        </StackPanel>
+
+        <WrapPanel Grid.Row="1" Margin="0,0,0,8" IsEnabled="{Binding PuedeUsar}">
+            <TextBlock Text="Almacén:" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <ComboBox Width="70" ItemsSource="{x:Static viewmodels:FechasInventarioViewModel.Almacenes}" SelectedItem="{Binding NuevoAlmacen}" Margin="0,0,10,0" />
+            <TextBlock Text="Día:" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <DatePicker SelectedDate="{Binding NuevoDia}" Width="130" Margin="0,0,10,0" />
+            <TextBlock Text="Comentario:" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Text="{Binding NuevoComentario, UpdateSourceTrigger=PropertyChanged}" Width="260" MaxLength="200" Margin="0,0,10,0" />
+            <Button Content="Apuntar" Command="{Binding GuardarCommand}" Padding="12,2" Margin="0,0,10,0"
+                    ToolTip="Crea la fecha de ese almacén y día, o cambia su comentario si ya estaba" />
+            <Button Content="Actualizar" Command="{Binding CargarCommand}" Padding="12,2" />
+        </WrapPanel>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Fechas}" SelectedItem="{Binding Seleccionada}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" SelectionMode="Single" HeadersVisibility="Column"
+                  Background="White" RowBackground="White" AlternatingRowBackground="#F7F7F7">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Almacén" Binding="{Binding NombreAlmacen}" />
+                <DataGridTextColumn Header="Día" Binding="{Binding Dia, StringFormat=dddd dd/MM/yyyy, ConverterCulture=es-ES}" />
+                <DataGridTextColumn Header="Aviso" Binding="{Binding Aviso}" />
+                <DataGridTextColumn Header="Por decidir" Binding="{Binding Pendientes}" />
+                <DataGridTextColumn Header="Comentario" Binding="{Binding Comentario}" Width="*" />
+                <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,4"
+                    Visibility="{Binding HaySeleccionada, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="Reposiciones que tocan este inventario" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Button Content="Borrar esta fecha" Command="{Binding BorrarCommand}" Padding="12,2" Margin="16,0,0,0" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="4" ItemsSource="{Binding Seleccionada.Reposiciones}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" HeadersVisibility="Column" Background="White" RowBackground="White" AlternatingRowBackground="#F7F7F7"
+                  Visibility="{Binding HaySeleccionada, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Reposición" Binding="{Binding Texto}" Width="*" />
+                <DataGridTextColumn Header="" Binding="{Binding Motivo}" />
+                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                <DataGridTextColumn Header="Decidido por" Binding="{Binding Decision}" />
+                <DataGridTemplateColumn Header="">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Quitar" Padding="10,1" Margin="0,0,6,0" CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.QuitarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        ToolTip="Ese viaje no sale (excepción «sin reposición» del calendario)" />
+                                <Button Content="Mantener" Padding="10,1" CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.MantenerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        ToolTip="El viaje sale como siempre y deja de avisar" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="5" Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,8,0,0" />
+    </Grid>
+</UserControl>

@@ -26,6 +26,7 @@ namespace Nesto.Modules.Producto
             AbrirRecibirReposicionCommand = new RelayCommand(OnAbrirRecibirReposicion, CanAbrirRecibirReposicion);
             AbrirEnviarReposicionCommand = new RelayCommand(OnAbrirEnviarReposicion, CanAbrirRecibirReposicion);
             AbrirCalendarioReposicionesCommand = new RelayCommand(OnAbrirCalendarioReposiciones);
+            AbrirFechasInventarioCommand = new RelayCommand(OnAbrirFechasInventario, CanAbrirFechasInventario);
             AbrirPropuestasStockCommand = new RelayCommand(OnAbrirPropuestasStock, () => PuedeVerPropuestasStock);
             AbrirDiferenciasReposicionCommand = new RelayCommand(OnAbrirDiferenciasReposicion, CanAbrirRecibirReposicion);
             AbrirFacturacionTiendaCommand = new RelayCommand(OnAbrirFacturacionTienda, CanAbrirFacturacionTienda);
@@ -48,6 +49,18 @@ namespace Nesto.Modules.Producto
         public const string VISTA_CAMBIAR_ESTADO_PRODUCTOS = "CambiarEstadoProductosView";
         public const string VISTA_RECORRIDO_ALMACEN = "RecorridoAlmacenView";
         public const string VISTA_MUESTRAS = "MuestrasView";
+        public const string VISTA_FECHAS_INVENTARIO = "FechasInventarioView";
+
+        /// <summary>
+        /// NestoAPI#883 (corte 1): la fecha del inventario de cada almacén y las reposiciones que lo tocan («Quitar» o «Mantener»). Junto al
+        /// calendario de reposiciones. Almacén, Dirección e Informática; la API lo vuelve a comprobar.
+        /// </summary>
+        public ICommand AbrirFechasInventarioCommand { get; private set; }
+        internal bool CanAbrirFechasInventario() => Nesto.Modules.Producto.ViewModels.FechasInventarioViewModel.PuedeUsarFechasInventario(Configuracion);
+        private void OnAbrirFechasInventario()
+        {
+            Navegacion.RequestNavigate("MainRegion", VISTA_FECHAS_INVENTARIO);
+        }
 
         /// <summary>
         /// Nesto#650 (NestoAPI#884): las etiquetas de cajón o gaveta de las muestras, el código interno en bloque y la hoja por marca.

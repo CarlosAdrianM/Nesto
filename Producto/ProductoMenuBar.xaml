@@ -22,6 +22,9 @@
                 <RibbonButton Label="Recibir" LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirRecibirReposicionCommand}" />
                 <RibbonButton Label="Enviar" LargeImageSource="Images/EnviarReposicion.png" Command="{Binding AbrirEnviarReposicionCommand}" />
                 <RibbonButton Label="Calendario" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirCalendarioReposicionesCommand}" />
+                <!-- NestoAPI#883 (corte 1): el día del inventario de cada almacén y qué reposiciones lo tocan -->
+                <RibbonButton Label="Fechas de inventario" ToolTip="El día del inventario de cada almacén y las reposiciones que lo tocan: quitarlas o mantenerlas"
+                              LargeImageSource="Images/Diarios.png" Command="{Binding AbrirFechasInventarioCommand}" />
                 <RibbonButton Label="{Binding EtiquetaDiferencias}" ToolTip="{Binding AyudaDiferencias}" LargeImageSource="Images/RecibirReposicion.png" Command="{Binding AbrirDiferenciasReposicionCommand}" />
             </RibbonGroup>
             <!-- Sugerencia 648 (NestoAPI#658): las cifras de la semana de cada tienda, en Excel -->

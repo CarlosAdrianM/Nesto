@@ -130,6 +130,7 @@ namespace Nesto.Infrastructure.Menu
             (Clave("Productos", "Reposición", "Recibir"), new DestinoMenu(TIENDAS, "Reposición", 20, "Recibir reposición")),
             (Clave("Productos", "Reposición", "Enviar"), new DestinoMenu(TIENDAS, "Reposición", 30, "Enviar reposición")),
             (Clave("Productos", "Reposición", "Calendario"), new DestinoMenu(TIENDAS, "Reposición", 40, "Calendario de reposiciones")),
+            (Clave("Productos", "Reposición", "Fechas de inventario"), new DestinoMenu(TIENDAS, "Reposición", 45, "Fechas de inventario")), // NestoAPI#883
             // El texto es un Binding («Diferencias (3)»): se nombra por el comando y conserva su texto
             (Clave("Productos", "Reposición", "[AbrirDiferenciasReposicionCommand]"), new DestinoMenu(TIENDAS, "Reposición", 50)),
             (Clave("Productos", "Tienda", "Facturado en tienda"), new DestinoMenu(TIENDAS, "Tienda", 60)),

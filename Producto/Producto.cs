@@ -72,6 +72,11 @@ namespace Nesto.Modulos.Producto
 
             // NestoAPI#906: «Ver fotos de los bultos» en Diferencias de reposición y Recibir reposición
             registro.Singleton<IServicioFotosBultosReposicion, ServicioFotosBultosReposicion>();
+
+            // NestoAPI#883 (corte 1): la fecha del inventario de cada almacén y las reposiciones que lo tocan
+            registro.Vista<FechasInventarioView>(ProductoMenuBarViewModel.VISTA_FECHAS_INVENTARIO);
+            registro.Transitorio<Nesto.Modules.Producto.ViewModels.FechasInventarioViewModel>();
+            registro.Singleton<IServicioFechasInventario, ServicioFechasInventario>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.HistoriaAparatoViewModel>();
             registro.Transitorio<Nesto.Modules.Producto.ViewModels.DescuadresAparatosViewModel>();
 
