@@ -39,7 +39,14 @@ Public Class LineaParaPlantillaModel
     Public Property Texto As String
     Public Property Cantidad As Integer
     Public Property Precio As Decimal
+    ''' <summary>El descuento de LÍNEA (LinPedidoVta.Descuento), no el del producto.</summary>
     Public Property Descuento As Decimal
+    ''' <summary>
+    ''' Incidencia 1504 (María José, pedido 931500, 27/11/26): el descuento de PRODUCTO de la línea de pago
+    ''' (LinPedidoVta.DescuentoProducto), que es donde van los de campaña y el 100 % de las muestras. ParaPlantilla
+    ''' no lo manda todavía (Nothing): lo completa Nesto con el GET del pedido (<see cref="DescuentosLineaPedido.Completar"/>).
+    ''' </summary>
+    Public Property DescuentoProducto As Decimal?
     Public Property AplicarDescuento As Boolean
     Public Property CantidadOferta As Integer
     Public Property PersonalizarOferta As Boolean

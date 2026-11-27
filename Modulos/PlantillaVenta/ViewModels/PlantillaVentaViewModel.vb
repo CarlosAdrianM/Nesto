@@ -7585,6 +7585,11 @@ Public Class PlantillaVentaViewModel
                 dialogService.ShowError($"No se encontró el pedido {numero}")
                 Return
             End If
+            ' Incidencia 1504: ParaPlantilla no trae el descuento de producto de las líneas (campañas, muestras al 100 %).
+            ' Sin él la plantilla enseñaba un 0 % y, al guardar, el PUT dejaba sin descuento las líneas sin picking.
+            If Not Await CompletarDescuentosProductoAsync(pedidoPlantilla, empresa, numero) Then
+                Return
+            End If
             Dim borrador = servicioBorradores.CrearBorradorDesdePedido(pedidoPlantilla)
             OnCargarBorrador(borrador)
             ' NestoAPI#303: las líneas ya albaranadas/facturadas no se cargan (el servidor las
@@ -7596,6 +7601,25 @@ Public Class PlantillaVentaViewModel
             dialogService.ShowError($"No se pudo cargar el pedido {numero} en la plantilla: {ex.Message}")
         Finally
             estaOcupado = False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Incidencia 1504: completa el descuento de producto de las líneas con el pedido entero (GET api/PedidosVenta). Si no
+    ''' se puede leer, no se carga el pedido (False): guardarlo sin esos descuentos se los quitaría a las líneas sin picking.
+    ''' </summary>
+    Friend Async Function CompletarDescuentosProductoAsync(pedidoPlantilla As PedidoParaPlantillaModel, empresa As String, numero As Integer) As Task(Of Boolean)
+        If Not DescuentosLineaPedido.FaltaAlguno(pedidoPlantilla) Then
+            Return True
+        End If
+        Try
+            Dim pedidoCompleto As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(empresa, numero)
+            Dim unused = DescuentosLineaPedido.Completar(pedidoPlantilla, pedidoCompleto)
+            Return True
+        Catch ex As Exception
+            dialogService.ShowError($"No se han podido leer los descuentos de las líneas del pedido {numero}, así que no se abre en la plantilla " &
+                $"(al guardarlo se perderían). Inténtelo de nuevo o modifíquelo desde el detalle del pedido.{vbCrLf}{ex.Message}")
+            Return False
         End Try
     End Function
 
@@ -7690,7 +7714,9 @@ Public Class PlantillaVentaViewModel
                         lineaExistente.descuentoProducto = lineaBorrador.descuentoProducto
                         lineaExistente.descuento = lineaBorrador.descuento
                         lineaExistente.aplicarDescuento = lineaBorrador.aplicarDescuento
-                        If lineaExistente.descuentoEsElCalculado Then
+                        lineaExistente.descuentosPedido = lineaBorrador.descuentosPedido ' Incidencia 1504
+                        ' Incidencia 1504: una línea del pedido en edición se queda con el descuento con el que está grabada
+                        If lineaExistente.descuentoEsElCalculado AndAlso lineaBorrador.idLineaPedido = 0 Then
                             lineasConDescuentoCalculado.Add(lineaExistente)
                         End If
                         ' Nesto#371: restaurar la personalización de la 2ª unidad de oferta
@@ -7718,7 +7744,7 @@ Public Class PlantillaVentaViewModel
                         End If
                         ListaFiltrableProductos?.ListaOriginal?.Add(lineaBorrador)
                         lineasCargadas += 1
-                        If lineaBorrador.descuentoEsElCalculado Then
+                        If lineaBorrador.descuentoEsElCalculado AndAlso lineaBorrador.idLineaPedido = 0 Then ' Incidencia 1504
                             lineasConDescuentoCalculado.Add(lineaBorrador)
                         End If
                     End If

@@ -351,6 +351,22 @@ Public Class LineaPlantillaVenta
     Public Property idLineaPedidoOferta As Integer?
 
     ''' <summary>
+    ''' Incidencia 1504: los descuentos con los que está grabada la línea de pago del pedido en edición (Nothing en una línea
+    ''' nueva, en un pedido nuevo o si no se han podido leer). Si la línea no se toca, el PUT la manda con ellos tal cual.
+    ''' Se guarda en el borrador para que, al retomar la modificación, siga igual.
+    ''' </summary>
+    Public Property descuentosPedido As DescuentosLineaPedido
+
+    ''' <summary>Incidencia 1504: la línea es del pedido en edición y sigue con el precio y el descuento con los que está grabada.</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property descuentosPedidoIntactos As Boolean
+        Get
+            Return idLineaPedido <> 0 AndAlso descuentosPedido IsNot Nothing AndAlso
+                descuentosPedido.SiguenIntactos(precio, descuento, aplicarDescuento)
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Novedad 750: la línea (la de pago o la de oferta) del pedido en edición ya tiene PICKING: está
     ''' preparada en el almacén y no se puede cambiar ni quitar desde la plantilla. Se bloquea al
     ''' cargarla (<see cref="BloquearPorPicking"/>) para avisar en el momento de editarla, en vez de

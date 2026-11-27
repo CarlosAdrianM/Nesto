@@ -253,6 +253,14 @@ Public Class BorradorPlantillaVentaService
                 .grupo = linea.Grupo, ' Sugerencia 756: sin grupo no contaba para los Ganavisiones
                 .stockActualizado = False
             }
+            ' Incidencia 1504: con el descuento de producto de la línea (campañas, muestras al 100 %), la plantilla enseña el que
+            ' lleva de verdad y, si no se toca, la manda con sus descuentos grabados. Sin él, como antes (solo el de línea).
+            Dim descuentosPedido As DescuentosLineaPedido = DescuentosLineaPedido.DeLinea(linea)
+            If descuentosPedido IsNot Nothing Then
+                lineaPlantilla.descuentoProducto = descuentosPedido.DescuentoProductoPlantilla
+                lineaPlantilla.descuento = descuentosPedido.DescuentoMostrado
+                lineaPlantilla.descuentosPedido = descuentosPedido
+            End If
             ' Novedad 750: con picking (la de pago o la de oferta) la línea no se puede cambiar desde la
             ' plantilla; se bloquea ya con sus valores para avisar al editarla, no al guardar.
             If linea.PagoTienePicking OrElse linea.OfertaTienePicking Then

@@ -558,6 +558,13 @@ Public Class PlantillaVentaState
                     .formaVenta = formaVentaCodigo,
                     .oferta = ofertaLinea
                 }
+                ' Incidencia 1504: una línea del pedido en edición que no se ha tocado va con los descuentos con los que está
+                ' grabada (el PUT copia DescuentoProducto tal cual: con 0, una línea sin picking perdía el de campaña o el de muestra).
+                If linea.descuentosPedidoIntactos Then
+                    lineaPedido.DescuentoLinea = linea.descuentosPedido.DescuentoLinea
+                    lineaPedido.DescuentoProducto = linea.descuentosPedido.DescuentoProducto
+                    lineaPedido.AplicarDescuento = linea.descuentosPedido.AplicarDescuento
+                End If
                 ' Nesto#543 / NestoAPI#691: la línea de curso lleva el evento y la modalidad; la API fija el precio
                 If linea.EsCurso Then
                     lineaPedido.EventoId = linea.EventoId
