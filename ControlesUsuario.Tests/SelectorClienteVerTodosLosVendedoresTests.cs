@@ -119,22 +119,66 @@ namespace ControlesUsuario.Tests
             Assert.AreEqual("Clientes?empresa=1&vendedor=&filtro=634899669", url);
         }
 
+        // Sugerencia 582 (Rapports): la API decide con vendedorTelefonico si quien busca es telefónico; «vendedor» es
+        // solo el filtro y sigue la misma regla que el resto de búsquedas (Carlos 27/11/26).
+
         [TestMethod]
-        public async Task ContactoTelefonicoPrimero_SigueMandandoElVendedor_AunqueTengaElParametro()
+        public async Task ContactoTelefonicoPrimero_ConElParametroAUno_BuscaSinVendedor_YMandaVendedorTelefonico()
         {
-            // Sugerencia 582: la API decide con el vendedor si es telefónico; sin él, el contacto en estado 9 no saldría el primero
-            var configuracion = Configuracion("1");
+            var url = await new SelectorClienteService().ConstruirUrlBusqueda(Configuracion("1"), EMPRESA, "PA", FILTRO, true);
 
-            var url = await new SelectorClienteService().ConstruirUrlBusqueda(configuracion, EMPRESA, "MPP", "peluquería", true);
-
-            Assert.AreEqual("Clientes?empresa=1&vendedor=MPP&filtro=peluquería&contactoTelefonicoPrimero=true", url);
-            A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).MustNotHaveHappened();
+            Assert.AreEqual("Clientes?empresa=1&vendedor=&filtro=634899669&contactoTelefonicoPrimero=true&vendedorTelefonico=PA", url);
         }
 
         [TestMethod]
-        public async Task ContactoTelefonicoPrimero_Direccion_SinVendedor_ComoHoy()
+        public async Task ContactoTelefonicoPrimero_ConElParametroACero_BuscaConSuVendedor_YMandaVendedorTelefonico()
         {
-            var url = await new SelectorClienteService().ConstruirUrlBusqueda(Configuracion("0", direccion: true), EMPRESA, "MPP", "peluquería", true);
+            var url = await new SelectorClienteService().ConstruirUrlBusqueda(Configuracion("0"), EMPRESA, "PA", FILTRO, true);
+
+            Assert.AreEqual("Clientes?empresa=1&vendedor=PA&filtro=634899669&contactoTelefonicoPrimero=true&vendedorTelefonico=PA", url);
+        }
+
+        [TestMethod]
+        public async Task ContactoTelefonicoPrimero_Direccion_SinVendedor_YVendedorTelefonicoElSuyo()
+        {
+            // Antes Dirección mandaba vendedor= vacío y perdía la prioridad del contacto telefónico; ahora la API la decide con su vendedor
+            var url = await new SelectorClienteService().ConstruirUrlBusqueda(Configuracion("0", direccion: true), EMPRESA, "CAR", "peluquería", true);
+
+            Assert.AreEqual("Clientes?empresa=1&vendedor=&filtro=peluquería&contactoTelefonicoPrimero=true&vendedorTelefonico=CAR", url);
+        }
+
+        [TestMethod]
+        public async Task ContactoTelefonicoPrimero_CentralitaConElParametro_EncuentraClientesDeOtrosVendedores()
+        {
+            // Caso real: la centralita (vendedora telefónica MPP) con PermitirVerClientesTodosLosVendedores = 1 busca en
+            // Rapports un cliente de otro vendedor: se busca en todos y la API sigue sabiendo que es telefónica.
+            var configuracion = Configuracion("1");
+            var servicio = new SelectorClienteService();
+
+            var url = await servicio.ConstruirUrlBusqueda(configuracion, EMPRESA, "MPP", "peluquería", true);
+            await servicio.ConstruirUrlBusqueda(configuracion, EMPRESA, "MPP", "peluquería sol", true);
+
+            Assert.AreEqual("Clientes?empresa=1&vendedor=&filtro=peluquería&contactoTelefonicoPrimero=true&vendedorTelefonico=MPP", url);
+            A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.PermitirVerClientesTodosLosVendedores))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task ContactoTelefonicoPrimero_SiFallaLaLecturaDelParametro_BuscaConSuVendedor()
+        {
+            var configuracion = Configuracion("1");
+            A.CallTo(() => configuracion.leerParametro(A<string>._, Parametros.Claves.PermitirVerClientesTodosLosVendedores))
+                .ThrowsAsync(new Exception("No se puede leer el parámetro"));
+
+            var url = await new SelectorClienteService().ConstruirUrlBusqueda(configuracion, EMPRESA, "MPP", "peluquería", true);
+
+            Assert.AreEqual("Clientes?empresa=1&vendedor=MPP&filtro=peluquería&contactoTelefonicoPrimero=true&vendedorTelefonico=MPP", url);
+        }
+
+        [TestMethod]
+        public async Task ContactoTelefonicoPrimero_SinVendedor_NoMandaVendedorTelefonico()
+        {
+            var url = await new SelectorClienteService().ConstruirUrlBusqueda(Configuracion("0"), EMPRESA, string.Empty, "peluquería", true);
 
             Assert.AreEqual("Clientes?empresa=1&vendedor=&filtro=peluquería&contactoTelefonicoPrimero=true", url);
         }

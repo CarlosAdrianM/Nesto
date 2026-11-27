@@ -64,19 +64,26 @@ namespace ControlesUsuario.Services
         /// parámetro PermitirVerClientesTodosLosVendedores (incidencia 1506: tiendas y centralita, que crean pedidos a
         /// clientes de otros vendedores); al resto, solo los clientes de su vendedor (la API filtra por su equipo).
         /// Se decide aquí, y no en cada pantalla, para que lo hereden todas las que usan el SelectorCliente.
-        /// Con contactoTelefonicoPrimero (sugerencia 582, Rapports) el parámetro no se mira: la API necesita el
-        /// vendedor para saber si es telefónico, y sin él el contacto en estado 9 dejaría de salir el primero.
+        /// Con contactoTelefonicoPrimero (sugerencia 582, Rapports) se manda además vendedorTelefonico con el vendedor
+        /// de quien busca: la API decide con él si es telefónico (y qué contacto va delante) y «vendedor» queda solo
+        /// como filtro, con la misma regla de arriba. Así la centralita con el parámetro encuentra los clientes de
+        /// otros vendedores sin perder la prioridad del contacto telefónico (Carlos 27/11/26). Una API anterior ignora
+        /// vendedorTelefonico y decide con «vendedor», como antes.
         /// </summary>
         internal async Task<string> ConstruirUrlBusqueda(IConfiguracion configuracion, string empresa, string vendedor, string filtro, bool contactoTelefonicoPrimero)
         {
             bool todosLosVendedores = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
                 || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
-                || (!contactoTelefonicoPrimero && await PuedeVerClientesTodosLosVendedores(configuracion));
+                || await PuedeVerClientesTodosLosVendedores(configuracion);
 
             string urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=" + (todosLosVendedores ? string.Empty : vendedor) + "&filtro=" + filtro;
             if (contactoTelefonicoPrimero)
             {
                 urlConsulta += "&contactoTelefonicoPrimero=true";
+                if (!string.IsNullOrWhiteSpace(vendedor))
+                {
+                    urlConsulta += "&vendedorTelefonico=" + vendedor;
+                }
             }
             return urlConsulta;
         }
