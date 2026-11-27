@@ -3,6 +3,8 @@ Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 
 Public Interface IRapportService
     Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
+    ' NestoAPI#876 (27/11/26): con incluirEquivalentes, también los rapports de sus fichas equivalentes (cada uno dice su ficha en Cliente)
+    Function cargarListaRapports(empresa As String, cliente As String, contacto As String, incluirEquivalentes As Boolean) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
     Function cargarListaRapports(vendedor As String, fecha As Date) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
     Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String)
     Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String)
@@ -22,6 +24,8 @@ Public Interface IRapportService
     ' su equipo si es jefe de ventas, todos si es Dirección). Lista vacía si falla o la API publicada no lo tiene.
     Function CargarVendedoresSugerencias() As Task(Of List(Of VendedorSugerencias))
     Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
+    ' NestoAPI#876 (27/11/26): el resumen con los rapports de sus fichas equivalentes
+    Function CargarResumenRapports(empresa As String, cliente As String, contacto As String, incluirEquivalentes As Boolean) As Task(Of String)
     Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
     Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
     ' NestoAPI#593: estadística del cheque regalo. Resumen: Nothing si no hay campaña o la API no lo tiene.

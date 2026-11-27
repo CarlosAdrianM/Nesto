@@ -507,6 +507,13 @@
                             <cliente:CambioFiscalClienteView Empresa="{Binding clienteActivo.empresa}" Cliente="{Binding clienteActivo.cliente}"
                                                              ClienteAnterior="{Binding clienteActivo.clienteAnterior}"/>
                         </TabItem>
+                        <!-- NestoAPI#876 (27/11/26): el grupo de fichas equivalentes (duplicadas o de un cambio de forma fiscal), enlazar y deshacer.
+                             Siempre visible salvo que el servidor no tenga la tabla (503). Lee la API al enseñarse. -->
+                        <TabItem Header="Fichas equivalentes"
+                                 Visibility="{Binding ViewModel.Disponible, ElementName=fichasEquivalentes, Converter={StaticResource VisibleSiFacturae}, FallbackValue=Collapsed}">
+                            <cliente:FichasEquivalentesClienteView x:Name="fichasEquivalentes" Empresa="{Binding clienteActivo.empresa}"
+                                                                   Cliente="{Binding clienteActivo.cliente}"/>
+                        </TabItem>
                     </TabControl>
                 </Grid>
             </Grid>

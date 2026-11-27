@@ -366,7 +366,7 @@ Public Class RapportViewModel
     ' check del servidor y se creaban rapports duplicados. Mismo patrón que SePuedeCrearRapport.
     Private _guardandoRapport As Boolean = False
     Private Function CanGuardarCambios(arg As Object) As Boolean
-        Return Not _guardandoRapport AndAlso Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
+        Return Not _guardandoRapport AndAlso String.IsNullOrEmpty(MotivoSoloLectura) AndAlso Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
     End Function
     ''' <summary>
     ''' Nesto#469 (NestoAPI#464, Carlos 16/09/26): desde el deploy nadie rellenaba los empleados (368
@@ -484,7 +484,31 @@ Public Class RapportViewModel
 
     ' Nesto#490 (4C.4): cada navegación abre una vista de rapport nueva (antes IsNavigationTarget = False). Misma
     ' clave que con Prism; GetValue(Of Object) devuelve Nothing si no viene, como su indexador.
+    ''' <summary>NestoAPI#876 (27/11/26): con este parámetro (el motivo), el rapport es de otra ficha equivalente y no se guarda desde aquí.</summary>
+    Public Const PARAMETRO_SOLO_LECTURA As String = "soloLecturaParameter"
+
+    Private _motivoSoloLectura As String
+    ''' <summary>NestoAPI#876: por qué este rapport no se puede guardar desde aquí (es de otra ficha equivalente); Nothing si se puede.</summary>
+    Public Property MotivoSoloLectura As String
+        Get
+            Return _motivoSoloLectura
+        End Get
+        Private Set(value As String)
+            SetProperty(_motivoSoloLectura, value)
+            OnPropertyChanged(NameOf(EsSoloLectura))
+            cmdGuardarCambios?.NotifyCanExecuteChanged()
+        End Set
+    End Property
+
+    Public ReadOnly Property EsSoloLectura As Boolean
+        Get
+            Return Not String.IsNullOrEmpty(_motivoSoloLectura)
+        End Get
+    End Property
+
     Public Async Sub AlLlegar(parametros As ParametrosNavegacion) Implements IReceptorNavegacion.AlLlegar
+        MotivoSoloLectura = If(parametros IsNot Nothing AndAlso parametros.ContainsKey(PARAMETRO_SOLO_LECTURA),
+            parametros.GetValue(Of String)(PARAMETRO_SOLO_LECTURA), Nothing)
         rapport = parametros?.GetValue(Of Object)("rapportParameter")
         If VendedorUsuario Is Nothing Then
             VendedorUsuario = Await configuracion.leerParametro("1", "Vendedor")

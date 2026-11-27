@@ -60,13 +60,44 @@ namespace Nesto.Modulos.Cliente.Models
             get => _seleccionado;
             set
             {
-                if (_seleccionado != value)
+                // NestoAPI#876: un movimiento de otra ficha equivalente no se marca para liquidar
+                bool nuevo = value && !EsDeOtraFicha;
+                if (_seleccionado != nuevo)
                 {
-                    _seleccionado = value;
+                    _seleccionado = nuevo;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Seleccionado)));
                 }
             }
         }
+
+        private bool _esDeOtraFicha;
+        /// <summary>
+        /// NestoAPI#876 (27/11/26, estado de UI): con «Incluir fichas equivalentes», el movimiento es de otra ficha (su número en
+        /// <see cref="Cliente"/>): solo se consulta; ni se liquida ni se marca como señal desde aquí.
+        /// </summary>
+        public bool EsDeOtraFicha
+        {
+            get => _esDeOtraFicha;
+            set
+            {
+                if (_esDeOtraFicha != value)
+                {
+                    _esDeOtraFicha = value;
+                    if (value)
+                    {
+                        Seleccionado = false;
+                    }
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(EsDeOtraFicha)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SePuedeTocar)));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MotivoSoloLectura)));
+                }
+            }
+        }
+
+        public bool SePuedeTocar => !EsDeOtraFicha;
+
+        /// <summary>Por qué la fila no se puede tocar (null si se puede).</summary>
+        public string MotivoSoloLectura => EsDeOtraFicha ? ReglasPantallaEquivalentes.MOTIVO_SOLO_LECTURA : null;
 
         public event PropertyChangedEventHandler PropertyChanged;
     }

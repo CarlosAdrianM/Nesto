@@ -165,7 +165,17 @@ Public Class RapportService
         End Using
     End Function
 
-    Private Async Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
+    Private Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
+        Return cargarListaRapports(empresa, cliente, contacto, False)
+    End Function
+
+    ''' <summary>NestoAPI#876: la URL de los rapports de un cliente; con incluirEquivalentes, también los de sus fichas equivalentes.</summary>
+    Public Shared Function UrlRapportsCliente(empresa As String, cliente As String, contacto As String, incluirEquivalentes As Boolean) As String
+        Return "SeguimientosClientes?empresa=" + empresa + "&cliente=" + cliente + "&contacto=" + contacto +
+            If(incluirEquivalentes, "&incluirEquivalentes=true", String.Empty)
+    End Function
+
+    Private Async Function cargarListaRapports(empresa As String, cliente As String, contacto As String, incluirEquivalentes As Boolean) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
 
         Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
@@ -173,10 +183,7 @@ Public Class RapportService
 
 
             Try
-                Dim urlConsulta As String = "SeguimientosClientes"
-                urlConsulta += "?empresa=" + empresa
-                urlConsulta += "&cliente=" + cliente
-                urlConsulta += "&contacto=" + contacto
+                Dim urlConsulta As String = UrlRapportsCliente(empresa, cliente, contacto, incluirEquivalentes)
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -447,13 +454,18 @@ Public Class RapportService
         End Try
     End Function
 
-    Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
+    Public Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
+        Return CargarResumenRapports(empresa, cliente, contacto, False)
+    End Function
+
+    Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String, incluirEquivalentes As Boolean) As Task(Of String) Implements IRapportService.CargarResumenRapports
         Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuestaJson As String = String.Empty
 
             Try
-                Dim urlConsulta As String = $"SeguimientosClientes/Resumen?empresa={empresa}&cliente={cliente}&contacto={contacto}"
+                Dim urlConsulta As String = $"SeguimientosClientes/Resumen?empresa={empresa}&cliente={cliente}&contacto={contacto}" +
+                    If(incluirEquivalentes, "&incluirEquivalentes=true", String.Empty)
 
                 response = Await client.GetAsync(urlConsulta)
                 respuestaJson = Await response.Content.ReadAsStringAsync()

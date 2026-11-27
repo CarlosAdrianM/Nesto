@@ -11,6 +11,8 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+        <!-- NestoAPI#876: la columna «Ficha» (fuera del árbol visual) solo se ve con «Incluir fichas equivalentes» -->
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}"/>
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
@@ -41,6 +43,10 @@
                         Visibility="{Binding PuedeMarcarSenales, Converter={StaticResource BoolAVisibilidad}}"/>
                 <Button Content="Quitar señal" Command="{Binding QuitarSenalCommand}" Margin="10,0,0,0" Padding="10,2"
                         Visibility="{Binding PuedeMarcarSenales, Converter={StaticResource BoolAVisibilidad}}"/>
+                <!-- NestoAPI#876 (27/11/26): solo si el cliente tiene fichas equivalentes; las filas de las otras fichas solo se consultan -->
+                <CheckBox Content="{Binding Equivalentes.Texto}" IsChecked="{Binding Equivalentes.Incluir}" VerticalAlignment="Center" Margin="20,0,0,0"
+                          ToolTip="Enseña también lo pendiente de sus fichas equivalentes (duplicadas o de un cambio de forma fiscal). Liquidar y las señales siguen siendo solo de esta ficha."
+                          Visibility="{Binding Equivalentes.Visible, Converter={StaticResource BoolAVisibilidad}}"/>
             </StackPanel>
 
             <DataGrid Grid.Row="2" ItemsSource="{Binding Movimientos}" AutoGenerateColumns="False"
@@ -58,11 +64,32 @@
                             <DataTrigger Binding="{Binding EsSenal}" Value="True">
                                 <Setter Property="Background" Value="#E3F2FD"/>
                             </DataTrigger>
+                            <!-- NestoAPI#876: de otra ficha equivalente: en gris y con el porqué -->
+                            <DataTrigger Binding="{Binding EsDeOtraFicha}" Value="True">
+                                <Setter Property="Foreground" Value="DimGray"/>
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                                <Setter Property="ToolTip" Value="{Binding MotivoSoloLectura}"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </DataGrid.RowStyle>
                 <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Header="Liquidar" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}" />
+                    <DataGridCheckBoxColumn Header="Liquidar" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}">
+                        <DataGridCheckBoxColumn.ElementStyle>
+                            <Style TargetType="CheckBox">
+                                <Setter Property="IsEnabled" Value="{Binding SePuedeTocar}"/>
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridCheckBoxColumn.ElementStyle>
+                        <DataGridCheckBoxColumn.EditingElementStyle>
+                            <Style TargetType="CheckBox">
+                                <Setter Property="IsEnabled" Value="{Binding SePuedeTocar}"/>
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridCheckBoxColumn.EditingElementStyle>
+                    </DataGridCheckBoxColumn>
+                    <DataGridTextColumn Header="Ficha" Binding="{Binding Cliente}" IsReadOnly="True"
+                                        Visibility="{Binding Data.Equivalentes.Incluir, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolAVisibilidad}}"/>
                     <DataGridTextColumn Header="Nº Orden" Binding="{Binding Id}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Emp." Binding="{Binding Empresa}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" IsReadOnly="True"/>
@@ -113,8 +140,10 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <TextBlock Grid.Row="3" Text="{Binding AvisoSenales}" Foreground="DarkRed" HorizontalAlignment="Left"
-                       VerticalAlignment="Center" Margin="0,8,0,0"/>
+            <StackPanel Grid.Row="3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                <TextBlock Text="{Binding AvisoSenales}" Foreground="DarkRed"/>
+                <TextBlock Text="{Binding AvisoFilaSeleccionada}" Foreground="DimGray"/>
+            </StackPanel>
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <TextBlock Text="Total pendiente: " FontWeight="Bold"/>
                 <TextBlock Text="{Binding TotalPendiente, StringFormat=c}" FontWeight="Bold"/>

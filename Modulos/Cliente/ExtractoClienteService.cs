@@ -24,7 +24,12 @@ namespace Nesto.Modulos.Cliente
             _servicioAutenticacion = servicioAutenticacion;
         }
 
-        public async Task<List<ExtractoClienteModel>> LeerExtractoPendiente(string cliente)
+        public Task<List<ExtractoClienteModel>> LeerExtractoPendiente(string cliente) => LeerExtractoPendiente(cliente, false);
+
+        internal static string UrlPendiente(string cliente, bool incluirEquivalentes)
+            => $"ExtractosCliente?cliente={Uri.EscapeDataString(cliente?.Trim() ?? string.Empty)}" + (incluirEquivalentes ? "&incluirEquivalentes=true" : string.Empty);
+
+        public async Task<List<ExtractoClienteModel>> LeerExtractoPendiente(string cliente, bool incluirEquivalentes)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -34,8 +39,7 @@ namespace Nesto.Modulos.Cliente
                     throw new UnauthorizedAccessException("No se pudo configurar la autorización");
                 }
 
-                HttpResponseMessage response = await client.GetAsync(
-                    $"ExtractosCliente?cliente={Uri.EscapeDataString(cliente?.Trim() ?? string.Empty)}");
+                HttpResponseMessage response = await client.GetAsync(UrlPendiente(cliente, incluirEquivalentes));
                 string body = await response.Content.ReadAsStringAsync();
                 if (!response.IsSuccessStatusCode)
                 {

@@ -28,6 +28,8 @@
         <!-- Nesto#558: código del resultado del rapport → texto corto -->
         <rapports:ResultadoRapportConverter x:Key="ResultadoRapportConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- NestoAPI#876: la columna «Ficha» (fuera del árbol visual) solo se ve con «Incluir fichas equivalentes» -->
+        <controles:BindingProxy x:Key="ProxyEquivalentes" Data="{Binding}"/>
         <!-- Estilo para ToggleButton como botón -->
         <Style TargetType="ToggleButton" x:Key="ToggleButtonAsButtonStyle">
             <Setter Property="Width" Value="100"/>
@@ -79,6 +81,10 @@
             <StackPanel Grid.Row="0">
                 <controles:SelectorCliente Name="txtSelectorCliente" Empresa="1" PriorizarContactoTelefonico="True" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Etiqueta=""></controles:SelectorCliente>
                 <controles:ListaTelefonos Etiqueta="Tel.: " Telefonos="{Binding DataContext.ClienteCompleto.telefono, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,3,0,0" />
+                <!-- NestoAPI#876 (27/11/26): solo si el cliente tiene fichas equivalentes; los rapports de las otras fichas se abren solo para leer -->
+                <CheckBox Content="{Binding Equivalentes.Texto}" IsChecked="{Binding Equivalentes.Incluir}" Margin="0,3,0,0"
+                          ToolTip="Enseña también los rapports de sus fichas equivalentes (duplicadas o de un cambio de forma fiscal). Los rapports nuevos siguen siendo de este cliente."
+                          Visibility="{Binding Equivalentes.Visible, Converter={StaticResource BoolToVis}}"/>
             </StackPanel>
             <StackPanel Grid.Row="1">
                 <Button Content="Resumir rapports" Command="{Binding GenerarResumenCommand}" />
@@ -400,6 +406,8 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding Fecha, StringFormat=d}" Width="Auto" Header="Fecha" />
                                 <DataGridTextColumn Binding="{Binding Cliente}" Width="Auto" Header="Cliente" />
+                                <DataGridTextColumn Binding="{Binding FichaTexto}" Width="Auto" Header="Ficha"
+                                                    Visibility="{Binding Data.Equivalentes.Incluir, Source={StaticResource ProxyEquivalentes}, Converter={StaticResource BoolToVis}}"/>
                                 <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaTipos}}" Header="Tipo" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Tipo}"></DataGridComboBoxColumn>
                                 <DataGridTextColumn Binding="{Binding Vendedor}" Width="Auto" Header="Vendedor" />
                                 <DataGridCheckBoxColumn Binding="{Binding Pedido}" Width="Auto" Header="Pedido"/>

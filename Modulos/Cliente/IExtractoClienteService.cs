@@ -13,6 +13,10 @@ namespace Nesto.Modulos.Cliente
         /// interesa para liquidar. GET api/ExtractosCliente?cliente=</summary>
         Task<List<ExtractoClienteModel>> LeerExtractoPendiente(string cliente);
 
+        /// <summary>NestoAPI#876 (27/11/26): como el anterior; con <paramref name="incluirEquivalentes"/>, también lo pendiente de sus
+        /// fichas equivalentes (cada movimiento dice de qué ficha es en Cliente). GET api/ExtractosCliente?cliente=&amp;incluirEquivalentes=true</summary>
+        Task<List<ExtractoClienteModel>> LeerExtractoPendiente(string cliente, bool incluirEquivalentes);
+
         /// <summary>Liquida dos movimientos (NestoAPI#333, prdLiquidar con validaciones
         /// adelantadas server-side). Lanza Exception con el motivo legible si no se puede.</summary>
         Task<ResultadoLiquidacionModel> LiquidarEfectos(string empresa, int origen, int destino);

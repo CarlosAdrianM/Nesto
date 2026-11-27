@@ -58,6 +58,8 @@ namespace Nesto.Modulos.Cliente
             // NestoAPI#876 (corte nuevo): cambio de forma fiscal (copiar del cliente anterior y pasar sus pedidos; alta y ficha)
             registro.Transitorio<IServicioCambioFiscal, ServicioCambioFiscal>();
             registro.RegistrarDialogo<CambioFiscalPedidosDialog, CambioFiscalPedidosDialogViewModel>(CambioFiscalPedidosDialogViewModel.NOMBRE);
+            // NestoAPI#876 (27/11/26): fichas equivalentes (pestaña de la ficha y casilla del extracto y de los rapports)
+            registro.Transitorio<IServicioClientesEquivalentes, ServicioClientesEquivalentes>();
 
             // Nesto#490 (4C.5): lo que Unity construía sin registrar
             registro.Transitorio<ClienteMenuBar>();

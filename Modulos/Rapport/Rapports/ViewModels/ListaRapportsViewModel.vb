@@ -26,6 +26,14 @@ Public Class ListaRapportsViewModel
 
     Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger,
                    servicioSugerenciasProductos As IServicioSugerenciasProductos)
+        Me.New(navegacion, configuracion, servicio, dialogService, messenger, servicioSugerenciasProductos, Nothing)
+    End Sub
+
+    ''' <summary>NestoAPI#876 (27/11/26): el que usa el contenedor (el más largo), con la casilla «Incluir fichas equivalentes».</summary>
+    Public Sub New(navegacion As IServicioNavegacion, configuracion As IConfiguracion, servicio As IRapportService, dialogService As IServicioDialogos, messenger As IMessenger,
+                   servicioSugerenciasProductos As IServicioSugerenciasProductos, servicioEquivalentes As Nesto.Modulos.Cliente.IServicioClientesEquivalentes)
+        Equivalentes = New Nesto.Modulos.Cliente.CasillaFichasEquivalentes(servicioEquivalentes)
+        AddHandler Equivalentes.IncluirCambiado, AddressOf AlCambiarIncluirEquivalentes
         Me.navegacion = navegacion
         Me.configuracion = configuracion
         Me.servicio = servicio
@@ -71,6 +79,24 @@ Public Class ListaRapportsViewModel
 
 
 #Region "Propiedades"
+    ''' <summary>
+    ''' NestoAPI#876 (27/11/26): «Incluir fichas equivalentes». Solo se ve si el cliente del selector tiene alguna; al marcarla se
+    ''' recargan sus rapports con incluirEquivalentes=true y la columna «Ficha» dice de cuál es cada uno. Crear un rapport sigue siendo
+    ''' del cliente del selector, y los de otra ficha se abren solo para leer.
+    ''' </summary>
+    Public ReadOnly Property Equivalentes As Nesto.Modulos.Cliente.CasillaFichasEquivalentes
+
+    Private Async Sub AlCambiarIncluirEquivalentes(sender As Object, e As EventArgs)
+        Try
+            EstaOcupado = True
+            Await CargarListaRapportsAsync()
+        Catch ex As Exception
+            _dialogService.ShowError("No se han podido cargar los rapports: " & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Sub
+
     ' Agrupar por: "grupo", "familia" o "subgrupo"
     Private _agruparPor As String = "grupo"
     Public Property AgruparPor As String
@@ -663,6 +689,10 @@ Public Class ListaRapportsViewModel
                                                               Dim parameters As New ParametrosNavegacion From {
                                                                   {"rapportParameter", rapportSeleccionado}
                                                               }
+                                                              ' NestoAPI#876: el de otra ficha equivalente se abre solo para leer
+                                                              If rapportSeleccionado.EsDeOtraFicha Then
+                                                                  parameters.Add(RapportViewModel.PARAMETRO_SOLO_LECTURA, Nesto.Modulos.Cliente.ReglasPantallaEquivalentes.MOTIVO_SOLO_LECTURA)
+                                                              End If
                                                               ' SingleActiveRegion + IsNavigationTarget=>False acumulaba la vista de rapport
                                                               ' anterior en region.Views al cambiar de rapport seleccionado (solo
                                                               ' desactivada, no eliminada). Quitamos las previas antes de navegar.
@@ -830,9 +860,21 @@ Public Class ListaRapportsViewModel
         ResumenListaRapports = String.Empty
         ' Nesto#551: con el selector vacío ("" o Nothing) la lista es la del día, no la de un cliente en blanco
         If Not String.IsNullOrWhiteSpace(clienteSeleccionado) Then
-            listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+            ' NestoAPI#876: otro cliente → la casilla se apaga y se mira si tiene fichas equivalentes
+            If Not Nesto.Modulos.Cliente.ReglasPantallaEquivalentes.MismoCliente(Equivalentes.Cliente, clienteSeleccionado) Then
+                Await Equivalentes.ComprobarAsync(_empresaPorDefecto, clienteSeleccionado)
+            End If
+            Dim incluir As Boolean = Equivalentes.Incluir
+            Dim lista As ObservableCollection(Of SeguimientoClienteDTO) = If(incluir,
+                Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado, True),
+                Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado))
+            MarcarFichas(lista, incluir, clienteSeleccionado)
+            listaRapports = lista
             Await LlamarApiResumenVentasAsync()
         Else
+            If Equivalentes.Cliente IsNot Nothing Then
+                Await Equivalentes.ComprobarAsync(_empresaPorDefecto, Nothing) ' sin cliente, sin casilla
+            End If
             Dim parametroVendedor As String
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
@@ -840,6 +882,18 @@ Public Class ListaRapportsViewModel
         End If
         GenerarResumenCommand.NotifyCanExecuteChangedEnUi()
     End Function
+
+    ''' <summary>NestoAPI#876: marca los rapports de otra ficha equivalente (solo con la casilla marcada).</summary>
+    Public Shared Sub MarcarFichas(lista As IEnumerable(Of SeguimientoClienteDTO), incluir As Boolean, cliente As String)
+        If lista Is Nothing Then
+            Return
+        End If
+        For Each r In lista
+            If r IsNot Nothing Then
+                r.EsDeOtraFicha = incluir AndAlso Nesto.Modulos.Cliente.ReglasPantallaEquivalentes.EsDeOtraFicha(r.Cliente, cliente)
+            End If
+        Next
+    End Sub
 
     Private _cmdCargarListaRapportsFiltrada As RelayCommand
     Public Property cmdCargarListaRapportsFiltrada As RelayCommand
@@ -984,7 +1038,9 @@ Public Class ListaRapportsViewModel
 
         Try
             EstaGenerandoResumen = True
-            ResumenListaRapports = Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+            ResumenListaRapports = If(Equivalentes.Incluir,
+                Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado, True),
+                Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado))
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
         Finally

@@ -44,6 +44,21 @@ Public Class SeguimientoClienteDTO
     End Property
     Public Property Contacto As String
 
+    ''' <summary>
+    ''' NestoAPI#876 (27/11/26, estado de UI, no viaja a la API): con «Incluir fichas equivalentes», el rapport es de otra ficha (su
+    ''' número en Cliente): se lee, pero no se modifica desde la lista de esta ficha.
+    ''' </summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public Property EsDeOtraFicha As Boolean
+
+    ''' <summary>NestoAPI#876: la columna «Ficha» de la lista (solo con «Incluir fichas equivalentes»).</summary>
+    <Newtonsoft.Json.JsonIgnore>
+    Public ReadOnly Property FichaTexto As String
+        Get
+            Return If(EsDeOtraFicha, "Otra ficha", "Esta ficha")
+        End Get
+    End Property
+
     Private _Fecha As DateTime
     Public Property Fecha As DateTime
         Get

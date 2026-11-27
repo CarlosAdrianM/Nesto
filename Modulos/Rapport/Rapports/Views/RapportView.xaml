@@ -210,6 +210,9 @@
         </StackPanel>
         <StackPanel Grid.Row="16" HorizontalAlignment="Stretch">
             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
+            <!-- NestoAPI#876: un rapport de otra ficha equivalente se lee, pero no se guarda desde aquí -->
+            <TextBlock Text="{Binding MotivoSoloLectura}" TextWrapping="Wrap" Foreground="DimGray" Margin="0,3,0,0"
+                       Visibility="{Binding EsSoloLectura, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </StackPanel>
     </Grid>
     </ScrollViewer>

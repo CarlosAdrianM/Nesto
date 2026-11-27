@@ -41,19 +41,27 @@ namespace Nesto.Modulos.Cliente
         // sistema); los tests inyectan una captura para no lanzar procesos.
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger, Action<string> abrirFichero)
-            : this(servicio, dialogService, messenger, abrirFichero, null, null)
+            : this(servicio, dialogService, messenger, abrirFichero, null, null, null)
         {
         }
 
-        // NestoAPI#591: el que usa el contenedor (el más largo que puede resolver): con las señales de eventos.
+        // NestoAPI#591: con las señales de eventos.
         public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
             IMessenger messenger, IEventosService eventos, IConfiguracion configuracion)
-            : this(servicio, dialogService, messenger, null, eventos, configuracion)
+            : this(servicio, dialogService, messenger, null, eventos, configuracion, null)
         {
         }
 
-        private ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
-            IMessenger messenger, Action<string> abrirFichero, IEventosService eventos, IConfiguracion configuracion)
+        // NestoAPI#876 (27/11/26): el que usa el contenedor (el más largo que puede resolver): con la casilla de fichas equivalentes.
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
+            IMessenger messenger, IEventosService eventos, IConfiguracion configuracion, IServicioClientesEquivalentes equivalentes)
+            : this(servicio, dialogService, messenger, null, eventos, configuracion, equivalentes)
+        {
+        }
+
+        internal ExtractoClienteViewModel(IExtractoClienteService servicio, IServicioDialogos dialogService,
+            IMessenger messenger, Action<string> abrirFichero, IEventosService eventos, IConfiguracion configuracion,
+            IServicioClientesEquivalentes equivalentes = null)
         {
             _servicio = servicio;
             _dialogService = dialogService;
@@ -67,6 +75,23 @@ namespace Nesto.Modulos.Cliente
             AbrirFacturaCommand = new RelayCommand<ExtractoClienteModel>(OnAbrirFactura, CanAbrirFactura);
             MarcarSenalCommand = new AsyncRelayCommand(MarcarSenalAsync, CanMarcarSenal);
             QuitarSenalCommand = new AsyncRelayCommand(QuitarSenalAsync, CanQuitarSenal);
+            Equivalentes = new CasillaFichasEquivalentes(equivalentes);
+            Equivalentes.IncluirCambiado += async (s, e) => await CargarAsync();
+        }
+
+        /// <summary>
+        /// NestoAPI#876 (27/11/26): «Incluir fichas equivalentes». Solo se ve si el cliente tiene alguna; al marcarla se recarga con
+        /// incluirEquivalentes=true y la columna «Ficha» dice de cuál es cada movimiento. Liquidar y las señales siguen siendo solo de la
+        /// ficha abierta: las filas de otra ficha no se marcan ni se tocan.
+        /// </summary>
+        public CasillaFichasEquivalentes Equivalentes { get; }
+
+        private string _avisoFilaSeleccionada;
+        /// <summary>Por qué la fila seleccionada no se puede tocar (es de otra ficha); null si se puede.</summary>
+        public string AvisoFilaSeleccionada
+        {
+            get => _avisoFilaSeleccionada;
+            private set => SetProperty(ref _avisoFilaSeleccionada, value);
         }
 
         public string Titulo { get; }
@@ -157,8 +182,19 @@ namespace Nesto.Modulos.Cliente
             try
             {
                 EstaOcupado = true;
-                List<ExtractoClienteModel> movimientos = await _servicio.LeerExtractoPendiente(ClienteSeleccionado);
-                Movimientos = new ObservableCollection<ExtractoClienteModel>(movimientos);
+                if (!ReglasPantallaEquivalentes.MismoCliente(Equivalentes.Cliente, ClienteSeleccionado))
+                {
+                    await Equivalentes.ComprobarAsync(Constantes.Empresas.EMPRESA_DEFECTO, ClienteSeleccionado); // apaga la casilla
+                }
+                bool incluir = Equivalentes.Incluir;
+                List<ExtractoClienteModel> movimientos = incluir
+                    ? await _servicio.LeerExtractoPendiente(ClienteSeleccionado, true)
+                    : await _servicio.LeerExtractoPendiente(ClienteSeleccionado);
+                foreach (ExtractoClienteModel m in movimientos ?? new List<ExtractoClienteModel>())
+                {
+                    m.EsDeOtraFicha = incluir && ReglasPantallaEquivalentes.EsDeOtraFicha(m.Cliente, ClienteSeleccionado);
+                }
+                Movimientos = new ObservableCollection<ExtractoClienteModel>(movimientos ?? new List<ExtractoClienteModel>());
                 await CargarSenalesAsync();
             }
             catch (Exception ex)
@@ -220,7 +256,7 @@ namespace Nesto.Modulos.Cliente
 
         // Exactamente dos movimientos marcados; el resto de reglas (mismo cliente, signos
         // opuestos, remesas, estados bloqueados) las valida la API con mensaje claro.
-        private bool CanLiquidar() => Seleccionados.Count == 2;
+        private bool CanLiquidar() => Seleccionados.Count == 2 && Seleccionados.All(m => !m.EsDeOtraFicha);
 
         private async void OnLiquidar() => await LiquidarAsync();
 
@@ -273,7 +309,7 @@ namespace Nesto.Modulos.Cliente
                         [origen.Id] = resultado.ImportePdteOrigen,
                         [destino.Id] = resultado.ImportePdteDestino
                     },
-                    ClienteSigueConNegativos = Movimientos.Any(m => m.ImportePendiente < 0)
+                    ClienteSigueConNegativos = Movimientos.Any(m => !m.EsDeOtraFicha && m.ImportePendiente < 0)
                 }));
             }
             catch (Exception ex)
@@ -302,6 +338,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _movimientoSeleccionado, value))
                 {
+                    AvisoFilaSeleccionada = value?.MotivoSoloLectura;
                     MarcarSenalCommand.NotifyCanExecuteChanged();
                     QuitarSenalCommand.NotifyCanExecuteChanged();
                 }
@@ -343,7 +380,7 @@ namespace Nesto.Modulos.Cliente
 
         public AsyncRelayCommand MarcarSenalCommand { get; }
 
-        private bool CanMarcarSenal() => PuedeMarcarSenales && MovimientoSeleccionado != null
+        private bool CanMarcarSenal() => PuedeMarcarSenales && MovimientoSeleccionado != null && !MovimientoSeleccionado.EsDeOtraFicha
             && MovimientoSeleccionado.ImportePendiente < 0 && !MovimientoSeleccionado.EsSenal;
 
         /// <summary>«Es la señal del evento…»: elegir el evento (activos, los próximos primero) y marcarlo en la API.</summary>
@@ -400,7 +437,7 @@ namespace Nesto.Modulos.Cliente
 
         public AsyncRelayCommand QuitarSenalCommand { get; }
 
-        private bool CanQuitarSenal() => PuedeMarcarSenales && MovimientoSeleccionado?.EsSenal == true;
+        private bool CanQuitarSenal() => PuedeMarcarSenales && MovimientoSeleccionado?.EsSenal == true && !MovimientoSeleccionado.EsDeOtraFicha;
 
         public async Task QuitarSenalAsync()
         {

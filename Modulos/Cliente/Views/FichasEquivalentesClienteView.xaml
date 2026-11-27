@@ -1,0 +1,109 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.FichasEquivalentesClienteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="900"
+             Background="White">
+    <!-- NestoAPI#876 (27/11/26): las fichas equivalentes del cliente (la misma persona dada de alta dos veces o el mismo cliente con otra
+         forma fiscal). Lee la API al enseñarse y al cambiar de cliente. Quién puede enlazar o deshacer lo decide la API. -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad"/>
+    </UserControl.Resources>
+    <ScrollViewer x:Name="Raiz" VerticalScrollBarVisibility="Auto"
+                  Visibility="{Binding Disponible, Converter={StaticResource BoolAVisibilidad}}">
+        <StackPanel Margin="6">
+            <TextBlock TextWrapping="Wrap" Foreground="#555555" Margin="0,0,0,6"
+                       Text="Fichas de cliente que son la misma persona (dada de alta dos veces) o el mismo cliente con otra forma fiscal. El extracto y los rapports pueden enseñarlas juntas; lo fiscal (facturas, deuda, 347) no se junta."/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <Button Content="Enlazar con otra ficha…" Command="{Binding EmpezarEnlaceCommand}" Padding="10,3"
+                        ToolTip="Enlaza esta ficha con otra como equivalentes (duplicado o cambio de forma fiscal)."/>
+                <TextBlock Text="Cargando…" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="DimGray"
+                           Visibility="{Binding EstaOcupado, Converter={StaticResource BoolAVisibilidad}}"/>
+            </StackPanel>
+            <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Foreground="DimGray" Margin="0,0,0,6"/>
+
+            <GroupBox Header="Enlazar con otra ficha" Padding="6" Margin="0,0,0,6"
+                      Visibility="{Binding MostrandoEnlace, Converter={StaticResource BoolAVisibilidad}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Número de la otra ficha:" VerticalAlignment="Center" Margin="0,2,8,2"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Width="120" HorizontalAlignment="Left" Margin="0,2"
+                             Text="{Binding OtraFicha, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Motivo:" VerticalAlignment="Center" Margin="0,2,8,2"/>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,2">
+                        <RadioButton GroupName="MotivoEquivalente" Content="Duplicado (la misma persona dada de alta dos veces)"
+                                     IsChecked="{Binding MotivoDuplicado}" Margin="0,0,12,0"/>
+                        <RadioButton GroupName="MotivoEquivalente" Content="Cambio de forma fiscal" IsChecked="{Binding MotivoCambioFiscal}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="La ficha que queda:" VerticalAlignment="Center" Margin="0,2,8,2"/>
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,2">
+                        <RadioButton GroupName="FichaQueQueda" IsChecked="{Binding QuedaEsta}" Margin="0,0,12,0">
+                            <TextBlock>
+                                <Run Text="Esta ("/><Run Text="{Binding Cliente, Mode=OneWay}"/><Run Text=")"/>
+                            </TextBlock>
+                        </RadioButton>
+                        <RadioButton GroupName="FichaQueQueda" Content="La otra" IsChecked="{Binding QuedaLaOtra}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Comentario (opcional):" VerticalAlignment="Center" Margin="0,2,8,2"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Margin="0,2" MaxLength="255" Text="{Binding Comentario, UpdateSourceTrigger=PropertyChanged}"/>
+                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                        <Button Content="Enlazar…" Command="{Binding EnlazarCommand}" Padding="10,3" Margin="0,0,6,0"
+                                ToolTip="Enseña el nombre y el NIF de las dos fichas antes de enlazarlas."/>
+                        <Button Content="Cancelar" Command="{Binding CancelarEnlaceCommand}" Padding="10,3"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <DataGrid ItemsSource="{Binding Fichas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                      HeadersVisibility="Column" SelectionMode="Single"
+                      Visibility="{Binding HayEquivalentes, Converter={StaticResource BoolAVisibilidad}}">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EsLaConsultada}" Value="True">
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Ficha" Binding="{Binding Cliente}"/>
+                    <DataGridTextColumn Header="" Binding="{Binding Marca}" Foreground="DimGray"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="2*"/>
+                    <DataGridTextColumn Header="NIF" Binding="{Binding Nif}"/>
+                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}"/>
+                    <DataGridTextColumn Header="Enlace (motivo, quién y cuándo)" Binding="{Binding Enlace}" Width="3*"/>
+                    <DataGridTemplateColumn Header="">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Abrir" Padding="6,0" Margin="2,1"
+                                            ToolTip="Abre la ficha de este cliente en otra pestaña."
+                                            Command="{Binding DataContext.AbrirCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Content="Deshacer enlace" Padding="6,0" Margin="2,1"
+                                            ToolTip="Deshace el enlace de esta ficha con su anterior (pide confirmación)."
+                                            Visibility="{Binding TieneEnlace, Converter={StaticResource BoolAVisibilidad}}"
+                                            Command="{Binding DataContext.DeshacerCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
