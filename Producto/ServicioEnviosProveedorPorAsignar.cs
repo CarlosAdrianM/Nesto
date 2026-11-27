@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
 using System;
@@ -42,6 +42,12 @@ namespace Nesto.Modules.Producto
 
         /// <summary>DELETE api/Compras/AgenciasEntrada/RemitentesPaquete/{id} (404 si ya no está).</summary>
         Task BorrarRemitentePaquete(int id);
+
+        /// <summary>
+        /// 27/11/26: POST api/Compras/AgenciasEntrada/RemitentesPaquete { RemitentePaquete, Empresa, Proveedor }: enseña a mano de qué
+        /// proveedor es quien expide el paquete. 400 si el proveedor no existe; si ya apuntaba a otro, lo cambia y lo dice en Mensaje.
+        /// </summary>
+        Task<RespuestaRemitentePaquete> EnsenarRemitentePaquete(string remitentePaquete, string empresa, string proveedor);
 
         /// <summary>
         /// NestoAPI#857j: GET api/Compras/AgenciasEntrada/Correos/SinReconocer?dias=: correos de agencia que la API no ha sabido leer (solo
@@ -112,6 +118,10 @@ namespace Nesto.Modules.Producto
         /// <summary>Quién expide el paquete según el aviso (no siempre es el proveedor).</summary>
         public string RemitentePaquete { get; set; }
         public string ProveedorPropuesto { get; set; }
+        /// <summary>27/11/26: el nombre del proveedor propuesto cuando se sabe (también sin candidatos, por la memoria de remitentes); null si no.</summary>
+        public string NombreProveedorPropuesto { get; set; }
+        /// <summary>NestoAPI#897/#857i y 27/11/26: por qué se proponen esos candidatos o por qué no hay ninguno; null si no hay explicación.</summary>
+        public string Explicacion { get; set; }
         /// <summary>Los pedidos candidatos (Motivo, líneas y, como mucho uno, el Sugerido).</summary>
         public List<PedidoCompraPorAsignar> Candidatos { get; set; } = new List<PedidoCompraPorAsignar>();
 
@@ -125,6 +135,15 @@ namespace Nesto.Modules.Producto
 
         [JsonIgnore]
         public bool HayRemitentePaquete => !string.IsNullOrWhiteSpace(RemitentePaquete);
+
+        /// <summary>27/11/26: «POSTQUAM COSMETIC, S.L. (451)», solo el código si no viene el nombre, o vacío.</summary>
+        [JsonIgnore]
+        public string ProveedorPropuestoTexto => string.IsNullOrWhiteSpace(ProveedorPropuesto)
+            ? (string.IsNullOrWhiteSpace(NombreProveedorPropuesto) ? string.Empty : NombreProveedorPropuesto.Trim())
+            : string.IsNullOrWhiteSpace(NombreProveedorPropuesto) ? ProveedorPropuesto.Trim() : $"{NombreProveedorPropuesto.Trim()} ({ProveedorPropuesto.Trim()})";
+
+        [JsonIgnore]
+        public bool HayExplicacion => !string.IsNullOrWhiteSpace(Explicacion);
 
         [JsonIgnore]
         public string EntregaEstimadaTexto => EntregaEstimadaDia.HasValue
@@ -294,6 +313,13 @@ namespace Nesto.Modules.Producto
         public bool RemitenteRecordado { get; set; }
         public int CorreosDelMismoEnvio { get; set; }
         public bool? EligioSugerido { get; set; }
+        /// <summary>
+        /// 27/11/26: el pedido ya estaba recibido: no se ha cambiado ninguna fecha y el envío queda asignado a él como pedido real. Se
+        /// enseña el Mensaje como aviso (no es un error).
+        /// </summary>
+        public bool YaRecibido { get; set; }
+        /// <summary>27/11/26: con <see cref="YaRecibido"/>, el día del albarán que se toma por el de este envío.</summary>
+        public DateTime? FechaAlbaran { get; set; }
         public string Mensaje { get; set; }
     }
 
@@ -316,9 +342,25 @@ namespace Nesto.Modules.Producto
         public string Proveedor { get; set; }
         public string Usuario { get; set; }
         public DateTime? FechaModificacion { get; set; }
+        /// <summary>27/11/26: el nombre del proveedor (null si la API es de antes o no lo sabe).</summary>
+        public string NombreProveedor { get; set; }
+
+        /// <summary>«IBEROCELULOSA MADRILEÑA (846)», o solo el código.</summary>
+        [JsonIgnore]
+        public string ProveedorTexto => string.IsNullOrWhiteSpace(NombreProveedor) ? Proveedor?.Trim() : $"{NombreProveedor.Trim()} ({Proveedor?.Trim()})";
 
         [JsonIgnore]
         public string FechaModificacionTexto => FechaModificacion.HasValue ? FechaModificacion.Value.ToString("dd/MM/yy HH:mm") : string.Empty;
+    }
+
+    /// <summary>27/11/26 (RespuestaRemitentePaqueteDTO): la fila guardada y qué ha cambiado.</summary>
+    public class RespuestaRemitentePaquete : RemitentePaqueteRecordado
+    {
+        public bool Nuevo { get; set; }
+        public string EmpresaAnterior { get; set; }
+        public string ProveedorAnterior { get; set; }
+        public bool SinCambios { get; set; }
+        public string Mensaje { get; set; }
     }
 
     public class EnvioProveedorPorAsignarException : Exception
@@ -420,6 +462,17 @@ namespace Nesto.Modules.Producto
             {
                 HttpResponseMessage response = await client.GetAsync(UrlRemitentesPaquete()).ConfigureAwait(false);
                 return await LeerRespuesta<List<RemitentePaqueteRecordado>>(response).ConfigureAwait(false) ?? new List<RemitentePaqueteRecordado>();
+            }
+        }
+
+        public async Task<RespuestaRemitentePaquete> EnsenarRemitentePaquete(string remitentePaquete, string empresa, string proveedor)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                var cuerpo = new { RemitentePaquete = remitentePaquete?.Trim(), Empresa = empresa?.Trim(), Proveedor = proveedor?.Trim() };
+                var contenido = new StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(UrlRemitentesPaquete(), contenido).ConfigureAwait(false);
+                return await LeerRespuesta<RespuestaRemitentePaquete>(response).ConfigureAwait(false);
             }
         }
 

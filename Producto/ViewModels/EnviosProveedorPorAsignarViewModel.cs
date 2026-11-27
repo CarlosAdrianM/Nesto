@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nesto.Infrastructure.Contracts;
 using System;
@@ -45,6 +45,89 @@ namespace Nesto.Modules.Producto.ViewModels
             AsignarCommand = new AsyncRelayCommand(AsignarAsync, () => Disponible && !EstaOcupado && EnvioSeleccionado != null && PedidoElegido != null);
             DescartarCommand = new AsyncRelayCommand(DescartarAsync, () => Disponible && !EstaOcupado && EnvioSeleccionado != null);
             BorrarRemitenteCommand = new AsyncRelayCommand(BorrarRemitenteAsync, () => Disponible && !EstaOcupado && RemitenteSeleccionado != null);
+            EmpezarEnsenarRemitenteCommand = new RelayCommand(() => { ProveedorDelRemitente = null; EnsenandoRemitente = true; },
+                () => Disponible && !EstaOcupado && HayRemitentePaquete);
+            CancelarEnsenarRemitenteCommand = new RelayCommand(() => EnsenandoRemitente = false);
+            EnsenarRemitenteCommand = new AsyncRelayCommand(EnsenarRemitenteAsync,
+                () => Disponible && !EstaOcupado && HayRemitentePaquete && !string.IsNullOrWhiteSpace(ProveedorDelRemitente));
+        }
+
+        // ------------------------------------------------------------------ «Este remitente es del proveedor…» (27/11/26)
+
+        public const string MENSAJE_SIN_PROVEEDOR = "Elija el proveedor del que es este remitente del paquete.";
+
+        public RelayCommand EmpezarEnsenarRemitenteCommand { get; }
+        public RelayCommand CancelarEnsenarRemitenteCommand { get; }
+        public IAsyncRelayCommand EnsenarRemitenteCommand { get; }
+
+        private bool _ensenandoRemitente;
+        /// <summary>Se está eligiendo el proveedor del remitente del paquete del envío elegido.</summary>
+        public bool EnsenandoRemitente { get => _ensenandoRemitente; set => SetProperty(ref _ensenandoRemitente, value); }
+
+        private string _proveedorDelRemitente;
+        /// <summary>El proveedor elegido en el selector de proveedores.</summary>
+        public string ProveedorDelRemitente
+        {
+            get => _proveedorDelRemitente;
+            set
+            {
+                if (SetProperty(ref _proveedorDelRemitente, value))
+                {
+                    EnsenarRemitenteCommand?.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// POST …/RemitentesPaquete con el remitente del paquete del envío elegido y el proveedor: enseña el Mensaje de la API (si cambia
+        /// de proveedor, lo dice) y recarga la lista (los envíos y los remitentes recordados).
+        /// </summary>
+        internal async Task EnsenarRemitenteAsync()
+        {
+            EnvioProveedorPorAsignar envio = EnvioSeleccionado;
+            string proveedor = ProveedorDelRemitente?.Trim();
+            if (envio == null || !envio.HayRemitentePaquete)
+            {
+                return;
+            }
+            if (string.IsNullOrEmpty(proveedor))
+            {
+                Mensaje = MENSAJE_SIN_PROVEEDOR;
+                return;
+            }
+            Mensaje = null;
+            EstaOcupado = true;
+            try
+            {
+                RespuestaRemitentePaquete respuesta = await _servicio.EnsenarRemitentePaquete(envio.RemitentePaquete, null, proveedor).ConfigureAwait(true);
+                EstaOcupado = false;
+                EnsenandoRemitente = false;
+                Mensaje = TextoRemitenteEnsenado(respuesta, envio.RemitentePaquete, proveedor);
+                _dialogos?.ShowNotification("Remitente del paquete", Mensaje);
+            }
+            catch (Exception ex)
+            {
+                EstaOcupado = false;
+                if (TratarError(ex, "guardar el remitente del paquete"))
+                {
+                    return;
+                }
+            }
+            await RecargarTodoAsync().ConfigureAwait(true);
+        }
+
+        internal static string TextoRemitenteEnsenado(RespuestaRemitentePaquete respuesta, string remitente, string proveedor)
+        {
+            if (!string.IsNullOrWhiteSpace(respuesta?.Mensaje))
+            {
+                return respuesta.Mensaje.Trim();
+            }
+            string de = string.IsNullOrWhiteSpace(respuesta?.ProveedorTexto) ? proveedor?.Trim() : respuesta.ProveedorTexto;
+            return respuesta?.SinCambios == true
+                ? $"«{remitente?.Trim()}» ya era del proveedor {de}: no se ha cambiado nada."
+                : !string.IsNullOrWhiteSpace(respuesta?.ProveedorAnterior)
+                    ? $"«{remitente?.Trim()}» era del proveedor {respuesta.ProveedorAnterior.Trim()}; ahora es del {de}."
+                    : $"Recordado: «{remitente?.Trim()}» es del proveedor {de}.";
         }
 
         public string Titulo => "Envíos de proveedor por asignar";
@@ -150,6 +233,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     PrepararEleccion(value);
                     OnPropertyChanged(nameof(HayEnvioSeleccionado));
                     OnPropertyChanged(nameof(HayRemitentePaquete));
+                    EnsenandoRemitente = false;
                     NotificarComandos();
                 }
             }
@@ -550,9 +634,19 @@ namespace Nesto.Modules.Producto.ViewModels
                     respuesta = await _servicio.Asignar(envio.Clave, pedido.EmpresaPedido, pedido.Pedido, recordar, true).ConfigureAwait(true);
                 }
                 EstaOcupado = false;
-                Mensaje = string.IsNullOrWhiteSpace(respuesta?.Mensaje)
-                    ? $"Envío asignado al pedido {pedido.Pedido}."
-                    : respuesta.Mensaje.Trim();
+                if (respuesta?.YaRecibido == true)
+                {
+                    // 27/11/26: el pedido ya había llegado: no es un error. No se ha cambiado ninguna fecha y el envío sale de la lista.
+                    Mensaje = TextoYaRecibido(respuesta, pedido);
+                    QuitarEnvio(envio);
+                    _dialogos?.ShowNotification("Pedido ya recibido", Mensaje);
+                }
+                else
+                {
+                    Mensaje = string.IsNullOrWhiteSpace(respuesta?.Mensaje)
+                        ? $"Envío asignado al pedido {pedido.Pedido}."
+                        : respuesta.Mensaje.Trim();
+                }
             }
             catch (Exception ex)
             {
@@ -563,6 +657,28 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }
             await RecargarTodoAsync().ConfigureAwait(true);
+        }
+
+        internal static string TextoYaRecibido(RespuestaAsignacionEnvioProveedor respuesta, PedidoCompraPorAsignar pedido)
+            => string.IsNullOrWhiteSpace(respuesta?.Mensaje)
+                ? $"El pedido {pedido?.Pedido} ya estaba recibido: no se ha cambiado ninguna fecha; el envío queda asignado a él."
+                : respuesta.Mensaje.Trim();
+
+        /// <summary>Saca el envío de la lista (sin esperar a releer) y elige el siguiente.</summary>
+        internal void QuitarEnvio(EnvioProveedorPorAsignar envio)
+        {
+            if (envio == null || !Envios.Remove(envio))
+            {
+                return;
+            }
+            EnvioSeleccionado = Envios.FirstOrDefault();
+            if (EnvioSeleccionado == null)
+            {
+                PrepararEleccion(null);
+                OnPropertyChanged(nameof(HayEnvioSeleccionado));
+                OnPropertyChanged(nameof(HayRemitentePaquete));
+            }
+            OnPropertyChanged(nameof(TextoEnvios));
         }
 
         internal static string PreguntaReasignar(string motivo, PedidoCompraPorAsignar pedido)
@@ -688,6 +804,8 @@ namespace Nesto.Modules.Producto.ViewModels
             AsignarCommand?.NotifyCanExecuteChanged();
             DescartarCommand?.NotifyCanExecuteChanged();
             BorrarRemitenteCommand?.NotifyCanExecuteChanged();
+            EmpezarEnsenarRemitenteCommand?.NotifyCanExecuteChanged();
+            EnsenarRemitenteCommand?.NotifyCanExecuteChanged();
         }
     }
 }

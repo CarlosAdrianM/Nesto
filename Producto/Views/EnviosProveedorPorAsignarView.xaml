@@ -1,9 +1,10 @@
-<UserControl x:Class="Nesto.Modules.Producto.Views.EnviosProveedorPorAsignarView"
+﻿<UserControl x:Class="Nesto.Modules.Producto.Views.EnviosProveedorPorAsignarView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:viewmodels="clr-namespace:Nesto.Modules.Producto.ViewModels"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              d:DataContext="{d:DesignInstance Type=viewmodels:EnviosProveedorPorAsignarViewModel}"
              mc:Ignorable="d"
              d:DesignHeight="750" d:DesignWidth="1300"
@@ -77,7 +78,7 @@
                                 <DataGridTextColumn Header="Primer correo" Binding="{Binding PrimerCorreo, StringFormat='dd/MM/yy HH:mm'}" Width="95" />
                                 <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciaTexto}" Width="*" />
                                 <DataGridTextColumn Header="Códigos" Binding="{Binding CodigosTexto}" Width="1.5*" />
-                                <DataGridTextColumn Header="Proveedor propuesto" Binding="{Binding ProveedorPropuesto}" Width="*" />
+                                <DataGridTextColumn Header="Proveedor propuesto" Binding="{Binding ProveedorPropuestoTexto}" Width="*" />
                                 <DataGridTextColumn Header="Candidatos" Binding="{Binding CandidatosTexto}" Width="95" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -98,8 +99,13 @@
                                 <StackPanel>
                                     <TextBlock Text="Remitente del paquete" Style="{StaticResource Etiqueta}" />
                                     <TextBlock Text="{Binding EnvioSeleccionado.RemitentePaquete}" Style="{StaticResource Dato}" />
+                                    <!-- 27/11/26: enseñar a mano de qué proveedor es quien expide el paquete -->
+                                    <Button Content="Este remitente es del proveedor…" Command="{Binding EmpezarEnsenarRemitenteCommand}" HorizontalAlignment="Left"
+                                            Style="{StaticResource Boton}" Margin="0,4,0,0"
+                                            Visibility="{Binding HayRemitentePaquete, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            ToolTip="Recuerda que los paquetes de este remitente son de un proveedor (sin tener que asignar el correo)" />
                                     <TextBlock Text="Proveedor propuesto" Style="{StaticResource Etiqueta}" />
-                                    <TextBlock Text="{Binding EnvioSeleccionado.ProveedorPropuesto}" Style="{StaticResource Dato}" />
+                                    <TextBlock Text="{Binding EnvioSeleccionado.ProveedorPropuestoTexto}" Style="{StaticResource Dato}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock Text="Entrega estimada (según el correo)" Style="{StaticResource Etiqueta}" />
@@ -108,6 +114,24 @@
                                     <TextBlock Text="{Binding EnvioSeleccionado.FechaRecepcionPropuestaTexto}" Style="{StaticResource Dato}" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Grid>
+                            <!-- 27/11/26: sin candidatos, por qué (p. ej. el proveedor recordado no tiene pedidos enviados y sin recibir) -->
+                            <TextBlock Text="{Binding EnvioSeleccionado.Explicacion}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#8A5A00"
+                                       Visibility="{Binding EnvioSeleccionado.HayExplicacion, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+
+                            <GroupBox Header="Este remitente es del proveedor…" Padding="6" Margin="0,8,0,0"
+                                      Visibility="{Binding EnsenandoRemitente, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock TextWrapping="Wrap">
+                                        <Run Text="Elija el proveedor de «" /><Run Text="{Binding EnvioSeleccionado.RemitentePaquete, Mode=OneWay}" /><Run Text="». Sus próximos avisos se propondrán para los pedidos de ese proveedor." />
+                                    </TextBlock>
+                                    <controles:SelectorProveedor MinHeight="60" MaxHeight="200" Margin="0,4,0,4"
+                                                                 Proveedor="{Binding DataContext.ProveedorDelRemitente, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" />
+                                    <WrapPanel>
+                                        <Button Content="Guardar" Command="{Binding EnsenarRemitenteCommand}" Style="{StaticResource Boton}" FontWeight="SemiBold" />
+                                        <Button Content="Cancelar" Command="{Binding CancelarEnsenarRemitenteCommand}" Style="{StaticResource Boton}" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </GroupBox>
 
                             <TextBlock Text="Correos del envío" Style="{StaticResource Etiqueta}" Margin="0,10,0,2" />
                             <ItemsControl ItemsSource="{Binding EnvioSeleccionado.Correos}">
@@ -222,7 +246,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Remitente del paquete" Binding="{Binding RemitentePaquete}" Width="2*" />
                             <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa}" Width="60" />
-                            <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" Width="80" />
+                            <DataGridTextColumn Header="Proveedor" Binding="{Binding ProveedorTexto}" Width="2*" />
                             <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="*" />
                             <DataGridTextColumn Header="Fecha" Binding="{Binding FechaModificacionTexto}" Width="110" />
                         </DataGrid.Columns>
