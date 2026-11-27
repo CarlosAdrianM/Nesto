@@ -163,6 +163,7 @@ Public Class RemesasViewModel
         ' NestoAPI#896: cada carga invalida el riesgo que estuviera en camino de una carga anterior.
         _versionRiesgo += 1
         Dim version = _versionRiesgo
+        _respuestaRiesgo = Nothing
         ResumenRiesgo = Nothing
         Try
             estaOcupado = True
@@ -212,11 +213,26 @@ Public Class RemesasViewModel
         Try
             RiesgoImpagosRemesa.Casar(lista, respuesta, empresa)
             HayRiesgo = respuesta IsNot Nothing
-            ResumenRiesgo = RiesgoImpagosRemesa.ComponerResumen(respuesta)
+            _respuestaRiesgo = respuesta
+            RecalcularResumenRiesgo()
         Catch
             ' Best-effort: el riesgo nunca puede estropear la ventana.
         End Try
     End Function
+
+    ' La última respuesta 200 (Nothing = no se enseña). El resumen se calcula sobre lo SELECCIONADO
+    ' en la rejilla y se recalcula al marcar/desmarcar o al cambiar un importe (CandidatoCambiado y
+    ' AplicarEfectosLiquidados), igual que el total seleccionado.
+    Private _respuestaRiesgo As CandidatosRiesgoImpagosModel
+
+    Private Sub RecalcularResumenRiesgo()
+        Try
+            ResumenRiesgo = RiesgoImpagosRemesa.ComponerResumen(_respuestaRiesgo, ListaCandidatos)
+        Catch
+            ' Best-effort: el riesgo nunca puede estropear la ventana.
+            ResumenRiesgo = Nothing
+        End Try
+    End Sub
 
     Private _resumenRiesgo As String
     ''' <summary>Línea de resumen del riesgo de devolución; Nothing = no se enseña.</summary>
@@ -246,6 +262,8 @@ Public Class RemesasViewModel
             OnPropertyChanged(NameOf(NumeroEfectosSeleccionados))
             OnPropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand.NotifyCanExecuteChanged()
+            ' NestoAPI#896: el riesgo de lo que va a girar sigue a la selección.
+            RecalcularResumenRiesgo()
         End If
     End Sub
 
@@ -285,6 +303,7 @@ Public Class RemesasViewModel
             OnPropertyChanged(NameOf(NumeroEfectosSeleccionados))
             OnPropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand?.NotifyCanExecuteChanged()
+            RecalcularResumenRiesgo()
         End If
     End Sub
 

@@ -123,11 +123,58 @@ Public Class RiesgoImpagosRemesaTests
 
 #Region "Resumen"
 
+    ' Un candidato con su riesgo ya casado (lo que deja Casar) y marcado o no en la rejilla.
+    Private Shared Function ConRiesgo(id As Integer, probabilidad As Double?, seleccionado As Boolean,
+                                      Optional importe As Decimal = 100D) As EfectoCandidatoModel
+        Dim c = Candidato(id, preseleccionado:=seleccionado)
+        c.ImportePendiente = importe
+        c.Seleccionado = seleccionado
+        c.ProbabilidadDevolucion = probabilidad
+        c.NivelRiesgo = RiesgoImpagosRemesa.Nivel(Nothing, probabilidad)
+        Return c
+    End Function
+
     <TestMethod()>
-    Public Sub ComponerResumen_ConModelo_LaFraseConTotalYTramos()
+    Public Sub ComponerResumen_SeCalculaConLoSeleccionado_NoConElTotalDeLaApi()
+        ' La API trae 4,2 esperadas y 3+5 altos contando los retenidos: no se usan.
+        Dim candidatos = {
+            ConRiesgo(1, 0.31, True, 1000D), ConRiesgo(2, 0.35, True, 500D), ConRiesgo(3, 0.2, True, 200D),
+            ConRiesgo(4, 0.01, True, 300D), ConRiesgo(5, Nothing, True, 50D)}
         Assert.AreEqual(
-            "Riesgo de devolución: se esperan 4,2 devoluciones (1.830,50 € en riesgo). 3 recibos con 30 % o más, 5 entre 15 y 30 %.",
-            RiesgoImpagosRemesa.ComponerResumen(Respuesta()))
+            "Riesgo de devolución: se esperan 0,9 devoluciones (528,00 € en riesgo). 2 recibos con 30 % o más, 1 entre 15 y 30 %.",
+            RiesgoImpagosRemesa.ComponerResumen(Respuesta(), candidatos))
+    End Sub
+
+    <TestMethod()>
+    Public Sub ComponerResumen_CasoReal27Nov_DieciochoSeleccionadosYDosAltosRetenidos()
+        ' 54 candidatos: 18 seleccionados (máximo 6,9 %, 0,37 esperadas) y 36 retenidos, dos de ellos con 15 % o más.
+        Dim candidatos As New List(Of EfectoCandidatoModel) From {ConRiesgo(1, 0.069, True)}
+        For i = 2 To 18
+            candidatos.Add(ConRiesgo(i, 0.0177, True))
+        Next
+        candidatos.Add(ConRiesgo(19, 0.2, False))
+        candidatos.Add(ConRiesgo(20, 0.35, False))
+        For i = 21 To 54
+            candidatos.Add(ConRiesgo(i, 0.01, False))
+        Next
+        Assert.AreEqual(
+            "Riesgo de devolución: se esperan 0,4 devoluciones (36,99 € en riesgo). Ningún recibo con 15 % o más. Fuera de la selección hay 2 recibos con 15 % o más.",
+            RiesgoImpagosRemesa.ComponerResumen(Respuesta(), candidatos))
+
+        ' Al marcar uno de los altos, entra en la frase y sale de «fuera».
+        candidatos.Single(Function(c) c.Id = 20).Seleccionado = True
+        Assert.AreEqual(
+            "Riesgo de devolución: se esperan 0,7 devoluciones (71,99 € en riesgo). 1 recibo con 30 % o más. Fuera de la selección hay 1 recibo con 15 % o más.",
+            RiesgoImpagosRemesa.ComponerResumen(Respuesta(), candidatos))
+    End Sub
+
+    <TestMethod()>
+    Public Sub ComponerResumen_NadaSeleccionado()
+        Dim candidatos = {ConRiesgo(1, 0.4, False), ConRiesgo(2, 0.02, False)}
+        Assert.AreEqual("No hay recibos seleccionados. Fuera de la selección hay 1 recibo con 15 % o más.",
+                        RiesgoImpagosRemesa.ComponerResumen(Respuesta(), candidatos))
+        Assert.AreEqual("No hay recibos seleccionados.",
+                        RiesgoImpagosRemesa.ComponerResumen(Respuesta(), {ConRiesgo(3, 0.02, False)}))
     End Sub
 
     <TestMethod()>
@@ -135,32 +182,22 @@ Public Class RiesgoImpagosRemesaTests
         Dim r = Respuesta()
         r.ConModelo = False
         r.Mensaje = "No hay modelo guardado (o no ha podido predecir): la probabilidad es la de la regla."
-        Assert.AreEqual(r.Mensaje, RiesgoImpagosRemesa.ComponerResumen(r))
+        Assert.AreEqual(r.Mensaje, RiesgoImpagosRemesa.ComponerResumen(r, {ConRiesgo(1, 0.4, True)}))
     End Sub
 
     <TestMethod()>
     Public Sub ComponerResumen_SinRespuesta_Nada()
-        Assert.IsNull(RiesgoImpagosRemesa.ComponerResumen(Nothing))
+        Assert.IsNull(RiesgoImpagosRemesa.ComponerResumen(Nothing, {ConRiesgo(1, 0.4, True)}))
     End Sub
 
     <TestMethod()>
-    Public Sub ComponerResumen_SinTramosAltos_LoDice()
-        Dim r = Respuesta()
-        r.Tramos = New List(Of TramoRiesgoImpagosModel) From {New TramoRiesgoImpagosModel With {.Tramo = "< 5 %", .Recibos = 4}}
-        r.Total.DevolucionesEsperadas = 0.12
-        r.Total.ImporteEnRiesgo = 9.5D
-        Assert.AreEqual("Riesgo de devolución: se esperan 0,1 devoluciones (9,50 € en riesgo). Ningún recibo con 15 % o más.",
-                        RiesgoImpagosRemesa.ComponerResumen(r))
-    End Sub
-
-    <TestMethod()>
-    Public Sub ComponerResumen_SoloTramoMedio_UnRecibo()
-        Dim r = Respuesta()
-        r.Tramos = New List(Of TramoRiesgoImpagosModel) From {New TramoRiesgoImpagosModel With {.Tramo = "15-30 %", .Recibos = 1}}
-        r.Total.DevolucionesEsperadas = 1
-        r.Total.ImporteEnRiesgo = 20D
-        Assert.AreEqual("Riesgo de devolución: se espera 1,0 devolución (20,00 € en riesgo). 1 recibo entre 15 y 30 %.",
-                        RiesgoImpagosRemesa.ComponerResumen(r))
+    Public Sub ComponerResumen_UnaDevolucionYUnSoloMedio_EnSingular()
+        Dim candidatos = {ConRiesgo(1, 0.2, True, 20D), ConRiesgo(2, 0.8, True, 0D)}
+        Assert.AreEqual("Riesgo de devolución: se espera 1,0 devolución (4,00 € en riesgo). 1 recibo con 30 % o más, 1 entre 15 y 30 %.",
+                        RiesgoImpagosRemesa.ComponerResumen(Respuesta(), candidatos))
+        Dim soloMedio = {ConRiesgo(3, 0.2, True, 20D)}
+        Assert.AreEqual("Riesgo de devolución: se esperan 0,2 devoluciones (4,00 € en riesgo). 1 recibo entre 15 y 30 %.",
+                        RiesgoImpagosRemesa.ComponerResumen(Respuesta(), soloMedio))
     End Sub
 
 #End Region
@@ -193,12 +230,33 @@ Public Class RiesgoImpagosRemesaTests
 
         A.CallTo(Function() _servicio.LeerRiesgoCandidatos("1  ", #2026-11-30#)).MustHaveHappenedOnceExactly()
         Assert.IsTrue(vm.HayRiesgo)
-        StringAssert.StartsWith(vm.ResumenRiesgo, "Riesgo de devolución: se esperan 4,2 devoluciones")
+        ' El resumen es de lo seleccionado (el 10, sin riesgo), no del Total de la API (4,2).
+        Assert.AreEqual("Riesgo de devolución: se esperan 0,0 devoluciones (0,00 € en riesgo). Ningún recibo con 15 % o más. Fuera de la selección hay 1 recibo con 15 % o más.",
+                        vm.ResumenRiesgo)
         Assert.AreEqual("31,0 %", vm.ListaCandidatos.Single(Function(c) c.Id = 11).RiesgoTexto)
         ' Solo informa: la preselección y la selección siguen igual.
         Assert.IsTrue(vm.ListaCandidatos.Single(Function(c) c.Id = 10).Seleccionado)
         Assert.IsFalse(vm.ListaCandidatos.Single(Function(c) c.Id = 11).Seleccionado)
         Assert.AreEqual(1, vm.NumeroEfectosSeleccionados)
+    End Function
+
+    <TestMethod()>
+    Public Async Function VM_AlMarcarODesmarcar_SeRecalculaElResumen() As Task
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(10), Candidato(11, preseleccionado:=False)}))
+        A.CallTo(Function() _servicio.LeerRiesgoCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(Respuesta(New EfectoRiesgoImpagoModel With {.NumOrden = 11, .Probabilidad = 0.31, .Tramo = "≥ 30 %"})))
+
+        Dim vm = CrearViewModel()
+        vm.empresaActual = "1  "
+        Await vm.CargarCandidatosAsync()
+        Await vm.UltimaCargaRiesgo
+
+        vm.ListaCandidatos.Single(Function(c) c.Id = 11).Seleccionado = True
+        Assert.AreEqual("Riesgo de devolución: se esperan 0,3 devoluciones (31,00 € en riesgo). 1 recibo con 30 % o más.", vm.ResumenRiesgo)
+
+        vm.DesmarcarTodosCommand.Execute(Nothing)
+        Assert.AreEqual("No hay recibos seleccionados. Fuera de la selección hay 1 recibo con 15 % o más.", vm.ResumenRiesgo)
     End Function
 
     <TestMethod()>
@@ -289,7 +347,8 @@ Public Class RiesgoImpagosRemesaTests
         Await cargaVieja
 
         Assert.AreEqual("2,0 %", vm.ListaCandidatos.Single().RiesgoTexto)
-        StringAssert.Contains(vm.ResumenRiesgo, "4,2 devoluciones")
+        ' 2 % de 100 € (la vieja, 60 %, daría 60,00 €).
+        StringAssert.Contains(vm.ResumenRiesgo, "(2,00 € en riesgo)")
         ' Y la lista vieja tampoco se ha tocado.
         Assert.IsNull(primeraLista.Single().RiesgoTexto)
     End Function

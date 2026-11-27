@@ -3,7 +3,7 @@ Imports Nesto.Infrastructure.Models
 
 ' NestoAPI#896 (Carlos, 27/11/26, «Enseñarlo ya a Dirección»): lógica PURA de la columna «Riesgo»
 ' y de la línea de resumen de la pestaña Cartera viva de Remesas. Casa cada efecto candidato con su
-' riesgo (por Nº de orden, que es el Id del candidato) y compone la frase con Total y Tramos.
+' riesgo (por Nº de orden, que es el Id del candidato) y compone la frase con lo SELECCIONADO en la rejilla.
 ' Solo informa: no toca ni Seleccionado ni Preseleccionado.
 Public NotInheritable Class RiesgoImpagosRemesa
 
@@ -94,11 +94,14 @@ Public NotInheritable Class RiesgoImpagosRemesa
     End Function
 
     ''' <summary>
-    ''' La línea de resumen. Nothing = no se enseña nada. Sin modelo (ConModelo false) y con Mensaje, el
-    ''' Mensaje en su lugar. Ejemplo: «Riesgo de devolución: se esperan 4,2 devoluciones (1.830,50 € en riesgo).
-    ''' 3 recibos con 30 % o más, 5 entre 15 y 30 %.»
+    ''' La línea de resumen. Nothing = no se enseña nada (sin respuesta 200). Sin modelo (ConModelo false) y con
+    ''' Mensaje, el Mensaje en su lugar. Si no, se calcula sobre los candidatos SELECCIONADOS (los que irían en la
+    ''' remesa; ajuste de Carlos 27/11/26: la API suma también los retenidos, que hoy no se giran), con la
+    ''' probabilidad que ya les puso <see cref="Casar"/> y el importe que enseña la rejilla. Ejemplo: «Riesgo de
+    ''' devolución: se esperan 4,2 devoluciones (1.830,50 € en riesgo). 3 recibos con 30 % o más, 5 entre 15 y 30 %.
+    ''' Fuera de la selección hay 2 recibos con 15 % o más.»
     ''' </summary>
-    Public Shared Function ComponerResumen(respuesta As CandidatosRiesgoImpagosModel) As String
+    Public Shared Function ComponerResumen(respuesta As CandidatosRiesgoImpagosModel, candidatos As IEnumerable(Of EfectoCandidatoModel)) As String
         If respuesta Is Nothing Then
             Return Nothing
         End If
@@ -106,26 +109,32 @@ Public NotInheritable Class RiesgoImpagosRemesa
         If Not respuesta.ConModelo AndAlso mensaje IsNot Nothing Then
             Return mensaje
         End If
-        Dim esperadas As Double? = respuesta.Total?.DevolucionesEsperadas
-        If Not esperadas.HasValue Then
-            Return mensaje
+
+        Dim todos = If(candidatos, Enumerable.Empty(Of EfectoCandidatoModel)()).Where(Function(c) c IsNot Nothing).ToList()
+        Dim seleccionados = todos.Where(Function(c) c.Seleccionado).ToList()
+        Dim fuera = todos.Where(Function(c) Not c.Seleccionado AndAlso c.NivelRiesgo >= 2).Count()
+        Dim fraseFuera = If(fuera = 0, "",
+            $" Fuera de la selección hay {fuera} {If(fuera = 1, "recibo", "recibos")} con 15 % o más.")
+
+        If Not seleccionados.Any() Then
+            Return "No hay recibos seleccionados." & fraseFuera
         End If
 
-        Dim textoEsperadas = esperadas.Value.ToString("0.0", Cultura)
+        Dim conProbabilidad = seleccionados.Where(Function(c) c.ProbabilidadDevolucion.HasValue).ToList()
+        Dim esperadas As Double = conProbabilidad.Sum(Function(c) c.ProbabilidadDevolucion.Value)
+        Dim importeEnRiesgo As Decimal = Math.Round(
+            conProbabilidad.Sum(Function(c) c.ImportePendiente * CDec(c.ProbabilidadDevolucion.Value)), 2, MidpointRounding.AwayFromZero)
+
+        Dim textoEsperadas = Math.Round(esperadas, 1, MidpointRounding.AwayFromZero).ToString("0.0", Cultura)
         Dim frase = If(textoEsperadas = "1,0",
             $"Riesgo de devolución: se espera {textoEsperadas} devolución",
             $"Riesgo de devolución: se esperan {textoEsperadas} devoluciones")
-        Dim importeEnRiesgo As Decimal? = respuesta.Total?.ImporteEnRiesgo
-        If importeEnRiesgo.HasValue Then
-            frase &= $" ({importeEnRiesgo.Value.ToString("C", Cultura)} en riesgo)"
-        End If
-        frase &= "."
+        frase &= $" ({importeEnRiesgo.ToString("C", Cultura)} en riesgo)."
 
-        Dim tramos = If(respuesta.Tramos, New List(Of TramoRiesgoImpagosModel))
-        Dim altos = RecibosDelTramo(tramos, TRAMO_30_O_MAS)
-        Dim medios = RecibosDelTramo(tramos, TRAMO_15_30)
+        Dim altos = seleccionados.Where(Function(c) c.NivelRiesgo = 3).Count()
+        Dim medios = seleccionados.Where(Function(c) c.NivelRiesgo = 2).Count()
         If altos = 0 AndAlso medios = 0 Then
-            Return frase & " Ningún recibo con 15 % o más."
+            Return frase & " Ningún recibo con 15 % o más." & fraseFuera
         End If
         Dim partes As New List(Of String)
         If altos > 0 Then
@@ -134,11 +143,7 @@ Public NotInheritable Class RiesgoImpagosRemesa
         If medios > 0 Then
             partes.Add($"{medios} {If(altos > 0, "", If(medios = 1, "recibo ", "recibos "))}entre 15 y 30 %")
         End If
-        Return frase & " " & String.Join(", ", partes) & "."
-    End Function
-
-    Private Shared Function RecibosDelTramo(tramos As IEnumerable(Of TramoRiesgoImpagosModel), nombre As String) As Integer
-        Return tramos.Where(Function(t) t IsNot Nothing AndAlso String.Equals(t.Tramo?.Trim(), nombre, StringComparison.Ordinal)).Sum(Function(t) t.Recibos)
+        Return frase & " " & String.Join(", ", partes) & "." & fraseFuera
     End Function
 
 End Class
