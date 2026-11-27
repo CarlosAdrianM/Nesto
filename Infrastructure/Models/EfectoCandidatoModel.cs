@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace Nesto.Infrastructure.Models
@@ -73,7 +74,120 @@ namespace Nesto.Infrastructure.Models
             }
         }
 
+        // NestoAPI#896 (27/11/26): riesgo de devolución del recibo, solo para quien la API deja
+        // verlo (Dirección e Informática). Llega DESPUÉS de cargar los candidatos, así que notifica.
+        // Es solo informativo: no cambia ni la preselección ni lo que se remesa.
+        private double? _probabilidadDevolucion;
+        /// <summary>Probabilidad de devolución (0-1); null = sin dato. La columna «Riesgo» ordena por ella.</summary>
+        public double? ProbabilidadDevolucion
+        {
+            get => _probabilidadDevolucion;
+            set
+            {
+                if (_probabilidadDevolucion != value)
+                {
+                    _probabilidadDevolucion = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProbabilidadDevolucion)));
+                }
+            }
+        }
+
+        private string _riesgoTexto;
+        /// <summary>El porcentaje con un decimal («23,7 %»); null sin dato.</summary>
+        public string RiesgoTexto
+        {
+            get => _riesgoTexto;
+            set
+            {
+                if (_riesgoTexto != value)
+                {
+                    _riesgoTexto = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RiesgoTexto)));
+                }
+            }
+        }
+
+        private int _nivelRiesgo;
+        /// <summary>0 = sin color (sin dato o &lt; 5 %), 1 = 5-15 %, 2 = 15-30 %, 3 = ≥ 30 %.</summary>
+        public int NivelRiesgo
+        {
+            get => _nivelRiesgo;
+            set
+            {
+                if (_nivelRiesgo != value)
+                {
+                    _nivelRiesgo = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(NivelRiesgo)));
+                }
+            }
+        }
+
+        private string _motivosRiesgo;
+        /// <summary>Los motivos de la predicción, uno por línea (tooltip); null si no hay.</summary>
+        public string MotivosRiesgo
+        {
+            get => _motivosRiesgo;
+            set
+            {
+                if (_motivosRiesgo != value)
+                {
+                    _motivosRiesgo = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MotivosRiesgo)));
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
+    }
+
+    /// <summary>
+    /// NestoAPI#896 (27/11/26): respuesta de GET api/Remesas/ModeloImpagados/Candidatos
+    /// (CandidatosRiesgoImpagosDTO del API). Solo llega con 200 a Dirección e Informática.
+    /// </summary>
+    public class CandidatosRiesgoImpagosModel
+    {
+        public DateTime Fecha { get; set; }
+        public string VersionModelo { get; set; }
+        public bool ConModelo { get; set; }
+        public string Mensaje { get; set; }
+        public TotalRiesgoImpagosModel Total { get; set; }
+        public List<TramoRiesgoImpagosModel> Tramos { get; set; } = new List<TramoRiesgoImpagosModel>();
+        public List<EfectoRiesgoImpagoModel> Efectos { get; set; } = new List<EfectoRiesgoImpagoModel>();
+    }
+
+    public class TotalRiesgoImpagosModel
+    {
+        public int Recibos { get; set; }
+        public decimal Importe { get; set; }
+        public double? DevolucionesEsperadas { get; set; }
+        public decimal? ImporteEnRiesgo { get; set; }
+    }
+
+    public class TramoRiesgoImpagosModel
+    {
+        public string Tramo { get; set; }
+        public int Recibos { get; set; }
+        public decimal Importe { get; set; }
+        public double DevolucionesEsperadas { get; set; }
+    }
+
+    public class EfectoRiesgoImpagoModel
+    {
+        public string Empresa { get; set; }
+        public string Cliente { get; set; }
+        public string Contacto { get; set; }
+        public string Nombre { get; set; }
+        public string Documento { get; set; }
+        public string Efecto { get; set; }
+        public decimal Importe { get; set; }
+        public DateTime? FechaVto { get; set; }
+        public int NumOrden { get; set; }
+        public bool Preseleccionado { get; set; }
+        public string MotivoRetencion { get; set; }
+        public double? Probabilidad { get; set; }
+        public double? ProbabilidadRegla { get; set; }
+        public string Tramo { get; set; }
+        public List<string> Motivos { get; set; } = new List<string>();
     }
 
     /// <summary>Respuesta del POST api/Remesas (NestoAPI#332).</summary>

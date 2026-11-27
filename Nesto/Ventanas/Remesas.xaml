@@ -9,6 +9,9 @@
     <UserControl.Resources>
         <!-- #3: total en € por grupo (fecha de cargo) en la cabecera del detalle -->
         <local:SumaImporteGrupoConverter x:Key="sumaImporteGrupo"/>
+        <!-- NestoAPI#896: la columna «Riesgo» solo se enseña si la API respondió 200 -->
+        <BooleanToVisibilityConverter x:Key="BoolAVisible"/>
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}"/>
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
@@ -73,6 +76,22 @@
                                             VerticalAlignment="Center"
                                             ToolTip="Todos los efectos se cargan en esta fecha (default hoy; nunca anterior a hoy). Con la casilla marcada no aplica."/>
                             </StackPanel>
+                            <!-- NestoAPI#896 (27/11/26): resumen del riesgo de devolución. Solo con
+                                 200 de la API (Dirección e Informática); si no, no se ve nada. -->
+                            <TextBox Margin="0,6,0,0" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                                     Cursor="IBeam" IsTabStop="False" TextWrapping="Wrap"
+                                     Text="{Binding ResumenRiesgo, Mode=OneWay}"
+                                     ToolTip="Probabilidad de que los recibos vengan devueltos (modelo de impagados). Solo informa: no cambia lo que se remesa.">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ResumenRiesgo}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
                         </StackPanel>
                         <!-- #2: doble clic en un efecto (naranja/con negativos) abre el Extracto
                              de Cliente cargado con ese cliente para liquidar -->
@@ -95,6 +114,34 @@
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="CCC" Binding="{Binding Ccc}" IsReadOnly="True"/>
                                 <DataGridCheckBoxColumn Header="Negativos" Binding="{Binding ClienteConNegativos, Mode=OneWay}" IsReadOnly="True"/>
+                                <!-- NestoAPI#896: probabilidad de devolución; ordena por el número, no por el texto -->
+                                <DataGridTextColumn Header="Riesgo" Binding="{Binding RiesgoTexto}" SortMemberPath="ProbabilidadDevolucion" IsReadOnly="True"
+                                                    Visibility="{Binding Data.HayRiesgo, Source={StaticResource ViewModelProxy}, Converter={StaticResource BoolAVisible}}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style TargetType="DataGridCell">
+                                            <Setter Property="ToolTip" Value="{Binding MotivosRiesgo}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding NivelRiesgo}" Value="1">
+                                                    <Setter Property="Background" Value="#FFF6D5"/>
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding NivelRiesgo}" Value="2">
+                                                    <Setter Property="Background" Value="#FFDDB3"/>
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding NivelRiesgo}" Value="3">
+                                                    <Setter Property="Background" Value="#F8C4C4"/>
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="*" IsReadOnly="True"/>
                             </DataGrid.Columns>
                             <DataGrid.RowStyle>

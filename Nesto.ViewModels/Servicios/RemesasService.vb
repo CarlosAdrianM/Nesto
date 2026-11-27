@@ -278,6 +278,27 @@ Public Class RemesasService
         End Using
     End Function
 
+    ' NestoAPI#896 (27/11/26): quién lo ve lo decide la API (403 si no es de Dirección ni de
+    ' Informática; 503 sin la tabla). Cualquier respuesta que no sea 200 → Nothing, sin avisar.
+    Public Async Function LeerRiesgoCandidatos(empresa As String, hasta As Date?) As Task(Of CandidatosRiesgoImpagosModel) Implements IRemesasService.LeerRiesgoCandidatos
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Return Nothing
+            End If
+
+            Dim url As String = $"Remesas/ModeloImpagados/Candidatos?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}"
+            If hasta.HasValue Then
+                url += $"&hasta={hasta.Value:yyyy-MM-dd}"
+            End If
+            Dim response = Await client.GetAsync(url)
+            If response.StatusCode <> Net.HttpStatusCode.OK Then
+                Return Nothing
+            End If
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of CandidatosRiesgoImpagosModel)(body)
+        End Using
+    End Function
+
     ' Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
     Private Shared Function ExtraerMensajeError(body As String) As String
         Try

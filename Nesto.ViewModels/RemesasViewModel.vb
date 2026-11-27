@@ -160,15 +160,25 @@ Public Class RemesasViewModel
     ' NestoAPI#345: la primera vez se propone la fecha "hasta" del servidor (hoy +
     ' DiasAntelacionRemesa del usuario, saltando fines de semana y festivos).
     Public Async Function CargarCandidatosAsync() As Task
+        ' NestoAPI#896: cada carga invalida el riesgo que estuviera en camino de una carga anterior.
+        _versionRiesgo += 1
+        Dim version = _versionRiesgo
+        ResumenRiesgo = Nothing
         Try
             estaOcupado = True
             Await InicializarFechaSeleccionAsync()
-            Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresaActual, FechaSeleccionHasta)
+            Dim empresa = empresaActual
+            Dim hasta As Date? = FechaSeleccionHasta
+            Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresa, hasta)
             For Each candidato In candidatos
                 candidato.Seleccionado = candidato.Preseleccionado
                 AddHandler candidato.PropertyChanged, AddressOf CandidatoCambiado
             Next
-            ListaCandidatos = New ObservableCollection(Of EfectoCandidatoModel)(candidatos)
+            Dim lista = New ObservableCollection(Of EfectoCandidatoModel)(candidatos)
+            ListaCandidatos = lista
+            ' NestoAPI#896: el riesgo va DESPUÉS y sin esperarlo: si tarda o falla, la ventana
+            ' funciona igual que sin él.
+            UltimaCargaRiesgo = CargarRiesgoAsync(version, empresa, hasta, lista)
         Catch ex As Exception
             ListaCandidatos = New ObservableCollection(Of EfectoCandidatoModel)
             mensajeError = $"No se han podido cargar los efectos candidatos: {ex.Message}"
@@ -176,6 +186,59 @@ Public Class RemesasViewModel
             estaOcupado = False
         End Try
     End Function
+
+    ' NestoAPI#896 (Carlos, 27/11/26, «Enseñarlo ya a Dirección»): probabilidad de devolución de
+    ' cada candidato ANTES de crear la remesa. Quién lo ve lo decide la API: con 403, 503 o
+    ' cualquier error el servicio devuelve Nothing (o lanza) y aquí no se enseña nada ni se avisa.
+    ' Solo informa: no cambia la selección ni la preselección, y crear la remesa va igual.
+    Private _versionRiesgo As Integer
+
+    ' Para los tests: la última carga del riesgo lanzada (sin esperar) por CargarCandidatosAsync.
+    Friend Property UltimaCargaRiesgo As Task = Task.CompletedTask
+
+    Private Async Function CargarRiesgoAsync(version As Integer, empresa As String, hasta As Date?,
+                                             lista As ObservableCollection(Of EfectoCandidatoModel)) As Task
+        Dim respuesta As CandidatosRiesgoImpagosModel = Nothing
+        Try
+            respuesta = Await _remesasService.LeerRiesgoCandidatos(empresa, hasta)
+        Catch
+            respuesta = Nothing
+        End Try
+        ' Una respuesta vieja no pisa a una nueva: si mientras tanto se han recargado los
+        ' candidatos, esta se descarta.
+        If version <> _versionRiesgo OrElse lista IsNot ListaCandidatos Then
+            Return
+        End If
+        Try
+            RiesgoImpagosRemesa.Casar(lista, respuesta, empresa)
+            HayRiesgo = respuesta IsNot Nothing
+            ResumenRiesgo = RiesgoImpagosRemesa.ComponerResumen(respuesta)
+        Catch
+            ' Best-effort: el riesgo nunca puede estropear la ventana.
+        End Try
+    End Function
+
+    Private _resumenRiesgo As String
+    ''' <summary>Línea de resumen del riesgo de devolución; Nothing = no se enseña.</summary>
+    Public Property ResumenRiesgo As String
+        Get
+            Return _resumenRiesgo
+        End Get
+        Private Set(value As String)
+            Dim unused = SetProperty(_resumenRiesgo, value)
+        End Set
+    End Property
+
+    Private _hayRiesgo As Boolean
+    ''' <summary>True cuando la API ha respondido 200: se enseña la columna «Riesgo».</summary>
+    Public Property HayRiesgo As Boolean
+        Get
+            Return _hayRiesgo
+        End Get
+        Private Set(value As Boolean)
+            Dim unused = SetProperty(_hayRiesgo, value)
+        End Set
+    End Property
 
     Private Sub CandidatoCambiado(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
         If e.PropertyName = NameOf(EfectoCandidatoModel.Seleccionado) Then

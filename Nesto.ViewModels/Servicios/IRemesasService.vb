@@ -42,4 +42,8 @@ Public Interface IRemesasService
     ' NestoAPI#380 (ajuste 17/08/26): movimientos negativos pendientes de un cliente, para que
     ' el aviso previo a crear la remesa muestre el detalle y el usuario decida con criterio.
     Function LeerNegativosPendientes(cliente As String) As Task(Of List(Of NegativoPendienteModel))
+    ' NestoAPI#896 (27/11/26): riesgo de devolución de los candidatos (mismos parámetros que
+    ' LeerEfectosCandidatos). Nothing con cualquier respuesta que no sea 200 (403 para quien no es
+    ' de Dirección ni de Informática, 503 sin la tabla): entonces no se enseña nada ni se avisa.
+    Function LeerRiesgoCandidatos(empresa As String, hasta As Date?) As Task(Of CandidatosRiesgoImpagosModel)
 End Interface
