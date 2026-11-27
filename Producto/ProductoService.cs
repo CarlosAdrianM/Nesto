@@ -304,7 +304,7 @@ namespace Nesto.Modules.Producto
                 {
                     string vendedor = await _configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.Vendedor);
                     string todosLosClientes = await _configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.PermitirVerClientesTodosLosVendedores);
-                    string urlConsulta = todosLosClientes == "1"
+                    string urlConsulta = Parametros.EsSi(todosLosClientes)
                         ? "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor="
                         : "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor=" + vendedor;
                     response = await client.GetAsync(urlConsulta);

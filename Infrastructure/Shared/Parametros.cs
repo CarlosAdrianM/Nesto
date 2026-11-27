@@ -82,6 +82,9 @@
             // NestoAPI (PedidosVentaController.TieneParametroPermitirOmitirValidacion) y NestoApp.
             public const string PermitirCrearPedidoConErroresValidacion = "PermitirCrearPedidoConErroresValidacion";
             public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
+            // "1" o "true" (Parametros.EsSi) = el usuario busca y ve clientes de todos los vendedores (tiendas, centralita),
+            // como Administración y Dirección: selector de clientes (incidencia 1506), plantilla, ficha comercial, rapports
+            // y clientes de un producto. Fila «(defecto)» = '0'.
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             // Sugerencia 1261 (Lidia, 13/11/26): "1" = al grabar un pedido desde la Plantilla de venta, además de abrirse el
             // pedido queda abierta una plantilla limpia para el siguiente cliente. Cualquier otro valor, sin fila o si no se
@@ -117,6 +120,17 @@
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";
             public const string VistoBuenoVentas = "VistoBuenoVentas";
+        }
+
+        /// <summary>
+        /// Un parámetro de sí/no está activado: «1» o «true» (sin mayúsculas ni espacios que importen). Nulo, vacío
+        /// o cualquier otro valor = no. Es el criterio de la ficha comercial; los sitios que comparaban solo con «1»
+        /// lo usan desde la incidencia 1506 (27/11/26).
+        /// </summary>
+        public static bool EsSi(string valor)
+        {
+            string texto = (valor ?? string.Empty).Trim();
+            return texto == "1" || string.Equals(texto, "true", System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }

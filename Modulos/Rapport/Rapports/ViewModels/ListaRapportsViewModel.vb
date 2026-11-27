@@ -911,7 +911,7 @@ Public Class ListaRapportsViewModel
         Dim todosLosClientes As String = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
         Try
             EstaOcupado = True
-            listaRapports = If(todosLosClientes = "1",
+            listaRapports = If(Parametros.EsSi(todosLosClientes),
                 Await servicio.cargarListaRapportsFiltrada(String.Empty, Filtro),
                 Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro))
 

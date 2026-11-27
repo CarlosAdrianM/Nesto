@@ -37,21 +37,7 @@ namespace ControlesUsuario.Services
 
                 try
                 {
-                    string urlConsulta;
-                    if (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
-                    {
-                        urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=&filtro=" + filtro;
-                    }
-                    else
-                    {
-                        urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=" + vendedor + "&filtro=" + filtro;
-                    }
-                    if (contactoTelefonicoPrimero)
-                    {
-                        urlConsulta += "&contactoTelefonicoPrimero=true";
-                    }
-
-
+                    string urlConsulta = await ConstruirUrlBusqueda(configuracion, empresa, vendedor, filtro, contactoTelefonicoPrimero);
 
                     response = await client.GetAsync(urlConsulta);
 
@@ -71,6 +57,50 @@ namespace ControlesUsuario.Services
                 }
             }
 
+        }
+
+        /// <summary>
+        /// La URL de la búsqueda. Sin vendedor (todos los clientes) para Administración, Dirección y quien tenga el
+        /// parámetro PermitirVerClientesTodosLosVendedores (incidencia 1506: tiendas y centralita, que crean pedidos a
+        /// clientes de otros vendedores); al resto, solo los clientes de su vendedor (la API filtra por su equipo).
+        /// Se decide aquí, y no en cada pantalla, para que lo hereden todas las que usan el SelectorCliente.
+        /// Con contactoTelefonicoPrimero (sugerencia 582, Rapports) el parámetro no se mira: la API necesita el
+        /// vendedor para saber si es telefónico, y sin él el contacto en estado 9 dejaría de salir el primero.
+        /// </summary>
+        internal async Task<string> ConstruirUrlBusqueda(IConfiguracion configuracion, string empresa, string vendedor, string filtro, bool contactoTelefonicoPrimero)
+        {
+            bool todosLosVendedores = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+                || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || (!contactoTelefonicoPrimero && await PuedeVerClientesTodosLosVendedores(configuracion));
+
+            string urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=" + (todosLosVendedores ? string.Empty : vendedor) + "&filtro=" + filtro;
+            if (contactoTelefonicoPrimero)
+            {
+                urlConsulta += "&contactoTelefonicoPrimero=true";
+            }
+            return urlConsulta;
+        }
+
+        // Incidencia 1506: se lee la primera vez que se busca y vale para toda la vida del selector (no en cada tecla;
+        // leerParametro no cachea). Solo se guarda una lectura buena: si falla, se busca como siempre (con el vendedor)
+        // y se vuelve a intentar en la búsqueda siguiente.
+        private bool? _verClientesTodosLosVendedores;
+        private async Task<bool> PuedeVerClientesTodosLosVendedores(IConfiguracion configuracion)
+        {
+            if (_verClientesTodosLosVendedores.HasValue)
+            {
+                return _verClientesTodosLosVendedores.Value;
+            }
+            try
+            {
+                string valor = await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores);
+                _verClientesTodosLosVendedores = Parametros.EsSi(valor);
+                return _verClientesTodosLosVendedores.Value;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public Task<ClienteDTO> CargarCliente(string empresa, string cliente, string contacto)

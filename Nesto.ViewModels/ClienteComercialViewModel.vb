@@ -1937,7 +1937,7 @@ Public Class ClienteComercialViewModel
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "PedidosVenta"
                 Dim permitirTodosClientes As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
-                If If(permitirTodosClientes, String.Empty).Trim <> "1" Then
+                If Not Parametros.EsSi(permitirTodosClientes) Then
                     Dim mainViewModel As New MainViewModel
                     urlConsulta += "?vendedor=" + Uri.EscapeDataString(If(Await mainViewModel.leerParametro(empresaActual, "Vendedor"), String.Empty).Trim())
                 Else
@@ -2149,7 +2149,7 @@ Public Class ClienteComercialViewModel
             estaOcupado = True
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim url As String = "Clientes?empresa=1"
-                If Not EsSi(Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)) Then
+                If Not Parametros.EsSi(Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)) Then
                     url += "&vendedor=" + Uri.EscapeDataString(If(vendedor, String.Empty))
                 End If
                 url += "&filtro=" + Uri.EscapeDataString(filtro)
@@ -2183,12 +2183,6 @@ Public Class ClienteComercialViewModel
 
     Private Function EsLaUltimaBusqueda(busqueda As Integer) As Boolean
         Return busqueda = System.Threading.Volatile.Read(_busquedaClientes)
-    End Function
-
-    ''' <summary>Un parámetro de sí/no: «1» o «true». Antes el texto se convertía a Boolean y una cadena vacía daba error.</summary>
-    Private Shared Function EsSi(valor As String) As Boolean
-        Dim texto As String = If(valor, String.Empty).Trim()
-        Return texto = "1" OrElse String.Equals(texto, "true", StringComparison.OrdinalIgnoreCase)
     End Function
 
     ' Nesto#646: lo que esta ficha hacía dentro de cargarDatos y del setter de clienteActivo.

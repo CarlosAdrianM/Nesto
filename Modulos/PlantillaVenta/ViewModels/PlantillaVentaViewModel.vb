@@ -4614,7 +4614,7 @@ Public Class PlantillaVentaViewModel
             estaOcupado = True
             vendedor = Await leerParametro("Vendedor")
             Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
-            todosLosVendedores = IIf(parametroClientesTodosVendedores.Trim = "1", True, False)
+            todosLosVendedores = Parametros.EsSi(parametroClientesTodosVendedores)
             listaClientesOriginal = Await servicio.CargarClientesVendedor(filtroCliente, vendedor, todosLosVendedores)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
@@ -7242,7 +7242,7 @@ Public Class PlantillaVentaViewModel
         Try
             vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
             Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
-            todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
+            todosLosVendedores = Parametros.EsSi(parametroClientesTodosVendedores)
             Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
             listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
         Catch ex As Exception
